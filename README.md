@@ -1,5 +1,19 @@
-# Rest Assured in Java
+# Rest Assured with JUnit and Extent Reports
 Sample project on how to use Rest Assured in Java along with Junit
+Demo of rest assured using JUnit 4 and Extend Reports to generate a designed report result.
+
+### Requirements
+* Maven
+* JDK 1.8
+
+#### Configuration for extentreports
+* In extent.properties set the path where the report result will be placed.
+
+#### Running
+* mvn test
+
+
+Resport Result For generating this report was used Extent Reporting Framework, for details see: https://extentreports.com/.
 
 # Cucumber with Selenium in Java
 Sample project on how to use Cucumber with Selenium in Java along with Junit
