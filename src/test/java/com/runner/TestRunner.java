@@ -16,7 +16,8 @@ import org.junit.runner.RunWith;
         , monochrome = true
         , snippets = SnippetType.CAMELCASE
         //, tags = "@Sanity and @UI"
-        , tags = "@Sanity and @Api"
+        //, tags = "@Sanity and @Api"
+        , tags = "@Sanity"
         //, tags = "@Regression"
         //  , publish = true
 )

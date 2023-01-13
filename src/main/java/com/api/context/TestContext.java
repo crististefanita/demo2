@@ -7,7 +7,6 @@ import com.github.dzieciou.testing.curl.Options;
 import io.cucumber.java.Scenario;
 import io.restassured.RestAssured;
 import io.restassured.config.RestAssuredConfig;
-import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import org.slf4j.event.Level;
 
@@ -15,21 +14,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class TestContext {
-
-    public Response response;
-    public Map<String, Object> session = new HashMap<String, Object>();
+    public Map<String, Object> session = new HashMap<>();
 
     public Scenario scenario;
+
     private static final String CONTENT_TYPE = PropertiesFile.getProperty("content.type");
-
-
-    public Scenario getScenario() {
-        return scenario;
-    }
-
-    public void setScenario(Scenario scenario) {
-        this.scenario = scenario;
-    }
 
     public RequestSpecification requestSetup() {
         RestAssured.reset();
