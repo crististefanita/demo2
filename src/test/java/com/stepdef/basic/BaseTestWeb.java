@@ -9,14 +9,15 @@ import java.util.concurrent.TimeUnit;
 public class BaseTestWeb {
     private WebDriver driver;
 
-    private Scenario scenario;
+    public Scenario scenario;
 
     public WebDriver getDriver() {
         return driver;
     }
 
     public void setDriver() {
-        System.setProperty("webdriver.chrome.driver", "C:\\work\\new\\driver\\chromedriver.exe");
+        System.setProperty("webdriver.chrome.driver", ".\\src\\test\\resources\\driver\\chromedriver.exe");
+
         if (driver == null) {
             driver = new ChromeDriver();
         }
@@ -24,11 +25,4 @@ public class BaseTestWeb {
         driver.manage().window().maximize();
     }
 
-    public Scenario getScenario() {
-        return scenario;
-    }
-
-    public void setScenario(Scenario scenario) {
-        this.scenario = scenario;
-    }
 }

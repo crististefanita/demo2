@@ -16,7 +16,7 @@ public class HooksUI {
         if (base.getDriver() == null) {
             base.setDriver();
         }
-        base.setScenario(scenario);
+        base.scenario = scenario;
 
     }
 

@@ -21,8 +21,11 @@ public class AssertTest {
         description.appendText(reason).appendText(" - \nExpected: ").appendDescriptionOf(matcher).appendText("\n  found: ");
         matcher.describeMismatch(actual, description);
 
-        scenario.log(description.toString());
-        log.info(description);
+        if (scenario != null) {
+            scenario.log(description.toString());
+        } else {
+            log.info(description);
+        }
 
         if (!matcher.matches(actual)) {
             throw new AssertionError(description.toString());

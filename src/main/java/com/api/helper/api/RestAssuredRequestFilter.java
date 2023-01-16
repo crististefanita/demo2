@@ -20,9 +20,11 @@ public class RestAssuredRequestFilter implements Filter {
     @Override
     public Response filter(FilterableRequestSpecification requestSpec, FilterableResponseSpecification responseSpec, FilterContext ctx) {
         Response response = ctx.next(requestSpec, responseSpec);
-        logScenarioInfo(requestSpec, response);
-        logConsoleInfo(requestSpec, response);
-
+        if (scenario != null) {
+            logScenarioInfo(requestSpec, response);
+        } else {
+            logConsoleInfo(requestSpec, response);
+        }
         return response;
     }
 

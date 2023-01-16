@@ -15,12 +15,13 @@ public class FirstGoogleSearch {
 
     public FirstGoogleSearch(BaseTestWeb base) {
         this.base = base;
-        homePageAction = new HomePageAction(base.getDriver(), base.getScenario());
-        assertTest = new AssertTest(base.getScenario());
+        homePageAction = new HomePageAction(base.getDriver(), base.scenario);
+        assertTest = new AssertTest(base.scenario);
     }
 
     @Given("an user opens {string}")
     public void anUserOpensUrl(String url) {
+        base.scenario.log("try to open URL");
         base.getDriver().get(url);
         homePageAction.tryClosePopUp();
     }
