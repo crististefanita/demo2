@@ -175,6 +175,7 @@ final class AtfReportTheme {
                 + ".test-view .test-list .badge,.test-view .test-contents .badge,.test-content .badge.badge-success,"
                 + ".test-content .badge.badge-danger,.test-content .badge.badge-default{display:inline-flex!important;align-items:center!important;justify-content:center!important;font-size:var(--atf-badge-font-size)!important;"
                 + "line-height:var(--atf-badge-line-height)!important;font-weight:400!important}"
+                + ".test-view .test-list .badge.warning-bg,.test-view .test-list .badge.badge-warning,.test-view .test-contents .badge.warning-bg,.test-view .test-contents .badge.badge-warning,.test-content .badge.warning-bg,.test-content .badge.badge-warning{background:var(--atf-skip)!important;color:" + AtfReportColors.WHITE + "!important}"
                 + ".test-view .test-list .test-item .text-sm{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important}"
                 + ".test-view .test-list .test-item .text-sm>.badge{display:inline-flex!important;align-items:center!important;justify-content:center!important;float:none!important;margin-left:auto!important;height:var(--atf-badge-height)!important;min-height:var(--atf-badge-height)!important;padding:var(--atf-badge-padding)!important;line-height:var(--atf-badge-line-height)!important}"
                 // The reference keeps execution timestamps in the DOM for

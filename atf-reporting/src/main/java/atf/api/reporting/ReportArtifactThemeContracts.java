@@ -70,6 +70,6 @@ final class ReportArtifactThemeContracts {
                 && html.contains("badge.log.pass-bg,.category-view .test-contents .info .badge.log.pass-bg,.category-view .test-contents td .badge.log.pass-bg{background:var(--atf-pass)!important;color:var(--atf-pass-text)!important}")
                 && html.contains("badge.log.badge-danger,.category-view .test-contents .info .badge.log.badge-danger,.category-view .test-contents td .badge.log.badge-danger{background:var(--atf-fail)!important;color:var(--atf-fail-text)!important}")
                 && html.contains("badge.log.badge-skip,.category-view .test-contents .info .badge.log.badge-skip,.category-view .test-contents td .badge.log.badge-skip{background:var(--atf-skip)!important;color:var(--atf-skip-text)!important}")
-                && html.contains("badge.log.badge-warning,.category-view .test-contents .info .badge.log.badge-warning,.category-view .test-contents td .badge.log.badge-warning{background:var(--atf-skip)!important;color:var(--atf-skip-text)!important}"));
+                && html.contains("badge.log.badge-warning,.category-view .test-contents .info .badge.log.badge-warning,.category-view .test-contents td .badge.log.badge-warning{background:var(--atf-skip)!important;color:#fff!important}"));
     }
 }

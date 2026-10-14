@@ -22,9 +22,11 @@ artifact.
    complet al raportului Extent și criteriile de acceptare.
 8. [ATF_Reporting_Contract.md](ATF_Reporting_Contract.md) — arborele Extent,
    evidence-ul și regulile de randare.
-9. [ATF_BUILD_AND_EXECUTION_SAFETY.md](ATF_BUILD_AND_EXECUTION_SAFETY.md) —
+9. [ATF_REPORTING_REFERENCE_GUARD.md](ATF_REPORTING_REFERENCE_GUARD.md) —
+   reperul vizual/funcțional și procedura de comparație în TAB MCP.
+10. [ATF_BUILD_AND_EXECUTION_SAFETY.md](ATF_BUILD_AND_EXECUTION_SAFETY.md) —
    build, sincronizare și validare fără oprirea execuțiilor existente.
-10. [README_Atf_BestPractices.md](README_Atf_BestPractices.md) — reguli OOP,
+11. [README_Atf_BestPractices.md](README_Atf_BestPractices.md) — reguli OOP,
    testabilitate și mentenanță.
 
 ## Regula de lucru pentru orice schimbare

@@ -18,8 +18,8 @@ final class AtfReportOverviewCss {
                 + ".category-view .test-list .test-detail .meta .badge.log.badge-danger,.category-view .test-contents .info .badge.log.badge-danger,.category-view .test-contents td .badge.log.badge-danger{background:var(--atf-fail)!important;color:var(--atf-fail-text)!important}"
                 + ".category-view .test-list .test-detail .meta .badge.log.fail-bg,.category-view .test-contents .info .badge.log.fail-bg,.category-view .test-contents td .badge.log.fail-bg{background:var(--atf-fail)!important;color:var(--atf-fail-text)!important}"
                 + ".category-view .test-list .test-detail .meta .badge.log.badge-skip,.category-view .test-contents .info .badge.log.badge-skip,.category-view .test-contents td .badge.log.badge-skip{background:var(--atf-skip)!important;color:var(--atf-skip-text)!important}"
-                + ".category-view .test-list .test-detail .meta .badge.log.badge-warning,.category-view .test-contents .info .badge.log.badge-warning,.category-view .test-contents td .badge.log.badge-warning{background:var(--atf-skip)!important;color:var(--atf-skip-text)!important}"
-                + ".category-view .test-list .test-detail .meta .badge.log.warning-bg,.category-view .test-contents .info .badge.log.warning-bg,.category-view .test-contents td .badge.log.warning-bg{background:var(--atf-skip)!important;color:var(--atf-skip-text)!important}";
+                + ".category-view .test-list .test-detail .meta .badge.log.badge-warning,.category-view .test-contents .info .badge.log.badge-warning,.category-view .test-contents td .badge.log.badge-warning{background:var(--atf-skip)!important;color:#fff!important}"
+                + ".category-view .test-list .test-detail .meta .badge.log.warning-bg,.category-view .test-contents .info .badge.log.warning-bg,.category-view .test-contents td .badge.log.warning-bg{background:var(--atf-skip)!important;color:#fff!important}";
     }
 
     /** Final precedence layer for Overview and its scrollable data tables. */
@@ -66,8 +66,8 @@ final class AtfReportOverviewCss {
                 + ".category-view .test-list .test-detail .meta .badge.log.badge-danger,.category-view .test-contents .info .badge.log.badge-danger,.category-view .test-contents td .badge.log.badge-danger{background:var(--atf-fail)!important;color:var(--atf-fail-text)!important}"
                 + ".category-view .test-list .test-detail .meta .badge.log.fail-bg,.category-view .test-contents .info .badge.log.fail-bg,.category-view .test-contents td .badge.log.fail-bg{background:var(--atf-fail)!important;color:var(--atf-fail-text)!important}"
                 + ".category-view .test-list .test-detail .meta .badge.log.badge-skip,.category-view .test-contents .info .badge.log.badge-skip,.category-view .test-contents td .badge.log.badge-skip{background:var(--atf-skip)!important;color:var(--atf-skip-text)!important}"
-                + ".category-view .test-list .test-detail .meta .badge.log.badge-warning,.category-view .test-contents .info .badge.log.badge-warning,.category-view .test-contents td .badge.log.badge-warning{background:var(--atf-skip)!important;color:var(--atf-skip-text)!important}"
-                + ".category-view .test-list .test-detail .meta .badge.log.warning-bg,.category-view .test-contents .info .badge.log.warning-bg,.category-view .test-contents td .badge.log.warning-bg{background:var(--atf-skip)!important;color:var(--atf-skip-text)!important}"
+                + ".category-view .test-list .test-detail .meta .badge.log.badge-warning,.category-view .test-contents .info .badge.log.badge-warning,.category-view .test-contents td .badge.log.badge-warning{background:var(--atf-skip)!important;color:#fff!important}"
+                + ".category-view .test-list .test-detail .meta .badge.log.warning-bg,.category-view .test-contents .info .badge.log.warning-bg,.category-view .test-contents td .badge.log.warning-bg{background:var(--atf-skip)!important;color:#fff!important}"
                 + "@media(max-width:1100px){.atf-secondary-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.atf-tag-grid{grid-template-columns:1fr!important}}@media(max-width:767px){.dashboard-view .category-container,.dashboard-view .sysenv-container{flex:0 0 100%!important;max-width:100%!important}}";
     }
 }

@@ -34,7 +34,8 @@ Direcția este intenționată:
 
 | Componentă | Responsabilitate | Nu deține |
 |---|---|---|
-| `ResponseContract` | compune reguli pentru status, JSON path, schema și mesajele lor | transport sau UI |
+| `ResponseContract` | fațadă fluentă pentru compunerea regulilor și lifecycle one-shot | transport sau UI |
+| `ResponseContractRuleSet` | construiește regulile pentru status, headers, JSON path, arrays și schema I/O | duplicate identity sau verdict global |
 | `ResponseValidationRule` | descrie o regulă individuală | lifecycle-ul request-ului |
 | `ValidationEvaluator` | evaluează regulile și calculează statusul | Extent și markup |
 | `ValidationOutcomePolicy` | exprimă politica strictă sau soft-warning fără booleani împrăștiați | transport sau UI |
@@ -42,6 +43,12 @@ Direcția este intenționată:
 | `ValidationTable` | agregă assertions într-o singură colecție | layout-ul tabelului |
 | `ResponseContractReporter` | leagă evaluarea de `ValidationSink` | implementarea sink-ului |
 | `SchemaResourceResolver` | rezolvă schema din rădăcini declarate fără traversal | filesystem global sau raportare |
+
+`ResponseContract` nu mai conține mecanica fiecărei reguli. `ResponseContractRuleSet`
+producește definiții compozabile (`identity`, `title`, `ResponseValidationRule`),
+inclusiv adapterul pentru schema I/O. Fațada păstrează compatibilitatea DSL-ului,
+deduplicarea și regula one-shot; `ValidationEvaluator` rămâne singurul owner al
+deciziei aggregate și al politicii strict/warning.
 
 ## Portul către raportare
 

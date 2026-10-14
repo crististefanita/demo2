@@ -25,8 +25,8 @@ class AtfReportCategoryThemeTest {
                 () -> assertTrue(css.contains(".category-view .test-list .test-detail .meta .badge.log.fail-bg,.category-view .test-contents .info .badge.log.fail-bg,.category-view .test-contents td .badge.log.fail-bg{background:var(--atf-fail)!important;color:var(--atf-fail-text)!important}"),
                         "Category must normalize the concrete Extent fail class as well as the semantic danger class"),
                 () -> assertTrue(css.contains("badge.log.badge-skip,.category-view .test-contents .info .badge.log.badge-skip,.category-view .test-contents td .badge.log.badge-skip{background:var(--atf-skip)!important;color:var(--atf-skip-text)!important}")),
-                () -> assertTrue(css.contains("badge.log.badge-warning,.category-view .test-contents .info .badge.log.badge-warning,.category-view .test-contents td .badge.log.badge-warning{background:var(--atf-skip)!important;color:var(--atf-skip-text)!important}")),
-                () -> assertTrue(css.contains(".category-view .test-list .test-detail .meta .badge.log.warning-bg,.category-view .test-contents .info .badge.log.warning-bg,.category-view .test-contents td .badge.log.warning-bg{background:var(--atf-skip)!important;color:var(--atf-skip-text)!important}"),
+                () -> assertTrue(css.contains("badge.log.badge-warning,.category-view .test-contents .info .badge.log.badge-warning,.category-view .test-contents td .badge.log.badge-warning{background:var(--atf-skip)!important;color:#fff!important}")),
+                () -> assertTrue(css.contains(".category-view .test-list .test-detail .meta .badge.log.warning-bg,.category-view .test-contents .info .badge.log.warning-bg,.category-view .test-contents td .badge.log.warning-bg{background:var(--atf-skip)!important;color:#fff!important}"),
                         "Category must normalize the concrete Extent warning class so summary and detail use one warning palette"));
     }
 

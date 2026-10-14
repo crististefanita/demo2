@@ -13,6 +13,7 @@ final class AtfReportFailsStatusCss {
         return ".exception-view.atf-fails-view .test-list-wrapper>.test-list-item>.test-item{border-left-width:1px!important}"
                 + ".exception-view.atf-fails-view .test-list-wrapper>.test-list-item>.test-item:hover,.exception-view.atf-fails-view .test-list-wrapper>.test-list-item>.test-item.active{background:var(--atf-panel)!important}"
                 + ".exception-view.atf-fails-view .test-status .badge{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:0!important;width:auto!important;height:var(--atf-badge-height)!important;padding:var(--atf-badge-padding)!important;border:0!important;border-radius:var(--atf-badge-radius)!important;font-family:var(--atf-font-sans)!important;font-size:var(--atf-badge-font-size)!important;line-height:var(--atf-badge-line-height)!important;font-weight:400!important}"
+                + ".exception-view.atf-fails-view .test-status .badge.warning-bg,.exception-view.atf-fails-view .test-status .badge.badge-warning{background:var(--atf-skip)!important;color:" + AtfReportColors.WHITE + "!important}"
                 + ".exception-view.atf-fails-view .test-status .badge.badge-danger{background:var(--atf-fail)!important;color:var(--atf-fail-text)!important}";
     }
 }

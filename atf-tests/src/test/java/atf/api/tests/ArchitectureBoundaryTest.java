@@ -7,6 +7,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Keeps renderer/test dependencies outside renderer-neutral production modules. */
@@ -24,6 +26,36 @@ class ArchitectureBoundaryTest {
                 List.of("com.aventstack", "org.junit", "<style", "<script",
                         "atf.api.reporting"), violations);
         assertTrue(violations.isEmpty(), () -> "Architecture boundary violations: " + violations);
+    }
+
+    @Test
+    void modulePomsKeepRendererNeutralDependencyDirection() throws Exception {
+        Path root = locateProjectRoot();
+        assertAll(
+                () -> assertDependencyAbsent(root, "atf-core", "atf-validation"),
+                () -> assertDependencyAbsent(root, "atf-core", "atf-execution"),
+                () -> assertDependencyAbsent(root, "atf-core", "atf-reporting"),
+                () -> assertDependencyAbsent(root, "atf-validation", "atf-execution"),
+                () -> assertDependencyAbsent(root, "atf-validation", "atf-reporting"),
+                () -> assertDependencyAbsent(root, "atf-execution", "atf-reporting"),
+                () -> assertDependencyPresent(root, "atf-validation", "atf-core"),
+                () -> assertDependencyPresent(root, "atf-execution", "atf-validation"),
+                () -> assertDependencyPresent(root, "atf-reporting", "atf-core"),
+                () -> assertDependencyPresent(root, "atf-tests", "atf-reporting"));
+    }
+
+    private static void assertDependencyPresent(Path root, String module, String dependency)
+            throws Exception {
+        String pom = Files.readString(root.resolve(module).resolve("pom.xml"));
+        assertTrue(pom.contains("<artifactId>" + dependency + "</artifactId>"),
+                () -> module + " must depend on " + dependency);
+    }
+
+    private static void assertDependencyAbsent(Path root, String module, String dependency)
+            throws Exception {
+        String pom = Files.readString(root.resolve(module).resolve("pom.xml"));
+        assertFalse(pom.contains("<artifactId>" + dependency + "</artifactId>"),
+                () -> module + " must not depend on " + dependency);
     }
 
     private static Path locateProjectRoot() {

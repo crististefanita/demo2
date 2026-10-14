@@ -45,6 +45,54 @@ Responsabilitățile sunt separate astfel:
 Rendererul primește modelul neutru și îl proiectează. Nu reconstruiește reguli
 de business, statusuri sau relații între request și validation.
 
+## Contractul vizual comun
+
+Extent și fallback folosesc aceeași compoziție de prezentare: aceleași token-uri
+de culoare, suprafețe, tipografie, geometrie de tabel și status badge-uri.
+Diferența dintre renderer-e este mecanismul de publicare, nu forma observabilă a
+raportului.
+
+```text
+body       sans-serif comun · 14px · line-height 1.55
+tables     12.6px · line-height 16.884px · padding 7px 9px
+JSON       monospace · 12.5px · line-height 18.75px · scroll bounded
+surface    #101723 · border #29364d · code #070a0e
+tabs       Tests → Category → Fails → Overview · Overview implicit
+```
+
+Detaliile normative pentru paletă, faze, badge-uri, tabele, background și
+tipografie sunt în secțiunile de mai jos și în
+[`docs/ATF_Reporting_Contract.md`](../docs/ATF_Reporting_Contract.md). Nu se
+introduce CSS local într-un singur tab dacă există token sau provider comun.
+
+## Contractul navigabil al artifactului
+
+Artifactul este o singură populație semantică văzută prin proiecții diferite;
+Overview, Category și Fails nu creează verdicturi sau arbori concurenți.
+
+```mermaid
+flowchart LR
+    Population[Neutral test population] --> Tests[Tests]
+    Population --> Category[Category]
+    Population --> Fails[Fails]
+    Population --> Overview[Overview]
+    Tests --> Scenario[Scenario → phase → request/validation]
+    Scenario --> Evidence[Trace + duration + JSON + assertions]
+    Fails --> Open[Open in Tests]
+    Open --> Scenario
+```
+
+Overview este sumarul agregat și se deschide implicit; metadata și auditul sunt
+secundare și colapsate. Tests este sursa de navigare pentru scenarii, Fails este
+indexul failure-urilor, iar `Open in Tests` revine la nodul original prin
+deep-link. Category grupează aceeași populație, fără să cloneze pașii.
+
+Regulile de conținut sunt la fel de importante ca layout-ul: request-ul și
+validation-ul sunt frați direcți, evidence-ul tehnic rămâne sub request,
+assertions sunt într-un singur tabel agregat, iar duratele folosesc întotdeauna
+unitatea `ms`. Verificarea vizuală se face pe artifactul autonom, în TAB MCP,
+nu prin compararea unor string-uri izolată de DOM.
+
 `atf-reporting` este consumatorul portului de raportare, nu proprietarul
 validării. `atf-validation` evaluează response-ul și publică assertions prin
 `atf.api.core.reporting.ValidationSink`; implementarea Extent oferă acest port

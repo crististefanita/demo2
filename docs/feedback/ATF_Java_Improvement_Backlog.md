@@ -36,11 +36,9 @@ J-06 configurație și schema resolver deterministe
   ↓
 J-07 redaction compozabil
   ↓
-J-08 fixture-urile de test separate de orchestrare
+J-08 teste DOM pentru comportament observabil
   ↓
-J-09 teste DOM pentru comportament observabil
-  ↓
-J-10 boundary checks și pragul de complexitate al pachetelor
+J-09 boundary checks și pragul de complexitate al pachetelor
 ```
 
 ## P0 — corectitudine și ownership
@@ -191,37 +189,7 @@ retry/failure propagation.
 
 ## P2 — testabilitate și disciplină de mentenanță
 
-### J-08 — Separă fixture-urile API de testele de acceptance
-
-**Dovadă curentă:**
-`ApiAcceptanceReportTest.java` este acum orchestratorul public, iar suportul
-este separat în `AcceptanceTransport`, `ApiAcceptancePlanBuilder` și
-`ApiAcceptancePublisher`. Transportul fake, DSL-ul de lifecycle și publicarea
-evidence nu mai sunt responsabilități private ale testului.
-
-**Implementat:** `AcceptanceTransport` gestionează rutele deterministe Users,
-Posts și negative; `ApiAcceptancePlanBuilder` construiește planul fluent cu
-setup/body/teardown; `ApiAcceptancePublisher` publică request details, JSON,
-contract validation și rezultatul semantic în sesiunea Extent. Orchestrarea
-raportului rămâne comună și nu se duplică în testele de produs.
-
-**Teste obligatorii:** `ApiAcceptanceFixtureSupportTest` verifică ruta POST
-fără autentificare cu status 401, content type și body concret, precum și
-conservarea metadatelor și fazelor din plan. `ApiAcceptanceReportTest`
-verifică în continuare ownership-ul Users/Posts/lifecycle, phase order,
-validation sibling, tags și artifactul HTML conform contractului. Extinderea
-în clase acceptance distincte pentru Users, Posts și lifecycle rămâne un pas
-opțional, justificat doar de creșterea suitei.
-
-**Validare r12c:** snapshotul live sincronizat în
-`C:\work\ex\java\.tmp\Atf-oop-20261014-r12c` a trecut reactorul complet cu
-`0` failures și `0` errors; `atf-tests` are un singur skip intenționat.
-Artifactul timestamped este conform cu `ReportArtifactInspector` (`53`
-checks, `0` violations) și a fost verificat manual în TAB MCP pe Overview,
-Tests, Category și Fails, inclusiv expand/collapse și deep-link-urile către
-testul exact.
-
-### J-09 — Adaugă teste DOM pentru comportamentul raportului
+### J-08 — Adaugă teste DOM pentru comportamentul raportului
 
 **Dovadă curentă:**
 contractele statice verifică multe fragmente prin `html.contains(...)`; ele nu
@@ -236,7 +204,7 @@ durate `N ms`, fără timestamp în tabel și geometria comună a status badge-u
 **Închidere:** testul pornește dintr-un artifact autonom și nu depinde de
 browserul Windows sau de un server extern.
 
-### J-10 — Întărește boundary checks și pragul de complexitate
+### J-09 — Întărește boundary checks și pragul de complexitate
 
 **Dovadă curentă:**
 modulele au boundary tests, dar `atf.api.reporting` concentrează numeroase
@@ -254,6 +222,12 @@ ownership-ul și coeziunea o cer.
 
 **Teste obligatorii:** scanare de dependențe, numărare pe pachete, verificarea
 composition root și test care eșuează la încălcarea unei reguli.
+
+**Validare r13:** `ArchitectureBoundaryTest` are acum un al doilea contract
+care inspectează POM-urile și confirmă dependențele permise/interzise dintre
+module. Reactorul a trecut cu 80 teste în `atf-reporting` și 9 în `atf-tests`,
+fără failure/error; rămâne necesară extinderea ulterioară către fixture-uri
+intenționat invalide și analiza automată a ownership-ului pe package.
 
 ## Definition of Done
 

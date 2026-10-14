@@ -98,8 +98,8 @@ cuplarea sau duplicarea reală.
 
 ```text
 P0  F-01 theme providers → F-02 semantic document → F-03 runtime controllers
-P1  F-04 contract evaluator → F-05 redaction → F-06 immutable runtime snapshot
-P2  F-07 acceptance fixtures → F-08 architecture rules → F-09 DOM/component verification
+P1  F-05 redaction → F-06 immutable runtime snapshot
+P2  F-06 architecture rules → F-07 DOM/component verification
 ```
 
 P0 protejează cel mai mare risc de regresie vizuală și de responsabilități
@@ -183,22 +183,7 @@ Category / Fails, filtrele de status/tag, collapse, `Open in Tests`, scenarii
 fără children, durate `N ms`, lipsa timestamp-ului din tabelul Tests și
 preservarea unui `atfOpenTest(id)` backward-compatible.
 
-### F-04 — Separă DSL-ul `ResponseContract` de evaluare și schema I/O
-
-`ResponseContract` combină colectarea regulilor, identity de duplicate,
-one-shot lifecycle, evaluarea regulilor, tratarea excepțiilor și rezolvarea
-fișierului de schema. Contractul este coerent pentru utilizare, dar are prea
-multe motive de schimbare și îngreunează extensia de noi validators.
-
-De făcut: păstrează API-ul fluent ca fațadă; extrage rule registry/evaluator și
-schema rule adapter. `evaluate` trebuie să rămână o operație unică, cu reguli
-deterministe și evidence complet în `ValidationTable`.
-
-Teste obligatorii: duplicate identity, evaluate repetat, modificare după
-evaluate, rule failure izolat, schema missing/invalid/valid, JSON path malformed,
-warning policy și input original nemodificat.
-
-### F-05 — Fă redaction-ul compozabil și fără bypass accidental
+### F-04 — Fă redaction-ul compozabil și fără bypass accidental
 
 Implementat incremental: `SensitiveDataRedactor` este acum fațadă peste
 `SecretPatternRedactor`, `StructuredJsonRedactor`, `PiiRedactor` și
@@ -215,7 +200,7 @@ păstrează aceeași politică pentru expected/actual înainte de publicare.
 Rămâne de întărit în iterația următoare propagarea secretelor prin retry
 history și failure cause.
 
-### F-06 — Completează snapshot-ul immutable de runtime
+### F-05 — Completează snapshot-ul immutable de runtime
 
 `AtfConfiguration` și snapshot-urile existente sunt corecte ca direcție, însă
 loader-ul de reporting citește încă `user.dir`, system property și environment
@@ -230,39 +215,8 @@ Teste obligatorii: două working directories, două configurații paralele,
 snapshot immutable după creare, precedence property/environment/file, schema
 root explicit și publish directory separat.
 
-### F-07 — Separă fixture-urile de acceptance orchestration
 
-`ApiAcceptanceReportTest` rămâne orchestratorul acceptance, dar fixture-ul a
-fost separat chirurgical în `atf.api.tests.support`: `AcceptanceTransport`
-deține rutele deterministe, `ApiAcceptancePlanBuilder` deține DSL-ul fluent
-pentru fazele setup/body/teardown, iar `ApiAcceptancePublisher` deține
-publicarea request/response/validation în Extent. Testul principal compune
-aceste servicii și păstrează ownership-ul Users/Posts/lifecycle fără să mai
-implementeze transportul sau contractul de publicare.
-
-Acoperirea este întărită de `ApiAcceptanceFixtureSupportTest`: verifică
-explicit ruta negativă POST fără autentificare (401, JSON și body-ul concret)
-și faptul că planul păstrează metadatele și toate fazele. Rămâne de urmărit,
-ca pas ulterior, separarea în clase acceptance distincte pentru Users, Posts și
-lifecycle dacă suitele vor crește; nu se introduce duplicare doar pentru a
-atinge o formă artificială.
-
-Teste obligatorii îndeplinite în această iterație: ownership-ul claselor,
-phase order, validation sibling, tags și artifactul comun sunt verificate prin
-acceptance report + fixture support. Orice extindere ulterioară trebuie să
-păstreze același contract și să nu copieze setup-ul.
-
-**Dovadă r12c:** snapshotul `C:\work\ex\java\.tmp\Atf-oop-20261014-r12c`
-a rulat reactorul complet Maven: 29 core, 16 validation, 19 execution,
-79 reporting și 8 acceptance tests; `0` failures, `0` errors și un singur skip
-intenționat. Raportul publicat este
-`C:\work\ex\java\atf\artifacts\reports\api-atf-java-report_2026-10-14_21-53-34-850.html`.
-`ReportArtifactInspector` a returnat `53` verificări conforme, fără violations;
-TAB MCP a validat Overview, Tests cu noduri colapsate implicit, expand-ul
-`SETUP → TEST BODY → TEARDOWN`, tabelul de contract `EXPECTED / ACTUAL / RESULT`,
-Category, deep-link-urile `Open this test in Tests`, Fails și `Open in Tests`.
-
-### F-08 — Înlocuiește boundary scan-ul fragil cu reguli verificabile
+### F-06 — Înlocuiește boundary scan-ul fragil cu reguli verificabile
 
 `ArchitectureBoundaryTest` caută tokenuri text în surse. Este un guard util,
 dar poate rata importuri indirecte, false-positive-uri în comentarii/string-uri
@@ -280,7 +234,14 @@ Teste obligatorii: încălcare intenționată în fixture izolată, dependență
 interzisă, numărare pe package, composition root și allow-list explicit pentru
 compatibility APIs.
 
-### F-09 — Ridică testele de la `contains(...)` la comportament DOM
+**Întărire r13:** `ArchitectureBoundaryTest` verifică acum și POM-urile,
+nu doar tokenuri din surse: modulele renderer-neutral nu pot depinde de
+`atf-reporting`, iar direcția permisă `atf-core → atf-validation →
+atf-execution`, cu `atf-reporting` la marginea de publicare, este verificată
+explicit. Testul nu transformă pragul de 8 clase într-o regulă artificială;
+package count rămâne diagnostic de coeziune pentru refactorizări ulterioare.
+
+### F-07 — Ridică testele de la `contains(...)` la comportament DOM
 
 Există contracte statice puternice și testele de interacțiune acoperă mult din
 artifact, dar assertions pe string nu pot confirma singure computed style,
