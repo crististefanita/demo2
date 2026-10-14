@@ -140,14 +140,14 @@ lifecycle, rendererele pentru patru tab-uri, escaping-ul și scriptul inline.
 Primul pas este acum aplicat: `HtmlReportSemanticDocument` deține identitatea,
 ordinea și arborele semantic mutabil, iar sesiunea a rămas fațadă de lifecycle
 și renderer fallback. Modelul nu cunoaște HTML, CSS, JavaScript sau publicarea
-pe disc; node renderer-ele sunt metode locale ale sesiunii până la extragerea
-lor în iterația următoare.
+pe disc; proiecțiile sunt acum separate în `HtmlReportTestsView`,
+`HtmlReportCategoryView`, `HtmlReportFailsView` și `HtmlReportOverviewView`.
 
 De făcut: păstrează documentul semantic ca sursă unică pentru Extent și
-fallback, apoi extrage rendererele pentru Tests, Category, Fails și Overview.
-Păstrează `HtmlReportSession` ca fațadă publică și nu muta reguli de verdict în
-renderer. Scopes-urile trebuie să primească în continuare doar node-ul lor,
-nu lista globală de scenarii.
+fallback și aplică același model intern și rendererelor Extent. Păstrează
+`HtmlReportSession` ca fațadă publică și nu muta reguli de verdict în renderer.
+Scopes-urile trebuie să primească în continuare doar node-ul lor, nu lista
+globală de scenarii.
 
 Teste adăugate: `HtmlReportSemanticDocumentTest` verifică ID-uri deterministe,
 ordine de inserare, deduplicarea tag-urilor, snapshot read-only și sibling-ul
@@ -207,9 +207,13 @@ Implementat incremental: `SensitiveDataRedactor` este acum fațadă peste
 strategiile fără bypass implicit.
 
 Teste adăugate pentru ownership-ul strategiilor, nested JSON, arrays, malformed
-JSON, PII, local paths și input immutability. Rămân de întărit în iterația
-următoare expected/actual assertions și propagarea secretelor prin retry history
-și failure cause.
+JSON, PII, local paths și input immutability. Fallback-ul text verifică explicit
+forma `token=***REDACTED***` și păstrează parametrii query neconfidențiali, de
+exemplu `mode=full`. Traversarea JSON folosește o listă stabilă de nume de
+câmpuri, deci nu mută iteratorul în timpul redacției; `ExtentReportTree`
+păstrează aceeași politică pentru expected/actual înainte de publicare.
+Rămâne de întărit în iterația următoare propagarea secretelor prin retry
+history și failure cause.
 
 ### F-06 — Completează snapshot-ul immutable de runtime
 
@@ -228,17 +232,35 @@ root explicit și publish directory separat.
 
 ### F-07 — Separă fixture-urile de acceptance orchestration
 
-`ApiAcceptanceReportTest` concentrează fixture-uri Users/Posts, transport fake,
-lifecycle, validation și publicarea artifactului. Testul validează bine fluxul,
-dar este și fixture factory, și orchestrator, și contract test.
+`ApiAcceptanceReportTest` rămâne orchestratorul acceptance, dar fixture-ul a
+fost separat chirurgical în `atf.api.tests.support`: `AcceptanceTransport`
+deține rutele deterministe, `ApiAcceptancePlanBuilder` deține DSL-ul fluent
+pentru fazele setup/body/teardown, iar `ApiAcceptancePublisher` deține
+publicarea request/response/validation în Extent. Testul principal compune
+aceste servicii și păstrează ownership-ul Users/Posts/lifecycle fără să mai
+implementeze transportul sau contractul de publicare.
 
-De făcut: mută transportul fake, module factory și report fixture într-un
-support package; păstrează teste distincte pentru Users, Posts și lifecycle,
-plus un acceptance test mic pentru integrarea completă.
+Acoperirea este întărită de `ApiAcceptanceFixtureSupportTest`: verifică
+explicit ruta negativă POST fără autentificare (401, JSON și body-ul concret)
+și faptul că planul păstrează metadatele și toate fazele. Rămâne de urmărit,
+ca pas ulterior, separarea în clase acceptance distincte pentru Users, Posts și
+lifecycle dacă suitele vor crește; nu se introduce duplicare doar pentru a
+atinge o formă artificială.
 
-Teste obligatorii: fiecare clasă își păstrează ownership-ul, aceleași phase
-order și validation sibling, aceleași tags și aceleași artefacte fără duplicarea
-setup-ului.
+Teste obligatorii îndeplinite în această iterație: ownership-ul claselor,
+phase order, validation sibling, tags și artifactul comun sunt verificate prin
+acceptance report + fixture support. Orice extindere ulterioară trebuie să
+păstreze același contract și să nu copieze setup-ul.
+
+**Dovadă r12c:** snapshotul `C:\work\ex\java\.tmp\Atf-oop-20261014-r12c`
+a rulat reactorul complet Maven: 29 core, 16 validation, 19 execution,
+79 reporting și 8 acceptance tests; `0` failures, `0` errors și un singur skip
+intenționat. Raportul publicat este
+`C:\work\ex\java\atf\artifacts\reports\api-atf-java-report_2026-10-14_21-53-34-850.html`.
+`ReportArtifactInspector` a returnat `53` verificări conforme, fără violations;
+TAB MCP a validat Overview, Tests cu noduri colapsate implicit, expand-ul
+`SETUP → TEST BODY → TEARDOWN`, tabelul de contract `EXPECTED / ACTUAL / RESULT`,
+Category, deep-link-urile `Open this test in Tests`, Fails și `Open in Tests`.
 
 ### F-08 — Înlocuiește boundary scan-ul fragil cu reguli verificabile
 

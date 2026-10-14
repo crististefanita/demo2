@@ -78,5 +78,9 @@ class ReportArtifactInspectorTest {
         assertTrue(inspection.satisfies("category deep links"));
         assertTrue(inspection.satisfies("evidence cardinality contract"));
         assertTrue(inspection.satisfies("fresh artifact"));
+        assertTrue(inspection.diagnostics().stream().allMatch(diagnostic -> !diagnostic.owner().isBlank()));
+        assertTrue(inspection.diagnostics().stream().anyMatch(diagnostic ->
+                diagnostic.owner().equals("evidence") && diagnostic.check().equals("technical trace")
+                        && diagnostic.passed()));
     }
 }

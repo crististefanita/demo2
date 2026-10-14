@@ -76,7 +76,7 @@ Exemplu PowerShell, cu căi înlocuite de operator:
 
 ~~~powershell
 $source = 'C:\work\ex\java\atf'
-$stage = 'C:\work\ex\.net\.tmp\atf-java-staging-<id>'
+$stage = 'C:\work\ex\java\.tmp\atf-java-staging-<id>'
 
 New-Item -ItemType Directory -Force $stage | Out-Null
 robocopy $source $stage /E /XD '.git' 'target' 'artifacts' 'spark' 'bin' 'obj' /XF '*.log' 'hs_err_pid*.log'

@@ -6,8 +6,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Collections;
 
 /**
  * Executable acceptance checks for the final HTML artifact.
@@ -26,12 +28,16 @@ public final class ReportArtifactInspector {
                 return ReportArtifactInspection.missing(reportPath);
             }
             String html = Files.readString(reportPath, StandardCharsets.UTF_8);
+            var evaluation = ReportArtifactContractChecks.evaluateDetailed(html);
             return new ReportArtifactInspection(
                     reportPath,
-                    ReportArtifactContractChecks.evaluate(html),
+                    evaluation.checks(),
+                    ReportArtifactContractChecks.diagnostics(evaluation),
                     "");
         } catch (IOException error) {
-            return new ReportArtifactInspection(reportPath, Map.of(), error.toString());
+            return new ReportArtifactInspection(reportPath, Map.of(), List.of(
+                    new ReportArtifactDiagnostic("artifact", "html exists", false,
+                            reportPath.toString(), error.toString())), error.toString());
         }
     }
 
@@ -58,14 +64,18 @@ public final class ReportArtifactInspector {
     public record ReportArtifactInspection(
             Path reportPath,
             Map<String, Boolean> checks,
+            List<ReportArtifactDiagnostic> diagnostics,
             String readError) {
         public ReportArtifactInspection {
-            checks = Map.copyOf(checks);
+            checks = Collections.unmodifiableMap(new LinkedHashMap<>(checks));
+            diagnostics = List.copyOf(diagnostics);
             readError = readError == null ? "" : readError;
         }
 
         static ReportArtifactInspection missing(Path path) {
-            return new ReportArtifactInspection(path, Map.of("html exists", false), "Report does not exist");
+            return new ReportArtifactInspection(path, Map.of("html exists", false), List.of(
+                    new ReportArtifactDiagnostic("artifact", "html exists", false,
+                            path.toString(), "Report does not exist")), "Report does not exist");
         }
 
         public boolean isCompliant() {
@@ -83,7 +93,15 @@ public final class ReportArtifactInspector {
         private ReportArtifactInspection withCheck(String name, boolean value, String error) {
             var updated = new LinkedHashMap<>(checks);
             updated.put(name, value);
-            return new ReportArtifactInspection(reportPath, updated, error);
+            var updatedDiagnostics = new java.util.ArrayList<>(diagnostics);
+            updatedDiagnostics.removeIf(diagnostic -> diagnostic.check().equals(name));
+            updatedDiagnostics.add(new ReportArtifactDiagnostic(
+                    "artifact", name, value,
+                    value ? "published artifact timestamp and size matched" : "published artifact freshness check failed",
+                    error == null || error.isBlank()
+                            ? (value ? "Artifact was published during this execution" : "Artifact was not published during this execution")
+                            : error));
+            return new ReportArtifactInspection(reportPath, updated, updatedDiagnostics, error);
         }
 
         public java.util.List<String> violations() {

@@ -37,6 +37,7 @@ Responsabilitățile sunt separate astfel:
 | Proiecția markup-ului | markup semantic și roluri stabile | culori locale arbitrare |
 | Formatterul de evidence | tabelele de evidence și assertions | verdictul de business |
 | Documentul semantic | identity, ordering și arborele request → validation | HTML/CSS/JS |
+| Proiecțiile fallback | Tests, Category, Fails și Overview | lifecycle, verdicturi |
 | Sesiunea de raportare | lifecycle facade și fallback renderer | CSS duplicat |
 | Finalizarea și publicarea | flush, asset-uri, atomizare și publicare | noi reguli vizuale |
 | Inspectorul de artifact | verificarea raportului rezultat | repararea artifactului |
@@ -397,10 +398,12 @@ Contractul este întărit pe trei niveluri, fără să schimbe forma raportului:
    fallback-ul pentru suprafețe, faze, tipografie, evidence și statusuri;
 3. `HtmlReportSemanticDocumentTest` verifică identity deterministă, ordering,
    snapshot read-only și sibling-ul `request → validation`;
-4. `HtmlReportSessionTest` verifică markup-ul autonom și fallback-ul offline;
-5. `ExtentNodeLifecycleTest` verifică maparea tuturor statusurilor, duratele
+4. `HtmlReportViewsTest` verifică proiecțiile independente peste același model
+   semantic, fără verdicturi reconstruite în renderer;
+5. `HtmlReportSessionTest` verifică markup-ul autonom și fallback-ul offline;
+6. `ExtentNodeLifecycleTest` verifică maparea tuturor statusurilor, duratele
    pozitive și respingerea inputului vendor invalid;
-6. `ReportStagingWorkspaceTest` verifică lease-ul exclusiv, close idempotent,
+7. `ReportStagingWorkspaceTest` verifică lease-ul exclusiv, close idempotent,
     sweeper-ul bounded și validarea limitelor;
 6. `ExtentReportInteractionContractTest`, `ReportArtifactContractChecksTest` și
    `ReportArtifactInspectorTest`
@@ -409,6 +412,14 @@ Contractul este întărit pe trei niveluri, fără să schimbe forma raportului:
    tabel agregat, organizarea tab-urilor, deep-link-urile, controalele ambelor
    filtre, ownership-ul status/tag, deselectarea prin re-click și filtrarea pe
    scenarii.
+
+`ReportArtifactInspector.inspect(...)` expune și `diagnostics()`: fiecare
+`ReportArtifactDiagnostic` are `owner`, `check`, `passed`, `evidence` și
+`message`. Owner-ul este unul dintre `artifact`, `structure`, `theme`,
+`navigation`, `evidence` sau `overview`, iar lista păstrează ordinea
+contractului publicat. `checks()` rămâne disponibil pentru compatibilitate,
+dar consumatorii noi nu mai trebuie să interpreteze chei de `Map` pentru a
+afișa sau exporta motivul unei neconformități.
 
 În plus, contractul respinge culorile scrise direct în regulile rendererului
 (`color:#...`, `background:#...`, `border-color:#...`). Zonele Overview,

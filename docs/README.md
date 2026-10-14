@@ -9,16 +9,22 @@ artifact.
 ## Ordinea recomandată de lectură
 
 1. [ATF_Architecture.md](ATF_Architecture.md) — module, dependențe și responsabilități.
-2. [../atf-validation/README.md](../atf-validation/README.md) — validarea
+2. [../atf-core/README.md](../atf-core/README.md) — kernelul neutru, porturile
+   și modelele comune.
+3. [../atf-execution/README.md](../atf-execution/README.md) — API layer,
+   servicii, composition root și lifecycle.
+4. [../atf-validation/README.md](../atf-validation/README.md) — validarea
    independentă și portul de publicare.
-3. [ATF_API_TEST_GUIDE.md](ATF_API_TEST_GUIDE.md) — pașii minimali pentru un test API nou.
-4. [../atf-reporting/README.md](../atf-reporting/README.md) — contractul vizual
+5. [../atf-tests/README.md](../atf-tests/README.md) — scenarii, integrare și
+   secvența end-to-end.
+6. [ATF_API_TEST_GUIDE.md](ATF_API_TEST_GUIDE.md) — pașii minimali pentru un test API nou.
+7. [../atf-reporting/README.md](../atf-reporting/README.md) — contractul vizual
    complet al raportului Extent și criteriile de acceptare.
-5. [ATF_Reporting_Contract.md](ATF_Reporting_Contract.md) — arborele Extent,
+8. [ATF_Reporting_Contract.md](ATF_Reporting_Contract.md) — arborele Extent,
    evidence-ul și regulile de randare.
-6. [ATF_BUILD_AND_EXECUTION_SAFETY.md](ATF_BUILD_AND_EXECUTION_SAFETY.md) —
+9. [ATF_BUILD_AND_EXECUTION_SAFETY.md](ATF_BUILD_AND_EXECUTION_SAFETY.md) —
    build, sincronizare și validare fără oprirea execuțiilor existente.
-7. [README_Atf_BestPractices.md](README_Atf_BestPractices.md) — reguli OOP,
+10. [README_Atf_BestPractices.md](README_Atf_BestPractices.md) — reguli OOP,
    testabilitate și mentenanță.
 
 ## Regula de lucru pentru orice schimbare
@@ -33,9 +39,8 @@ Ordinea obligatorie și criteriile detaliate sunt în
 [ATF_BUILD_AND_EXECUTION_SAFETY.md](ATF_BUILD_AND_EXECUTION_SAFETY.md) și
 [README_Atf_BestPractices.md](README_Atf_BestPractices.md).
 
-Observațiile de compatibilitate cu reperul extern și lucrările încă neînchise
-sunt păstrate numai în [feedback/README.md](feedback/README.md) și în
-documentele ToDo pe responsabilități. Ele nu sunt copiate în contractele
+Lucrările încă neînchise sunt păstrate numai în [feedback/README.md](feedback/README.md)
+și în documentele ToDo pe responsabilități. Ele nu sunt copiate în contractele
 permanente ale proiectului.
 
 ## Reguli de documentație

@@ -1,10 +1,83 @@
 # ATF Java — framework pentru automatizare API
 
 ATF Java este un framework standalone pentru automatizarea și validarea
-scenariilor API. Oferă aceeași familie de capabilități observabile ca implementarea
-externă de referință, dar are propriile module, modele, politici și teste.
-Proiectul se numește `atf` și nu modifică proiectele Java existente din `demo`
-sau `other`.
+scenariilor API. Este un produs propriu, cu module, modele, politici și teste
+definite în acest repository. Proiectul se numește `atf` și nu modifică
+proiectele Java existente din `demo` sau `other`.
+
+## Secvența completă a unui test API
+
+Aceasta este harta principală a framework-ului. Orice test nou trebuie să
+urmeze aceeași curgere: testul exprimă intenția, API layer-ul produce acțiunea,
+execuția coordonează lifecycle-ul, validarea produce verdictul, iar raportarea
+înregistrează dovezile și publică artifactul.
+
+```mermaid
+sequenceDiagram
+    participant T as Test class
+    participant L as Execution / lifecycle
+    participant A as API service
+    participant X as ApiExecutor
+    participant H as HTTP transport
+    participant V as atf-validation
+    participant R as atf-reporting
+
+    T->>L: define scenario + tags + phases
+    L->>R: open test class / scenario
+    L->>R: open SETUP
+    T->>A: semantic API action
+    A->>X: ApiRequest from canonical route
+    X->>H: authenticated HTTP call
+    H-->>X: ApiResponse + duration + retry history
+    X-->>A: ApiExecutionResult
+    A-->>T: response/result
+    L->>R: register request + technical evidence
+    T->>V: response + ResponseContract
+    V->>V: evaluate rules and warning policy
+    V-->>T: ValidationResult
+    V->>R: validation sibling + one assertion table
+    L->>R: close TEST BODY / TEARDOWN
+    L->>R: calculate scenario verdict
+    R->>R: finalize HTML, assets and navigation
+```
+
+### Aceeași secvență, explicată prin ownership
+
+| Pas | Acțiune | Owner | Rezultat obligatoriu |
+|---:|---|---|---|
+| 1 | definește scenariul, tag-urile și fazele | `atf-tests` | `ScenarioPlan` explicit |
+| 2 | deschide sesiunea și faza | `atf-execution` + report port | nod lifecycle deschis |
+| 3 | alege acțiunea API semantică | `atf-execution` | apel `UsersService` / `PostsService` |
+| 4 | construiește și trimite request-ul | `atf-core` | `ApiRequest` + transport controlat |
+| 5 | primește rezultatul | `atf-core` | response, duration, retry history |
+| 6 | înregistrează request-ul | `atf-reporting` prin port | trace, response details, JSON |
+| 7 | evaluează contractul | `atf-validation` | `ValidationResult` renderer-neutral |
+| 8 | publică validarea | validation/report port | sibling direct + tabel agregat |
+| 9 | închide fazele | `atf-execution` | teardown și primary failure păstrate |
+| 10 | publică artifactul | `atf-reporting` | HTML autonom verificabil |
+
+În `TEST BODY`, forma semantică este invariabilă:
+
+```text
+TestCase
+├── SETUP
+│   └── Request(s)
+├── TEST BODY
+│   ├── Request
+│   │   ├── Technical trace
+│   │   ├── Response details
+│   │   └── Response JSON
+│   └── Validation — sibling direct al request-ului owner
+│       └── aggregate assertion table
+└── TEARDOWN
+    └── Request(s)
+```
+
+API service-ul nu știe de Extent, validatorul nu decide layout-ul, iar
+reporting-ul nu decide verdictul. Comunicarea se face prin modele și porturi
+neutre. Orice implementare care sare peste un owner sau inversează această
+ordine trebuie tratată ca încălcare de arhitectură, nu ca simplă preferință de
+organizare.
 
 ## Scopul framework-ului
 
@@ -48,7 +121,7 @@ flowchart LR
 |---|---|---|
 | `atf-core` | contracte HTTP, statusuri, configurație, retry, redaction și porturi | HTML, JUnit, servicii de business |
 | `atf-validation` | contracte response, reguli, evaluator, verdict și publicare prin port neutru | HTTP, Extent, HTML, CSS, transport |
-| `atf-execution` | rute, modele, servicii, lifecycle și cleanup | validare de contract, CSS, JavaScript |
+| `atf-execution` | API module, rute, modele, servicii, lifecycle și cleanup | validare de contract, CSS, JavaScript |
 | `atf-reporting` | boundary-ul Extent, finalizarea HTML autonomă și renderer-ul fallback | transport și decizii de validare |
 | `atf-tests` | teste unitare, contract și scenarii de verificare | implementarea framework-ului |
 
@@ -58,6 +131,10 @@ Documentele stabile sunt centralizate în [docs/README.md](docs/README.md):
 
 - [ATF_Architecture.md](docs/ATF_Architecture.md) — module, ownership și
   dependențe;
+- [atf-core/README.md](atf-core/README.md) — kernelul neutru: modele, porturi,
+  HTTP, configurație și redaction;
+- [atf-execution/README.md](atf-execution/README.md) — API layer, servicii,
+  composition root și lifecycle;
 - [atf-validation/README.md](atf-validation/README.md) — contracte de validare,
   portul către raportare și granițele reutilizabile ale JAR-ului;
 - [ATF_API_TEST_GUIDE.md](docs/ATF_API_TEST_GUIDE.md) — pașii pentru un test API
@@ -67,6 +144,8 @@ Documentele stabile sunt centralizate în [docs/README.md](docs/README.md):
 - [atf-reporting/README.md](atf-reporting/README.md) — contractul vizual complet
   al artifactului Extent: paletă, suprafețe, faze, evidence, tab-uri și
   criterii de acceptare;
+- [atf-tests/README.md](atf-tests/README.md) — cum compune un test API layer-ul,
+  execuția, validarea și raportarea end-to-end;
 - [ATF_BUILD_AND_EXECUTION_SAFETY.md](docs/ATF_BUILD_AND_EXECUTION_SAFETY.md) —
   build și sincronizare în staging fără oprirea execuțiilor existente;
 - [README_Atf_BestPractices.md](docs/README_Atf_BestPractices.md) — reguli OOP,
@@ -147,27 +226,20 @@ se deschide Overview,
 se expandă auditul, se navighează la Fails și se deschide testul sursă. Un test
 care verifică doar substring-uri nu este suficient pentru un contract de UI.
 
-## Fluxul unei execuții
+## API layer, test layer și lifecycle
 
-```mermaid
-sequenceDiagram
-    participant T as Test
-    participant M as Modul API
-    participant E as Executor
-    participant H as HTTP transport
-    participant V as atf-validation
-    participant R as Report session
+`atf-execution` este API layer-ul reutilizabil. `UsersService` și
+`PostsService` expun acțiuni semantice (`get`, `getCollection`, `create`,
+`forUser`) și folosesc `ApiRoutes`, `RoutePaths` și `ApiExecutor`. Ele nu cunosc
+JUnit, Extent, HTML sau politica de assertions.
 
-    T->>M: acțiune semantică
-    M->>E: ApiRequest
-    E->>H: schimb HTTP
-    H-->>E: ApiResponse + duration + retry history
-    E->>R: evidence tehnic și JSON
-    T->>V: evaluare contract + assertions
-    V->>R: un tabel agregat prin port
-    R->>R: închide request-ul după validare
-    T->>R: CompletePhase / CompleteScenario
-```
+`atf-tests` este test layer-ul. Clasa de test definește intenția scenariului,
+alege fazele și contractul, apoi orchestrează apelul serviciului și validarea.
+Nu construiește manual URL-uri, nu face HTTP direct și nu scrie HTML.
+
+Serviciul API returnează date și rezultate de execuție; validarea produce
+decizia semantică; reporting-ul doar înregistrează și randă. Niciun serviciu
+API sau validator nu importă Extent concret.
 
 ### Contractul lifecycle-ului
 
@@ -204,10 +276,9 @@ compilarea singură nu este criteriu de acceptare.
 Fluxul de evoluție este: `atf-core` → `atf-validation` → `atf-execution` → `atf-reporting` →
 scenarii și integrare → validare structurală și interactivă a artifactului.
 
-Observațiile de compatibilitate cu reperul extern și lucrările rămase sunt
-păstrate în [`docs/feedback/README.md`](docs/feedback/README.md), câte un
-document ToDo pentru fiecare responsabilitate. Documentația permanentă descrie
-ATF Java prin propriile contracte, modele și teste.
+Lucrările rămase sunt păstrate în [`docs/feedback/README.md`](docs/feedback/README.md),
+câte un document ToDo pentru fiecare responsabilitate. Documentația permanentă
+descrie ATF Java prin propriile contracte, modele și teste.
 
 ## Adăugarea și verificarea unui test API
 
@@ -226,7 +297,7 @@ Fluxul minim este intenționat scurt:
 9. scrie raportul și verifică: request, durată, JSON, tabel, Category/tag metadata,
    Fails și Overview.
 
-Testul de referință este
+Testul canonical este
 `atf-tests/src/test/java/atf/api/tests/ApiReportSmokeTest.java`. El folosește
 un transport fake determinist, deci verifică traseul API, lifecycle-ul și
 raportarea fără dependență de rețea sau de date externe. Raportul rezultat este

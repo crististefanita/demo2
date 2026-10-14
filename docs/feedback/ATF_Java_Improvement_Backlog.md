@@ -94,8 +94,9 @@ scenario → phase → request/validation. Documentul este package-private și
 returnează snapshot-uri read-only, fără dependență de HTML/CSS/JS.
 
 **De făcut:** extinde modelul intern minimal pentru suite → class → scenario
-→ phase → request/validation → evidence către Extent, apoi extrage renderer-ele
-Tests/Category/Fails/Overview. Extent și fallback doar îl redau;
+→ phase → request/validation → evidence către Extent. Fallback-ul are deja
+renderer-e independente pentru Tests/Category/Fails/Overview; Extent și
+fallback trebuie să consume același model și doar să îl redea;
 nu muta reguli de business sau redaction în renderer. Nu se adaugă o abstracție
 generică fără un test care demonstrează eliminarea unei duplicări reale.
 
@@ -181,24 +182,44 @@ rămâne conservatoare; `enabled=false` este singura dezactivare explicită.
 
 **Teste adăugate:** nested JSON, arrays, malformed JSON, headers, query, paths,
 PII, ownership separat și verificarea că input-ul original nu se modifică.
-Rămân de adăugat explicit expected/actual și retry/failure propagation.
+Fallback-ul text acoperă explicit `token=...`, iar regex-ul păstrează
+parametrii query neconfidențiali de după secret (`mode=full`).
+Traversarea JSON folosește o listă stabilă de nume de câmpuri și nu mută
+iteratorul în timpul redacției; `ExtentReportTree` redacționează deja
+expected/actual înainte de publicare. Rămâne de adăugat explicit testul de
+retry/failure propagation.
 
 ## P2 — testabilitate și disciplină de mentenanță
 
 ### J-08 — Separă fixture-urile API de testele de acceptance
 
 **Dovadă curentă:**
-`ApiAcceptanceReportTest.java` are 264 de linii și construiește Users, Posts,
-lifecycle, transport fake și publicarea raportului în aceeași clasă.
+`ApiAcceptanceReportTest.java` este acum orchestratorul public, iar suportul
+este separat în `AcceptanceTransport`, `ApiAcceptancePlanBuilder` și
+`ApiAcceptancePublisher`. Transportul fake, DSL-ul de lifecycle și publicarea
+evidence nu mai sunt responsabilități private ale testului.
 
-**De făcut:** mută transportul fake, factory-ul modulelor și helper-ul de
-publicare într-un support package; păstrează clase de test distincte pentru
-Users, Posts și lifecycle. Orchestrarea raportului rămâne comună și nu se
-duplică în testele de produs.
+**Implementat:** `AcceptanceTransport` gestionează rutele deterministe Users,
+Posts și negative; `ApiAcceptancePlanBuilder` construiește planul fluent cu
+setup/body/teardown; `ApiAcceptancePublisher` publică request details, JSON,
+contract validation și rezultatul semantic în sesiunea Extent. Orchestrarea
+raportului rămâne comună și nu se duplică în testele de produs.
 
-**Teste obligatorii:** fiecare clasă își publică scenariile sub aceeași sesiune,
-raportul păstrează ownership-ul clasei și testul de acceptance verifică exact
-clasele/scenariile, phase order și validation sibling.
+**Teste obligatorii:** `ApiAcceptanceFixtureSupportTest` verifică ruta POST
+fără autentificare cu status 401, content type și body concret, precum și
+conservarea metadatelor și fazelor din plan. `ApiAcceptanceReportTest`
+verifică în continuare ownership-ul Users/Posts/lifecycle, phase order,
+validation sibling, tags și artifactul HTML conform contractului. Extinderea
+în clase acceptance distincte pentru Users, Posts și lifecycle rămâne un pas
+opțional, justificat doar de creșterea suitei.
+
+**Validare r12c:** snapshotul live sincronizat în
+`C:\work\ex\java\.tmp\Atf-oop-20261014-r12c` a trecut reactorul complet cu
+`0` failures și `0` errors; `atf-tests` are un singur skip intenționat.
+Artifactul timestamped este conform cu `ReportArtifactInspector` (`53`
+checks, `0` violations) și a fost verificat manual în TAB MCP pe Overview,
+Tests, Category și Fails, inclusiv expand/collapse și deep-link-urile către
+testul exact.
 
 ### J-09 — Adaugă teste DOM pentru comportamentul raportului
 

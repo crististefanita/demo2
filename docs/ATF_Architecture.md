@@ -22,7 +22,7 @@ flowchart TD
 |---|---|---|
 | atf-core | request/response, transport, configurație, autentificare, retry, redaction, status și porturi | HTML, CSS, Extent, JUnit, rute de produs |
 | atf-validation | contracte response, reguli, evaluator, verdict și publicare prin port neutru | HTTP, Extent, HTML, CSS, lifecycle |
-| atf-execution | rute, modele, servicii semantice, lifecycle, fixture-uri și cleanup | validare de contract, markup Extent, stiluri |
+| atf-execution | API layer, rute, modele, servicii semantice, lifecycle și cleanup | fixture-uri de test, validare de contract, markup Extent, stiluri |
 | atf-reporting | sesiune, arbore Extent, theme, finalizare HTML, inspector și navigare | apeluri HTTP, decizii de business, verdicturi inventate |
 | atf-tests | teste unitare, de componentă, contract și scenarii de verificare | implementarea framework-ului și date externe obligatorii |
 
@@ -35,20 +35,24 @@ serviciu real, aparține scenariilor de produs.
 ~~~mermaid
 sequenceDiagram
     participant T as Test
-    participant M as Modul
-    participant E as Executor
+    participant M as API layer
+    participant E as Execution
     participant H as Transport
     participant V as atf-validation
     participant R as Raport
 
-    T->>M: intenție semantică
+    T->>E: scenario + phase
+    T->>M: acțiune API semantică
     M->>E: ApiRequest
     E->>H: schimb HTTP
-    H-->>E: ApiResponse + durată
-    E->>R: trace și JSON sigur
+    H-->>E: ApiResponse + durată + retry history
+    E->>R: request + trace + JSON sigur
     T->>V: contract + response
-    V->>R: assertions prin ValidationSink
-    R->>R: închide request-ul după validare
+    V->>V: evaluate rules + warning policy
+    V-->>T: ValidationResult
+    V->>R: validation sibling + aggregate assertions
+    E->>R: complete phase + scenario verdict
+    R->>R: finalizează HTML autonom
 ~~~
 
 Faptele transportului, satisfacerea contractului și verdictul scenariului sunt
