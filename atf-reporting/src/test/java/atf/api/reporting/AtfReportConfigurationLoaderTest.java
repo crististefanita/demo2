@@ -102,6 +102,77 @@ class AtfReportConfigurationLoaderTest {
     }
 
     @Test
+    void resolvesFromAnImmutableContextWithoutSamplingTheProcessWorkingDirectory() throws Exception {
+        Path firstRoot = Files.createTempDirectory("atf-context-first-");
+        Path secondRoot = Files.createTempDirectory("atf-context-second-");
+        Files.writeString(firstRoot.resolve("atf.yaml"), """
+                reporting:
+                  extent:
+                    outputDirectory: first-reports
+                    fileName: first.html
+                """);
+        Files.writeString(secondRoot.resolve("atf.yaml"), """
+                reporting:
+                  extent:
+                    outputDirectory: second-reports
+                    fileName: second.html
+                """);
+
+        var settings = AtfReportConfigurationLoader.load(
+                new AtfReportConfigurationContext(firstRoot, null, null));
+
+        assertEquals(firstRoot.resolve("first-reports").toAbsolutePath().normalize(),
+                settings.outputDirectory());
+        assertEquals("first.html", settings.fileName());
+        assertNotEquals(secondRoot.resolve("second-reports").toAbsolutePath().normalize(),
+                settings.outputDirectory());
+    }
+
+    @Test
+    void givesExplicitSystemPropertyContextPrecedenceOverEnvironmentContext() throws Exception {
+        Path propertyRoot = Files.createTempDirectory("atf-context-property-");
+        Path environmentRoot = Files.createTempDirectory("atf-context-environment-");
+        Path propertyConfig = propertyRoot.resolve("property.yaml");
+        Path environmentConfig = environmentRoot.resolve("environment.yaml");
+        Files.writeString(propertyConfig, "reporting:\n  extent:\n    fileName: property.html\n");
+        Files.writeString(environmentConfig, "reporting:\n  extent:\n    fileName: environment.html\n");
+
+        var settings = AtfReportConfigurationLoader.load(new AtfReportConfigurationContext(
+                propertyRoot, propertyConfig.toString(), environmentConfig.toString()));
+
+        assertEquals("property.html", settings.fileName());
+        assertEquals(propertyRoot.resolve("target").toAbsolutePath().normalize(),
+                settings.outputDirectory());
+    }
+
+    @Test
+    void resolvesRelativeExplicitConfigAgainstTheCapturedStartDirectory() throws Exception {
+        Path root = Files.createTempDirectory("atf-relative-context-");
+        Path config = root.resolve("config/atf.yaml");
+        Files.createDirectories(config.getParent());
+        Files.writeString(config, "reporting:\n  extent:\n    fileName: relative.html\n");
+
+        var settings = AtfReportConfigurationLoader.load(new AtfReportConfigurationContext(
+                root, "config/atf.yaml", null));
+
+        assertEquals("relative.html", settings.fileName());
+        assertEquals(root.resolve("config/target").toAbsolutePath().normalize(),
+                settings.outputDirectory());
+    }
+
+    @Test
+    void rejectsOutputDirectoryTraversalOutsideTheYamlDirectory() throws Exception {
+        Path root = Files.createTempDirectory("atf-traversal-");
+        Path config = root.resolve("config/atf.yaml");
+        Files.createDirectories(config.getParent());
+        Files.writeString(config, "reporting:\n  extent:\n    outputDirectory: ../../outside\n");
+
+        var error = assertThrows(IllegalStateException.class,
+                () -> AtfReportConfigurationLoader.load(config));
+        assertTrue(error.getMessage().contains("escapes"));
+    }
+
+    @Test
     void rejectsAPathAsTheConfiguredFileName() {
         assertThrows(IllegalArgumentException.class,
                 () -> new ExtentReportConfiguration(Path.of("target"), "nested/report.html"));

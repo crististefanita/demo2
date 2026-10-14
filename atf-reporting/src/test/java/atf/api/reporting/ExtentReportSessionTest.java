@@ -2,10 +2,17 @@ package atf.api.reporting;
 
 import atf.api.core.reporting.AtfAssertion;
 import atf.api.core.reporting.AtfReportStatus;
+import atf.api.core.http.ApiAttemptOutcome;
+import atf.api.core.http.ApiAttemptRecord;
+import atf.api.core.http.ApiExecutionResult;
+import atf.api.core.http.ApiResponse;
+import atf.api.core.http.RetryEvent;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.util.Map;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -543,6 +550,59 @@ class ExtentReportSessionTest {
                 () -> assertFalse(html.contains("raw-expected-token")),
                 () -> assertFalse(html.contains("raw-actual-token")),
                 () -> assertTrue(html.contains("***REDACTED***")));
+    }
+
+    @Test
+    void retryEvidenceIsRenderedByTheEvidenceBoundaryAndRedactedBeforePublication() throws Exception {
+        Path report = TestReportPaths.report("extent-api-retry-evidence.html");
+        var response = new ApiResponse(200, "{\"status\":\"ok\"}", Map.of(),
+                Duration.ofMillis(8), "https://api.example.test/secure?token=raw-final-token");
+        var execution = new ApiExecutionResult(response, 2, Duration.ofMillis(13),
+                List.of(new RetryEvent(2, 503, "Retry-After", Duration.ZERO, "retry token=raw-event-token")),
+                List.of(
+                        new ApiAttemptRecord(1, 503, Duration.ofMillis(5), ApiAttemptOutcome.RETRYABLE_RESPONSE,
+                                "retry token=raw-attempt-token"),
+                        new ApiAttemptRecord(2, 200, Duration.ofMillis(8), ApiAttemptOutcome.SUCCESS, "")));
+
+        try (var session = new ExtentReportSession(report)) {
+            var scenario = session.startScenario("RetryTests", "retry evidence", List.of("reporting"));
+            var body = scenario.startPhase("TEST BODY");
+            var request = body.startRequest("secure call", "GET", "/secure");
+            request.execution(execution);
+            request.complete(AtfReportStatus.PASS);
+            body.complete(AtfReportStatus.PASS);
+            scenario.complete(AtfReportStatus.PASS);
+        }
+
+        String html = Files.readString(report);
+        assertAll(
+                () -> assertTrue(html.contains("retry-history-table")),
+                () -> assertTrue(html.contains("RETRYABLE_RESPONSE")),
+                () -> assertFalse(html.contains("raw-final-token")),
+                () -> assertTrue(html.contains("token=***REDACTED***"),
+                        "the URL may retain the query key while the secret value must be redacted"),
+                () -> assertFalse(html.contains("raw-event-token")),
+                () -> assertFalse(html.contains("raw-attempt-token")),
+                () -> assertTrue(html.contains("retry.events")));
+    }
+
+    @Test
+    void failureCauseIsRedactedAtTheExtentPhaseBoundaryBeforePublication() throws Exception {
+        Path report = TestReportPaths.report("extent-api-failure-cause-redaction.html");
+        try (var session = new ExtentReportSession(report)) {
+            var scenario = session.startScenario("FailureTests", "redacted failure", List.of("security"));
+            var body = scenario.startPhase("TEST BODY");
+            body.detail("Failure cause", "ApiValidationException: token=raw-failure-token; mode=full");
+            body.complete(AtfReportStatus.FAIL);
+            scenario.complete(AtfReportStatus.FAIL);
+        }
+
+        String html = Files.readString(report);
+        assertAll(
+                () -> assertTrue(html.contains("FAILURE CAUSE")),
+                () -> assertTrue(html.contains("token=***REDACTED***")),
+                () -> assertTrue(html.contains("mode=full")),
+                () -> assertFalse(html.contains("raw-failure-token")));
     }
 
     private static int divDepthAt(String html, int markerIndex) {

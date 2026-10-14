@@ -20,6 +20,7 @@ public final class ApiAcceptancePublisher {
         var response = execution.response();
         var request = phase.startRequest(title, executionRequestMethod(title),
                 URI.create(response.url()).getPath());
+        request.execution(execution);
         request.detail("Duration", response.duration().toMillis() + " ms");
         request.detail("URL", response.url());
         request.detail("HTTP STATUS", Integer.toString(response.status()));

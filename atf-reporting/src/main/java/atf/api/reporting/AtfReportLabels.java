@@ -27,4 +27,8 @@ public final class AtfReportLabels {
     public static String assertions(int rows) {
         return "Assertions · " + rows;
     }
+
+    public static String executionEvidence(int attempts) {
+        return "Execution evidence · " + attempts + " attempts";
+    }
 }

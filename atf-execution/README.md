@@ -6,15 +6,20 @@ unui scenariu fără să cunoască Extent sau HTML.
 
 ## Locul în flux
 
+Diagrama de mai jos descrie colaborarea runtime, nu direcția dependențelor
+Maven. Direcția dependențelor este documentată în README-ul rădăcină și în
+`docs/ATF_Architecture.md`.
+
 ```mermaid
 flowchart LR
     Test[atf-tests<br>scenario] --> Lifecycle[Scenario lifecycle]
-    Lifecycle --> Service[UsersService / PostsService]
+    Test --> Service[UsersService / PostsService]
     Service --> Routes[ApiRoutes + RoutePaths]
     Routes --> Executor[ApiExecutor]
-    Executor --> Response[ApiExecutionResult]
-    Response --> Validation[atf-validation]
+    Executor --> Result[ApiExecutionResult]
+    Test --> Validation[atf-validation]
     Lifecycle --> Report[AtfReportPorts]
+    Validation --> Report
 ```
 
 ## Cele două responsabilități ale modulului

@@ -5,18 +5,20 @@ de response într-o decizie verificabilă și într-un set de assertions publica
 Este un JAR reutilizabil: nu face HTTP, nu cunoaște Extent și nu construiește
 HTML/CSS.
 
-## Locul modulului în arhitectură
+## Colaborarea runtime
+
+Diagrama arată fluxul de date și colaborarea runtime; nu este graful de
+dependențe Maven. Graful de module și sensul săgeților sunt în README-ul
+rădăcină și în `docs/ATF_Architecture.md`.
 
 ```mermaid
-flowchart TD
+flowchart LR
     Core[atf-core<br/>modele + porturi] --> Validation[atf-validation<br/>contracte + evaluator]
+    Execution[atf-execution<br/>rute + lifecycle] --> Validation
+    Tests[atf-tests] --> Validation
     Validation --> Decision[ValidationDecision<br/>status + assertions]
     Validation --> Sink[ValidationSink<br/>port îngust de publicare]
-    Execution[atf-execution<br/>rute + lifecycle] --> Validation
     Reporting[atf-reporting<br/>Extent + HTML] --> Sink
-    Tests[atf-tests] --> Execution
-    Tests --> Validation
-    Tests --> Reporting
 ```
 
 Direcția este intenționată:

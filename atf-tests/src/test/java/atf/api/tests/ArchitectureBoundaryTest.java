@@ -44,6 +44,47 @@ class ArchitectureBoundaryTest {
                 () -> assertDependencyPresent(root, "atf-tests", "atf-reporting"));
     }
 
+    @Test
+    void reportingProductionCodeDoesNotReachIntoExecutionOrBusinessValidation() throws Exception {
+        Path root = locateProjectRoot();
+        var violations = new ArrayList<String>();
+        assertNoForbidden(root.resolve("atf-reporting/src/main/java"),
+                List.of("atf.api.execution", "atf.api.validation", "org.junit", "org.junit.jupiter"),
+                violations);
+        assertTrue(violations.isEmpty(), () -> "Reporting boundary violations: " + violations);
+    }
+
+    @Test
+    void productionModulesDoNotDeclareMutableStaticFields() throws Exception {
+        Path root = locateProjectRoot();
+        var violations = new ArrayList<String>();
+        for (String module : List.of("atf-core", "atf-validation", "atf-execution", "atf-reporting")) {
+            Path sourceRoot = root.resolve(module).resolve("src/main/java");
+            if (!Files.isDirectory(sourceRoot)) continue;
+            try (var files = Files.walk(sourceRoot)) {
+                files.filter(path -> path.toString().endsWith(".java")).forEach(path -> {
+                    try {
+                        int lineNumber = 0;
+                        for (String line : Files.readAllLines(path)) {
+                            lineNumber++;
+                            String trimmed = line.trim();
+                            if (trimmed.startsWith("//") || trimmed.startsWith("*")
+                                    || trimmed.contains(" static final ") || trimmed.startsWith("static final ")) {
+                                continue;
+                            }
+                            if (trimmed.matches(".*\\bstatic\\s+(volatile\\s+)?[A-Za-z_$][\\w$<>?, .\\[\\]]*\\s+[A-Za-z_$][\\w$]*\\s*(=.*)?;.*")) {
+                                violations.add(path + ":" + lineNumber + " mutable static field");
+                            }
+                        }
+                    } catch (Exception error) {
+                        violations.add("cannot read " + path + ": " + error.getMessage());
+                    }
+                });
+            }
+        }
+        assertTrue(violations.isEmpty(), () -> "Mutable static state found: " + violations);
+    }
+
     private static void assertDependencyPresent(Path root, String module, String dependency)
             throws Exception {
         String pom = Files.readString(root.resolve(module).resolve("pom.xml"));

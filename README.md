@@ -86,9 +86,10 @@ flowchart LR
     Execution --> Validation
     Validation --> Core
     Reporting --> Core
-    Core --> Ports[renderer-neutral ports]
-    Reporting --> Artifact[HTML artifact]
 ```
+
+`atf-reporting` produce artifactul HTML prin porturile neutre definite de
+`atf-core`; artifactul este un output al modulului, nu o dependență Maven.
 
 | Modul | Deține | Nu deține |
 |---|---|---|
@@ -100,17 +101,78 @@ flowchart LR
 
 ### Direcția dependențelor
 
-```text
-atf-core
-   ↑
-atf-validation  ←  atf-execution  ←  atf-tests
-   ↑                    ↓              ↓
-   └──────────────  atf-reporting  ────┘
+Săgeata înseamnă „modulul din stânga depinde de modulul din dreapta”.
+
+```mermaid
+flowchart LR
+    Validation[atf-validation] --> Core[atf-core]
+    Execution[atf-execution] --> Validation
+    Execution --> Core
+    Reporting[atf-reporting] --> Core
+    Tests[atf-tests] --> Execution
+    Tests --> Validation
+    Tests --> Reporting
+    Tests --> Core
 ```
+
+`atf-core` nu depinde de modulele superioare. `atf-validation` nu depinde de
+`atf-reporting`; publicarea se face prin porturi neutre. `atf-reporting` nu
+depinde de `atf-execution`. `atf-tests` le compune în testele de integrare și
+acceptance, dar nu devine runtime dependency a framework-ului.
 
 Porturile comune sunt renderer-neutral. Extent este o implementare a boundary-
 ului de reporting, nu o dependență transversală. Composition root-ul leagă
 transportul, configurația, serviciile, lifecycle-ul, validarea și raportarea.
+
+## Configurația runtime
+
+Fișierul `atf.yaml` aparține proiectului consumator și stă la rădăcina lui; nu
+aparține unui singur modul. În starea actuală, loaderul din `atf-reporting`
+citește numai secțiunea `reporting.extent` pentru output-ul HTML. Este o
+utilizare corectă pentru configurația rendererului, dar nu este încă snapshot-ul
+complet al execuției.
+
+Separarea țintă este:
+
+| Responsabilitate | Owner | Regula |
+|---|---|---|
+| modele typed și snapshot-uri immutable | `atf-core` | fără YAML, filesystem, env sau `user.dir` în request |
+| încărcarea și validarea sursei YAML | `atf-tests` / proiectul consumator | o singură citire la bootstrap, cu erori fail-fast |
+| API timeout/retry/auth/routes | `atf-core` + `atf-execution` | executorul primește doar snapshot-ul |
+| output, timestamp și renderer | `atf-reporting` | consumă setările de reporting, nu API settings |
+| override-uri de test | `atf-tests`/consumator | explicite, locale și fără mutarea configurației globale |
+
+Nu este necesar un modul nou acum. În acest repository, composition root-ul
+este `atf-tests`; pentru un consumator extern este proiectul de teste al acelui
+consumator. `atf-core` definește contractele, composition root-ul asamblează
+configurația, iar reporting adaptează numai partea sa. `atf-reporting` păstrează
+loaderul său pentru `reporting.extent`; acesta nu devine loaderul configurației
+API complete. Parserul YAML nu se mută în `atf-core`, deoarece ar transforma
+kernelul într-un owner de filesystem și surse externe.
+
+Schema actuală a sursei este un singur document cu secțiuni separate:
+
+```yaml
+api:
+  baseUri: https://gorest.co.in
+  defaultAuthProfile: default
+  timeout: PT30S
+  retryStatuses: [429, 503]
+  maxAttempts: 2
+validation:
+  warningMode: false
+reporting:
+  assertionMaxDisplayCharacters: 240
+  extent:
+    outputDirectory: artifacts/reports
+    fileName: api-atf-extent-report.html
+    timestampEnabled: true
+```
+
+Secretele nu se păstrează în YAML; se injectează printr-un provider/env
+explicit. Căile relative se rezolvă față de fișierul YAML, configurația se
+validează strict, iar după bootstrap snapshot-ul nu se mai modifică și nu se
+recitește pentru fiecare request.
 
 ## Lifecycle și calculul rezultatului
 

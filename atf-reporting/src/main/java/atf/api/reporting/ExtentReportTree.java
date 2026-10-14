@@ -1,6 +1,7 @@
 package atf.api.reporting;
 
 import atf.api.core.config.ReportingSettings;
+import atf.api.core.http.ApiExecutionResult;
 import atf.api.core.reporting.AtfAssertion;
 import atf.api.core.reporting.AtfReportPorts;
 import atf.api.core.reporting.AtfReportStatus;
@@ -9,7 +10,6 @@ import atf.api.core.security.SensitiveDataRedactor;
 import atf.api.reporting.extent.ExtentScenarioScope;
 import com.aventstack.extentreports.ExtentReports;
 import com.aventstack.extentreports.ExtentTest;
-import com.aventstack.extentreports.markuputils.MarkupHelper;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -21,6 +21,7 @@ public final class ExtentReportTree {
     private final ExtentReports reports;
     private final ReportingSettings settings;
     private final SensitiveDataRedactor redactor;
+    private final ExtentEvidenceRenderer evidence;
     private final Runnable ensureSessionOpen;
     private final Map<String, ExtentTest> classRoots = new LinkedHashMap<>();
     private final Map<String, ReportStatusAggregator> classStatuses = new LinkedHashMap<>();
@@ -30,6 +31,7 @@ public final class ExtentReportTree {
         this.reports = reports;
         this.settings = settings;
         this.redactor = redactor;
+        this.evidence = new ExtentEvidenceRenderer(settings, redactor);
         this.ensureSessionOpen = ensureSessionOpen;
     }
 
@@ -85,32 +87,20 @@ public final class ExtentReportTree {
     public void markEnded(ExtentTest node) { ExtentNodeLifecycle.end(node); }
 
     public void renderDetails(ExtentTest node, List<String[]> details) {
-        if (details.isEmpty()) return;
-        node.info(AtfReportLabels.responseDetails(details.size()));
-        node.info(AtfReportMarkup.table("helm-evidence-table helm-trace-table",
-                EvidenceTableFormatter.toExtentRows(details)));
+        evidence.renderDetails(node, details);
     }
 
     public void renderJson(ExtentTest node, List<String[]> json) {
-        for (String[] item : json) {
-            node.info(item[0] == null || item[0].isBlank() ? "JSON BODY" : item[0]);
-            node.info(MarkupHelper.createCodeBlock(ExtentReportNodeSupport.display(item[1], settings)));
-        }
+        evidence.renderJson(node, json);
+    }
+
+    /** Publishes one renderer-neutral transport evidence block at the request boundary. */
+    public void renderExecution(ExtentTest node, ApiExecutionResult execution) {
+        evidence.renderExecution(node, execution);
     }
 
     public void renderAssertions(ExtentTest node, Collection<AtfAssertion> assertions) {
-        var table = new String[assertions.size() + 1][4];
-        table[0] = new String[]{AtfReportLabels.ASSERTION, AtfReportLabels.EXPECTED,
-                AtfReportLabels.ACTUAL, AtfReportLabels.RESULT};
-        int index = 0;
-        for (var row : assertions) {
-            table[++index] = new String[]{
-                    redactor.redactText(row.name()),
-                    ExtentReportNodeSupport.display(redactor.redactField(row.name(), row.expected()), settings),
-                    ExtentReportNodeSupport.display(redactor.redactField(row.name(), row.actual()), settings),
-                    ExtentReportNodeSupport.resultMarker(row.resultStatus())};
-        }
-        node.info(AtfReportMarkup.table("helm-evidence-table helm-validation-table", table));
+        evidence.renderAssertions(node, assertions);
     }
 
 }

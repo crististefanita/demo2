@@ -1,5 +1,6 @@
 package atf.api.reporting;
 
+import atf.api.core.http.ApiExecutionResult;
 import atf.api.core.reporting.AtfAssertion;
 import atf.api.core.reporting.AtfReportStatus;
 
@@ -63,6 +64,7 @@ final class HtmlReportSemanticDocument {
 
     static final class PhaseModel {
         final String name;
+        final List<String[]> details = new ArrayList<>();
         final List<NodeModel> children = new ArrayList<>();
         AtfReportStatus status = AtfReportStatus.INFO;
 
@@ -77,6 +79,7 @@ final class HtmlReportSemanticDocument {
         final String path;
         final List<String[]> details = new ArrayList<>();
         final List<String[]> json = new ArrayList<>();
+        ApiExecutionResult execution;
         AtfReportStatus status = AtfReportStatus.INFO;
 
         RequestModel(String title, String method, String path) {

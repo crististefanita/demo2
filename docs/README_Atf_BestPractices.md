@@ -28,6 +28,10 @@ flowchart LR
     Validator --> Assertions[tabel agregat]
 ~~~
 
+Aceasta este o diagramă de colaborare runtime, nu o diagramă de dependențe
+Maven. Modulele, direcția importurilor și composition root-ul sunt definite în
+[ATF_Architecture.md](ATF_Architecture.md).
+
 Testele nu construiesc transportul, nu manipulează HTML-ul și nu decid local
 precedence-ul statusurilor. Reporting-ul nu face apeluri HTTP și nu modifică
 assertions pentru a obține o randare mai convenabilă.

@@ -39,7 +39,7 @@ final class ApiScenarioPhaseExecutor {
         } catch (Throwable failure) {
             result = new PhaseResult(AtfReportStatus.FAIL, failure);
         } finally {
-            if (result.failure() != null) {
+            if (result.status() == AtfReportStatus.FAIL && result.failure() != null) {
                 phase.detail("Failure cause", result.failure().toString());
             }
             phase.complete(result.status());

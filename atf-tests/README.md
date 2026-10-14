@@ -26,14 +26,17 @@ politica internă de finalizare a raportului.
 flowchart TD
     Test[Test method] --> Plan[Scenario plan]
     Plan --> Setup[SETUP]
-    Setup --> Body[TEST BODY]
+    Setup --> SetupRequest[Setup request(s)]
+    Plan --> Body[TEST BODY]
     Body --> Action[UsersService / PostsService action]
     Action --> Request[Request evidence]
-    Request --> Validate[atf-validation]
+    Request --> Trace[Trace + response evidence]
+    Body --> Validate[atf-validation sibling]
     Validate --> Assertions[One aggregate assertion table]
     Assertions --> Verdict[PASS / WARNING / FAIL / SKIP]
-    Verdict --> Teardown[TEARDOWN]
-    Teardown --> Artifact[Extent HTML artifact]
+    Plan --> Teardown[TEARDOWN]
+    Teardown --> Cleanup[Cleanup/read-back]
+    Plan --> Artifact[Extent HTML artifact after lifecycle]
 ```
 
 În `TEST BODY`, request-ul și validation-ul sunt frați direcți:

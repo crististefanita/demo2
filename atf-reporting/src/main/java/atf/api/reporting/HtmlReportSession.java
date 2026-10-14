@@ -1,9 +1,11 @@
 package atf.api.reporting;
 
 import atf.api.core.config.ReportingSettings;
+import atf.api.core.http.ApiExecutionResult;
 import atf.api.core.reporting.AtfAssertion;
 import atf.api.core.reporting.AtfReportPorts;
 import atf.api.core.reporting.AtfReportStatus;
+import atf.api.core.security.SensitiveDataRedactor;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -25,7 +27,7 @@ public final class HtmlReportSession implements AtfReportPorts.Session {
     private final Path reportPath;
     private final ReportingSettings settings;
     private final HtmlReportSemanticDocument document = new HtmlReportSemanticDocument();
-    private final HtmlReportTestsView testsView = new HtmlReportTestsView();
+    private final HtmlReportTestsView testsView = new HtmlReportTestsView(new SensitiveDataRedactor());
     private final HtmlReportCategoryView categoryView = new HtmlReportCategoryView();
     private final HtmlReportFailsView failsView = new HtmlReportFailsView();
     private final HtmlReportOverviewView overviewView = new HtmlReportOverviewView();
@@ -126,6 +128,9 @@ public final class HtmlReportSession implements AtfReportPorts.Session {
             model.children.add(request);
             return new RequestScope(model, request);
         }
+        @Override public void detail(String name, String value) {
+            model.details.add(new String[]{name, value});
+        }
         @Override public void complete(AtfReportStatus status) { model.status = status; }
         @Override public void close() { closed = true; }
         private void ensureOpen() { if (closed) throw new IllegalStateException("Phase is closed"); }
@@ -138,6 +143,7 @@ public final class HtmlReportSession implements AtfReportPorts.Session {
         private RequestScope(HtmlReportSemanticDocument.PhaseModel phase, HtmlReportSemanticDocument.RequestModel model) { this.phase = phase; this.model = model; }
         @Override public void detail(String name, String value) { model.details.add(new String[]{name, value}); }
         @Override public void json(String label, String json) { model.json.add(new String[]{label, json}); }
+        @Override public void execution(ApiExecutionResult result) { model.execution = result; }
         @Override public AtfReportPorts.Validation startValidation(String title) {
             ensureOpen();
             var validation = new HtmlReportSemanticDocument.ValidationModel(title);

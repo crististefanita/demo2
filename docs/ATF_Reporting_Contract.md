@@ -33,13 +33,17 @@ flowchart TD
     Setup --> SR[Request]
     Body --> BR[Request]
     Teardown --> TR[Request sau cleanup]
-    SR --> SV[Validation sibling]
-    BR --> BV[Validation sibling]
-    TR --> TV[Validation sibling când există contract]
+    Setup --> SV[Validation sibling când există contract]
+    Body --> BV[Validation sibling]
+    Teardown --> TV[Validation sibling când există contract]
     SV --> ST[Un tabel de assertions]
     BV --> BT[Un tabel de assertions]
     TV --> TT[Un tabel de assertions]
 ~~~
+
+În fiecare fază, request-ul și validation-ul sunt ramuri surori ale fazei;
+legătura lor semantică este aceeași, dar validation-ul nu este copil vizual al
+request-ului.
 
 Reguli de ownership:
 
@@ -63,6 +67,7 @@ rendererul fallback:
 | clasificare internă | `TECHNICAL TRACE` |
 | request payload | `REQUEST JSON` |
 | response payload | `RESPONSE JSON` |
+| transport execution | `Execution evidence · N attempts` |
 | assertions | `Assertions · N` |
 
 `TECHNICAL TRACE` nu este titlul disclosure-ului. El descrie conținutul din
@@ -72,9 +77,16 @@ rendererul fallback:
 flowchart TD
     Request[HTTP request] --> Details[Response details · N fields]
     Details --> Trace[TECHNICAL TRACE]
+    Request --> Execution[Execution evidence · N attempts]
+    Execution --> Retry[Retry history]
     Request --> Response[RESPONSE JSON]
     Request --> Assertions[Assertions · N]
 ```
+
+Evidence-ul de execuție este renderer-neutral. Înregistrează statusul response-
+ului, URL-ul redacted, durata măsurată, numărul de attempt-uri și istoricul de
+retry/attempt. Motivele retry și URL-urile trec prin aceeași limită de redaction
+ca headers, JSON și valorile assertions; un renderer nu reconstruiește secrete.
 
 Trace-ul tehnic este compact și relevant:
 
@@ -116,6 +128,13 @@ Request JSON și Response JSON sunt blocuri de cod autonome. Liniile se rup sau
 se derulează în interiorul blocului; pagina nu trebuie să dobândească scroll
 orizontal din cauza unui payload. Dacă payload-ul este mic, blocul rămâne
 compact; nu se impune o înălțime mare doar pentru uniformitate.
+
+Redacția se aplică la limita de publicare pentru ambele renderere. Detaliile
+request-ului și fazei, JSON-ul, URL-ul, retry history, cauza failure-ului și
+valorile assertions trec prin aceeași politică a redactorului sensibil;
+cheia și parametrii query neconfidențiali rămân vizibili, iar valorile secrete
+sunt înlocuite cu markerul de redacție. Niciun renderer nu poate publica direct
+input-ul primit de la transport sau de la validator.
 
 ## Tabelul agregat de assertions
 

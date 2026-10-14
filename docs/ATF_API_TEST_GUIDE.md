@@ -21,13 +21,15 @@ contractul raportului în [ATF_Reporting_Contract.md](ATF_Reporting_Contract.md)
 
 ~~~mermaid
 flowchart TD
-    Test[Test API] --> Setup[SETUP opțional]
-    Setup --> Request1[Request]
-    Request1 --> Validation1[Validation sibling]
-    Test --> Body[TEST BODY]
-    Body --> Request2[Request]
-    Request2 --> Validation2[Validation sibling]
-    Test --> Teardown[TEARDOWN]
+    Test[Test API] --> Plan[Scenario plan]
+    Plan --> Setup[SETUP opțional]
+    Setup --> SetupRequest[Request(s)]
+    Plan --> Body[TEST BODY]
+    Body --> BodyRequest[Request]
+    BodyRequest --> Trace[Trace + response evidence]
+    Body --> BodyValidation[Validation sibling]
+    BodyValidation --> Assertions[Aggregate assertion table]
+    Plan --> Teardown[TEARDOWN]
     Teardown --> Cleanup[Cleanup/read-back]
 ~~~
 

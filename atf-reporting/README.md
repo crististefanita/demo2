@@ -129,6 +129,37 @@ header-ele sticky, înălțimea scrollabilă și token-urile comune de font; tes
 verifică și faptul că fragmentul este compus după regulile execution-page,
 deoarece precedența selectorilor este parte din contract.
 
+Bootstrap-ul JavaScript nu mai este deținut direct de pipeline.
+`ExtentReportRuntimeBehaviour` este fațada internă pentru runtime-ul injectat
+și compune explicit controlerele specializate pentru durate, failure/cause-chain
+și interacțiuni DOM. Astfel, pipeline-ul rămâne orchestration-only, iar ordinea
+controllerelor este protejată de `ExtentReportRuntimeScriptTest`. Această
+extracție este primul pas al splitului F-01; navigation/hash, filters, collapse
+și DOM contract vor fi izolate incremental, fără schimbarea artifactului.
+
+## Configurația de raportare
+
+`atf.yaml` este deținut de proiectul consumator. `AtfReportConfigurationLoader`
+citește efectiv doar `reporting.extent`, rezolvă `outputDirectory` relativ la
+fișierul YAML și produce `ExtentReportConfiguration` immutable. Proprietățile
+explicite și variabila `ATF_REPORT_CONFIG` pot selecta fișierul; raportarea nu
+trebuie să citească API timeout, retry sau auth și nu trebuie să recitească YAML-
+ul în timpul unui request.
+
+Pentru rulări paralele sau embedding, `AtfReportConfigurationContext` capturează
+immutable rădăcina de căutare și valorile explicite înaintea încărcării.
+`AtfReportConfigurationLoader.load(context)` nu mai citește stare globală după
+ce primește contextul; property-ul explicit are precedence peste environment.
+`AtfReportConfigurationContext.fromProcess()` este boundary-ul unic pentru
+fațada legacy `load()`.
+
+Până la completarea snapshot-ului unificat, această limită este intenționată:
+reporting deține doar output, nume, timestamp și zonă; modelele runtime neutre
+aparțin lui `atf-core`. Secțiunile `api` și `validation` din fișier sunt schema
+proiectului, dar nu sunt încă consumate de acest loader specializat. Integrarea
+lor aparține composition root-ului, cu chei stricte, paths relative față de
+fișier, secrete injectate prin provider și izolare per sesiune paralelă.
+
 ## Paleta obligatorie
 
 Toate suprafețele neutre trebuie să folosească același token de bază. Nu se
@@ -453,7 +484,7 @@ Contractul este întărit pe trei niveluri, fără să schimbe forma raportului:
    pozitive și respingerea inputului vendor invalid;
 7. `ReportStagingWorkspaceTest` verifică lease-ul exclusiv, close idempotent,
     sweeper-ul bounded și validarea limitelor;
-6. `ExtentReportInteractionContractTest`, `ReportArtifactContractChecksTest` și
+8. `ExtentReportInteractionContractTest`, `ReportArtifactContractChecksTest` și
    `ReportArtifactInspectorTest`
    verifică markup-ul și artifactul publicat:
    sibling direct request/validation, phase shell, trace compact, JSON bounded,

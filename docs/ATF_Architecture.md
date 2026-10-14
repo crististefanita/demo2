@@ -5,16 +5,21 @@ dependențelor este de la scenarii spre infrastructură; infrastructura nu
 cunoaște rutele sau intenția unui test de produs.
 
 ~~~mermaid
-flowchart TD
-    Tests[atf-tests<br/>unitare și contract] --> Module[atf-execution<br/>rute și scenarii]
-    Tests --> Validation[atf-validation<br/>contracte și verdicturi]
-    Tests --> Reporting[atf-reporting<br/>artifact Extent]
-    Module --> Core[atf-core<br/>transport și politici]
-    Module --> Validation
-    Validation --> Core
-    Reporting --> Core
-    Core --> Ports[porturi neutre față de renderer]
+flowchart LR
+    Validation[atf-validation<br/>contracte și verdicturi] --> Core[atf-core<br/>transport și politici]
+    Execution[atf-execution<br/>rute și scenarii] --> Validation
+    Execution --> Core
+    Reporting[atf-reporting<br/>artifact Extent] --> Core
+    Tests[atf-tests<br/>unitare și contract] --> Execution
+    Tests --> Validation
+    Tests --> Reporting
+    Tests --> Core
 ~~~
+
+În această diagramă săgeata înseamnă „modulul din stânga depinde de modulul
+din dreapta”. `atf-validation` și `atf-reporting` depind de `atf-core`, dar nu
+se depind reciproc; `atf-execution` depinde de `atf-core` și `atf-validation`,
+iar `atf-tests` este composition root pentru testele care le folosesc pe toate.
 
 ## Responsabilități
 
@@ -80,6 +85,48 @@ Catalogul descrie operația, metoda, resursa și autentificarea. Configurația
 poate suprascrie baza URL sau șabloanele fără ca testele să cunoască detaliile
 de mediu.
 
+## Configurație și snapshot
+
+`atf.yaml` este configurația proiectului consumator, nu un asset al unui modul
+și nu o configurație citită de fiecare request. Fișierul versionat conține
+acum secțiunile `api`, `validation` și `reporting`; în versiunea curentă,
+loaderul din `atf-reporting` consumă efectiv numai `reporting.extent`, iar
+API-ul este încă asamblat prin `ApiSettings`/`AtfConfiguration`. Integrarea
+completă a tuturor secțiunilor este ToDo-ul F-03 și nu trebuie presupusă ca
+deja activă.
+
+~~~mermaid
+flowchart LR
+    Yaml[atf.yaml proiect] --> Loader[composition root loader · F-03]
+    Env[explicit env/property override] --> Loader
+    Loader --> Config[AtfConfiguration validată · ținta]
+    Config --> Snapshot[immutable runtime snapshot · ținta]
+    Snapshot --> Execution[atf-execution]
+    Snapshot --> Validation[atf-validation]
+    Snapshot --> Reporting[atf-reporting]
+~~~
+
+Reguli obligatorii:
+
+- `atf-core` deține modelele typed și snapshot-urile, dar nu parsează YAML și
+  nu citește filesystem/env; în repository-ul curent loaderul complet aparține
+  composition root-ului din `atf-tests`/proiectul consumator;
+- loaderul citește configurația o singură dată la bootstrap și eșuează clar la
+  chei necunoscute, URI invalid, timeout invalid, root de schema absent sau
+  output path nesigur;
+- `reporting.extent` rămâne responsabilitatea reporting; timeout, retry, auth,
+  routes, redaction și schema roots sunt setări runtime neutre;
+- căile relative se rezolvă față de fișierul YAML, nu față de `user.dir` al
+  IDE-ului; fallback-ul implicit este permis doar ca compatibilitate temporară;
+- secretele nu sunt valori YAML publicate, ci referințe către un provider
+  explicit;
+- după bootstrap, toate modulele primesc snapshot-uri immutable, iar două
+  rulări paralele nu își pot modifica reciproc configurația.
+
+Nu se introduce un modul `atf-config`. `atf-reporting` își păstrează loaderul
+specializat pentru `reporting.extent`, iar composition root-ul poate compune
+setările API și validation în același bootstrap folosind modelele din core.
+
 ## Lifecycle și ownership
 
 ~~~mermaid
@@ -88,9 +135,9 @@ flowchart TD
     Scenario --> Body[TEST BODY]
     Scenario --> Teardown[TEARDOWN]
     Setup --> SR[Request]
-    SR --> SV[Validation sibling]
+    Setup --> SV[Validation sibling]
     Body --> BR[Request]
-    BR --> BV[Validation sibling]
+    Body --> BV[Validation sibling]
     Teardown --> Cleanup[Cleanup în ordine inversă]
 ~~~
 

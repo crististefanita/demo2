@@ -18,6 +18,15 @@ artifactele generate nu se sincronizează în checkout-ul activ.
 - nu se deschide browserul Windows pentru validarea raportului; interacțiunea se
   face în TAB MCP.
 
+## Rezolvarea sigură a configurației
+
+Configurația de raportare este capturată o singură dată, la composition root.
+O cale YAML relativă se rezolvă față de `startDirectory`-ul capturat, iar
+`reporting.extent.outputDirectory` se rezolvă față de directorul YAML. Căile
+care ies prin `..` din acel director sunt respinse înainte de publicare. Astfel
+două rulări IntelliJ cu rădăcini diferite nu pot ajunge accidental la același
+output printr-un `user.dir` schimbat sau printr-un path relativ ambiguu.
+
 ## Fluxul izolat
 
 ~~~mermaid
@@ -75,8 +84,8 @@ diferența nu este investigată și reconciliată.
 Exemplu PowerShell, cu căi înlocuite de operator:
 
 ~~~powershell
-$source = 'C:\work\ex\java\atf'
-$stage = 'C:\work\ex\java\.tmp\atf-java-staging-<id>'
+$source = '.'
+$stage = '.tmp/atf-java-staging-<id>'
 
 New-Item -ItemType Directory -Force $stage | Out-Null
 robocopy $source $stage /E /XD '.git' 'target' 'artifacts' 'spark' 'bin' 'obj' /XF '*.log' 'hs_err_pid*.log'
@@ -84,7 +93,7 @@ mvn -o -f "$stage\pom.xml" test
 ~~~
 
 Pentru execuția Java se păstrează aceeași regulă și în staging-ul din checkout-ul
-Java, de exemplu `C:\work\ex\java\.tmp\Atf-java-feedback-<id>`. Sursele se
+Java, de exemplu `.tmp/Atf-java-feedback-<id>`. Sursele se
 resynchronizează înainte de build; `target`, rapoartele și dump-urile rămân
 excluse din sync. Testele de raportare acceptă
 `-Datf.test.reportDirectory=<stage>\artifacts\reports`, iar testul configured

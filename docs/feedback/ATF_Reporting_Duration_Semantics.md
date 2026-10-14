@@ -1,78 +1,48 @@
 # ATF reporting — ToDo-uri active pentru durate și badge-uri
 
-Acest document păstrează numai diferențele încă neînchise din contractul de
-durată/status. Regula stabilă este în
-[ATF_Reporting_Contract.md](../ATF_Reporting_Contract.md) și în
-[atf-reporting/README.md](../../atf-reporting/README.md).
+Regula stabilă este în [ATF_Reporting_Contract.md](../ATF_Reporting_Contract.md)
+și [atf-reporting/README.md](../../atf-reporting/README.md). Aici rămân numai
+diferențele care mai cer implementare sau teste.
 
-## Durate
+## D-01 — Păstrează valoarea numerică și sursa duratei
 
-### D-01 — Păstrează valoarea numerică și sursa duratei
+Modelează separat `data-duration-ms` și sursa `measured`, `exclusive` sau
+`aggregated` pentru fiecare nod relevant. Textul `N ms` este doar prezentare și
+nu poate fi interpretat ca număr de assertions sau pași.
 
-**Dovadă curentă:** scriptul final normalizează textul la `N ms`, iar agregarea
-clasei scrie `data-duration-ms` și `data-duration-source="aggregated"`. Frunzele
-și fazele nu au încă un model explicit pentru valoarea numerică și sursa ei.
+Teste: `1 ms`, `16 ms`, durate peste o secundă, durată Extent inclusivă și
+badge status/duration ca elemente distincte.
 
-**De făcut:** păstrează separat `data-duration-ms` pentru fiecare nod relevant
-și modelează sursa ca `measured`, `exclusive` sau `aggregated`. Textul vizibil
-este doar formatul uman și nu poate fi folosit pentru a deduce count-uri.
+## D-02 — Agregare structurală fără dublare
 
-**Teste:** parsează `1 ms`, `16 ms`, valori peste o secundă, durate Extent
-native și badge-uri `Pass 16 ms`; verifică faptul că statusul și durata sunt
-citite din elemente distincte.
+Calculează `exclusive + suma copiilor structurali direcți`; nu traversa toți
+descendenții și nu adăuga încă o dată o durată vendor deja inclusivă. Clasa din
+stânga și header-ul clasei trebuie să fie egale cu scenariile directe vizibile.
 
-### D-02 — Agregare structurală fără dublare
+Teste: arbore nested, părinte fără durată proprie, părinte cu durată inclusivă
+și scenarii ascunse prin filtru.
 
-**Dovadă curentă:** navigatorul clasei agregă scenariile directe, dar phase,
-request și validation nu au încă o regulă generală pentru durată proprie,
-copii direcți și durată Extent inclusivă.
+## D-03 — Absența duratei și frunzele
 
-**De făcut:** pentru fiecare părinte calculează
-`exclusive + suma copiilor structurali direcți`; nu traversa toți descendenții
-și nu adăuga din nou o durată vendor deja inclusivă. Clasa din stânga și header-ul
-clasei trebuie să rămână egale cu scenariile directe vizibile.
+Request, validation, phase și lifecycle trebuie să distingă durata de count-ul
+de assertions/noduri. Fără valoare numerică se afișează `—`, nu `0`, count sau
+timestamp; unitatea `ms` apare numai pentru valori valide.
 
-**Teste:** arbore nested cu durate măsurate, părinte fără durată proprie,
-părinte cu durată inclusivă și scenarii ascunse de filtru.
+Teste: nod fără response, teardown fără response, zero, malformed și durată
+lipsă în Tests și Fails.
 
-### D-03 — Absența duratei și frunzele
+## D-04 — Un singur token de geometrie pentru status
 
-**De făcut:** request, validation, phase și lifecycle trebuie să distingă
-durata măsurată de count-ul de assertions/noduri. Când durata nu există,
-afișează `—`, nu `0`, count sau timestamp; păstrează unitatea `ms` numai când
-există o valoare numerică validă.
-
-**Teste:** nod fără response, teardown fără response, response cu durată zero,
-valoare malformed și artifact cu durată lipsă verificat în Tests și Fails.
-
-## Badge-uri de status
-
-### D-04 — Un singur token de geometrie pentru status
-
-**Dovadă curentă:** geometria Fails este deținută de `AtfReportFailsStatusCss`
-și este compusă după regulile generale ale temei. Failure detail consumă acum
-aceleași tokenuri; nu mai păstrează `height`, `padding`, `font-size` sau
-`font-weight` locale pentru badge-ul semantic.
-
-**De făcut:** păstrează geometria extrasă într-un token/selector comun și aplic-o în
-Tests, Category, Fails, Overview și detail projections:
+Aplică în Tests, Category, Fails, Overview și detail aceeași geometrie:
 `height:18.2px`, `padding:0 5px`, `border:0`, `radius:4px`, `font-size:9.52px`,
-`line-height:18.2px`, `font-weight:400`. Badge-urile neutre de durată/metadata
-folosesc separat `22.4px`, padding `5px 7px` și line-height `10.6624px`.
-Elimină override-urile contradictorii.
-Păstrează culorile în `AtfReportColors`, nu în selectoare locale.
+`line-height:18.2px`, `font-weight:400`. Durata/metadata folosește token separat.
+Culorile rămân în `AtfReportColors`, nu în selectori locali.
 
-**Teste:** assertions pe CSS pentru toate containerele și test DOM pentru
-computed style, text centering și status/duration separate în fiecare tab.
+Teste: CSS pentru toate containerele și test DOM pentru computed style,
+centrare și separarea statusului de durată în fiecare tab.
 
-## Dovada finală pentru acest document
+## Închidere
 
-Un ToDo se închide numai după:
-
-- testele unitare și de componentă verzi;
-- artifact HTML generat într-un staging separat;
-- verificarea în TAB MCP a Tests, Overview, Category și Fails;
-- confirmarea că nu există durate fără `ms`, timestamp în tabelul Tests sau
-  badge-uri cu geometrie diferită;
-- eliminarea ToDo-ului închis din acest fișier și mutarea regulii stabile în
-  documentul normativ.
+ToDo-ul dispare după teste unitare/componentă verzi, artifact staged verificat
+în TAB MCP și mutarea regulii stabile în documentul normativ. Nu se păstrează
+istoric sau scoruri în acest fișier.

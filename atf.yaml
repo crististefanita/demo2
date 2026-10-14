@@ -1,4 +1,19 @@
+api:
+  # Valorile de bază pentru scenariile live; bootstrap-ul le va consuma după
+  # închiderea ToDo-ului F-03.
+  baseUri: https://gorest.co.in
+  defaultAuthProfile: default
+  timeout: PT20S
+  retryStatuses: [429]
+  maxAttempts: 2
+
+validation:
+  # Warning-urile sunt opt-in la nivelul validării concrete; default-ul global
+  # rămâne strict pentru a nu ascunde o încălcare de contract.
+  warningMode: false
+
 reporting:
+  assertionMaxDisplayCharacters: 240
   extent:
     # Relative paths are resolved from this file, not IntelliJ's working directory.
     outputDirectory: artifacts/reports

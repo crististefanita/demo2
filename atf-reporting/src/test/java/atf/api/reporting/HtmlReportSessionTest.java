@@ -109,6 +109,24 @@ class HtmlReportSessionTest {
                 () -> assertFalse(html.contains("<small>api</small>")));
     }
 
+    @Test
+    void fallbackRedactsFailureCauseWhenPublishedThroughACompletedPhase() {
+        var session = new HtmlReportSession(TestReportPaths.report("fallback-failure-redaction.html"));
+        var scenario = session.startScenario("FailureTests", "redacted failure", List.of("api"));
+        var phase = scenario.startPhase("TEST BODY");
+        phase.detail("Failure cause", "ApiValidationException: token=raw-failure-token; mode=full");
+        phase.complete(AtfReportStatus.FAIL);
+        scenario.complete(AtfReportStatus.FAIL);
+
+        var html = session.render();
+
+        assertAll(
+                () -> assertTrue(html.contains("Failure cause")),
+                () -> assertTrue(html.contains("token=***REDACTED***")),
+                () -> assertTrue(html.contains("mode=full")),
+                () -> assertFalse(html.contains("raw-failure-token")));
+    }
+
     private static int count(String value, String token) {
         int count = 0, index = 0;
         while ((index = value.indexOf(token, index)) >= 0) { count++; index += token.length(); }

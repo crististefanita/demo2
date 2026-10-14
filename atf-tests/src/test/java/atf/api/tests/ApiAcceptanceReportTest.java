@@ -68,6 +68,8 @@ class ApiAcceptanceReportTest {
                 () -> assertFalse(html.contains("ROUTE TEMPLATE")),
                 () -> assertTrue(html.contains("TECHNICAL TRACE")),
                 () -> assertTrue(html.contains("RESPONSE DURATION (ms)")),
+                () -> assertTrue(html.contains("Execution evidence · 1 attempts")),
+                () -> assertTrue(html.contains("execution-table")),
                 () -> assertTrue(html.contains("function normalizeEvidenceDisclosures()")),
                 () -> assertTrue(html.contains("helm-validation-table")),
                 () -> assertFalse(html.contains("[+] expand")),

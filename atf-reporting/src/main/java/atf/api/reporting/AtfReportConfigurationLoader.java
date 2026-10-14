@@ -28,14 +28,26 @@ public final class AtfReportConfigurationLoader {
     }
 
     public static ExtentReportConfiguration load() {
-        Path explicit = explicitConfigPath();
+        return load(AtfReportConfigurationContext.fromProcess());
+    }
+
+    /**
+     * Loads from an explicit immutable context. No process-global state is
+     * sampled after this method receives the context.
+     */
+    public static ExtentReportConfiguration load(AtfReportConfigurationContext context) {
+        Objects.requireNonNull(context, "context");
+        Path explicit = context.explicitConfigPath();
         if (explicit != null) {
-            return load(explicit);
+            Path resolved = explicit.isAbsolute()
+                    ? explicit
+                    : context.startDirectory().resolve(explicit);
+            return load(resolved);
         }
 
-        Path discovered = discover(Path.of(System.getProperty("user.dir", ".")));
+        Path discovered = discover(context.startDirectory());
         return discovered == null
-                ? ExtentReportConfiguration.defaults(Path.of(System.getProperty("user.dir", ".")))
+                ? ExtentReportConfiguration.defaults(context.startDirectory())
                 : load(discovered);
     }
 
@@ -63,6 +75,11 @@ public final class AtfReportConfigurationLoader {
             if (!directory.isAbsolute()) {
                 directory = baseDirectory.resolve(directory);
             }
+            directory = directory.toAbsolutePath().normalize();
+            if (!directory.startsWith(baseDirectory)) {
+                throw new IllegalStateException(
+                        "ATF report outputDirectory escapes the configuration directory: " + outputDirectory);
+            }
             return new ExtentReportConfiguration(directory, fileName, timestampEnabled,
                     timestampPattern, timestampZone);
         } catch (IOException error) {
@@ -88,15 +105,6 @@ public final class AtfReportConfigurationLoader {
         return null;
     }
 
-    private static Path explicitConfigPath() {
-        String property = trimToNull(System.getProperty(CONFIG_PROPERTY));
-        if (property != null) {
-            return Path.of(property);
-        }
-        String environment = trimToNull(System.getenv(CONFIG_ENVIRONMENT_VARIABLE));
-        return environment == null ? null : Path.of(environment);
-    }
-
     private static String text(JsonNode parent, String name, String defaultValue) {
         JsonNode value = parent.path(name);
         if (value.isMissingNode() || value.isNull()) {
@@ -119,7 +127,4 @@ public final class AtfReportConfigurationLoader {
         throw new IllegalStateException("ATF report configuration value must be boolean: reporting.extent." + name);
     }
 
-    private static String trimToNull(String value) {
-        return value == null || value.isBlank() ? null : value.trim();
-    }
 }

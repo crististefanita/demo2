@@ -52,6 +52,28 @@ class ApiScenarioLifecycleRunnerTest {
     }
 
     @Test
+    void reportedLifecycleKeepsPrimaryAndSecondaryFailureEvidenceOnTheirOwnPhases() {
+        var events = new ArrayList<String>();
+        var result = new ApiScenarioLifecycleRunner().run(
+                new RecordingSession(events),
+                ApiScenarioPlan.scenario("LifecycleTests", "failure evidence")
+                        .body(phase -> { throw new IllegalStateException("body-secret"); })
+                        .teardown(phase -> { throw new IllegalStateException("teardown-secret"); })
+                        .build());
+
+        assertAll(
+                () -> assertEquals("body-secret", result.primaryFailure().getMessage()),
+                () -> assertEquals("body-secret", result.phaseOutcomes()
+                        .get(ApiScenarioLifecycleRunner.Phase.TEST_BODY).failure().getMessage()),
+                () -> assertEquals("teardown-secret", result.phaseOutcomes()
+                        .get(ApiScenarioLifecycleRunner.Phase.TEARDOWN).failure().getMessage()),
+                () -> assertTrue(events.stream().anyMatch(event ->
+                        event.startsWith("detail:TEST BODY:Failure cause:") && event.endsWith("body-secret"))),
+                () -> assertTrue(events.stream().anyMatch(event ->
+                        event.startsWith("detail:TEARDOWN:Failure cause:") && event.endsWith("teardown-secret"))));
+    }
+
+    @Test
     void compatibilityRunnerPreservesSetupFailureWhenTeardownAlsoFails() {
         var result = new ApiScenarioLifecycleRunner().run(
                 () -> { throw new IllegalStateException("setup"); },
@@ -184,8 +206,31 @@ class ApiScenarioLifecycleRunnerTest {
             expectedEvents.add("start:TEARDOWN");
             expectedEvents.add("complete:TEARDOWN:"
                     + testCase.expectedPhases().get(ApiScenarioLifecycleRunner.Phase.TEARDOWN));
-            assertEquals(expectedEvents, events, testCase.name());
+            assertEquals(expectedEvents, events.stream()
+                    .filter(event -> !event.startsWith("detail:"))
+                    .toList(), testCase.name());
+            assertFailureEvidence(events, ApiScenarioLifecycleRunner.Phase.SETUP,
+                    testCase.setupFailure(), testCase.name());
+            assertFailureEvidence(events, ApiScenarioLifecycleRunner.Phase.TEST_BODY,
+                    testCase.bodyFailure(), testCase.name());
+            assertFailureEvidence(events, ApiScenarioLifecycleRunner.Phase.TEARDOWN,
+                    testCase.teardownFailure(), testCase.name());
         }
+    }
+
+    private static void assertFailureEvidence(List<String> events,
+                                              ApiScenarioLifecycleRunner.Phase phase,
+                                              Throwable failure,
+                                              String caseName) {
+        if (failure == null || failure instanceof ApiScenarioLifecycleRunner.SkipSignal
+                || failure instanceof ApiScenarioLifecycleRunner.WarningSignal) {
+            return;
+        }
+        String renderedPhase = phase.name().replace('_', ' ');
+        assertTrue(events.stream().anyMatch(event ->
+                        event.startsWith("detail:" + renderedPhase + ":Failure cause:")
+                                && event.endsWith(failure.getMessage())),
+                caseName + " must publish failure evidence for " + phase);
     }
 
     private static ApiScenarioPlan planFor(LifecycleCase testCase) {
@@ -248,6 +293,9 @@ class ApiScenarioLifecycleRunnerTest {
         }
         @Override public AtfReportPorts.Request startRequest(String title, String method, String path) {
             return new NoOpRequest();
+        }
+        @Override public void detail(String name, String value) {
+            events.add("detail:" + this.name + ":" + name + ":" + value);
         }
         @Override public void complete(AtfReportStatus status) {
             events.add("complete:" + name + ":" + status);

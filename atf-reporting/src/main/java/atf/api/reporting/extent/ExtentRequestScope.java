@@ -1,5 +1,6 @@
 package atf.api.reporting.extent;
 
+import atf.api.core.http.ApiExecutionResult;
 import atf.api.core.reporting.AtfReportPorts;
 import atf.api.core.reporting.AtfReportStatus;
 import atf.api.core.reporting.ReportStatusAggregator;
@@ -16,6 +17,7 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
     private final List<String[]> details = new ArrayList<>();
     private final List<String[]> json = new ArrayList<>();
     private final ReportStatusAggregator statuses = new ReportStatusAggregator();
+    private ApiExecutionResult execution;
     private int openValidations;
     private boolean closed;
 
@@ -35,6 +37,10 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
         json.add(new String[]{label, tree.redactor().redactJson(value)});
     }
 
+    @Override public void execution(ApiExecutionResult result) {
+        execution = result;
+    }
+
     @Override public void complete(AtfReportStatus status) {
         ensureRequestOpen();
         if (openValidations > 0) {
@@ -42,6 +48,7 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
         }
         tree.renderDetails(request, details);
         tree.renderJson(request, json);
+        tree.renderExecution(request, execution);
         var effective = AtfReportStatus.worst(statuses.aggregate(), status);
         tree.complete(request, effective);
         tree.markEnded(request);

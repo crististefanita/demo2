@@ -3,8 +3,11 @@
 ATF Java are un reper vizual și funcțional extern păstrat în:
 
 ```text
-C:\work\ex\.net\Atf\artifacts\reports\
+../../.net/Atf/artifacts/reports/
 ```
+
+Referința este relativă la root-ul proiectului Java; folderul `.net` este
+workspace-ul frate de la nivelul rădăcinii comune.
 
 Folderul conține propriul `README.md` și un artifact HTML exemplu. README-ul
 din acel folder este indexul local al snapshot-ului și descrie exact ce poate fi
