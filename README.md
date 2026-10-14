@@ -1,148 +1,354 @@
-# Rest Assured with JUnit and Extent Reports
-Sample project on how to use Rest Assured in Java along with Junit
-Demo of rest assured using JUnit 4 and Extend Reports to generate a designed report result.
+# ATF Java — framework pentru automatizare API
 
-### Requirements
-* Maven
-* JDK 1.8
+ATF Java este un framework standalone pentru automatizarea și validarea
+scenariilor API. Oferă aceeași familie de capabilități observabile ca implementarea
+externă de referință, dar are propriile module, modele, politici și teste.
+Proiectul se numește `atf` și nu modifică proiectele Java existente din `demo`
+sau `other`.
 
-#### Configuration for extentreports
-* In extent.properties set the path where the report result will be placed.
+## Scopul framework-ului
 
-#### Running
-* mvn test
+ATF Java urmărește comportamente verificabile, nu copierea unei implementări.
+Contractele publice sunt:
 
+- kernel fără dependență de xUnit sau de un renderer concret;
+- request, transport, autentificare, retry, redaction și configurație separate;
+- modul API cu rute, modele și servicii semantice;
+- validare de contracte separată, renderer-neutrală, publicată printr-un port
+  îngust către raportare;
+- scenariu compus din `SETUP`, `TEST BODY` și `TEARDOWN`;
+- execuția unei faze este izolată într-un executor intern, iar runner-ul păstrează
+  doar ordinea, precedence-ul și acumularea rezultatului;
+- proprietarii testelor sunt rădăcini de navigare, iar scenariile sunt copii sub
+  proprietarul lor;
+- request-ul coordonează ordinea de închidere, iar validation-ul este fratele lui
+  direct în aceeași fază, pentru ca arborele randat să rămână lizibil;
+- o validare publică un singur tabel agregat de assertions;
+- `FAIL > SKIP > WARNING > PASS` la calculul verdictului;
+- raport HTML autonom, cu JSON în bloc de cod scrollabil și noduri închise implicit;
+- tab-urile de raportare păstrează contractul aprobat, cu Overview la final;
+- testele verifică atât semantica, cât și structura observabilă a raportului.
 
-Resport Result For generating this report was used Extent Reporting Framework, for details see: https://extentreports.com/.
+## Module
 
-# Cucumber with Selenium in Java
-Sample project on how to use Cucumber with Selenium in Java along with Junit
-
-##What is Cucumber?
-
-Cucumber is a testing framework which supports Behavior Driven Development (BDD). It lets us define application behavior in plain meaningful English text using a simple grammar defined by a language called Gherkin. Cucumber itself is written in Ruby, but it can be used to “test” code written in Ruby or other languages including but not limited to Java, C# and Python.
-
-Cucumber adds an extra layer of abstraction to our testing paradigm. This layer of abstration is the highest abstraction there is - the English language. Cucucmber converts a feature written in English to executable code, enabling every person, regardless of their coding expertise, to understand exactly what the feature tests and the expected output.
-
-In this framework, I have used "Cucumber-Jvm", a Cucumber implementation for **Java** along with **JUnit** and open source testing framework **Selenium (WebDriver)**. 
-
-##Cucumner basics
-
-As we mentioned, Cucumber converts features written in English to executable code. So, a feature can be thought of as any stateful "black box" in your application that receives input and generates output. Given the "black box" has a state, for each input, we expect to see a specfic output.
-
-Before starting to code, it is considered a good practice to write down the entire feature file. This gives us a general outline of how the code behind the feature should look like.
-
-##Let's get started
-
-
-A full Cucumber flow is comprised of 3 components: **feature file**, **steps file**, and **runner file**.
-
-##Feature file:
-An example of a feature file with one scenario looks like this:
-```
-Feature: Namely New Functionality
-Background:
-Given I Browse to the application
-When User login as a valid user
-Then Namely home page should display
-    
-Scenario: 1. Logout after successfull login
-When User logout from the application
-Then Namely login page should show
-```
-Given, When, and Then are keywords in Gherkin, Cucumber's plain text DSL.
-
-##Steps file:
-
-A Step Definition is a small piece of code with a pattern attached to it or in other words a Step Definition is a java method in a class with an annotation above it. An annotation followed by the pattern is used to link the Step Definition to all the matching Steps, and the code is what Cucumber will execute when it sees a Gherkin Step. Cucumber finds the Step Definition file with the help of Glue code in Cucumber Options. 
-
-Cucumber knows how to glue these English sentences to java methods using regexes. The file used to run these sentences is called a "Steps" files, because it runs the feature "step by step". Each step in the feature is matched against a regex, owned by a specific method in the Steps file. Arguments can be passed to the method via the regex.
-
-An example of a Steps file matching the above Given statement of the ".feature" file looks like this:
-```
-@Given("^I Browse to the application$")
-public void browse_to_the_application() throws Throwable {
-  String url = environment.getProperty("root.url");
-	driver.navigate().to(url);
-	}
+```mermaid
+flowchart LR
+    Tests[atf-tests] --> Module[atf-execution]
+    Tests --> Validation[atf-validation]
+    Tests --> Reporting[atf-reporting]
+    Module --> Core[atf-core]
+    Module --> Validation
+    Validation --> Core
+    Reporting --> Core
+    Core --> Ports[porturi renderer-neutral]
+    Reporting --> Html[HTML autonom]
 ```
 
-##Runner file:
+| Modul | Responsabilitate | Nu deține |
+|---|---|---|
+| `atf-core` | contracte HTTP, statusuri, configurație, retry, redaction și porturi | HTML, JUnit, servicii de business |
+| `atf-validation` | contracte response, reguli, evaluator, verdict și publicare prin port neutru | HTTP, Extent, HTML, CSS, transport |
+| `atf-execution` | rute, modele, servicii, lifecycle și cleanup | validare de contract, CSS, JavaScript |
+| `atf-reporting` | boundary-ul Extent, finalizarea HTML autonomă și renderer-ul fallback | transport și decizii de validare |
+| `atf-tests` | teste unitare, contract și scenarii de verificare | implementarea framework-ului |
 
-The last member when running a cucumber test is the "JUnit-Runner" class, an empty Junit class that is used as a boot class.
+## Documentația de lucru
 
-An example of a runner class looks like this:
+Documentele stabile sunt centralizate în [docs/README.md](docs/README.md):
+
+- [ATF_Architecture.md](docs/ATF_Architecture.md) — module, ownership și
+  dependențe;
+- [atf-validation/README.md](atf-validation/README.md) — contracte de validare,
+  portul către raportare și granițele reutilizabile ale JAR-ului;
+- [ATF_API_TEST_GUIDE.md](docs/ATF_API_TEST_GUIDE.md) — pașii pentru un test API
+  nou;
+- [ATF_Reporting_Contract.md](docs/ATF_Reporting_Contract.md) — contractul
+  observabil al raportului;
+- [atf-reporting/README.md](atf-reporting/README.md) — contractul vizual complet
+  al artifactului Extent: paletă, suprafețe, faze, evidence, tab-uri și
+  criterii de acceptare;
+- [ATF_BUILD_AND_EXECUTION_SAFETY.md](docs/ATF_BUILD_AND_EXECUTION_SAFETY.md) —
+  build și sincronizare în staging fără oprirea execuțiilor existente;
+- [README_Atf_BestPractices.md](docs/README_Atf_BestPractices.md) — reguli OOP,
+  testabilitate și review.
+
+Lucrările rămase și deciziile de îmbunătățire rămân în docs/feedback/; README-ul
+principal păstrează contractul stabil al framework-ului.
+
+Orice refactorizare urmează protocolul live → staging → teste → artifact →
+TAB MCP → sincronizare selectivă. Rulările existente nu se opresc, iar un
+artifact verificat nu înlocuiește recitirea codului live înainte de următorul
+increment. Detaliile sunt în
+[ATF_BUILD_AND_EXECUTION_SAFETY.md](docs/ATF_BUILD_AND_EXECUTION_SAFETY.md).
+
+## Contractul vizual comun
+
+`atf-reporting` are o singură compoziție de prezentare, construită din token-uri
+vizuale și reguli comune de randare. Extent și fallback folosesc aceeași
+compoziție; nu își definesc separat fundalul, fonturile, liniile sau
+dimensiunile tabelelor. Contractul comun este:
+
+```text
+body       Segoe UI / Inter / Helvetica Neue / Arial · 14px · line-height 1.55
+tables     12.6px · 16.884px · padding 7px 9px · header 11.2px / body 12.6px
+JSON       ui-monospace / Consolas · 12.5px · 18.75px · padding 10px 12px
+surface    #101723 · border #29364d · code #070a0e
+tabs       Tests → Category → Fails → Overview · Overview implicit
 ```
-@RunWith(Cucumber.class)
-@CucumberOptions(
-		  dryRun = false,
-		  strict = true,
-		  monochrome = true,
-		  tags = { "@payroll1" },
-		  features = "src/test/resources/features",
-		  glue = {"com.namely.automation.framework.hook","com.namely.automation.cucumber.steps"},
-		  plugin={
-			 "pretty",
-			 "html:target/test-report",
-			 "json:target/test-report.json",
-			 "json:target/cucumber-report.json",
-			 "junit:target/test-report.xml"
-		  	}
-		)
-  public class NamelyCocumberRunner {
 
-  }
+Overview-ul include și un bloc `System/Environment` cu metadate de execuție
+locale în ordine stabilă: mediu, base URL configurat prin `ApiExecutor`,
+runtime, sistem de operare, client HTTP, autentificare, modulul de teste și
+rendererul offline. Aceste metadate descriu execuția și nu înlocuiesc evidence-ul
+tehnic al request-ului.
+
+Fonturile de iconițe sunt incluse în HTML-ul final; raportul nu depinde de
+folderul `spark`, de fișiere externe sau de rețea. Testele de reporting verifică
+token-urile, structura request/validation, tab-urile și faptul că artifactul nu
+lasă resurse externe neîncărcate.
+
+### Contractul navigabil al artifactului
+
+Overview-ul nu este o a doua sursă de adevăr. Ordinea vizibilă este intenționată:
+
+```mermaid
+flowchart LR
+    Native[Cards + charts + Timeline] --> Meta[Execution metadata]
+    Meta --> Audit[Tag audit: 3 tables]
+    Audit --> Tags[Tags]
+    Tags --> Env[System/Environment]
+    Tests[Tests] --> Request[Request]
+    Request --> Validation[Validation sibling]
+    Validation --> Evidence[Trace + duration + JSON + assertions]
+    Fails[Fails] --> Tests
 ```
 
+Metadata și auditul sunt secundare și colapsate implicit. Auditul folosește
+aceeași populație neutră de teste și afișează trei tabele paralele, nu tabele
+imbricate. `Tags` folosește eticheta `WARNING` pentru categoria agregată
+`Others`, pentru ca verdictul vizual să rămână consecvent cu nodurile de raport.
+În Test Body, request-ul și `Contract validation` sunt frați; evidence-ul
+tehnic rămâne în request, iar assertions sunt publicate într-un singur tabel
+agregat sub validation.
 
-Here, we tell JUnit to run the test using Cucumber **- @RunWith(Cucumber.class)**, and tell **"Cucumber-Jvm"** which configurations to run **- @CucucmberOptions**. 
+Duratele din Tests și din detaliile nodurilor se afișează cu unitatea (`N ms`).
+Frunzele folosesc durata măsurată; un părinte folosește durata proprie exclusivă,
+dacă există, plus suma totalurilor copiilor structurali direcți. O durată Extent
+deja inclusivă nu se adună din nou cu descendenții. Badge-urile `Pass`, `Warning`
+și `Fail` păstrează aceeași geometrie și aceeași paletă în toate tab-urile;
+detaliile permanente sunt în [`docs/ATF_Reporting_Contract.md`](docs/ATF_Reporting_Contract.md).
 
-##What is Cucumber Options ?
-In layman language @CucumberOptions are like property file or settings for your test. Basically @CucumberOptions enables us to do all the things that we could have done if we have used cucumber command line. 
+Pentru verificarea automată există `ReportArtifactInspector`; I/O-ul și politica
+de freshness rămân în inspector, iar catalogul pur al regulilor HTML este
+izolat în `ReportArtifactContractChecks`. Astfel verificările pot fi testate
+unitar fără filesystem și pot rămâne stabile când se schimbă doar mecanismul
+de publicare. Pentru verificarea comportamentului vizibil se folosesc TAB MCP:
+se deschide Overview,
+se expandă auditul, se navighează la Fails și se deschide testul sursă. Un test
+care verifică doar substring-uri nu este suficient pentru un contract de UI.
 
-##Dry Run
-dryRun option can either set as true or false. If it is set as true, it means that Cucumber will only checks that every Step mentioned in the Feature File have corresponding code written in Step Definition file or not. So in case any of the function is missed in the Step Definition for any Step in Feature File, it will give us the message. 
+## Fluxul unei execuții
 
-##Monochrome
-This option can either set as true or false. If it is set as true, it means that the console output for the Cucumber test are much more readable. And if it is set as false, then the console output is not as readable as it should be.
+```mermaid
+sequenceDiagram
+    participant T as Test
+    participant M as Modul API
+    participant E as Executor
+    participant H as HTTP transport
+    participant V as atf-validation
+    participant R as Report session
 
-##Features
-Features Options helps Cucumber to locate the Feature file in the project folder structure
+    T->>M: acțiune semantică
+    M->>E: ApiRequest
+    E->>H: schimb HTTP
+    H-->>E: ApiResponse + duration + retry history
+    E->>R: evidence tehnic și JSON
+    T->>V: evaluare contract + assertions
+    V->>R: un tabel agregat prin port
+    R->>R: închide request-ul după validare
+    T->>R: CompletePhase / CompleteScenario
+```
 
-##Glue
-It is almost the same think as Features Option but the only difference is that it helps Cucumber to locate the Step Definition file. Whenever Cucumber encounters a Step, it looks for a Step Definition inside all the files present in the folder mentioned in Glue Option. It can be specified like:
-```
-glue = “stepDefinition“
-```
-Or if the Step Definition file is in the deep folder structure 
-```
-glue = “src/test/stepDeinition“
-```
-##Format
+### Contractul lifecycle-ului
 
-Format Option is used to specify different formatting options for the output reports. Various options that can be used as for-matters are:
+`ApiScenarioLifecycleRunner` păstrează precedence-ul și ownership-ul fazelor într-un
+accumulator intern comun pentru ambele intrări publice ale runner-ului:
 
-**Pretty:** Prints the Gherkin source with additional colours and stack traces for errors. Use below code:
+```mermaid
+flowchart LR
+    S[SETUP] --> A[Phase accumulator]
+    B[TEST BODY] --> A
+    T[TEARDOWN] --> A
+    A --> O[status final + phase outcomes + primary failure]
+    A --> R[report evidence în aceeași ordine]
 ```
-format = {“pretty“}
-```
- 
-**HTML**: This will generate a HTML report at the location mentioned in the for-matter itself. Use below code:
-```
-format = {“html:Folder_Name“}
-```
- 
-**JSON:** This report contains all the information from the gherkin source in JSON Format. This report is meant to be post-processed into another visual format by 3rd party tools such as Cucumber Jenkins. Use the below code:
-```
-format = {“json:Folder_Name/cucumber.json“}
-```
-**JUnit:** This report generates XML files just like Apache Ant’s JUnit report task. This XML format is understood by most Continuous Integration servers, who will use it to generate visual reports. use the below code:
-```
-format = { “junit:Folder_Name/cucumber.xml“}
-```
-The location of the ".feature" file as well as the location of the directory containing the Steps file (glue) is mandatory. 
 
+Regulile sunt deliberate și testate: `TEARDOWN` se încearcă întotdeauna când este
+definit, `TEST BODY` devine `SKIP` dacă setup-ul a eșuat sau a fost omis, iar primul
+failure real rămâne `primaryFailure`; warning-urile și skip-urile rămân evidence,
+nu sunt promovate artificial în failure. Orice schimbare aici trebuie să păstreze
+și testele din `atf-execution`, și contractul HTML verificat de `ReportArtifactInspector`.
 
-Any Question? just shoot!
-	 
+În reporting, `ExtentReportFinalizer` este fațada publică, iar
+`ExtentReportPublicationPipeline` compune publicația. `ExtentReportAssets`
+deține exclusiv inline-ul și cleanup-ul directorului Spark. Acest boundary este
+verificat separat prin teste unitare, astfel încât o schimbare de asset lifecycle
+să nu modifice accidental CSS-ul, JavaScript-ul sau arborele Extent randat.
 
+## Starea proiectului și criteriul de evoluție
+
+ATF Java este tratat ca un produs propriu. Un comportament este considerat
+stabil numai când există implementare, test determinist și artifact verificabil;
+compilarea singură nu este criteriu de acceptare.
+
+Fluxul de evoluție este: `atf-core` → `atf-validation` → `atf-execution` → `atf-reporting` →
+scenarii și integrare → validare structurală și interactivă a artifactului.
+
+Observațiile de compatibilitate cu reperul extern și lucrările rămase sunt
+păstrate în [`docs/feedback/README.md`](docs/feedback/README.md), câte un
+document ToDo pentru fiecare responsabilitate. Documentația permanentă descrie
+ATF Java prin propriile contracte, modele și teste.
+
+## Adăugarea și verificarea unui test API
+
+Fluxul minim este intenționat scurt:
+
+1. definește ruta în `atf-execution`;
+2. expune operația printr-un serviciu semantic;
+3. execută operația prin `ApiExecutor`, nu prin HTTP construit în test;
+4. evaluează response-ul prin `atf-validation`;
+5. deschide fazele `SETUP`, `TEST BODY` și `TEARDOWN` în aceeași sesiune;
+6. în `TEST BODY`, deschide request-ul, pornește validarea prin contractul
+   request-ului și închide request-ul numai după publicarea validării;
+7. adună toate assertions pentru response într-un singur tabel, publicat sub
+   nodul validation frate al request-ului;
+8. închide fazele și scenariul cu statusul calculat;
+9. scrie raportul și verifică: request, durată, JSON, tabel, Category/tag metadata,
+   Fails și Overview.
+
+Testul de referință este
+`atf-tests/src/test/java/atf/api/tests/ApiReportSmokeTest.java`. El folosește
+un transport fake determinist, deci verifică traseul API, lifecycle-ul și
+raportarea fără dependență de rețea sau de date externe. Raportul rezultat este
+publicat numai cu nume timestamped, de forma
+`target/api-atf-extent-report_yyyy-MM-dd_HH-mm-ss-SSS.html`; nu se mai publică
+un alias canonic fără timestamp.
+Raportul este generat de Extent și apoi
+finalizat într-un singur HTML autonom: asset-urile Spark sunt incluse, nodurile
+sunt închise implicit, Overview este deschis inițial, iar Fails oferă legături
+înapoi către testul original. Transportul HTTP real are boundary și teste
+separate; nu trebuie să facă raportarea dependentă de loopback. Testele offline
+folosesc contractele reale ale framework-ului și nu introduc un runner sintetic
+separat pentru raportul Extent. Pentru un artifact bazat pe trafic
+real, rulează explicit `ApiLiveReportTest` cu
+`-Datf.liveApi.enabled=true`; acesta rămâne separat de suita implicită tocmai
+pentru ca build-ul normal să nu depindă de rețea.
+
+### Raport Extent din IntelliJ
+
+Orice test care dorește să publice raportul poate deschide sesiunea configurată:
+
+```java
+try (var report = ExtentReportSession.openConfigured()) {
+    var scenario = report.startScenario("UsersTests", "item contract", List.of("api"));
+    // SETUP / TEST BODY / TEARDOWN și evidence-ul testului
+    scenario.complete(AtfReportStatus.PASS);
+}
+```
+
+Închiderea sesiunii face `flush`, finalizează HTML-ul Extent și elimină asset-urile
+intermediare, astfel încât testul rulat direct din IntelliJ produce un singur
+artifact HTML autonom, timestamped. Configurația implicită este în `atf.yaml`:
+
+```yaml
+reporting:
+  extent:
+    outputDirectory: artifacts/reports
+    fileName: api-atf-extent-report.html
+    timestampEnabled: true
+    timestampPattern: yyyy-MM-dd_HH-mm-ss-SSS
+    timestampZone: system
+```
+
+`outputDirectory` relativ este rezolvat față de `atf.yaml`, nu față de working
+directory-ul IntelliJ. Pentru altă configurație se poate folosi
+`-Datf.report.config=C:\path\to\atf.yaml` sau variabila `ATF_REPORT_CONFIG`.
+`timestampEnabled` este activ implicit și diferențiază rulările prin inserarea
+timestamp-ului înainte de extensie. `timestampPattern` folosește sintaxa `DateTimeFormatter`, iar
+`timestampZone` acceptă `system` sau un identificator IANA, de exemplu
+`UTC` ori `Europe/Bucharest`. Timestamp-ul este calculat o singură dată când
+se deschide sesiunea, nu la fiecare `flush` sau la închiderea raportului.
+Astfel, `report.reportPath()` rămâne aceeași cale pe tot parcursul rulării.
+`timestampEnabled: false` rămâne disponibil numai pentru teste interne care
+cer explicit o destinație stabilă; nu este format de publicare al raportului
+ATF. Dacă nu există YAML, fallback-ul este tot timestamped în `target`, în
+working directory-ul procesului.
+
+Testele de configurație validează separat numele timestamped, zona, pattern-ul
+și fallback-ul stabil. Orice output auxiliar al unei sesiuni este temporar și
+nu devine raport public separat.
+
+### Staging paralel și workspace-uri abandonate
+
+Fiecare sesiune Extent scrie întâi într-un director privat, marcat și protejat
+de un lease exclusiv; `flush()` nu publică un HTML parțial. Publicarea finală
+este atomică și serializată pe calea raportului. După o întrerupere forțată,
+curățarea se face explicit și bounded, numai pentru directoare ATF marcate și
+mai vechi decât pragul ales:
+
+```java
+var sweep = ReportStagingWorkspace.sweep(
+        report.getParent(),
+        Duration.ofHours(1));
+```
+
+Rezultatul separă workspace-urile scanate, șterse, păstrate și eșuate; cele
+active, fresh, malformate sau nemarcate nu sunt atinse. Acest contract este
+testat în `ReportStagingWorkspaceTest` și este compatibil cu rulări paralele.
+Metadata, Category, Fails și tag audit numără scenariile reale, nu containerele
+de clasă. `RetryPolicy` respectă `Retry-After` și păstrează fiecare
+`RetryEvent`; parsing-ul este izolat în `RetryAfterParser`, iar overload-urile
+cu `Clock` permit teste deterministe pentru secunde, ISO și HTTP-date.
+`ApiExecutor` observă cancellation în timpul transportului și
+anulează future-ul pending la timeout/cancellation. Evidence-ul Extent trece
+prin redactorul implicit înainte de publicare: detail, JSON, query/path,
+exception și valorile expected/actual ale assertion-urilor nu expun secrete;
+redacția PII rămâne explicit opt-in prin configurație.
+
+Politica de timp a executorului este separată de transport: `ApiExecutionClock`
+furnizează timpul monotonic și sleep-ul, `ApiExecutionDeadline` păstrează
+bugetul comun al execuției și retry-urilor, iar `ApiRetryWaiter` aplică delay-ul
+în slices bounded, respectând cancellation și deadline-ul. Implementarea
+implicită folosește clock-ul sistemului; testele pot injecta un clock
+determinist fără a aștepta timp real. Astfel, timeout-ul de transport, timeout-ul
+în delay și istoricul încercărilor rămân reguli verificabile independent de
+`ApiExecutor`.
+
+Template-urile rutelor sunt centralizate în `atf-execution/routing/RoutePaths`,
+iar `ApiRoutes` compune metadata auth/tag/operation fără path-uri duplicate.
+`ApiModuleFactory` este composition root-ul recomandat pentru scenarii: creează
+un snapshot immutable al setărilor, un executor cu timeout/retry și serviciile
+users/posts în același context scoped. Astfel testele nu reconstruiesc manual
+graful de servicii și păstrează timeout-ul definit în YAML/configurație.
+
+## Comenzi
+
+```powershell
+mvn -f C:\work\ex\java\atf\pom.xml test
+mvn -f C:\work\ex\java\atf\pom.xml verify
+```
+
+Build-ul ATF Java se execută într-un workspace separat când există rulări active
+în alt checkout. Nu se copiază `bin`, `obj`, `artifacts` sau rapoarte istorice
+în proiectul Java.
+
+Pentru validări paralele, output-ul testelor se poate izola fără schimbarea
+codului live:
+
+```powershell
+mvn '-Datf.test.reportDirectory=C:\work\ex\.tmp\atf-validation\artifacts\reports' `
+    '-Datf.report.config=C:\work\ex\.tmp\atf-validation\atf.yaml' test
+```
+
+Ambele proprietăți sunt opționale și afectează doar testele de verificare;
+raportul configurat din IntelliJ continuă să fie rezolvat relativ la YAML.

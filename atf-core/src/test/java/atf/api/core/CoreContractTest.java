@@ -1,0 +1,75 @@
+package atf.api.core;
+
+import atf.api.core.http.ApiRoute;
+import atf.api.core.http.ApiUrlBuilder;
+import atf.api.core.reporting.AtfReportStatus;
+import atf.api.core.security.SensitiveDataRedactor;
+import org.junit.jupiter.api.Test;
+
+import java.net.URI;
+import java.util.Set;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class CoreContractTest {
+    @Test
+    void statusPrecedenceKeepsFailAboveSkipWarningAndPass() {
+        assertEquals(AtfReportStatus.FAIL, AtfReportStatus.worst(AtfReportStatus.WARNING, AtfReportStatus.FAIL));
+        assertEquals(AtfReportStatus.SKIP, AtfReportStatus.worst(AtfReportStatus.SKIP, AtfReportStatus.PASS));
+    }
+
+    @Test
+    void routeResolutionEncodesValuesAndRejectsUnresolvedTokens() {
+        var route = new ApiRoute("user", "GET", "/users/{id}", "users", "item", "default");
+        assertEquals("/users/a%20b", route.resolvePath(Map.of("id", "a b")));
+        assertThrows(IllegalArgumentException.class, () -> route.resolvePath(Map.of()));
+    }
+
+    @Test
+    void urlBuilderDoesNotDuplicateSlashes() {
+        var route = new ApiRoute("users", "GET", "/users", "users", "collection", "none");
+        var request = route.request(Map.of());
+        assertEquals("https://example.test/users", new ApiUrlBuilder(URI.create("https://example.test/")).build(request));
+    }
+
+    @Test
+    void redactionMasksSecretsWithoutChangingOtherEvidence() {
+        var redactor = new SensitiveDataRedactor();
+        var safe = redactor.redact("{\"name\":\"ATF\",\"token\":\"secret\"}");
+        assertTrue(safe.contains("ATF"));
+        assertFalse(safe.contains("secret"));
+        assertTrue(safe.contains("REDACTED"));
+    }
+
+    @Test
+    void structuredRedactionMasksNestedJsonArraysAndNamedFields() {
+        var redactor = new SensitiveDataRedactor();
+        var safe = redactor.redactJson("{\"user\":{\"email\":\"person@example.test\",\"password\":\"secret\"},\"items\":[{\"token\":\"abc\"}]}");
+
+        assertTrue(safe.contains("person@example.test"));
+        assertFalse(safe.contains("secret"));
+        assertFalse(safe.contains("abc"));
+        assertEquals("***REDACTED***", redactor.redactField("Authorization", "Bearer secret"));
+    }
+
+    @Test
+    void evidenceRedactionMasksSecretsInQueryAndSensitivePathSegments() {
+        var redactor = new SensitiveDataRedactor();
+        var safe = redactor.redact("GET /users/secret/raw-secret?token=query-secret&mode=full");
+
+        assertFalse(safe.contains("raw-secret"));
+        assertFalse(safe.contains("query-secret"));
+        assertTrue(safe.contains("mode=full"));
+        assertTrue(safe.contains("***REDACTED***"));
+    }
+
+    @Test
+    void piiRedactionIsExplicitAndDoesNotChangeTransportDefaults() {
+        var redactor = new SensitiveDataRedactor(new atf.api.core.security.RedactionSettings(
+                true, "[hidden]", false, true, Set.of("authorization")));
+
+        assertEquals("[hidden] [hidden]", redactor.redact("person@example.test +40 (721) 123-456"));
+        assertEquals("safe@example.test", new SensitiveDataRedactor().redact("safe@example.test"));
+    }
+}

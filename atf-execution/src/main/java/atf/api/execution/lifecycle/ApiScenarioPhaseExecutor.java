@@ -1,0 +1,71 @@
+package atf.api.execution.lifecycle;
+
+import atf.api.core.reporting.AtfReportPorts;
+import atf.api.core.reporting.AtfReportStatus;
+
+import java.util.function.Consumer;
+
+/**
+ * Executes one lifecycle phase and translates its control signals into the
+ * renderer-neutral phase contract.  The runner owns ordering; this class owns
+ * only phase invocation, signal mapping and phase cleanup.
+ */
+final class ApiScenarioPhaseExecutor {
+
+    PhaseResult execute(ApiScenarioLifecycleRunner.ThrowingAction action) {
+        if (action == null) return new PhaseResult(AtfReportStatus.PASS, null);
+        try {
+            action.run();
+            return new PhaseResult(AtfReportStatus.PASS, null);
+        } catch (ApiScenarioLifecycleRunner.SkipSignal skip) {
+            return new PhaseResult(AtfReportStatus.SKIP, skip);
+        } catch (ApiScenarioLifecycleRunner.WarningSignal warning) {
+            return new PhaseResult(AtfReportStatus.WARNING, warning);
+        } catch (Exception failure) {
+            return new PhaseResult(AtfReportStatus.FAIL, failure);
+        }
+    }
+
+    PhaseResult execute(AtfReportPorts.Scenario scenario, String name,
+                        ApiScenarioPlan.PhaseAction action) {
+        var phase = scenario.startPhase(name);
+        var result = new PhaseResult(AtfReportStatus.PASS, null);
+        try {
+            action.execute(phase);
+        } catch (ApiScenarioSkipException skip) {
+            result = new PhaseResult(AtfReportStatus.SKIP, skip);
+        } catch (ApiScenarioLifecycleRunner.WarningSignal warning) {
+            result = new PhaseResult(AtfReportStatus.WARNING, warning);
+        } catch (Throwable failure) {
+            result = new PhaseResult(AtfReportStatus.FAIL, failure);
+        } finally {
+            if (result.failure() != null) {
+                phase.detail("Failure cause", result.failure().toString());
+            }
+            phase.complete(result.status());
+            phase.close();
+        }
+        return result;
+    }
+
+    PhaseResult executeTeardown(Consumer<Boolean> teardown) {
+        try {
+            teardown.accept(true);
+            return new PhaseResult(AtfReportStatus.PASS, null);
+        } catch (Exception failure) {
+            return new PhaseResult(AtfReportStatus.FAIL, failure);
+        }
+    }
+
+    static boolean isPrimaryFailure(Throwable failure) {
+        return failure != null
+                && !(failure instanceof ApiScenarioLifecycleRunner.WarningSignal)
+                && !(failure instanceof ApiScenarioSkipException);
+    }
+
+    record PhaseResult(AtfReportStatus status, Throwable failure) {
+        ApiScenarioOutcome.PhaseOutcome outcome() {
+            return new ApiScenarioOutcome.PhaseOutcome(status, failure);
+        }
+    }
+}

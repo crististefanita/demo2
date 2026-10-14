@@ -1,12 +1,15 @@
-/.idea/
-/target/
-
-bin/
-test-output/
+# Output local Maven/JVM; nu face parte din sursa ATF.
 target/
-.settings/
+hs_err_pid*.log
+
+# IDE-uri și fișiere locale.
+.idea/
+*.iml
 .classpath
 .project
-*.iml
-.idea/
+.settings/
 
+# Generated IDE, report and JVM replay artifacts.
+.vs/
+artifacts/
+**/replay_pid*.log

@@ -1,0 +1,10 @@
+reporting:
+  extent:
+    # Relative paths are resolved from this file, not IntelliJ's working directory.
+    outputDirectory: artifacts/reports
+    fileName: api-atf-extent-report.html
+    # Produces api-atf-extent-report_yyyy-MM-dd_HH-mm-ss-SSS.html.
+    # Set to false when a stable, replaceable file name is required.
+    timestampEnabled: true
+    timestampPattern: yyyy-MM-dd_HH-mm-ss-SSS
+    timestampZone: system

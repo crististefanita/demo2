@@ -1,0 +1,117 @@
+package atf.api.reporting;
+
+import atf.api.core.reporting.AtfAssertion;
+import atf.api.core.reporting.AtfReportStatus;
+import org.junit.jupiter.api.Test;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class HtmlReportSessionTest {
+    @Test
+    void rendersApprovedStructureWithValidationAsRequestSibling() {
+        var session = new HtmlReportSession(TestReportPaths.report("report.html"));
+        var scenario = session.startScenario("UsersTests", "get user", List.of("api", "contract"));
+        var phase = scenario.startPhase("TEST BODY");
+        var request = phase.startRequest("item contract", "GET", "/users/1");
+        request.detail("response.status", "200");
+        request.json("RESPONSE JSON", "{\"id\":1}");
+        var validation = request.startValidation("Validate user");
+        validation.assertions(List.of(
+                new AtfAssertion("HTTP status", "200", "200", true),
+                new AtfAssertion("schema", "matched", "mismatch", false)));
+        validation.complete(AtfReportStatus.FAIL);
+        request.complete(AtfReportStatus.FAIL);
+        phase.complete(AtfReportStatus.FAIL);
+        scenario.complete(AtfReportStatus.FAIL);
+
+        var html = session.render();
+
+        assertTrue(html.indexOf("GET /users/1") < html.indexOf("Validate user"));
+        assertTrue(html.contains("</div><div class=\"validation\" data-atf-node-role=\"validation\">"),
+                "validation must be a direct sibling after the request node");
+        assertTrue(html.contains("class=\"assertions\""));
+        assertTrue(html.contains("HTTP status"));
+        assertTrue(html.contains("schema"));
+        assertTrue(html.contains("class=\"json-code\""));
+        assertTrue(html.contains("href=\"#test-id=1\""));
+        assertEquals(1, count(html, "<nav class=\"tabs\">") );
+        assertTrue(html.indexOf(">Category<") < html.indexOf(">Fails<"));
+        assertTrue(html.indexOf(">Fails<") < html.indexOf(">Overview<"));
+        assertTrue(html.contains("data-tab=\"category\""));
+        assertTrue(html.contains("id=\"category\""));
+        assertTrue(html.contains("--atf-dark:#101723"));
+        assertTrue(html.contains("font-family:'Segoe UI','Inter','Helvetica Neue',Arial,sans-serif"));
+        assertTrue(html.contains("font-size:12.6px;line-height:16.884px"));
+        assertTrue(html.contains("font:12.5px/18.75px ui-monospace,Consolas,monospace"));
+        assertFalse(html.contains("--bg:#0e1624"));
+        assertFalse(html.contains("font:14px Arial,sans-serif"));
+        assertTrue(html.contains("activate('overview')"));
+        assertFalse(html.contains("extent/"));
+    }
+
+    @Test
+    void flushCreatesAnAutonomousArtifact() throws Exception {
+        Path output = Files.createTempDirectory("atf-report-").resolve("report.html");
+        try (var session = new HtmlReportSession(output)) {
+            var scenario = session.startScenario("Tests", "empty", List.of());
+            scenario.complete(AtfReportStatus.PASS);
+        }
+        assertTrue(Files.exists(output));
+        assertTrue(Files.readString(output).contains("<!doctype html>"));
+    }
+
+    @Test
+    void fallbackRendererKeepsPhaseShellsAndEvidenceRolesExplicit() {
+        var session = new HtmlReportSession(TestReportPaths.report("fallback-contract.html"));
+        var scenario = session.startScenario("UsersApiTests", "user contract", List.of("api", "contract"));
+        var setup = scenario.startPhase("SETUP");
+        setup.startRequest("seed", "GET", "/users").complete(AtfReportStatus.PASS);
+        setup.complete(AtfReportStatus.PASS);
+
+        var body = scenario.startPhase("TEST BODY");
+        var request = body.startRequest("item contract", "GET", "/users/1");
+        request.detail("RESPONSE DURATION (ms)", "12");
+        request.detail("ROUTE TEMPLATE", "/users/{id}");
+        request.json("RESPONSE JSON", "{\"id\":1}");
+        var validation = request.startValidation("Validate: user contract");
+        validation.assertions(List.of(new AtfAssertion("HTTP status", "200", "200", true)));
+        validation.complete(AtfReportStatus.PASS);
+        request.complete(AtfReportStatus.PASS);
+        body.complete(AtfReportStatus.PASS);
+
+        var teardown = scenario.startPhase("TEARDOWN");
+        teardown.startRequest("cleanup", "DELETE", "/users/1").complete(AtfReportStatus.PASS);
+        teardown.complete(AtfReportStatus.PASS);
+        scenario.complete(AtfReportStatus.PASS);
+
+        var html = session.render();
+
+        assertAll(
+                () -> assertEquals(3, count(html, "class=\"phase phase-pass\"")),
+                () -> assertTrue(html.contains("data-atf-node-role=\"phase\" data-atf-phase-name=\"test-body\"")),
+                () -> assertTrue(html.contains("data-atf-node-role=\"request\"")),
+                () -> assertTrue(html.contains("data-atf-node-role=\"validation\"")),
+                () -> assertTrue(html.indexOf("class=\"request\"") < html.indexOf("class=\"validation\"")),
+                () -> assertEquals(1, count(html, "class=\"assertions\"")),
+                () -> assertTrue(html.contains("class=\"json-code\"")),
+                () -> assertTrue(html.contains("class=\"atf-disclosure-glyph\"")),
+                () -> assertTrue(html.contains("Response details · 2 fields")),
+                () -> assertTrue(html.contains("helm-api-classification-label\">TECHNICAL TRACE</span>")),
+                () -> assertFalse(html.contains("[+] expand")),
+                () -> assertTrue(html.contains("class=\"helm-evidence-table helm-trace-table\"")),
+                () -> assertTrue(html.contains("class=\"phase phase-pass\"")),
+                () -> assertTrue(html.contains("class=\"tag\">api</span>")),
+                () -> assertFalse(html.contains("Timestamp")),
+                () -> assertFalse(html.contains("<small>api</small>")));
+    }
+
+    private static int count(String value, String token) {
+        int count = 0, index = 0;
+        while ((index = value.indexOf(token, index)) >= 0) { count++; index += token.length(); }
+        return count;
+    }
+}

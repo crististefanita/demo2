@@ -1,0 +1,21 @@
+package atf.api.validation.evaluation;
+
+import atf.api.core.reporting.AtfAssertion;
+import atf.api.core.reporting.AtfReportStatus;
+
+import java.util.List;
+
+public record ValidationDecision(
+        List<AtfAssertion> rows,
+        AtfReportStatus status,
+        String message,
+        boolean shouldThrow,
+        ValidationTable table) {
+    public ValidationDecision(List<AtfAssertion> rows, AtfReportStatus status, String message, boolean shouldThrow) {
+        this(rows, status, message, shouldThrow, null);
+    }
+
+    public ValidationDecision {
+        rows = List.copyOf(rows);
+    }
+}

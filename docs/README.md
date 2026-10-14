@@ -1,0 +1,60 @@
+# Documentația ATF Java
+
+Acest director descrie contractele stabile ale ATF Java: arhitectura, modul de
+adăugare a testelor API, raportarea Extent și modul sigur de lucru atunci când
+există execuții active în alt checkout. Documentele sunt scrise pentru oameni
+care întrețin framework-ul, nu pentru o singură rulare sau pentru un singur
+artifact.
+
+## Ordinea recomandată de lectură
+
+1. [ATF_Architecture.md](ATF_Architecture.md) — module, dependențe și responsabilități.
+2. [../atf-validation/README.md](../atf-validation/README.md) — validarea
+   independentă și portul de publicare.
+3. [ATF_API_TEST_GUIDE.md](ATF_API_TEST_GUIDE.md) — pașii minimali pentru un test API nou.
+4. [../atf-reporting/README.md](../atf-reporting/README.md) — contractul vizual
+   complet al raportului Extent și criteriile de acceptare.
+5. [ATF_Reporting_Contract.md](ATF_Reporting_Contract.md) — arborele Extent,
+   evidence-ul și regulile de randare.
+6. [ATF_BUILD_AND_EXECUTION_SAFETY.md](ATF_BUILD_AND_EXECUTION_SAFETY.md) —
+   build, sincronizare și validare fără oprirea execuțiilor existente.
+7. [README_Atf_BestPractices.md](README_Atf_BestPractices.md) — reguli OOP,
+   testabilitate și mentenanță.
+
+## Regula de lucru pentru orice schimbare
+
+Înainte de refactorizare se sincronizează contextul live, apoi se lucrează
+într-un staging unic și separat. Fiecare increment trebuie să treacă prin
+testele relevante, să genereze un artifact nou și să fie verificat prin click-uri
+în TAB MCP înainte de orice sincronizare selectivă înapoi. Procesele și rulările
+existente nu se opresc, iar output-urile generate nu se copiază în surse.
+
+Ordinea obligatorie și criteriile detaliate sunt în
+[ATF_BUILD_AND_EXECUTION_SAFETY.md](ATF_BUILD_AND_EXECUTION_SAFETY.md) și
+[README_Atf_BestPractices.md](README_Atf_BestPractices.md).
+
+Observațiile de compatibilitate cu reperul extern și lucrările încă neînchise
+sunt păstrate numai în [feedback/README.md](feedback/README.md) și în
+documentele ToDo pe responsabilități. Ele nu sunt copiate în contractele
+permanente ale proiectului.
+
+## Reguli de documentație
+
+- README-urile descriu contracte, ownership și fluxuri reproductibile.
+- Nu se introduc scoruri, timestamp-uri, nume de rapoarte sau stări intermediare.
+- O diagramă trebuie să reflecte responsabilitățile și fluxurile existente;
+  dacă acestea se schimbă, diagrama se actualizează împreună cu testele.
+- Codul și raportul sunt sursa comportamentului; documentația nu poate inventa
+  o capabilitate care nu este protejată de un test.
+- Orice schimbare vizuală sau de navigare se verifică în artifactul HTML și,
+  când este relevant, prin interacțiune în TAB MCP.
+
+## Vocabular scurt
+
+test = intenția de produs verificată  
+request = schimbul HTTP și evidence-ul lui tehnic  
+validation = fratele direct al request-ului, cu tabelul agregat de assertions  
+phase = SETUP, TEST BODY sau TEARDOWN  
+scenario = testul complet, cu fazele și verdictul final  
+artifact = raportul HTML autonom rezultat după finalizarea sesiunii
+

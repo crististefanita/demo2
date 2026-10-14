@@ -1,0 +1,29 @@
+package atf.api.reporting;
+
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class ReportArtifactContractChecksTest {
+    @Test
+    void keepsArtifactContractChecksPureAndNamed() {
+        var checks = ReportArtifactContractChecks.evaluate("<!doctype html><html></html>");
+
+        assertTrue(checks.get("html exists"));
+        assertTrue(checks.get("doctype"));
+        assertFalse(checks.get("ATF dark theme"));
+        assertTrue(checks.containsKey("overview order"));
+        assertTrue(checks.containsKey("result markers"));
+    }
+
+    @Test
+    void rejectsMissingStructuralEvidenceWithoutThrowing() {
+        var checks = ReportArtifactContractChecks.evaluate("<html><body>incomplete</body></html>");
+
+        assertTrue(checks.get("html exists"));
+        assertFalse(checks.get("doctype"));
+        assertFalse(checks.get("request-validation roles"));
+        assertFalse(checks.get("aggregate assertion table"));
+    }
+}

@@ -1,0 +1,56 @@
+package atf.api.reporting.extent;
+
+import atf.api.core.reporting.AtfReportPorts;
+import atf.api.core.reporting.AtfReportStatus;
+import atf.api.core.reporting.ReportStatusAggregator;
+import atf.api.reporting.ExtentReportTree;
+import com.aventstack.extentreports.ExtentTest;
+
+import java.util.ArrayList;
+import java.util.List;
+
+final class ExtentPhaseScope implements AtfReportPorts.Phase {
+    private final ExtentReportTree tree;
+    private final ExtentScenarioScope scenario;
+    private final ExtentTest phase;
+    private final ReportStatusAggregator statuses = new ReportStatusAggregator();
+    private final List<String[]> details = new ArrayList<>();
+    private boolean closed;
+
+    ExtentPhaseScope(ExtentReportTree tree, ExtentScenarioScope scenario, ExtentTest phase) {
+        this.tree = tree;
+        this.scenario = scenario;
+        this.phase = phase;
+        tree.markStarted(phase);
+    }
+
+    @Override public AtfReportPorts.Request startRequest(String title, String method, String path) {
+        ensurePhaseOpen();
+        return new ExtentRequestScope(tree, this,
+                phase.createNode(tree.renderRequestTitle(title, method, path)));
+    }
+
+    @Override public void detail(String name, String value) {
+        details.add(new String[]{name == null || name.isBlank() ? "DETAIL" : name,
+                tree.redactor().redactField(name, value)});
+    }
+
+    @Override public void complete(AtfReportStatus status) {
+        ensurePhaseOpen();
+        tree.renderDetails(phase, details);
+        var effective = AtfReportStatus.worst(statuses.aggregate(), status);
+        tree.complete(phase, effective);
+        tree.markEnded(phase);
+        scenario.record(effective);
+        closed = true;
+    }
+
+    void record(AtfReportStatus status) { statuses.record(status); }
+    ExtentTest node() { return phase; }
+    @Override public void close() { closed = true; }
+
+    private void ensurePhaseOpen() {
+        tree.ensureOpen();
+        if (closed) throw new IllegalStateException("Phase is closed");
+    }
+}
