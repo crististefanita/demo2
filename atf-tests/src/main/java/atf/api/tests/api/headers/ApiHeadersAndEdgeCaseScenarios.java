@@ -27,7 +27,8 @@ public final class ApiHeadersAndEdgeCaseScenarios {
                                    ApiScenarioLifecycleRunner lifecycle, String title,
                                    java.util.List<String> tags, atf.api.core.http.ApiRequest request,
                                    atf.api.validation.contract.ResponseContract contract) {
-        var plan = ApiAcceptancePlanBuilder.scenario("ApiHeadersAndEdgeCasesTests", title, tags);
+        var plan = ApiAcceptancePlanBuilder.scenario("ApiHeadersAndEdgeCasesTests",
+                ApiHeadersAndEdgeCaseScenarios.class.getPackageName(), title, tags);
         lifecycle.run(session, plan.body(phase -> {
             var execution = api.executor().execute(request);
             ApiAcceptancePublisher.publish(phase, title, execution, contract, false, null, request);

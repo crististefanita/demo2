@@ -38,7 +38,8 @@ flowchart LR
 - navigatorul claselor fără tag-uri sau timestamp în tabelul Tests;
 - scenariile, fazele `SETUP → TEST BODY → TEARDOWN` și sibling-ul
   `request → validation`;
-- statusul și durata pe același rând, cu unitatea `ms` și geometrie comună;
+- statusul și durata pe același rând, cu unitatea din politica comună (`ms` până
+  la `300 ms`, apoi `s`) și geometrie comună;
 - culorile semantic distincte pentru `Pass`, `Warning`, `Fail` și `Info`;
 - dropdown-urile dark pentru filtrele de status și tag;
 - evidence-ul tehnic compact, JSON scrollabil și assertion table agregat;

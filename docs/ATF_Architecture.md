@@ -12,10 +12,12 @@ flowchart LR
     Execution --> Core
     Console[atf-console<br/>proiecție diagnostică] --> Core
     Reporting[atf-reporting<br/>artifact Extent] --> Core
+    DebugUi[atf-debug-ui<br/>loopback read-only]
     Tests[atf-tests<br/>unitare și contract] --> Execution
     Tests --> Validation
     Tests --> Console
     Tests --> Reporting
+    Tests --> DebugUi
     Tests --> Core
 ~~~
 
@@ -34,6 +36,8 @@ iar `atf-tests` este composition root pentru testele care le folosesc pe toate.
 | atf-execution | API layer, rute, modele, servicii semantice, lifecycle și cleanup | fixture-uri de test, validare de contract, markup Extent, stiluri |
 | atf-console | formatter pentru evenimentele de consolă, `ConsoleSettings`, YAML, nesting, statusuri și fallback ASCII/UTF-8 | HTML, Extent, apeluri HTTP, verdicturi inventate |
 | atf-reporting | sesiune, arbore Extent, theme, finalizare HTML, inspector și navigare | apeluri HTTP, consolă concretă, decizii de business, verdicturi inventate |
+| atf-ui | configurație browser și adaptor Java Playwright pentru verificări UI automate | generarea HTML-ului și testele executabile |
+| atf-debug-ui | publică read-only un HTML existent pe loopback și furnizează target-ul pentru TAB MCP | renderer, modificarea artifactului, verdicturi și teste executabile |
 | atf-tests | `src/main/java` păstrează scenarii și compoziție reutilizabilă; `src/test/java` păstrează teste JUnit executabile, host-uri de raport și adaptoare de test | implementarea framework-ului și date externe obligatorii |
 
 Regula practică: dacă un comportament poate fi verificat cu un fake și fără
@@ -139,11 +143,13 @@ de mediu.
 
 ## Configurație și snapshot
 
-`atf.yaml` este configurația proiectului consumator, nu un asset al unui modul
-și nu o configurație citită de fiecare request. Fișierul versionat conține
-acum secțiunile `api`, `validation` și `reporting`; loaderul din `atf-reporting`
-consumă efectiv numai `reporting.extent`, iar loaderul din `atf-console` consumă
-efectiv numai `reporting.console`. 
+`atf.yaml` este configurația generală a proiectului consumator, nu un asset al
+unui modul și nu o configurație citită de fiecare request. Fișierul versionat
+conține numai secțiunile `api`, `validation` și `reporting`; loaderul din
+`atf-reporting` consumă efectiv numai `reporting.extent`, iar loaderul din
+`atf-console` consumă efectiv numai `reporting.console`. Catalogul fake nu mai
+este în acest fișier: rutele, răspunsurile, body-urile și fallback-ul sunt în
+`atf-mock.yaml`, deținut de `atf-mock`.
 API-ul este încă asamblat prin `ApiSettings`/`AtfConfiguration`. Integrarea
 completă a tuturor secțiunilor este ToDo-ul F-03 și nu trebuie presupusă ca
 deja activă.
@@ -165,13 +171,18 @@ fără să ascundă diferența dintre un fake și o conexiune reală.
 
 ~~~mermaid
 flowchart LR
-    Yaml[atf.yaml proiect] --> Loader[composition root loader · F-03]
+    General[atf.yaml · api/validation/reporting] --> Loader[composition root loader · F-03]
+    MockYaml[atf-mock.yaml · routes/responses] --> MockLoader[AtfMockConfigurationLoader]
+    MockOverride[atf.mock.config / ATF_MOCK_CONFIG] --> MockLoader
     Env[explicit env/property override] --> Loader
     Loader --> Config[AtfConfiguration validată · ținta]
     Config --> Snapshot[immutable runtime snapshot · ținta]
     Snapshot --> Execution[atf-execution]
     Snapshot --> Validation[atf-validation]
     Snapshot --> Reporting[atf-reporting]
+    MockLoader --> MockSnapshot[AtfMockConfiguration]
+    MockSnapshot --> MockTransport[AtfMockTransport]
+    MockTransport --> Execution
 ~~~
 
 `AtfRuntimeSnapshot` este boundary-ul typed pentru execuție: păstrează

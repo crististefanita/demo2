@@ -124,7 +124,8 @@ scenario → phase → request → validation → complete(status, duration-ms)
 Reguli obligatorii:
 
 - mesajele de bază includ nivelul (`[PASS]`, `[FAIL]`, `[WARNING]`, `[SKIP]`),
-  numele nodului și durata cu unitatea `ms`;
+  numele nodului și durata formatată de politica comună: `ms` până la `300 ms`,
+  apoi secunde (`0.301 s`, `1 s`);
 - detaliile sunt opt-in prin `reporting.console.detailsEnabled` și sunt
   redacted înainte de a ajunge la sink;
 - JSON-ul și stacktrace-ul nu se tipăresc implicit;
@@ -136,14 +137,15 @@ Reguli obligatorii:
 ## Reguli pentru metadata
 
 - lista Tests din stânga rămâne scanabilă: nume, status și durată cu unitate
-  (`N ms`), niciodată un număr fără semnificație;
+  (`N ms` până la `300 ms`, apoi `N s`), niciodată un număr fără semnificație;
 - tag-urile apar în detaliile scenariului și în Overview, nu ca pills în lista
   claselor;
 - Category este navigare, nu o a doua sursă de verdict;
 - Fails listează toate testele individuale, nu doar grupuri pe clasă;
 - Overview este ultimul tab și se deschide implicit;
-- durata se afișează în milisecunde (`1 ms`, `16 ms`, `25 ms`); timestamp-ul
-  este metadata de eveniment, nu durată, count sau identitate logică;
+- durata se afișează în `ms` pentru valori de până la `300 ms`, iar peste prag
+  în secunde cu precizie de milisecunde (`0.301 s`, `1.5 s`, `12.345 s`);
+  timestamp-ul este metadata de eveniment, nu durată, count sau identitate logică;
 - o frunză păstrează durata măsurată; un părinte însumează numai copiii
   structurali direcți și adaugă durata proprie exclusivă când există;
 - totalul clasei din navigator este suma scenariilor directe din panoul din

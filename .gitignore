@@ -16,8 +16,3 @@ artifacts/
 **/replay_pid*.log
 **/.tmp-debug-ui*.log
 **/.tmp-debug-ui*.log.err
-
-# Generated IDE, report and JVM replay artifacts.
-.vs/
-artifacts/
-**/replay_pid*.log

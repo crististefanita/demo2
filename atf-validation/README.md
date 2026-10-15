@@ -72,6 +72,13 @@ publică statusul calculat și se închide determinist. În producție,
 `AtfReportPorts.Request` extinde acest port și `atf-reporting` îl proiectează în
 Extent sau în rendererul HTML fallback.
 
+Același contract este reutilizabil și pentru testele UI. Un pas Playwright nu
+inventează un format de assertions: construiește `AtfAssertion` pentru
+verificările efectuate în pagină și le trimite prin `UiExtentReportSession` către
+același renderer de tabel agregat (`ASSERTION`, `EXPECTED`, `ACTUAL`, `RESULT`).
+Astfel API și UI păstrează aceeași formă de validare, dar fiecare test își
+publică propriul artifact Extent și propriul verdict.
+
 ```mermaid
 sequenceDiagram
     participant T as Test

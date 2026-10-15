@@ -109,8 +109,9 @@ transportului. El păstrează URL-ul efectiv, durata response-ului, numărul de
 încercări, numărul de retry events și istoricul attempt-urilor. Este închis
 implicit și nu trebuie contopit cu `TECHNICAL TRACE`.
 
-Durata se afișează explicit ca `RESPONSE DURATION (ms)` în execution evidence și
-ca `N ms` în header-ele navigabile. `1`, `16` sau `25` fără unitate nu sunt forme
+Durata se afișează explicit ca `RESPONSE DURATION` în execution evidence și ca
+`N ms` pentru valori de până la `300 ms`, respectiv `N s` pentru valori peste
+prag, în header-ele navigabile. `1`, `16` sau `25` fără unitate nu sunt forme
 acceptate deoarece pot fi confundate cu număr de pași sau assertions.
 Timestamp-ul nu este identitatea semantică a testului și nu este folosit pentru
 triere sau grupare.
@@ -137,6 +138,9 @@ Request JSON și Response JSON sunt blocuri de cod autonome. Liniile se rup sau
 se derulează în interiorul blocului; pagina nu trebuie să dobândească scroll
 orizontal din cauza unui payload. Dacă payload-ul este mic, blocul rămâne
 compact; nu se impune o înălțime mare doar pentru uniformitate.
+Conținutul publicat este limitat după redaction prin
+`reporting.bodyMaxDisplayCharacters` (implicit `12000`); depășirea este marcată
+cu `… [truncated]`, iar scroll-ul intern rămâne activ.
 
 Redacția se aplică la limita de publicare pentru ambele renderere. Detaliile
 request-ului și fazei, JSON-ul, URL-ul, retry history, cauza failure-ului și
@@ -191,7 +195,7 @@ de assertions — rămâne în arborele Tests. `Open in Tests` este legătura
 autoritativă către nodul original și nu schimbă verdictul sau ownership-ul
 evidence-ului.
 
-Durata din indexul Fails este derivată din `RESPONSE DURATION (ms)`, nu din
+Durata din indexul Fails este derivată din `RESPONSE DURATION`, nu din
 timestamp. Dacă failure-ul nu are response măsurat, indexul afișează explicit
 `No response duration recorded`; timpul de execuție rămâne disponibil în
 evidence-ul requestului și în tab-ul Tests.
@@ -266,7 +270,7 @@ Artifactul final trebuie să fie un singur HTML autonom:
 | arbore request/validation | test de componentă + expandare în TAB MCP |
 | tab-uri și deep-link | test de contract + click pe fiecare suprafață |
 | fonturi, culori, linii | token tests + verificare computed style în TAB MCP |
-| durate și totaluri | test pentru `N ms` + agregare exclusive/direct children |
+| durate și totaluri | test pentru pragul `300 ms`/`301 ms` + agregare exclusive/direct children |
 | status badge-uri | token test pentru geometrie și paletă în toate tab-urile |
 | JSON, scroll și overflow | artifact real + payload mic și payload mare |
 | Fails | cazuri fail/warning/skip + verificarea linkului |
@@ -281,6 +285,7 @@ ascunsă în test. Configurația minimală este:
 
 ```yaml
 reporting:
+  bodyMaxDisplayCharacters: 12000
   extent:
     outputDirectory: artifacts/reports
     fileName: api-atf-extent-report.html

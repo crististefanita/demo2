@@ -18,20 +18,20 @@ public final class UsersApiScenarios {
 
     public static void publish(AtfReportPorts.Session session, ApiModule api,
                                ApiScenarioLifecycleRunner lifecycle) {
-        run(lifecycle, session, ApiAcceptancePlanBuilder.scenario(
-                "UsersApiTests", "GET /public/v2/users — collection contract",
+        run(lifecycle, session, plan(
+                "GET /public/v2/users — collection contract",
                 List.of("api", "users", "contract", "smoke")),
                 phase -> ApiAcceptancePublisher.publish(phase, "GET /public/v2/users",
                         api.users().getCollection(), ContractValidators.userCollection(), false, null));
 
-        run(lifecycle, session, ApiAcceptancePlanBuilder.scenario(
-                "UsersApiTests", "GET /public/v2/users/{id} — item contract",
+        run(lifecycle, session, plan(
+                "GET /public/v2/users/{id} — item contract",
                 List.of("api", "users", "contract")),
                 phase -> ApiAcceptancePublisher.publish(phase, "GET /public/v2/users/1", api.users().get(1),
                         ContractValidators.userItem(), false, null));
 
-        run(lifecycle, session, ApiAcceptancePlanBuilder.scenario(
-                "UsersApiTests", "POST /public/v2/users — missing authentication",
+        run(lifecycle, session, plan(
+                "POST /public/v2/users — missing authentication",
                 List.of("api", "users", "negative", "auth")),
                 phase -> {
                     var payload = new UserRequest("ATF user", "atf@example.test", "male", "active");
@@ -41,8 +41,8 @@ public final class UsersApiScenarios {
                             JsonPayloads.write(payload));
                 });
 
-        run(lifecycle, session, ApiAcceptancePlanBuilder.scenario(
-                "UsersApiTests", "GET /public/v2/users — soft contract warning",
+        run(lifecycle, session, plan(
+                "GET /public/v2/users — soft contract warning",
                 List.of("api", "users", "reporting", "soft-assert")),
                 phase -> ApiAcceptancePublisher.publish(phase, "GET /public/v2/users",
                         api.users().getCollection(),
@@ -53,5 +53,10 @@ public final class UsersApiScenarios {
                             ApiAcceptancePlanBuilder plan,
                             atf.api.execution.lifecycle.ApiScenarioPlan.PhaseAction body) {
         lifecycle.run(session, plan.body(body).build());
+    }
+
+    private static ApiAcceptancePlanBuilder plan(String scenario, List<String> tags) {
+        return ApiAcceptancePlanBuilder.scenario("UsersApiTests", UsersApiScenarios.class.getPackageName(),
+                scenario, tags);
     }
 }

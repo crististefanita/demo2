@@ -1,9 +1,189 @@
 # ATF Java — feedback activ
 
-Acest director păstrează exclusiv îmbunătățirile care mai trebuie
-implementate sau întărite prin teste în codul live. Contractele stabile,
-deciziile închise și exemplele istorice apar în `docs/` și în README-urile
-modulelor, nu aici.
+Acest director păstrează îmbunătățirile care mai trebuie implementate sau
+întărite prin teste în codul live. Contractele stabile și deciziile închise
+apar în `docs/` și în README-urile modulelor; aici rămâne și o secțiune scurtă
+de trasabilitate pentru ToDo-urile închise, ca să nu reapară feedback-ul deja
+rezolvat.
+
+## Audit live — 2026-10-15
+
+Auditul UI poate primi direct un artifact Extent existent prin
+`-Datf.ui.report=...`; nu mai este obligatorie rerularea API pentru
+investigație. Capturile sunt configurate sub `ui.screenValidation` și sunt
+păstrate ca linkuri `data:` Base64, grupate împreună cu assert-urile aceleiași stări
+vizuale.
+
+Inputul poate fi păstrat și în snapshot-ul YAML:
+
+```yaml
+ui:
+  audit:
+    inputReport: artifacts/reports/api-atf-extent-report.html
+```
+
+Override-ul manual `-Datf.ui.report` are prioritate peste YAML. Ambele variante
+ajung în `ReportAuditContext`, care verifică artifactul, îl servește read-only,
+pornește Playwright și publică un raport UI separat. Această infrastructură este
+comună atât pentru auditarea unui raport existent, cât și pentru auditarea
+raportului generat în aceeași rulare; nu se acceptă două lifecycle-uri sau două
+implementări divergente ale navigării.
+
+### Audit Categories pe input API existent — verificat 2026-10-15 17:21
+
+`ExistingExtentCategoriesExploratoryTest` a fost adăugat pentru explorarea
+profundă a `#category-view`, fără rerularea API-ului. Pe inputul
+`artifacts/reports/api-atf-extent-report_2026-10-15_16-57-07-603.html` testul a
+selectat toate cele 29 de categorii descoperite live și a verificat pentru
+fiecare: filtrul activ, titlul selectat, count-ul declarat, numărul de rânduri
+`tag-test-status`, linkurile `a.linked` și `test-id`-urile numerice. Un link real
+a fost apoi urmărit până la `#test-view`.
+
+Rezultatul este separat de input:
+
+```text
+input:  artifacts/reports/api-atf-extent-report_2026-10-15_16-57-07-603.html
+output: artifacts/reports/ui/existing-ui-categories-atf-extent-report_2026-10-15_17-21-14-152.html
+29/29 category filters reconciled; navigation PASS
+30 inline Base64 media anchors (`base64 img`); 0 duplicated UI screenshot images
+```
+
+Pentru aceste explorări, `screenValidationAsMedia(...)` păstrează tabelul
+Playwright colapsabil și publică screenshot-ul Base64 inline, ca ancoră
+`data:image/png;base64,...` cu badge-ul `base64 img`, în artifactul Extent. Nu se
+folosește un `<img>` duplicat, nu se scrie PNG extern și nu se schimbă
+raportul API primit.
+
+Validarea UI este întotdeauna subpasul unei propoziții Gherkin din faza care
+conține acțiunea (`SETUP`, `TEST BODY` sau `TEARDOWN`); nu se publică niciodată
+ca nod frate. `SETUP` și `TEARDOWN` sunt opționale: un audit autonom poate avea
+doar `TEST BODY`, iar fazele suplimentare se declară numai când există
+precondiții, fixture-uri, cleanup, read-back sau outcome de lifecycle real.
+Când există acțiuni
+Playwright, captura Base64 este plasată imediat sub tabelul acțiunilor, în aceeași
+zonă colapsabilă, fără un wrapper semantic separat.
+
+### Clarificare critică pentru auditul vizual
+
+Un tabel Playwright fără captură nu este automat „evidence complet”.
+`Screen validation` reprezintă starea și verdictul, tabelul descrie acțiunile
+care au produs starea, iar screenshot-ul este dovada vizuală locală. Pentru
+`ui.screenValidation.enabled=true`, relația obligatorie este:
+
+```text
+Gherkin step → Screen validation → action table → inline Base64 anchor (`base64 img`)
+```
+
+Captura trebuie să fie imediat sub tabel, în aceeași zonă colapsabilă. Fără ea,
+un audit poate confirma că s-a făcut un click, dar nu poate confirma ce a fost
+vizibil după click. Un pas tehnic non-vizual poate exista fără imagine numai
+dacă nu emite tabel Playwright; politica de captură dezactivată trebuie
+etichetată ca audit funcțional, nu confundată cu audit vizual complet. La failure, acțiunile deja executate nu
+se pierd doar pentru că `screenValidation(...)` nu a mai fost atins.
+
+Detaliile și gap-urile de cod sunt în
+[`ATF_UI_Exploratory_Feedback.md`](ATF_UI_Exploratory_Feedback.md), F-09–F-13.
+F-08 este închis: rendererul respinge acum orice disclosure de acțiuni care nu
+are exact o captură Base64 asociată prin link. Rămân urmărite flush-ul la failure,
+extragerea claselor UI mari, expandarea tuturor nodurilor, separarea
+observațiilor de acțiuni și snapshot-ul unic de configurare.
+
+Auditul a fost făcut pe checkout-ul curent, nu pe artifacte vechi din `target`
+sau `artifacts`. Build-ul reactorului principal a fost verde: `mvn -q test`, cu
+247 teste în XML-urile Surefire, 8 skip-uri și 0 suite eșuate. După sincronizarea
+completă a surselor, modulelor și configurației root, checkout-ul live a trecut
+curat cu `mvn -q -o clean test -DskipTests=false` pentru scope-ul său (`39`
+teste, `10` skip-uri, `0` eșecuri). Diferența de număr vine din scope-ul de
+rulare și testele UI opt-in, nu dintr-o relaxare a testelor.
+
+Pentru analiza UI curentă, `mvn -pl atf-ui -am test` a trecut cu `38` teste în
+`atf-core` și `6` în `atf-ui`, fără failures/errors. În plus, testul negativ
+`ExtentReportUiEvidenceTest.rejectsUiActionTableWithoutExactlyOneInlineScreenshot`
+confirmă că rendererul nu mai publică tabel de acțiuni fără exact o captură
+link. Contractul browser-level pentru F-08 este astfel închis; loaderul,
+politica browserului și recorderul rămân verificate separat.
+Flush-ul la failure și explorarea tuturor nodurilor rămân explicit în F-09–F-13.
+
+### Revalidare UI live — 2026-10-15 14:09
+
+Explorarea E2E a fost re-rulată pe codul live cu:
+
+```text
+mvn -pl atf-tests -am -Datf.ui.enabled=true \
+  -Dtest=atf.ui.tests.exploratory.ApiExtentReportExploratoryTest \
+  -Dsurefire.failIfNoSpecifiedTests=false test
+```
+
+Rezultat: `4/4` teste UI verzi, `0` failures, `0` errors. Setup-ul a generat
+un raport API input nou, read-only, iar testul a generat separat raportul UI
+în `artifacts/reports/ui/`. În TAB MCP au fost verificate raportul UI și inputul
+API: Overview, Tests, Category, Fails, filtrele, deep-link-ul către Tests,
+expandarea scenariului/fazelor/pașilor, assertion disclosures și capturi
+linkuri Base64; raportul UI nu are imagini externe și sesiunea finală nu a avut
+erori de consolă.
+
+Această revalidare închide partea din F-05 care cere explorare comportamentală
+dinamică și raport UI auditabil. Nu închide încă standardizarea globală a
+duratelor și computed styles din D-01–D-04; acestea rămân ToDo-uri separate.
+
+| Status | ToDo-uri | Concluzie verificată |
+|---|---|---|
+| `CLOSED` | F-04, F-08 | failure-chain retry + lifecycle + redaction și cardinalitatea strictă a capturii UI sunt acoperite |
+| `PARTIAL` | F-03, F-05, F-10, F-13, D-01, D-02, D-03 | fundația există, dar contractul nu este încă uniform sau complet verificat |
+| `OPEN` | F-01, F-02, F-06, F-07, F-09, F-11, F-12, D-04 | gap real în codul live, cu impact direct asupra mentenanței, auditabilității sau raportului |
+
+### Revalidare input existent și context comun — 2026-10-15
+
+`ReportAuditContext` este acum infrastructura comună pentru auditul unui raport
+generat în aceeași rulare și pentru auditul unui HTML primit ca input. A fost
+verificată rularea read-only pe un artifact API existent:
+
+```text
+ExistingExtentReportExploratoryTest: 4/4 PASS
+input: artifacts/reports/api-atf-extent-report_2026-10-15_16-56-14-768.html
+output: artifacts/reports/ui/existing-ui-atf-extent-report_2026-10-15_16-59-56-324.html
+```
+
+Rezoluția relativă a fost verificată separat: `-Datf.ui.report=...` se rezolvă
+față de directorul lui `atf.yaml`, nu față de `atf-tests`, unde Surefire rulează
+fork-ul. Un raport API fără evidence UI existent nu este respins artificial;
+este suficient ca auditul curent să producă propria captură Base64, iar
+evidence-ul existent devine obligatoriu numai când inputul conține deja acțiuni
+UI.
+
+### F-08 — închis prin contract de renderer și regresie negativă
+
+`ExtentEvidenceRenderer.renderUiActions(...)` respinge acum orice secvență de
+acțiuni UI care nu are exact o imagine Base64 validă. Regula este
+verificată înainte de publicare, nu dedusă din existența unei imagini în altă
+parte a documentului. `ExtentReportUiEvidenceTest` acoperă fixture-ul invalid,
+iar raportul UI nou a fost verificat prin click-uri reale în TAB MCP: pasul
+Gherkin conține `Screen validation`, secvența cu 17 acțiuni Playwright și
+linkul către imaginea Base64 asociată în același nod de validare. Verificările `Find element`
+și `Expect text` apar ca rânduri în tabel, nu ca assert-uri ascunse. Nu se închide prin aceasta
+F-09: o excepție înainte de `screenValidation(...)` trebuie încă să păstreze
+și să publice acțiunile deja executate.
+
+Dovadă:
+
+```text
+atf-reporting: 111 teste verzi, 0 failures, 0 errors
+ApiExtentReportExploratoryTest: 5/5 verzi
+ExistingExtentReportExploratoryTest: 4/4 verzi
+TAB MCP: action sequence expandat, 17 rânduri, rezultat Pass, link Base64 vizibil
+TAB MCP: navigare Overview → Tests și expandare Gherkin/TEST BODY verificate
+```
+
+### Închise / verificate
+
+#### F-04 — failure-cause chain pentru retry + lifecycle
+
+Închis pe baza `LifecycleApiScenarios`, `ApiAcceptanceReportTest` și a
+artifactului timestamped: retry-ul este păstrat, failure-ul de contract ajunge
+în verdict, teardown-ul continuă, cauzele sunt ordonate `PRIMARY/SECONDARY`,
+iar redaction-ul este verificat atât în `Tests`, cât și în `Fails`. Nu mai este
+un ToDo de implementare; rămâne doar un contract de regresie în testele deja
+existente.
 
 ## Proces obligatoriu pentru orice ToDo
 
@@ -71,55 +251,64 @@ statusuri și aceleași count-uri în ambele proiecții.
 
 ### F-03 — Închide snapshot-ul de configurare la composition root
 
-`AtfRuntimeSnapshot` și compunerea `ApiModuleFactory` există și sunt
-verificate. ToDo-ul rămas este încărcarea root-scoped, strictă și unică:
-`AtfReportConfigurationContext` recurge încă la `user.dir`, iar console,
-mock și reporting au loader-e specializate care pot descoperi configurații
-independent.
+**Status: `PARTIAL`.**
 
-Păstrează configurația în `atf.yaml`, fără modul Maven nou și fără parser YAML
-în `atf-core`. Composition root-ul trebuie să rezolve explicit fișierul,
-calea relativă față de acel fișier și să producă un snapshot immutable pentru
-API, mock, console și reporting. După bootstrap, modulele nu mai recitesc
-fișierul și nu mai depind de working directory global.
+`AtfRuntimeSnapshot` și compunerea `ApiModuleFactory` există și sunt
+verificate. Separarea de ownership este acum închisă: `atf.yaml` păstrează
+configurația generală (`api`, `validation`, `reporting`), iar catalogul fake
+este în `atf-mock.yaml`, încărcat de `atf-mock`. `atf.mock.config` și
+`ATF_MOCK_CONFIG` permit selectarea explicită a catalogului pentru IntelliJ,
+CI și rulări paralele; fallback-ul built-in este permis numai când nu există
+nicio sursă configurată.
+
+ToDo-ul rămas este snapshot-ul root-scoped, strict și unic: composition root-ul
+trebuie să rezolve explicit sursele, căile relative față de fișierul lor și să
+producă snapshot-uri immutable pentru API, mock, console și reporting. După
+bootstrap, modulele nu mai recitesc fișierele și nu mai depind de working
+directory global. Nu se introduce modul Maven `atf-config` și nu se mută parserul
+YAML în `atf-core`.
 
 Teste de închidere: două root-uri concurente, două working directories,
 precedence property/env/YAML/default, schema invalidă/chei necunoscute,
 URI/timeout/path invalid, path traversal și imutabilitate după bootstrap.
 
-### F-04 — Închide failure-cause chain pentru retry + lifecycle
-
-Propagarea unui failure de contract în lifecycle este acoperită: publisher-ul
-publică evidence înainte de verdict, faza devine `FAIL`, teardown-ul continuă,
-iar precedence-ul rămâne `FAIL > SKIP > WARNING > PASS`. Proiecția
-`PRIMARY/SECONDARY` și redaction-ul de bază sunt de asemenea acoperite.
-
-Rămâne neacoperită combinația reală retry + failure de body + failure de
-teardown, verificată până la artifactul final și `Fails`.
-
-Păstrează cauza primară în ordinea execuției și adaugă cauzele secundare fără
-duplicarea arborelui `Tests`. Aceeași cauză trebuie să fie observabilă în
-evidence-ul requestului și în `Fails`, iar tokenurile sensibile rămân
-redacted.
-
-Test de închidere: execuție mock cu retry, body failure și teardown failure,
-cu ordinea cauzelor verificată în artifact și în `Fails`.
-
 ### F-05 — Verifică artifactul prin comportament, nu numai prin string-uri
 
-Contractele statice și testele runtime-script există, dar majoritatea protejează
-prezența textului JavaScript, nu comportamentul DOM după interacțiune.
+**Status: `PARTIAL`.** Există
+`atf-ui/src/main/java/atf/api/ui/playwright/PlaywrightUiSession.java`,
+`atf-tests/src/test/java/atf/ui/tests/ApiExtentReportUiTest.java` și
+`atf-tests/src/test/java/atf/ui/tests/exploratory/ApiExtentReportExploratoryTest.java`.
+Testul explorator este opt-in (`-Datf.ui.enabled=true`) și rulează pe artifactul
+API generat în setup, nu pe un fixture HTML.
+
+Contractul din `ApiExtentReportUiTest` rămâne minimal pentru build-ul rapid;
+contractul comportamental este în testul explorator și interacționează efectiv
+cu DOM-ul prin Playwright.
+
+Închis prin testul explorator:
+
+- descoperirea dinamică a claselor, scenariilor și fazelor, fără număr fix sau
+  nume hardcodate;
+- reconcilierea count-urilor dintre `Tests` și `Overview`;
+- Category/Tags → scenarii linkuite → Tests și Fails → cauza/linkul către Tests;
+- expandarea idempotentă a scenariului, `TEST BODY`, request-ului și
+  disclosure-urilor Request/Response/Execution;
+- Request JSON și Response JSON condiționale: body-ul este verificat dacă
+  există, nu este inventat pentru request-uri fără body;
+- validări agregate în raportul UI, pași `GIVEN/WHEN/THEN`, capturi Base64
+  inline și raport UI separat.
 
 Adaugă o verificare componentă pentru artifactul autonom, fără să schimbi
 formatul vizual: navigare `Overview → Tests → Category → Fails`, filtre de
 status/tag, hash deep-links, expand/collapse, `Open in Tests`, count-uri,
-durate cu `ms`, status/durată centrate, timestamp absent din tabelul Tests și
+durate cu unitatea comună (`ms` până la `300 ms`, apoi `s`), status/durată centrate, timestamp absent din tabelul Tests și
 Request/Validation ca frați direcți.
 
 Dovada finală trebuie să combine testul determinist cu verificarea manuală în
-TAB MCP pe artifactul generat din staging. Testele actuale protejează markup-ul
-și scripturile, dar nu execută încă DOM-ul într-un browser headless; această
-verificare comportamentală rămâne ToDo-ul.
+TAB MCP pe artifactul generat din staging. Pentru închiderea completă a F-05 mai
+rămâne doar extinderea contractului cu filtrele de status/tag ca matrice
+data-driven, computed styles pentru badge-uri și absența timestamp-ului din
+tabelul Tests; acestea sunt cerințe de prezentare urmărite separat în D-01–D-04.
 
 ### F-06 — Redu hotspot-urile reale de coeziune
 
@@ -147,19 +336,58 @@ Test de închidere pentru partea rămasă: fiecare extragere trebuie să păstre
 import/POM forbidden, static mutable state, package inventory, allow-list stale/
 new hotspot și o fixture invalidă intenționat.
 
+### F-07 — Package Java real în overview și gate global de coeziune
+
+Overview-ul `Test packages` afișează în prezent artifactId-ul Maven
+`atf-tests`, deoarece `ExtentReportRuntimeBehaviour` construiește tabelul cu
+`packages['atf-tests']`. Aceasta nu este informație despre package-ul care
+deține testul și nu trebuie păstrată ca valoare implicită.
+
+Raportarea trebuie să primească explicit package-ul Java real al testului sau
+scenariului și să afișeze acel package în `Test packages`, cu count și share
+calculate pe scenarii. Pentru un raport cu Users și Posts pot apărea mai multe
+package-uri reale; rândul generic `atf-tests` nu este acceptat. Metadata-ul de
+environment trebuie să evite aceeași valoare hardcodată și să rămână coerent cu
+overview-ul.
+
+Regula de maximum 8 clase se aplică tuturor package-urilor de producție,
+inclusiv `atf-tests/src/main/java`. În prezent `ArchitectureBoundaryTest`
+inventariază modulele framework-ului, dar nu include explicit acest source
+root. Extinde inventory-ul și allow-list-ul astfel încât orice depășire nouă,
+inclusiv în `atf-tests`, să ceară justificare semantică.
+
+Teste de închidere:
+
+- raport direct `UsersApiTests` cu package-ul Java real, fără `atf-tests`;
+- raport agregat Users + Posts cu package-uri, count-uri și share-uri corecte;
+- test pentru metadata de environment și overview fără valori divergente;
+- inventory de package-uri care include `atf-tests/src/main/java`;
+- fixture invalidă care dovedește că o depășire de 8 clase eșuează fără
+  excepție explicită.
+
 ## Reporting — ToDo-uri active
 
 ### D-01 — Durată numerică și sursă explicită
+
+**Status: `PARTIAL`.** Runtime-ul adaugă markerii pentru mai multe badge-uri și
+marchează agregarea clasei, dar nu există încă dovadă că fiecare nod din
+`Tests`, `Category` și `Fails` primește aceeași valoare numerică și sursă.
 
 Separarea dintre `Request details`, `Response details` și `Execution evidence`
 este implementată. Rămâne de standardizat pentru fiecare nod
 `data-duration-ms` și `data-duration-source` (`measured`, `exclusive` sau
 `aggregated`), inclusiv în `Fails`, `Category` și header-ul clasei.
 
-Teste: `1 ms`, `16 ms`, peste o secundă, durată lipsă/malformed/zero și sursă
-corectă după filtrare.
+Teste: `0`, `300 ms`, `301 ms`, `999 ms`, `1 s`, peste o secundă, durată
+lipsă/malformed/zero și sursă corectă după filtrare. Regula stabilă este:
+`<=300 ms` se afișează în `ms`, iar `>300 ms` în secunde cu precizie de
+milisecunde, identic în consolă și în toate tab-urile raportului.
 
 ### D-02 — Agregare structurală fără dublare
+
+**Status: `PARTIAL`.** Agregarea directă a scenariilor pentru header-ul clasei
+există; cazul general cu filtre, frunze și toate proiecțiile nu este încă
+demonstrat.
 
 Agregarea trebuie să folosească numai copiii structurali direcți și să evite
 adăugarea unei durate vendor deja inclusive. Durata clasei din stânga trebuie
@@ -170,9 +398,16 @@ Teste: părinte cu/fără durată proprie, nested phase, scenarii ascunse de fil
 
 ### D-03 — Durată absentă și frunze
 
+**Status: `PARTIAL`.** Formatterul numeric comun este închis; semantics pentru
+durata absentă nu este încă uniformă pe toate suprafețele.
+
 Request, validation, phase și lifecycle trebuie să distingă durata de count-ul
 de assertions/noduri. Fără valoare numerică se afișează `—`, nu `0`, count sau
 timestamp; unitatea `ms` apare numai pentru valori valide.
+
+Auditul codului live arată că runtime-ul Fails folosește încă `No response
+duration recorded`; prin urmare pragul `300/301 ms` este închis, dar contractul
+pentru lipsă/malformed nu este încă închis.
 
 Teste: request fără response, teardown fără response, zero, malformed și lipsă
 în `Tests` și `Fails`.
@@ -196,7 +431,38 @@ se elimină sau relaxează pentru a face build-ul verde.
 
 ## Documente normative
 
+- [ATF_UI_Exploratory_Feedback.md](ATF_UI_Exploratory_Feedback.md)
 - [ATF_Architecture.md](../ATF_Architecture.md)
 - [ATF_Reporting_Contract.md](../ATF_Reporting_Contract.md)
 - [ATF_BUILD_AND_EXECUTION_SAFETY.md](../ATF_BUILD_AND_EXECUTION_SAFETY.md)
 - [atf-reporting/README.md](../../atf-reporting/README.md)
+
+## Revalidare live UI Categories — 2026-10-15 18:03
+
+Această intrare supersedează orice observație mai veche despre tabelul de acțiuni
+care descria `min-width:0`/`table-layout:auto`. Pe codul live, auditul unui raport
+API existent a trecut `1/1` test și a reconciliat dinamic `29/29` filtre de
+categorii. Artifactul rezultat este:
+
+`artifacts/reports/ui/existing-ui-categories-atf-extent-report_2026-10-15_18-03-47-397.html`
+
+Contractele observate și verificate în TAB MCP:
+
+- 30 tabele `Playwright action sequence` cu operație, target, expected,
+  observed, timp și rezultat;
+- 30 capturi ca ancore inline `data:image/png;base64,...`, clicabile cu badge-ul
+  `base64 img`, `target=_blank`, `rel=noopener` și `data-featherlight="image"`,
+  zero `<img>` duplicat și zero PNG extern;
+- tabel cu `min-width:760px`, `table-layout:fixed`, coloane
+  `42/125/160/145/150/68/70px` și wrapper `overflow-x:auto`; antetele nu se
+  mai fragmentează vertical;
+- pași Gherkin parametrizați cu numele filtrului și count-ul declarat, de
+  exemplu `Category "contract" reconciles declared tests=6 with rendered links`;
+- CSS și renderer apărate de testele `AtfReportEvidenceCssTest` și
+  `ExtentReportUiEvidenceTest`.
+
+Un click pe linkul Base64 din TAB MCP a confirmat că ancora conține datele
+native ale imaginii și atributele corecte. Dacă un backend MCP nu expune popup-ul
+`data:` ca tab separat, acesta este un comportament al harness-ului de browser,
+nu o lipsă a artifactului; contractul HTML rămâne verificabil prin `href`,
+`target` și `rel`.

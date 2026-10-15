@@ -19,18 +19,21 @@ artifact.
    secvența end-to-end.
 6. [../atf-console/README.md](../atf-console/README.md) — proiecția diagnostică
    de consolă și contractul de output.
-7. [../atf-console/README.md](../atf-console/README.md) — include și adapterul
-   JUnit opțional pentru rularea directă a testelor.
-8. [ATF_API_TEST_GUIDE.md](ATF_API_TEST_GUIDE.md) — pașii minimali pentru un test API nou.
-9. [../atf-reporting/README.md](../atf-reporting/README.md) — contractul vizual
+7. [../atf-ui/README.md](../atf-ui/README.md) — configurația și adaptorul
+   Playwright; testele executabile rămân în pachetul `atf.ui.tests` din
+   `atf-tests`.
+8. [../atf-debug-ui/README.md](../atf-debug-ui/README.md) — publicarea
+   read-only a unui HTML pentru investigație manuală în Playwright/TAB MCP.
+9. [ATF_API_TEST_GUIDE.md](ATF_API_TEST_GUIDE.md) — pașii minimali pentru un test API nou.
+10. [../atf-reporting/README.md](../atf-reporting/README.md) — contractul vizual
    complet al raportului Extent și criteriile de acceptare.
-9. [ATF_Reporting_Contract.md](ATF_Reporting_Contract.md) — arborele Extent,
+11. [ATF_Reporting_Contract.md](ATF_Reporting_Contract.md) — arborele Extent,
    evidence-ul și regulile de randare.
-10. [ATF_REPORTING_REFERENCE_GUARD.md](ATF_REPORTING_REFERENCE_GUARD.md) —
+12. [ATF_REPORTING_REFERENCE_GUARD.md](ATF_REPORTING_REFERENCE_GUARD.md) —
    reperul vizual/funcțional și procedura de comparație în TAB MCP.
-11. [ATF_BUILD_AND_EXECUTION_SAFETY.md](ATF_BUILD_AND_EXECUTION_SAFETY.md) —
+13. [ATF_BUILD_AND_EXECUTION_SAFETY.md](ATF_BUILD_AND_EXECUTION_SAFETY.md) —
    build, sincronizare și validare fără oprirea execuțiilor existente.
-12. [README_Atf_BestPractices.md](README_Atf_BestPractices.md) — reguli OOP,
+14. [README_Atf_BestPractices.md](README_Atf_BestPractices.md) — reguli OOP,
    testabilitate și mentenanță.
 
 ## Regula de lucru pentru orice schimbare
@@ -66,7 +69,7 @@ trasabile fără a duplica contractele permanente.
 test = intenția de produs verificată  
 request = schimbul HTTP și evidence-ul lui tehnic  
 validation = fratele direct al request-ului, cu tabelul agregat de assertions  
-phase = SETUP, TEST BODY sau TEARDOWN  
+phase = SETUP, TEST BODY sau TEARDOWN; fazele SETUP și TEARDOWN sunt opționale
 scenario = testul complet, cu fazele și verdictul final  
 artifact = raportul HTML autonom rezultat după finalizarea sesiunii
 

@@ -1,0 +1,216 @@
+mock:
+  # Deterministic offline catalog owned by atf-mock.
+  # This file is never an instruction to use live HTTP.
+  routes:
+    - method: GET
+      path: /public/v2/users
+      status: 200
+      duration: PT0.012S
+      headers:
+        Content-Type: application/json
+      body: |
+        [{"id":1,"name":"ATF User","email":"atf@example.test"}]
+    - method: GET
+      path: /public/v2/users/1
+      status: 200
+      duration: PT0.012S
+      headers:
+        Content-Type: application/json
+      body: |
+        {"id":1,"name":"ATF User","email":"atf@example.test"}
+    - method: POST
+      path: /public/v2/users
+      status: 401
+      duration: PT0.012S
+      headers:
+        Content-Type: application/json
+      body: |
+        {"message":"Authentication required"}
+    - method: GET
+      path: /public/v2/posts
+      status: 200
+      duration: PT0.012S
+      headers:
+        Content-Type: application/json
+      body: |
+        [{"id":101,"user_id":1,"title":"ATF post","body":"contract"}]
+    - method: GET
+      path: /public/v2/posts/101
+      status: 200
+      duration: PT0.012S
+      headers:
+        Content-Type: application/json
+      body: |
+        {"id":101,"user_id":1,"title":"ATF post","body":"contract"}
+    - method: GET
+      path: /public/v2/users/1/posts
+      status: 200
+      duration: PT0.012S
+      headers:
+        Content-Type: application/json
+      body: |
+        [{"id":101,"user_id":1,"title":"ATF post"}]
+    - method: GET
+      path: /public/v2/posts/999999
+      status: 404
+      duration: PT0.012S
+      headers:
+        Content-Type: application/json
+      body: |
+        {"message":"Not found"}
+    - method: GET
+      path: /public/v2/search
+      auth-profile: bearer
+      query:
+        page: "2"
+        include: details
+      request-headers:
+        Accept: application/json
+      status: 200
+      duration: PT0.018S
+      headers:
+        Content-Type: application/json
+        X-Mock-Scenario: complex-search
+      body: |
+        {
+          "meta": {"page": 2, "pageSize": 3, "total": 3, "hasNext": false},
+          "filters": {"include": ["details", "permissions"], "sort": {"field": "name", "direction": "asc"}},
+          "items": [
+            {"id": 1, "name": "ATF User", "profile": {"department": "quality", "active": true}, "permissions": ["read", "write"], "history": [{"action": "created", "actor": "system", "at": "2026-10-15T10:00:00Z"}, {"action": "verified", "actor": "qa", "at": "2026-10-15T10:01:00Z"}]},
+            {"id": 2, "name": "ATF Analyst", "profile": {"department": "engineering", "active": true}, "permissions": ["read", "review"], "history": [{"action": "created", "actor": "system", "at": "2026-10-15T10:02:00Z"}]},
+            {"id": 3, "name": "ATF Auditor", "profile": {"department": "risk", "active": false}, "permissions": ["read", "audit"], "history": [{"action": "created", "actor": "system", "at": "2026-10-15T10:03:00Z"}]}
+          ],
+          "links": {"self": "/public/v2/search?page=2&include=details", "next": null},
+          "audit": {"requestId": "mock-search-0002", "source": "atf-mock", "redactionApplied": true}
+        }
+    - method: POST
+      path: /public/v2/bulk-import
+      auth-profile: api-key
+      query:
+        mode: validate
+      request-headers:
+        Content-Type: application/json
+        X-Client: atf-java
+      status: 202
+      duration: PT0.021S
+      headers:
+        Content-Type: application/json
+        X-Mock-Scenario: bulk-import
+      body: |
+        {
+          "job": {"id": "job-20261015-001", "state": "accepted", "queuedAt": "2026-10-15T10:05:00Z"},
+          "accepted": true,
+          "summary": {"received": 3, "valid": 2, "warnings": 1, "rejected": 0},
+          "items": [
+            {"externalId": "u-001", "state": "validated", "warnings": []},
+            {"externalId": "u-002", "state": "validated", "warnings": []},
+            {"externalId": "u-003", "state": "validated-with-warning", "warnings": [{"code": "DEPRECATED_FIELD", "field": "legacyRole"}]}
+          ],
+          "next": {"poll": "/public/v2/bulk-import/job-20261015-001", "retryAfterSeconds": 2}
+        }
+    - method: PUT
+      path: /public/v2/profiles/1
+      auth-profile: basic
+      query:
+        expand: permissions
+      request-headers:
+        Content-Type: application/json
+      status: 200
+      duration: PT0.016S
+      headers:
+        Content-Type: application/json
+        X-Mock-Scenario: profile-update
+      body: |
+        {
+          "id": 1,
+          "version": 7,
+          "updated": true,
+          "profile": {"displayName": "ATF User", "locale": "ro-RO", "timezone": "Europe/Bucharest"},
+          "permissions": {"effective": ["read", "write"], "inherited": [{"from": "quality", "permissions": ["read"]}], "overrides": {"export": false}},
+          "changes": [{"field": "locale", "from": "en-US", "to": "ro-RO"}, {"field": "timezone", "from": "UTC", "to": "Europe/Bucharest"}]
+        }
+    - method: PATCH
+      path: /public/v2/preferences
+      auth-profile: custom
+      query:
+        locale: ro-RO
+      request-headers:
+        Content-Type: application/json
+        X-Atf-Client: java
+      status: 200
+      duration: PT0.014S
+      headers:
+        Content-Type: application/json
+        X-Mock-Scenario: custom-preferences
+      body: |
+        {
+          "saved": true,
+          "preferences": {"locale": "ro-RO", "theme": "dark", "notifications": {"email": true, "sms": false, "digest": {"frequency": "daily", "hour": 9}}, "columns": ["id", "name", "status", "updatedAt"]},
+          "diagnostics": {"changed": ["locale", "theme"], "unchanged": ["notifications", "columns"], "etag": "W/\"preferences-7\""}
+        }
+    - method: GET
+      path: /public/v2/catalog
+      auth-profile: bearer
+      query:
+        page: "3"
+        pageSize: "2"
+      request-headers:
+        Accept: application/json
+        X-Correlation-Id: corr-headers-001
+      status: 200
+      duration: PT0.011S
+      headers:
+        Content-Type: application/json
+        X-Mock-Scenario: catalog-page
+        X-Request-Id: req-catalog-003
+        X-RateLimit-Limit: "100"
+        X-RateLimit-Remaining: "97"
+        ETag: W/catalog-3
+      body: |
+        {
+          "page": 3,
+          "pageSize": 2,
+          "total": 6,
+          "items": [{"id": 5, "state": "active"}, {"id": 6, "state": "pending"}],
+          "links": {"self": "/public/v2/catalog?page=3&pageSize=2", "next": null}
+        }
+    - method: GET
+      path: /public/v2/catalog/export
+      auth-profile: api-key
+      query:
+        format: csv
+      request-headers:
+        Accept: text/csv
+        X-Client-Version: "2.4"
+      status: 429
+      duration: PT0.009S
+      headers:
+        Content-Type: application/json
+        Retry-After: "2"
+        X-RateLimit-Limit: "10"
+        X-RateLimit-Remaining: "0"
+        X-Request-Id: req-export-429
+      body: |
+        {"error": {"code": "RATE_LIMITED", "message": "Export quota exhausted", "retryAfterSeconds": 2}}
+    - method: GET
+      path: /public/v2/catalog/42
+      auth-profile: custom
+      query:
+        include: summary
+      request-headers:
+        Accept: application/json
+        If-None-Match: W/catalog-42
+      status: 304
+      duration: PT0.004S
+      headers:
+        ETag: W/catalog-42
+        Cache-Control: max-age=60
+        X-Request-Id: req-catalog-042
+      body: ""
+  fallback:
+    status: 500
+    duration: PT0.012S
+    headers:
+      Content-Type: application/json
+    body: |
+      {"message":"Unexpected mock route"}

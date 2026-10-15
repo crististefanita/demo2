@@ -38,8 +38,9 @@ public final class AtfExtentReportTestExtension implements BeforeAllCallback,
 
         String className = context.getRequiredTestClass().getSimpleName();
         String scenario = context.getDisplayName();
+        String testPackage = context.getRequiredTestClass().getPackageName();
         String resource = resourceTag(context.getRequiredTestClass().getPackageName());
-        var report = ApiReportTestContext.open(session, className, scenario,
+        var report = ApiReportTestContext.open(session, className, testPackage, scenario,
                 List.of("api", resource, "contract"));
         context.getStore(NAMESPACE).put(TEST, report);
     }

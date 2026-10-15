@@ -32,8 +32,16 @@ public final class ApiReportTestContext implements AutoCloseable {
                                             String testClass,
                                             String scenarioName,
                                             Collection<String> tags) {
+        return open(session, testClass, null, scenarioName, tags);
+    }
+
+    public static ApiReportTestContext open(ExtentReportSession session,
+                                            String testClass,
+                                            String testPackage,
+                                            String scenarioName,
+                                            Collection<String> tags) {
         var context = new ApiReportTestContext(session.startScenario(
-                testClass, scenarioName, tags == null ? List.of() : tags));
+                testClass, testPackage, scenarioName, tags == null ? List.of() : tags));
         CURRENT.set(context);
         return context;
     }

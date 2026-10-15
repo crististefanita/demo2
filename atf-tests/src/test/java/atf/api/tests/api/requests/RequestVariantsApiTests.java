@@ -32,8 +32,10 @@ class RequestVariantsApiTests {
                 () -> assertEquals(200, execution.response().status()),
                 () -> assertTrue(execution.response().url().contains("page=2")),
                 () -> assertTrue(execution.response().url().contains("include=details")),
+                () -> assertEquals("application/json", request.headers().get("Accept")),
                 () -> assertEquals("bearer", request.authProfile()),
                 () -> assertEquals(AuthType.BEARER, request.route().authType()),
+                () -> assertEquals("complex-search", execution.response().header("X-Mock-Scenario")),
                 () -> assertTrue(execution.response().body().contains("history")),
                 () -> assertEquals(AtfReportStatus.PASS, decision.status()));
     }
@@ -48,6 +50,8 @@ class RequestVariantsApiTests {
                 () -> assertEquals(202, execution.response().status()),
                 () -> assertEquals("api-key", request.authProfile()),
                 () -> assertEquals(AuthType.API_KEY, request.route().authType()),
+                () -> assertEquals("application/json", request.headers().get("Content-Type")),
+                () -> assertEquals("bulk-import", execution.response().header("X-Mock-Scenario")),
                 () -> assertTrue(request.bodyText().length() > 700),
                 () -> assertTrue(request.bodyText().contains("records")),
                 () -> assertEquals(AtfReportStatus.PASS, decision.status()));
@@ -64,6 +68,7 @@ class RequestVariantsApiTests {
                 () -> assertTrue(execution.response().url().contains("expand=permissions")),
                 () -> assertEquals("basic", request.authProfile()),
                 () -> assertEquals(AuthType.BASIC, request.route().authType()),
+                () -> assertEquals("profile-update", execution.response().header("X-Mock-Scenario")),
                 () -> assertTrue(execution.response().body().contains("inherited")),
                 () -> assertEquals(AtfReportStatus.PASS, decision.status()));
     }
@@ -79,6 +84,7 @@ class RequestVariantsApiTests {
                 () -> assertTrue(execution.response().url().contains("locale=ro-RO")),
                 () -> assertEquals("custom", request.authProfile()),
                 () -> assertEquals(AuthType.CUSTOM, request.route().authType()),
+                () -> assertEquals("custom-preferences", execution.response().header("X-Mock-Scenario")),
                 () -> assertTrue(request.bodyText().contains("notifications")),
                 () -> assertEquals(AtfReportStatus.PASS, decision.status()));
     }
