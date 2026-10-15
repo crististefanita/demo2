@@ -26,10 +26,14 @@ flowchart LR
 
 ### 1. API layer
 
-`ApiModuleFactory` creează un graph izolat pentru o execuție:
+`ApiModuleFactory` creează un graph izolat pentru o execuție. Composition
+root-ul preferat îi transmite `AtfRuntimeSnapshot`; overload-ul cu
+`ApiSettings` rămâne pentru compatibilitate:
 
 ```text
-ApiSettings snapshot
+AtfRuntimeSnapshot
+        ↓
+ApiSettingsSnapshot
         ↓
 ApiExecutor
         ↓

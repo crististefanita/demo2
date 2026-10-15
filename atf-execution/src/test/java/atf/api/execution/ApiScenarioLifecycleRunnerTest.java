@@ -52,6 +52,24 @@ class ApiScenarioLifecycleRunnerTest {
     }
 
     @Test
+    void publishedFailureSignalFailsBodyButStillRunsTeardown() {
+        AtomicBoolean teardown = new AtomicBoolean();
+        var result = new ApiScenarioLifecycleRunner().run(
+                null,
+                () -> { throw new ApiScenarioLifecycleRunner.FailureSignal("contract mismatch"); },
+                ignored -> teardown.set(true));
+
+        assertAll(
+                () -> assertEquals(AtfReportStatus.FAIL, result.status()),
+                () -> assertEquals(AtfReportStatus.FAIL,
+                        result.phases().get(ApiScenarioLifecycleRunner.Phase.TEST_BODY)),
+                () -> assertEquals(AtfReportStatus.PASS,
+                        result.phases().get(ApiScenarioLifecycleRunner.Phase.TEARDOWN)),
+                () -> assertEquals("contract mismatch", result.primaryFailure().getMessage()),
+                () -> assertTrue(teardown.get()));
+    }
+
+    @Test
     void reportedLifecycleKeepsPrimaryAndSecondaryFailureEvidenceOnTheirOwnPhases() {
         var events = new ArrayList<String>();
         var result = new ApiScenarioLifecycleRunner().run(

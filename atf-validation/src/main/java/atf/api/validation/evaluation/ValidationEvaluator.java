@@ -3,7 +3,7 @@ package atf.api.validation.evaluation;
 import atf.api.core.http.ApiResponse;
 import atf.api.validation.contract.ResponseContract;
 
-/** Leagă contractul de tabelul agregat și de politica Pass/Warning/Fail. */
+    /** Connects the contract to the aggregate table and Pass/Warning/Fail policy. */
 public final class ValidationEvaluator {
     private final int maxDisplayedCharacters;
 

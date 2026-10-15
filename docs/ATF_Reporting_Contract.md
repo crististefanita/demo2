@@ -63,6 +63,7 @@ rendererul fallback:
 
 | Rol | Label |
 |---|---|
+| request context | `Request details · N fields` |
 | disclosure trace | `Response details · N fields` |
 | clasificare internă | `TECHNICAL TRACE` |
 | request payload | `REQUEST JSON` |
@@ -72,14 +73,19 @@ rendererul fallback:
 
 `TECHNICAL TRACE` nu este titlul disclosure-ului. El descrie conținutul din
 `Response details`; `N` este numărul real de rânduri ale tabelului trace.
+`Request details` descrie contextul cererii înainte de transport: method, URL/path,
+headers, params, auth și request body când există. Response JSON este inclus în
+aceeași zonă colapsabilă cu `Response details`.
 
 ```mermaid
 flowchart TD
-    Request[HTTP request] --> Details[Response details · N fields]
-    Details --> Trace[TECHNICAL TRACE]
+    Request[HTTP request] --> RequestDetails[Request details · N fields]
+    Request --> Details[Response details · N fields]
+    Details --> Trace[TECHNICAL TRACE · response context]
+    Details --> ResponseBody[RESPONSE JSON, if present]
+    RequestDetails --> RequestBody[REQUEST JSON, if present]
     Request --> Execution[Execution evidence · N attempts]
     Execution --> Retry[Retry history]
-    Request --> Response[RESPONSE JSON]
     Request --> Assertions[Assertions · N]
 ```
 
@@ -88,20 +94,23 @@ ului, URL-ul redacted, durata măsurată, numărul de attempt-uri și istoricul 
 retry/attempt. Motivele retry și URL-urile trec prin aceeași limită de redaction
 ca headers, JSON și valorile assertions; un renderer nu reconstruiește secrete.
 
-Trace-ul tehnic este compact și relevant:
+Trace-ul tehnic este compact și relevant. El păstrează URL-ul cererii, dar nu
+repetă statusul response-ului sau mecanica execuției:
 
 ~~~text
-METHOD
-PATH
 URL
-AUTH PROFILE
-ATTEMPT
-RESPONSE STATUS
-RESPONSE DURATION (ms)
+CONTENT-TYPE
+FAILURE CAUSE (dacă există)
+alte facts HTTP non-duplicative
 ~~~
 
-Durata se afișează explicit ca `RESPONSE DURATION (ms)` în evidence și ca
-`N ms` în header-ele navigabile. `1`, `16` sau `25` fără unitate nu sunt forme
+`Execution evidence · N attempts` este disclosure-ul separat pentru mecanica
+transportului. El păstrează URL-ul efectiv, durata response-ului, numărul de
+încercări, numărul de retry events și istoricul attempt-urilor. Este închis
+implicit și nu trebuie contopit cu `TECHNICAL TRACE`.
+
+Durata se afișează explicit ca `RESPONSE DURATION (ms)` în execution evidence și
+ca `N ms` în header-ele navigabile. `1`, `16` sau `25` fără unitate nu sunt forme
 acceptate deoarece pot fi confundate cu număr de pași sau assertions.
 Timestamp-ul nu este identitatea semantică a testului și nu este folosit pentru
 triere sau grupare.

@@ -54,6 +54,19 @@ class AtfReportConfigurationLoaderTest {
     }
 
     @Test
+    void readsTheExtentSwitchUsedByDirectResourceTests() throws Exception {
+        Path project = Files.createTempDirectory("atf-extent-switch-");
+        Path config = project.resolve("atf.yaml");
+        Files.writeString(config, """
+                reporting:
+                  extent:
+                    enabled: false
+                """);
+
+        assertFalse(AtfReportConfigurationLoader.load(config).enabled());
+    }
+
+    @Test
     void keepsStablePathWhenTimestampingIsDisabled() {
         var settings = new ExtentReportConfiguration(Path.of("target"), "report.html",
                 false, "yyyy-MM-dd_HH-mm-ss-SSS", "UTC");

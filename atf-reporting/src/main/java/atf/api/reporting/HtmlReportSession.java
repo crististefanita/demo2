@@ -2,6 +2,8 @@ package atf.api.reporting;
 
 import atf.api.core.config.ReportingSettings;
 import atf.api.core.http.ApiExecutionResult;
+import atf.api.core.reporting.AtfConsoleEvent;
+import atf.api.core.reporting.AtfConsoleSink;
 import atf.api.core.reporting.AtfAssertion;
 import atf.api.core.reporting.AtfReportPorts;
 import atf.api.core.reporting.AtfReportStatus;
@@ -31,6 +33,7 @@ public final class HtmlReportSession implements AtfReportPorts.Session {
     private final HtmlReportCategoryView categoryView = new HtmlReportCategoryView();
     private final HtmlReportFailsView failsView = new HtmlReportFailsView();
     private final HtmlReportOverviewView overviewView = new HtmlReportOverviewView();
+    private final AtfConsoleSink console;
     private boolean closed;
 
     public HtmlReportSession(Path reportPath) {
@@ -38,8 +41,13 @@ public final class HtmlReportSession implements AtfReportPorts.Session {
     }
 
     public HtmlReportSession(Path reportPath, ReportingSettings settings) {
+        this(reportPath, settings, AtfConsoleSink.noOp());
+    }
+
+    public HtmlReportSession(Path reportPath, ReportingSettings settings, AtfConsoleSink console) {
         this.reportPath = Objects.requireNonNull(reportPath, "reportPath");
         this.settings = Objects.requireNonNull(settings, "settings");
+        this.console = console == null ? AtfConsoleSink.noOp() : console;
     }
 
     @Override
@@ -51,7 +59,10 @@ public final class HtmlReportSession implements AtfReportPorts.Session {
     public AtfReportPorts.Scenario startScenario(String testClass, String scenario, Collection<String> tags) {
         ensureOpen();
         var model = document.startScenario(testClass, scenario, tags);
-        return new ScenarioScope(model);
+        String name = (testClass == null ? "API tests" : testClass) + " :: "
+                + (scenario == null ? "Scenario" : scenario);
+        console.publish(AtfConsoleEvent.started(AtfConsoleEvent.Scope.SCENARIO, name));
+        return new ScenarioScope(model, name);
     }
 
     @Override
@@ -101,17 +112,28 @@ public final class HtmlReportSession implements AtfReportPorts.Session {
 
     private final class ScenarioScope implements AtfReportPorts.Scenario {
         private final HtmlReportSemanticDocument.ScenarioModel model;
+        private final String consoleName;
+        private final long startedAt = System.nanoTime();
         private boolean closed;
 
-        private ScenarioScope(HtmlReportSemanticDocument.ScenarioModel model) { this.model = model; }
+        private ScenarioScope(HtmlReportSemanticDocument.ScenarioModel model, String consoleName) {
+            this.model = model;
+            this.consoleName = consoleName;
+        }
         @Override public String id() { return model.id; }
         @Override public AtfReportPorts.Phase startPhase(String name) {
             ensureOpen();
             var phase = new HtmlReportSemanticDocument.PhaseModel(name);
             model.phases.add(phase);
-            return new PhaseScope(model, phase);
+            String phaseName = name == null ? "" : name;
+            console.publish(AtfConsoleEvent.started(AtfConsoleEvent.Scope.PHASE, phaseName));
+            return new PhaseScope(model, phase, phaseName);
         }
-        @Override public void complete(AtfReportStatus status) { model.status = status; }
+        @Override public void complete(AtfReportStatus status) {
+            model.status = status;
+            console.publish(AtfConsoleEvent.completed(AtfConsoleEvent.Scope.SCENARIO,
+                    consoleName, status, elapsedMillis(startedAt)));
+        }
         @Override public boolean hasWarnings() { return model.status == AtfReportStatus.WARNING || model.phases.stream().anyMatch(p -> p.status == AtfReportStatus.WARNING); }
         @Override public void close() { closed = true; }
         private void ensureOpen() { if (closed) throw new IllegalStateException("Scenario is closed"); }
@@ -120,18 +142,32 @@ public final class HtmlReportSession implements AtfReportPorts.Session {
     private final class PhaseScope implements AtfReportPorts.Phase {
         private final HtmlReportSemanticDocument.ScenarioModel scenario;
         private final HtmlReportSemanticDocument.PhaseModel model;
+        private final String consoleName;
+        private final long startedAt = System.nanoTime();
         private boolean closed;
-        private PhaseScope(HtmlReportSemanticDocument.ScenarioModel scenario, HtmlReportSemanticDocument.PhaseModel model) { this.scenario = scenario; this.model = model; }
+        private PhaseScope(HtmlReportSemanticDocument.ScenarioModel scenario,
+                           HtmlReportSemanticDocument.PhaseModel model, String consoleName) {
+            this.scenario = scenario;
+            this.model = model;
+            this.consoleName = consoleName;
+        }
         @Override public AtfReportPorts.Request startRequest(String title, String method, String path) {
             ensureOpen();
             var request = new HtmlReportSemanticDocument.RequestModel(title, method, path);
             model.children.add(request);
-            return new RequestScope(model, request);
+            String requestName = ExtentReportNodeSupport.renderRequestTitle(title, method, path);
+            console.publish(AtfConsoleEvent.started(AtfConsoleEvent.Scope.REQUEST,
+                    requestName));
+            return new RequestScope(model, request, requestName);
         }
         @Override public void detail(String name, String value) {
             model.details.add(new String[]{name, value});
         }
-        @Override public void complete(AtfReportStatus status) { model.status = status; }
+        @Override public void complete(AtfReportStatus status) {
+            model.status = status;
+            console.publish(AtfConsoleEvent.completed(AtfConsoleEvent.Scope.PHASE,
+                    consoleName, status, elapsedMillis(startedAt)));
+        }
         @Override public void close() { closed = true; }
         private void ensureOpen() { if (closed) throw new IllegalStateException("Phase is closed"); }
     }
@@ -139,8 +175,15 @@ public final class HtmlReportSession implements AtfReportPorts.Session {
     private final class RequestScope implements AtfReportPorts.Request {
         private final HtmlReportSemanticDocument.PhaseModel phase;
         private final HtmlReportSemanticDocument.RequestModel model;
+        private final String consoleName;
+        private final long startedAt = System.nanoTime();
         private boolean closed;
-        private RequestScope(HtmlReportSemanticDocument.PhaseModel phase, HtmlReportSemanticDocument.RequestModel model) { this.phase = phase; this.model = model; }
+        private RequestScope(HtmlReportSemanticDocument.PhaseModel phase,
+                             HtmlReportSemanticDocument.RequestModel model, String consoleName) {
+            this.phase = phase;
+            this.model = model;
+            this.consoleName = consoleName;
+        }
         @Override public void detail(String name, String value) { model.details.add(new String[]{name, value}); }
         @Override public void json(String label, String json) { model.json.add(new String[]{label, json}); }
         @Override public void execution(ApiExecutionResult result) { model.execution = result; }
@@ -148,22 +191,41 @@ public final class HtmlReportSession implements AtfReportPorts.Session {
             ensureOpen();
             var validation = new HtmlReportSemanticDocument.ValidationModel(title);
             phase.children.add(validation);
-            return new ValidationScope(validation);
+            String validationName = title == null ? "Validation" : title;
+            console.publish(AtfConsoleEvent.started(AtfConsoleEvent.Scope.VALIDATION, validationName));
+            return new ValidationScope(validation, validationName);
         }
-        @Override public void complete(AtfReportStatus status) { model.status = status; }
+        @Override public void complete(AtfReportStatus status) {
+            model.status = status;
+            console.publish(AtfConsoleEvent.completed(AtfConsoleEvent.Scope.REQUEST,
+                    consoleName, status, elapsedMillis(startedAt)));
+        }
         @Override public void close() { closed = true; }
     }
 
     private final class ValidationScope implements AtfReportPorts.Validation {
         private final HtmlReportSemanticDocument.ValidationModel model;
+        private final String consoleName;
+        private final long startedAt = System.nanoTime();
         private boolean closed;
-        private ValidationScope(HtmlReportSemanticDocument.ValidationModel model) { this.model = model; }
+        private ValidationScope(HtmlReportSemanticDocument.ValidationModel model, String consoleName) {
+            this.model = model;
+            this.consoleName = consoleName;
+        }
         @Override public void assertions(Collection<AtfAssertion> assertions) { model.assertions = assertions == null ? List.of() : List.copyOf(assertions); }
-        @Override public void complete(AtfReportStatus status) { model.status = status; }
+        @Override public void complete(AtfReportStatus status) {
+            model.status = status;
+            console.publish(AtfConsoleEvent.completed(AtfConsoleEvent.Scope.VALIDATION,
+                    consoleName, status, elapsedMillis(startedAt)));
+        }
         @Override public void close() { closed = true; }
     }
 
     private static final class Css {
         private static final String SCRIPT = "const tabs=[...document.querySelectorAll('.tab')];const panels=[...document.querySelectorAll('.tab-panel')];function activate(id){tabs.forEach(t=>t.classList.toggle('active',t.dataset.tab===id));panels.forEach(p=>p.classList.toggle('active',p.id===id));history.replaceState(null,'','#'+id)}tabs.forEach(t=>t.addEventListener('click',()=>activate(t.dataset.tab)));activate('overview');document.querySelectorAll('.fail-row').forEach(a=>a.addEventListener('click',()=>activate('tests')));";
+    }
+
+    private static long elapsedMillis(long startedAt) {
+        return Math.max(0L, (System.nanoTime() - startedAt) / 1_000_000L);
     }
 }

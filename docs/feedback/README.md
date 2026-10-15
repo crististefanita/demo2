@@ -1,156 +1,202 @@
 # ATF Java — feedback activ
 
-Acest director păstrează exclusiv lucrările care mai trebuie implementate sau
-întărite prin teste în codul live ATF Java. Contractele deja stabilizate,
-explicațiile arhitecturale și diagramele normative apar în `docs/` și în
-README-urile modulelor; nu sunt duplicate aici.
+Acest director păstrează exclusiv îmbunătățirile care mai trebuie
+implementate sau întărite prin teste în codul live. Contractele stabile,
+deciziile închise și exemplele istorice apar în `docs/` și în README-urile
+modulelor, nu aici.
 
 ## Proces obligatoriu pentru orice ToDo
 
 1. Recitește codul, testele, POM-urile și README-urile din checkout-ul live.
 2. Creează un staging nou, separat de checkout și de orice rulare existentă;
    nu opri procesele și nu reutiliza `target`, `artifacts`, `.tmp` sau loguri.
-3. Adaugă ori extinde testul care exprimă contractul înaintea refactorizării.
-4. Repară implementarea; nu relaxa și nu rescrie testul pentru a ascunde o
-   regresie.
-5. Rulează reactorul relevant și verifică faptul că snapshot-ul staged nu a
-   devenit învechit față de live în timpul buildului.
-6. Pentru orice schimbare de raportare, generează artifactul în staging și
-   verifică-l în TAB MCP: Overview, Tests, Category, Fails, filtre, collapse,
-   deep-links, durate, statusuri și computed styles relevante.
-7. Mută regula stabilă în README-ul normativ potrivit și elimină ToDo-ul când
-   implementarea, testele și dovada observabilă există.
+3. Scrie sau extinde testul care exprimă contractul înaintea refactorizării.
+4. Repară implementarea; nu relaxa și nu rescrie testul pentru a ascunde
+   regresia.
+5. Rulează reactorul relevant în staging și verifică faptul că staging-ul nu
+   a devenit învechit față de codul live în timpul buildului.
+6. Pentru raportare, generează artifactul în staging și verifică în TAB MCP
+   `Overview`, `Tests`, `Category`, `Fails`, filtrele, collapse, deep-links,
+   duratele, statusurile și computed styles relevante.
+7. Compară rezultatul cu codul live și cu contractul normativ. Mută regula
+   stabilă în README-ul potrivit și elimină ToDo-ul numai când există dovadă
+   în cod, teste și artifact.
 
 ## ToDo-uri active
 
-### F-01 — Finalizează separarea temei și a controllerelor de UI
+### F-01 — Decompune orchestration-ul din reporting fără a schimba contractul
 
-Descompune orchestration-ul rămas din `injectRuntimeBehaviour` în componente
-mici pentru navigation/hash, filtre, collapse și contractul DOM. Separă în
-continuare layout, execution și responsive CSS; `AtfReportTheme` trebuie să
-rămână fațadă de compoziție, iar tokenurile comune să fie reutilizate în toate
-proiecțiile.
+`AtfReportTheme` are încă aproximativ 300 de linii de CSS compus manual, iar
+`ExtentReportRuntimeBehaviour` concentrează navigation, filtre, collapse,
+semantic evidence, durate și audit DOM în JavaScript inline. Există deja
+tokenuri și contributori CSS, dar fațada încă deține prea multă compoziție
+imperativă și are reguli duplicate pentru annotations/tag-uri.
 
-Teste necesare: ordine de compoziție a pipeline-ului, filtre, collapse,
-deep-links, click pe tab-uri, computed styles pentru badge-uri și suprafețe,
-plus independența rulărilor paralele.
+Refactorizarea trebuie să păstreze un singur facade public și să introducă
+contributori/coordonatori mici pentru layout, evidence, navigation, filters,
+collapse și DOM audit. Elimină duplicatele CSS printr-o singură sursă de
+tokenuri; nu crea module Maven sau directoare artificiale.
 
-Increment transversal verificat: `ExtentEvidenceRenderer` deține acum evidence-ul Extent
-legat de request (technical trace/details, JSON, execution/retry history și
-assertions), iar `ExtentReportTree` a rămas coordinator pentru arbore,
-lifecycle și status aggregation. Markup-ul observabil a rămas neschimbat.
+Teste de închidere:
 
-Increment nou verificat: `ExtentReportRuntimeBehaviour` a preluat bootstrap-ul
-JavaScript din `ExtentReportPublicationPipeline` și compune explicit runtime-ul
-de durate, diagnostic failures și cause-chain. Pipeline-ul păstrează numai
-ordinea de publicare și scrierea atomică. `ExtentReportRuntimeScriptTest` fixează
-markerii și ordinea compoziției; comportamentul DOM rămâne protejat de testele
-de interacțiune și artifact care urmează să fie extinse în F-05. F-01 nu este
-închis: navigation/hash, filters, collapse și DOM contract sunt încă în
-bootstrap și vor fi extrase incremental.
+- ordine deterministă a contribuțiilor CSS/JS;
+- filtre, tab-uri, hash deep-links și collapse;
+- Request details, Response details, JSON body și Execution evidence ca
+  disclosures distincte;
+- status/durată centrate, badge geometry și background uniform în toate tab-
+  urile;
+- două sesiuni paralele fără scurgere de stare.
 
-### F-02 — Folosește un model semantic comun pentru renderer-e
+### F-02 — Folosește un snapshot semantic comun pentru Extent și fallback
 
-Extinde modelul intern comun pentru suite → class → scenario → phase →
-request/validation → evidence și fă Extent-ul și fallback-ul consumatori ai
-aceluiași snapshot semantic. Nu muta reguli de business, verdict sau redaction
-în renderer.
+`HtmlReportSemanticDocument` modelează fallback-ul, în timp ce adapterul
+Extent construiește direct noduri și evidence. Cele două proiecții au deja
+contracte apropiate, dar nu consumă aceeași structură semantică immutable.
+Aceasta păstrează risc de drift între `Tests`, `Fails`, `Category` și fallback.
 
-Test necesar: aceeași fixture cu pass, warning, fail, skip, tags, trace, JSON
-și assertions trebuie să producă aceeași ierarhie, aceleași statusuri/count-uri
-și aceleași limite de redaction în ambele renderer-e.
+Definește un snapshot intern comun pentru:
 
-### F-03 — Completează snapshot-ul immutable de runtime
+```text
+suite → class → scenario → phase → request/validation → evidence
+```
 
-Folosește schema actuală din `atf.yaml` ca sursă unică de proiect pentru API,
-validation și reporting, fără modul nou `atf-config` și fără să muți parserul în `atf-core`.
-În repository-ul curent, loaderul complet aparține composition root-ului din
-`atf-tests`/proiectul consumator; `atf-reporting` păstrează doar loaderul
-specializat pentru `reporting.extent`. Bootstrap-ul trebuie să încarce o singură dată YAML-ul, să valideze strict schema și să producă un
-snapshot typed pentru timeout, retry, auth, routes, redaction, schema roots și
-publication policy. `atf-core` păstrează numai modele/snapshot-uri; reporting
-adaptează exclusiv `reporting.extent`.
+Snapshot-ul trebuie să conțină ownership, status, durate, tag-uri,
+Request details, Response details, body-uri, Execution evidence și assertions.
+Extent și fallback îl consumă separat; niciun renderer nu calculează verdictul
+și nu mută ownership-ul request/validation.
 
-Elimină fallback-ul operațional la `user.dir`; paths relative se rezolvă față
-de fișierul YAML, iar secretele vin din provider/env explicit, nu din YAML.
+Test de închidere: aceeași fixture cu pass, warning, fail, skip, tags,
+request/response body, retry și assertions produce aceeași ierarhie, aceleași
+statusuri și aceleași count-uri în ambele proiecții.
 
-Teste necesare: două working directories, două root-uri concurente, precedence
-property/env/YAML/default, chei necunoscute, URI/timeout/path invalid, schema
-validă/absentă/invalidă, traversal respins și imutabilitate după crearea
-executorului.
+### F-03 — Închide snapshot-ul de configurare la composition root
 
-Increment implementat: `AtfReportConfigurationContext` capturează o singură
-dată rădăcina de căutare și sursele explicite property/environment, iar
-`AtfReportConfigurationLoader.load(context)` parsează numai contextul primit.
-Precedence-ul property → environment și izolarea dintre două rădăcini sunt
-protejate prin teste unitare. Fațada `load()` rămâne compatibilă și este
-singurul loc care capturează starea procesului; snapshot-ul complet de runtime
-(timeout/retry/auth/redaction/publication) rămâne următorul increment F-03.
+`AtfRuntimeSnapshot` și compunerea `ApiModuleFactory` există și sunt
+verificate. ToDo-ul rămas este încărcarea root-scoped, strictă și unică:
+`AtfReportConfigurationContext` recurge încă la `user.dir`, iar console,
+mock și reporting au loader-e specializate care pot descoperi configurații
+independent.
 
-Increment nou verificat: calea explicită relativă se rezolvă față de
-`startDirectory` capturat, iar `outputDirectory` este normalizat față de YAML și
-respinge traversal-ul în afara directorului de configurație. Testele
-`resolvesRelativeExplicitConfigAgainstTheCapturedStartDirectory` și
-`rejectsOutputDirectoryTraversalOutsideTheYamlDirectory` fixează aceste
-invariante fără să schimbe starea procesului.
+Păstrează configurația în `atf.yaml`, fără modul Maven nou și fără parser YAML
+în `atf-core`. Composition root-ul trebuie să rezolve explicit fișierul,
+calea relativă față de acel fișier și să producă un snapshot immutable pentru
+API, mock, console și reporting. După bootstrap, modulele nu mai recitesc
+fișierul și nu mai depind de working directory global.
 
-### F-04 — Închide propagarea completă a failure cause chain
+Teste de închidere: două root-uri concurente, două working directories,
+precedence property/env/YAML/default, schema invalidă/chei necunoscute,
+URI/timeout/path invalid, path traversal și imutabilitate după bootstrap.
 
-Păstrează cauza primară și cauzele secundare în toate căile de retry, teardown,
-Fails și artifact evidence, fără duplicarea arborelui Tests. Redaction-ul
-trebuie aplicat înainte de publicare și să nu modifice input-ul original.
+### F-04 — Închide failure-cause chain pentru retry + lifecycle
 
-Teste necesare: failure după retry, failure de teardown după failure în body,
-cause chain în Fails, URL/headers/body redacted și input immutable.
+Propagarea unui failure de contract în lifecycle este acoperită: publisher-ul
+publică evidence înainte de verdict, faza devine `FAIL`, teardown-ul continuă,
+iar precedence-ul rămâne `FAIL > SKIP > WARNING > PASS`. Proiecția
+`PRIMARY/SECONDARY` și redaction-ul de bază sunt de asemenea acoperite.
 
-Increment nou verificat: `ExtentReportFailureRuntime` proiectează cauzele
-`PRIMARY` și `SECONDARY` din fazele failure în Fails, iar cauza este redată
-după redaction la limita phase evidence. Testele runtime/session verifică
-markerii, ordinea și redaction-ul; rămâne de demonstrat în artifact combinația
-completă body failure + teardown failure provenită dintr-o execuție reală.
+Rămâne neacoperită combinația reală retry + failure de body + failure de
+teardown, verificată până la artifactul final și `Fails`.
 
-### F-05 — Ridică verificarea raportului de la string la comportament DOM
+Păstrează cauza primară în ordinea execuției și adaugă cauzele secundare fără
+duplicarea arborelui `Tests`. Aceeași cauză trebuie să fie observabilă în
+evidence-ul requestului și în `Fails`, iar tokenurile sensibile rămân
+redacted.
 
-Adaugă un test component headless/browserless pentru artifactul autonom.
-Păstrează testele statice pentru invariants, dar dovedește comportamentul după
-interacțiune: Overview → Tests → Category → Fails, filtre de status/tag,
-hash deep-links, expand/collapse, `Open in Tests`, count-uri și durate cu `ms`.
+Test de închidere: execuție mock cu retry, body failure și teardown failure,
+cu ordinea cauzelor verificată în artifact și în `Fails`.
 
-Testul trebuie să verifice și: badge geometry comună, background uniform,
-centrare status/durată, timestamp absent din tabelul Tests, plus request și
-validation ca frați direcți.
+### F-05 — Verifică artifactul prin comportament, nu numai prin string-uri
 
-### F-06 — Întărește boundary checks și ownership-ul pachetelor
+Contractele statice și testele runtime-script există, dar majoritatea protejează
+prezența textului JavaScript, nu comportamentul DOM după interacțiune.
 
-Extinde verificarea arhitecturală peste token scan: importuri și dependențe
-Maven, composition roots, state static mutabil, ownership și allow-list-uri.
-Interzice Extent/JUnit în modulele renderer-neutral și HTTP/business validation
-în reporting. Pragul de maximum 8 clase de producție per pachet rămâne semnal
-de revizuire a coeziunii, nu motiv pentru directoare artificiale.
+Adaugă o verificare componentă pentru artifactul autonom, fără să schimbi
+formatul vizual: navigare `Overview → Tests → Category → Fails`, filtre de
+status/tag, hash deep-links, expand/collapse, `Open in Tests`, count-uri,
+durate cu `ms`, status/durată centrate, timestamp absent din tabelul Tests și
+Request/Validation ca frați direcți.
 
-Teste necesare: POM interzis, import interzis, fixture intenționat invalid,
-numărare pe package și verificarea composition root-ului.
+Dovada finală trebuie să combine testul determinist cu verificarea manuală în
+TAB MCP pe artifactul generat din staging. Testele actuale protejează markup-ul
+și scripturile, dar nu execută încă DOM-ul într-un browser headless; această
+verificare comportamentală rămâne ToDo-ul.
 
-Increment nou verificat: `ArchitectureBoundaryTest` interzice reporting-ului
-dependențe directe spre execution/validation și detectează câmpuri statice
-mutabile în modulele de producție. Testele rulează în reactorul staged; regula
-de numărare pe package și allow-list-ul complet rămân de extins incremental.
+### F-06 — Redu hotspot-urile reale de coeziune
 
-## Criteriul de închidere
+Regula de maximum 8 clase de producție per package și verificarea allow-list-ului
+sunt deja implementate în `ArchitectureBoundaryTest`. Rămâne refactorizarea
+hotspot-urilor live, fără package-uri artificiale:
 
-Un ToDo dispare numai când există owner clar, schimbare minimă, test unitar
-determinist, test component când este necesar, build staged și dovadă în TAB
-MCP pentru schimbările observabile. Niciun test existent nu este eliminat sau
-relaxat pentru a face build-ul verde.
+| Package | Clase | Problemă dominantă |
+|---|---:|---|
+| `atf.api.reporting` | 50 | theme, runtime, Extent, fallback, artifact contracts și staging în aceeași zonă |
+| `atf.api.core.http` | 26 | model request, transport, executor, retry, deadline și telemetry împreună |
+| `atf.api.core.reporting` | 9 | porturi, statusuri, assertions și console contract la aceeași limită |
 
-## Documente specializate
+Nu crea package-uri doar pentru a satisface numărul. Extrage numai când există
+un motiv distinct de schimbare și un boundary verificabil:
 
-- [ATF_Java_Improvement_Backlog.md](ATF_Java_Improvement_Backlog.md) — ordinea
-  tehnică și matricea de teste pentru ToDo-urile mari.
-- [ATF_Reporting_Duration_Semantics.md](ATF_Reporting_Duration_Semantics.md) —
-  durate, agregare structurală și badge-uri.
-- [ATF_Architecture.md](../ATF_Architecture.md) — boundary-urile normative.
-- [ATF_Reporting_Contract.md](../ATF_Reporting_Contract.md) — contractul
-  observabil al artifactului.
-- [ATF_BUILD_AND_EXECUTION_SAFETY.md](../ATF_BUILD_AND_EXECUTION_SAFETY.md) —
-  sync live, staging și execuții paralele.
+- reporting: `theme/runtime`, `semantic model`, `Extent adapter`, `fallback`,
+  `artifact inspection` și `workspace publication`;
+- core HTTP: `request/response model`, `transport`, `retry/deadline` și
+  `execution telemetry`;
+- core reporting: păstrează porturile minime și mută contractele care nu sunt
+  necesare tuturor consumatorilor.
+
+Test de închidere pentru partea rămasă: fiecare extragere trebuie să păstreze
+import/POM forbidden, static mutable state, package inventory, allow-list stale/
+new hotspot și o fixture invalidă intenționat.
+
+## Reporting — ToDo-uri active
+
+### D-01 — Durată numerică și sursă explicită
+
+Separarea dintre `Request details`, `Response details` și `Execution evidence`
+este implementată. Rămâne de standardizat pentru fiecare nod
+`data-duration-ms` și `data-duration-source` (`measured`, `exclusive` sau
+`aggregated`), inclusiv în `Fails`, `Category` și header-ul clasei.
+
+Teste: `1 ms`, `16 ms`, peste o secundă, durată lipsă/malformed/zero și sursă
+corectă după filtrare.
+
+### D-02 — Agregare structurală fără dublare
+
+Agregarea trebuie să folosească numai copiii structurali direcți și să evite
+adăugarea unei durate vendor deja inclusive. Durata clasei din stânga trebuie
+să fie egală cu suma scenariilor directe vizibile în dreapta.
+
+Teste: părinte cu/fără durată proprie, nested phase, scenarii ascunse de filtru
+și recalculare după schimbarea tab-ului.
+
+### D-03 — Durată absentă și frunze
+
+Request, validation, phase și lifecycle trebuie să distingă durata de count-ul
+de assertions/noduri. Fără valoare numerică se afișează `—`, nu `0`, count sau
+timestamp; unitatea `ms` apare numai pentru valori valide.
+
+Teste: request fără response, teardown fără response, zero, malformed și lipsă
+în `Tests` și `Fails`.
+
+### D-04 — Un singur token de geometrie pentru status
+
+Tokenurile comune de badge există și sunt testate, dar `AtfReportTheme` conține
+încă reguli duplicate și override-uri pentru annotations/tag-uri. Consolidează
+status badge, duration metadata și tag annotations în tokenuri distincte,
+reutilizate în `Tests`, `Category`, `Fails`, `Overview` și detail.
+
+Teste: CSS contract pentru toate containerele și verificare DOM/computed style
+pentru height, padding, radius, centrare și separarea statusului de durată.
+
+## Criteriu de închidere
+
+Un ToDo dispare numai când există owner clar, schimbare minimă, test
+determinist, test component când este necesar, build în staging separat și
+dovadă observabilă în artifact verificat în TAB MCP. Niciun test existent nu
+se elimină sau relaxează pentru a face build-ul verde.
+
+## Documente normative
+
+- [ATF_Architecture.md](../ATF_Architecture.md)
+- [ATF_Reporting_Contract.md](../ATF_Reporting_Contract.md)
+- [ATF_BUILD_AND_EXECUTION_SAFETY.md](../ATF_BUILD_AND_EXECUTION_SAFETY.md)
+- [atf-reporting/README.md](../../atf-reporting/README.md)

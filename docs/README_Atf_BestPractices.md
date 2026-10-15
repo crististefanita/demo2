@@ -3,6 +3,25 @@
 Aceste reguli urmăresc trei lucruri: cod ușor de întreținut, comportament
 testabil și raport care explică execuția fără zgomot.
 
+## Politica limbii proiectului
+
+README-urile sunt singurele documente care pot fi scrise în română, pentru a
+fi ușor de urmărit de echipa locală. Restul proiectului folosește exclusiv
+engleza:
+
+- codul de producție și codul de test, inclusiv clase, metode, variabile,
+  teste, constante și identificatori;
+- comentariile inline, Javadoc-ul, TODO/FIXME și mesajele de assertion sau
+  de raportare;
+- fișierele de configurare și comentariile din YAML, XML și properties;
+- documentația care nu este README, inclusiv feedback, arhitectură, ADR-uri,
+  requirements și diagramele asociate.
+
+Textele românești existente în aceste zone se traduc în engleză atunci când
+sunt întâlnite. Un fixture poate păstra o valoare românească numai dacă testul
+verifică explicit un serviciu sau un payload care trebuie să conțină acea
+valoare; comentariul și explicația testului rămân în engleză.
+
 ## Principii de design
 
 1. O clasă are un motiv dominant de schimbare.
@@ -14,6 +33,30 @@ testabil și raport care explică execuția fără zgomot.
 7. Cleanup-ul are ownership clar și rulează în ordine inversă.
 8. O interfață se introduce numai pentru o dependență care trebuie înlocuită,
    observată sau izolată.
+
+## Coeziunea pachetelor
+
+Un package de producție nu ar trebui să depășească, ca regulă de bună practică,
+8 clase concrete, record-uri sau interfețe. Pragul este un semnal obligatoriu
+de review pentru coeziune și ownership:
+
+- peste 8 clase se caută mai întâi responsabilități distincte, fațade prea mari
+  și dependențe amestecate;
+- împărțirea se face după responsabilitate semantică, nu prin directoare create
+  artificial doar pentru a coborî numărul;
+- regula se aplică separat pe fiecare package de producție din `src/main/java`;
+- testele, codul generat și asset-urile vendor nu intră în numărătoarea de
+  producție;
+- o excepție trebuie documentată și protejată printr-un test arhitectural sau
+  printr-o justificare explicită în README-ul modulului.
+
+Pragul nu înlocuiește analiza de design: un package cu 8 clase poate fi încă
+slab coeziv, iar unul cu mai mult de 8 poate necesita o separare justificată.
+`ArchitectureBoundaryTest` inventariază acum package-urile de producție și
+respinge orice hotspot nou care nu apare într-o allow-list explicită. Excepțiile
+curente sunt `atf.api.core.http`, `atf.api.core.reporting` și
+`atf.api.reporting`; fiecare are un motiv semantic documentat și rămâne datorie
+de refactorizare, nu o anulare a pragului.
 
 ## Separarea modulelor
 
@@ -62,6 +105,33 @@ phase
 
 TEST BODY nu repetă failure-urile detaliate mai jos în tabel. Fazele rămân
 compacte și colapsate; detaliile se deschid doar când sunt necesare.
+
+## Mesaje de consolă fără responsabilități amestecate
+
+Consola este o proiecție diagnostică a aceluiași lifecycle, nu o sursă de
+verdict și nu un înlocuitor pentru artifactul Extent. `atf-core` definește
+`AtfConsoleEvent`/`AtfConsoleSink`, iar modulul separat `atf-console` formatează
+evenimentele în `AtfConsoleReporter` și citește numai `reporting.console` din
+YAML. Adapterul JUnit este opțional și este inclus în `atf-console`, în
+subpachetul `atf.api.console.junit`.
+`atf-reporting` consumă numai sink-ul injectat și rămâne fără formatter sau
+loader de consolă concret. Ordinea observabilă este:
+
+```text
+scenario → phase → request → validation → complete(status, duration-ms)
+```
+
+Reguli obligatorii:
+
+- mesajele de bază includ nivelul (`[PASS]`, `[FAIL]`, `[WARNING]`, `[SKIP]`),
+  numele nodului și durata cu unitatea `ms`;
+- detaliile sunt opt-in prin `reporting.console.detailsEnabled` și sunt
+  redacted înainte de a ajunge la sink;
+- JSON-ul și stacktrace-ul nu se tipăresc implicit;
+- un sink care nu poate scrie nu modifică verdictul și nu întrerupe reportarea;
+- rulările paralele folosesc sink-uri per sesiune și output-uri timestamped;
+- testele pot folosi `ExtentReportSession.openConfigured()` pentru rularea
+  directă din IntelliJ, iar `atf.yaml` rămâne singura sursă de output policy.
 
 ## Reguli pentru metadata
 

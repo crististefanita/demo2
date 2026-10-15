@@ -13,14 +13,17 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
     private final ExtentReportTree tree;
     private final ExtentRequestScope owner;
     private final ExtentTest validation;
+    private final String validationTitle;
     private List<AtfAssertion> assertions = List.of();
     private boolean completed;
     private boolean closed;
 
-    ExtentValidationScope(ExtentReportTree tree, ExtentRequestScope owner, ExtentTest validation) {
+    ExtentValidationScope(ExtentReportTree tree, ExtentRequestScope owner, ExtentTest validation,
+                          String validationTitle) {
         this.tree = tree;
         this.owner = owner;
         this.validation = validation;
+        this.validationTitle = validationTitle;
         tree.markStarted(validation);
     }
 
@@ -34,10 +37,21 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
         tree.renderAssertions(validation, assertions);
         tree.complete(validation, status);
         tree.markEnded(validation);
+        tree.consoleCompleted(atf.api.core.reporting.AtfConsoleEvent.Scope.VALIDATION,
+                validationTitle, status, validation);
         completed = true;
         owner.record(status);
         owner.validationCompleted();
     }
 
-    @Override public void close() { closed = true; }
+    @Override public void close() {
+        if (!closed) {
+            // A validation may exit through an exception before its normal
+            // complete() call. Release the owner's open-scope guard so the
+            // request can still publish its failure and close the console
+            // nesting deterministically.
+            if (!completed) owner.validationCompleted();
+            closed = true;
+        }
+    }
 }

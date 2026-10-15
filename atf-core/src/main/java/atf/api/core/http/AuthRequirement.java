@@ -1,6 +1,6 @@
 package atf.api.core.http;
 
-/** Declară dacă o rută acceptă, recomandă sau cere autentificare. */
+    /** Declares whether a route accepts, recommends, or requires authentication. */
 public enum AuthRequirement {
     NONE,
     OPTIONAL,

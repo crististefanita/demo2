@@ -11,7 +11,14 @@ public record ApiRequest(
         Map<String, String> query,
         Map<String, String> headers,
         String authProfile,
-        ApiRoute route) {
+        ApiRoute route,
+        String bodyText) {
+
+    public ApiRequest(HttpRequest.BodyPublisher body, String method, String path,
+                      Map<String, String> query, Map<String, String> headers,
+                      String authProfile, ApiRoute route) {
+        this(body, method, path, query, headers, authProfile, route, null);
+    }
 
     public ApiRequest {
         if (method == null || method.isBlank()) throw new IllegalArgumentException("method must not be blank");
@@ -19,6 +26,7 @@ public record ApiRequest(
         query = query == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(query));
         headers = headers == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(headers));
         authProfile = authProfile == null || authProfile.isBlank() ? "none" : authProfile;
+        bodyText = bodyText == null ? "" : bodyText;
     }
 
     public static ApiRequest of(String method, String path) {

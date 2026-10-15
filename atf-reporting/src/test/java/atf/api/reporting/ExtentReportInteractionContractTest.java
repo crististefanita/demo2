@@ -2,11 +2,15 @@ package atf.api.reporting;
 
 import atf.api.core.reporting.AtfAssertion;
 import atf.api.core.reporting.AtfReportStatus;
+import atf.api.core.http.ApiExecutionResult;
+import atf.api.core.http.ApiResponse;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -34,6 +38,13 @@ class ExtentReportInteractionContractTest {
             var request = body.startRequest("GET /public/v2/users", "GET", "/public/v2/users");
             request.detail("RESPONSE DURATION (ms)", "12 ms");
             request.detail("URL", "https://example.test/public/v2/users");
+            request.detail("HTTP STATUS", "200");
+            request.detail("Content-Type", "application/json");
+            request.execution(new ApiExecutionResult(
+                    new ApiResponse(200, "OK", Map.of("Content-Type", "application/json"),
+                            Duration.ofMillis(12), "https://example.test/public/v2/users"),
+                    1, Duration.ofMillis(12), List.of(), List.of()));
+            request.json("REQUEST JSON", "{\"limit\":10}");
             request.json("RESPONSE JSON", "[{\"id\":1,\"name\":\"ATF\"}]");
             var validation = request.startValidation("Validate: user collection contract");
             validation.assertions(List.of(
@@ -74,14 +85,42 @@ class ExtentReportInteractionContractTest {
                 () -> assertTrue(html.contains("data-atf-node-role=\"request\"")),
                 () -> assertTrue(html.contains("data-atf-node-role=\"validation\"")),
                 () -> assertTrue(html.contains("function normalizeEvidenceDisclosures()")),
+                () -> assertTrue(html.contains("function nodeEventTable(card)"),
+                        "evidence normalization must support the live vendor panel class"),
+                () -> assertTrue(html.contains("card.querySelector(':scope>.show')"),
+                        "evidence normalization must handle Extent panels rendered as .show"),
+                () -> assertTrue(html.contains("normalizeCodeBlocks();assignNodeRoles();normalizeEvidenceDisclosures();if(card.scrollIntoView"),
+                        "opening a lazily projected scenario must normalize its evidence after cloning"),
                 () -> assertTrue(html.contains("function normalizeCategorySummaryLabels(){q('.category-view .test-contents .info')"),
                         "every category projection must normalize the native 'others' label before selection"),
                 () -> assertTrue(html.contains("function normalizeChartPalettes()"),
                         "overview charts must use the same semantic palette as status badges"),
                 () -> assertTrue(html.contains("['--atf-pass','--atf-fail','--atf-skip','--atf-skip','--atf-info']"),
                         "chart slices must map pass, fail, warning, skip and info to shared tokens"),
-                () -> assertTrue(html.contains("<td>URL</td><td>https://example.test/public/v2/users</td>"),
-                        "technical trace must expose the full effective URL"),
+                 () -> assertTrue(html.contains("<td>URL</td><td>https://example.test/public/v2/users</td>"),
+                         "technical trace must expose the request URL"),
+                 () -> assertTrue(html.contains("<td>response.url</td><td>https://example.test/public/v2/users</td>"),
+                         "execution evidence must retain the effective URL"),
+                 () -> assertTrue(html.contains("<td>HTTP STATUS</td><td>200</td>"),
+                         "technical trace must expose the response status"),
+                 () -> assertTrue(html.contains("Request details · 1 fields"),
+                         "request context must have its own disclosure"),
+                 () -> assertTrue(html.contains("Response details · 2 fields"),
+                         "response metadata must have its own disclosure"),
+                 () -> assertTrue(html.contains("Execution evidence · 1 attempts"),
+                         "execution evidence must have its own semantic label"),
+                 () -> assertTrue(html.contains("execution-table"),
+                         "execution evidence must retain response execution fields"),
+                 () -> assertTrue(html.contains("execution-evidence"),
+                         "execution evidence must be normalized into its own disclosure"),
+                 () -> assertTrue(html.contains("helm-request-details-content"),
+                         "request details must have a dedicated semantic container"),
+                 () -> assertTrue(html.contains("helm-response-details-content"),
+                         "response details must have a dedicated semantic container"),
+                 () -> assertTrue(html.contains("request-json-body"),
+                         "request JSON must remain inside request details"),
+                 () -> assertTrue(html.contains("response-json-body"),
+                         "response JSON must remain inside response details"),
                 () -> assertFalse(html.contains("ROUTE TEMPLATE"),
                         "request evidence must not regress to the relative route label"),
                 () -> assertTrue(html.contains("function normalizeDisclosureState()"),
@@ -154,6 +193,8 @@ class ExtentReportInteractionContractTest {
                 () -> assertFalse(html.contains("details.atf-scenario-annotations"),
                         "the generic Scenario annotations disclosure must not replace the visible tags"),
                 () -> assertTrue(html.contains("response-evidence")),
+                 () -> assertTrue(html.contains("execution-evidence")),
+                 () -> assertTrue(html.contains("Execution evidence")),
                 () -> assertTrue(html.contains("kind==='response-evidence'"),
                         "response details must retain the TECHNICAL TRACE classification after DOM normalization"),
                 () -> assertTrue(html.contains("json-evidence")),
@@ -192,6 +233,48 @@ class ExtentReportInteractionContractTest {
                 () -> assertTrue(html.contains("class=\"atf-failure-open\"")
                                 && html.contains("atfOpenTest(id,scenarioIndex)"),
                         "Fails must expose the selected scenario evidence in the detail pane")
+        );
+    }
+
+    @Test
+    void failsProjectionKeepsRequestOwnershipAndFailureCauseChain() throws Exception {
+        Path report = TestReportPaths.report("extent-fails-request-ownership-contract.html");
+        try (var session = new ExtentReportSession(report)) {
+            var scenario = session.startScenario("ApiLifecycleAndCombinationsTests",
+                    "Users API — setup → test → teardown", List.of("api", "users", "lifecycle"));
+            var body = scenario.startPhase("TEST BODY");
+            var request = body.startRequest("GET /public/v2/users/1", "GET", "/public/v2/users/1");
+            request.detail("RESPONSE DURATION (ms)", "12 ms");
+            request.detail("URL", "https://example.test/public/v2/users/1");
+            request.json("RESPONSE JSON", "{\"id\":1}");
+            var validation = request.startValidation("Contract validation");
+            validation.assertions(List.of(
+                    new AtfAssertion("HTTP status", "201", "200", false),
+                    new AtfAssertion("Content-Type", "application/json", "application/json", true)));
+            validation.complete(AtfReportStatus.FAIL);
+            request.complete(AtfReportStatus.FAIL);
+            body.complete(AtfReportStatus.FAIL);
+
+            var teardown = scenario.startPhase("TEARDOWN");
+            teardown.detail("FAILURE CAUSE", "teardown cleanup failed: Authorization: Bearer ***REDACTED***");
+            teardown.complete(AtfReportStatus.FAIL);
+            scenario.complete(AtfReportStatus.FAIL);
+        }
+
+        String html = Files.readString(report);
+        assertAll(
+                () -> assertTrue(html.contains("function scopeFailureContextToPhase(item,context)"),
+                        "Fails must resolve the request from the failing phase, not the first request in the scenario"),
+                () -> assertTrue(html.contains("context.request=text(request,'.card-title a.node')"),
+                        "the request shown in Fails must belong to the failed phase"),
+                () -> assertTrue(html.contains("q('.helm-trace-table tbody tr,.execution-table tbody tr',request)"),
+                        "the duration shown in Fails must belong to the failed request"),
+                () -> assertTrue(html.contains("context.duration=/ms$/i.test(rawDuration)?rawDuration:rawDuration+' ms'"),
+                        "execution evidence duration must be normalized with an ms suffix"),
+                () -> assertTrue(html.contains("if(!ctx.message||ctx.message.indexOf('PRIMARY:')<0)"),
+                        "an assertion row must not overwrite the primary/secondary cause chain"),
+                () -> assertTrue(html.contains("PRIMARY: ") && html.contains("SECONDARY: "),
+                        "the Fails projection must preserve the ordered cause chain")
         );
     }
 

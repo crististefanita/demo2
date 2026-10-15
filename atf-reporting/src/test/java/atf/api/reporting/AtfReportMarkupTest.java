@@ -5,33 +5,45 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AtfReportMarkupTest {
     @Test
-    void traceTableSizesFieldColumnFromLongestLabelAndLeavesValueFlexible() {
+    void keyValueEvidenceTablesUseTheSharedKeyColumnWidth() {
         String html = AtfReportMarkup.tableHtml("helm-evidence-table helm-trace-table", new String[][]{
                 {"FIELD", "VALUE"},
                 {"AUTHENTICATION", "none"},
                 {"ROUTE TEMPLATE", "/public/v2/users/1"}
         });
+        String execution = AtfReportMarkup.tableHtml("helm-evidence-table execution-table", new String[][]{
+                {"FIELD", "VALUE"},
+                {"response.duration.ms", "12"}
+        });
+        String request = AtfReportMarkup.tableHtml("helm-evidence-table helm-request-table", new String[][]{
+                {"FIELD", "VALUE"},
+                {"URL", "https://atf.local/public/v2/users"}
+        });
 
         assertAll(
-                () -> assertTrue(html.contains("class=\"atf-trace-field-column\" style=\"width:18ch;max-width:50%\"")),
-                () -> assertTrue(html.contains("class=\"atf-trace-value-column\"")),
+                () -> assertTrue(html.contains("class=\"atf-evidence-key-column\" style=\"width:var(--atf-evidence-key-column-width)\"")),
+                () -> assertTrue(html.contains("class=\"atf-evidence-value-column\"")),
+                () -> assertTrue(execution.contains("class=\"atf-evidence-key-column\" style=\"width:var(--atf-evidence-key-column-width)\"")),
+                () -> assertTrue(request.contains("class=\"atf-evidence-key-column\" style=\"width:var(--atf-evidence-key-column-width)\"")),
                 () -> assertTrue(html.contains("<th>FIELD</th><th>VALUE</th>")));
     }
 
     @Test
-    void traceTableCapsVeryLongFieldLabelsAtHalfTheTable() {
+    void longFieldLabelsDoNotOverrideTheSharedColumnContract() {
         String html = AtfReportMarkup.tableHtml("helm-trace-table", new String[][]{
                 {"FIELD", "VALUE"},
                 {"A label deliberately long enough to require the half-table cap because it keeps growing", "value"}
         });
 
         assertAll(
-                () -> assertTrue(html.contains("style=\"width:50%;max-width:50%\"")),
+                () -> assertTrue(html.contains("width:var(--atf-evidence-key-column-width)")),
+                () -> assertFalse(html.contains("max-width:50%")),
                 () -> assertFalse(html.contains("width:max-content")));
     }
 
@@ -73,5 +85,45 @@ class AtfReportMarkupTest {
         assertAll(
                 () -> assertTrue("URL".equals(rows[1][0])),
                 () -> assertTrue("https://atf.local/public/v2/posts".equals(rows[1][1])));
+    }
+
+    @Test
+    void requestAndResponseDetailsKeepTheirOwnEvidence() {
+        var allDetails = List.of(
+                new String[]{"Duration", "12 ms"},
+                new String[]{"URL", "https://atf.local/public/v2/posts/101"},
+                new String[]{"HTTP STATUS", "200"},
+                new String[]{"Content-Type", "application/json"},
+                new String[]{"Attempt", "1"},
+                new String[]{"Failure cause", "none"});
+        var requestDetails = EvidenceTableFormatter.requestDetails(allDetails);
+        var responseDetails = EvidenceTableFormatter.technicalTraceDetails(allDetails);
+
+        assertAll(
+                () -> assertEquals(1, requestDetails.size()),
+                () -> assertEquals("URL", requestDetails.get(0)[0]),
+                () -> assertEquals(3, responseDetails.size()),
+                () -> assertEquals("HTTP STATUS", responseDetails.get(0)[0]),
+                () -> assertEquals("Content-Type", responseDetails.get(1)[0]),
+                () -> assertEquals("Failure cause", responseDetails.get(2)[0]),
+                () -> assertFalse(responseDetails.stream().anyMatch(detail -> "Duration".equals(detail[0]))),
+                () -> assertFalse(responseDetails.stream().anyMatch(detail -> "Attempt".equals(detail[0]))));
+    }
+
+    @Test
+    void requestMetadataStaysInTheRequestTable() {
+        var details = List.of(
+                new String[]{"URL", "https://atf.local/public/v2/search"},
+                new String[]{"Auth profile", "bearer"},
+                new String[]{"Auth type", "BEARER"},
+                new String[]{"Query params", "{page=2}"},
+                new String[]{"Request headers", "{Accept=application/json}"});
+
+        var requestDetails = EvidenceTableFormatter.requestDetails(details);
+        var responseDetails = EvidenceTableFormatter.technicalTraceDetails(details);
+
+        assertAll(
+                () -> assertEquals(5, requestDetails.size()),
+                () -> assertTrue(responseDetails.isEmpty()));
     }
 }

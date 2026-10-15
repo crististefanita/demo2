@@ -137,10 +137,135 @@ controllerelor este protejată de `ExtentReportRuntimeScriptTest`. Această
 extracție este primul pas al splitului F-01; navigation/hash, filters, collapse
 și DOM contract vor fi izolate incremental, fără schimbarea artifactului.
 
+## Consola: contract consumat, implementare separată
+
+Raportarea HTML și consola sunt proiecții diferite ale aceleiași execuții.
+`AtfConsoleEvent` și `AtfConsoleSink` sunt contractul neutru din `atf-core`, iar
+implementarea formatterului este în modulul separat
+[`atf-console`](../atf-console/README.md). `atf-reporting` doar publică
+evenimente către un sink injectat; nu importă `atf.api.console` și nu creează
+implicit `System.out`.
+
+```text
+scenario
+  → phase
+    → request
+      • method=POST
+      • url=https://atf.local/public/v2/users
+      • request.body={...}
+      • response.status=201
+      • response.body={...}
+      ✅ PASS: Call completed (N ms)
+    → validation
+      • actual=201
+      ✅ PASS: Validated (N ms)
+  ✅ PASS: phase (N ms)
+✅ PASS: scenario (N ms)
+```
+
+Formatterul separat `AtfConsoleReporter` normalizează caracterele tipografice
+folosite în titlurile raportului (`—` și `→`) la reprezentarea ASCII (`-` și
+`->`). Astfel consola rămâne lizibilă și stabilă în terminale cu code page
+diferit, fără să schimbe artifactul HTML sau modelul semantic. Regula este
+protejată de testele din `atf-console`.
+
+Output-ul cu detalii active reproduce fluxul de diagnostic al referinței:
+
+```text
+[ATF] ▶ PostsApiTests
+[ATF]   ▶ TEST BODY
+[ATF]     ▶ GET /public/v2/posts
+[ATF]       • method=GET
+[ATF]       • url=https://atf.local/public/v2/posts
+[ATF]       • response.status=200
+[ATF]       • response.body
+[ATF]         [ ... ]
+[ATF]     ✅ PASS: Call completed (16 ms)
+[ATF]     ▶ Validate response contract
+[ATF]       • actual=200
+[ATF]       ✅ PASS: Validated (1 ms)
+[ATF]   ✅ PASS: TEST BODY (18 ms)
+[ATF] ✅ PASS: PostsApiTests (20 ms)
+```
+
+Mesajele de detaliu sunt activate în configurația live a proiectului, pentru a
+face vizibile request/response body în rularea `UsersApiTests`. Dacă sunt
+dezactivate, lifecycle-ul și verdictul rămân disponibile, dar detaliile și
+body-urile sunt omise. Toate valorile trec prin aceeași redaction policy înainte
+de publicare. Configurația este în `atf.yaml`:
+
+```yaml
+reporting:
+  assertionMaxDisplayCharacters: 240
+  console:
+    enabled: true
+    detailsEnabled: true
+```
+
+`atf-console` folosește glyph-uri doar pentru stream-uri UTF-8; pentru
+`System.out` cu code page incompatibil aplică automat fallback ASCII, prevenind
+randarea `?` sau `�` în IntelliJ/CI. Contractul este verificat de testele din
+`atf-console`, inclusiv de testele de lifecycle JUnit incluse în același modul.
+
+Un sink de consolă nu poate schimba statusul testului. Dacă terminalul nu este
+disponibil sau scrierea eșuează, execuția și artifactul rămân valide.
+
+Constructorii impliciți ai `HtmlReportSession` și `ExtentReportSession` folosesc
+`AtfConsoleSink.noOp()`. Pentru o rulare care dorește și consolă, composition
+root-ul injectează explicit un `AtfConsoleReporter` din `atf-console`. Astfel,
+artifactul HTML nu aduce tranzitiv formatter, policy de encoding sau scrieri în
+`System.out`.
+
+Loaderul acestui modul citește numai setările artifactului Extent și limita de
+afișare a assertions. `reporting.console` este citit exclusiv de
+`AtfConsoleConfigurationLoader` din `atf-console`; nu există două surse de adevăr
+pentru politica de consolă.
+
+Când `detailsEnabled` este activat, detaliile de transport și body-urile JSON
+apar ca blocuri indentate sub pasul activ. Body-ul este redacționat înainte de
+afișare și folosește markerul `•` pe stream-uri UTF-8, respectiv `-` pe
+terminalele Windows/CI incompatibile. Dezactivarea setării păstrează
+lifecycle-ul și verdicturile, dar elimină detaliile și body-urile.
+
+## Rulare individuală din IntelliJ
+
+`ExtentReportSession.openConfigured()` încarcă `atf.yaml` o singură dată,
+caută configurația din directorul curent în sus și rezolvă căile relative față
+de fișierul YAML. Astfel, un test de reportare poate fi rulat cu butonul Run
+din IntelliJ fără să reconstruiască output path-ul și fără să copieze
+configurație în test.
+
+`atf-tests` păstrează host-uri subțiri pentru acest caz:
+
+- `PostsApiReportTest` compune transportul offline, `PostsApiScenarios` și
+  `ApiScenarioLifecycleRunner`, apoi deschide sesiunea configurată;
+- `ApiAcceptanceReportTest` publică Users, Posts și lifecycle în același
+  artifact configurat;
+- scenariile rămân proprietarul pașilor API, iar host-ul rămâne proprietarul
+  compoziției și al sesiunii.
+
+Important: aceste host-uri acceptance folosesc `AtfMockTransport` din modulul
+`atf-mock`. URL-ul
+`https://atf.local/...` care poate apărea în evidence este ruta semantică a
+cererii, nu dovada unui request HTTP real. Transportul fake nu face DNS, TLS
+sau conectare la server; această proprietate păstrează raportul determinist și
+reproductibil.
+
+Pentru trafic real există separat `ApiLiveReportTest`, care trebuie activat
+explicit cu `-Datf.liveApi.enabled=true` și configurat cu
+`-Datf.liveApi.baseUri=https://host-ul-real`. Nu folosi raportul acceptance ca
+health-check al unui serviciu și nu activa live HTTP printr-un flag implicit.
+
+Pentru o configurație aleasă explicit în IntelliJ se poate folosi VM option-ul
+`-Datf.report.config=atf.yaml` sau o cale relativă precum
+`-Datf.report.config=..\atf.yaml` când working directory este `atf-tests`.
+Păstrează `timestampEnabled: true` pentru rulări paralele, ca sesiunile să nu
+se suprascrie.
+
 ## Configurația de raportare
 
 `atf.yaml` este deținut de proiectul consumator. `AtfReportConfigurationLoader`
-citește efectiv doar `reporting.extent`, rezolvă `outputDirectory` relativ la
+citește efectiv doar `reporting.extent`, inclusiv comutatorul `enabled`, și rezolvă `outputDirectory` relativ la
 fișierul YAML și produce `ExtentReportConfiguration` immutable. Proprietățile
 explicite și variabila `ATF_REPORT_CONFIG` pot selecta fișierul; raportarea nu
 trebuie să citească API timeout, retry sau auth și nu trebuie să recitească YAML-
@@ -256,9 +381,14 @@ TestCase
 │   └── Request(s)
 ├── TEST BODY
 │   ├── Request
-│   │   ├── Technical trace
+│   │   ├── Request details
+│   │   │   ├── URL / method / path
+│   │   │   ├── headers / params / auth
+│   │   │   └── request JSON body, dacă există
 │   │   ├── Response details
-│   │   └── Response JSON
+│   │   │   ├── TECHNICAL TRACE
+│   │   │   └── response JSON body, dacă există
+│   │   └── Execution evidence
 │   └── Validation — sibling direct al request-ului owner
 │       └── aggregate assertion table
 └── TEARDOWN
@@ -291,17 +421,21 @@ suprafețe (`Category`, `Fails`, `Overview` și fallback). Rendererul nu traduce
 
 | Rol | Label canonical |
 |---|---|
+| contextul cererii | `Request details · N fields` |
 | containerul trace-ului | `Response details · N fields` |
 | clasificarea din container | `TECHNICAL TRACE` |
 | payload de request | `REQUEST JSON` |
 | payload de response | `RESPONSE JSON` |
+| execuție transport | `Execution evidence · N attempts` |
 | tabel agregat | `Assertions · N` |
 | coloane assertions | `ASSERTION`, `EXPECTED`, `ACTUAL`, `RESULT` |
 
 `N` este calculat din rândurile efectiv randate, nu dintr-o valoare hardcodata.
-Prin urmare, `TECHNICAL TRACE` este o clasificare internă a blocului
-`Response details`, nu titlul blocului. Această distincție trebuie păstrată și
-în Fails, unde evidence-ul este o proiecție a aceluiași nod.
+`Request details` descrie cererea înainte de transport; `TECHNICAL TRACE` este
+clasificarea internă a `Response details`, nu titlul blocului. Response JSON
+este inclus în aceeași zonă colapsabilă cu response details când există. Această
+distincție trebuie păstrată și în Fails, unde evidence-ul este o proiecție a
+aceluiași nod.
 
 ```mermaid
 flowchart LR
@@ -320,19 +454,33 @@ utilizatorul poate deschide exact evidence-ul dorit.
 Disclosure-ul preferat pentru Java este:
 
 ```text
-[-] collapse Response details · N fields
+[+] expand Request details · N fields
+    URL / method / path / headers / params / auth
+    REQUEST JSON (dacă există)
+[+] expand Response details · N fields
     TECHNICAL TRACE
+    RESPONSE JSON (dacă există)
+[+] expand Execution evidence · N attempts
+    response.status / response.url / response.duration.ms
+    attempts / retry.events / retry history
 ```
 
-Pentru request-urile API, technical trace conține numai câmpurile relevante:
+Toate disclosures pornesc închise. Pentru request-urile API, Request details
+conține contextul cererii, iar technical trace păstrează numai facts de response
+care nu apar deja în execution evidence; statusul response-ului este lăsat în
+execution evidence și în badge-ul nodului:
 
 ```text
-RESPONSE DURATION (ms) → valoare numerică observată
-URL                    → URL-ul complet efectiv, derivat din base URL + ruta rezolvată
-HTTP STATUS             → statusul răspunsului
+URL                     → endpoint-ul cererii
 Content-Type            → media type-ul răspunsului
-Attempt                 → numărul încercării efective
+FAILURE CAUSE           → cauza redată, dacă există
 ```
+
+`Execution evidence · N attempts` păstrează separat URL-ul efectiv, durata
+măsurată, attempts, retry events și istoricul attempt-urilor. Această separare
+elimină duplicarea vizuală fără să piardă informația necesară pentru diagnostic;
+Fails citește durata din execution evidence când Technical Trace nu o mai
+conține.
 
 Ruta semantică rămâne în titlul requestului și în contractul intern de routing;
 nu se afișează ca substitut pentru URL-ul efectiv. Nu se copiază metadata verbose
@@ -447,6 +595,12 @@ al doilea arbore executabil. Evidence-ul complet rămâne în testul original di
 `Tests`, iar butonul `Open in Tests` revine la acel nod prin deep-link. Astfel,
 un failure nu poate produce duplicate DOM, verdicturi concurente sau o a doua
 versiune a pașilor colapsabili.
+
+Request-ul din index este scoped la faza care a eșuat; scenariile cu `SETUP`,
+`TEST BODY` și `TEARDOWN` nu pot împrumuta request-ul unei alte faze. Dacă există
+mai multe cauze, assertion-ul selectat rămâne vizibil, iar câmpul `CAUSE`
+păstrează lanțul ordonat `PRIMARY`/`SECONDARY`; credential-urile sunt publicate
+numai prin redaction-ul centralizat.
 
 Indexul Fails expune și `DURATION`: valoarea este derivată din
 `RESPONSE DURATION (ms)`, nu din timestamp. Pentru teardown fără response se

@@ -4,7 +4,7 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.Set;
 
-/** Copie immutable folosită de un executor; host-ul nu o poate modifica. */
+    /** Immutable copy used by an executor; the host cannot modify it. */
 public record ApiSettingsSnapshot(URI baseUri, String defaultAuthProfile, Duration timeout,
                                   Set<Integer> retryStatuses, int maxAttempts) {
     public ApiSettingsSnapshot {

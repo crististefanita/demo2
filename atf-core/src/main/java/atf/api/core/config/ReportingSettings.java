@@ -1,5 +1,6 @@
 package atf.api.core.config;
 
+/** Immutable settings consumed by an artifact renderer. Console settings live in atf-console. */
 public record ReportingSettings(int assertionMaxDisplayCharacters) {
     public static final int DEFAULT_ASSERTION_MAX_DISPLAY_CHARACTERS = 240;
 

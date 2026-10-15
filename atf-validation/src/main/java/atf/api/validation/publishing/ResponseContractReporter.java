@@ -27,13 +27,26 @@ public final class ResponseContractReporter {
     public ValidationDecision validate(ValidationSink request, String title,
                                        ApiResponse response, ResponseContract contract,
                                        boolean warningMode) {
+        return validate(request, title, response, contract, warningMode, true);
+    }
+
+    /**
+     * Renders the complete validation evidence while allowing a JUnit host to
+     * keep the decision available to its normal assertions. Scenario runners
+     * use the default strict overload; direct test adapters use
+     * {@code throwOnFailure=false} so the test remains the owner of the
+     * assertion policy.
+     */
+    public ValidationDecision validate(ValidationSink request, String title,
+                                       ApiResponse response, ResponseContract contract,
+                                       boolean warningMode, boolean throwOnFailure) {
         if (request == null || title == null || title.isBlank()) throw new IllegalArgumentException("request/title");
         var validation = request.startValidation(title);
         try {
             var decision = evaluator.evaluate(contract, response, warningMode);
             validation.assertions(decision.rows());
             validation.complete(decision.status());
-            if (decision.shouldThrow()) {
+            if (decision.shouldThrow() && throwOnFailure) {
                 throw new ApiValidationException(decision.message());
             }
             return decision;

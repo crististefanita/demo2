@@ -9,7 +9,7 @@ import java.util.Optional;
 public interface RetryPolicy {
     Optional<RetryEvent> next(ApiResponse response, int attempt);
 
-    /** Permite retry pentru erori tranzitorii de transport fără a ascunde cauza. */
+    /** Allows retries for transient transport failures without hiding the cause. */
     default Optional<RetryEvent> nextFailure(Throwable error, int attempt) {
         return Optional.empty();
     }

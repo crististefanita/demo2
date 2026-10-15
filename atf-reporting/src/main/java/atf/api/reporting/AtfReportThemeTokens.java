@@ -10,18 +10,20 @@ package atf.api.reporting;
  */
 final class AtfReportThemeTokens {
     static final String FONT_STACK = AtfReportTypography.SANS_FONT_FAMILY;
-    /** Geometria statusurilor Pass/Warning/Fail, comuna tuturor tab-urilor. */
+    /** Shared Pass/Warning/Fail geometry used by every report tab. */
     static final String BADGE_HEIGHT = "18.2px";
     static final String BADGE_PADDING = "0 5px";
     static final String BADGE_RADIUS = "4px";
     static final String BADGE_FONT_SIZE = "9.52px";
     static final String BADGE_LINE_HEIGHT = "18.2px";
-    /** Meta/duration badges remain slightly taller, as in modelul de raport. */
+    /** Meta/duration badges remain slightly taller, as in the report model. */
     static final String META_BADGE_HEIGHT = "22.4px";
     static final String META_BADGE_PADDING = "5px 7px";
     static final String META_BADGE_RADIUS = "4px";
     static final String META_BADGE_FONT_SIZE = "9.52px";
     static final String META_BADGE_LINE_HEIGHT = "10.6624px";
+    /** Key/value evidence tables reserve one common column plus a small text delta. */
+    static final String EVIDENCE_KEY_COLUMN_WIDTH = "28%";
 
     private AtfReportThemeTokens() {
     }
@@ -62,6 +64,7 @@ final class AtfReportThemeTokens {
                 + ";--atf-meta-badge-radius:" + META_BADGE_RADIUS
                 + ";--atf-meta-badge-font-size:" + META_BADGE_FONT_SIZE
                 + ";--atf-meta-badge-line-height:" + META_BADGE_LINE_HEIGHT
+                + ";--atf-evidence-key-column-width:" + EVIDENCE_KEY_COLUMN_WIDTH
                 + ";--atf-overview-font-family:" + FONT_STACK + ";--atf-overview-font-size:" + AtfReportTypography.OVERVIEW_FONT_SIZE
                 + ";--atf-audit-scroll-height:340px}";
     }

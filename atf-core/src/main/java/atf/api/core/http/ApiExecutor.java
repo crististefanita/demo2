@@ -3,6 +3,10 @@ package atf.api.core.http;
 import java.net.URI;
 import atf.api.core.config.ApiSettings;
 import atf.api.core.config.ApiSettingsSnapshot;
+import atf.api.core.reporting.AtfConsoleEvent;
+import atf.api.core.reporting.AtfConsoleSink;
+import atf.api.core.reporting.AtfReportStatus;
+import atf.api.core.security.SensitiveDataRedactor;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.ArrayList;
@@ -18,21 +22,33 @@ public final class ApiExecutor {
     private final RetryPolicy retryPolicy;
     private final ApiExecutionOptions defaultOptions;
     private final ApiExecutionClock clock;
+    private final AtfConsoleSink console;
+    private final SensitiveDataRedactor redactor = new SensitiveDataRedactor();
 
     public ApiExecutor(ApiTransport transport, URI baseUri) {
-        this(transport, baseUri, RetryPolicy.none());
+        this(transport, baseUri, RetryPolicy.none(), ApiExecutionClock.system(), AtfConsoleSink.noOp());
     }
 
     public ApiExecutor(ApiTransport transport, URI baseUri, RetryPolicy retryPolicy) {
-        this(transport, baseUri, retryPolicy, ApiExecutionClock.system());
+        this(transport, baseUri, retryPolicy, ApiExecutionClock.system(), AtfConsoleSink.noOp());
+    }
+
+    public ApiExecutor(ApiTransport transport, URI baseUri, AtfConsoleSink console) {
+        this(transport, baseUri, RetryPolicy.none(), ApiExecutionClock.system(), console);
     }
 
     ApiExecutor(ApiTransport transport, URI baseUri, RetryPolicy retryPolicy, ApiExecutionClock clock) {
+        this(transport, baseUri, retryPolicy, clock, AtfConsoleSink.noOp());
+    }
+
+    private ApiExecutor(ApiTransport transport, URI baseUri, RetryPolicy retryPolicy,
+                        ApiExecutionClock clock, AtfConsoleSink console) {
         this.transport = Objects.requireNonNull(transport, "transport");
         this.urls = new ApiUrlBuilder(Objects.requireNonNull(baseUri, "baseUri"));
         this.retryPolicy = Objects.requireNonNull(retryPolicy, "retryPolicy");
         this.defaultOptions = ApiExecutionOptions.defaults();
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.console = console == null ? AtfConsoleSink.noOp() : console;
     }
 
     public ApiExecutor(ApiTransport transport, ApiSettings settings) {
@@ -45,16 +61,26 @@ public final class ApiExecutor {
      * executor and the exposed module snapshot cannot diverge.
      */
     public ApiExecutor(ApiTransport transport, ApiSettingsSnapshot settings) {
-        this(transport, settings, ApiExecutionClock.system());
+        this(transport, settings, ApiExecutionClock.system(), AtfConsoleSink.noOp());
+    }
+
+    public ApiExecutor(ApiTransport transport, ApiSettingsSnapshot settings, AtfConsoleSink console) {
+        this(transport, settings, ApiExecutionClock.system(), console);
     }
 
     ApiExecutor(ApiTransport transport, ApiSettingsSnapshot settings, ApiExecutionClock clock) {
+        this(transport, settings, clock, AtfConsoleSink.noOp());
+    }
+
+    private ApiExecutor(ApiTransport transport, ApiSettingsSnapshot settings,
+                        ApiExecutionClock clock, AtfConsoleSink console) {
         this.transport = Objects.requireNonNull(transport, "transport");
         var snapshot = Objects.requireNonNull(settings, "settings");
         this.urls = new ApiUrlBuilder(snapshot.baseUri());
         this.retryPolicy = RetryPolicy.onStatuses(snapshot.retryStatuses(), snapshot.maxAttempts(), Duration.ZERO);
         this.defaultOptions = new ApiExecutionOptions(snapshot.timeout());
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.console = console == null ? AtfConsoleSink.noOp() : console;
     }
 
     public ApiExecutionResult execute(ApiRequest request, ApiSettings settings, CancellationToken cancellationToken) {
@@ -74,14 +100,26 @@ public final class ApiExecutor {
         Objects.requireNonNull(request, "request");
         Objects.requireNonNull(options, "options");
         Objects.requireNonNull(cancellationToken, "cancellationToken");
+        String consoleName = request.method() + " " + request.path();
+        long consoleStarted = clock.nanoTime();
+        console.publish(AtfConsoleEvent.started(AtfConsoleEvent.Scope.REQUEST, consoleName));
+        console.publish(AtfConsoleEvent.detail(AtfConsoleEvent.Scope.REQUEST,
+                "method", request.method()));
         var deadline = new ApiExecutionDeadline(clock, options.timeout());
         var retryWaiter = new ApiRetryWaiter(clock, deadline);
         String url = urls.build(request);
+        console.publish(AtfConsoleEvent.detail(AtfConsoleEvent.Scope.REQUEST,
+                "url", redactor.redactText(url)));
+        if (!request.bodyText().isBlank()) {
+            console.publish(AtfConsoleEvent.code(AtfConsoleEvent.Scope.REQUEST,
+                    "request.body", redactor.redactJson(request.bodyText())));
+        }
         var retryEvents = new ArrayList<RetryEvent>();
         var attemptHistory = new ArrayList<ApiAttemptRecord>();
         int attempt = 1;
         ApiResponse response;
-        while (true) {
+        try {
+            while (true) {
             cancellationToken.throwIfCancelled();
             long attemptStarted = clock.nanoTime();
             long remainingNanos = deadline.remainingNanos();
@@ -141,7 +179,25 @@ public final class ApiExecutor {
             retryEvents.add(retry.get());
             retryWaiter.await(retry.get().delay(), cancellationToken);
             attempt++;
+            }
+            var result = new ApiExecutionResult(response, attempt, Duration.ofNanos(deadline.elapsedNanos()), retryEvents, attemptHistory);
+            console.publish(AtfConsoleEvent.detail(AtfConsoleEvent.Scope.REQUEST,
+                    "response.status", Integer.toString(response.status())));
+            console.publish(AtfConsoleEvent.detail(AtfConsoleEvent.Scope.REQUEST,
+                    "response.duration.ms", Long.toString(response.duration().toMillis())));
+            console.publish(AtfConsoleEvent.code(AtfConsoleEvent.Scope.REQUEST,
+                    "response.body", redactor.redactJson(response.body())));
+            console.publish(AtfConsoleEvent.completed(AtfConsoleEvent.Scope.REQUEST,
+                    consoleName, AtfReportStatus.PASS, elapsedMillis(consoleStarted)));
+            return result;
+        } catch (RuntimeException error) {
+            console.publish(AtfConsoleEvent.completed(AtfConsoleEvent.Scope.REQUEST,
+                    consoleName, AtfReportStatus.FAIL, elapsedMillis(consoleStarted)));
+            throw error;
         }
-        return new ApiExecutionResult(response, attempt, Duration.ofNanos(deadline.elapsedNanos()), retryEvents, attemptHistory);
+    }
+
+    private long elapsedMillis(long startedAt) {
+        return Math.max(0, (clock.nanoTime() - startedAt) / 1_000_000);
     }
 }

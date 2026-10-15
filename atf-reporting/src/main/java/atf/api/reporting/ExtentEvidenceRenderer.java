@@ -22,17 +22,63 @@ final class ExtentEvidenceRenderer {
     }
 
     void renderDetails(ExtentTest node, List<String[]> details) {
-        if (details.isEmpty()) return;
-        node.info(AtfReportLabels.responseDetails(details.size()));
+        List<String[]> traceDetails = EvidenceTableFormatter.technicalTraceDetails(details);
+        if (traceDetails.isEmpty()) return;
+        node.info(AtfReportLabels.responseDetails(traceDetails.size()));
         node.info(AtfReportMarkup.table("helm-evidence-table helm-trace-table",
-                EvidenceTableFormatter.toExtentRows(details)));
+                EvidenceTableFormatter.toExtentRows(traceDetails)));
     }
 
-    void renderJson(ExtentTest node, List<String[]> json) {
-        for (String[] item : json) {
-            node.info(item[0] == null || item[0].isBlank() ? "JSON BODY" : item[0]);
-            node.info(MarkupHelper.createCodeBlock(ExtentReportNodeSupport.display(item[1], settings)));
+    void renderRequestDetails(ExtentTest node, List<String[]> details, List<String[]> json) {
+        List<String[]> requestDetails = EvidenceTableFormatter.requestDetails(details);
+        List<String[]> requestJson = json.stream().filter(item -> isRequestJson(item[0])).toList();
+        if (requestDetails.isEmpty() && requestJson.isEmpty()) return;
+        node.info(AtfReportLabels.requestDetails(requestDetails.size()));
+        node.info(requestEvidenceMarkup(requestDetails, requestJson));
+    }
+
+    void renderResponseDetails(ExtentTest node, List<String[]> details, List<String[]> json) {
+        List<String[]> responseDetails = EvidenceTableFormatter.technicalTraceDetails(details);
+        List<String[]> responseJson = json.stream().filter(item -> !isRequestJson(item[0])).toList();
+        if (responseDetails.isEmpty() && responseJson.isEmpty()) return;
+        node.info(AtfReportLabels.responseDetails(responseDetails.size()));
+        node.info(responseEvidenceMarkup(responseDetails, responseJson));
+    }
+
+    private String requestEvidenceMarkup(List<String[]> details, List<String[]> json) {
+        return evidenceMarkup("helm-request-details", "", "request-json-body", details, json);
+    }
+
+    private String responseEvidenceMarkup(List<String[]> details, List<String[]> json) {
+        return evidenceMarkup("helm-response-details", "technical", "response-json-body", details, json);
+    }
+
+    private String evidenceMarkup(String rootClass, String classification, String jsonClass,
+                                  List<String[]> details, List<String[]> json) {
+        var html = new StringBuilder("<div class=\"").append(rootClass).append("-content\">");
+        if (!classification.isBlank() && details.isEmpty()) {
+            html.append("<div class=\"helm-api-classification ").append(classification)
+                    .append("\"><span class=\"helm-api-classification-label\">")
+                    .append(AtfReportLabels.TECHNICAL_TRACE).append("</span></div>");
         }
+        if (!details.isEmpty()) {
+            String css = classification.isBlank()
+                    ? "helm-evidence-table helm-request-table"
+                    : "helm-evidence-table helm-trace-table";
+            html.append(AtfReportMarkup.tableHtml(css, EvidenceTableFormatter.toExtentRows(details)));
+        }
+        for (String[] item : json) {
+            html.append("<div class=\"").append(jsonClass).append("\"><div class=\"helm-scroll-block-title\">")
+                    .append(item[0] == null || item[0].isBlank() ? "JSON BODY" : item[0])
+                    .append("</div><div class=\"helm-scroll-block-body\">")
+                    .append(MarkupHelper.createCodeBlock(ExtentReportNodeSupport.display(item[1], settings)).getMarkup())
+                    .append("</div></div>");
+        }
+        return html.append("</div>").toString();
+    }
+
+    private boolean isRequestJson(String label) {
+        return label != null && label.trim().toUpperCase(java.util.Locale.ROOT).startsWith("REQUEST");
     }
 
     void renderExecution(ExtentTest node, ApiExecutionResult execution) {
@@ -42,7 +88,7 @@ final class ExtentEvidenceRenderer {
                 {"FIELD", "VALUE"},
                 {"response.status", String.valueOf(execution.response().status())},
                 {"response.url", redactor.redactText(execution.response().url())},
-                {"response.duration.ms", String.valueOf(execution.response().duration().toMillis())},
+                {"response.duration.ms", String.valueOf(AtfDurationFormatter.elapsedMillis(execution.response().duration()))},
                 {"attempts", String.valueOf(execution.attempts())},
                 {"retry.events", String.valueOf(execution.retryEvents().size())}
         }));
@@ -75,7 +121,7 @@ final class ExtentEvidenceRenderer {
             rows[index + 1] = new String[]{
                     String.valueOf(attempt.number()),
                     String.valueOf(attempt.statusCode()),
-                    String.valueOf(attempt.duration().toMillis()),
+                    String.valueOf(AtfDurationFormatter.elapsedMillis(attempt.duration())),
                     attempt.outcome().name(),
                     redactor.redactText(attempt.reason())};
         }

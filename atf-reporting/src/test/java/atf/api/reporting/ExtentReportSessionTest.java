@@ -336,7 +336,9 @@ class ExtentReportSessionTest {
                 () -> assertTrue(html.contains("RESPONSE JSON")),
                 () -> assertTrue(html.contains("TECHNICAL TRACE")),
                 () -> assertTrue(html.toUpperCase(java.util.Locale.ROOT).contains("RESPONSE DURATION (MS)")),
-                () -> assertTrue(html.contains("helm-evidence-table helm-trace-table")),
+                 () -> assertTrue(html.contains("Request details · 1 fields")),
+                 () -> assertTrue(html.contains("Response details · 1 fields")),
+                 () -> assertTrue(html.contains("helm-request-table")),
                 () -> assertTrue(html.contains("helm-evidence-table helm-validation-table")),
                 () -> assertTrue(html.contains("function normalizeEvidenceDisclosures()")),
                 () -> assertTrue(html.contains("function normalizePercentages()")),
@@ -603,6 +605,25 @@ class ExtentReportSessionTest {
                 () -> assertTrue(html.contains("token=***REDACTED***")),
                 () -> assertTrue(html.contains("mode=full")),
                 () -> assertFalse(html.contains("raw-failure-token")));
+    }
+
+    @Test
+    void authorizationInFailureCauseIsRedactedBeforePublication() throws Exception {
+        Path report = TestReportPaths.report("extent-api-authorization-failure-cause-redaction.html");
+        try (var session = new ExtentReportSession(report)) {
+            var scenario = session.startScenario("FailureTests", "redacted authorization failure", List.of("security"));
+            var body = scenario.startPhase("TEARDOWN");
+            body.detail("Failure cause",
+                    "teardown cleanup failed: Authorization: Bearer teardown-secret-token-1234567890");
+            body.complete(AtfReportStatus.FAIL);
+            scenario.complete(AtfReportStatus.FAIL);
+        }
+
+        String html = Files.readString(report);
+        assertAll(
+                () -> assertTrue(html.contains("teardown cleanup failed")),
+                () -> assertTrue(html.contains("Authorization: Bearer ***REDACTED***")),
+                () -> assertFalse(html.contains("teardown-secret-token-1234567890")));
     }
 
     private static int divDepthAt(String html, int markerIndex) {

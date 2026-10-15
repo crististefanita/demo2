@@ -2,11 +2,15 @@ package atf.api.reporting;
 
 import atf.api.core.reporting.AtfAssertion;
 import atf.api.core.reporting.AtfReportStatus;
+import atf.api.core.http.ApiExecutionResult;
+import atf.api.core.http.ApiResponse;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -75,7 +79,13 @@ class HtmlReportSessionTest {
         var body = scenario.startPhase("TEST BODY");
         var request = body.startRequest("item contract", "GET", "/users/1");
         request.detail("RESPONSE DURATION (ms)", "12");
+        request.detail("URL", "https://atf.local/users/1");
         request.detail("ROUTE TEMPLATE", "/users/{id}");
+        request.detail("HTTP STATUS", "200");
+        request.execution(new ApiExecutionResult(
+                new ApiResponse(200, "OK", Map.of(), Duration.ofMillis(12), "https://atf.local/users/1"),
+                1, Duration.ofMillis(12), List.of(), List.of()));
+        request.json("REQUEST JSON", "{\"id\":1}");
         request.json("RESPONSE JSON", "{\"id\":1}");
         var validation = request.startValidation("Validate: user contract");
         validation.assertions(List.of(new AtfAssertion("HTTP status", "200", "200", true)));
@@ -99,10 +109,18 @@ class HtmlReportSessionTest {
                 () -> assertEquals(1, count(html, "class=\"assertions\"")),
                 () -> assertTrue(html.contains("class=\"json-code\"")),
                 () -> assertTrue(html.contains("class=\"atf-disclosure-glyph\"")),
-                () -> assertTrue(html.contains("Response details · 2 fields")),
+                () -> assertTrue(html.contains("Request details · 2 fields")),
+                () -> assertTrue(html.contains("Response details · 1 fields")),
+                () -> assertTrue(html.contains("Execution evidence · 1 attempts")),
+                () -> assertTrue(html.contains("response.duration.ms")),
+                () -> assertTrue(html.contains("execution-evidence")),
+                () -> assertTrue(html.contains("request-details-content")),
+                () -> assertTrue(html.contains("response-details-content")),
+                () -> assertTrue(html.contains("request-json-body")),
+                () -> assertTrue(html.contains("response-json-body")),
                 () -> assertTrue(html.contains("helm-api-classification-label\">TECHNICAL TRACE</span>")),
                 () -> assertFalse(html.contains("[+] expand")),
-                () -> assertTrue(html.contains("class=\"helm-evidence-table helm-trace-table\"")),
+                 () -> assertTrue(html.contains("class=\"helm-evidence-table helm-request-table\"")),
                 () -> assertTrue(html.contains("class=\"phase phase-pass\"")),
                 () -> assertTrue(html.contains("class=\"tag\">api</span>")),
                 () -> assertFalse(html.contains("Timestamp")),

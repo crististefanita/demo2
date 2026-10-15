@@ -8,6 +8,7 @@ package atf.api.reporting;
  * inventing surface-specific variants.</p>
  */
 public final class AtfReportLabels {
+    public static final String REQUEST_DETAILS = "Request details";
     public static final String RESPONSE_DETAILS = "Response details";
     public static final String TECHNICAL_TRACE = "TECHNICAL TRACE";
     public static final String REQUEST_JSON = "REQUEST JSON";
@@ -22,6 +23,10 @@ public final class AtfReportLabels {
 
     public static String responseDetails(int fields) {
         return RESPONSE_DETAILS + " · " + fields + " fields";
+    }
+
+    public static String requestDetails(int fields) {
+        return REQUEST_DETAILS + " · " + fields + " fields";
     }
 
     public static String assertions(int rows) {

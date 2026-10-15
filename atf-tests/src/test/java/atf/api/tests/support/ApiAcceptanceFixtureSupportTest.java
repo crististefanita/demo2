@@ -2,6 +2,7 @@ package atf.api.tests.support;
 
 import atf.api.core.http.ApiRequest;
 import atf.api.execution.lifecycle.ApiScenarioPlan;
+import atf.api.mock.AtfMockTransport;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -13,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 class ApiAcceptanceFixtureSupportTest {
     @Test
     void transportKeepsConcreteNegativeApiEvidence() {
-        var response = new AcceptanceTransport()
+        var response = AtfMockTransport.defaults()
                 .send(ApiRequest.of("POST", "/public/v2/users"),
                         "https://atf.local/public/v2/users", "none")
                 .join();

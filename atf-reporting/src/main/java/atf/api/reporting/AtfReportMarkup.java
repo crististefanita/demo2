@@ -19,10 +19,9 @@ public final class AtfReportMarkup {
                     .append("</span></div>");
         }
         html.append("<table class=\"").append(escape(cssClass)).append("\">");
-        if (isTraceTable(cssClass) && rows != null && rows.length > 0) {
-            html.append("<colgroup><col class=\"atf-trace-field-column\" style=\"")
-                    .append(traceFieldStyle(rows)).append(";max-width:50%\">")
-                    .append("<col class=\"atf-trace-value-column\"></colgroup>");
+        if (isKeyValueEvidenceTable(cssClass) && rows != null && rows.length > 0) {
+            html.append("<colgroup><col class=\"atf-evidence-key-column\" style=\"width:var(--atf-evidence-key-column-width)\">")
+                    .append("<col class=\"atf-evidence-value-column\"></colgroup>");
         }
         html.append("<thead><tr>");
         if (rows == null || rows.length == 0) {
@@ -46,15 +45,10 @@ public final class AtfReportMarkup {
         return cssClass != null && cssClass.contains("helm-trace-table");
     }
 
-    private static String traceFieldStyle(String[][] rows) {
-        int longest = 0;
-        for (int rowIndex = 1; rowIndex < rows.length; rowIndex++) {
-            if (rows[rowIndex] != null && rows[rowIndex].length > 0 && rows[rowIndex][0] != null) {
-                longest = Math.max(longest, rows[rowIndex][0].length());
-            }
-        }
-        int width = longest + 4;
-        return width >= 50 ? "width:50%" : "width:" + width + "ch";
+    private static boolean isKeyValueEvidenceTable(String cssClass) {
+        return cssClass != null && (cssClass.contains("helm-trace-table")
+                || cssClass.contains("helm-request-table")
+                || cssClass.contains("execution-table"));
     }
 
     private static String escape(String value) {

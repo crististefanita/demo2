@@ -7,11 +7,14 @@ cunoaște rutele sau intenția unui test de produs.
 ~~~mermaid
 flowchart LR
     Validation[atf-validation<br/>contracte și verdicturi] --> Core[atf-core<br/>transport și politici]
+    Mock[atf-mock<br/>fake configurabil] --> Core
     Execution[atf-execution<br/>rute și scenarii] --> Validation
     Execution --> Core
+    Console[atf-console<br/>proiecție diagnostică] --> Core
     Reporting[atf-reporting<br/>artifact Extent] --> Core
     Tests[atf-tests<br/>unitare și contract] --> Execution
     Tests --> Validation
+    Tests --> Console
     Tests --> Reporting
     Tests --> Core
 ~~~
@@ -26,10 +29,12 @@ iar `atf-tests` este composition root pentru testele care le folosesc pe toate.
 | Modul | Deține | Nu deține |
 |---|---|---|
 | atf-core | request/response, transport, configurație, autentificare, retry, redaction, status și porturi | HTML, CSS, Extent, JUnit, rute de produs |
+| atf-mock | transport fake configurabil și catalog de răspunsuri deterministe | HTTP real, Extent, JUnit, validare de business |
 | atf-validation | contracte response, reguli, evaluator, verdict și publicare prin port neutru | HTTP, Extent, HTML, CSS, lifecycle |
 | atf-execution | API layer, rute, modele, servicii semantice, lifecycle și cleanup | fixture-uri de test, validare de contract, markup Extent, stiluri |
-| atf-reporting | sesiune, arbore Extent, theme, finalizare HTML, inspector și navigare | apeluri HTTP, decizii de business, verdicturi inventate |
-| atf-tests | teste unitare, de componentă, contract și scenarii de verificare | implementarea framework-ului și date externe obligatorii |
+| atf-console | formatter pentru evenimentele de consolă, `ConsoleSettings`, YAML, nesting, statusuri și fallback ASCII/UTF-8 | HTML, Extent, apeluri HTTP, verdicturi inventate |
+| atf-reporting | sesiune, arbore Extent, theme, finalizare HTML, inspector și navigare | apeluri HTTP, consolă concretă, decizii de business, verdicturi inventate |
+| atf-tests | `src/main/java` păstrează scenarii și compoziție reutilizabilă; `src/test/java` păstrează teste JUnit executabile, host-uri de raport și adaptoare de test | implementarea framework-ului și date externe obligatorii |
 
 Regula practică: dacă un comportament poate fi verificat cu un fake și fără
 rețea, testul lui aparține în atf-tests; dacă dovedește comportamentul unui
@@ -67,6 +72,53 @@ lucruri diferite:
 schimb HTTP finalizat  !=  contract satisfăcut  !=  scenariu trecut
 ~~~
 
+## Profile de transport și boundary-ul acceptance
+
+ATF are două profile de transport, cu scopuri diferite:
+
+| Profil | Implementare | Rețea | Proprietar | Scop |
+|---|---|---:|---|---|
+| `acceptance` | `AtfMockTransport` (`atf-mock`) | nu | `atf-tests` | raport determinist, contracte, lifecycle și randare |
+| `live` | `HttpClientTransport` | da | `ApiLiveReportTest` / consumator | verificarea unui serviciu HTTP disponibil |
+
+`AtfMockTransport` nu este un HTTP server local și nu este un proxy către
+`atf.local`. El este un test double din `atf-mock`, injectat explicit în
+`ApiModuleFactory`.
+URL-ul construit de `ApiExecutor` rămâne în evidence pentru ca raportul să
+arate ruta semantică, însă transportul fake nu execută DNS, TLS sau request
+network. Această separare este intenționată: raportarea și contractele nu
+trebuie să depindă de un serviciu extern.
+
+~~~mermaid
+flowchart LR
+    Scenario[Acceptance scenario] --> Factory[ApiModuleFactory]
+    Factory --> Fake[AtfMockTransport]
+    Fake --> Offline[Deterministic ApiResponse]
+    Offline --> Report[Extent artifact]
+
+    Live[ApiLiveReportTest] --> FactoryLive[ApiModuleFactory]
+    FactoryLive --> Http[HttpClientTransport]
+    Http --> Server[Real HTTP endpoint]
+    Server --> LiveReport[Live Extent artifact]
+~~~
+
+Regula verificabilă este:
+
+~~~text
+ApiAcceptanceReportTest -> AtfMockTransport -> offline artifact
+ApiLiveReportTest       -> HttpClientTransport -> real endpoint
+~~~
+
+Un URL precum `https://atf.local/public/v2/users` dintr-un acceptance report
+este metadata a request-ului, nu o afirmație că host-ul a fost contactat.
+Disponibilitatea DNS, TLS, autentificarea și contractul serviciului sunt
+verificabile numai în profilul `live`.
+
+`ApiLiveReportTest` este opt-in prin `-Datf.liveApi.enabled=true`, iar baza
+URL este explicită prin `-Datf.liveApi.baseUri`. Testele acceptance nu citesc
+această proprietate și nu trebuie să fie convertite implicit în teste de
+rețea.
+
 ## Vocabularul rutelor
 
 Rutele nu se scriu ca string-uri repetate în teste. Vocabularul stabil al
@@ -89,11 +141,27 @@ de mediu.
 
 `atf.yaml` este configurația proiectului consumator, nu un asset al unui modul
 și nu o configurație citită de fiecare request. Fișierul versionat conține
-acum secțiunile `api`, `validation` și `reporting`; în versiunea curentă,
-loaderul din `atf-reporting` consumă efectiv numai `reporting.extent`, iar
+acum secțiunile `api`, `validation` și `reporting`; loaderul din `atf-reporting`
+consumă efectiv numai `reporting.extent`, iar loaderul din `atf-console` consumă
+efectiv numai `reporting.console`. 
 API-ul este încă asamblat prin `ApiSettings`/`AtfConfiguration`. Integrarea
 completă a tuturor secțiunilor este ToDo-ul F-03 și nu trebuie presupusă ca
 deja activă.
+
+În configurația actuală, `api.baseUri`, timeout-ul, retry-ul și auth profile-ul
+descriu baseline-ul pentru un composition root care construiește explicit un
+transport HTTP. `ApiAcceptanceReportTest` își injectează intenționat
+`AtfMockTransport` în cod; simpla prezență a unui `baseUri` în YAML nu
+schimbă transportul și nu activează rețeaua. Loaderul `atf-reporting` consumă
+efectiv doar `reporting.extent` pentru artifactul HTML; consola nu este
+fallback-ul rendererului și nu este încărcată de modulul Extent.
+
+Nu se introduce încă o cheie YAML `transport: live` care să poată schimba
+implicit natura testelor. Când F-03 va integra configurația API, selecția
+transportului trebuie să fie typed, validată la bootstrap și implicit
+`acceptance` în `atf-tests`; `live` trebuie declarat explicit și să rămână
+opt-in. Astfel YAML-ul poate centraliza ulterior base URI, timeout și retry,
+fără să ascundă diferența dintre un fake și o conexiune reală.
 
 ~~~mermaid
 flowchart LR
@@ -105,6 +173,14 @@ flowchart LR
     Snapshot --> Validation[atf-validation]
     Snapshot --> Reporting[atf-reporting]
 ~~~
+
+`AtfRuntimeSnapshot` este boundary-ul typed pentru execuție: păstrează
+`ApiSettingsSnapshot` și `ReportingSettings` împreună, fără să introducă YAML,
+environment sau Extent în `atf-core`. `ApiModuleFactory` îl proiectează în
+executorul API, iar reporting consumă separat politica sa. Astfel un
+composition root poate crea două snapshots independente pentru rulări
+paralele, iar modificarea ulterioară a configurației de input nu schimbă
+executorul deja creat.
 
 Reguli obligatorii:
 

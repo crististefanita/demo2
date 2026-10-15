@@ -1,6 +1,8 @@
 package atf.api.execution;
 
 import atf.api.core.config.ApiSettings;
+import atf.api.core.config.AtfConfiguration;
+import atf.api.core.config.ReportingSettings;
 import atf.api.core.http.ApiExecutionException;
 import atf.api.core.http.ApiRequest;
 import atf.api.core.http.ApiResponse;
@@ -41,6 +43,23 @@ class ApiModuleFactoryTest {
 
         assertEquals("https://snapshot.example/health", result.response().url());
         assertEquals(Duration.ofSeconds(3), module.settings().timeout());
+        assertEquals(2, module.settings().maxAttempts());
+    }
+
+    @Test
+    void composesExecutionFromTheUnifiedRuntimeSnapshot() {
+        ApiTransport transport = (request, url, auth) -> CompletableFuture.completedFuture(
+                new ApiResponse(200, url, Map.of(), Duration.ZERO, url));
+        var runtime = new AtfConfiguration(
+                new ApiSettings(URI.create("https://runtime.example"), "runtime",
+                        Duration.ofSeconds(4), java.util.Set.of(503), 2),
+                new ReportingSettings(96)).snapshot();
+
+        var module = ApiModuleFactory.fromTransport(transport, runtime);
+        var result = module.executor().execute(ApiRequest.of("GET", "/health"));
+
+        assertEquals("https://runtime.example/health", result.response().url());
+        assertEquals(Duration.ofSeconds(4), module.settings().timeout());
         assertEquals(2, module.settings().maxAttempts());
     }
 

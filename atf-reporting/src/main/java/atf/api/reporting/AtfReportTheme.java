@@ -63,8 +63,8 @@ final class AtfReportTheme {
                 + "font-family:var(--atf-font-sans)!important;font-size:var(--atf-badge-font-size)!important;"
                 + "line-height:var(--atf-badge-line-height)!important;font-weight:400!important;white-space:nowrap!important}"
                 + ".badge:not(.badge-default){background:var(--atf-accent)!important;color:var(--atf-accent-contrast)!important}"
-                // Statusurile raman compacte; durata, ancora si controalele
-                // folosesc separat geometria meta pentru a nu mari Pass/Fail.
+// Status badges remain compact; duration, anchor, and controls
+// use separate metadata geometry so Pass/Fail do not grow.
                 + ".badge.badge-default{height:var(--atf-meta-badge-height)!important;min-height:var(--atf-meta-badge-height)!important;"
                 + "padding:var(--atf-meta-badge-padding)!important;border-radius:var(--atf-meta-badge-radius)!important;"
                 + "font-size:var(--atf-meta-badge-font-size)!important;line-height:var(--atf-meta-badge-line-height)!important}"

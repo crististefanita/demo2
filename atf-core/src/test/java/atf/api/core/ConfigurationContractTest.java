@@ -2,6 +2,7 @@ package atf.api.core;
 
 import atf.api.core.config.ApiSettings;
 import atf.api.core.config.AtfConfiguration;
+import atf.api.core.config.AtfRuntimeSnapshot;
 import atf.api.core.config.ReportingSettings;
 import org.junit.jupiter.api.Test;
 
@@ -32,5 +33,21 @@ class ConfigurationContractTest {
                 ReportingSettings.defaults());
         assertDoesNotThrow(configuration::validate);
         assertThrows(NullPointerException.class, () -> new AtfConfiguration(null, ReportingSettings.defaults()));
+    }
+
+    @Test
+    void runtimeSnapshotOwnsIndependentApiAndReportingPolicies() {
+        var configuration = new AtfConfiguration(
+                new ApiSettings(URI.create("https://snapshot.example"), "default",
+                        Duration.ofSeconds(7), Set.of(429, 503), 3),
+                new ReportingSettings(128));
+
+        AtfRuntimeSnapshot snapshot = configuration.snapshot();
+
+        assertEquals(URI.create("https://snapshot.example"), snapshot.api().baseUri());
+        assertEquals(Duration.ofSeconds(7), snapshot.api().timeout());
+        assertEquals(Set.of(429, 503), snapshot.api().retryStatuses());
+        assertEquals(3, snapshot.api().maxAttempts());
+        assertEquals(128, snapshot.reporting().assertionMaxDisplayCharacters());
     }
 }

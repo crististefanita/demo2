@@ -1,6 +1,6 @@
 package atf.api.core.http;
 
-/** Token minim pentru anularea cooperantă a execuției și a retry delay-ului. */
+    /** Minimal token for cooperative cancellation of execution and retry delays. */
 @FunctionalInterface
 public interface CancellationToken {
     boolean isCancelled();

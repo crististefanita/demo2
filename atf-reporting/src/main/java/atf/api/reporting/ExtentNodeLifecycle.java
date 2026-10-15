@@ -39,6 +39,14 @@ public final class ExtentNodeLifecycle {
         model.setEndTime(new Date(end));
     }
 
+    public static long durationMillis(ExtentTest node) {
+        var model = Objects.requireNonNull(node, "node").getModel();
+        Date started = model.getStartTime();
+        Date ended = model.getEndTime();
+        if (started == null || ended == null) return 0L;
+        return Math.max(0L, ended.getTime() - started.getTime());
+    }
+
     public static Status toExtentStatus(AtfReportStatus status) {
         return switch (Objects.requireNonNull(status, "status")) {
             case PASS -> Status.PASS;

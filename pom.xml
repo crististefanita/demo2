@@ -9,12 +9,14 @@
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>ATF Java</name>
-    <description>Port Java renderer-neutral al ATF-ului API din .NET</description>
+    <description>Port Java renderer-neutral al ATF-ului API</description>
 
     <modules>
         <module>atf-core</module>
+        <module>atf-mock</module>
         <module>atf-validation</module>
         <module>atf-execution</module>
+        <module>atf-console</module>
         <module>atf-reporting</module>
         <module>atf-tests</module>
     </modules>

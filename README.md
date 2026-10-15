@@ -61,9 +61,13 @@ TestCase
 │   └── Request(s)
 ├── TEST BODY
 │   ├── Request
-│   │   ├── Technical trace
+│   │   ├── Request details
+│   │   │   ├── URL / method / path / headers / params / auth
+│   │   │   └── Request JSON body, dacă există
 │   │   ├── Response details
-│   │   └── Response JSON
+│   │   │   ├── Technical trace
+│   │   │   └── Response JSON body, dacă există
+│   │   └── Execution evidence
 │   └── Validation — sibling direct al request-ului owner
 │       └── aggregate assertion table
 └── TEARDOWN
@@ -81,10 +85,12 @@ această ordine încalcă arhitectura.
 flowchart LR
     Tests[atf-tests] --> Execution[atf-execution]
     Tests --> Validation[atf-validation]
+    Tests --> Console[atf-console]
     Tests --> Reporting[atf-reporting]
     Execution --> Core[atf-core]
     Execution --> Validation
     Validation --> Core
+    Console --> Core
     Reporting --> Core
 ```
 
@@ -94,10 +100,12 @@ flowchart LR
 | Modul | Deține | Nu deține |
 |---|---|---|
 | `atf-core` | request/response, transport contracts, statusuri, config, retry, redaction și porturi | HTML, JUnit, business services |
+| `atf-mock` | transport fake configurabil, catalog de rute și răspunsuri deterministe | HTTP real, Extent, JUnit, business validation |
 | `atf-validation` | `ResponseContract`, reguli, evaluator, verdict și evidence prin port neutru | HTTP, Extent, HTML, CSS |
 | `atf-execution` | rute, modele, API services, executor, lifecycle și cleanup | validare de contract, CSS, JavaScript |
+| `atf-console` | adaptorul, formatterul diagnostic, politica de stil, nesting-ul, `ConsoleSettings` și loaderul YAML al consolei | HTML, Extent, verdicturi, transport |
 | `atf-reporting` | integrarea Extent, documentul semantic, theme, fallback și publicarea artifactului | transport, business validation, verdicturi inventate |
-| `atf-tests` | teste unitare, contract, componentă și scenarii de integrare | implementarea framework-ului |
+| `atf-tests` | teste unitare, contract, componentă și scenarii de integrare; `src/main/java` păstrează scenarii reutilizabile, `src/test/java` păstrează clasele JUnit executabile | implementarea framework-ului |
 
 ### Direcția dependențelor
 
@@ -106,12 +114,15 @@ Săgeata înseamnă „modulul din stânga depinde de modulul din dreapta”.
 ```mermaid
 flowchart LR
     Validation[atf-validation] --> Core[atf-core]
+    Mock[atf-mock] --> Core
     Execution[atf-execution] --> Validation
     Execution --> Core
+    Console[atf-console] --> Core
     Reporting[atf-reporting] --> Core
     Tests[atf-tests] --> Execution
     Tests --> Validation
     Tests --> Reporting
+    Tests --> Console
     Tests --> Core
 ```
 
@@ -121,8 +132,12 @@ depinde de `atf-execution`. `atf-tests` le compune în testele de integrare și
 acceptance, dar nu devine runtime dependency a framework-ului.
 
 Porturile comune sunt renderer-neutral. Extent este o implementare a boundary-
-ului de reporting, nu o dependență transversală. Composition root-ul leagă
-transportul, configurația, serviciile, lifecycle-ul, validarea și raportarea.
+ului de reporting, iar consola este o proiecție diagnostică separată. Nici
+`atf-reporting` nu depinde de implementarea JUnit sau de alte module superioare,
+`atf-core` de implementări concrete. Composition root-ul injectează explicit
+sink-ul dorit. Configurația YAML a consolei este responsabilitatea
+`atf-console`; lifecycle-ul JUnit este inclus în același modul, iar configurația
+Extent rămâne în `atf-reporting`.
 
 ## Configurația runtime
 
@@ -142,7 +157,7 @@ Separarea țintă este:
 | output, timestamp și renderer | `atf-reporting` | consumă setările de reporting, nu API settings |
 | override-uri de test | `atf-tests`/consumator | explicite, locale și fără mutarea configurației globale |
 
-Nu este necesar un modul nou acum. În acest repository, composition root-ul
+În acest repository, composition root-ul
 este `atf-tests`; pentru un consumator extern este proiectul de teste al acelui
 consumator. `atf-core` definește contractele, composition root-ul asamblează
 configurația, iar reporting adaptează numai partea sa. `atf-reporting` păstrează
@@ -163,16 +178,57 @@ validation:
   warningMode: false
 reporting:
   assertionMaxDisplayCharacters: 240
+  console:
+    enabled: true
+    detailsEnabled: false
   extent:
+    enabled: true
     outputDirectory: artifacts/reports
     fileName: api-atf-extent-report.html
     timestampEnabled: true
 ```
 
+### Contractul de transport pentru testele acceptance
+
+`ApiAcceptanceReportTest` folosește în mod intenționat `AtfMockTransport` din
+modulul `atf-mock`, un fake determinist injectat în composition root. El nu execută DNS, TLS sau
+request-uri de rețea. De aceea `api.baseUri` din YAML descrie baseline-ul unei
+compoziții API și URL-ul afișat în evidence, dar nu pornește HTTP și nu
+schimbă transportul acceptance.
+
+Testele care trebuie să contacteze un serviciu real sunt separate în
+`ApiLiveReportTest`, folosesc `HttpClientTransport` și sunt opt-in prin:
+
+```text
+-Datf.liveApi.enabled=true
+-Datf.liveApi.baseUri=https://host-ul-real
+```
+
+Această diferență este o invariantă de arhitectură, nu o convenție de naming:
+
+```text
+acceptance -> AtfMockTransport -> artifact reproductibil offline
+live       -> HttpClientTransport -> endpoint HTTP disponibil
+```
+
+Nu adăugăm încă `transport: live` în YAML, deoarece loaderul YAML consumă
+astăzi efectiv doar `reporting.extent`. Când configurația API va fi integrată,
+transportul implicit trebuie să rămână `acceptance`, iar `live` să fie o
+alegere explicită, validată o singură dată la composition root.
+
 Secretele nu se păstrează în YAML; se injectează printr-un provider/env
 explicit. Căile relative se rezolvă față de fișierul YAML, configurația se
 validează strict, iar după bootstrap snapshot-ul nu se mai modifică și nu se
 recitește pentru fiecare request.
+
+`ExtentReportSession.openConfigured()` rămâne entry point-ul rendererului, iar
+testele JUnit orientate pe resursă îl folosesc prin adaptorul comun
+`ApiResourceTestBase`. Astfel `UsersApiTests` sau `PostsApiTests` pot fi rulate
+direct din IntelliJ și pot produce artifactul Extent fără un runner separat.
+`reporting.extent.enabled` activează/dezactivează numai publicarea HTML; nu
+schimbă transportul, validarea sau verdictul testului. Loaderul descoperă
+`atf.yaml` din working directory în sus, iar `outputDirectory` și timestamp-ul
+decid destinația.
 
 ## Lifecycle și calculul rezultatului
 
@@ -227,6 +283,8 @@ aceeași decizie în execuție și în artifact.
   evaluare renderer-neutrală;
 - [atf-reporting/README.md](atf-reporting/README.md) — contractul vizual,
   conținutul și navigarea artifactului Extent;
+- [atf-console/README.md](atf-console/README.md) — proiecția diagnostică,
+  loaderul YAML și politica ASCII/UTF-8;
 - [atf-tests/README.md](atf-tests/README.md) — compunerea unui test end-to-end;
 - [docs/ATF_API_TEST_GUIDE.md](docs/ATF_API_TEST_GUIDE.md) — pașii practici
   pentru adăugarea unui test API;
@@ -238,7 +296,8 @@ aceeași decizie în execuție și în artifact.
   — sync live, staging, build și verificare MCP;
 - [docs/README_Atf_BestPractices.md](docs/README_Atf_BestPractices.md) —
   reguli OOP, testabilitate și mentenanță;
-- [docs/feedback/README.md](docs/feedback/README.md) — numai ToDo-urile active.
+- [docs/feedback/README.md](docs/feedback/README.md) — ToDo-uri active și
+  decizii de refactorizare închise recent.
 
 README-ul rădăcină nu repetă contracte de culori, layout, tab-uri, navigare,
 staging sau validare vizuală. Acestea au un singur owner documentar în

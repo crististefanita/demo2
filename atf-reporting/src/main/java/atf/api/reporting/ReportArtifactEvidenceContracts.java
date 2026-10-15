@@ -18,7 +18,17 @@ final class ReportArtifactEvidenceContracts {
                 && html.contains(".step-detail>summary"));
         checks.put("collapsible evidence runtime", html.contains("function normalizeEvidenceDisclosures()")
                 && html.contains("response-evidence") && html.contains("json-evidence")
-                && html.contains("assertion-evidence") && html.contains("helm-scroll-block"));
+                && html.contains("assertion-evidence") && html.contains("execution-evidence")
+                && html.contains("helm-scroll-block"));
+        checks.put("request response evidence split", html.contains("Request details")
+                && html.contains("Response details")
+                && html.contains("helm-request-details-content")
+                && html.contains("helm-response-details-content")
+                && html.contains("response-json-body"));
+        checks.put("execution evidence disclosure", html.contains("Execution evidence")
+                && html.contains("execution-table")
+                && html.contains("execution-evidence-body")
+                && html.contains("retry-history-table"));
         checks.put("technical trace", html.contains("TECHNICAL TRACE"));
         checks.put("response duration", html.toUpperCase(java.util.Locale.ROOT)
                 .contains("RESPONSE DURATION (MS)"));

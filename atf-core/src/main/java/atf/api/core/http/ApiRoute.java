@@ -49,14 +49,24 @@ public record ApiRoute(
     }
 
     public ApiRequest request(Map<String, ?> values) {
+        return request(values, Map.of(), Map.of());
+    }
+
+    public ApiRequest request(Map<String, ?> values, Map<String, String> query,
+                              Map<String, String> headers) {
         return new ApiRequest(java.net.http.HttpRequest.BodyPublishers.noBody(), method,
-                resolvePath(values), Map.of(), Map.of(), authProfile, this);
+                resolvePath(values), query, headers, authProfile, this);
     }
 
     public ApiRequest requestBody(String bodyJson, Map<String, ?> values) {
+        return requestBody(bodyJson, values, Map.of(), Map.of());
+    }
+
+    public ApiRequest requestBody(String bodyJson, Map<String, ?> values,
+                                  Map<String, String> query, Map<String, String> headers) {
         if (bodyJson == null) throw new IllegalArgumentException("bodyJson must not be null");
         return new ApiRequest(java.net.http.HttpRequest.BodyPublishers.ofString(bodyJson), method,
-                resolvePath(values), Map.of(), Map.of(), authProfile, this);
+                resolvePath(values), query, headers, authProfile, this, bodyJson);
     }
 
     private static void require(String value, String field) {

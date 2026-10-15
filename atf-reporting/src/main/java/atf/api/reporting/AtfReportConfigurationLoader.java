@@ -1,5 +1,7 @@
 package atf.api.reporting;
 
+import atf.api.core.config.ReportingSettings;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -60,7 +62,11 @@ public final class AtfReportConfigurationLoader {
 
         try {
             JsonNode root = YAML.readTree(absoluteConfig.toFile());
-            JsonNode extent = root.path("reporting").path("extent");
+            JsonNode reporting = root.path("reporting");
+            JsonNode extent = reporting.path("extent");
+            int assertionLimit = integer(reporting, "assertionMaxDisplayCharacters",
+                    ReportingSettings.DEFAULT_ASSERTION_MAX_DISPLAY_CHARACTERS);
+            var reportingSettings = new ReportingSettings(assertionLimit);
             String outputDirectory = text(extent, "outputDirectory", "target");
             String fileName = text(extent, "fileName", ExtentReportConfiguration.DEFAULT_FILE_NAME);
             boolean timestampEnabled = bool(extent, "timestampEnabled", true);
@@ -68,6 +74,7 @@ public final class AtfReportConfigurationLoader {
                     ExtentReportConfiguration.DEFAULT_TIMESTAMP_PATTERN);
             String timestampZone = text(extent, "timestampZone",
                     ExtentReportConfiguration.DEFAULT_TIMESTAMP_ZONE);
+            boolean enabled = bool(extent, "enabled", true);
             Path baseDirectory = absoluteConfig.getParent() == null
                     ? Path.of(".").toAbsolutePath().normalize()
                     : absoluteConfig.getParent();
@@ -81,7 +88,7 @@ public final class AtfReportConfigurationLoader {
                         "ATF report outputDirectory escapes the configuration directory: " + outputDirectory);
             }
             return new ExtentReportConfiguration(directory, fileName, timestampEnabled,
-                    timestampPattern, timestampZone);
+                    timestampPattern, timestampZone, reportingSettings, enabled);
         } catch (IOException error) {
             throw new IllegalStateException("Cannot read ATF report configuration: " + absoluteConfig, error);
         }
@@ -117,6 +124,10 @@ public final class AtfReportConfigurationLoader {
     }
 
     private static boolean bool(JsonNode parent, String name, boolean defaultValue) {
+        return bool(parent, name, defaultValue, "reporting.extent." + name);
+    }
+
+    private static boolean bool(JsonNode parent, String name, boolean defaultValue, String key) {
         JsonNode value = parent.path(name);
         if (value.isMissingNode() || value.isNull()) {
             return defaultValue;
@@ -124,7 +135,17 @@ public final class AtfReportConfigurationLoader {
         if (value.isBoolean()) {
             return value.booleanValue();
         }
-        throw new IllegalStateException("ATF report configuration value must be boolean: reporting.extent." + name);
+        throw new IllegalStateException("ATF report configuration value must be boolean: " + key);
+    }
+
+    private static int integer(JsonNode parent, String name, int defaultValue) {
+        JsonNode value = parent.path(name);
+        if (value.isMissingNode() || value.isNull()) return defaultValue;
+        if (value.canConvertToInt()) {
+            int parsed = value.intValue();
+            if (parsed > 0) return parsed;
+        }
+        throw new IllegalStateException("ATF report configuration value must be a positive integer: reporting." + name);
     }
 
 }

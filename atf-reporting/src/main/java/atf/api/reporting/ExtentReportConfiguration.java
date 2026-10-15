@@ -1,5 +1,7 @@
 package atf.api.reporting;
 
+import atf.api.core.config.ReportingSettings;
+
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.DateTimeException;
@@ -13,13 +15,29 @@ import java.util.Objects;
 /** Immutable output contract for an Extent report created by a test run. */
 public record ExtentReportConfiguration(Path outputDirectory, String fileName,
                                         boolean timestampEnabled, String timestampPattern,
-                                        String timestampZone) {
+                                        String timestampZone,
+                                        ReportingSettings reportingSettings,
+                                        boolean enabled) {
     public static final String DEFAULT_FILE_NAME = "api-atf-extent-report.html";
     public static final String DEFAULT_TIMESTAMP_PATTERN = "yyyy-MM-dd_HH-mm-ss-SSS";
     public static final String DEFAULT_TIMESTAMP_ZONE = "system";
 
     public ExtentReportConfiguration(Path outputDirectory, String fileName) {
         this(outputDirectory, fileName, true, DEFAULT_TIMESTAMP_PATTERN, DEFAULT_TIMESTAMP_ZONE);
+    }
+
+    public ExtentReportConfiguration(Path outputDirectory, String fileName,
+                                     boolean timestampEnabled, String timestampPattern,
+                                     String timestampZone) {
+        this(outputDirectory, fileName, timestampEnabled, timestampPattern, timestampZone,
+                ReportingSettings.defaults(), true);
+    }
+
+    public ExtentReportConfiguration(Path outputDirectory, String fileName,
+                                     boolean timestampEnabled, String timestampPattern,
+                                     String timestampZone, ReportingSettings reportingSettings) {
+        this(outputDirectory, fileName, timestampEnabled, timestampPattern, timestampZone,
+                reportingSettings, true);
     }
 
     public ExtentReportConfiguration {
@@ -52,6 +70,7 @@ public record ExtentReportConfiguration(Path outputDirectory, String fileName,
             throw new IllegalArgumentException(
                     "timestampPattern produces characters that are unsafe in a file name: " + sample);
         }
+        reportingSettings = Objects.requireNonNull(reportingSettings, "reportingSettings");
     }
 
     public Path reportPath() {
@@ -82,7 +101,7 @@ public record ExtentReportConfiguration(Path outputDirectory, String fileName,
 
     public static ExtentReportConfiguration defaults(Path baseDirectory) {
         return new ExtentReportConfiguration(baseDirectory.resolve("target"), DEFAULT_FILE_NAME,
-                true, DEFAULT_TIMESTAMP_PATTERN, DEFAULT_TIMESTAMP_ZONE);
+                true, DEFAULT_TIMESTAMP_PATTERN, DEFAULT_TIMESTAMP_ZONE, ReportingSettings.defaults(), true);
     }
 
     private static ZoneId resolveZoneId(String value) {

@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Protejează paleta semantică și geometria comună a badge-urilor din Category. */
+    /** Protects the semantic palette and shared badge geometry in Category. */
 class AtfReportCategoryThemeTest {
     @Test
     void categoryStatusBadgesUseTheReferenceSemanticPalette() {

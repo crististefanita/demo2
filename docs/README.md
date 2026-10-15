@@ -17,16 +17,20 @@ artifact.
    independentă și portul de publicare.
 5. [../atf-tests/README.md](../atf-tests/README.md) — scenarii, integrare și
    secvența end-to-end.
-6. [ATF_API_TEST_GUIDE.md](ATF_API_TEST_GUIDE.md) — pașii minimali pentru un test API nou.
-7. [../atf-reporting/README.md](../atf-reporting/README.md) — contractul vizual
+6. [../atf-console/README.md](../atf-console/README.md) — proiecția diagnostică
+   de consolă și contractul de output.
+7. [../atf-console/README.md](../atf-console/README.md) — include și adapterul
+   JUnit opțional pentru rularea directă a testelor.
+8. [ATF_API_TEST_GUIDE.md](ATF_API_TEST_GUIDE.md) — pașii minimali pentru un test API nou.
+9. [../atf-reporting/README.md](../atf-reporting/README.md) — contractul vizual
    complet al raportului Extent și criteriile de acceptare.
-8. [ATF_Reporting_Contract.md](ATF_Reporting_Contract.md) — arborele Extent,
+9. [ATF_Reporting_Contract.md](ATF_Reporting_Contract.md) — arborele Extent,
    evidence-ul și regulile de randare.
-9. [ATF_REPORTING_REFERENCE_GUARD.md](ATF_REPORTING_REFERENCE_GUARD.md) —
+10. [ATF_REPORTING_REFERENCE_GUARD.md](ATF_REPORTING_REFERENCE_GUARD.md) —
    reperul vizual/funcțional și procedura de comparație în TAB MCP.
-10. [ATF_BUILD_AND_EXECUTION_SAFETY.md](ATF_BUILD_AND_EXECUTION_SAFETY.md) —
+11. [ATF_BUILD_AND_EXECUTION_SAFETY.md](ATF_BUILD_AND_EXECUTION_SAFETY.md) —
    build, sincronizare și validare fără oprirea execuțiilor existente.
-11. [README_Atf_BestPractices.md](README_Atf_BestPractices.md) — reguli OOP,
+12. [README_Atf_BestPractices.md](README_Atf_BestPractices.md) — reguli OOP,
    testabilitate și mentenanță.
 
 ## Regula de lucru pentru orice schimbare
@@ -41,9 +45,10 @@ Ordinea obligatorie și criteriile detaliate sunt în
 [ATF_BUILD_AND_EXECUTION_SAFETY.md](ATF_BUILD_AND_EXECUTION_SAFETY.md) și
 [README_Atf_BestPractices.md](README_Atf_BestPractices.md).
 
-Lucrările încă neînchise sunt păstrate numai în [feedback/README.md](feedback/README.md)
-și în documentele ToDo pe responsabilități. Ele nu sunt copiate în contractele
-permanente ale proiectului.
+Lucrările încă neînchise sunt păstrate în [feedback/README.md](feedback/README.md)
+și în documentele ToDo pe responsabilități. Feedback-ul păstrează și o secțiune
+scurtă de decizii închise, pentru ca refactorizările importante să rămână
+trasabile fără a duplica contractele permanente.
 
 ## Reguli de documentație
 

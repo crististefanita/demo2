@@ -2,7 +2,7 @@ package atf.api.core.config;
 
 import java.util.Objects;
 
-/** Boundary minim de configurare pentru un modul ATF. */
+    /** Minimal configuration boundary for an ATF module. */
 public record AtfConfiguration(ApiSettings api, ReportingSettings reporting) {
     public AtfConfiguration {
         Objects.requireNonNull(api, "api");
@@ -14,9 +14,11 @@ public record AtfConfiguration(ApiSettings api, ReportingSettings reporting) {
     }
 
     public void validate() {
-        api.snapshot();
-        if (reporting.assertionMaxDisplayCharacters() <= 0) {
-            throw new IllegalArgumentException("reporting display limit must be positive");
-        }
+        snapshot();
+    }
+
+    /** Captures all runtime policies once at the composition boundary. */
+    public AtfRuntimeSnapshot snapshot() {
+        return new AtfRuntimeSnapshot(api.snapshot(), reporting);
     }
 }

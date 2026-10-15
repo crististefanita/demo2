@@ -2,6 +2,7 @@ package atf.api.reporting;
 
 import atf.api.core.config.ReportingSettings;
 import atf.api.core.reporting.AtfReportPorts;
+import atf.api.core.reporting.AtfConsoleSink;
 import atf.api.core.security.SensitiveDataRedactor;
 import com.aventstack.extentreports.ExtentReports;
 import com.aventstack.extentreports.reporter.ExtentSparkReporter;
@@ -37,6 +38,11 @@ public final class ExtentReportSession implements AtfReportPorts.Session, AutoCl
      * callers cannot accidentally publish raw secrets to HTML.
      */
     public ExtentReportSession(Path reportPath, ReportingSettings settings, SensitiveDataRedactor redactor) {
+        this(reportPath, settings, redactor, AtfConsoleSink.noOp());
+    }
+
+    public ExtentReportSession(Path reportPath, ReportingSettings settings,
+                               SensitiveDataRedactor redactor, AtfConsoleSink console) {
         this.reportPath = Objects.requireNonNull(reportPath, "reportPath").toAbsolutePath().normalize();
         Objects.requireNonNull(settings, "settings");
         Objects.requireNonNull(redactor, "redactor");
@@ -59,7 +65,7 @@ public final class ExtentReportSession implements AtfReportPorts.Session, AutoCl
         reports = new ExtentReports();
         reports.attachReporter(spark);
         ReportEnvironment.defaults().forEach(reports::setSystemInfo);
-        tree = new ExtentReportTree(reports, settings, redactor, this::ensureOpen);
+        tree = new ExtentReportTree(reports, settings, redactor, this::ensureOpen, console);
     }
 
     /** Opens an Extent session using the discovered atf.yaml/atf.yml configuration. */
@@ -72,8 +78,11 @@ public final class ExtentReportSession implements AtfReportPorts.Session, AutoCl
         return openConfigured(AtfReportConfigurationLoader.load(configPath));
     }
 
-    private static ExtentReportSession openConfigured(ExtentReportConfiguration configuration) {
-        return new ExtentReportSession(configuration.resolveReportPath(Clock.systemDefaultZone()));
+    /** Opens a session from one already-resolved immutable configuration snapshot. */
+    public static ExtentReportSession openConfigured(ExtentReportConfiguration configuration) {
+        Objects.requireNonNull(configuration, "configuration");
+        return new ExtentReportSession(configuration.resolveReportPath(Clock.systemDefaultZone()),
+                configuration.reportingSettings());
     }
 
     @Override public Path reportPath() { return reportPath; }

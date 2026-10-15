@@ -1,0 +1,128 @@
+package atf.api.tests.api.reporting;
+
+import atf.api.tests.api.lifecycle.LifecycleApiScenarios;
+import atf.api.tests.api.posts.PostsApiScenarios;
+import atf.api.tests.api.requests.RequestVariantsApiScenarios;
+import atf.api.tests.api.users.UsersApiScenarios;
+import atf.api.execution.ApiModule;
+import atf.api.execution.ApiModuleFactory;
+import atf.api.execution.lifecycle.ApiScenarioLifecycleRunner;
+import atf.api.reporting.ExtentReportSession;
+import atf.api.reporting.ReportArtifactInspector;
+import atf.api.mock.AtfMockTransport;
+import org.junit.jupiter.api.Test;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.net.URI;
+
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/**
+ * Deterministic executable API suite used to inspect the public Extent tree.
+ *
+ * <p>The transport is injected at the composition root, while routes,
+ * services, contracts, lifecycle and reporting are the production objects.
+ * The resulting report intentionally contains the same three test-class
+ * owners as the .NET acceptance suite: Users, Posts and lifecycle scenarios.
+ * It is a report-producing acceptance test, not a synthetic HTML fixture.</p>
+ */
+class ApiAcceptanceReportTest {
+    private static final URI BASE_URI = URI.create("https://atf.local");
+    @Test
+    void executesUsersPostsAndLifecycleScenariosIntoOneAuditableReport() throws Exception {
+        Instant startedAt = Instant.now();
+        Path report;
+        ApiModule api = ApiModuleFactory.fromTransport(AtfMockTransport.fromProjectConfiguration(), BASE_URI);
+        ApiScenarioLifecycleRunner lifecycle = new ApiScenarioLifecycleRunner();
+
+        try (var session = ExtentReportSession.openConfigured()) {
+            report = session.reportPath();
+            UsersApiScenarios.publish(session, api, lifecycle);
+            PostsApiScenarios.publish(session, api, lifecycle);
+            RequestVariantsApiScenarios.publish(session, api, lifecycle);
+            LifecycleApiScenarios.publish(session, api, lifecycle);
+        }
+
+        assertTrue(Files.isRegularFile(report), "Acceptance execution must publish an HTML report");
+        String html = Files.readString(report);
+        var inspection = ReportArtifactInspector.inspectFresh(report, startedAt);
+        assertTrue(inspection.isCompliant(), () -> "Acceptance report violations: " + inspection.violations());
+        assertAll(
+                () -> assertTrue(html.contains("UsersApiTests")),
+                () -> assertTrue(html.contains("PostsApiTests")),
+                () -> assertTrue(html.contains("ApiLifecycleAndCombinationsTests")),
+                () -> assertTrue(html.contains("RequestVariantsApiTests")),
+                () -> assertTrue(html.contains("GET /public/v2/users")),
+                () -> assertTrue(html.contains("GET /public/v2/posts")),
+                () -> assertTrue(html.contains("POST /public/v2/users")),
+                () -> assertTrue(html.contains("GET /public/v2/search")),
+                () -> assertTrue(html.contains("POST /public/v2/bulk-import")),
+                () -> assertTrue(html.contains("PUT /public/v2/profiles/{id}")),
+                () -> assertTrue(html.contains("PATCH /public/v2/preferences")),
+                () -> assertTrue(html.contains("<td>HTTP STATUS</td>")),
+                () -> assertTrue(html.contains("AUTH TYPE")),
+                () -> assertTrue(html.contains("QUERY PARAMS")),
+                () -> assertTrue(html.contains("large-payload")),
+                () -> assertTrue(html.contains("<td>response.url</td>")),
+                () -> assertTrue(html.contains("https://atf.local/public/v2/users")),
+                () -> assertTrue(html.contains("request-json-body")),
+                () -> assertTrue(html.contains("response-json-body")),
+                () -> assertTrue(html.contains("\"gender\" : \"male\"")),
+                () -> assertTrue(html.contains("\"status\" : \"active\"")),
+                () -> assertFalse(html.contains("ROUTE TEMPLATE")),
+                () -> assertTrue(html.contains("TECHNICAL TRACE")),
+                () -> assertTrue(html.contains("response.duration.ms")),
+                () -> assertTrue(html.contains("Execution evidence · 1 attempts")),
+                () -> assertTrue(html.contains("execution-table")),
+                () -> assertTrue(html.contains("function normalizeEvidenceDisclosures()")),
+                () -> assertTrue(html.contains("helm-validation-table")),
+                () -> assertFalse(html.contains("[+] expand")),
+                () -> assertFalse(html.contains("[-] collapse")),
+                () -> assertTrue(html.contains("TEST BODY")),
+                () -> assertTrue(html.contains("TEARDOWN")),
+                () -> assertTrue(html.contains("PRIMARY: ")),
+                () -> assertTrue(html.contains("SECONDARY: ")),
+                () -> assertTrue(html.contains("teardown cleanup failed")),
+                () -> assertFalse(html.contains("teardown-secret-token-1234567890")),
+                () -> assertTrue(html.contains("Authorization: Bearer ***REDACTED***")),
+                () -> assertMockRequestAndResponseBodiesAreSeparate(html),
+                () -> assertFailedLifecycleRequestRetainsEvidence(html),
+                () -> assertTrue(html.contains("id=\"nav-fails\"")),
+                () -> assertFalse(html.contains("spark/")));
+    }
+
+    private static void assertFailedLifecycleRequestRetainsEvidence(String html) {
+        int lifecycle = html.indexOf("Users API — setup → test → teardown");
+        int request = html.indexOf("GET /public/v2/users/1", lifecycle);
+        int requestDetails = html.indexOf("Request details · 1 fields", request);
+        int responseDetails = html.indexOf("Response details · 2 fields", request);
+        int responseJson = html.indexOf("RESPONSE JSON", request);
+        int validation = html.indexOf("Contract validation", request);
+
+        assertTrue(lifecycle >= 0 && request > lifecycle,
+                "lifecycle scenario must contain its failed request");
+        assertTrue(requestDetails > request && responseDetails > requestDetails && responseJson > responseDetails,
+                "a failed API request must retain request context, response trace and response JSON in order");
+        assertTrue(validation > responseJson,
+                "validation must remain after the request-owned evidence");
+    }
+
+    private static void assertMockRequestAndResponseBodiesAreSeparate(String html) {
+        int request = html.indexOf("POST /public/v2/users");
+        int requestDetails = html.indexOf("Request details · 1 fields", request);
+        int requestBody = html.indexOf("request-json-body", request);
+        int responseDetails = html.indexOf("Response details · 2 fields", request);
+        int responseBody = html.indexOf("response-json-body", request);
+        int execution = html.indexOf("Execution evidence · 1 attempts", request);
+
+        assertTrue(request >= 0 && requestDetails > request && requestBody > requestDetails
+                        && responseDetails > requestBody && responseBody > responseDetails
+                        && execution > responseBody,
+                "mock request and response bodies must be ordered in separate expandable evidence sections");
+    }
+
+}

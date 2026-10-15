@@ -2,7 +2,7 @@ package atf.api.core.security;
 
 import java.util.Set;
 
-/** Politici de redacție aplicate la limita către evidence/raport. */
+    /** Redaction policies applied at the evidence/report boundary. */
 public record RedactionSettings(boolean enabled, String replacement, boolean redactLocalPaths,
                                 boolean piiEnabled, Set<String> sensitiveFields) {
     public RedactionSettings {

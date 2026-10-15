@@ -26,6 +26,15 @@ public final class ApiScenarioLifecycleRunner {
         public WarningSignal(String message) { super(message); }
     }
 
+    /**
+     * Semantic failure signal used by adapters that already published the
+     * failing evidence and must still let the lifecycle runner aggregate the
+     * phase as FAIL without aborting teardown.
+     */
+    public static class FailureSignal extends RuntimeException {
+        public FailureSignal(String message) { super(message); }
+    }
+
     private final ApiScenarioPhaseExecutor phaseExecutor = new ApiScenarioPhaseExecutor();
 
     /** Compatibility-friendly runner for unit tests and simple JUnit scenarios. */

@@ -14,6 +14,7 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
     private final ExtentReportTree tree;
     private final ExtentPhaseScope phase;
     private final ExtentTest request;
+    private final String requestTitle;
     private final List<String[]> details = new ArrayList<>();
     private final List<String[]> json = new ArrayList<>();
     private final ReportStatusAggregator statuses = new ReportStatusAggregator();
@@ -21,20 +22,26 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
     private int openValidations;
     private boolean closed;
 
-    ExtentRequestScope(ExtentReportTree tree, ExtentPhaseScope phase, ExtentTest request) {
+    ExtentRequestScope(ExtentReportTree tree, ExtentPhaseScope phase, ExtentTest request,
+                       String requestTitle) {
         this.tree = tree;
         this.phase = phase;
         this.request = request;
+        this.requestTitle = requestTitle;
         tree.markStarted(request);
     }
 
     @Override public void detail(String name, String value) {
-        details.add(new String[]{tree.normalizeDetailName(name),
-                tree.redactor().redactField(name, value)});
+        String redacted = tree.redactor().redactField(name, value);
+        details.add(new String[]{tree.normalizeDetailName(name), redacted});
+        tree.consoleDetail(atf.api.core.reporting.AtfConsoleEvent.Scope.REQUEST,
+                tree.normalizeDetailName(name), redacted);
     }
 
     @Override public void json(String label, String value) {
-        json.add(new String[]{label, tree.redactor().redactJson(value)});
+        String redacted = tree.redactor().redactJson(value);
+        json.add(new String[]{label, redacted});
+        tree.consoleCode(atf.api.core.reporting.AtfConsoleEvent.Scope.REQUEST, label, redacted);
     }
 
     @Override public void execution(ApiExecutionResult result) {
@@ -46,20 +53,24 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
         if (openValidations > 0) {
             throw new IllegalStateException("Request cannot complete while a validation is open");
         }
-        tree.renderDetails(request, details);
-        tree.renderJson(request, json);
+        tree.renderRequestDetails(request, details, json);
+        tree.renderResponseDetails(request, details, json);
         tree.renderExecution(request, execution);
         var effective = AtfReportStatus.worst(statuses.aggregate(), status);
         tree.complete(request, effective);
         tree.markEnded(request);
         phase.record(effective);
+        tree.consoleCompleted(atf.api.core.reporting.AtfConsoleEvent.Scope.REQUEST,
+                requestTitle, effective, request);
         closed = true;
     }
 
     @Override public AtfReportPorts.Validation startValidation(String title) {
         ensureRequestOpen();
         openValidations++;
-        return new ExtentValidationScope(tree, this, phase.node().createNode(title));
+        String validationTitle = title == null ? "Validation" : title;
+        tree.consoleStarted(atf.api.core.reporting.AtfConsoleEvent.Scope.VALIDATION, validationTitle);
+        return new ExtentValidationScope(tree, this, phase.node().createNode(validationTitle), validationTitle);
     }
 
     void record(AtfReportStatus status) { statuses.record(status); }

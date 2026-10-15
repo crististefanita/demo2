@@ -8,7 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/** Contract fluent pentru exact un response; nu poate fi evaluat de două ori. */
+    /** Fluent contract for exactly one response; it cannot be evaluated twice. */
 public final class ResponseContract {
     private final List<NamedRule> rules = new ArrayList<>();
     private final Set<String> identities = new HashSet<>();
@@ -64,7 +64,7 @@ public final class ResponseContract {
         return add(ruleSet.everyArrayItemEquals(path, property, expected));
     }
 
-    /** Validează semantic body-ul JSON față de schema contractului. */
+    /** Semantically validates the JSON body against the contract schema. */
     public ResponseContract jsonSchema(String schemaPath) {
         requireText(schemaPath, "schemaPath");
         return add(ruleSet.jsonSchema(schemaPath));

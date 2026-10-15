@@ -2,7 +2,7 @@ package atf.api.execution.data;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-/** Serializare unică pentru body-urile semanticelor API. */
+    /** Single serialization point for API semantic payloads. */
 public final class JsonPayloads {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 

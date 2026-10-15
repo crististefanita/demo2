@@ -2,7 +2,7 @@ package atf.api.core.http;
 
 import java.time.Duration;
 
-/** Bugetul per execuție; este immutable și nu schimbă configurația globală. */
+    /** Per-execution budget; it is immutable and does not change global configuration. */
 public record ApiExecutionOptions(Duration timeout) {
     public static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(30);
 

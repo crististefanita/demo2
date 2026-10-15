@@ -3,7 +3,7 @@ package atf.api.validation.contract;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-/** Suport comun pentru subsetul sigur de JSON path folosit de contractele ATF. */
+    /** Shared support for the safe JSON path subset used by ATF contracts. */
 final class JsonPathSupport {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 

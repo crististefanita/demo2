@@ -25,9 +25,9 @@ comun prin care modulele comunică fără să se cunoască implementările concr
 | HTTP | `ApiRequest`, `ApiResponse`, `ApiTransport`, `ApiExecutor` | nu definește scenarii sau assertions |
 | routing neutru | `ApiRoute`, `ApiUrlBuilder` | nu deține serviciile Users/Posts |
 | timp și retry | `ApiExecutionClock`, `ApiExecutionDeadline`, `ApiRetryWaiter`, `RetryPolicy` | nu decide verdictul testului |
-| configurație | `AtfConfiguration`, `ApiSettings`, `ReportingSettings` și snapshot-uri | nu parsează YAML, nu citește env/filesystem și nu recitește configurația în fiecare request |
+| configurație | `AtfConfiguration`, `AtfRuntimeSnapshot`, `ApiSettings`, `ReportingSettings` și snapshot-uri | nu parsează YAML, nu citește env/filesystem și nu recitește configurația în fiecare request |
 | statusuri | `AtfReportStatus`, `ReportStatusAggregator` | nu randă badge-uri |
-| reporting ports | `AtfReportPorts`, `ValidationSink`, `ReportStepScope` | nu importă Extent |
+| reporting ports | `AtfReportPorts`, `ValidationSink`, `ReportStepScope`, `AtfConsoleEvent`, `AtfConsoleSink` | nu importă Extent, HTML, `System.out` sau implementarea `atf-console` |
 | redaction | `Redactor`, `RedactionContext`, strategiile de redaction | nu modifică input-ul original |
 
 ## Regula de decuplare
@@ -39,12 +39,14 @@ ApiRequest / ApiResponse / ValidationResult / Report ports
 ```
 
 Core poate defini porturi, dar nu implementează Extent, HTML, CSS, JavaScript,
-JUnit sau servicii de business. Un port trebuie să fie mic, semantic și
+formatarea consolei, scrierea în `System.out`, JUnit sau servicii de business.
+Un port trebuie să fie mic, semantic și
 testabil cu fake-uri în memorie.
 
 Configurația este typed și immutable în core. Fișierul YAML, variabilele de
 mediu și proprietățile de proces sunt surse externe asamblate de composition
-root; core primește rezultatul validat și îl transformă într-un snapshot. Astfel
+root; core primește rezultatul validat și îl transformă într-un
+`AtfRuntimeSnapshot` cu proiecții API și reporting. Astfel
 un test paralel nu poate schimba timeout-ul, retry-ul, auth-ul sau politica de
 redaction a unei alte sesiuni.
 

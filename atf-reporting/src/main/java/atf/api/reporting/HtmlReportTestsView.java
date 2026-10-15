@@ -84,25 +84,58 @@ final class HtmlReportTestsView {
                 .append(escape(request.method + " " + request.path + " — " + request.title))
                 .append("</span><span class=\"status status-").append(request.status.name().toLowerCase())
                 .append("\">").append(request.status).append("</span></div>");
-        if (!request.details.isEmpty()) {
-            html.append("<details class=\"step-detail response-evidence\"><summary aria-expanded=\"false\"><span class=\"atf-disclosure-glyph\" aria-hidden=\"true\"></span><span class=\"se-title\">")
-                    .append(escape(AtfReportLabels.responseDetails(request.details.size())))
-                    .append("</span></summary><div class=\"helm-api-classification technical\"><span class=\"helm-api-classification-label\">")
-                    .append(AtfReportLabels.TECHNICAL_TRACE)
-                    .append("</span></div><table class=\"helm-evidence-table helm-trace-table\">");
-            for (String[] detail : request.details) {
-                html.append("<tr><th>").append(escape(detail[0])).append("</th><td>")
-                        .append(escape(redactor.redactField(detail[0], detail[1]))).append("</td></tr>");
-            }
-            html.append("</table></details>");
-        }
-        for (String[] item : request.json) {
-            html.append("<details class=\"step-detail json-evidence\"><summary aria-expanded=\"false\"><span class=\"atf-disclosure-glyph\" aria-hidden=\"true\"></span><span class=\"se-title\">")
-                    .append(escape(item[0])).append("</span></summary><pre class=\"json-code\">")
-                    .append(escape(redactor.redactJson(item[1]))).append("</pre></details>");
-        }
+        renderRequestDetails(html, request);
+        renderResponseDetails(html, request);
         renderExecution(html, request.execution);
         html.append("</div>");
+    }
+
+    private void renderRequestDetails(StringBuilder html, HtmlReportSemanticDocument.RequestModel request) {
+        var details = EvidenceTableFormatter.requestDetails(request.details);
+        var json = request.json.stream().filter(item -> isRequestJson(item[0])).toList();
+        if (details.isEmpty() && json.isEmpty()) return;
+        html.append("<details class=\"step-detail request-evidence\"><summary aria-expanded=\"false\"><span class=\"atf-disclosure-glyph\" aria-hidden=\"true\"></span><span class=\"se-title\">")
+                .append(escape(AtfReportLabels.requestDetails(details.size())))
+                .append("</span></summary><div class=\"request-details-content\">");
+        renderTable(html, "helm-evidence-table helm-request-table", details);
+        renderJsonBodies(html, json, "request-json-body");
+        html.append("</div></details>");
+    }
+
+    private void renderResponseDetails(StringBuilder html, HtmlReportSemanticDocument.RequestModel request) {
+        var details = EvidenceTableFormatter.technicalTraceDetails(request.details);
+        var json = request.json.stream().filter(item -> !isRequestJson(item[0])).toList();
+        if (details.isEmpty() && json.isEmpty()) return;
+        html.append("<details class=\"step-detail response-evidence\"><summary aria-expanded=\"false\"><span class=\"atf-disclosure-glyph\" aria-hidden=\"true\"></span><span class=\"se-title\">")
+                .append(escape(AtfReportLabels.responseDetails(details.size())))
+                .append("</span></summary><div class=\"response-details-content\"><div class=\"helm-api-classification technical\"><span class=\"helm-api-classification-label\">")
+                .append(AtfReportLabels.TECHNICAL_TRACE).append("</span></div>");
+        renderTable(html, "helm-evidence-table helm-trace-table", details);
+        renderJsonBodies(html, json, "response-json-body");
+        html.append("</div></details>");
+    }
+
+    private void renderTable(StringBuilder html, String cssClass, List<String[]> details) {
+        if (details.isEmpty()) return;
+        html.append("<table class=\"").append(cssClass).append("\"><thead><tr><th>FIELD</th><th>VALUE</th></tr></thead><tbody>");
+        for (String[] detail : details) {
+            html.append("<tr><td>").append(escape(detail[0])).append("</td><td>")
+                    .append(escape(redactor.redactField(detail[0], detail[1]))).append("</td></tr>");
+        }
+        html.append("</tbody></table>");
+    }
+
+    private void renderJsonBodies(StringBuilder html, List<String[]> json, String cssClass) {
+        for (String[] item : json) {
+            html.append("<div class=\"").append(cssClass).append("\"><div class=\"helm-scroll-block-title\">")
+                    .append(escape(item[0] == null || item[0].isBlank() ? "JSON BODY" : item[0]))
+                    .append("</div><pre class=\"json-code\">")
+                    .append(escape(redactor.redactJson(item[1]))).append("</pre></div>");
+        }
+    }
+
+    private boolean isRequestJson(String label) {
+        return label != null && label.trim().toUpperCase(java.util.Locale.ROOT).startsWith("REQUEST");
     }
 
     private void renderExecution(StringBuilder html, ApiExecutionResult execution) {
@@ -116,7 +149,7 @@ final class HtmlReportTestsView {
                 .append("<table class=\"helm-evidence-table execution-table\"><thead><tr><th>FIELD</th><th>VALUE</th></tr></thead><tbody>");
         row(html, "response.status", String.valueOf(execution.response().status()));
         row(html, "response.url", redactor.redactText(execution.response().url()));
-        row(html, "response.duration.ms", String.valueOf(execution.response().duration().toMillis()));
+        row(html, "response.duration.ms", String.valueOf(AtfDurationFormatter.elapsedMillis(execution.response().duration())));
         row(html, "attempts", String.valueOf(execution.attempts()));
         row(html, "retry.events", String.valueOf(execution.retryEvents().size()));
         html.append("</tbody></table>");
@@ -127,7 +160,7 @@ final class HtmlReportTestsView {
             for (ApiAttemptRecord attempt : execution.attemptHistory()) {
                 html.append("<tr><td>").append(attempt.number()).append("</td><td>")
                         .append(attempt.statusCode()).append("</td><td>")
-                        .append(attempt.duration().toMillis()).append("</td><td>")
+                        .append(AtfDurationFormatter.elapsedMillis(attempt.duration())).append("</td><td>")
                         .append(escape(attempt.outcome().name())).append("</td><td>")
                         .append(escape(redactor.redactText(attempt.reason()))).append("</td></tr>");
             }
