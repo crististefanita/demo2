@@ -33,7 +33,11 @@ public final class AtfReportMarkup {
         html.append("</tr></thead><tbody>");
         for (int rowIndex = 1; rowIndex < rows.length; rowIndex++) {
             html.append("<tr>");
-            for (String value : rows[rowIndex]) {
+            for (int columnIndex = 0; columnIndex < rows[rowIndex].length; columnIndex++) {
+                String value = rows[rowIndex][columnIndex];
+                if (isKeyValueEvidenceTable(cssClass) && columnIndex == 1) {
+                    value = EvidenceTableFormatter.displayValue(rows[rowIndex][0], value);
+                }
                 html.append("<td>").append(escape(value)).append("</td>");
             }
             html.append("</tr>");

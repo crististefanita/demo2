@@ -4,6 +4,7 @@ import java.net.URI;
 import atf.api.core.config.ApiSettings;
 import atf.api.core.config.ApiSettingsSnapshot;
 import atf.api.core.reporting.AtfConsoleEvent;
+import atf.api.core.reporting.AtfDurationFormatter;
 import atf.api.core.reporting.AtfConsoleSink;
 import atf.api.core.reporting.AtfReportStatus;
 import atf.api.core.security.SensitiveDataRedactor;
@@ -184,7 +185,7 @@ public final class ApiExecutor {
             console.publish(AtfConsoleEvent.detail(AtfConsoleEvent.Scope.REQUEST,
                     "response.status", Integer.toString(response.status())));
             console.publish(AtfConsoleEvent.detail(AtfConsoleEvent.Scope.REQUEST,
-                    "response.duration.ms", Long.toString(response.duration().toMillis())));
+                    "response.duration.ms", AtfDurationFormatter.format(response.duration())));
             console.publish(AtfConsoleEvent.code(AtfConsoleEvent.Scope.REQUEST,
                     "response.body", redactor.redactJson(response.body())));
             console.publish(AtfConsoleEvent.completed(AtfConsoleEvent.Scope.REQUEST,

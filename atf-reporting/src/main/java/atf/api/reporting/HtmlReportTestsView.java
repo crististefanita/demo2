@@ -3,6 +3,7 @@ package atf.api.reporting;
 import atf.api.core.http.ApiAttemptRecord;
 import atf.api.core.http.ApiExecutionResult;
 import atf.api.core.reporting.AtfAssertion;
+import atf.api.core.reporting.AtfDurationFormatter;
 import atf.api.core.reporting.AtfReportStatus;
 import atf.api.core.security.SensitiveDataRedactor;
 
@@ -13,13 +14,19 @@ import static atf.api.reporting.HtmlReportMarkupSupport.phaseKey;
 
 /** Renders only the Tests projection of the fallback semantic document. */
 final class HtmlReportTestsView {
+    private final atf.api.core.config.ReportingSettings settings;
     private final SensitiveDataRedactor redactor;
 
     HtmlReportTestsView() {
-        this(new SensitiveDataRedactor());
+        this(atf.api.core.config.ReportingSettings.defaults(), new SensitiveDataRedactor());
     }
 
     HtmlReportTestsView(SensitiveDataRedactor redactor) {
+        this(atf.api.core.config.ReportingSettings.defaults(), redactor);
+    }
+
+    HtmlReportTestsView(atf.api.core.config.ReportingSettings settings, SensitiveDataRedactor redactor) {
+        this.settings = java.util.Objects.requireNonNull(settings, "settings");
         this.redactor = redactor;
     }
 
@@ -87,6 +94,9 @@ final class HtmlReportTestsView {
         renderRequestDetails(html, request);
         renderResponseDetails(html, request);
         renderExecution(html, request.execution);
+        for (HtmlReportSemanticDocument.NodeModel child : request.children) {
+            renderNode(html, child);
+        }
         html.append("</div>");
     }
 
@@ -130,7 +140,8 @@ final class HtmlReportTestsView {
             html.append("<div class=\"").append(cssClass).append("\"><div class=\"helm-scroll-block-title\">")
                     .append(escape(item[0] == null || item[0].isBlank() ? "JSON BODY" : item[0]))
                     .append("</div><pre class=\"json-code\">")
-                    .append(escape(redactor.redactJson(item[1]))).append("</pre></div>");
+                    .append(escape(ExtentReportNodeSupport.displayBody(redactor.redactJson(item[1]), settings)))
+                    .append("</pre></div>");
         }
     }
 
@@ -149,18 +160,18 @@ final class HtmlReportTestsView {
                 .append("<table class=\"helm-evidence-table execution-table\"><thead><tr><th>FIELD</th><th>VALUE</th></tr></thead><tbody>");
         row(html, "response.status", String.valueOf(execution.response().status()));
         row(html, "response.url", redactor.redactText(execution.response().url()));
-        row(html, "response.duration.ms", String.valueOf(AtfDurationFormatter.elapsedMillis(execution.response().duration())));
+        row(html, "response.duration.ms", AtfDurationFormatter.format(execution.response().duration()));
         row(html, "attempts", String.valueOf(execution.attempts()));
         row(html, "retry.events", String.valueOf(execution.retryEvents().size()));
         html.append("</tbody></table>");
         if (!execution.attemptHistory().isEmpty()) {
             html.append("<table class=\"helm-evidence-table retry-history-table\"><thead><tr>")
-                    .append("<th>ATTEMPT</th><th>STATUS</th><th>DURATION (MS)</th><th>OUTCOME</th><th>REASON</th>")
+                    .append("<th>ATTEMPT</th><th>STATUS</th><th>DURATION</th><th>OUTCOME</th><th>REASON</th>")
                     .append("</tr></thead><tbody>");
             for (ApiAttemptRecord attempt : execution.attemptHistory()) {
                 html.append("<tr><td>").append(attempt.number()).append("</td><td>")
                         .append(attempt.statusCode()).append("</td><td>")
-                        .append(AtfDurationFormatter.elapsedMillis(attempt.duration())).append("</td><td>")
+                        .append(AtfDurationFormatter.format(attempt.duration())).append("</td><td>")
                         .append(escape(attempt.outcome().name())).append("</td><td>")
                         .append(escape(redactor.redactText(attempt.reason()))).append("</td></tr>");
             }

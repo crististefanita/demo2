@@ -3,9 +3,11 @@ package atf.api.reporting.extent;
 import atf.api.core.reporting.AtfAssertion;
 import atf.api.core.reporting.AtfReportPorts;
 import atf.api.core.reporting.AtfReportStatus;
+import atf.api.core.ui.AtfUiActionRecord;
 import atf.api.reporting.ExtentReportTree;
 import com.aventstack.extentreports.ExtentTest;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -15,6 +17,9 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
     private final ExtentTest validation;
     private final String validationTitle;
     private List<AtfAssertion> assertions = List.of();
+    private final List<AtfUiActionRecord> uiActions = new ArrayList<>();
+    private final List<String[]> screenshots = new ArrayList<>();
+    private final List<String[]> mediaScreenshots = new ArrayList<>();
     private boolean completed;
     private boolean closed;
 
@@ -31,9 +36,39 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
         assertions = rows == null ? List.of() : List.copyOf(rows);
     }
 
+    @Override public void uiActions(Collection<AtfUiActionRecord> actions) {
+        if (actions != null) uiActions.addAll(actions);
+    }
+
+    @Override public void screenshot(String title, String base64Png) {
+        if (base64Png == null || base64Png.isBlank()) {
+            throw new IllegalArgumentException("base64Png must not be blank");
+        }
+        screenshots.add(new String[]{title == null || title.isBlank() ? "UI screenshot" : title,
+                base64Png});
+    }
+
+    @Override public void mediaScreenshot(String title, String base64Png) {
+        if (base64Png == null || base64Png.isBlank()) {
+            throw new IllegalArgumentException("base64Png must not be blank");
+        }
+        mediaScreenshots.add(new String[]{title == null || title.isBlank() ? "UI screenshot" : title,
+                base64Png});
+    }
+
     @Override public void complete(AtfReportStatus status) {
         tree.ensureOpen();
         if (completed) throw new IllegalStateException("Validation is already complete");
+        if (mediaScreenshots.isEmpty()) {
+            tree.renderUiActions(validation, uiActions, screenshots);
+            if (uiActions.isEmpty()) tree.renderScreenshots(validation, screenshots);
+        } else {
+            if (!screenshots.isEmpty()) {
+                throw new IllegalStateException("A validation cannot mix inline and media screenshots");
+            }
+            tree.renderUiActionsAsMedia(validation, uiActions);
+            tree.renderScreenshots(validation, mediaScreenshots);
+        }
         tree.renderAssertions(validation, assertions);
         tree.complete(validation, status);
         tree.markEnded(validation);

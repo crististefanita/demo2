@@ -16,9 +16,11 @@ final class ReportArtifactThemeContracts {
         checks.put("uniform report surfaces", html.contains("html,body,body.dark,.app,.layout")
                 && html.contains(".main-content,.view,.test-content,.test-list")
                 && html.contains("background:var(--atf-dark)!important"));
-        checks.put("tests filter surface", html.contains(".test-view .test-list-tools .dropdown-menu{background:var(--atf-dark)!important")
-                && html.contains(".test-view .test-list-tools .dropdown-menu .dropdown-item{background:var(--atf-dark)!important")
-                && html.contains(".test-view .test-list-tools .dropdown-menu .dropdown-item:hover"));
+        checks.put("tests filter surface", html.contains(".test-view .test-list-tools .dropdown-menu,.category-view .test-list-tools .dropdown-menu{background:var(--atf-dark)!important")
+                && html.contains(".test-view .test-list-tools .dropdown-menu .dropdown-item,.category-view .test-list-tools .dropdown-menu .dropdown-item{background:var(--atf-dark)!important")
+                && html.contains(".category-view .test-list-tools .dropdown-menu .dropdown-item:hover"));
+        checks.put("category filter surface", html.contains(".category-view .test-list-tools .dropdown-menu{background:var(--atf-dark)!important")
+                && html.contains(".category-view .test-list-tools .dropdown-menu .dropdown-item"));
         checks.put("tests filter controls", html.contains("id=\"status-toggle\"")
                 && html.contains("id=\"tag-toggle\"")
                 && html.contains("class=\"dropdown-toggle\""));
@@ -48,6 +50,13 @@ final class ReportArtifactThemeContracts {
                 && html.contains("'teardown':true")
                 && html.contains("'warning':true")
                 && html.contains("normalizeTagFilter();bindTestFilters()"));
+        checks.put("category filter contract", html.contains("var atfCategoryFilterState={status:'',tag:''}")
+                && html.contains("category-status-toggle")
+                && html.contains("category-tag-toggle")
+                && html.contains("function applyCategoryFilters()")
+                && html.contains("function setCategoryFilter(kind,value)")
+                && html.contains("function ensureCategoryFilters()")
+                && html.contains("data-atf-filter-hidden"));
         checks.put("phase shell contract", html.contains("data-atf-node-role=\"phase\"]{margin:12px 0!important")
                 && html.contains("border-left:3px solid var(--atf-accent)!important")
                 && html.contains("border-radius:8px!important")

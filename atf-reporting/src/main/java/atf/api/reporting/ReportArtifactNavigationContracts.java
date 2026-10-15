@@ -39,7 +39,7 @@ final class ReportArtifactNavigationContracts {
                 && html.contains("function bindCategorySelection()")
                 && html.contains("function ensureCategoryDetail()")
                 && html.contains("function normalizeCategorySummaryLabels()")
-                && html.contains("if(id==='category-view'){ensureCategoryDetail();normalizeCategorySummaryLabels();normalizeCategoryLinks();}"));
+                && html.contains("if(id==='category-view'){ensureCategoryFilters();ensureCategoryDetail();normalizeCategorySummaryLabels();normalizeCategoryLinks();}"));
         checks.put("category surface and link contract", html.contains(
                 ".category-view,.category-view .test-list,.category-view .test-list-tools,")
                 && html.contains(".category-view .test-content,.category-view .test-content-tools,")

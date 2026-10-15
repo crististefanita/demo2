@@ -79,6 +79,7 @@ final class HtmlReportSemanticDocument {
         final String path;
         final List<String[]> details = new ArrayList<>();
         final List<String[]> json = new ArrayList<>();
+        final List<NodeModel> children = new ArrayList<>();
         ApiExecutionResult execution;
         AtfReportStatus status = AtfReportStatus.INFO;
 

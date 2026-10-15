@@ -39,6 +39,8 @@ class AtfReportCategoryThemeTest {
                 () -> assertTrue(css.contains(".category-view .test-content,.category-view .test-content-tools,")),
                 () -> assertTrue(css.contains(".category-view .test-list-wrapper>.test-list-item>.test-item")),
                 () -> assertTrue(css.contains(".category-view a.linked{color:var(--atf-accent)!important")),
-                () -> assertTrue(css.contains(".category-view a.linked:hover,.category-view a.linked:focus")));
+                () -> assertTrue(css.contains(".category-view a.linked:hover,.category-view a.linked:focus")),
+                () -> assertTrue(css.contains(".category-view .test-list-tools .dropdown-menu")),
+                () -> assertTrue(css.contains(".category-view .test-list-tools .dropdown-menu .dropdown-item")));
     }
 }

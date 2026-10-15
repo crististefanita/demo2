@@ -54,7 +54,7 @@ public final class ApiScenarioLifecycleRunner {
 
     public ApiScenarioOutcome run(AtfReportPorts.Session session, ApiScenarioPlan plan) {
         if (session == null || plan == null) throw new NullPointerException("session/plan");
-        var scenario = session.startScenario(plan.testClass(), plan.scenario(), plan.tags());
+        var scenario = session.startScenario(plan.testClass(), plan.testPackage(), plan.scenario(), plan.tags());
         var execution = new PhaseAccumulator();
         try {
             if (plan.setup() != null) {

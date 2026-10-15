@@ -9,6 +9,7 @@ import atf.api.core.reporting.AtfReportPorts;
 import atf.api.core.reporting.AtfReportStatus;
 import atf.api.core.reporting.ReportStatusAggregator;
 import atf.api.core.security.SensitiveDataRedactor;
+import atf.api.core.ui.AtfUiActionRecord;
 import atf.api.reporting.extent.ExtentScenarioScope;
 import com.aventstack.extentreports.ExtentReports;
 import com.aventstack.extentreports.ExtentTest;
@@ -28,6 +29,7 @@ public final class ExtentReportTree {
     private final AtfConsoleSink console;
     private final Map<String, ExtentTest> classRoots = new LinkedHashMap<>();
     private final Map<String, ReportStatusAggregator> classStatuses = new LinkedHashMap<>();
+    private final Map<String, String> classPackages = new LinkedHashMap<>();
 
     public ExtentReportTree(ExtentReports reports, ReportingSettings settings,
                             SensitiveDataRedactor redactor, Runnable ensureSessionOpen) {
@@ -47,13 +49,21 @@ public final class ExtentReportTree {
 
     public AtfReportPorts.Scenario startScenario(String testClass, String scenario,
                                                   Collection<String> tags) {
+        return startScenario(testClass, null, scenario, tags);
+    }
+
+    public AtfReportPorts.Scenario startScenario(String testClass, String testPackage,
+                                                  String scenario, Collection<String> tags) {
         ensureOpen();
         String className = testClass == null || testClass.isBlank() ? "API tests" : testClass;
+        String packageName = testPackage == null ? "" : testPackage.trim();
         ExtentTest classRoot = classRoots.computeIfAbsent(className, ignored -> {
             ExtentTest root = reports.createTest(className);
+            if (!packageName.isBlank()) root.getModel().setDescription(packageName);
             ExtentNodeLifecycle.start(root);
             return root;
         });
+        if (!packageName.isBlank()) classPackages.putIfAbsent(className, packageName);
         classStatuses.computeIfAbsent(className, ignored -> new ReportStatusAggregator());
         ExtentTest test = classRoot.createNode(scenario == null ? "Scenario" : scenario);
         ExtentNodeLifecycle.start(test);
@@ -113,6 +123,24 @@ public final class ExtentReportTree {
     /** Publishes one renderer-neutral transport evidence block at the request boundary. */
     public void renderExecution(ExtentTest node, ApiExecutionResult execution) {
         evidence.renderExecution(node, execution);
+    }
+
+    public void renderScreenshots(ExtentTest node, List<String[]> screenshots) {
+        evidence.renderScreenshots(node, screenshots);
+    }
+
+    public void renderUiActions(ExtentTest node, List<AtfUiActionRecord> actions) {
+        evidence.renderUiActions(node, actions, List.of());
+    }
+
+    public void renderUiActions(ExtentTest node, List<AtfUiActionRecord> actions,
+                                List<String[]> screenshots) {
+        evidence.renderUiActions(node, actions, screenshots);
+    }
+
+    /** Renders a Playwright action table without embedding its screenshot. */
+    public void renderUiActionsAsMedia(ExtentTest node, List<AtfUiActionRecord> actions) {
+        evidence.renderUiActionsAsMedia(node, actions);
     }
 
     public void renderAssertions(ExtentTest node, Collection<AtfAssertion> assertions) {

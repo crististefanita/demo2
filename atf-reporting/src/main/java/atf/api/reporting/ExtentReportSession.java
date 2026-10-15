@@ -94,6 +94,13 @@ public final class ExtentReportSession implements AtfReportPorts.Session, AutoCl
     }
 
     @Override
+    public AtfReportPorts.Scenario startScenario(String testClass, String testPackage,
+                                                 String scenario, Collection<String> tags) {
+        ensureOpen();
+        return tree.startScenario(testClass, testPackage, scenario, tags);
+    }
+
+    @Override
     public void flush() {
         ensureOpen();
         reports.flush();

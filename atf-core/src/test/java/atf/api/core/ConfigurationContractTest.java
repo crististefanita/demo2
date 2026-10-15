@@ -49,5 +49,14 @@ class ConfigurationContractTest {
         assertEquals(Set.of(429, 503), snapshot.api().retryStatuses());
         assertEquals(3, snapshot.api().maxAttempts());
         assertEquals(128, snapshot.reporting().assertionMaxDisplayCharacters());
+        assertEquals(12_000, snapshot.reporting().bodyMaxDisplayCharacters());
+    }
+
+    @Test
+    void reportingSettingsRejectInvalidBodyDisplayLimits() {
+        assertAll(
+                () -> assertThrows(IllegalArgumentException.class, () -> new ReportingSettings(240, 0)),
+                () -> assertThrows(IllegalArgumentException.class, () -> new ReportingSettings(240, -1)),
+                () -> assertEquals(12_000, new ReportingSettings(240).bodyMaxDisplayCharacters()));
     }
 }

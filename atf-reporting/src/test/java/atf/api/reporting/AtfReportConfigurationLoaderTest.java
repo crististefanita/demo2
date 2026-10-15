@@ -67,6 +67,38 @@ class AtfReportConfigurationLoaderTest {
     }
 
     @Test
+    void readsTheConfiguredJsonBodyDisplayLimitFromReportingYaml() throws Exception {
+        Path config = Files.createTempFile("atf-body-limit-", ".yaml");
+        try {
+            Files.writeString(config, """
+                    reporting:
+                      assertionMaxDisplayCharacters: 240
+                      bodyMaxDisplayCharacters: 321
+                    """);
+
+            var settings = AtfReportConfigurationLoader.load(config).reportingSettings();
+
+            assertEquals(240, settings.assertionMaxDisplayCharacters());
+            assertEquals(321, settings.bodyMaxDisplayCharacters());
+        } finally {
+            Files.deleteIfExists(config);
+        }
+    }
+
+    @Test
+    void rejectsAnInvalidJsonBodyDisplayLimit() throws Exception {
+        Path config = Files.createTempFile("atf-invalid-body-limit-", ".yaml");
+        try {
+            Files.writeString(config, "reporting:\n  bodyMaxDisplayCharacters: 0\n");
+            var error = assertThrows(IllegalStateException.class,
+                    () -> AtfReportConfigurationLoader.load(config));
+            assertTrue(error.getMessage().contains("bodyMaxDisplayCharacters"));
+        } finally {
+            Files.deleteIfExists(config);
+        }
+    }
+
+    @Test
     void keepsStablePathWhenTimestampingIsDisabled() {
         var settings = new ExtentReportConfiguration(Path.of("target"), "report.html",
                 false, "yyyy-MM-dd_HH-mm-ss-SSS", "UTC");

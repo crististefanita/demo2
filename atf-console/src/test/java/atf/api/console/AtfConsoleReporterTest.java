@@ -40,6 +40,26 @@ class AtfConsoleReporterTest {
     }
 
     @Test
+    void switchesToSecondsOnlyAboveTheThreeHundredMillisecondThreshold() {
+        var bytes = new ByteArrayOutputStream();
+        var reporter = new AtfConsoleReporter(new PrintStream(bytes, true, StandardCharsets.UTF_8),
+                new ConsoleSettings(true, false));
+
+        reporter.publish(AtfConsoleEvent.completed(AtfConsoleEvent.Scope.REQUEST,
+                "short", AtfReportStatus.PASS, 300));
+        reporter.publish(AtfConsoleEvent.completed(AtfConsoleEvent.Scope.REQUEST,
+                "long", AtfReportStatus.PASS, 301));
+        reporter.publish(AtfConsoleEvent.completed(AtfConsoleEvent.Scope.REQUEST,
+                "second", AtfReportStatus.PASS, 1_000));
+
+        String output = bytes.toString(StandardCharsets.UTF_8);
+        assertAll(
+                () -> assertTrue(output.contains("Call completed (300 ms)")),
+                () -> assertTrue(output.contains("Call completed (0.301 s)")),
+                () -> assertTrue(output.contains("Call completed (1 s)")));
+    }
+
+    @Test
     void keepsDetailsOptInAndCanBeDisabledEntirely() {
         var bytes = new ByteArrayOutputStream();
         var reporter = new AtfConsoleReporter(new PrintStream(bytes, true, StandardCharsets.UTF_8),

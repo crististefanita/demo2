@@ -14,11 +14,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-/** Loads only the {@code mock} section and never changes live HTTP settings. */
+/** Loads the mock-owned route catalog and never changes live HTTP settings. */
 public final class AtfMockConfigurationLoader {
     public static final String CONFIG_PROPERTY = "atf.mock.config";
     public static final String CONFIG_ENVIRONMENT_VARIABLE = "ATF_MOCK_CONFIG";
-    public static final List<String> DEFAULT_CONFIG_NAMES = List.of("atf.yaml", "atf.yml");
+    public static final List<String> DEFAULT_CONFIG_NAMES = List.of("atf-mock.yaml", "atf-mock.yml");
 
     private static final ObjectMapper YAML = new ObjectMapper(new YAMLFactory());
 
@@ -39,8 +39,13 @@ public final class AtfMockConfigurationLoader {
         }
         try {
             JsonNode root = YAML.readTree(absolute.toFile());
+            if (root == null || !root.isObject()) {
+                throw new IllegalStateException("ATF mock configuration root must be an object: " + absolute);
+            }
             JsonNode mock = root.path("mock");
-            if (mock.isMissingNode() || mock.isNull()) return AtfMockConfiguration.defaults();
+            if (mock.isMissingNode() || mock.isNull()) {
+                throw new IllegalStateException("ATF mock configuration must contain a root 'mock' section: " + absolute);
+            }
             JsonNode routes = mock.path("routes");
             if (!routes.isArray()) {
                 throw new IllegalStateException("mock.routes must be an array: " + absolute);

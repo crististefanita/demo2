@@ -66,7 +66,9 @@ public final class AtfReportConfigurationLoader {
             JsonNode extent = reporting.path("extent");
             int assertionLimit = integer(reporting, "assertionMaxDisplayCharacters",
                     ReportingSettings.DEFAULT_ASSERTION_MAX_DISPLAY_CHARACTERS);
-            var reportingSettings = new ReportingSettings(assertionLimit);
+            int bodyLimit = integer(reporting, "bodyMaxDisplayCharacters",
+                    ReportingSettings.DEFAULT_BODY_MAX_DISPLAY_CHARACTERS);
+            var reportingSettings = new ReportingSettings(assertionLimit, bodyLimit);
             String outputDirectory = text(extent, "outputDirectory", "target");
             String fileName = text(extent, "fileName", ExtentReportConfiguration.DEFAULT_FILE_NAME);
             boolean timestampEnabled = bool(extent, "timestampEnabled", true);

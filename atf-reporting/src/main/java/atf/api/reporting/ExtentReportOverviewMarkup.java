@@ -6,7 +6,15 @@ final class ExtentReportOverviewMarkup {
     }
 
     static String inject(String html) {
-        String marker = "<div class=\"row\">\n<div class=\"col-lg-6 col-md-12 category-container\">";
+        // Extent Spark emits two valid overview shapes across versions: in
+        // one the category card starts a fresh row, in another it follows the
+        // preceding card directly. Anchor to the semantic category container,
+        // not to incidental row whitespace, so the ATF overview contract stays
+        // stable when the vendor changes its grid markup.
+        String rowMarker = "<div class=\"row\">\n<div class=\"col-lg-6 col-md-12 category-container\">";
+        String marker = html.contains(rowMarker)
+                ? rowMarker
+                : "<div class=\"col-lg-6 col-md-12 category-container\">";
         String metadata = "<details id=\"atf-execution-metadata\" class=\"atf-secondary-overview\">"
                 + "<summary><span class=\"atf-secondary-overview-title\">ATF execution metadata (secondary)</span>"
                 + "<span class=\"atf-secondary-overview-badge\">secondary metadata</span></summary>"
@@ -19,7 +27,9 @@ final class ExtentReportOverviewMarkup {
                 + auditPanel("Test packages", "atf-audit-packages", "NAME|COUNT|SHARE")
                 + auditPanel("Other annotations / tags", "atf-audit-tags", "NAME|COUNT")
                 + "</div></div></details>";
-        return html.replace(marker, metadata + marker);
+        int markerIndex = html.indexOf(marker);
+        if (markerIndex < 0) return html;
+        return html.substring(0, markerIndex) + metadata + html.substring(markerIndex);
     }
 
     private static String auditPanel(String title, String id, String headers) {

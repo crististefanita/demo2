@@ -73,7 +73,8 @@ constructorii lor impliciți folosesc `noOp`.
 
 ## Testare
 
-`AtfConsoleReporterTest` protejează nesting-ul, statusurile, durata în `ms`,
+`AtfConsoleReporterTest` protejează nesting-ul, statusurile și politica de
+durată (`ms` până la `300 ms`, apoi `s`),
 redaction boundary, body-ul pretty-print, opțiunea de detalii și fallback-ul
 ASCII/UTF-8. `ConsoleLifecycleStateTest` protejează tranzițiile de nesting,
 inclusiv completarea defensivă la adâncime zero. `AtfConsoleConfigurationLoaderTest`

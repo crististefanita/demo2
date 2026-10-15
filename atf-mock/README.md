@@ -17,9 +17,25 @@ ruta completă fără să pretindă că serverul a fost contactat.
 
 ## Configurație YAML
 
-`AtfMockConfigurationLoader` caută `atf.mock.config`, `ATF_MOCK_CONFIG` sau
-`atf.yaml` în directorul curent și părinții lui. Citește numai secțiunea
-`mock`; dacă aceasta lipsește, folosește fixture-ul built-in compatibil.
+Catalogul mock este separat intenționat de configurația generală ATF:
+`atf.yaml` păstrează doar API, validation și reporting, iar `atf-mock.yaml`
+deține rutele, răspunsurile și fallback-ul fake. `AtfMockConfigurationLoader`
+caută implicit `atf-mock.yaml`/`atf-mock.yml` în directorul curent și părinții
+lui. Pentru o compoziție explicită, ordinea este:
+
+1. proprietatea JVM `-Datf.mock.config=cale/catre/atf-mock.yaml`;
+2. variabila `ATF_MOCK_CONFIG`;
+3. descoperirea ascendentă a `atf-mock.yaml`/`atf-mock.yml`;
+4. fixture-ul built-in, numai când nu există un fișier configurat.
+
+Calea explicită poate fi relativă la working directory-ul procesului, ceea ce
+permite rulări directe din IntelliJ, CI sau workspace-uri paralele. Dacă o cale
+explicită există dar este invalidă, încărcarea eșuează fail-fast; nu revine
+silențios la fixture-ul built-in și nu pornește HTTP real.
+
+Fișierul implicit din repository este [`../atf-mock.yaml`](../atf-mock.yaml).
+Un consumator poate păstra catalogul în altă locație fără să schimbe
+`atf.yaml`, folosind override-ul de mai sus.
 
 ```yaml
 mock:
@@ -50,6 +66,9 @@ mock:
       auth-profile: api-key
       query:
         mode: validate
+      request-headers:
+        Content-Type: application/json
+        X-Client: atf-java
       status: 202
       body: '{"accepted":true}'
 ```
@@ -58,6 +77,13 @@ mock:
 se pun în YAML-ul de test; auth-ul este reprezentat prin `AuthType` și prin
 headerele redacted din evidence. Dacă profilul sau un parametru nu corespunde,
 mock-ul nu acceptă ruta și ajunge la fallback-ul configurat.
+
+`request-headers` adaugă aceeași regulă pentru headerele trimise de client.
+Numele sunt comparate case-insensitive, dar valoarea trebuie să corespundă
+exact. Headerele din `headers` sunt headerele primite în response și pot
+simula `X-Request-Id`, `ETag`, `Retry-After`, rate-limit sau alte metadata de
+transport. În raport, headerele trimise și primite apar în rânduri distincte
+din `TECHNICAL TRACE`.
 
 Suitea `RequestVariantsApiTests` folosește patru forme distincte: Bearer +
 query, API key + body mare, Basic + body nested și Custom + parametri. Fiecare

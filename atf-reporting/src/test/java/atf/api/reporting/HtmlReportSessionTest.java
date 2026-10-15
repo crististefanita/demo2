@@ -2,6 +2,7 @@ package atf.api.reporting;
 
 import atf.api.core.reporting.AtfAssertion;
 import atf.api.core.reporting.AtfReportStatus;
+import atf.api.core.config.ReportingSettings;
 import atf.api.core.http.ApiExecutionResult;
 import atf.api.core.http.ApiResponse;
 import org.junit.jupiter.api.Test;
@@ -35,8 +36,11 @@ class HtmlReportSessionTest {
         var html = session.render();
 
         assertTrue(html.indexOf("GET /users/1") < html.indexOf("Validate user"));
-        assertTrue(html.contains("</div><div class=\"validation\" data-atf-node-role=\"validation\">"),
-                "validation must be a direct sibling after the request node");
+        int requestIndex = html.indexOf("class=\"request\"");
+        int validationIndex = html.indexOf("class=\"validation\" data-atf-node-role=\"validation\"");
+        assertTrue(validationIndex > requestIndex
+                        && divDepthAt(html, validationIndex) > divDepthAt(html, requestIndex),
+                "validation must be nested inside the Gherkin request node");
         assertTrue(html.contains("class=\"assertions\""));
         assertTrue(html.contains("HTTP status"));
         assertTrue(html.contains("schema"));
@@ -128,6 +132,28 @@ class HtmlReportSessionTest {
     }
 
     @Test
+    void fallbackJsonBodyIsScrollableAndUsesTheConfiguredDisplayLimit() {
+        var session = new HtmlReportSession(TestReportPaths.report("bounded-json.html"),
+                new ReportingSettings(240, 18));
+        var scenario = session.startScenario("BodyTests", "bounded response", List.of("api"));
+        var body = scenario.startPhase("TEST BODY");
+        var request = body.startRequest("large response", "GET", "/users");
+        request.json("RESPONSE JSON", "{\"payload\":\"012345678901234567890123456789\"}");
+        request.complete(AtfReportStatus.PASS);
+        body.complete(AtfReportStatus.PASS);
+        scenario.complete(AtfReportStatus.PASS);
+
+        var html = session.render();
+
+        assertAll(
+                () -> assertTrue(html.contains("class=\"response-json-body\"")),
+                () -> assertTrue(html.contains("class=\"json-code\"")),
+                () -> assertTrue(html.contains("max-height:360px;overflow:auto")),
+                () -> assertTrue(html.contains("… [truncated]")),
+                () -> assertFalse(html.contains("012345678901234567890123456789\"}")));
+    }
+
+    @Test
     void fallbackRedactsFailureCauseWhenPublishedThroughACompletedPhase() {
         var session = new HtmlReportSession(TestReportPaths.report("fallback-failure-redaction.html"));
         var scenario = session.startScenario("FailureTests", "redacted failure", List.of("api"));
@@ -149,5 +175,15 @@ class HtmlReportSessionTest {
         int count = 0, index = 0;
         while ((index = value.indexOf(token, index)) >= 0) { count++; index += token.length(); }
         return count;
+    }
+
+    private static int divDepthAt(String html, int markerIndex) {
+        String prefix = html.substring(0, markerIndex);
+        int depth = 0;
+        for (int index = 0; index < prefix.length(); index++) {
+            if (prefix.startsWith("<div", index)) depth++;
+            if (prefix.startsWith("</div>", index)) depth--;
+        }
+        return depth;
     }
 }

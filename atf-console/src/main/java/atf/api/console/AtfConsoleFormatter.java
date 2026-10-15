@@ -1,6 +1,7 @@
 package atf.api.console;
 
 import atf.api.core.reporting.AtfConsoleEvent;
+import atf.api.core.reporting.AtfDurationFormatter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -51,7 +52,7 @@ final class AtfConsoleFormatter {
         String icon = style.statusIcon(event.status());
         String prefix = icon.isBlank() ? "" : icon + " ";
         return prefix + event.status().name() + ": "
-                + completionMessage(event) + " (" + event.durationMillis() + " ms)";
+                + completionMessage(event) + " (" + AtfDurationFormatter.formatMillis(event.durationMillis()) + ")";
     }
 
     private static String displayName(String name) {

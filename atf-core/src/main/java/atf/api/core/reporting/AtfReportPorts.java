@@ -1,6 +1,7 @@
 package atf.api.core.reporting;
 
 import atf.api.core.http.ApiExecutionResult;
+import atf.api.core.ui.AtfUiActionRecord;
 
 import java.nio.file.Path;
 import java.util.Collection;
@@ -11,6 +12,16 @@ public final class AtfReportPorts {
     public interface Session extends AutoCloseable {
         Path reportPath();
         Scenario startScenario(String testClass, String scenario, Collection<String> tags);
+
+        /**
+         * Starts a scenario with optional Java package metadata for the class
+         * root. Renderer implementations that do not expose this metadata
+         * retain the original contract through the compatibility default.
+         */
+        default Scenario startScenario(String testClass, String testPackage,
+                                       String scenario, Collection<String> tags) {
+            return startScenario(testClass, scenario, tags);
+        }
         void flush();
         @Override void close();
     }
@@ -34,6 +45,12 @@ public final class AtfReportPorts {
         void detail(String name, String value);
         void json(String label, String json);
 
+        /** Publishes a native inline UI screenshot on this report step. */
+        default void screenshot(String title, String base64Png) { }
+
+        /** Publishes consecutive Playwright actions as one auditable table. */
+        default void uiActions(Collection<AtfUiActionRecord> actions) { }
+
         /**
          * Publishes renderer-neutral transport evidence for the completed
          * exchange. Implementations may render attempts and retry history, but
@@ -50,6 +67,16 @@ public final class AtfReportPorts {
 
     public interface Validation extends ValidationSink.Scope, AutoCloseable {
         void assertions(Collection<AtfAssertion> assertions);
+
+        /** Publishes consecutive Playwright actions inside this validation zone. */
+        default void uiActions(Collection<AtfUiActionRecord> actions) { }
+
+        /** Publishes the visual state produced by the Playwright actions. */
+        default void screenshot(String title, String base64Png) { }
+
+        /** Publishes Base64 media as a native clickable report artifact. */
+        default void mediaScreenshot(String title, String base64Png) { }
+
         void complete(AtfReportStatus status);
         @Override void close();
     }

@@ -18,7 +18,7 @@ final class ExtentReportNodeSupport {
     static String normalizeDetailName(String name) {
         if (name == null || name.isBlank()) return "DETAIL";
         return switch (name.trim().toLowerCase(java.util.Locale.ROOT)) {
-            case "response.duration.ms", "duration", "duration.ms" -> "response duration (ms)";
+            case "response.duration.ms", "duration", "duration.ms" -> "response duration";
             case "response.status", "http.status", "status" -> "HTTP STATUS";
             case "route", "request.route" -> "ROUTE TEMPLATE";
             default -> name;
@@ -28,7 +28,16 @@ final class ExtentReportNodeSupport {
     static String display(String value, ReportingSettings settings) {
         String safe = value == null ? "" : value;
         int limit = settings.assertionMaxDisplayCharacters();
-        return safe.length() <= limit ? safe : safe.substring(0, limit) + "…";
+        return truncate(safe, limit);
+    }
+
+    static String displayBody(String value, ReportingSettings settings) {
+        String safe = value == null ? "" : value;
+        return truncate(safe, settings.bodyMaxDisplayCharacters());
+    }
+
+    private static String truncate(String value, int limit) {
+        return value.length() <= limit ? value : value.substring(0, limit) + "… [truncated]";
     }
 
     static String resultMarker(AtfReportStatus status) {

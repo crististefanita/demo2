@@ -53,7 +53,7 @@ class HtmlReportViewsTest {
         var phase = new HtmlReportSemanticDocument.PhaseModel("TEST BODY");
         var request = new HtmlReportSemanticDocument.RequestModel("retry", "GET", "/users");
         request.execution = new ApiExecutionResult(
-                new ApiResponse(200, "ignored", Map.of(), Duration.ofMillis(12),
+                new ApiResponse(200, "ignored", Map.of(), Duration.ofMillis(301),
                         "https://example.test/users?token=raw-url-token&mode=full"),
                 2,
                 Duration.ofMillis(18),
@@ -72,9 +72,9 @@ class HtmlReportViewsTest {
                 () -> assertTrue(html.contains("execution-evidence")),
                 () -> assertTrue(html.contains("retry-history-table")),
                 () -> assertTrue(html.contains("response.duration.ms")),
-                () -> assertTrue(html.contains("<th>response.duration.ms</th><td>12</td>")),
-                () -> assertTrue(html.contains("<td>1</td><td>429</td><td>5</td><td>RETRYABLE_RESPONSE</td>")),
-                () -> assertTrue(html.contains("<td>2</td><td>200</td><td>12</td><td>SUCCESS</td>")),
+                () -> assertTrue(html.contains("<th>response.duration.ms</th><td>0.301 s</td>")),
+                () -> assertTrue(html.contains("<td>1</td><td>429</td><td>5 ms</td><td>RETRYABLE_RESPONSE</td>")),
+                () -> assertTrue(html.contains("<td>2</td><td>200</td><td>12 ms</td><td>SUCCESS</td>")),
                 () -> assertTrue(html.contains("***REDACTED***")),
                 () -> assertTrue(html.contains("mode=full")),
                 () -> assertFalse(html.contains("raw-url-token")),

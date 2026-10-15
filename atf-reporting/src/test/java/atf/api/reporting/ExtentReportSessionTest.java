@@ -7,6 +7,7 @@ import atf.api.core.http.ApiAttemptRecord;
 import atf.api.core.http.ApiExecutionResult;
 import atf.api.core.http.ApiResponse;
 import atf.api.core.http.RetryEvent;
+import atf.api.core.config.ReportingSettings;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
@@ -20,6 +21,35 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ExtentReportSessionTest {
+    @Test
+    void extentJsonBodyUsesConfiguredLimitAfterRedactionAndKeepsCodeBlockContract() throws Exception {
+        Path root = Files.createTempDirectory("atf-extent-body-limit-");
+        Path report = root.resolve("bounded.html");
+        try {
+            try (var session = new ExtentReportSession(report, new ReportingSettings(240, 40))) {
+                var scenario = session.startScenario("BodyTests", "bounded response", List.of("api"));
+                var phase = scenario.startPhase("TEST BODY");
+                var request = phase.startRequest("large response", "GET", "/users");
+                request.json("RESPONSE JSON", "{\"api_key\":\"raw-token\",\"payload\":\"012345678901234567890123456789\"}");
+                request.complete(AtfReportStatus.PASS);
+                phase.complete(AtfReportStatus.PASS);
+                scenario.complete(AtfReportStatus.PASS);
+            }
+
+            var html = Files.readString(report);
+
+            assertAll(
+                    () -> assertTrue(html.contains("response-json-body")),
+                    () -> assertTrue(html.contains("helm-scroll-block-body")),
+                    () -> assertTrue(html.contains("… [truncated]")),
+                    () -> assertTrue(html.contains("***REDACTED***")),
+                    () -> assertFalse(html.contains("raw-token")),
+                    () -> assertFalse(html.contains("012345678901234567890123456789\"}")));
+        } finally {
+            deleteTree(root);
+        }
+    }
+
     @Test
     void flushKeepsTheFinalPathPrivateUntilClosePublishesTheCompleteArtifact() throws Exception {
         Path root = Files.createTempDirectory("atf-incomplete-flush-");
@@ -322,8 +352,8 @@ class ExtentReportSessionTest {
         int validationIndex = html.indexOf("Validate user contract");
         assertTrue(requestIndex >= 0 && validationIndex > requestIndex);
         assertFalse(html.contains("GET /public/v2/users/1 — item contract"));
-        assertEquals(divDepthAt(html, requestIndex), divDepthAt(html, validationIndex),
-                "request and validation must be sibling nodes under the phase");
+        assertTrue(divDepthAt(html, validationIndex) > divDepthAt(html, requestIndex),
+                "validation must be nested inside the Gherkin request step");
         assertAll(
                 () -> assertTrue(html.contains("UsersApiTests")),
                 () -> assertTrue(html.contains("SETUP")),
@@ -335,7 +365,7 @@ class ExtentReportSessionTest {
                 () -> assertTrue(html.contains("JSON schema")),
                 () -> assertTrue(html.contains("RESPONSE JSON")),
                 () -> assertTrue(html.contains("TECHNICAL TRACE")),
-                () -> assertTrue(html.toUpperCase(java.util.Locale.ROOT).contains("RESPONSE DURATION (MS)")),
+                 () -> assertTrue(html.toUpperCase(java.util.Locale.ROOT).contains("RESPONSE DURATION")),
                  () -> assertTrue(html.contains("Request details · 1 fields")),
                  () -> assertTrue(html.contains("Response details · 1 fields")),
                  () -> assertTrue(html.contains("helm-request-table")),
@@ -427,13 +457,14 @@ class ExtentReportSessionTest {
                         && html.contains("node.nodeType===3")
                         && html.contains("node.remove()"),
                         "Tests navigation must show duration without the visual slash separator"),
-                () -> assertTrue(html.contains("e.textContent=String(ms)+' ms'"),
-                        "every normalized duration must carry the ms unit"),
+                 () -> assertTrue(html.contains("function atfFormatDuration(ms)")
+                                 && html.contains("return String(value)+' ms'"),
+                         "the shared duration formatter must carry the ms unit"),
                 () -> assertTrue(html.contains("function aggregateClassDurations()")),
                 () -> assertTrue(html.contains("root.setAttribute('data-duration-source','aggregated')")),
                 () -> assertTrue(html.contains(".test-view .test-content-detail .card-toolbar .badge,.category-view .test-content-detail .card-toolbar .badge")
                                  && html.contains("/^(pass|fail|warning|skip)$/i.test(raw)")
-                                 && html.contains("e.textContent=raw+' ms'"),
+                                 && html.contains("e.textContent=atfFormatDuration(ms)"),
                          "scenario and lifecycle toolbar durations must carry the ms unit without changing status badges"),
                 () -> assertTrue(html.contains(".test-detail .text-sm span")),
                 () -> assertTrue(html.contains("function collapseDirectScenarioCards()")),
@@ -502,7 +533,8 @@ class ExtentReportSessionTest {
                 () -> assertTrue(html.contains("function failedAssertionRows(item)")),
                 () -> assertTrue(html.contains("function failureContextFor(item,anchor)")),
                 () -> assertTrue(html.contains("duration:duration||'No response duration recorded'")),
-                () -> assertTrue(html.contains("duration=/ms$/i.test(rawDuration)?rawDuration:rawDuration+' ms'")),
+                () -> assertTrue(html.contains("var durationMs=atfDurationValue(rawDuration)")
+                        && html.contains("duration=durationMs===null?rawDuration:atfFormatDuration(durationMs)")),
                 () -> assertTrue(html.contains("data-atf-failure-ordinal")),
                 () -> assertTrue(html.contains("data-atf-failure-id")),
                  () -> assertTrue(html.contains("failureIndexMarkup(name,ctx,id,scenarioIndex,record.ordinal)"),

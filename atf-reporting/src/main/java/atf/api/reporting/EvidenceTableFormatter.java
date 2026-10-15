@@ -1,5 +1,7 @@
 package atf.api.reporting;
 
+import atf.api.core.reporting.AtfDurationFormatter;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -13,7 +15,7 @@ public final class EvidenceTableFormatter {
         var rows = new ArrayList<String[]>(details.size() + 1);
         rows.add(new String[]{"FIELD", "VALUE"});
         for (String[] detail : details) {
-            rows.add(new String[]{displayName(detail[0]), detail[1] == null ? "" : detail[1]});
+            rows.add(new String[]{displayName(detail[0]), displayValue(detail[0], detail[1])});
         }
         return rows.toArray(String[][]::new);
     }
@@ -60,8 +62,8 @@ public final class EvidenceTableFormatter {
     private static boolean isExecutionSummaryField(String key) {
         if (key == null) return false;
         return switch (key.trim().toLowerCase(Locale.ROOT)) {
-            case "duration", "response duration (ms)", "response.duration.ms",
-                    "total duration (ms)", "total.duration.ms", "response status",
+            case "duration", "response duration", "response duration (ms)", "response.duration.ms",
+                    "total duration", "total duration (ms)", "total.duration.ms", "exchange.duration.ms", "response status",
                     "response.status", "attempt", "attempts", "response.url" -> true;
             default -> false;
         };
@@ -76,12 +78,35 @@ public final class EvidenceTableFormatter {
             case "auth.mode", "auth.profile" -> "AUTHENTICATION";
             case "response.status" -> "RESPONSE STATUS";
             case "response.content.type" -> "CONTENT TYPE";
-            case "response.duration.ms" -> "RESPONSE DURATION (ms)";
-            case "exchange.duration.ms" -> "TOTAL DURATION (ms)";
-            case "response duration (ms)" -> "RESPONSE DURATION (ms)";
-            case "total duration (ms)" -> "TOTAL DURATION (ms)";
+            case "response.duration.ms" -> "RESPONSE DURATION";
+            case "exchange.duration.ms" -> "TOTAL DURATION";
+            case "response duration", "response duration (ms)" -> "RESPONSE DURATION";
+            case "total duration", "total duration (ms)" -> "TOTAL DURATION";
             case "attempt" -> "ATTEMPT";
             default -> key.replace('.', ' ').replace('_', ' ').toUpperCase(Locale.ROOT);
+        };
+    }
+
+    /** Applies the shared display policy while keeping source keys backward-compatible. */
+    public static String displayValue(String key, String value) {
+        if (value == null || !isDurationKey(key)) return value == null ? "" : value;
+        String normalized = value.trim();
+        if (normalized.matches("(?i)^\\d+(?:\\.\\d+)?\\s*s$")) return normalized;
+        String millis = normalized.replaceFirst("(?i)\\s*ms$", "").trim();
+        if (!millis.matches("\\d+")) return value;
+        try {
+            return AtfDurationFormatter.formatMillis(Long.parseLong(millis));
+        } catch (NumberFormatException ignored) {
+            return value;
+        }
+    }
+
+    private static boolean isDurationKey(String key) {
+        if (key == null) return false;
+        return switch (key.trim().toLowerCase(Locale.ROOT)) {
+            case "duration", "duration.ms", "response duration", "response duration (ms)", "response.duration.ms",
+                    "total duration", "total duration (ms)", "total.duration.ms", "exchange.duration.ms" -> true;
+            default -> false;
         };
     }
 }

@@ -9,6 +9,14 @@ hs_err_pid*.log
 .project
 .settings/
 
+# Generated IDE, report, JVM dump and temporary debug artifacts.
+.vs/
+artifacts/
+**/hs_err_pid*.log
+**/replay_pid*.log
+**/.tmp-debug-ui*.log
+**/.tmp-debug-ui*.log.err
+
 # Generated IDE, report and JVM replay artifacts.
 .vs/
 artifacts/

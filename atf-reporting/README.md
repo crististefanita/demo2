@@ -93,6 +93,51 @@ assertions sunt într-un singur tabel agregat, iar duratele folosesc întotdeaun
 unitatea `ms`. Verificarea vizuală se face pe artifactul autonom, în TAB MCP,
 nu prin compararea unor string-uri izolată de DOM.
 
+### Contractul evidence-ului UI
+
+Pentru un pas Gherkin de tip `Screen validation`, rendererul trebuie să păstreze
+local și lizibil relația:
+
+```text
+Screen validation
+  └── Playwright action sequence
+       ├── tabel cu acțiuni consecutive
+       └── screenshot Base64 al aceleiași stări, imediat sub tabel
+```
+
+Un screenshot desprins într-un nod separat sau atașat altei stări rupe
+auditabilitatea, chiar dacă HTML-ul este valid. În artifactul UI auditabil, un
+tabel de acțiuni fără captură nu este acceptat. Pașii tehnici non-vizuali pot
+rămâne fără imagine numai dacă nu emit tabel Playwright; politica de captură
+dezactivată produce doar audit funcțional, nu dovadă vizuală completă.
+Rendererul verifică acum cardinalitatea la publicare și respinge o secvență de
+acțiuni cu zero sau mai mult de o captură Base64 validă; nu inventează și nu
+poate repara semantic o dovadă lipsă. Contractul trebuie validat în
+`atf-ui`/`atf-tests`, unde se decide ce stare vizuală trebuie capturată.
+
+Atunci când evidence-ul este furnizat prin `UiExtentReportSession`, secvența de
+acțiuni și captura sunt randate în nodul de validare care le-a produs
+(`Screen validation`), în această ordine. Verificările UI sunt rânduri de
+acțiuni Playwright; tabelul `AtfAssertion` este doar sumarul semantic și nu
+duplică operația de citire/verificare.
+
+Tabelul Playwright folosește layout automat pe lățimea disponibilă (`width:100%`,
+`min-width:0`, fără o lățime desktop fixă). Coloanele au limite naturale pe
+conținut: valorile scurte rămân compacte, iar locatorii sau textele lungi se
+împart în interiorul celulei; wrapperul păstrează overflow orizontal doar ca
+fallback pentru conținut imposibil de redus. La viewport îngust se aplică
+aceeași regulă cu densitate redusă, nu o a doua structură de tabel. Coloana
+`RESULT` afișează exclusiv markerul emoji (`✅`, `⚠️`, `❌`, `⏭️`, `ℹ️`); textul
+semantic nu este duplicat vizibil, dar rămâne în `aria-label`/`title` pentru
+accesibilitate.
+Markerul de succes este același `✅` nativ folosit în tabelul Assertions; nu se
+folosește un badge circular sau un text `Pass` separat în celula `RESULT`.
+
+La failure, rândurile de acțiuni deja înregistrate trebuie păstrate în
+artifactul de audit chiar dacă pasul vizual nu se finalizează. Aceasta este
+separat de lifecycle-ul Extent: reporting-ul publică evidence-ul primit, iar
+testul UI este responsabil să nu piardă bufferul înainte de `finally`.
+
 `atf-reporting` este consumatorul portului de raportare, nu proprietarul
 validării. `atf-validation` evaluează response-ul și publică assertions prin
 `atf.api.core.reporting.ValidationSink`; implementarea Extent oferă acest port
@@ -197,6 +242,7 @@ de publicare. Configurația este în `atf.yaml`:
 ```yaml
 reporting:
   assertionMaxDisplayCharacters: 240
+  bodyMaxDisplayCharacters: 12000
   console:
     enabled: true
     detailsEnabled: true
@@ -216,8 +262,8 @@ root-ul injectează explicit un `AtfConsoleReporter` din `atf-console`. Astfel,
 artifactul HTML nu aduce tranzitiv formatter, policy de encoding sau scrieri în
 `System.out`.
 
-Loaderul acestui modul citește numai setările artifactului Extent și limita de
-afișare a assertions. `reporting.console` este citit exclusiv de
+Loaderul acestui modul citește numai setările artifactului Extent și limitele de
+afișare pentru assertions și body-urile JSON. `reporting.console` este citit exclusiv de
 `AtfConsoleConfigurationLoader` din `atf-console`; nu există două surse de adevăr
 pentru politica de consolă.
 
@@ -226,6 +272,13 @@ apar ca blocuri indentate sub pasul activ. Body-ul este redacționat înainte de
 afișare și folosește markerul `•` pe stream-uri UTF-8, respectiv `-` pe
 terminalele Windows/CI incompatibile. Dezactivarea setării păstrează
 lifecycle-ul și verdicturile, dar elimină detaliile și body-urile.
+
+`bodyMaxDisplayCharacters` este limita de siguranță pentru conținutul afișat în
+`REQUEST JSON` și `RESPONSE JSON`. Se aplică după redaction, separat de limita
+assertion-urilor; valoarea implicită este `12000`. Dacă limita este depășită,
+se păstrează prefixul și se adaugă `… [truncated]`. Blocul rămâne un code block
+scrollabil intern (`max-height: 360px`), fără să forțeze o înălțime artificială
+pentru payload-urile mici și fără să extindă pagina pentru payload-uri mari.
 
 ## Rulare individuală din IntelliJ
 
@@ -359,7 +412,10 @@ status badge      9.52px / 18.2px, weight 400
 
 Textul raportului folosește fontul sans-serif comun. Monospace este rezervat
 JSON-ului și blocurilor code. Durata este neutră, compactă și afișată explicit
-cu unitatea: `1 ms`, `16 ms`, `25 ms`; un număr fără `ms` este ambiguu și nu este
+cu politica comună din `atf.api.core.reporting.AtfDurationFormatter`: `0–300 ms`
+rămâne în `ms`, iar orice valoare strict mai mare de `300 ms` este afișată în
+secunde (`0.301 s`, `1 s`, `1.5 s`). Aceeași regulă se aplică în consola ATF,
+HTML, Extent, `Tests`, `Category` și `Fails`; un număr fără unitate nu este
 acceptat în UI.
 
 Pentru agregarea duratelor, frunza păstrează durata măsurată. Un părinte afișează
@@ -391,8 +447,8 @@ TestCase
 │   │   └── Execution evidence
 │   └── Validation — sibling direct al request-ului owner
 │       └── aggregate assertion table
-└── TEARDOWN
-    └── Request(s)
+└── TEARDOWN (opțional, doar dacă este cerut explicit)
+    └── Request(s) / outcome
 ```
 
 ### Shell-ul unei faze
@@ -448,6 +504,54 @@ flowchart LR
 
 ## Disclosure și evidence
 
+### Raport UI separat și evidence Playwright ca Base64 inline
+
+`UiExtentReportSession` creează un artifact Extent separat, configurat prin
+aceleași setări de output ca raportul API, dar cu numele
+`ui-atf-extent-report.html`. Raportul API pe care Playwright îl investighează
+este input read-only; nu este modificat și nu primește capturile testului UI.
+
+Fiecare pas Playwright este publicat în raportul UI ca nod auditabil sub
+`SETUP`, `TEST BODY` sau, numai când este cerut explicit, `TEARDOWN`, cu keyword
+`GIVEN`/`WHEN`/`THEN`, targetul inspectat, assertions și status. Când există captură, `UiExtentReportSession`
+folosește portul comun de reporting pentru a o scrie direct în nod ca
+`data:image/png;base64,...`, într-o ancoră inline din disclosure-ul `details`
+colapsabil. Ancora afișează badge-ul compact `base64 img` și folosește
+`data-featherlight="image"`; nu se scriu fișiere PNG temporare și nu se creează
+linkuri externe către capturi: datele imaginii sunt chiar în URI-ul Base64.
+
+Rezultatul de lifecycle/publicare este separat de validarea UI: `UiPhase.step`
+este pentru un pas cu assertions și creează explicit copilul `UI validation`,
+în timp ce `UiPhase.outcome` publică un `GIVEN`/`WHEN`/`THEN` standalone (de
+exemplu publicarea artefactului final), fără să inventeze un copil de validare.
+Astfel, `THEN the ... artifact was published` rămâne pasul final cu propriul
+status și duration, nu este prezentat fals ca o verificare vizuală.
+
+`TEARDOWN` este o fază opțională, nu un pas implicit al sesiunii. Un audit UI
+care doar inspectează și validează raportul poate încheia scenariul după
+`TEST BODY`; `UiExtentReportSession.close()` publică în continuare artefactul
+separat. Testul pornește `TEARDOWN` numai dacă are cleanup UI real sau un
+outcome de lifecycle/publicare care trebuie urmărit explicit. Astfel raportul
+nu inventează un pas final doar pentru a confirma închiderea sesiunii, dar
+păstrează capabilitatea pentru cazurile care au nevoie de ea.
+
+Aceeași regulă se aplică și pentru `SETUP`: un test autonom poate publica doar
+`TEST BODY`. Dacă are precondiții sau fixture-uri care trebuie auditate, adaugă
+explicit `SETUP`; dacă are cleanup/read-back, adaugă explicit și `TEARDOWN`.
+Combinațiile valide sunt `TEST BODY`, `SETUP → TEST BODY` și
+`SETUP → TEST BODY → TEARDOWN`, nu o secvență impusă pentru fiecare test.
+
+Astfel sunt două artefacte cu responsabilități clare: raportul API este sursa
+inspectată, iar raportul UI este dovada rulării Playwright. Un singur HTML UI
+rămâne autonom și auditabil după terminarea testului.
+
+Validarea UI folosește aceeași formă de date ca API: testul furnizează o
+colecție de `AtfAssertion`, iar `UiExtentReportSession.UiPhase` o publică drept
+un singur tabel agregat `Assertions · N`. Rendererul nu știe dacă assertion-ul
+provine dintr-un response API sau dintr-o interacțiune Playwright; el păstrează
+aceleași coloane și aceeași semnificație pentru `EXPECTED`, `ACTUAL` și
+`RESULT`.
+
 Raportul trebuie să rămână scanabil. Nodurile verbose pornesc colapsate, iar
 utilizatorul poate deschide exact evidence-ul dorit.
 
@@ -496,7 +600,7 @@ assertions, nu câte un tabel pentru fiecare assertion.
 Navigatorul din stânga afișează numai:
 
 - numele clasei;
-- durata cu unitate (`N ms`);
+- durata cu unitate (`N ms` până la `300 ms`, apoi `N s`);
 - statusul semantic.
 
 Nu afișează tag-uri și nu afișează timestamp. Timestamp-ul nu apare nici în
@@ -516,14 +620,15 @@ line-height `18.2px`, cu aliniere centrală. Lățimea este naturală
 În `Tests`, titlul fiecărui scenariu este aliniat la stânga în regiunea proprie
 a titlului cardului, iar adnotările sunt imediat sub titlu, pe aceeași axă.
 Grupul titlu+adnotări este centrat vertical în header. Indicatorul de expandare
-rămâne separat la stânga, iar statusul și durata, inclusiv unitatea `ms`, rămân
+rămâne separat la stânga, iar statusul și durata, inclusiv unitatea din politica
+comună (`ms`/`s`), rămân
 în toolbar-ul propriu la dreapta și sunt centrate vertical pe același rând de
 header; nicio zonă nu este mutată sau combinată cu alta.
 Regula rămâne valabilă pentru titluri lungi, liste de tag-uri de dimensiuni
 diferite și durate dinamice: textul nu se centrează orizontal, iar statusul și
 durata nu coboară pe rândul adnotărilor.
 
-Filtrele din `Tests` sunt parte din aceeași suprafață vizuală, nu componente
+Filtrele din `Tests` și `Category` sunt parte din aceeași suprafață vizuală, nu componente
 vendor cu tema implicită a browserului. Atât filtrul de status, cât și filtrul
 de tag folosesc `--atf-dark` pentru fundal, `--atf-border` pentru contur și
 `--atf-text` pentru text; hover-ul și starea activă folosesc suprafața
@@ -549,6 +654,9 @@ Tests    → clasă în stânga; scenarii, faze și evidence în dreapta
 Category → aceeași populație grupată pe categorie/status
 Fails    → numai failure-uri, cu phase → request → validation → assertion → cause
 ```
+
+În `Category`, aceleași controale status/tag au stare independentă și filtrează
+categoriile fără să schimbe tab-ul sau detaliul selectat în `Tests`.
 
 Navigarea este deep-linkabilă prin `#dashboard-view`, `#test-view`,
 `#category-view`, `#atf-fails-view` și `#test-id=...`. Schimbarea unui filtru nu
@@ -603,7 +711,7 @@ păstrează lanțul ordonat `PRIMARY`/`SECONDARY`; credential-urile sunt publica
 numai prin redaction-ul centralizat.
 
 Indexul Fails expune și `DURATION`: valoarea este derivată din
-`RESPONSE DURATION (ms)`, nu din timestamp. Pentru teardown fără response se
+`RESPONSE DURATION`, nu din timestamp. Pentru teardown fără response se
 afișează explicit `No response duration recorded`; timestamp-ul nu este parte
 din indexul de failure.
 
@@ -682,7 +790,7 @@ O schimbare de reporting este acceptată numai când:
   tipografia și contrastul temei, fără dropdown alb vendor;
 - Overview, Category și Fails păstrează același status mapping și aceeași
   tipografie;
-- duratele vizibile folosesc forma `N ms`, iar totalurile părinte nu dublează
+- duratele vizibile folosesc forma `N ms` sau `N s` după pragul comun, iar totalurile părinte nu dublează
   durate Extent deja inclusive;
 - badge-urile `Pass`, `Warning` și `Fail` păstrează aceeași geometrie și paletă
   în toate tab-urile și proiecțiile de detail;

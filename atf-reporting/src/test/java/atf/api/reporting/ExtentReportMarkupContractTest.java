@@ -39,6 +39,7 @@ class ExtentReportMarkupContractTest {
                 () -> assertTrue(result.contains("id=\"atf-audit-scenarios\"")),
                 () -> assertTrue(result.contains("id=\"atf-audit-packages\"")),
                 () -> assertTrue(result.contains("id=\"atf-audit-tags\"")),
-                () -> assertTrue(result.contains(marker + "suffix")));
+                () -> assertTrue(result.contains("category-container")),
+                () -> assertTrue(result.endsWith("suffix")));
     }
 }

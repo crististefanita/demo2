@@ -11,7 +11,7 @@ final class ReportArtifactEvidenceContracts {
         checks.put("collapsed evidence", !html.contains("class=\"collapse show\""));
         checks.put("scrollable JSON", html.contains("code-block") && html.contains("overflow:auto"));
         checks.put("compact technical trace", html.contains("TECHNICAL TRACE")
-                && html.toUpperCase(java.util.Locale.ROOT).contains("RESPONSE DURATION (MS)"));
+                && html.toUpperCase(java.util.Locale.ROOT).contains("RESPONSE DURATION"));
         checks.put("evidence visual contract", html.contains(".helm-scroll-block")
                 && html.contains("max-height:360px!important;overflow:auto!important")
                 && html.contains(".helm-validation-table")
@@ -31,7 +31,7 @@ final class ReportArtifactEvidenceContracts {
                 && html.contains("retry-history-table"));
         checks.put("technical trace", html.contains("TECHNICAL TRACE"));
         checks.put("response duration", html.toUpperCase(java.util.Locale.ROOT)
-                .contains("RESPONSE DURATION (MS)"));
+                .contains("RESPONSE DURATION"));
         checks.put("aggregate assertion table", html.contains("helm-validation-table")
                 && html.contains("ASSERTION") && html.contains("EXPECTED")
                 && html.contains("ACTUAL") && html.contains("RESULT"));
@@ -41,7 +41,7 @@ final class ReportArtifactEvidenceContracts {
                 && html.contains("data-atf-node-role=\"request\"")
                 && html.contains("data-atf-node-role=\"validation\""));
         checks.put("numeric duration normalization", html.contains("function normalizeDurations()")
-                && html.toUpperCase(java.util.Locale.ROOT).contains("RESPONSE DURATION (MS)"));
+                && html.toUpperCase(java.util.Locale.ROOT).contains("RESPONSE DURATION"));
         checks.put("duration coverage", html.contains(".test-list-item .text-sm span")
                 && html.contains(".detail-head .info > .badge-default")
                 && (html.contains("function atfDurationValue(raw)")

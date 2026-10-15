@@ -9,6 +9,7 @@ import java.util.Objects;
 /** Immutable description of one scenario and its optional lifecycle phases. */
 public record ApiScenarioPlan(
         String testClass,
+        String testPackage,
         String scenario,
         List<String> tags,
         PhaseAction setup,
@@ -23,7 +24,11 @@ public record ApiScenarioPlan(
     }
 
     public static Builder scenario(String testClass, String scenario) {
-        return new Builder(testClass, scenario);
+        return new Builder(testClass, null, scenario);
+    }
+
+    public static Builder scenario(String testClass, String testPackage, String scenario) {
+        return new Builder(testClass, testPackage, scenario);
     }
 
     @FunctionalInterface
@@ -33,15 +38,22 @@ public record ApiScenarioPlan(
 
     public static final class Builder {
         private final String testClass;
+        private String testPackage;
         private final String scenario;
         private List<String> tags = List.of();
         private PhaseAction setup;
         private PhaseAction body;
         private PhaseAction teardown;
 
-        private Builder(String testClass, String scenario) {
+        private Builder(String testClass, String testPackage, String scenario) {
             this.testClass = testClass;
+            this.testPackage = testPackage;
             this.scenario = scenario;
+        }
+
+        public Builder testPackage(String testPackage) {
+            this.testPackage = testPackage;
+            return this;
         }
 
         public Builder tags(Collection<String> tags) {
@@ -65,7 +77,7 @@ public record ApiScenarioPlan(
         }
 
         public ApiScenarioPlan build() {
-            return new ApiScenarioPlan(testClass, scenario, tags, setup, body, teardown);
+            return new ApiScenarioPlan(testClass, testPackage, scenario, tags, setup, body, teardown);
         }
     }
 

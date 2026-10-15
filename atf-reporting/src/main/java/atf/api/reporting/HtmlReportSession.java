@@ -29,7 +29,7 @@ public final class HtmlReportSession implements AtfReportPorts.Session {
     private final Path reportPath;
     private final ReportingSettings settings;
     private final HtmlReportSemanticDocument document = new HtmlReportSemanticDocument();
-    private final HtmlReportTestsView testsView = new HtmlReportTestsView(new SensitiveDataRedactor());
+    private final HtmlReportTestsView testsView;
     private final HtmlReportCategoryView categoryView = new HtmlReportCategoryView();
     private final HtmlReportFailsView failsView = new HtmlReportFailsView();
     private final HtmlReportOverviewView overviewView = new HtmlReportOverviewView();
@@ -47,6 +47,7 @@ public final class HtmlReportSession implements AtfReportPorts.Session {
     public HtmlReportSession(Path reportPath, ReportingSettings settings, AtfConsoleSink console) {
         this.reportPath = Objects.requireNonNull(reportPath, "reportPath");
         this.settings = Objects.requireNonNull(settings, "settings");
+        this.testsView = new HtmlReportTestsView(settings, new SensitiveDataRedactor());
         this.console = console == null ? AtfConsoleSink.noOp() : console;
     }
 
@@ -158,7 +159,7 @@ public final class HtmlReportSession implements AtfReportPorts.Session {
             String requestName = ExtentReportNodeSupport.renderRequestTitle(title, method, path);
             console.publish(AtfConsoleEvent.started(AtfConsoleEvent.Scope.REQUEST,
                     requestName));
-            return new RequestScope(model, request, requestName);
+            return new RequestScope(request, requestName);
         }
         @Override public void detail(String name, String value) {
             model.details.add(new String[]{name, value});
@@ -173,14 +174,11 @@ public final class HtmlReportSession implements AtfReportPorts.Session {
     }
 
     private final class RequestScope implements AtfReportPorts.Request {
-        private final HtmlReportSemanticDocument.PhaseModel phase;
         private final HtmlReportSemanticDocument.RequestModel model;
         private final String consoleName;
         private final long startedAt = System.nanoTime();
         private boolean closed;
-        private RequestScope(HtmlReportSemanticDocument.PhaseModel phase,
-                             HtmlReportSemanticDocument.RequestModel model, String consoleName) {
-            this.phase = phase;
+        private RequestScope(HtmlReportSemanticDocument.RequestModel model, String consoleName) {
             this.model = model;
             this.consoleName = consoleName;
         }
@@ -190,7 +188,7 @@ public final class HtmlReportSession implements AtfReportPorts.Session {
         @Override public AtfReportPorts.Validation startValidation(String title) {
             ensureOpen();
             var validation = new HtmlReportSemanticDocument.ValidationModel(title);
-            phase.children.add(validation);
+            model.children.add(validation);
             String validationName = title == null ? "Validation" : title;
             console.publish(AtfConsoleEvent.started(AtfConsoleEvent.Scope.VALIDATION, validationName));
             return new ValidationScope(validation, validationName);

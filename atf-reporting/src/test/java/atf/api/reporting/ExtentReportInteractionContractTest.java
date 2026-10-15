@@ -62,12 +62,15 @@ class ExtentReportInteractionContractTest {
         }
 
         String html = Files.readString(report);
-        int request = html.indexOf("data-atf-node-role=\"request\"");
-        int validation = html.indexOf("data-atf-node-role=\"validation\"");
+        int validation = html.indexOf("<span>Validate: user collection contract</span>");
+        int request = html.lastIndexOf(
+                "<span>GET /public/v2/users — collection contract</span>", validation);
 
         assertAll(
                 () -> assertTrue(request >= 0 && validation > request,
-                        "request must precede its direct validation sibling"),
+                        "request must precede its nested validation substep"),
+                () -> assertTrue(divDepthAt(html, validation) > divDepthAt(html, request),
+                        "validation must be rendered inside the Gherkin request node, never as a phase sibling"),
                 () -> assertTrue(html.contains("function collapseDirectScenarioCards()")),
                 () -> assertTrue(html.contains("function collapseScenarioCards()")),
                 () -> assertTrue(html.contains("function bindScenarioCollapse()")),
@@ -89,7 +92,7 @@ class ExtentReportInteractionContractTest {
                         "evidence normalization must support the live vendor panel class"),
                 () -> assertTrue(html.contains("card.querySelector(':scope>.show')"),
                         "evidence normalization must handle Extent panels rendered as .show"),
-                () -> assertTrue(html.contains("normalizeCodeBlocks();assignNodeRoles();normalizeEvidenceDisclosures();if(card.scrollIntoView"),
+                () -> assertTrue(html.contains("normalizeCodeBlocks();assignNodeRoles();aggregateClassDurations();normalizeEvidenceDisclosures();bindPhaseCollapse();bindNodeCollapse();if(card.scrollIntoView"),
                         "opening a lazily projected scenario must normalize its evidence after cloning"),
                 () -> assertTrue(html.contains("function normalizeCategorySummaryLabels(){q('.category-view .test-contents .info')"),
                         "every category projection must normalize the native 'others' label before selection"),
@@ -206,6 +209,19 @@ class ExtentReportInteractionContractTest {
         );
     }
 
+    private static int divDepthAt(String html, int index) {
+        String prefix = html.substring(0, index);
+        int depth = 0;
+        for (int i = 0; i < prefix.length(); i++) {
+            if (prefix.startsWith("<div", i)) {
+                depth++;
+            } else if (prefix.startsWith("</div>", i)) {
+                depth--;
+            }
+        }
+        return depth;
+    }
+
     @Test
     void lifecyclePhasesRemainOrderedWhenSomePhasesAreSkippedOrFailed() throws Exception {
         Path report = TestReportPaths.report("extent-interaction-lifecycle-contract.html");
@@ -231,8 +247,9 @@ class ExtentReportInteractionContractTest {
                 () -> assertTrue(html.contains("function failureContext(item)")),
                 () -> assertTrue(html.contains("data-atf-failure-phase")),
                 () -> assertTrue(html.contains("class=\"atf-failure-open\"")
-                                && html.contains("atfOpenTest(id,scenarioIndex)"),
-                        "Fails must expose the selected scenario evidence in the detail pane")
+                                && html.contains("atfOpenTest(id,scenarioIndex)")
+                                && html.contains("href=\"#test-id="),
+                        "Fails must expose the selected scenario evidence and a native deep-link fallback")
         );
     }
 
@@ -269,8 +286,9 @@ class ExtentReportInteractionContractTest {
                         "the request shown in Fails must belong to the failed phase"),
                 () -> assertTrue(html.contains("q('.helm-trace-table tbody tr,.execution-table tbody tr',request)"),
                         "the duration shown in Fails must belong to the failed request"),
-                () -> assertTrue(html.contains("context.duration=/ms$/i.test(rawDuration)?rawDuration:rawDuration+' ms'"),
-                        "execution evidence duration must be normalized with an ms suffix"),
+                () -> assertTrue(html.contains("var durationMs=atfDurationValue(rawDuration)")
+                                && html.contains("duration=durationMs===null?rawDuration:atfFormatDuration(durationMs)"),
+                        "execution evidence duration must use the shared duration parser and formatter"),
                 () -> assertTrue(html.contains("if(!ctx.message||ctx.message.indexOf('PRIMARY:')<0)"),
                         "an assertion row must not overwrite the primary/secondary cause chain"),
                 () -> assertTrue(html.contains("PRIMARY: ") && html.contains("SECONDARY: "),
@@ -406,7 +424,7 @@ class ExtentReportInteractionContractTest {
                         "scenario selection must target the rendered detail projection"),
                 () -> assertTrue(html.contains("openScenarioCard(card)")),
                 () -> assertTrue(html.contains("title','Open this test in Tests")),
-                () -> assertTrue(html.contains("if(id==='category-view'){ensureCategoryDetail();normalizeCategorySummaryLabels();normalizeCategoryLinks();}")),
+                () -> assertTrue(html.contains("if(id==='category-view'){ensureCategoryFilters();ensureCategoryDetail();normalizeCategorySummaryLabels();normalizeCategoryLinks();}")),
                 () -> assertTrue(html.contains("'category-view':'nav-category'")),
                 () -> assertTrue(html.contains("window.addEventListener('hashchange',activateFromHash)"))
         );
