@@ -207,6 +207,36 @@ public final class UiExtentReportSession implements AutoCloseable {
             }
         }
 
+        /**
+         * Publishes the actions already executed when a UI audit fails. A
+         * screenshot is optional because the failure may happen before the
+         * browser can capture a stable page; the action evidence itself must
+         * never be lost.
+         */
+        public void failureEvidence(String title, String target,
+                                     Collection<AtfUiActionRecord> actions,
+                                     Throwable failure) {
+            ensureOpen();
+            String safeTitle = title == null || title.isBlank() ? "UI audit failure" : title.trim();
+            String cause = failure == null ? "failure recorded" : failure.getClass().getSimpleName()
+                    + ": " + (failure.getMessage() == null ? "" : failure.getMessage());
+            var request = delegatePhase.startRequest("THEN " + safeTitle, "", "");
+            try {
+                request.detail("request.action", safeTitle);
+                if (target != null && !target.isBlank()) request.detail("request.target", target);
+                request.detail("evidence.type", "ui-failure");
+                request.detail("evidence.policy", "preserve executed actions; screenshot optional");
+                var validation = request.startValidation("Failure evidence");
+                if (actions != null && !actions.isEmpty()) validation.uiActions(actions);
+                validation.assertions(List.of(new AtfAssertion(
+                        "Failure cause", "no failure", cause, false)));
+                validation.completeFailure(AtfReportStatus.FAIL);
+                request.complete(AtfReportStatus.FAIL);
+            } finally {
+                request.close();
+            }
+        }
+
         private void action(String keyword, String title, String target,
                             String base64Png, Collection<AtfAssertion> assertions,
                             AtfReportStatus status, String validationTitle,

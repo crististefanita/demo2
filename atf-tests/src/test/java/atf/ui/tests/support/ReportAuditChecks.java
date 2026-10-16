@@ -3,8 +3,18 @@ package atf.ui.tests.support;
 import atf.api.core.reporting.AtfAssertion;
 import atf.api.core.reporting.AtfReportStatus;
 
+import java.util.OptionalDouble;
+import java.util.OptionalInt;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /** Shared assertion and value-normalization primitives for report audits. */
 public final class ReportAuditChecks {
+    private static final Pattern COUNT = Pattern.compile("(?<!\\d)(\\d+)(?!\\d)");
+    private static final Pattern DURATION = Pattern.compile(
+            "^\\s*(\\d+(?:[.,]\\d+)?)\\s*(ms|milliseconds?|s|seconds?)?\\s*$",
+            Pattern.CASE_INSENSITIVE);
+
     private ReportAuditChecks() { }
 
     public static AtfAssertion check(String name, String expected, String actual, boolean passed) {
@@ -15,12 +25,41 @@ public final class ReportAuditChecks {
         return passed ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
     }
 
-    public static int number(String value) {
-        String digits = value == null ? "" : value.replaceAll("[^0-9]", "");
-        return digits.isEmpty() ? 0 : Integer.parseInt(digits);
+    /** Parses one displayed count; a missing or malformed count is zero. */
+    public static int count(String value) {
+        return parseCount(value).orElse(0);
     }
 
-    public static int number(Object value) {
+    public static OptionalInt parseCount(String value) {
+        if (value == null) return OptionalInt.empty();
+        Matcher matcher = COUNT.matcher(value);
+        return matcher.find() ? OptionalInt.of(Integer.parseInt(matcher.group(1))) : OptionalInt.empty();
+    }
+
+    /** Parses report duration text into milliseconds without conflating it with counts. */
+    public static OptionalDouble parseDurationMs(String value) {
+        if (value == null || value.isBlank() || value.trim().equals("—")) return OptionalDouble.empty();
+        Matcher matcher = DURATION.matcher(value);
+        if (!matcher.matches()) return OptionalDouble.empty();
+        double amount = Double.parseDouble(matcher.group(1).replace(',', '.'));
+        String unit = matcher.group(2);
+        if (unit != null && (unit.equalsIgnoreCase("s") || unit.toLowerCase().startsWith("second"))) {
+            amount *= 1000d;
+        }
+        return OptionalDouble.of(amount);
+    }
+
+    public static int number(String value) {
+        return count(value);
+    }
+
+    public static int count(Object value) {
         return value instanceof Number number ? number.intValue() : 0;
+    }
+
+    /** @deprecated use {@link #count(Object)}; retained for existing audit tests. */
+    @Deprecated
+    public static int number(Object value) {
+        return count(value);
     }
 }

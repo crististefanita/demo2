@@ -36,6 +36,28 @@ artifact.
 14. [README_Atf_BestPractices.md](README_Atf_BestPractices.md) — reguli OOP,
    testabilitate și mentenanță.
 
+## Hartă rapidă a responsabilităților
+
+```mermaid
+flowchart LR
+    Tests[atf-tests<br/>intenție + teste] --> Execution[atf-execution<br/>API + lifecycle]
+    Tests --> Mock[atf-mock<br/>fake determinist]
+    Tests --> Validation[atf-validation<br/>contract + verdict]
+    Tests --> Reporting[atf-reporting<br/>Extent + HTML]
+    Tests --> Ui[atf-ui<br/>Playwright adapter]
+    Execution --> Core[atf-core<br/>modele + porturi]
+    Mock --> Core
+    Validation --> Core
+    Reporting --> Core
+    Ui --> Core
+```
+
+Săgeata înseamnă „depinde de”. `atf-tests` compune modulele pentru rulările
+acceptance și UI; `atf-reporting` publică artifactul, `atf-ui` controlează
+browserul, iar `atf-debug-ui` doar servește read-only un HTML deja generat.
+Pentru detalii și limitele exacte, `README.md` din root și
+`ATF_Architecture.md` sunt sursele normative.
+
 ## Regula de lucru pentru orice schimbare
 
 Înainte de refactorizare se sincronizează contextul live, apoi se lucrează
@@ -49,9 +71,9 @@ Ordinea obligatorie și criteriile detaliate sunt în
 [README_Atf_BestPractices.md](README_Atf_BestPractices.md).
 
 Lucrările încă neînchise sunt păstrate în [feedback/README.md](feedback/README.md)
-și în documentele ToDo pe responsabilități. Feedback-ul păstrează și o secțiune
-scurtă de decizii închise, pentru ca refactorizările importante să rămână
-trasabile fără a duplica contractele permanente.
+și în documentele ToDo pe responsabilități. Deciziile închise sunt reflectate
+direct în README-urile ownerilor și în teste; feedback-ul rămâne concentrat pe
+riscurile și pașii care mai trebuie validați.
 
 ## Reguli de documentație
 

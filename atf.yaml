@@ -51,8 +51,8 @@ ui:
     height: 900
   screenshotOnFailure: true
   screenValidation:
-    # One inline Base64 screenshot can back any number of assertions captured
-    # from the same visual state. Keep the evidence in the HTML artifact.
+    # One native Base64 screenshot link backs any number of assertions captured
+    # from the same visual state. The disclosure stays collapsed by default.
     enabled: true
     fullPage: false
   apiSetup:

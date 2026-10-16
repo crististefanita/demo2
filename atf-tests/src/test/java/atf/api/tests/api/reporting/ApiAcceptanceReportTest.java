@@ -85,6 +85,11 @@ class ApiAcceptanceReportTest {
                 () -> assertTrue(html.contains("https://atf.local/public/v2/users")),
                 () -> assertTrue(html.contains("request-json-body")),
                 () -> assertTrue(html.contains("response-json-body")),
+                () -> assertTrue(html.contains("REQUEST JSON")),
+                () -> assertTrue(html.contains("RESPONSE JSON")),
+                () -> assertTrue(html.contains("\"source\" : \"intellij\"")),
+                () -> assertTrue(html.contains("\"job\" : {")),
+                () -> assertTrue(html.contains("\"accepted\" : true")),
                 () -> assertTrue(html.contains("\"gender\" : \"male\"")),
                 () -> assertTrue(html.contains("\"status\" : \"active\"")),
                 () -> assertFalse(html.contains("ROUTE TEMPLATE")),
@@ -109,6 +114,7 @@ class ApiAcceptanceReportTest {
                 () -> assertTrue(html.contains("retry teardown cleanup failed")),
                 () -> assertFalse(html.contains("retry-secret-token-1234567890")),
                 () -> assertMockRequestAndResponseBodiesAreSeparate(html),
+                () -> assertBulkImportRequestAndResponseBodiesAreOrdered(html),
                 () -> assertFailedLifecycleRequestRetainsEvidence(html),
                 () -> assertRetryLifecycleEvidenceIsOrdered(html),
                 () -> assertTrue(html.contains("id=\"nav-fails\"")),
@@ -159,6 +165,20 @@ class ApiAcceptanceReportTest {
                         && responseDetails > requestBody && responseBody > responseDetails
                         && execution > responseBody,
                 "mock request and response bodies must be ordered in separate expandable evidence sections");
+    }
+
+    private static void assertBulkImportRequestAndResponseBodiesAreOrdered(String html) {
+        int request = html.indexOf("POST /public/v2/bulk-import");
+        int requestDetails = html.indexOf("Request details · 5 fields", request);
+        int requestBody = html.indexOf("request-json-body", request);
+        int responseDetails = html.indexOf("Response details · 3 fields", request);
+        int responseBody = html.indexOf("response-json-body", request);
+        int execution = html.indexOf("Execution evidence · 1 attempts", request);
+
+        assertTrue(request >= 0 && requestDetails > request && requestBody > requestDetails
+                        && responseDetails > requestBody && responseBody > responseDetails
+                        && execution > responseBody,
+                "bulk-import request and response JSON must remain ordered inside their request node");
     }
 
     private static int responseDetailsIndexAfter(String html, int requestIndex) {

@@ -9,6 +9,7 @@ import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.api.ui.playwright.UiScreenValidation;
 import atf.ui.tests.support.ReportAuditChecks;
 import atf.ui.tests.support.ReportAuditContext;
+import atf.ui.tests.support.UiAuditLifecycle;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import org.junit.jupiter.api.AfterAll;
@@ -26,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static atf.ui.tests.support.ReportAuditChecks.check;
-import static atf.ui.tests.support.ReportAuditChecks.number;
+import static atf.ui.tests.support.ReportAuditChecks.count;
 import static atf.ui.tests.support.ReportAuditChecks.status;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -93,7 +94,7 @@ class ExistingExtentCategoriesExploratoryTest {
                 Locator item = categories.nth(index);
                 String selector = "#category-view .test-list .test-item:nth-of-type(" + (index + 1) + ")";
                 String name = item.locator(".test-detail .name").innerText().trim();
-                int declaredCount = number(item.locator(".duration").innerText());
+                int declaredCount = count(item.locator(".duration").innerText());
 
                 activeActions.click(item, selector, "category filter selects " + name);
                 Locator detail = page.locator("#category-view .test-content-detail:visible");
@@ -107,7 +108,7 @@ class ExistingExtentCategoriesExploratoryTest {
                 boolean selected = item.getAttribute("class").contains("active");
                 boolean valid = selected && name.equalsIgnoreCase(selectedTitle)
                         && declaredCount == linkCount && declaredCount == rowCount
-                        && allLinksHaveIds(links);
+                        && linksMatchDeclaredCount(declaredCount, links);
 
                 CategoryObservation observation = new CategoryObservation(
                         name, declaredCount, linkCount, rowCount, selected, valid);
@@ -124,27 +125,37 @@ class ExistingExtentCategoriesExploratoryTest {
                                         String.valueOf(linkCount), declaredCount == linkCount),
                                 check("Rendered status rows", String.valueOf(declaredCount),
                                         String.valueOf(rowCount), declaredCount == rowCount),
-                                check("Linked test ids", "all present", allLinksHaveIds(links) ? "present" : "missing",
-                                        allLinksHaveIds(links))), status(valid));
+                                check("Linked test ids", declaredCount == 0 ? "empty" : "all present",
+                                        linksMatchDeclaredCount(declaredCount, links) ? "valid" : "missing",
+                                        linksMatchDeclaredCount(declaredCount, links))), status(valid));
                 assertTrue(valid, "Category filter is inconsistent: " + observation);
             }
 
             CategoryObservation navigationCandidate = observations.stream()
                     .filter(CategoryObservation::valid)
                     .filter(observation -> observation.linkCount() > 0)
-                    .findFirst().orElseThrow(() ->
-                            new AssertionError("No category exposes a navigable linked test"));
-            page = openTab("#category-view");
-            Locator candidate = page.locator("#category-view .test-list .test-item")
-                    .filter(new Locator.FilterOptions().setHasText(navigationCandidate.name()));
-            activeActions.click(candidate.first(), "#category-view category=" + navigationCandidate.name(),
-                    "selected category is ready for navigation");
-            Locator link = page.locator("#category-view .test-content-detail:visible a.linked:visible").first();
-            activeActions.click(link, "#category-view a.linked:first-of-type", "linked scenario opens in Tests");
-            activeActions.waitForVisible(page.locator("#test-view"), "#test-view");
-            assertTrue(page.locator("#test-view").isVisible(),
-                    "A linked category scenario did not navigate to Tests");
-            boolean testViewVisible = page.locator("#test-view").isVisible();
+                    .findFirst().orElse(null);
+            boolean testViewVisible;
+            if (navigationCandidate != null) {
+                page = openTab("#category-view");
+                int navigationIndex = observations.indexOf(navigationCandidate);
+                String navigationSelector = "#category-view .test-list .test-item:nth-of-type("
+                        + (navigationIndex + 1) + ")";
+                Locator candidate = page.locator(navigationSelector);
+                activeActions.click(candidate, navigationSelector,
+                        "selected category is ready for navigation");
+                Locator link = page.locator("#category-view .test-content-detail:visible a.linked:visible").first();
+                activeActions.click(link, "#category-view a.linked:first-of-type", "linked scenario opens in Tests");
+                activeActions.waitForVisible(page.locator("#test-view"), "#test-view");
+                testViewVisible = page.locator("#test-view").isVisible();
+            } else {
+                testViewVisible = observations.stream()
+                        .allMatch(observation -> observation.declaredCount() == 0
+                                && observation.linkCount() == 0);
+                activeActions.observation("Empty category state", "#category-view",
+                        "zero-result filters remain empty",
+                        testViewVisible ? "all filters empty" : "unexpected category links");
+            }
 
             boolean allReconciled = observations.size() == categoryCount
                     && observations.stream().allMatch(CategoryObservation::valid);
@@ -155,7 +166,8 @@ class ExistingExtentCategoriesExploratoryTest {
                                     String.valueOf(observations.size()), observations.size() == categoryCount),
                             check("Category count reconciliation", "all filters consistent",
                                     allReconciled ? "consistent" : "mismatch", allReconciled),
-                            check("Linked navigation", "#test-view visible", String.valueOf(page.locator("#test-view").isVisible()),
+                            check("Linked navigation", navigationCandidate == null ? "zero-result state" : "#test-view visible",
+                                    navigationCandidate == null ? "zero-result state" : String.valueOf(testViewVisible),
                                     testViewVisible)), status(allReconciled));
             assertAll(
                     () -> assertTrue(allReconciled, "At least one category filter is inconsistent"),
@@ -163,12 +175,14 @@ class ExistingExtentCategoriesExploratoryTest {
         });
     }
 
-    private boolean allLinksHaveIds(Locator links) {
+    private boolean linksMatchDeclaredCount(int declaredCount, Locator links) {
+        if (declaredCount == 0) return links.count() == 0;
+        if (links.count() != declaredCount) return false;
         for (int index = 0; index < links.count(); index++) {
             String id = links.nth(index).getAttribute("test-id");
             if (id == null || id.isBlank() || !id.matches("\\d+")) return false;
         }
-        return links.count() > 0;
+        return true;
     }
 
     private Page openTab(String hash) {
@@ -192,7 +206,7 @@ class ExistingExtentCategoriesExploratoryTest {
             action.run(audit);
             audit.pass();
         } catch (AssertionError | RuntimeException failure) {
-            audit.fail();
+            audit.fail(failure);
             throw failure;
         }
     }
@@ -215,35 +229,25 @@ class ExistingExtentCategoriesExploratoryTest {
     private interface AuditAction { void run(UiAudit audit); }
 
     private final class UiAudit {
-        private final UiExtentReportSession.UiScenario scenario;
-        private final UiExtentReportSession.UiPhase body;
-        private boolean bodyCompleted;
+        private final UiAuditLifecycle lifecycle;
 
         private UiAudit(UiExtentReportSession.UiScenario scenario, UiExtentReportSession.UiPhase body) {
-            this.scenario = scenario;
-            this.body = body;
+            this.lifecycle = new UiAuditLifecycle(scenario, body);
         }
 
         private void screenMedia(String title, String target, UiScreenValidation.Evidence evidence,
                                  List<AtfAssertion> assertions, AtfReportStatus status) {
-            body.screenValidationAsMedia(title, target, evidence.base64Png(), assertions,
+            lifecycle.screenValidation(title, target, evidence.base64Png(), assertions,
                     activeActions == null ? List.of() : activeActions.drain(), status);
         }
 
         private void pass() {
-            if (!bodyCompleted) {
-                body.complete(AtfReportStatus.PASS);
-                bodyCompleted = true;
-            }
-            scenario.complete(AtfReportStatus.PASS);
+            lifecycle.pass();
         }
 
-        private void fail() {
-            if (!bodyCompleted) {
-                body.complete(AtfReportStatus.FAIL);
-                bodyCompleted = true;
-            }
-            scenario.complete(AtfReportStatus.FAIL);
+        private void fail(Throwable failure) {
+            lifecycle.fail("Category exploration failed", inputReport.toString(),
+                    activeActions == null ? List.of() : activeActions.drain(), failure);
         }
     }
 

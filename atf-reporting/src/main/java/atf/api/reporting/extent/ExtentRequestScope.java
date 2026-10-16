@@ -5,6 +5,7 @@ import atf.api.core.reporting.AtfReportPorts;
 import atf.api.core.reporting.AtfReportStatus;
 import atf.api.core.reporting.ReportStatusAggregator;
 import atf.api.core.ui.AtfUiActionRecord;
+import atf.api.core.ui.AtfUiEvidenceSource;
 import atf.api.reporting.ExtentReportTree;
 import com.aventstack.extentreports.ExtentTest;
 
@@ -73,7 +74,9 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
         tree.renderResponseDetails(request, details, json);
         tree.renderExecution(request, execution);
         tree.renderUiActions(request, uiActions, screenshots);
-        if (uiActions.isEmpty()) tree.renderScreenshots(request, screenshots);
+        if (uiActions.stream().noneMatch(action -> action.source() == AtfUiEvidenceSource.ACTION)) {
+            tree.renderScreenshots(request, screenshots);
+        }
         var effective = AtfReportStatus.worst(statuses.aggregate(), status);
         tree.complete(request, effective);
         tree.markEnded(request);

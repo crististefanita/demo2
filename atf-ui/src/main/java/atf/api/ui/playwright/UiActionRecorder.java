@@ -2,6 +2,7 @@ package atf.api.ui.playwright;
 
 import atf.api.core.reporting.AtfReportStatus;
 import atf.api.core.ui.AtfUiActionRecord;
+import atf.api.core.ui.AtfUiEvidenceSource;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +27,8 @@ final class UiActionRecorder {
     }
 
     void observation(String operation, String target, String expected, String observed) {
-        add(operation, target, expected, observed, 0, AtfReportStatus.PASS);
+        add(operation, target, expected, observed, 0, AtfReportStatus.PASS,
+                AtfUiEvidenceSource.OBSERVE);
     }
 
     List<AtfUiActionRecord> snapshot() {
@@ -43,7 +45,13 @@ final class UiActionRecorder {
     private void add(String operation, String target, String expected, String observed,
                      long durationMillis, AtfReportStatus status) {
         records.add(new AtfUiActionRecord(nextSequence++, operation, target, expected,
-                observed, durationMillis, status));
+                observed, durationMillis, status, AtfUiEvidenceSource.ACTION));
+    }
+
+    private void add(String operation, String target, String expected, String observed,
+                     long durationMillis, AtfReportStatus status, AtfUiEvidenceSource source) {
+        records.add(new AtfUiActionRecord(nextSequence++, operation, target, expected,
+                observed, durationMillis, status, source));
     }
 
     private static long elapsedMillis(long started) {

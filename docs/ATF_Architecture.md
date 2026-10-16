@@ -12,11 +12,14 @@ flowchart LR
     Execution --> Core
     Console[atf-console<br/>proiecție diagnostică] --> Core
     Reporting[atf-reporting<br/>artifact Extent] --> Core
+    Ui[atf-ui<br/>adaptor Playwright] --> Core
     DebugUi[atf-debug-ui<br/>loopback read-only]
     Tests[atf-tests<br/>unitare și contract] --> Execution
+    Tests --> Mock
     Tests --> Validation
     Tests --> Console
     Tests --> Reporting
+    Tests --> Ui
     Tests --> DebugUi
     Tests --> Core
 ~~~
@@ -25,6 +28,10 @@ flowchart LR
 din dreapta”. `atf-validation` și `atf-reporting` depind de `atf-core`, dar nu
 se depind reciproc; `atf-execution` depinde de `atf-core` și `atf-validation`,
 iar `atf-tests` este composition root pentru testele care le folosesc pe toate.
+
+`atf-mock` depinde numai de `atf-core`, iar `atf-debug-ui` este un launcher
+read-only; faptul că este pornit de teste sau IntelliJ nu îl transformă într-o
+dependență de runtime a rendererului.
 
 ## Responsabilități
 

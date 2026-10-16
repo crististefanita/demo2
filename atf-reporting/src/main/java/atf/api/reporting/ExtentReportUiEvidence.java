@@ -61,7 +61,8 @@ public final class ExtentReportUiEvidence {
                 .append("#").append(SECTION_ID).append(" summary{cursor:pointer;color:#80aaff}")
                 .append("#").append(SECTION_ID).append(" ol{margin:12px 0;color:#b8c5dc;font-size:12px}")
                 .append("#").append(SECTION_ID).append(" .atf-ui-evidence-screenshot-link{display:inline-flex;"
-                        + "align-items:center;margin-top:12px;text-decoration:none}")
+                        + "align-items:flex-end;align-self:flex-end;justify-content:flex-start;vertical-align:bottom;margin:14px 0 0;"
+                        + "transform:none;text-decoration:none}")
                 .append("#").append(SECTION_ID).append(" .atf-ui-evidence-screenshot-link:hover{"
                         + "background:#1a2940;text-decoration:underline}")
                 .append("</style>")
@@ -81,9 +82,9 @@ public final class ExtentReportUiEvidence {
             }
             html.append("</ol><a class=\"atf-ui-evidence-screenshot-link\" data-atf-screenshot=\"base64\"")
                     .append(" href=\"data:image/png;base64,").append(base64)
-                    .append("\" target=\"_blank\" rel=\"noopener\" data-featherlight=\"image\" aria-label=\"Open ")
+                    .append("\" target=\"_blank\" rel=\"noopener\" aria-label=\"Open ")
                     .append(escape(capture.title()))
-                    .append("><span class=\"badge badge-gradient-primary\">base64 img</span></a></details>");
+                    .append("\"><span class=\"badge badge-gradient-primary\">📷 base64 img</span></a></details>");
         }
         return html.append("</section>").toString();
     }

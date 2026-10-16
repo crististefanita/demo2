@@ -38,6 +38,7 @@ public final class AtfReportPorts {
         Request startRequest(String title, String method, String path);
         default void detail(String name, String value) { }
         void complete(AtfReportStatus status);
+
         @Override void close();
     }
 
@@ -67,6 +68,9 @@ public final class AtfReportPorts {
 
     public interface Validation extends ValidationSink.Scope, AutoCloseable {
         void assertions(Collection<AtfAssertion> assertions);
+
+        /** Completes a failure evidence scope without requiring a screenshot. */
+        default void completeFailure(AtfReportStatus status) { complete(status); }
 
         /** Publishes consecutive Playwright actions inside this validation zone. */
         default void uiActions(Collection<AtfUiActionRecord> actions) { }

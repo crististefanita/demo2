@@ -18,7 +18,8 @@ class AtfUiActionRecordTest {
         assertAll(
                 () -> assertEquals("547 ms", action.durationText()),
                 () -> assertEquals("Pass", action.resultLabel()),
-                () -> assertEquals(AtfReportStatus.PASS, action.status()));
+                () -> assertEquals(AtfReportStatus.PASS, action.status()),
+                () -> assertEquals(AtfUiEvidenceSource.ACTION, action.source()));
     }
 
     @Test

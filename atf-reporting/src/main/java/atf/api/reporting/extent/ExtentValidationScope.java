@@ -4,6 +4,7 @@ import atf.api.core.reporting.AtfAssertion;
 import atf.api.core.reporting.AtfReportPorts;
 import atf.api.core.reporting.AtfReportStatus;
 import atf.api.core.ui.AtfUiActionRecord;
+import atf.api.core.ui.AtfUiEvidenceSource;
 import atf.api.reporting.ExtentReportTree;
 import com.aventstack.extentreports.ExtentTest;
 
@@ -22,6 +23,7 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
     private final List<String[]> mediaScreenshots = new ArrayList<>();
     private boolean completed;
     private boolean closed;
+    private boolean screenshotOptional;
 
     ExtentValidationScope(ExtentReportTree tree, ExtentRequestScope owner, ExtentTest validation,
                           String validationTitle) {
@@ -59,15 +61,29 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
     @Override public void complete(AtfReportStatus status) {
         tree.ensureOpen();
         if (completed) throw new IllegalStateException("Validation is already complete");
-        if (mediaScreenshots.isEmpty()) {
+        if (screenshotOptional) {
+            tree.renderUiActionsAsMedia(validation, uiActions);
+        } else if (mediaScreenshots.isEmpty()) {
             tree.renderUiActions(validation, uiActions, screenshots);
-            if (uiActions.isEmpty()) tree.renderScreenshots(validation, screenshots);
+            if (uiActions.stream().noneMatch(action -> action.source() == AtfUiEvidenceSource.ACTION)) {
+                tree.renderScreenshots(validation, screenshots);
+            }
         } else {
             if (!screenshots.isEmpty()) {
                 throw new IllegalStateException("A validation cannot mix inline and media screenshots");
             }
-            tree.renderUiActionsAsMedia(validation, uiActions);
-            tree.renderScreenshots(validation, mediaScreenshots);
+            // Media mode still uses the same local contract as screenshot mode
+            // whenever browser actions exist: one action table followed by
+            // exactly one Base64 data link. Observation-only validations keep
+            // their screenshot even though no action table is required.
+            boolean hasBrowserActions = uiActions.stream()
+                    .anyMatch(action -> action.source() == AtfUiEvidenceSource.ACTION);
+            if (hasBrowserActions) {
+                tree.renderUiActions(validation, uiActions, mediaScreenshots);
+            } else {
+                tree.renderUiActions(validation, uiActions, List.of());
+                tree.renderScreenshots(validation, mediaScreenshots);
+            }
         }
         tree.renderAssertions(validation, assertions);
         tree.complete(validation, status);
@@ -77,6 +93,11 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
         completed = true;
         owner.record(status);
         owner.validationCompleted();
+    }
+
+    @Override public void completeFailure(AtfReportStatus status) {
+        screenshotOptional = true;
+        complete(status);
     }
 
     @Override public void close() {

@@ -37,7 +37,7 @@ Responsabilitățile rămân separate:
 Din IntelliJ rulează `atf.api.debugui.AtfDebugUiLauncher` cu argumentele:
 
 ```text
---html artifacts/reports/api-atf-extent-report_2026-10-15_11-58-17-712.html
+--html artifacts/reports/api-atf-extent-report-TIMESTAMP.html
 --port 0
 ```
 

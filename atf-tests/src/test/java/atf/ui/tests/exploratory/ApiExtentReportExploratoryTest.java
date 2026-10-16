@@ -17,6 +17,7 @@ import atf.api.ui.playwright.PlaywrightUiSession;
 import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.api.ui.playwright.UiScreenValidation;
 import atf.ui.tests.support.ReportAuditContext;
+import atf.ui.tests.support.UiAuditLifecycle;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.LoadState;
@@ -187,10 +188,10 @@ class ApiExtentReportExploratoryTest {
                 activeActions.click(owner, ".test-list .test-item:nth-of-type(" + (index + 1) + ")",
                         "duration owner is selected");
                 Locator detail = tests.locator(".test-content-detail:visible").last();
-                activeActions.waitForVisible(detail, "selected owner detail");
+                activeActions.waitForVisible(detail, ".test-content-detail:visible");
                 // The vendor renders the detail asynchronously; the runtime controller
                 // deliberately rechecks at 0/150/500 ms before declaring aggregation stable.
-                activeActions.waitForTimeout(page, 0.7,
+                activeActions.waitForTimeout(page, 0.7, detail, ".test-content-detail:visible",
                         "duration aggregation settles after owner selection");
                 DurationAuditSummary ownerSummary = inspectDurationContract(page);
                 total.add(ownerSummary);
@@ -430,21 +431,30 @@ class ApiExtentReportExploratoryTest {
                     "class detail opens");
             when("the first discovered scenario, TEST BODY and request are expanded");
             Locator scenarioCard = tests.locator(".test-content-detail:visible .test-contents > .mt-4 > .accordion > .card[data-atf-scenario-id]").first();
-            activeActions.waitForVisible(scenarioCard, "first discovered scenario");
+            activeActions.waitForVisible(scenarioCard,
+                    ".test-content-detail:visible .test-contents > .mt-4 > .accordion > .card[data-atf-scenario-id]");
             // The report binds collapse behavior to the semantic node link. Keep the
             // action idempotent: clicking an already-open node would close it again.
             if (!"true".equals(scenarioCard.getAttribute("data-atf-scenario-open"))) {
                 activeActions.click(scenarioCard.locator(":scope > .card-header .node"),
-                        "scenario collapse node", "scenario is expanded");
-                activeActions.waitForTimeout(page, 0.1, "scenario expansion settles");
+                        ":scope > .card-header .node", "scenario is expanded");
+                activeActions.waitForTimeout(page, 0.1, scenarioCard,
+                        ".test-content-detail:visible .card[data-atf-scenario-id]",
+                        "scenario expansion settles");
             }
             Locator testBody = scenarioCard.locator(":scope > .accordion > [data-atf-node-role='phase'][data-atf-phase-name='test-body']");
-            activeActions.waitForVisible(testBody, "TEST BODY phase");
+            activeActions.waitForVisible(testBody,
+                    "[data-atf-node-role='phase'][data-atf-phase-name='test-body']");
             Locator phaseNode = testBody.locator(":scope > .card-header .node");
-            activeActions.waitForVisible(phaseNode, "TEST BODY collapse node");
+            activeActions.waitForVisible(phaseNode,
+                    "[data-atf-phase-name='test-body'] > .card-header .node");
             if (!"true".equals(testBody.locator(":scope > .card-header").getAttribute("aria-expanded"))) {
-                activeActions.click(phaseNode, "TEST BODY collapse node", "TEST BODY is expanded");
-                activeActions.waitForTimeout(page, 0.1, "TEST BODY expansion settles");
+                activeActions.click(phaseNode,
+                        "[data-atf-phase-name='test-body'] > .card-header .node",
+                        "TEST BODY is expanded");
+                activeActions.waitForTimeout(page, 0.1, testBody,
+                        "[data-atf-phase-name='test-body']",
+                        "TEST BODY expansion settles");
             }
             Locator requests = testBody.locator(":scope > .accordion > [data-atf-node-role='request']");
             assertTrue(requests.count() > 0, "The first TEST BODY has no request node");
@@ -459,12 +469,17 @@ class ApiExtentReportExploratoryTest {
             Locator request = requests.nth(selectedRequest);
             if (!"true".equals(request.getAttribute("data-atf-node-open"))) {
                 activeActions.click(request.locator(":scope > .card-header .node"),
-                        "request collapse node", "request evidence is expanded");
-                activeActions.waitForTimeout(page, 0.1, "request expansion settles");
+                        ":scope > .card-header .node", "request evidence is expanded");
+                activeActions.waitForTimeout(page, 0.1, request,
+                        "[data-atf-node-role='request']",
+                        "request expansion settles");
             }
-            expand(request.locator("details.request-evidence > summary"));
-            expand(request.locator("details.response-evidence > summary"));
-            expand(request.locator("details.execution-evidence > summary"));
+            expand(request.locator("details.request-evidence > summary"),
+                    "details.request-evidence > summary");
+            expand(request.locator("details.response-evidence > summary"),
+                    "details.response-evidence > summary");
+            expand(request.locator("details.execution-evidence > summary"),
+                    "details.execution-evidence > summary");
             activeActions.findElement(request.locator("table.helm-request-table:visible"),
                     "table.helm-request-table:visible");
             activeActions.findElement(request.locator("table.helm-trace-table:visible"),
@@ -498,11 +513,11 @@ class ApiExtentReportExploratoryTest {
         });
     }
 
-    private void expand(Locator summary) {
+    private void expand(Locator summary, String locatorTarget) {
         if (summary.count() == 0) return;
         Locator disclosure = summary.locator("xpath=..");
         if (disclosure.getAttribute("open") == null) {
-            activeActions.click(summary, "details disclosure summary", "evidence is expanded");
+            activeActions.click(summary, locatorTarget, "evidence is expanded");
         }
     }
 
@@ -580,7 +595,7 @@ class ApiExtentReportExploratoryTest {
             action.run(audit);
             audit.pass();
         } catch (AssertionError | RuntimeException failure) {
-            audit.fail();
+            audit.fail(failure);
             throw failure;
         }
     }
@@ -607,36 +622,26 @@ class ApiExtentReportExploratoryTest {
     }
 
     private final class UiAudit {
-        private final UiExtentReportSession.UiScenario scenario;
-        private final UiExtentReportSession.UiPhase body;
-        private boolean bodyCompleted;
+        private final UiAuditLifecycle lifecycle;
 
         private UiAudit(UiExtentReportSession.UiScenario scenario,
                         UiExtentReportSession.UiPhase body) {
-            this.scenario = scenario;
-            this.body = body;
+            this.lifecycle = new UiAuditLifecycle(scenario, body);
         }
 
         private void step(String keyword, String title, String target, String screenshot,
                           List<AtfAssertion> assertions, AtfReportStatus status) {
-            body.screenValidation(title, target, screenshot, assertions,
+            lifecycle.screenValidation(title, target, screenshot, assertions,
                     activeActions == null ? List.of() : activeActions.drain(), status);
         }
 
         private void pass() {
-            if (!bodyCompleted) {
-                body.complete(AtfReportStatus.PASS);
-                bodyCompleted = true;
-            }
-            scenario.complete(AtfReportStatus.PASS);
+            lifecycle.pass();
         }
 
-        private void fail() {
-            if (!bodyCompleted) {
-                body.complete(AtfReportStatus.FAIL);
-                bodyCompleted = true;
-            }
-            scenario.complete(AtfReportStatus.FAIL);
+        private void fail(Throwable failure) {
+            lifecycle.fail("UI exploration failed", "dynamic API report",
+                    activeActions == null ? List.of() : activeActions.drain(), failure);
         }
     }
 

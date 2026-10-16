@@ -34,8 +34,15 @@ public final class UiScreenValidation {
             base64Png = base64Png == null ? "" : base64Png;
         }
 
-        public boolean hasInlineImage() {
+        /** Returns true when the evidence contains a captured Base64 screenshot payload. */
+        public boolean hasScreenshotPayload() {
             return captured && !base64Png.isBlank();
+        }
+
+        /** @deprecated use {@link #hasScreenshotPayload()} for renderer-neutral terminology. */
+        @Deprecated
+        public boolean hasInlineImage() {
+            return hasScreenshotPayload();
         }
     }
 }

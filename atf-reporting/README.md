@@ -121,17 +121,47 @@ acțiuni și captura sunt randate în nodul de validare care le-a produs
 acțiuni Playwright; tabelul `AtfAssertion` este doar sumarul semantic și nu
 duplică operația de citire/verificare.
 
-Tabelul Playwright folosește layout automat pe lățimea disponibilă (`width:100%`,
-`min-width:0`, fără o lățime desktop fixă). Coloanele au limite naturale pe
-conținut: valorile scurte rămân compacte, iar locatorii sau textele lungi se
-împart în interiorul celulei; wrapperul păstrează overflow orizontal doar ca
-fallback pentru conținut imposibil de redus. La viewport îngust se aplică
-aceeași regulă cu densitate redusă, nu o a doua structură de tabel. Coloana
+Tabelul Playwright are layout fix și un minim contractual de `760px`, cu lățimi
+explicite pentru cele șapte coloane. Astfel operația, locatorul, expected și
+observed rămân lizibile; textele lungi se împart în celula lor, iar wrapperul
+permite scroll orizontal la viewport îngust. Nu se acceptă antete fragmentate
+literă-cu-literă și nu se introduce o a doua structură de tabel. Coloana
 `RESULT` afișează exclusiv markerul emoji (`✅`, `⚠️`, `❌`, `⏭️`, `ℹ️`); textul
 semantic nu este duplicat vizibil, dar rămâne în `aria-label`/`title` pentru
 accesibilitate.
 Markerul de succes este același `✅` nativ folosit în tabelul Assertions; nu se
 folosește un badge circular sau un text `Pass` separat în celula `RESULT`.
+
+### Contractul coloanei `TARGET`
+
+Rendererul tratează `TARGET` ca evidence operațional, nu ca text decorativ.
+Pentru rândurile cu `source=ACTION`, coloana este obligatorie și trebuie să
+conțină locatorul exact al elementului Playwright executat. Contractul acoperă
+fără excepție `Click`, `Get text`, `Find element`, `Expect text`, `Focus`,
+`Wait for visible` și `Expect visible`. Un target prose (`"selected owner
+detail"`, `"collapse node"`, `"tree node"`) nu este echivalent cu un locator și
+nu trebuie acceptat ca evidence.
+
+Forma recomandată este un selector CSS stabil și scoped, de exemplu
+`button[data-filter-value='clear']`, `a[href='#test-view']` sau
+`element[data-testid='stable-contract']`. `Navigate` păstrează URI-ul drept
+target. Un timeout de stabilizare trebuie să publice locatorul-anchor al stării;
+`TARGET=page` nu este acceptat în secvența auditabilă. Pentru stări UI se
+preferă un `Wait for visible` sau alt state wait pe locator.
+
+Rendererul nu poate reconstitui un selector din textul unei descrieri și nu
+trebuie să „repare” la publicare un target generic. Validarea contractului
+aparține producerului din `atf-ui`/`atf-tests`, iar testul de reporting trebuie
+să verifice cel puțin că fiecare rând `ACTION` are target nevid, că acesta este
+locatorul transmis operației și că rândurile rămân în forma:
+
+```text
+# | OPERATION | TARGET (locator/URI) | EXPECTED | OBSERVED | TIME | RESULT
+```
+
+Această separare păstrează `atf-reporting` responsabil de layout și accesibilitate,
+fără să-i transfere responsabilitatea semantică de a ghici ce element a fost
+testat.
 
 La failure, rândurile de acțiuni deja înregistrate trebuie păstrate în
 artifactul de audit chiar dacă pasul vizual nu se finalizează. Aceasta este
@@ -515,10 +545,17 @@ Fiecare pas Playwright este publicat în raportul UI ca nod auditabil sub
 `SETUP`, `TEST BODY` sau, numai când este cerut explicit, `TEARDOWN`, cu keyword
 `GIVEN`/`WHEN`/`THEN`, targetul inspectat, assertions și status. Când există captură, `UiExtentReportSession`
 folosește portul comun de reporting pentru a o scrie direct în nod ca
-`data:image/png;base64,...`, într-o ancoră inline din disclosure-ul `details`
-colapsabil. Ancora afișează badge-ul compact `base64 img` și folosește
-`data-featherlight="image"`; nu se scriu fișiere PNG temporare și nu se creează
-linkuri externe către capturi: datele imaginii sunt chiar în URI-ul Base64.
+`data:image/png;base64,...`, într-un link nativ din disclosure-ul `details`
+colapsabil și închis implicit. Linkul afișează eticheta `Open screenshot · Base64 image`,
+are `target="_blank"` și `rel="noopener"`; nu se scriu fișiere PNG temporare,
+nu se creează linkuri externe și nu se folosește `data-featherlight`.
+
+Regula de cardinalitate este strictă: orice secvență care conține cel puțin o
+acțiune Playwright trebuie să conțină exact un screenshot Base64 local, plasat
+după tabelul acțiunilor, în aceeași zonă colapsabilă. Screenshot-ul nu se
+deschide automat (`<details>` nu are atribut `open`). Dacă o captură nu poate fi
+obținută după un failure, se publică explicit evidence de failure fără a inventa
+o imagine; acesta este singurul caz permis fără screenshot.
 
 Rezultatul de lifecycle/publicare este separat de validarea UI: `UiPhase.step`
 este pentru un pas cu assertions și creează explicit copilul `UI validation`,

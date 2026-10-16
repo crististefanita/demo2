@@ -109,7 +109,7 @@ final class ExtentTransportEvidenceRenderer {
                     + "<a class=\"atf-ui-action-screenshot-link\" data-atf-screenshot=\"base64\""
                     + " href=\"data:image/png;base64," + base64
                     + "\" target=\"_blank\" rel=\"noopener\" data-featherlight=\"image\" aria-label=\"Open "
-                    + escapeHtml(title) + "\"><span class=\"badge badge-gradient-primary\">base64 img</span></a></div>");
+                    + escapeHtml(title) + "\"><span class=\"badge badge-gradient-primary\">📷 base64 img</span></a></div>");
         }
     }
 

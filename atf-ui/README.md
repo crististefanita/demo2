@@ -40,6 +40,21 @@ singură zonă colapsabilă pentru acea stare: link Base64 către captură, deta
 acțiune și tabelul agregat de validări. O navigare sau o schimbare vizuală începe
 un nou grup; nu se atașează aceeași imagine la fiecare assert.
 
+### Contractul evidence: payload Base64, nu imagine HTML duplicată
+
+`UiScreenValidation` produce un payload PNG Base64. Publisher-ul din
+`atf-reporting` îl expune ca link nativ `data:image/png;base64,...`, cu
+`target="_blank"` și `rel="noopener"`, folosind eticheta explicită
+`Open screenshot · Base64 image`. Nu se emite `<img>` duplicat, nu se scrie un
+PNG extern și nu se folosește `data-featherlight`; click-ul deschide direct
+payload-ul Base64 într-un tab nou.
+
+Metoda existentă `Evidence.hasInlineImage()` este denumită istoric și poate
+induce o interpretare greșită: „inline” descrie payload-ul Base64, nu un element
+HTML `<img>`. Ea trebuie redenumită/documentată ca `hasScreenshotPayload()` într-o
+schimbare compatibilă, acoperită de test. Până atunci, README-urile și testele
+folosesc termenul „Base64 screenshot payload/link”, nu „inline image”.
+
 ### Secvența auditabilă Playwright
 
 `PlaywrightActionSequence` este recorderul neutru al acțiunilor efective. Testul
@@ -81,6 +96,78 @@ validării (`EXPECTED`/`ACTUAL`/`RESULT`); dovada modului în care UI-ul a fost
 inspectat trebuie să rămână în secvența Playwright, cu locatorul real și
 rezultatul observat.
 
+### Contract strict pentru `TARGET` / locator
+
+`TARGET` este o coloană obligatorie de audit pentru fiecare rând `ACTION`. Nu
+este suficient să existe o descriere care spune ce intenționa testul să facă:
+valoarea trebuie să fie locatorul efectiv folosit de obiectul Playwright din
+aceeași operație. Regula se aplică tuturor operațiilor element-bound, inclusiv
+`Click`, `Get text`, `Find element`, `Expect text`, `Focus`, `Wait for visible`
+și `Expect visible`.
+
+Preferința de proiect pentru locatorii CSS, în ordinea stabilității, este:
+
+```text
+#stable-id
+element[data-testid='stable-contract']
+button[aria-label='Open filters']
+a[href='#test-view']
+.scoped-container .item:nth-of-type(2)   // numai când nu există atribut stabil
+```
+
+Un selector trebuie să descrie exact `Locator`-ul executat, să fie suficient de
+scoped pentru a nu depinde de poziția accidentală în DOM și să folosească
+atribute relevante (`data-testid`, `data-filter-value`, `aria-label`, `href`,
+`role` sau alte atribute contractuale). Descrieri precum `"selected owner
+detail"`, `"TEST BODY collapse node"`, `"details disclosure summary"` sau
+`"tree node"` nu sunt locatori și nu sunt acceptate în `TARGET`. Ele pot apărea
+doar în `EXPECTED`/`OBSERVED`, unde explică rezultatul, niciodată în coloana
+dedicată locatorului.
+
+Exemplu corect:
+
+```java
+Locator filter = page.locator("button[data-filter-value='clear']");
+actions.click(filter, "button[data-filter-value='clear']", "filters are cleared");
+actions.waitForVisible(page.locator("#category-view .test-list"),
+        "#category-view .test-list");
+```
+
+`Navigate` este singura acțiune al cărei `TARGET` este în mod natural URI-ul
+destinației, nu un selector CSS. Un timeout de stabilizare trebuie să primească
+și să publice locatorul-anchor al stării observate; `TARGET=page` nu mai este
+acceptat pentru secvențele Playwright auditabile. Chiar și cu un anchor, un
+timeout fix trebuie înlocuit preferențial cu `Wait for visible` sau o altă
+condiție semantică pe locator.
+
+Contractul de publicare este:
+
+```text
+# | OPERATION | TARGET (locator/URI) | EXPECTED | OBSERVED | TIME | RESULT
+```
+
+Rendererul nu inventează selectorul și nu transformă o descriere prose într-un
+locator. Testele trebuie să eșueze înainte de publicare dacă un target de
+acțiune este gol, generic sau nu corespunde locatorului executat. Orice
+refactorizare care schimbă selectorul trebuie să actualizeze împreună codul,
+testul și dovada din raport; un raport „frumos” cu `TARGET` prose nu este
+auditabil.
+
+### Ce trebuie să fie auditabil și ce nu trebuie mimat
+
+`Click`, `Get text`, `Focus`, `Wait for visible` și `Expect visible` sunt acțiuni
+executate de Playwright și devin rânduri reale. `Tab visible`, `Screenshot` și
+alte constatări post-acțiune sunt observații; ele nu trebuie prezentate ca și
+cum ar fi operații de browser. Dacă rămân în aceeași secvență pentru lizibilitate,
+modelul trebuie să le marcheze explicit ca `OBSERVE`, păstrând `ACTION` pentru
+operațiile Playwright. Un verdict fără locator, expected și observed nu este
+dovadă auditabilă.
+
+`PlaywrightUiSession` modelează în prezent un singur browser/context/page.
+Auditarea unui link care deschide o fereastră nouă sau a mai multor pagini cere
+un contract explicit de popup/page lifecycle; nu se presupune că `target=_blank`
+înseamnă că sesiunea a validat automat conținutul noii pagini.
+
 ### Regula strictă pentru auditul vizual
 
 `Screen validation` nu înseamnă doar că s-au executat click-uri. Este pasul
@@ -118,7 +205,7 @@ Pentru auditarea unui raport deja generat, fără rerularea API-ului:
 ```text
 mvn -pl atf-tests -am `
   '-Datf.ui.enabled=true' `
-  '-Datf.ui.report=artifacts/reports/ui/ui-atf-extent-report_2026-10-15_15-57-51-979.html' `
+  '-Datf.ui.report=artifacts/reports/ui/ui-atf-extent-report-TIMESTAMP.html' `
   '-Dtest=atf.ui.tests.exploratory.ExistingExtentReportExploratoryTest' `
   '-Dsurefire.failIfNoSpecifiedTests=false' test
 ```
@@ -169,6 +256,7 @@ ui:
   screenshotOnFailure: true
   screenValidation:
     # One visual state -> one Base64 media link + one grouped assertion table.
+    # The disclosure is rendered closed; the link is not an external file.
     enabled: true
     fullPage: false
   apiSetup:

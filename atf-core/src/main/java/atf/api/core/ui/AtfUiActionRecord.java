@@ -12,7 +12,15 @@ public record AtfUiActionRecord(
         String expected,
         String observed,
         long durationMillis,
-        AtfReportStatus status) {
+        AtfReportStatus status,
+        AtfUiEvidenceSource source) {
+
+    /** Compatibility constructor for callers that create real action rows directly. */
+    public AtfUiActionRecord(int sequence, String operation, String target, String expected,
+                             String observed, long durationMillis, AtfReportStatus status) {
+        this(sequence, operation, target, expected, observed, durationMillis, status,
+                AtfUiEvidenceSource.ACTION);
+    }
 
     public AtfUiActionRecord {
         if (sequence < 1) throw new IllegalArgumentException("sequence must be positive");
@@ -22,6 +30,7 @@ public record AtfUiActionRecord(
         observed = normalize(observed);
         if (durationMillis < 0) throw new IllegalArgumentException("durationMillis must not be negative");
         status = Objects.requireNonNull(status, "status");
+        source = Objects.requireNonNull(source, "source");
     }
 
     public String durationText() {

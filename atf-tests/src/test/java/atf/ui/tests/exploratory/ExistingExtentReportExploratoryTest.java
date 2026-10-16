@@ -8,6 +8,7 @@ import atf.api.ui.config.UiConfiguration;
 import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.api.ui.playwright.UiScreenValidation;
 import atf.ui.tests.support.ReportAuditContext;
+import atf.ui.tests.support.UiAuditLifecycle;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.LoadState;
@@ -120,23 +121,31 @@ class ExistingExtentReportExploratoryTest {
         audit("Existing report — dynamic Tests tree", audit -> {
             Page page = openTab("#test-view");
             TestsSnapshot snapshot = discoverTests(page);
-            Locator visibleDetail = page.locator("#test-view .test-content-detail:visible").last();
-            expandFirstScenarioAndPhases(visibleDetail);
+            ExpansionSnapshot expansion = expandEveryOwnerScenarioAndPhase(page);
             UiScreenValidation.Evidence evidence = capture(page, "Dynamic Tests tree after expansion");
             boolean valid = snapshot.ownerCount() > 0
                     && snapshot.scenarioCount() > 0
                     && snapshot.phaseCount() >= snapshot.scenarioCount()
                     && snapshot.validationCount() > 0
                     && snapshot.disclosureCount() > 0;
+            boolean exhaustive = expansion.ownerCount() == snapshot.ownerCount()
+                    && expansion.scenarioCount() == snapshot.scenarioCount()
+                    && expansion.phaseCount() == snapshot.phaseCount()
+                    && expansion.expandedScenarioCount() == snapshot.scenarioCount()
+                    && expansion.expandedPhaseCount() == snapshot.phaseCount();
             audit.screen("Every discovered class, scenario and phase is expandable",
                     "#test-view", evidence, List.of(
                             check("Class owners", "> 0", String.valueOf(snapshot.ownerCount()), snapshot.ownerCount() > 0),
                             check("Scenarios", "> 0", String.valueOf(snapshot.scenarioCount()), snapshot.scenarioCount() > 0),
                             check("Phases", ">= scenarios", String.valueOf(snapshot.phaseCount()), snapshot.phaseCount() >= snapshot.scenarioCount()),
                             check("Validation nodes", "> 0", String.valueOf(snapshot.validationCount()), snapshot.validationCount() > 0),
-                            check("Disclosure controls", "> 0", String.valueOf(snapshot.disclosureCount()), snapshot.disclosureCount() > 0)),
-                    status(valid));
-            assertTrue(valid, "The existing report does not expose an auditable dynamic Tests tree");
+                            check("Disclosure controls", "> 0", String.valueOf(snapshot.disclosureCount()), snapshot.disclosureCount() > 0),
+                            check("All discovered nodes expanded", "owners/scenarios/phases reconciled",
+                                    expansion.toString(), exhaustive)),
+                    status(valid && exhaustive));
+            assertAll(
+                    () -> assertTrue(valid, "The existing report does not expose an auditable dynamic Tests tree"),
+                    () -> assertTrue(exhaustive, "The Tests audit did not expand every discovered owner, scenario and phase"));
         });
     }
 
@@ -160,17 +169,27 @@ class ExistingExtentReportExploratoryTest {
             Locator fails = page.locator("#atf-fails-view");
             int failureRows = fails.locator("#atf-failure-list .name").count();
             int failureLinks = fails.locator("a.atf-failure-open").count();
+            boolean hasFailures = failureRows > 0;
+            boolean emptyState = fails.locator("#atf-failure-list .atf-fails-empty").count() == 1;
+            boolean failureStateValid = hasFailures
+                    ? failureLinks == failureRows
+                    && fails.locator(".atf-failure-index-cause .atf-failure-value").count() >= failureRows
+                    : emptyState && failureLinks == 0;
             UiScreenValidation.Evidence evidence = capture(page, "Categories and Fails navigation");
             boolean valid = categoryCount > 0 && linkedScenarios > 0 && themed
-                    && fails.count() > 0 && failureRows >= 0 && failureLinks >= 0;
+                    && fails.count() > 0 && failureStateValid;
             audit.screen("Categories remain linked and Fails remains a valid optional view",
                     "#category-view → #atf-fails-view", evidence, List.of(
                             check("Categories", "> 0", String.valueOf(categoryCount), categoryCount > 0),
                             check("Linked scenarios", "> 0", String.valueOf(linkedScenarios), linkedScenarios > 0),
                             check("Dark report surface", "styled", themed ? "styled" : "missing", themed),
                             check("Fails view", "present", String.valueOf(fails.count()), fails.count() > 0),
-                            check("Failure rows", "dynamic optional", String.valueOf(failureRows), failureRows >= 0),
-                            check("Failure links", "dynamic optional", String.valueOf(failureLinks), failureLinks >= 0)),
+                            check("Failure rows", "zero or dynamic", String.valueOf(failureRows), failureRows >= 0),
+                            check("Failure navigation contract",
+                                    hasFailures ? "each failure has cause + Open in Tests" : "empty state and no links",
+                                    hasFailures ? failureRows + " causes + " + failureLinks + " links"
+                                            : (emptyState ? "empty state" : "missing empty state"),
+                                    failureStateValid)),
                     status(valid));
             assertTrue(valid, "Category/Fails navigation is not structurally valid");
         });
@@ -190,31 +209,49 @@ class ExistingExtentReportExploratoryTest {
             Locator disclosures = detail.locator("details");
             Locator actionSequences = detail.locator("details.atf-ui-action-sequence");
             int screenshotLinks = actionSequences.locator("a.atf-ui-action-screenshot-link[href^=\"data:image/png;base64,\"]").count();
+            Locator screenshotAnchors = actionSequences.locator(
+                    "a.atf-ui-action-screenshot-link[href^=\"data:image/png;base64,\"]");
             activeActions.findElement(validations.first(), "table.helm-validation-table:first-of-type");
             activeActions.expectText(validations.first(), "table.helm-validation-table:first-of-type",
                     "ASSERTION");
             Locator visibleDisclosure = detail.locator("details:visible").first();
             if (visibleDisclosure.count() > 0 && !"true".equals(visibleDisclosure.getAttribute("open"))) {
                 activeActions.click(visibleDisclosure.locator("summary"),
-                        "visible details summary", "screen evidence is expanded");
+                        "details:visible > summary", "screen evidence is expanded");
             }
+            Locator visibleActionSequence = detail.locator("details.atf-ui-action-sequence:visible").first();
+            if (visibleActionSequence.count() > 0
+                    && !"true".equals(visibleActionSequence.getAttribute("open"))) {
+                activeActions.click(visibleActionSequence.locator("summary"),
+                        "details.atf-ui-action-sequence:visible > summary", "action table is expanded");
+            }
+            Locator visibleActionTable = actionSequences.locator(".atf-ui-action-table:visible").first();
+            String tableGeometry = visibleActionTable.count() == 0 ? "missing"
+                    : visibleActionTable.evaluate("element -> { const style = getComputedStyle(element); "
+                    + "return style.tableLayout + '|' + Math.round(element.getBoundingClientRect().width); }")
+                    .toString();
+            int tableWidth = tableGeometry.startsWith("fixed|")
+                    ? Integer.parseInt(tableGeometry.substring("fixed|".length())) : 0;
+            boolean fixedActionTable = tableGeometry.startsWith("fixed|") && tableWidth >= 760;
             UiScreenValidation.Evidence evidence = capture(page, "Base64 screenshot link and grouped validations");
             boolean inputHasUiActions = actionSequences.count() > 0;
             boolean valid = validations.count() > 0 && disclosures.count() > 0
                     && (!inputHasUiActions || screenshotLinks > 0)
+                    && (!inputHasUiActions || fixedActionTable)
                     && actionSequences.locator("img[src^=\"data:image\"]").count() == 0
-                    && (!inputHasUiActions || actionSequences.locator(
-                            "a.atf-ui-action-screenshot-link[data-featherlight=\"image\"] "
-                                    + "span.badge.badge-gradient-primary").filter(
-                            new Locator.FilterOptions().setHasText("base64 img")).count() > 0)
-                    && evidence.hasInlineImage();
+                    && (!inputHasUiActions || screenshotAnchors.count() == screenshotLinks)
+                    && (!inputHasUiActions || screenshotAnchors.filter(
+                            new Locator.FilterOptions().setHasText("📷 base64 img")).count() == screenshotLinks)
+                    && evidence.hasScreenshotPayload();
             audit.screen("One visual state carries one Base64 screenshot link and grouped validation evidence",
                     "#test-view", evidence, List.of(
                             check("Validation tables", "> 0", String.valueOf(validations.count()), validations.count() > 0),
                             check("Collapsible evidence", "> 0", String.valueOf(disclosures.count()), disclosures.count() > 0),
                             check("Existing Base64 screenshot links", inputHasUiActions ? "> 0" : "optional for API input",
                                     String.valueOf(screenshotLinks), !inputHasUiActions || screenshotLinks > 0),
-                            check("New Base64 screenshot", "present", String.valueOf(evidence.hasInlineImage()), evidence.hasInlineImage())),
+                            check("Playwright table geometry", "fixed layout; width >= 760px",
+                                    tableGeometry, !inputHasUiActions || fixedActionTable),
+                            check("New Base64 screenshot", "present", String.valueOf(evidence.hasScreenshotPayload()), evidence.hasScreenshotPayload())),
                     status(valid));
             assertTrue(valid, "Existing report visual evidence is not linked/grouped as required");
         });
@@ -238,20 +275,48 @@ class ExistingExtentReportExploratoryTest {
         return new TestsSnapshot(owners.count(), scenarios, phases, validations, disclosures);
     }
 
-    private void expandFirstScenarioAndPhases(Locator detail) {
-        Locator scenarios = detail.locator("[data-atf-scenario-id]");
-        if (scenarios.count() == 0) return;
-        Locator scenario = scenarios.first();
-        expandNode(scenario, "data-atf-scenario-open");
-        Locator phases = scenario.locator("[data-atf-node-role='phase']");
-        for (int index = 0; index < phases.count(); index++) expandNode(phases.nth(index), "data-atf-phase-open");
+    private ExpansionSnapshot expandEveryOwnerScenarioAndPhase(Page page) {
+        Locator tests = page.locator("#test-view");
+        Locator owners = tests.locator(".test-list .test-item");
+        int ownerCount = owners.count();
+        int scenarioCount = 0;
+        int phaseCount = 0;
+        int expandedScenarioCount = 0;
+        int expandedPhaseCount = 0;
+        for (int ownerIndex = 0; ownerIndex < ownerCount; ownerIndex++) {
+            Locator owner = tests.locator(".test-list .test-item").nth(ownerIndex);
+            activeActions.click(owner, ".test-list .test-item:nth-of-type(" + (ownerIndex + 1) + ")",
+                    "class detail opens");
+            Locator detail = tests.locator(".test-content-detail:visible").last();
+            activeActions.waitForVisible(detail, ".test-content-detail:visible");
+            Locator scenarios = detail.locator("[data-atf-scenario-id]");
+            scenarioCount += scenarios.count();
+            for (int scenarioIndex = 0; scenarioIndex < scenarios.count(); scenarioIndex++) {
+                Locator scenario = scenarios.nth(scenarioIndex);
+                expandNode(scenario, "data-atf-scenario-open");
+                if ("true".equals(scenario.getAttribute("data-atf-scenario-open"))) {
+                    expandedScenarioCount++;
+                }
+                Locator phases = scenario.locator("[data-atf-node-role='phase']");
+                phaseCount += phases.count();
+                for (int phaseIndex = 0; phaseIndex < phases.count(); phaseIndex++) {
+                    Locator phase = phases.nth(phaseIndex);
+                    expandNode(phase, "data-atf-phase-open");
+                    if ("true".equals(phase.getAttribute("data-atf-phase-open"))) {
+                        expandedPhaseCount++;
+                    }
+                }
+            }
+        }
+        return new ExpansionSnapshot(ownerCount, scenarioCount, phaseCount,
+                expandedScenarioCount, expandedPhaseCount);
     }
 
     private void expandNode(Locator card, String stateAttribute) {
         Locator node = card.locator(":scope > .card-header .node");
         if (node.count() == 0) return;
         if (!"true".equals(card.getAttribute(stateAttribute))) {
-            activeActions.click(node, "tree node " + stateAttribute, "node is expanded");
+            activeActions.click(node, ":scope > .card-header .node", "node is expanded");
         }
     }
 
@@ -292,7 +357,7 @@ class ExistingExtentReportExploratoryTest {
         UiScreenValidation.Evidence evidence = UiScreenValidation.capture(
                 page, configuration.screenValidation(), title);
         System.out.println("[ATF UI][EXISTING-REPORT] screen-validation title=" + title
-                + " base64Link=" + evidence.hasInlineImage()
+                + " base64Link=" + evidence.hasScreenshotPayload()
                 + " chars=" + evidence.base64Png().length());
         activeActions.observation("Screenshot", "current page", "visual state captured",
                 "Base64 screenshot link");
@@ -305,7 +370,7 @@ class ExistingExtentReportExploratoryTest {
             action.run(audit);
             audit.pass();
         } catch (AssertionError | RuntimeException failure) {
-            audit.fail();
+            audit.fail(failure);
             throw failure;
         }
     }
@@ -327,40 +392,33 @@ class ExistingExtentReportExploratoryTest {
     private interface AuditAction { void run(UiAudit audit); }
 
     private final class UiAudit {
-        private final UiExtentReportSession.UiScenario scenario;
-        private final UiExtentReportSession.UiPhase body;
-        private boolean bodyCompleted;
+        private final UiAuditLifecycle lifecycle;
 
         private UiAudit(UiExtentReportSession.UiScenario scenario, UiExtentReportSession.UiPhase body) {
-            this.scenario = scenario;
-            this.body = body;
+            this.lifecycle = new UiAuditLifecycle(scenario, body);
         }
 
         private void screen(String title, String target, UiScreenValidation.Evidence evidence,
                             List<AtfAssertion> assertions, AtfReportStatus status) {
-            body.screenValidation(title, target, evidence.base64Png(), assertions,
+            lifecycle.screenValidation(title, target, evidence.base64Png(), assertions,
                     activeActions == null ? List.of() : activeActions.drain(), status);
         }
 
         private void pass() {
-            if (!bodyCompleted) {
-                body.complete(AtfReportStatus.PASS);
-                bodyCompleted = true;
-            }
-            scenario.complete(AtfReportStatus.PASS);
+            lifecycle.pass();
         }
 
-        private void fail() {
-            if (!bodyCompleted) {
-                body.complete(AtfReportStatus.FAIL);
-                bodyCompleted = true;
-            }
-            scenario.complete(AtfReportStatus.FAIL);
+        private void fail(Throwable failure) {
+            lifecycle.fail("UI exploration failed", inputReport.toString(),
+                    activeActions == null ? List.of() : activeActions.drain(), failure);
         }
     }
 
     private record TestsSnapshot(int ownerCount, int scenarioCount, int phaseCount,
                                  int validationCount, int disclosureCount) { }
+
+    private record ExpansionSnapshot(int ownerCount, int scenarioCount, int phaseCount,
+                                     int expandedScenarioCount, int expandedPhaseCount) { }
 
     private record OverviewSnapshot(int sectionCount, int classCount, int scenarioCount,
                                     int auditScenarioTotal, boolean complete) { }

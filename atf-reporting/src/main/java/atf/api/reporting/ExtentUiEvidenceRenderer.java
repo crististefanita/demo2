@@ -4,6 +4,7 @@ import atf.api.core.config.ReportingSettings;
 import atf.api.core.reporting.AtfAssertion;
 import atf.api.core.security.SensitiveDataRedactor;
 import atf.api.core.ui.AtfUiActionRecord;
+import atf.api.core.ui.AtfUiEvidenceSource;
 import com.aventstack.extentreports.ExtentTest;
 
 import java.util.Collection;
@@ -26,6 +27,18 @@ final class ExtentUiEvidenceRenderer {
     void renderUiActions(ExtentTest node, List<AtfUiActionRecord> actions,
                          List<String[]> screenshots) {
         if (actions == null || actions.isEmpty()) return;
+        List<AtfUiActionRecord> browserActions = actions.stream()
+                .filter(action -> action.source() == AtfUiEvidenceSource.ACTION)
+                .toList();
+        List<AtfUiActionRecord> observations = actions.stream()
+                .filter(action -> action.source() == AtfUiEvidenceSource.OBSERVE)
+                .toList();
+        if (!browserActions.isEmpty()) renderBrowserActions(node, browserActions, screenshots);
+        if (!observations.isEmpty()) renderObservations(node, observations);
+    }
+
+    private void renderBrowserActions(ExtentTest node, List<AtfUiActionRecord> actions,
+                                      List<String[]> screenshots) {
         long base64ScreenshotCount = screenshots == null ? 0 : screenshots.stream()
                 .filter(screenshot -> screenshot != null
                         && screenshot.length >= 2
@@ -47,18 +60,50 @@ final class ExtentUiEvidenceRenderer {
                     .append("<a class=\"atf-ui-action-screenshot-link\" data-atf-screenshot=\"base64\"")
                     .append(" href=\"data:image/png;base64,")
                     .append(escapeHtml(screenshot[1]))
+                    .append("\" target=\"_blank\" rel=\"noopener\" aria-label=\"Open ")
+                    .append(escapeHtml(title))
                     .append("\" target=\"_blank\" rel=\"noopener\" data-featherlight=\"image\" aria-label=\"Open ")
                     .append(escapeHtml(title))
-                    .append("><span class=\"badge badge-gradient-primary\">base64 img</span></a></div>");
+                    .append("\"><span class=\"badge badge-gradient-primary\">📷 base64 img</span></a></div>");
         }
         String markup = html.append("</div></details>").toString();
         node.info(() -> markup);
     }
 
+    private void renderObservations(ExtentTest node, List<AtfUiActionRecord> observations) {
+        var html = new StringBuilder("<details class=\"atf-ui-observations\"><summary>")
+                .append("Audit observations (").append(observations.size()).append(" entries)")
+                .append("</summary><div class=\"atf-ui-action-table-wrap\"><table class=\"atf-ui-action-table atf-ui-observation-table\">")
+                .append("<thead><tr><th>#</th><th>OBSERVATION</th><th>TARGET</th><th>EXPECTED</th>")
+                .append("<th>OBSERVED</th><th>TIME</th><th>RESULT</th></tr></thead><tbody>");
+        for (AtfUiActionRecord observation : observations) {
+            html.append("<tr><td>").append(observation.sequence()).append("</td><td>")
+                    .append(escapeHtml(observation.operation())).append("</td><td>")
+                    .append(escapeHtml(observation.target())).append("</td><td>")
+                    .append(escapeHtml(ExtentReportNodeSupport.display(observation.expected(), settings))).append("</td><td>")
+                    .append(escapeHtml(ExtentReportNodeSupport.display(observation.observed(), settings))).append("</td><td>")
+                    .append(escapeHtml(observation.durationText())).append("</td><td><span class=\"atf-ui-action-result atf-ui-action-result-")
+                    .append(observation.status().name().toLowerCase(java.util.Locale.ROOT))
+                    .append("\" role=\"img\" aria-label=\"").append(escapeHtml(observation.resultLabel()))
+                    .append("\" title=\"").append(escapeHtml(observation.resultLabel())).append("\">")
+                    .append(observation.resultEmoji()).append("</span></td></tr>");
+        }
+        node.info(() -> html.append("</tbody></table></div></details>").toString());
+    }
+
     /** Renders the action table only; the caller adds native media separately. */
     void renderUiActionsAsMedia(ExtentTest node, List<AtfUiActionRecord> actions) {
         if (actions == null || actions.isEmpty()) return;
-        node.info(() -> actionTable(actions).append("</tbody></table></div></details>").toString());
+        List<AtfUiActionRecord> browserActions = actions.stream()
+                .filter(action -> action.source() == AtfUiEvidenceSource.ACTION)
+                .toList();
+        List<AtfUiActionRecord> observations = actions.stream()
+                .filter(action -> action.source() == AtfUiEvidenceSource.OBSERVE)
+                .toList();
+        if (!browserActions.isEmpty()) {
+            node.info(() -> actionTable(browserActions).append("</tbody></table></div></details>").toString());
+        }
+        if (!observations.isEmpty()) renderObservations(node, observations);
     }
 
     private StringBuilder actionTable(List<AtfUiActionRecord> actions) {

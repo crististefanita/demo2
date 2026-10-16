@@ -95,7 +95,7 @@ public final class ReportAuditContext implements AutoCloseable {
         Objects.requireNonNull(actions, "actions");
         Page page = browser.page();
         actions.navigate(page, URI.create(server.uriFor(inputReport).toString() + hash));
-        actions.waitForVisible(page.locator(hash), "selected tab " + hash);
+        actions.waitForVisible(page.locator(hash), hash);
         actions.observation("Tab visible", hash, "selected tab is visible", hash);
         return page;
     }

@@ -105,6 +105,7 @@ nu este o confirmare artificială a închiderii raportului.
 ```mermaid
 flowchart LR
     Tests[atf-tests] --> Execution[atf-execution]
+    Tests --> Mock[atf-mock]
     Tests --> Validation[atf-validation]
     Tests --> Console[atf-console]
     Tests --> Reporting[atf-reporting]
@@ -139,6 +140,8 @@ Săgeata înseamnă „modulul din stânga depinde de modulul din dreapta”.
 
 ```mermaid
 flowchart LR
+    Tests[atf-tests] --> Execution[atf-execution]
+    Tests --> Mock[atf-mock]
     Validation[atf-validation] --> Core[atf-core]
     Mock[atf-mock] --> Core
     Execution[atf-execution] --> Validation
@@ -147,7 +150,6 @@ flowchart LR
     Reporting[atf-reporting] --> Core
     Ui[atf-ui] --> Core
     Tests --> DebugUi[atf-debug-ui]
-    Tests[atf-tests] --> Execution
     Tests --> Validation
     Tests --> Reporting
     Tests --> Console
@@ -372,7 +374,7 @@ aceeași decizie în execuție și în artifact.
 - [docs/README_Atf_BestPractices.md](docs/README_Atf_BestPractices.md) —
   reguli OOP, testabilitate și mentenanță;
 - [docs/feedback/README.md](docs/feedback/README.md) — ToDo-uri active și
-  decizii de refactorizare închise recent.
+  criterii de închidere validate prin cod și teste.
 
 README-ul rădăcină nu repetă contracte de culori, layout, tab-uri, navigare,
 staging sau validare vizuală. Acestea au un singur owner documentar în

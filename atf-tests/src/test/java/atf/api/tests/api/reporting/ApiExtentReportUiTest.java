@@ -7,7 +7,7 @@ import atf.api.execution.ApiModule;
 import atf.api.execution.ApiModuleFactory;
 import atf.api.execution.lifecycle.ApiScenarioLifecycleRunner;
 import atf.api.reporting.ExtentReportSession;
-import atf.api.tests.api.lifecycle.LifecycleApiScenarios;
+import atf.api.tests.support.ApiScenarioSetupCatalog;
 import atf.api.ui.config.AtfUiConfigurationLoader;
 import atf.api.ui.config.UiConfiguration;
 import atf.api.ui.playwright.PlaywrightUiSession;
@@ -61,7 +61,7 @@ class ApiExtentReportUiTest {
     private PlaywrightUiSession browser;
 
     @BeforeAll
-    void generateLifecycleReportAndOpenBrowser() throws Exception {
+    void generateDynamicApiReportAndOpenBrowser() throws Exception {
         configuration = AtfUiConfigurationLoader.load();
         assertTrue(configuration.enabled(), "UI tests require atf.ui.enabled=true");
 
@@ -71,10 +71,11 @@ class ApiExtentReportUiTest {
         ApiModule api = ApiModuleFactory.fromTransport(
                 AtfMockTransport.fromProjectConfiguration(), API_BASE_URI);
         try (var session = new ExtentReportSession(report)) {
-            LifecycleApiScenarios.publish(session, api, new ApiScenarioLifecycleRunner());
+            ApiScenarioSetupCatalog.publish(session, api, new ApiScenarioLifecycleRunner(),
+                    configuration.apiScenarioFamilies());
         }
 
-        assertTrue(Files.isRegularFile(report), "Lifecycle setup must publish the UI report");
+        assertTrue(Files.isRegularFile(report), "Dynamic API setup must publish the UI report");
         server = DebugUiServer.start(DebugUiConfiguration.forHtml(report, 0));
         browser = PlaywrightUiSession.open(configuration.browser());
         browser.navigate(server.uriFor(report));
@@ -232,6 +233,58 @@ class ApiExtentReportUiTest {
     }
 
     @Test
+    @DisplayName("GIVEN an API request is opened WHEN evidence disclosures are expanded THEN request and response JSON bodies are visible")
+    void expandedApiRequestShowsRequestAndResponseJsonBodies() {
+        System.out.println("[ATF UI] GIVEN a generated API report is open in the Tests tab");
+        Page page = openTab("#test-view");
+        Locator tests = page.locator("#test-view");
+        classListItem(tests, "RequestVariantsApiTests").click();
+        expandNode(tests, "POST /public/v2/bulk-import — large body + api-key");
+        expandNode(tests, "TEST BODY");
+        Locator bulkImportRequest = tests.locator(
+                        ".test-content-detail:visible [data-atf-node-role='phase'][data-atf-phase-name='test-body'] "
+                                + "[data-atf-node-role='request'] > .card-header")
+                .filter(new Locator.FilterOptions().setHasText("POST /public/v2/bulk-import"))
+                .first();
+        assertTrue(bulkImportRequest.isVisible(), "The bulk-import request node must be visible");
+        if (!"true".equals(bulkImportRequest.getAttribute("aria-expanded"))) {
+            bulkImportRequest.click();
+        }
+
+        for (String disclosure : new String[]{
+                "Request details · 5 fields",
+                "Response details · 3 fields"}) {
+            Locator evidence = exact(tests, disclosure);
+            assertTrue(evidence.isVisible(), "Expected visible evidence disclosure: " + disclosure);
+            if (!"true".equals(evidence.getAttribute("aria-expanded"))) {
+                evidence.click();
+            }
+        }
+
+        Locator requestBody = tests.locator(
+                ".test-content-detail:visible .request-json-body:visible pre.code-block, "
+                        + ".test-content-detail:visible .request-evidence:visible pre.code-block").first();
+        Locator responseBody = tests.locator(
+                ".test-content-detail:visible .response-json-body:visible pre.code-block, "
+                        + ".test-content-detail:visible .response-evidence:visible pre.code-block").first();
+
+        assertAll(
+                () -> assertTrue(requestBody.isVisible(), "Request JSON body must be visible after disclosure expansion"),
+                () -> assertTrue(responseBody.isVisible(), "Response JSON body must be visible after disclosure expansion"),
+                () -> assertTrue(requestBody.innerText().contains("intellij")
+                                && requestBody.innerText().contains("ATF User"),
+                        "Request JSON must contain the concrete API payload"),
+                () -> assertTrue(responseBody.innerText().contains("accepted")
+                                && responseBody.innerText().contains("job-20261015-001"),
+                        "Response JSON must contain the concrete API response"));
+
+        UiScreenValidation.Evidence evidence = UiScreenValidation.capture(
+                page, configuration.screenValidation(), "Request and response JSON bodies — expanded evidence");
+        System.out.println("[ATF UI] inline-base64-screenshot bytes=" + evidence.base64Png().length());
+        assertTrue(evidence.hasScreenshotPayload(), "JSON body validation must keep visual Base64 evidence");
+    }
+
+    @Test
     void phaseDurationsExposeTheStructuralAggregationContract() {
         Page page = openTab("#test-view");
         Locator tests = page.locator("#test-view");
@@ -256,7 +309,7 @@ class ApiExtentReportUiTest {
 
     @Test
     @DisplayName("GIVEN every Extent node is opened WHEN durations are inspected THEN each parent honors direct-child and transport aggregation")
-    void everyExtentNodeKeepsItsOwnDurationAndParentsSumDirectChildren() {
+    void everyExtentNodeKeepsItsOwnDurationAndParentsHonorAggregationContract() {
         System.out.println("[ATF UI] GIVEN the generated Extent report is opened in Tests");
         Page page = openTab("#test-view");
         Locator tests = page.locator("#test-view");
@@ -286,7 +339,7 @@ class ApiExtentReportUiTest {
         UiScreenValidation.Evidence evidence = UiScreenValidation.capture(
                 page, configuration.screenValidation(), "Duration contract — final Tests tree");
         System.out.println("[ATF UI] inline-base64-screenshot bytes=" + evidence.base64Png().length());
-        assertTrue(evidence.hasInlineImage(), "The final duration validation must keep visual Base64 evidence");
+        assertTrue(evidence.hasScreenshotPayload(), "The final duration validation must keep visual Base64 evidence");
     }
 
     @SuppressWarnings("unchecked")
@@ -384,14 +437,23 @@ class ApiExtentReportUiTest {
     }
 
     private static Locator classListItem(Locator tests) {
+        return classListItem(tests, "ApiLifecycleAndCombinationsTests");
+    }
+
+    private static Locator classListItem(Locator tests, String className) {
         return tests.locator(".test-list .test-item .name")
                 .filter(new Locator.FilterOptions()
-                        .setHasText("ApiLifecycleAndCombinationsTests"))
+                        .setHasText(className))
                 .first();
     }
 
     private static Locator exact(Locator scope, String text) {
-        return scope.getByText(text, new Locator.GetByTextOptions().setExact(true)).first();
+        Locator candidates = scope.getByText(text, new Locator.GetByTextOptions().setExact(true));
+        for (int index = 0; index < candidates.count(); index++) {
+            Locator candidate = candidates.nth(index);
+            if (candidate.isVisible()) return candidate;
+        }
+        return candidates.first();
     }
 
     private static Locator nodeButton(Locator scope, String text) {

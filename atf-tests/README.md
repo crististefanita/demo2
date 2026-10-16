@@ -163,7 +163,7 @@ mvn -pl atf-tests -am test
 mvn -pl atf-tests -am -Datf.ui.enabled=true -Dtest=atf.ui.tests.ApiExtentReportUiTest test
 mvn -pl atf-tests -am -Datf.ui.enabled=true -Dtest=atf.ui.tests.exploratory.ApiExtentReportExploratoryTest test
 mvn -pl atf-tests -am -Datf.ui.enabled=true \
-  -Datf.ui.report="artifacts/reports/ui/ui-atf-extent-report_2026-10-15_15-57-51-979.html" \
+  -Datf.ui.report="artifacts/reports/ui/ui-atf-extent-report-TIMESTAMP.html" \
   -Dtest=atf.ui.tests.exploratory.ExistingExtentReportExploratoryTest test
 ```
 
@@ -194,7 +194,7 @@ doar artifactul investigat:
 ```text
 mvn -pl atf-tests -am `
   '-Datf.ui.enabled=true' `
-  '-Datf.ui.report=artifacts/reports/api-atf-extent-report_2026-10-15_08-57-03.html' `
+  '-Datf.ui.report=artifacts/reports/api-atf-extent-report-TIMESTAMP.html' `
   '-Dtest=atf.ui.tests.exploratory.ExistingExtentReportExploratoryTest' test
 ```
 
@@ -230,8 +230,8 @@ flux dinamic al artifactului primit
 
 Inputul este tratat ca un contract read-only, iar testele dinamice nu fixează
 numărul sau numele testelor din acel raport. Pentru fiecare stare vizuală,
-`UiScreenValidation` capturează o singură imagine Base64, publicată inline într-o
-ancoră `data:image/png;base64,...` cu badge-ul `base64 img`, și
+`UiScreenValidation` capturează un singur payload PNG Base64, publicat ca ancoră
+nativă `data:image/png;base64,...` cu eticheta `Open screenshot · Base64 image`, și
 `UiExtentReportSession` grupează assert-urile aferente într-o singură zonă
 colapsabilă.
 
@@ -240,7 +240,8 @@ Același grup păstrează și acțiunile Playwright consecutive. `Click`, `Get t
 sunt executate prin
 `PlaywrightActionSequence`, nu logate post-factum. În raportul UI apar într-un
 disclosure cu tabelul `# | OPERATION | TARGET | EXPECTED | OBSERVED | TIME |
-RESULT`; `TARGET` este locatorul sau pagina folosită, iar `TIME` este întotdeauna
+RESULT`; `TARGET` este locatorul exact sau URI-ul navigat; un timeout de
+stabilizare folosește locatorul-anchor, nu `page`. `TIME` este întotdeauna
 exprimat în `ms`. Rezultatul folosește markerul emoji canonic, nu textul
 `passed` și nu repetă verdictul în celulă.
 După o captură sau o schimbare de pagină, `drain()` începe un grup nou, astfel
@@ -251,8 +252,42 @@ nu duplică imaginea într-un element `<img>`.
 
 În tabelul Playwright, celula `RESULT` afișează exclusiv markerul emoji al
 statusului (`✅`, `⚠️`, `❌`, `⏭️`, `ℹ️`); textul verdictului nu este duplicat în
-tabel. Locatorii și textele sunt dimensionați natural, cu wrapping pentru
-conținut lung și fallback responsive la viewport mic.
+tabel. Tabelul are lățime contractuală fixă de 760px, cu șapte coloane stabile;
+wrapperul permite scroll orizontal la viewport mic, iar textele lungi se împart
+în celula lor fără antete verticale.
+
+#### Regula obligatorie pentru locatorul din fiecare acțiune
+
+Coloana `TARGET` nu este o coloană de comentarii. Pentru fiecare acțiune
+Playwright care lucrează cu un element (`Click`, `Get text`, `Find element`,
+`Expect text`, `Focus`, `Wait for visible`, `Expect visible`) se publică
+locatorul exact transmis acelei operații, nu un alias sau o propoziție scurtă.
+Astfel auditorul poate reproduce direct pasul din raport.
+
+| Operație | `TARGET` obligatoriu | Exemplu preferat |
+|---|---|---|
+| `Click` | selectorul elementului apăsat | `button[data-filter-value='clear']` |
+| `Get text` / `Expect text` | selectorul elementului citit | `#test-view .test-detail .name` |
+| `Find element` | selectorul căutat | `table.helm-request-table:visible` |
+| `Focus` | selectorul elementului focalizat | `input[name='search']` |
+| `Wait for visible` / `Expect visible` | selectorul stării așteptate | `#category-view .test-content-detail:visible` |
+| `Navigate` | URI-ul navigat | `file:///.../report.html#test-view` |
+| `Wait` de stabilizare | locatorul-anchor al stării observate | preferă un state wait semantic |
+
+Preferăm CSS stabil, cu atribut relevant și valoare exactă: `element[data-testid='...']`,
+`button[aria-label='...']`, `a[href='#...']` sau
+`[data-filter-value='...']`. Folosim `:nth-of-type(...)` numai ca ultimă opțiune,
+scoped sub un container stabil. Valori precum `selected owner detail`,
+`TEST BODY collapse node`, `details disclosure summary` și `tree node` sunt
+descrieri de domeniu, nu locatori; ele trebuie mutate în `EXPECTED`/`OBSERVED`,
+iar `TARGET` trebuie să rămână selectorul real.
+
+Un pas Gherkin poate avea titlu lizibil, dar fiecare subpas Playwright rămâne
+parametrizat prin `(operation, target, expected, observed)`. `Screen validation`
+nu validează retroactiv calitatea locatorului; contractul trebuie satisfăcut la
+înregistrare și verificat prin test. Dacă un selector devine instabil, se repară
+selectorul și fixture-ul, nu se șterge rândul din raport sau se înlocuiește cu
+un `observation` sintetic.
 
 Orice assertion UI care schimbă verdictul trebuie să fie executată printr-o
 operație Playwright auditabilă (`Find element`, `Get text`, `Expect text` sau
@@ -273,7 +308,7 @@ rula testul dedicat care selectează fiecare categorie descoperită din DOM:
 ```powershell
 mvn -pl atf-tests -am `
   '-Datf.ui.enabled=true' `
-  '-Datf.ui.report=artifacts/reports/api-atf-extent-report_2026-10-15_16-57-07-603.html' `
+  '-Datf.ui.report=artifacts/reports/api-atf-extent-report-TIMESTAMP.html' `
   '-Dtest=atf.ui.tests.exploratory.ExistingExtentCategoriesExploratoryTest' `
   '-Dsurefire.failIfNoSpecifiedTests=false' test
 ```
@@ -281,10 +316,11 @@ mvn -pl atf-tests -am `
 `ExistingExtentCategoriesExploratoryTest` nu presupune numele sau numărul
 categoriilor. Pentru fiecare filtru verifică titlul selectat, count-ul declarat,
 rândurile `tag-test-status`, linkurile către scenarii și `test-id`-urile reale;
+un filtru cu zero rezultate este o stare validă și trebuie verificat explicit,
+nu respins prin presupunerea că fiecare categorie are cel puțin un link;
 apoi verifică navigarea unui link către `Tests`. Fiecare stare explorată este
-publicată sub un pas Gherkin, cu tabelul consecutiv de acțiuni Playwright și un
-ancoră inline Base64 către screenshot, cu badge-ul `base64 img`, fără `<img>` și
-fără PNG extern. Inputul
+publicată sub un pas Gherkin, cu tabelul consecutiv de acțiuni Playwright și o
+ancoră nativă Base64 către screenshot, fără `<img>` și fără PNG extern. Inputul
 rămâne read-only; raportul de audit este separat, de exemplu
 `artifacts/reports/ui/existing-ui-categories-atf-extent-report_...html`.
 
@@ -294,8 +330,9 @@ Tabelul de acțiuni rămâne lizibil la viewport îngust prin lățime contractu
 de minimum `760px`, layout fix și scroll orizontal în wrapper; nu se acceptă
 antete rupte literă-cu-literă. Linkul Base64 este clicabil și se deschide într-o
 nouă pagină, iar auditul verifică separat prefixul `data:image/png;base64,`,
-`data-featherlight="image"`, `target=_blank`, `rel=noopener` și absența unui
-`<img>` duplicat.
+`target=_blank`, `rel=noopener` și absența unui `<img>` duplicat. `target=_blank`
+este un contract al artifactului, nu dovada că sesiunea Playwright a inspectat
+automat popup-ul.
 
 ### Quality gate pentru testele UI
 
@@ -321,6 +358,22 @@ nodurile descoperite, nu doar primul scenariu. Găsirile și criteriile de
 F-08 este închis prin verificarea de cardinalitate din renderer și testul
 negativ aferent; criteriile rămase de închidere sunt urmărite în feedback-ul
 UI F-09–F-13.
+
+### Verdict de mentenanță — codul live
+
+La 2026-10-16, dimensiunile reale sunt `ApiExtentReportExploratoryTest` = 706
+linii, `ExistingExtentReportExploratoryTest` = 367 și
+`ExistingExtentCategoriesExploratoryTest` = 252. Acestea nu sunt o problemă
+pentru că au multe assertions, ci pentru că amestecă intenția Gherkin cu
+`openTab`, navigarea, capturile, parsing-ul și publicarea. Următoarea evoluție
+trebuie să extragă suportul în `atf.ui.tests.support` și să lase în clasele de
+test doar scenariile lizibile și validatorii specifici tab-ului.
+
+Un raport este considerat auditabil numai dacă poate răspunde, pentru fiecare
+stare: ce acțiune Playwright s-a executat, pe ce locator, ce se aștepta, ce s-a
+observat, ce durată a avut și ce captură Base64 dovedește starea. Observațiile
+precum `Screenshot` sau `Tab visible` se marchează separat de acțiunile reale;
+nu se inventează operații Playwright pentru a umple tabelul.
 
 Auditul de durate este acum intenționat explicit în aceeași clasă: nu fixează
 numărul sau numele testelor, ci selectează fiecare owner găsit în DOM și verifică
