@@ -18,6 +18,9 @@ class ExtentReportRuntimeScriptTest {
 
         assertAll(
                 () -> assertTrue(html.contains("id=\"atf-report-behaviour\"")),
+                () -> assertTrue(html.contains("__atfRuntimeBoot")),
+                () -> assertTrue(html.contains("__atfRuntimeReady")),
+                () -> assertTrue(html.contains("__atfRuntimeError")),
                 () -> assertTrue(duration >= 0),
                 () -> assertTrue(failures > duration),
                 () -> assertTrue(causes > failures));
@@ -80,6 +83,12 @@ class ExtentReportRuntimeScriptTest {
                         "filtered-out scenarios must not contribute to the visible class total"),
                 () -> assertTrue(script.contains("data-duration-source',source")),
                 () -> assertTrue(script.contains("data-duration-source")),
+                () -> assertTrue(script.contains("a.linked[test-id],a.linked[data-atf-test-id]"),
+                        "category duration projection must read the immutable source links before the detail clone exists"),
+                () -> assertTrue(script.contains("categoryScenarioIndex(link,id)"),
+                        "category projection must reconcile each linked scenario with its exact scenario index"),
+                () -> assertTrue(script.contains("document.querySelector('#dashboard-view .card:has(#timeline)')"),
+                        "overview duration projection must remain observable when the chart canvas is created lazily"),
                 () -> assertTrue(script.contains("window.atfActivate")),
                 () -> assertTrue(script.contains("setTimeout(aggregateClassDurations,150)"),
                         "a deep-linked Tests view must be recalculated after asynchronous DOM activation"),
@@ -114,6 +123,10 @@ class ExtentReportRuntimeScriptTest {
                 () -> assertTrue(script.contains("failureContextFor")),
                 () -> assertTrue(script.contains("atf-failure-index")),
                 () -> assertTrue(script.contains("Open in Tests")),
+                () -> assertTrue(script.contains("window.location.hash"),
+                        "the Fails link must retain a direct hash fallback when the runtime facade is unavailable"),
+                () -> assertTrue(script.contains("encodeURIComponent"),
+                        "the direct Fails fallback must preserve the exact test and scenario identifiers"),
                 () -> assertTrue(script.contains("renderFails=function")),
                 () -> assertTrue(script.contains("phaseOrder")));
     }

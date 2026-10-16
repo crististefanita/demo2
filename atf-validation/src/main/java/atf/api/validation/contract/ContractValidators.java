@@ -16,7 +16,9 @@ public final class ContractValidators {
         return new ResponseContract()
                 .status(200)
                 .contentTypeContains("application/json")
-                .jsonPathExists("$[0].id");
+                .jsonPathExists("$[0].id")
+                .jsonPathExists("$[0].name")
+                .jsonPathExists("$[0].email");
     }
 
     public static ResponseContract postItem() {
@@ -33,13 +35,18 @@ public final class ContractValidators {
         return new ResponseContract()
                 .status(200)
                 .contentTypeContains("application/json")
-                .jsonPathExists("$[0].id");
+                .jsonPathExists("$[0].id")
+                .jsonPathExists("$[0].user_id")
+                .jsonPathExists("$[0].title")
+                .jsonPathExists("$[0].body");
     }
 
     public static ResponseContract relationshipCollection(String userId) {
         return new ResponseContract()
                 .status(200)
                 .contentTypeContains("application/json")
+                .jsonPathExists("$[0].id")
+                .jsonPathExists("$[0].title")
                 .everyArrayItemEquals("$", "user_id", userId);
     }
 }

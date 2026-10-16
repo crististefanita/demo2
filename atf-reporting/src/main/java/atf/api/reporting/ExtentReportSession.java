@@ -17,8 +17,7 @@ import java.util.Objects;
 /** Public facade for the Extent boundary; tree scopes live behind this API. */
 public final class ExtentReportSession implements AtfReportPorts.Session, AutoCloseable {
     private final Path reportPath;
-    private final ReportStagingWorkspace stagingWorkspace;
-    private final Path stagedReportPath;
+    private final ExtentReportSessionPublication publication;
     private final ExtentReports reports;
     private final ExtentReportTree tree;
     private final long ownerThreadId = Thread.currentThread().getId();
@@ -46,17 +45,8 @@ public final class ExtentReportSession implements AtfReportPorts.Session, AutoCl
         this.reportPath = Objects.requireNonNull(reportPath, "reportPath").toAbsolutePath().normalize();
         Objects.requireNonNull(settings, "settings");
         Objects.requireNonNull(redactor, "redactor");
-        ReportStagingWorkspace createdWorkspace = null;
-        try {
-            Path parent = this.reportPath.getParent();
-            if (parent != null) Files.createDirectories(parent);
-            createdWorkspace = ReportStagingWorkspace.create(parent, this.reportPath);
-        } catch (java.io.IOException error) {
-            throw new IllegalStateException("Cannot create report directory", error);
-        }
-        this.stagingWorkspace = createdWorkspace;
-        this.stagedReportPath = stagingWorkspace.directory().resolve(this.reportPath.getFileName());
-        var spark = new ExtentSparkReporter(stagedReportPath.toString());
+        this.publication = ExtentReportSessionPublication.open(this.reportPath);
+        var spark = new ExtentSparkReporter(publication.stagedReport().toString());
         spark.config().setTheme(Theme.DARK);
         spark.config().setDocumentTitle("Configurable API Automation");
         spark.config().setReportName("Configurable API Automation");
@@ -87,6 +77,11 @@ public final class ExtentReportSession implements AtfReportPorts.Session, AutoCl
 
     @Override public Path reportPath() { return reportPath; }
 
+    /** Returns the immutable semantic population recorded by this session. */
+    public AtfReportSemanticSnapshot semanticSnapshot() {
+        return tree.semanticSnapshot();
+    }
+
     @Override
     public AtfReportPorts.Scenario startScenario(String testClass, String scenario, Collection<String> tags) {
         ensureOpen();
@@ -113,13 +108,12 @@ public final class ExtentReportSession implements AtfReportPorts.Session, AutoCl
             try {
                 tree.completeClassRoots();
                 reports.flush();
-                ExtentReportFinalizer.finalizeReport(stagedReportPath);
-                ReportPublicationCoordinator.publishAtomic(stagedReportPath, reportPath);
+                publication.publish();
             } catch (java.io.IOException error) {
                 throw new IllegalStateException("Cannot finalize Extent report: " + reportPath, error);
             } finally {
                 closed = true;
-                stagingWorkspace.close();
+                publication.close();
             }
         }
     }

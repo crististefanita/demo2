@@ -15,6 +15,7 @@ class UiBrowserConfigurationTest {
         assertEquals("chromium", configuration.browser());
         assertEquals(1440, configuration.viewportWidth());
         assertEquals(Duration.ofSeconds(10), configuration.timeout());
+        assertEquals(true, configuration.screenshotOnFailure());
     }
 
     @Test

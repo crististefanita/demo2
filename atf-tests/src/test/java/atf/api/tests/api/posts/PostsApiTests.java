@@ -1,7 +1,12 @@
 package atf.api.tests.api.posts;
 
 import atf.api.core.reporting.AtfReportStatus;
-import atf.api.tests.support.ApiResourceTestBase;
+import atf.api.core.http.HttpMethod;
+import atf.api.core.http.MediaTypes;
+import atf.api.execution.data.JsonPayloads;
+import atf.api.tests.api.data.ApiFixtureData;
+import atf.api.execution.routing.RoutePaths;
+import atf.api.tests.support.junit.ApiResourceTestBase;
 import atf.api.validation.contract.ContractValidators;
 import atf.api.validation.contract.ResponseContract;
 import org.junit.jupiter.api.Test;
@@ -16,7 +21,7 @@ class PostsApiTests extends ApiResourceTestBase {
     @Test
     void getsPostCollectionAndValidatesItsContract() {
         var execution = fixture().api().posts().getCollection();
-        var decision = validate("GET /public/v2/posts — collection contract", execution,
+        var decision = validate(operation(HttpMethod.GET, RoutePaths.POSTS, "collection contract"), execution,
                 ContractValidators.postCollection());
 
         assertAll(
@@ -27,8 +32,8 @@ class PostsApiTests extends ApiResourceTestBase {
 
     @Test
     void getsPostByIdAndValidatesTheItemContract() {
-        var execution = fixture().api().posts().get(101);
-        var decision = validate("GET /public/v2/posts/101 — item contract", execution,
+        var execution = fixture().api().posts().get(ApiFixtureData.EXISTING_POST_ID);
+        var decision = validate(operation(HttpMethod.GET, RoutePaths.POSTS + "/" + ApiFixtureData.EXISTING_POST_ID, "item contract"), execution,
                 ContractValidators.postItem());
 
         assertAll(
@@ -40,25 +45,44 @@ class PostsApiTests extends ApiResourceTestBase {
     @Test
     void getsPostsForAUserAndValidatesTheRelationshipContract() {
         var execution = fixture().api().posts().forUser(1);
-        var decision = validate("GET /public/v2/users/1/posts — relationship contract", execution,
+        var decision = validate(operation(HttpMethod.GET, RoutePaths.USERS + "/1/posts", "relationship contract"), execution,
                 ContractValidators.relationshipCollection("1"));
 
         assertAll(
                 () -> assertEquals(200, execution.response().status()),
-                () -> assertTrue(execution.response().url().endsWith("/public/v2/users/1/posts")),
+                () -> assertTrue(execution.response().url().endsWith(RoutePaths.USERS + "/1/posts")),
                 () -> assertEquals(AtfReportStatus.PASS, decision.status()));
     }
 
     @Test
     void preservesNotFoundAsAnExplicitNegativeContract() {
-        var execution = fixture().api().posts().get(999999);
-        var decision = validate("GET /public/v2/posts/999999 — not found contract", execution,
+        var execution = fixture().api().posts().get(ApiFixtureData.UNKNOWN_POST_ID);
+        var decision = validate(operation(HttpMethod.GET, RoutePaths.POSTS + "/" + ApiFixtureData.UNKNOWN_POST_ID, "not found contract"), execution,
                 new ResponseContract().status(404)
-                        .contentTypeContains("application/json")
+                        .contentTypeContains(MediaTypes.APPLICATION_JSON)
                         .bodyContains("Not found"));
 
         assertAll(
                 () -> assertEquals(404, execution.response().status()),
+                () -> assertEquals(AtfReportStatus.PASS, decision.status()));
+    }
+
+    @Test
+    void createsPostWithJsonRequestAndJsonResponseContract() {
+        var payload = ApiFixtureData.createdPostRequest();
+        var execution = fixture().api().posts().create(payload);
+        var decision = validate(operation(HttpMethod.POST, RoutePaths.POSTS, "create contract"), execution,
+                new ResponseContract().status(201)
+                        .contentTypeContains(MediaTypes.APPLICATION_JSON)
+                        .jsonPathEquals("$.id", String.valueOf(ApiFixtureData.CREATED_POST_ID))
+                        .jsonPathEquals("$.user_id", String.valueOf(ApiFixtureData.USER_ID))
+                        .jsonPathEquals("$.title", ApiFixtureData.CREATED_POST_TITLE)
+                        .jsonPathEquals("$.body", ApiFixtureData.POST_BODY));
+
+        assertAll(
+                () -> assertTrue(JsonPayloads.write(payload).startsWith("{")),
+                () -> assertEquals(201, execution.response().status()),
+                () -> assertTrue(execution.response().body().contains("\"id\":102")),
                 () -> assertEquals(AtfReportStatus.PASS, decision.status()));
     }
 }

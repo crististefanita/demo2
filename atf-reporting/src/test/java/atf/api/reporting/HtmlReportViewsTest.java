@@ -33,7 +33,7 @@ class HtmlReportViewsTest {
         scenario.phases.add(phase);
         scenario.status = AtfReportStatus.FAIL;
 
-        var scenarios = document.scenarios();
+        var scenarios = document.snapshot();
         var tests = new HtmlReportTestsView().render(scenarios);
         var category = new HtmlReportCategoryView().render(scenarios);
         var fails = new HtmlReportFailsView().render(scenarios);
@@ -66,7 +66,7 @@ class HtmlReportViewsTest {
         phase.children.add(request);
         scenario.phases.add(phase);
 
-        String html = new HtmlReportTestsView().render(document.scenarios());
+        String html = new HtmlReportTestsView().render(document.snapshot());
 
         assertAll(
                 () -> assertTrue(html.contains("execution-evidence")),
@@ -91,7 +91,7 @@ class HtmlReportViewsTest {
         scenario.phases.add(phase);
         scenario.status = AtfReportStatus.FAIL;
 
-        String html = new HtmlReportTestsView().render(document.scenarios());
+        String html = new HtmlReportTestsView().render(document.snapshot());
 
         assertAll(
                 () -> assertTrue(html.contains("phase-details")),

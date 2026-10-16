@@ -6,7 +6,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -51,6 +53,15 @@ public final class ExtentReportUiEvidence {
     }
 
     private static String render(List<Capture> captures) throws IOException {
+        Map<String, RenderedCapture> uniqueCaptures = new LinkedHashMap<>();
+        for (Capture capture : captures) {
+            Path png = capture.png().toAbsolutePath().normalize();
+            if (!Files.isRegularFile(png)) {
+                throw new IOException("Playwright capture does not exist: " + png);
+            }
+            String base64 = Base64.getEncoder().encodeToString(Files.readAllBytes(png));
+            uniqueCaptures.putIfAbsent(base64, new RenderedCapture(capture, base64));
+        }
         StringBuilder html = new StringBuilder();
         html.append("<style id=\"atf-ui-evidence-style\">")
                 .append("#").append(SECTION_ID).append("{margin-top:24px;padding:18px;"
@@ -61,32 +72,30 @@ public final class ExtentReportUiEvidence {
                 .append("#").append(SECTION_ID).append(" summary{cursor:pointer;color:#80aaff}")
                 .append("#").append(SECTION_ID).append(" ol{margin:12px 0;color:#b8c5dc;font-size:12px}")
                 .append("#").append(SECTION_ID).append(" .atf-ui-evidence-screenshot-link{display:inline-flex;"
-                        + "align-items:flex-end;align-self:flex-end;justify-content:flex-start;vertical-align:bottom;margin:14px 0 0;"
-                        + "transform:none;text-decoration:none}")
+                        + "align-items:center;align-self:center;justify-content:center;gap:4px;height:18px;min-height:18px;"
+                         + "padding:0;line-height:18px;vertical-align:middle;margin:8px 0 0;transform:translateY(2px);text-decoration:none}")
                 .append("#").append(SECTION_ID).append(" .atf-ui-evidence-screenshot-link:hover{"
                         + "background:#1a2940;text-decoration:underline}")
                 .append("</style>")
                 .append("<section id=\"").append(SECTION_ID).append("\">")
-                .append("<h2>Playwright exploratory evidence · ").append(captures.size())
+                .append("<h2>Playwright exploratory evidence · ").append(uniqueCaptures.size())
                 .append(" captures</h2>");
-        for (Capture capture : captures) {
-            Path png = capture.png().toAbsolutePath().normalize();
-            if (!Files.isRegularFile(png)) {
-                throw new IOException("Playwright capture does not exist: " + png);
-            }
-            String base64 = Base64.getEncoder().encodeToString(Files.readAllBytes(png));
+        for (RenderedCapture rendered : uniqueCaptures.values()) {
+            Capture capture = rendered.capture();
             html.append("<details><summary>").append(escape(capture.title())).append("</summary>")
                     .append("<ol>");
             for (String step : capture.steps()) {
                 html.append("<li>").append(escape(step)).append("</li>");
             }
-            html.append("</ol><a class=\"atf-ui-evidence-screenshot-link\" data-atf-screenshot=\"base64\"")
-                    .append(" href=\"data:image/png;base64,").append(base64)
-                    .append("\" target=\"_blank\" rel=\"noopener\" aria-label=\"Open ")
-                    .append(escape(capture.title()))
-                    .append("\"><span class=\"badge badge-gradient-primary\">📷 base64 img</span></a></details>");
+            html.append("</ol>")
+                    .append(ExtentReportAssets.base64ScreenshotLink(
+                            "atf-ui-evidence-screenshot-link", capture.title(), rendered.base64()))
+                    .append("</details>");
         }
         return html.append("</section>").toString();
+    }
+
+    private record RenderedCapture(Capture capture, String base64) {
     }
 
     private static String escape(String value) {

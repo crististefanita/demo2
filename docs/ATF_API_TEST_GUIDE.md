@@ -17,6 +17,12 @@ contractul raportului în [ATF_Reporting_Contract.md](ATF_Reporting_Contract.md)
 9. Adaugă scenariul cu nume și tag-uri care descriu intenția.
 10. Generează artifactul și verifică raportul în ordinea definită de contract.
 
+Pentru un flow cu mai multe request-uri, nu copia contractul între pași. Definește
+separat contractul de mutație și contractul read-model-ului, apoi adaugă o
+verificare relațională între răspunsuri (id/self-link, versiune sau lineage).
+Verificarea relațională se atașează request-ului de read-back ca evidence, nu ca
+un request HTTP inventat.
+
 ## Structura minimă a unui scenariu
 
 ~~~mermaid

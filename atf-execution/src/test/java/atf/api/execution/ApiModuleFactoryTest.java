@@ -1,6 +1,7 @@
 package atf.api.execution;
 
 import atf.api.core.config.ApiSettings;
+import atf.api.core.config.ApiBootstrapConfiguration;
 import atf.api.core.config.AtfConfiguration;
 import atf.api.core.config.ReportingSettings;
 import atf.api.core.http.ApiExecutionException;
@@ -44,6 +45,21 @@ class ApiModuleFactoryTest {
         assertEquals("https://snapshot.example/health", result.response().url());
         assertEquals(Duration.ofSeconds(3), module.settings().timeout());
         assertEquals(2, module.settings().maxAttempts());
+    }
+
+    @Test
+    void bootstrapSelectsAcceptanceWithoutAllowingAHiddenLiveSwitch() {
+        ApiTransport acceptance = (request, url, auth) -> CompletableFuture.completedFuture(
+                new ApiResponse(200, "acceptance", Map.of(), Duration.ZERO, url));
+        ApiTransport live = (request, url, auth) -> CompletableFuture.completedFuture(
+                new ApiResponse(200, "live", Map.of(), Duration.ZERO, url));
+        var configuration = ApiBootstrapConfiguration.acceptance(
+                new ApiSettings(URI.create("https://configured.example"), "none"));
+
+        var module = ApiModuleFactory.bootstrap(configuration, acceptance, live);
+
+        assertEquals("acceptance", module.executor().execute(ApiRequest.of("GET", "/health"))
+                .response().body());
     }
 
     @Test

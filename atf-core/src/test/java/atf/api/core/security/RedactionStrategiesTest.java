@@ -41,4 +41,15 @@ class RedactionStrategiesTest {
                 () -> assertEquals("token=***REDACTED***", malformed),
                 () -> assertFalse(malformed.contains("secret")));
     }
+
+    @Test
+    void redactsWireCredentialHeaderNamesIncludingApiKeyVariants() {
+        var redactor = new SensitiveDataRedactor();
+        String safe = redactor.redactText("Authorization=Bearer secret, X-Api-Key=api-secret, X-Auth-Token=token");
+
+        assertAll(
+                () -> assertFalse(safe.contains("secret")),
+                () -> assertFalse(safe.contains("api-secret")),
+                () -> assertFalse(safe.contains("token")));
+    }
 }

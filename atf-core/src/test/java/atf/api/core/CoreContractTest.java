@@ -27,6 +27,24 @@ class CoreContractTest {
     }
 
     @Test
+    void postAndPutRoutesRequireAValidNonNullJsonBody() {
+        var post = new ApiRoute("create", "POST", "/users", "users", "create", "default");
+        var put = new ApiRoute("update", "PUT", "/users/{id}", "users", "update", "default");
+
+        assertAll(
+                () -> assertThrows(IllegalArgumentException.class, () -> post.request(Map.of())),
+                () -> assertThrows(IllegalArgumentException.class,
+                        () -> post.requestBody("", Map.of())),
+                () -> assertThrows(IllegalArgumentException.class,
+                        () -> put.requestBody("not-json", Map.of("id", 1))),
+                () -> assertThrows(IllegalArgumentException.class,
+                        () -> put.requestBody("null", Map.of("id", 1))),
+                () -> assertEquals("application/json",
+                        post.requestBody("{\"name\":\"ATF\"}", Map.of())
+                                .headers().get("Content-Type")));
+    }
+
+    @Test
     void urlBuilderDoesNotDuplicateSlashes() {
         var route = new ApiRoute("users", "GET", "/users", "users", "collection", "none");
         var request = route.request(Map.of());

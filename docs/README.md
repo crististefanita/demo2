@@ -20,8 +20,11 @@ artifact.
 6. [../atf-console/README.md](../atf-console/README.md) — proiecția diagnostică
    de consolă și contractul de output.
 7. [../atf-ui/README.md](../atf-ui/README.md) — configurația și adaptorul
-   Playwright; testele executabile rămân în pachetul `atf.ui.tests` din
+   Playwright; testele executabile pentru rapoarte Extent rămân în pachetul `atf.ui.tests.extent` din
    `atf-tests`.
+   [../atf-tests/src/test/java/atf/ui/tests/extent/README.md](../atf-tests/src/test/java/atf/ui/tests/extent/README.md)
+   — contractul stabil pentru selecția API, mock-backed expected projection,
+   secțiuni Extent și validarea UI reutilizabilă.
 8. [../atf-debug-ui/README.md](../atf-debug-ui/README.md) — publicarea
    read-only a unui HTML pentru investigație manuală în Playwright/TAB MCP.
 9. [ATF_API_TEST_GUIDE.md](ATF_API_TEST_GUIDE.md) — pașii minimali pentru un test API nou.
@@ -45,6 +48,7 @@ flowchart LR
     Tests --> Validation[atf-validation<br/>contract + verdict]
     Tests --> Reporting[atf-reporting<br/>Extent + HTML]
     Tests --> Ui[atf-ui<br/>Playwright adapter]
+    Tests --> DebugUi[atf-debug-ui<br/>read-only inspector]
     Execution --> Core[atf-core<br/>modele + porturi]
     Mock --> Core
     Validation --> Core
@@ -74,6 +78,11 @@ Lucrările încă neînchise sunt păstrate în [feedback/README.md](feedback/RE
 și în documentele ToDo pe responsabilități. Deciziile închise sunt reflectate
 direct în README-urile ownerilor și în teste; feedback-ul rămâne concentrat pe
 riscurile și pașii care mai trebuie validați.
+
+Regula de promovare este strictă: când un ToDo devine parte din soluție, contractul
+stabil, ownership-ul și modul de folosire se mută în README-ul ownerului. Feedback-ul
+păstrează doar limita rămasă, criteriul de închidere și dovada necesară; nu este
+sursa normativă pentru o capabilitate deja livrată.
 
 ## Reguli de documentație
 

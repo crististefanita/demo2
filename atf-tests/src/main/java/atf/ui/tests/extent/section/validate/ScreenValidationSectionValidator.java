@@ -1,0 +1,34 @@
+package atf.ui.tests.extent.section.validate;
+
+import atf.ui.tests.extent.plan.ReportAuditSnapshot;
+import atf.ui.tests.extent.support.ReportAuditChecks;
+import atf.ui.tests.extent.support.ValidationResult;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
+/** Pure contract for the three compact Screen validation evidence zones. */
+public final class ScreenValidationSectionValidator {
+    public ValidationResult validate(ReportAuditSnapshot.ScreenValidation snapshot) {
+        Objects.requireNonNull(snapshot, "snapshot");
+        List<atf.api.core.reporting.AtfAssertion> assertions = new ArrayList<>();
+        assertions.add(ReportAuditChecks.check("Screen validation node", "1",
+                String.valueOf(snapshot.sectionCount()), snapshot.sectionCount() == 1));
+        assertions.add(ReportAuditChecks.check("Evidence zones", "action + observations + assertions",
+                snapshot.actionSequenceCount() + " + " + snapshot.observationCount() + " + "
+                        + snapshot.assertionTableCount(), snapshot.actionSequenceCount() == 1
+                        && snapshot.observationCount() == 1 && snapshot.assertionTableCount() == 1));
+        assertions.add(ReportAuditChecks.check("Sibling rows", "3",
+                String.valueOf(snapshot.zoneRowCount()), snapshot.zonesAreDirectSiblings()
+                        && snapshot.zoneRowCount() == 3));
+        assertions.add(ReportAuditChecks.check("Vertical composition", "ordered and gap-free",
+                String.valueOf(snapshot.zonesStacked()), snapshot.zonesStacked()
+                        && snapshot.noEmptyRows() && snapshot.noDecorativeSeparators()));
+        assertions.add(ReportAuditChecks.check("Inline screenshot", "> 0 canonical links",
+                snapshot.canonicalScreenshotLinkCount() + "/" + snapshot.screenshotLinkCount(),
+                snapshot.inlineScreenshot()));
+        return ValidationResult.of(assertions).merge(
+                ValidationResult.ofViolations(snapshot.violations()));
+    }
+}

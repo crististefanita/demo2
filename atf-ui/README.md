@@ -2,10 +2,10 @@
 
 `atf-ui` este modulul de infrastructură UI al ATF Java. Prima integrare are un
 singur adaptor browser: Playwright. Testele efective nu sunt aici; ele rămân în
-pachetul `atf.ui.tests` din modulul existent `atf-tests`.
+pachetul `atf.ui.tests.extent` din modulul existent `atf-tests`.
 
 ```text
-atf.ui.tests
+atf.ui.tests.extent
     → atf-ui: UiConfiguration + PlaywrightUiSession
         → Playwright browser/context/page
             ├──→ API report HTML existent, read-only input
@@ -20,6 +20,24 @@ Responsabilitățile sunt delimitate astfel:
 | page objects și workflow-uri de produs | `atf-tests` / pachete viitoare de produs |
 | verdict, evidence și HTML Extent | `atf-reporting` (`UiExtentReportSession` pentru UI) |
 | scenarii API | `atf-tests` / `atf.api.tests` |
+
+### Boundary-ul de package-uri
+
+`atf.api.tests.api` este exclusiv API: verifică payload-uri, contracte și
+transportul mock. Nu are voie să importe browser, Playwright, `Page`, `Locator`,
+`DebugUiServer` sau să verifice DOM-ul și randarea. Nu se recreează subpachete
+`reporting` în zona API.
+
+`atf.ui.tests.extent` este proprietarul testelor care deschid browserul și verifică
+raportul Extent: tab-uri, disclosures, locatori, screenshoturi Base64, linkuri
+inline și geometrie vizuală. Când UI are nevoie de date API, folosește setup-ul
+configurabil `ApiReportAuditSetup`; `ApiReportSetupFlow` este doar fațada de
+compatibilitate. Acest setup produce inputul API, dar nu
+transformă testul API într-un test UI. Raportul API rămâne read-only, iar dovada
+browserului se publică în `artifacts/reports/ui`.
+
+Heuristica obligatorie este simplă: browser în package API = clasificare greșită;
+mutare în `atf.ui.tests.extent`, urmată de verificarea artifactului UI în ATF Debug UI.
 
 Nu se scrie HTML în `atf-ui`, nu se apelează Extent din page objects și nu se
 creează un modul separat pentru testele UI. `PlaywrightUiSession` este scoped,
@@ -40,20 +58,32 @@ singură zonă colapsabilă pentru acea stare: link Base64 către captură, deta
 acțiune și tabelul agregat de validări. O navigare sau o schimbare vizuală începe
 un nou grup; nu se atașează aceeași imagine la fiecare assert.
 
-### Contractul evidence: payload Base64, nu imagine HTML duplicată
+### Contractul evidence: o imagine Base64 reală, fără duplicare
 
 `UiScreenValidation` produce un payload PNG Base64. Publisher-ul din
-`atf-reporting` îl expune ca link nativ `data:image/png;base64,...`, cu
-`target="_blank"` și `rel="noopener"`, folosind eticheta explicită
-`Open screenshot · Base64 image`. Nu se emite `<img>` duplicat, nu se scrie un
-PNG extern și nu se folosește `data-featherlight`; click-ul deschide direct
-payload-ul Base64 într-un tab nou.
+`atf-reporting` îl expune într-o singură ancoră text-only cu
+`href="data:image/png;base64,..."`, `data-featherlight="image"`,
+`target="_blank"`, `rel="noopener"` și eticheta explicită `📷 base64 img`.
+Payload-ul apare o singură dată, în `href`; nu se emite PNG extern, `<img>`
+inline, o a doua copie, handler inline sau `href="#"`. Clickul pe marker
+deschide aceeași imagine Base64 în lightbox, cu fallback într-un tab nou.
+Pill-ul are 18px, este `inline-flex`, centrat vertical pe aceeași linie și nu
+folosește offset-uri CSS artificiale.
 
-Metoda existentă `Evidence.hasInlineImage()` este denumită istoric și poate
-induce o interpretare greșită: „inline” descrie payload-ul Base64, nu un element
-HTML `<img>`. Ea trebuie redenumită/documentată ca `hasScreenshotPayload()` într-o
-schimbare compatibilă, acoperită de test. Până atunci, README-urile și testele
-folosesc termenul „Base64 screenshot payload/link”, nu „inline image”.
+În `Screen validation`, `Playwright action sequence`, `Audit observations` și
+`Assertions` sunt trei disclosure-uri surori. Ele nu au linii orizontale
+decorative între ele; conturul fiecărui disclosure și liniile tabelelor interne
+sunt delimitarea suficientă.
+
+Metoda existentă `Evidence.hasInlineImage()` este denumită istoric; în raport,
+„inline” înseamnă acum imaginea Base64 nativă, nu fișier extern.
+Contractul canonical este: un payload, o imagine, un link, un marker și o ancoră.
+
+`hasScreenshotPayload()` validează acum și contractul de transport: Base64
+decodabil, cu semnătura PNG, și `captured=true`. Un text Base64 nevid sau un
+payload non-PNG nu este considerat dovadă vizuală. Boundary-ul generic din
+`atf-reporting` publică aceeași reprezentare nativă Base64, iar testele de
+contract folosesc fixture-uri PNG valide.
 
 ### Secvența auditabilă Playwright
 
@@ -124,14 +154,19 @@ detail"`, `"TEST BODY collapse node"`, `"details disclosure summary"` sau
 doar în `EXPECTED`/`OBSERVED`, unde explică rezultatul, niciodată în coloana
 dedicată locatorului.
 
-Exemplu corect:
+Exemplu corect (selectorul este deținut de o clasă de locatori, nu de test):
 
 ```java
-Locator filter = page.locator("button[data-filter-value='clear']");
-actions.click(filter, "button[data-filter-value='clear']", "filters are cleared");
-actions.waitForVisible(page.locator("#category-view .test-list"),
-        "#category-view .test-list");
+AtfLocator category = locators.categoryItemAction(page, 0);
+actions.click(category, "first discovered category is selected");
+actions.waitForVisible(locators.visibleCategoryDetailAnchor(page));
 ```
+
+`locators` este o fațadă deținută de modulul consumator (de exemplu
+`atf-tests/src/main/java/atf/ui/tests/extent/locators/ReportUiLocators`), nu de
+rendererul sau adaptorul Playwright. API-ul concret poate avea alte metode
+semantice, dar regula rămâne aceeași: testul nu construiește selectorul și nu
+folosește direct `page.locator(...)`.
 
 `Navigate` este singura acțiune al cărei `TARGET` este în mod natural URI-ul
 destinației, nu un selector CSS. Un timeout de stabilizare trebuie să primească
@@ -152,6 +187,30 @@ acțiune este gol, generic sau nu corespunde locatorului executat. Orice
 refactorizare care schimbă selectorul trebuie să actualizeze împreună codul,
 testul și dovada din raport; un raport „frumos” cu `TARGET` prose nu este
 auditabil.
+
+### Regula obligatorie pentru locatorii UI
+
+Testele UI nu construiesc selectori direct în metodele Gherkin sau în flow-uri.
+Locatorii aparțin unor clase dedicate de locatori/page objects, cu metode
+semantice precum `testsView()`, `statusFilter()`, `scenarioNode(name)` sau
+`requestNode(name)`. Boundary-ul este stratificat astfel:
+
+```text
+Locator facade / page object
+        ↓
+Action adapter (click, focus, wait, keyboard)
+        ↓
+Flow (business sequence and Gherkin order)
+        ↓
+Auditor / assertion (observed DOM contract)
+```
+
+Clasa de locatori deține selectorii și scoping-ul. Action adapter-ul deține
+interacțiunea Playwright și înregistrarea auditabilă. Flow-ul coordonează
+ordinea, fără să cunoască CSS-ul, iar auditorul citește starea fără navigare
+ascunsă. Apelurile directe `page.locator(...)`, `getByRole(...)` și
+`getByText(...)` sunt permise doar în locator facades, infrastructură comună și
+testele lor unitare; testele UI noi nu le introduc în corpul scenariului.
 
 ### Ce trebuie să fie auditabil și ce nu trebuie mimat
 
@@ -185,11 +244,11 @@ acțiune Playwright → observație/assertion → screenshot al aceleiași stăr
 ```
 
 O excepție aruncată între ultima acțiune și `screenValidation(...)` nu trebuie
-să piardă rândurile deja înregistrate. Failure boundary-ul trebuie să le
-publice cu status `Fail`, fără să inventeze o captură imposibilă. Garanția de
-cardinalitate a capturii este închisă prin F-08 și testul negativ din
-`atf-reporting`; păstrarea acțiunilor pe excepție rămâne F-09 deschis. Ambele
-contracte sunt urmărite în `docs/feedback/ATF_UI_Exploratory_Feedback.md`.
+să piardă rândurile deja înregistrate. `UiAuditLifecycle` deține acum această
+închidere: publică evidence-ul `ui-failure`, acțiunile și cauza înainte de
+închiderea body-ului și scenariului cu Fail. Garanția de cardinalitate a
+capturii este închis prin contractul de cardinalitate și testul negativ din `atf-reporting`; flush-ul
+la failure este acoperit de testul negativ din `atf-tests`.
 
 ### Limita responsabilității modulului
 
@@ -197,16 +256,15 @@ contracte sunt urmărite în `docs/feedback/ATF_UI_Exploratory_Feedback.md`.
 un al doilea renderer sau un al doilea orchestrator de raport. În același timp,
 testele UI din `atf-tests` nu trebuie să conțină clase de 400–500 de linii care
 reimplementează navigatorul, snapshots și publication lifecycle. Logica
-reutilizabilă se extrage în `atf.ui.tests.support`, iar clasele de test rămân
+reutilizabilă se extrage în `atf.ui.tests.extent.support`, iar clasele de test rămân
 succesiuni lizibile `GIVEN → WHEN → THEN`.
 
 Pentru auditarea unui raport deja generat, fără rerularea API-ului:
 
 ```text
 mvn -pl atf-tests -am `
-  '-Datf.ui.enabled=true' `
   '-Datf.ui.report=artifacts/reports/ui/ui-atf-extent-report-TIMESTAMP.html' `
-  '-Dtest=atf.ui.tests.exploratory.ExistingExtentReportExploratoryTest' `
+  '-Dtest=atf.ui.tests.extent.exploratory.ExistingExtentReportExploratoryTest' `
   '-Dsurefire.failIfNoSpecifiedTests=false' test
 ```
 
@@ -239,17 +297,38 @@ un fișier implicit care ar putea ascunde o configurare greșită.
 
 ## Configurație
 
-Configurația generală stă în `atf.yaml`, sub `ui`. Este opt-in pentru a păstra
-build-ul API offline și poate fi suprascrisă cu `-Datf.ui.enabled=true`.
+Configurația generală stă în `atf.yaml`, sub `ui`. Pentru fluxul configurat
+`setup → API → mock YAML → raport Extent → UI validation` este activ implicit prin
+prezența secțiunii `ui`; nu există un boolean JVM separat pentru pornirea UI.
+
+Colecția API pentru validarea raportului este configurabilă fără duplicarea
+testelor UI. Se poate declara în YAML:
 
 ```yaml
 ui:
-  enabled: false
+  apiSetup:
+    scenarioFamilies: [posts, users, requests, headers]
+```
+
+sau se poate alege manual la rulare:
+
+```text
+-Datf.ui.api.families=users,posts
+```
+
+Precedența este `-Datf.ui.api.families` → `-Datf.ui.audit.suite`/listă JVM
+→ `@ApiScenarioSetup(families = ...)` → `ui.apiSetup.scenarioFamilies`.
+Colecția este deduplicată și verificată
+fail-fast, iar aceeași infrastructură de locatori, actions, flows, validators
+și evidence este reutilizată pentru orice selecție.
+
+```yaml
+ui:
   browser: chromium
   baseUrl: about:blank
   headless: true
   timeout: PT10S
-  navigationTimeout: PT15S
+  navigationTimeout: PT45S
   viewport:
     width: 1440
     height: 900
@@ -275,12 +354,20 @@ primește un fișier explicit prin `-Datf.ui.config=...` ori `ATF_UI_CONFIG`.
 Directorul raportului este relativ la YAML și nu poate ieși din directorul
 configurației.
 
+`ui.report.filePrefix` este consumat efectiv la publicarea artifactului. Pentru
+fiecare rol de audit, `UiConfiguration.timestampedReportFileName(...)` compune
+un nume cu prefixul YAML, suffix-ul logic și timestamp-ul configurat, de exemplu
+`ui-atf-extent-report_api_<timestamp>.html`. Sesiunea UI primește
+numele deja rezolvat și nu adaugă un al doilea timestamp. Astfel audituri
+paralele (`api`, `existing`, `categories`) nu se suprascriu și output-ul nu mai
+depinde de nume hardcodate în test.
+
 ### Boundary-ul configurației
 
 Configurația UI este încărcată în două responsabilități distincte:
 
 - `AtfUiConfigurationLoader` deține doar inputurile de proces: discovery,
-  fișier explicit și override-ul `atf.ui.enabled`;
+  fișier explicit și override-ul raportului de audit;
 - `UiConfigurationYamlReader` este intern modulului și deține parsarea secțiunii
   `ui`, conversia tipurilor, valorile implicite și verificarea că directorul
   raportului rămâne sub rădăcina fișierului YAML;
@@ -297,8 +384,8 @@ cu execuția Playwright sau cu raportarea Extent.
 Pentru prima execuție Playwright, browserul trebuie instalat în mediul local
 conform versiunii dependinței Maven. Testul UI rămâne separat de testele
 unitare: validarea configurației nu pornește browserul, iar browserul este
-folosit numai de testele opt-in din `atf.ui.tests`, inclusiv
-`ApiExtentReportUiTest` și `atf.ui.tests.exploratory.ApiExtentReportExploratoryTest`.
+folosit de testele din `atf.ui.tests.extent`, inclusiv
+`atf.ui.tests.extent.exploratory.ApiExtentReportExploratoryTest`.
 
 `ui.apiSetup.scenarioFamilies` este compoziția inputului API, nu o listă de
 teste UI. Familiile sunt publicate în ordinea configurată, iar testul
@@ -325,3 +412,32 @@ Primitivele de assertion/status/normalizare numerică sunt comune, iar
 validările dinamice rămân descrise în testele Gherkin care cunosc contractul
 tab-ului verificat. Astfel raportul existent și raportul generat live folosesc
 aceeași infrastructură fără să amestece setup-ul API cu explorarea UI.
+## Audit critic al infrastructurii UI — 2026-10-16
+
+Randarea raportului este stabilă în artifactul verificat, dar următoarele
+proprietăți interne nu trebuie confundate cu un contract deja închis:
+
+1. `PlaywrightActionSequence` oferă acum `AtfLocator`, descriptorul imutabil
+   care transportă împreună `Locator` și selectorul CSS efectiv. Overload-urile
+   istorice rămân compatibile, dar deleagă către descriptor înainte de
+   înregistrarea acțiunii; rendererul nu ghicește și nu compară DOM-ul retroactiv.
+2. `UiScreenValidation.Evidence` validează acum Base64 și semnătura PNG prin
+   `hasScreenshotPayload()`, cu test negativ pentru payload non-PNG. Boundary-ul
+   generic din `atf-reporting` folosește aceeași reprezentare nativă Base64.
+3. `UiBrowserConfiguration.screenshotOnFailure` este consumată de
+   `ReportAuditContext.captureFailure(...)` și de flow-ul separat
+   `atf.ui.tests.extent.flows.failure.FailureEvidenceFlowTest`; captura este
+   best-effort, iar failure-ul original rămâne verdictul autoritativ dacă
+   browserul nu mai poate produce PNG-ul.
+4. În calea UI de producție nu mai există `waitForTimeout(...)`. Tranzițiile
+   pentru controale și disclosure-uri folosesc state waits semantice:
+   `details.open`, atributele de readiness și ancorele structurale sunt
+   așteptate explicit și apar în evidence. Orice reintroducere a unui delay
+   fix trebuie respinsă de verificarea arhitecturală pentru semantic waits.
+5. `target="_blank"` este verificat împreună cu comportamentul real: testul
+   folosește `Page.waitForPopup`, verifică URL-ul `data:image/png;base64,...`
+   și închide pagina nouă după audit. Nu este suficientă verificarea markup-ului
+   sau a linkului din HTML.
+
+Acestea sunt datorii de infrastructură și nu se rezolvă prin relaxarea
+assert-urilor UI sau prin înlocuirea acțiunilor cu observații sintetice.

@@ -1,7 +1,10 @@
 package atf.api.tests.api.users;
 
 import atf.api.core.reporting.AtfReportStatus;
-import atf.api.tests.support.ApiResourceTestBase;
+import atf.api.core.http.HttpMethod;
+import atf.api.core.http.MediaTypes;
+import atf.api.execution.routing.RoutePaths;
+import atf.api.tests.support.junit.ApiResourceTestBase;
 import atf.api.validation.contract.ContractValidators;
 import atf.api.validation.contract.ResponseContract;
 import org.junit.jupiter.api.Test;
@@ -17,7 +20,7 @@ class UsersApiTests extends ApiResourceTestBase {
     @Test
     void getsUserCollectionAndValidatesItsContract() {
         var execution = fixture().api().users().getCollection();
-        var decision = validate("GET /public/v2/users — collection contract", execution,
+        var decision = validate(operation(HttpMethod.GET, RoutePaths.USERS, "collection contract"), execution,
                 ContractValidators.userCollection());
 
         assertAll(
@@ -29,12 +32,12 @@ class UsersApiTests extends ApiResourceTestBase {
     @Test
     void getsUserByIdAndValidatesTheItemContract() {
         var execution = fixture().api().users().get(1);
-        var decision = validate("GET /public/v2/users/1 — item contract", execution,
+        var decision = validate(operation(HttpMethod.GET, RoutePaths.USERS + "/1", "item contract"), execution,
                 ContractValidators.userItem());
 
         assertAll(
                 () -> assertEquals(200, execution.response().status()),
-                () -> assertTrue(execution.response().url().endsWith("/public/v2/users/1")),
+                () -> assertTrue(execution.response().url().endsWith(RoutePaths.USERS + "/1")),
                 () -> assertEquals(AtfReportStatus.PASS, decision.status()));
     }
 
@@ -42,9 +45,9 @@ class UsersApiTests extends ApiResourceTestBase {
     void rejectsCreateWithoutAuthentication() {
         var execution = fixture().api().users().create(
                 new atf.api.execution.model.UserRequest("ATF user", "atf@example.test", "male", "active"));
-        var decision = validate("POST /public/v2/users — missing authentication", execution,
+        var decision = validate(operation(HttpMethod.POST, RoutePaths.USERS, "missing authentication"), execution,
                 new ResponseContract().status(401)
-                        .contentTypeContains("application/json")
+                        .contentTypeContains(MediaTypes.APPLICATION_JSON)
                         .bodyContains("Authentication required"));
 
         assertAll(
@@ -56,8 +59,8 @@ class UsersApiTests extends ApiResourceTestBase {
     @Test
     void keepsAContractMismatchAsWarningWhenWarningModeIsExplicit() {
         var execution = fixture().api().users().getCollection();
-        var decision = validate("GET /public/v2/users — soft contract warning", execution,
-                new ResponseContract().status(201).contentTypeContains("application/json"), true);
+        var decision = validate(operation(HttpMethod.GET, RoutePaths.USERS, "soft contract warning"), execution,
+                new ResponseContract().status(201).contentTypeContains(MediaTypes.APPLICATION_JSON), true);
 
         assertAll(
                 () -> assertEquals(200, execution.response().status()),

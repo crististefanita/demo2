@@ -52,6 +52,12 @@ Serviciile nu construiesc URL-uri în test, nu validează response-ul și nu
 scriu raportul. Rutele sunt centralizate în `ApiRoutes` și `RoutePaths`, iar
 modelele request/response rămân în package-urile lor semantice.
 
+Acțiunile de scriere folosesc `ApiRoute.requestBody(...)` și transmit payload-ul
+JSON prin serviciul semantic; testul nu construiește manual URL-ul, header-ul
+sau evidence-ul. `POST` și `PUT` trebuie să producă request și response JSON
+ne-goale, iar publisher-ul/auditorul raportează explicit orice încălcare între
+transport, mock și raport.
+
 ### 2. Scenario lifecycle
 
 `ApiScenarioLifecycleRunner` deține numai ordinea și precedence-ul fazelor:

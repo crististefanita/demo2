@@ -21,6 +21,9 @@ class ExtentReportMarkupContractTest {
                 () -> assertTrue(result.contains("id=\"nav-fails\"")),
                 () -> assertTrue(result.contains("href=\"#test-view\"")),
                 () -> assertTrue(result.contains("href=\"#category-view\"")),
+                () -> assertTrue(result.contains("typeof atfActivate==='function'")),
+                () -> assertTrue(result.contains("return true;"),
+                        "Navigation must keep the hash href usable when the runtime controller is unavailable"),
                 () -> assertTrue(result.contains("id=\"atf-fails-view\"")),
                 () -> assertTrue(result.contains("id=\"atf-failure-list\"")),
                 () -> assertTrue(result.contains("id=\"dashboard-view\"")));

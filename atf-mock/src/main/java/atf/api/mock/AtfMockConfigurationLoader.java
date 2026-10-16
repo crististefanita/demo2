@@ -1,5 +1,10 @@
 package atf.api.mock;
 
+import atf.api.core.http.HttpHeader;
+import atf.api.core.http.MediaTypes;
+
+import atf.api.core.http.ApiQueryParameter;
+import atf.api.core.http.ApiQueryParameters;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -90,13 +95,32 @@ public final class AtfMockConfigurationLoader {
             throw new IllegalStateException(location + ".headers must be an object");
         }
         headerNode.fields().forEachRemaining(entry -> headers.put(entry.getKey(), entry.getValue().asText()));
-        if (headers.isEmpty()) headers.put("Content-Type", "application/json");
-        Map<String, String> query = new LinkedHashMap<>();
+        if (headers.isEmpty()) headers.put(HttpHeader.CONTENT_TYPE.value(), MediaTypes.APPLICATION_JSON);
+        List<ApiQueryParameter> queryParameters = new ArrayList<>();
         JsonNode queryNode = node.path("query");
-        if (!queryNode.isMissingNode() && !queryNode.isObject()) {
-            throw new IllegalStateException(location + ".query must be an object");
+        if (queryNode.isObject()) {
+            queryNode.fields().forEachRemaining(entry ->
+                    queryParameters.add(new ApiQueryParameter(entry.getKey(), entry.getValue().asText())));
+        } else if (queryNode.isArray()) {
+            int index = 0;
+            for (JsonNode parameter : queryNode) {
+                if (!parameter.isObject()) {
+                    throw new IllegalStateException(location + ".query[" + index + "] must be an object");
+                }
+                String name = text(parameter, "name", null, location + ".query[" + index + "]");
+                JsonNode valueNode = parameter.path("value");
+                if (valueNode.isMissingNode() || valueNode.isNull() || !valueNode.isValueNode()) {
+                    throw new IllegalStateException(location + ".query[" + index + "].value must be scalar");
+                }
+                String value = valueNode.asText();
+                queryParameters.add(new ApiQueryParameter(name, value));
+                index++;
+            }
+        } else if (!queryNode.isMissingNode() && !queryNode.isNull()) {
+            throw new IllegalStateException(location + ".query must be an object or parameter array");
         }
-        queryNode.fields().forEachRemaining(entry -> query.put(entry.getKey(), entry.getValue().asText()));
+        ApiQueryParameters parsedQuery = ApiQueryParameters.of(queryParameters);
+        Map<String, String> query = parsedQuery.asMap();
         Map<String, String> requiredHeaders = new LinkedHashMap<>();
         JsonNode requiredHeadersNode = node.path("request-headers");
         if (!requiredHeadersNode.isMissingNode() && !requiredHeadersNode.isObject()) {
@@ -104,7 +128,11 @@ public final class AtfMockConfigurationLoader {
         }
         requiredHeadersNode.fields().forEachRemaining(entry ->
                 requiredHeaders.put(entry.getKey(), entry.getValue().asText()));
-        return new MockRoute(method, path, status, body, headers, duration, authProfile, query, requiredHeaders);
+        String requestBodyMode = text(node, "request-body-mode", "json", location);
+        String expectedRequestBody = optionalText(node, "request-body");
+        return new MockRoute(method, path, status, body, headers, duration, authProfile, query,
+                parsedQuery,
+                requiredHeaders, requestBodyMode, expectedRequestBody);
     }
 
     private static String text(JsonNode node, String name, String defaultValue, String location) {
@@ -117,6 +145,11 @@ public final class AtfMockConfigurationLoader {
         String text = value.asText();
         if (text.isBlank() && defaultValue == null) throw new IllegalStateException(location + "." + name + " must not be blank");
         return text;
+    }
+
+    private static String optionalText(JsonNode node, String name) {
+        JsonNode value = node.path(name);
+        return value.isMissingNode() || value.isNull() ? null : value.asText();
     }
 
     private static int integer(JsonNode node, String name, int defaultValue, String location) {

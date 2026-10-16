@@ -330,7 +330,9 @@ class ExtentReportInteractionContractTest {
                 () -> assertTrue(html.contains("aria-pressed")),
                 () -> assertTrue(html.contains("data-atf-tab=\"fails\"")),
                 () -> assertTrue(html.contains("function activateFromHash()")),
-                () -> assertTrue(html.contains("window.addEventListener('hashchange',activateFromHash)"))
+                () -> assertTrue(html.contains("window.addEventListener('hashchange',activateFromHash)")),
+                () -> assertTrue(html.contains("window.location.hash='#atf-fails-view';atfActivate('atf-fails-view')"),
+                        "clicking Fails must update the deep-link hash as well as the visible view")
         );
     }
 

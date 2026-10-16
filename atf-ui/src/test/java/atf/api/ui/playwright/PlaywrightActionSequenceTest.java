@@ -44,4 +44,12 @@ class PlaywrightActionSequenceTest {
         assertEquals("details:visible > summary",
                 PlaywrightActionSequence.requireLocatorTarget(" details:visible > summary "));
     }
+
+    @Test
+    void typedLocatorCarriesTheValidatedSelectorForElementBoundOperations() {
+        assertThrows(NullPointerException.class,
+                () -> new AtfLocator(null, "#test-view"));
+        assertThrows(IllegalArgumentException.class,
+                () -> PlaywrightActionSequence.requireLocatorTarget("selected owner detail"));
+    }
 }

@@ -3,6 +3,7 @@ package atf.api.reporting.extent;
 import atf.api.core.reporting.AtfReportPorts;
 import atf.api.core.reporting.AtfReportStatus;
 import atf.api.core.reporting.ReportStatusAggregator;
+import atf.api.reporting.AtfReportSemanticRecorder;
 import atf.api.reporting.ExtentReportTree;
 import com.aventstack.extentreports.ExtentTest;
 
@@ -16,14 +17,16 @@ final class ExtentPhaseScope implements AtfReportPorts.Phase {
     private final String phaseName;
     private final ReportStatusAggregator statuses = new ReportStatusAggregator();
     private final List<String[]> details = new ArrayList<>();
+    private final AtfReportSemanticRecorder.PhaseHandle semantic;
     private boolean closed;
 
     ExtentPhaseScope(ExtentReportTree tree, ExtentScenarioScope scenario, ExtentTest phase,
-                     String phaseName) {
+                     String phaseName, AtfReportSemanticRecorder.PhaseHandle semantic) {
         this.tree = tree;
         this.scenario = scenario;
         this.phase = phase;
         this.phaseName = phaseName;
+        this.semantic = semantic;
         tree.markStarted(phase);
     }
 
@@ -31,12 +34,14 @@ final class ExtentPhaseScope implements AtfReportPorts.Phase {
         ensurePhaseOpen();
         String requestTitle = tree.renderRequestTitle(title, method, path);
         tree.consoleStarted(atf.api.core.reporting.AtfConsoleEvent.Scope.REQUEST, requestTitle);
-        return new ExtentRequestScope(tree, this, phase.createNode(requestTitle), requestTitle);
+        return new ExtentRequestScope(tree, this, phase.createNode(requestTitle), requestTitle,
+                semantic.startRequest(title, method, path));
     }
 
     @Override public void detail(String name, String value) {
         details.add(new String[]{name == null || name.isBlank() ? "DETAIL" : name,
                 tree.redactor().redactField(name, value)});
+        semantic.detail(name);
         tree.consoleDetail(atf.api.core.reporting.AtfConsoleEvent.Scope.PHASE,
                 name, tree.redactor().redactField(name, value));
     }
@@ -48,6 +53,7 @@ final class ExtentPhaseScope implements AtfReportPorts.Phase {
         tree.complete(phase, effective);
         tree.markEnded(phase);
         scenario.record(effective);
+        semantic.complete(effective);
         tree.consoleCompleted(atf.api.core.reporting.AtfConsoleEvent.Scope.PHASE,
                 phaseName, effective, phase);
         closed = true;

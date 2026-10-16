@@ -27,6 +27,7 @@ public final class ExtentReportTree {
     private final ExtentEvidenceRenderer evidence;
     private final Runnable ensureSessionOpen;
     private final AtfConsoleSink console;
+    private final AtfReportSemanticRecorder semantic = new AtfReportSemanticRecorder();
     private final Map<String, ExtentTest> classRoots = new LinkedHashMap<>();
     private final Map<String, ReportStatusAggregator> classStatuses = new LinkedHashMap<>();
     private final Map<String, String> classPackages = new LinkedHashMap<>();
@@ -70,7 +71,8 @@ public final class ExtentReportTree {
         if (tags != null && !tags.isEmpty()) test.assignCategory(tags.toArray(String[]::new));
         console.publish(AtfConsoleEvent.started(AtfConsoleEvent.Scope.SCENARIO,
                 className + " :: " + (scenario == null ? "Scenario" : scenario)));
-        return new ExtentScenarioScope(this, test, className);
+        return new ExtentScenarioScope(this, test, className,
+                semantic.startScenario(className, packageName, scenario, tags));
     }
 
     public void completeClassRoots() {
@@ -87,6 +89,7 @@ public final class ExtentReportTree {
 
     public ReportingSettings settings() { return settings; }
     public SensitiveDataRedactor redactor() { return redactor; }
+    public AtfReportSemanticSnapshot semanticSnapshot() { return semantic.snapshot(); }
     public ExtentTest classRoot(String className) { return classRoots.get(className); }
 
     public String renderRequestTitle(String title, String method, String path) {

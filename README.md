@@ -41,10 +41,30 @@ sequenceDiagram
 ```
 
 Pentru verificarea interactivă a artifactului există infrastructura
-`atf-ui`: testele UI rămân în pachetul `atf.ui.tests` din `atf-tests`, iar
+`atf-ui`: testele de audit al rapoartelor Extent rămân în pachetul `atf.ui.tests.extent` din `atf-tests`, iar
 Playwright consumă raportul Extent deja publicat.
 Pentru investigație manuală există `atf-debug-ui`, care servește read-only un
 HTML existent pe loopback și tipărește URL-ul pentru Playwright/TAB MCP.
+
+### Boundary-ul normativ API/UI
+
+Package-ul este parte din responsabilitate, nu doar o convenție de naming:
+
+| Zonă | Conține | Nu poate conține |
+|---|---|---|
+| `atf.api.tests.api` | teste API pe resurse, request-uri, headere și lifecycle | browser, Playwright, DOM, locatori UI sau Debug UI |
+| `atf.ui.tests.extent` | teste de browser pentru audit Extent, DOM, screenshot, linkuri inline și validări vizuale | teste API ascunse în namespace-ul API sau teste UI de produs |
+| `atf-ui` | configurație și adaptor Playwright/browser | teste JUnit și scenarii API |
+| `atf-debug-ui` | server loopback read-only pentru inspecția artifactului | execuție API și verdict de test |
+
+Regula de diagnostic este strictă: dacă un fișier din `atf.api.tests.*` importă
+Playwright, `Page`, `Locator`, `DebugUiServer` sau `atf.api.ui`, este clasificat
+greșit și trebuie mutat în `atf.ui.tests.extent` (sau în namespace-ul UI al
+produsului), niciodată în `atf.api.tests.api`. Setup-ul API pentru un test UI este
+deținut de `atf.ui.tests.extent.composition.ApiReportAuditSetup`; vechiul
+`atf.ui.tests.extent.flows.ApiReportSetupFlow` este doar o fațadă de compatibilitate.
+UI-ul consumă raportul API ca input read-only și publică dovada UI într-un artifact separat. Direcția
+este `API/setup → raport API → browser UI → raport UI`, niciodată invers.
 
 ### Ownership pe fiecare pas
 
@@ -69,10 +89,10 @@ TestCase
 │   ├── Request
 │   │   ├── Request details
 │   │   │   ├── URL / method / path / headers / params / auth
-│   │   │   └── Request JSON body, dacă există
+│   │   │   └── REQUEST JSON (payload sau null dacă body-ul lipsește)
 │   │   ├── Response details
 │   │   │   ├── Technical trace
-│   │   │   └── Response JSON body, dacă există
+│   │   │   └── RESPONSE JSON (payload sau null dacă body-ul lipsește)
 │   │   └── Execution evidence
 │   └── Validation — sibling direct al request-ului owner
 │       └── aggregate assertion table
@@ -84,6 +104,13 @@ Request-ul și validation-ul sunt noduri surori în aceeași fază. API service-
 nu știe de raportare, validatorul nu decide layout-ul, iar reporting-ul nu
 calculează verdictul. O implementare care sare peste un owner sau inversează
 această ordine încalcă arhitectura.
+
+Regula body-ului este dependentă de metoda HTTP: pentru `POST` și `PUT`, atât
+request-ul cât și response-ul trebuie să fie documente JSON ne-goale și valide;
+`null` nu este o valoare acceptată pentru un write contract. Pentru exchange-uri
+fără body, inclusiv `GET` fără payload și răspunsurile `204`/`304`, raportul
+păstrează ambele disclosure-uri și redă explicit JSON `null`. Aceeași regulă
+este aplicată de `ApiRoute`, publisher-ul de evidence, mock și auditorul UI.
 
 ### Fazele nu sunt obligatorii în bloc
 
@@ -124,7 +151,7 @@ flowchart LR
 
 | Modul | Deține | Nu deține |
 |---|---|---|
-| `atf-core` | request/response, transport contracts, statusuri, config, retry, redaction și porturi | HTML, JUnit, business services |
+| `atf-core` | request/response, transport contracts, statusuri, config, retry și porturi | HTML, JUnit, business services |
 | `atf-mock` | transport fake configurabil, catalog de rute și răspunsuri deterministe | HTTP real, Extent, JUnit, business validation |
 | `atf-validation` | `ResponseContract`, reguli, evaluator, verdict și evidence prin port neutru | HTTP, Extent, HTML, CSS |
 | `atf-execution` | rute, modele, API services, executor, lifecycle și cleanup | validare de contract, CSS, JavaScript |
@@ -163,15 +190,15 @@ depinde de `atf-execution`. `atf-tests` le compune în testele de integrare și
 acceptance, dar nu devine runtime dependency a framework-ului.
 
 `atf-ui` este un modul de infrastructură, nu un modul de teste. Testele UI
-executabile sunt în `atf-tests/src/test/java/atf/ui/tests`, iar `atf-ui`
+executabile sunt în `atf-tests/src/test/java/atf/ui/tests/extent`, iar `atf-ui`
 furnizează numai configurația browserului și sesiunea Playwright. Astfel,
-`ApiExtentReportUiTest` și `atf.ui.tests.exploratory.ApiExtentReportExploratoryTest`
-pot fi rulate direct din IntelliJ fără un al doilea source-set sau un al doilea
-modul Maven de teste. Testul exploratoriu regenerează raportul API în setup,
+`atf.ui.tests.extent.exploratory.ApiExtentReportExploratoryTest` poate fi rulat direct
+din IntelliJ fără un al doilea source-set sau un al doilea modul Maven de teste.
+Testul exploratoriu regenerează raportul API în setup,
 îl publică read-only și verifică prin Playwright taburile, filtrele, navigarea
 și evidence-ul expandabil din artifactul API input. Aceeași rulare publică un
 artifact UI separat, cu pașii Playwright, tabelul agregat de validări și
-capturile Base64 inline; raportul API nu este modificat.
+linkurile native către capturile Base64; raportul API nu este modificat.
 
 `atf-debug-ui` are o responsabilitate diferită: publică temporar un artifact
 HTML deja generat, numai pe loopback, pentru ca un agent să îl poată deschide
@@ -264,14 +291,14 @@ pot selecta cataloage diferite, fără ca un mock să poată activa HTTP live.
 
 ### Contractul de transport pentru testele acceptance
 
-`ApiAcceptanceReportTest` folosește în mod intenționat `AtfMockTransport` din
-modulul `atf-mock`, un fake determinist injectat în composition root. El nu execută DNS, TLS sau
+`ApiReportAuditSetup` folosește în mod intenționat `AtfMockTransport` din
+modulul `atf-mock`, un fake determinist injectat în composition root. `ApiReportSetupFlow`
+este doar o fațadă de compatibilitate. Setup-ul nu execută DNS, TLS sau
 request-uri de rețea. De aceea `api.baseUri` din YAML descrie baseline-ul unei
 compoziții API și URL-ul afișat în evidence, dar nu pornește HTTP și nu
-schimbă transportul acceptance.
+schimbă transportul setup-ului UI.
 
-Testele care trebuie să contacteze un serviciu real sunt separate în
-`ApiLiveReportTest`, folosesc `HttpClientTransport` și sunt opt-in prin:
+Testele care trebuie să contacteze un serviciu real sunt opt-in prin:
 
 ```text
 -Datf.liveApi.enabled=true
@@ -337,8 +364,7 @@ aceeași decizie în execuție și în artifact.
 - fațadele publice coordonează, nu absorb implementarea tuturor subsistemelor;
 - modelele de domeniu sunt immutable unde reprezintă configurație, identity sau
   evidence;
-- timpul, retry-ul, auth-ul și redaction-ul sunt politici injectabile și
-  testabile determinist;
+- timpul, retry-ul și auth-ul sunt politici injectabile și testabile determinist;
 - modulele renderer-neutral nu importă Extent, JUnit sau HTML;
 - testele de contract protejează API-ul și semantica înaintea refactorizării;
 - o abstracție nouă este justificată numai când reduce coupling sau duplicare;
@@ -361,6 +387,8 @@ aceeași decizie în execuție și în artifact.
 - [atf-console/README.md](atf-console/README.md) — proiecția diagnostică,
   loaderul YAML și politica ASCII/UTF-8;
 - [atf-tests/README.md](atf-tests/README.md) — compunerea unui test end-to-end;
+- [atf-tests/src/test/java/atf/ui/tests/extent/README.md](atf-tests/src/test/java/atf/ui/tests/extent/README.md)
+  — contractul plug-and-play pentru setup API, secțiuni Extent și audit UI;
 - [atf-ui/README.md](atf-ui/README.md) — configurația și adaptorul Playwright;
 - [atf-debug-ui/README.md](atf-debug-ui/README.md) — publicarea read-only pentru investigație manuală în TAB MCP;
 - [docs/ATF_API_TEST_GUIDE.md](docs/ATF_API_TEST_GUIDE.md) — pașii practici

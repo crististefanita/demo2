@@ -1,8 +1,10 @@
 package atf.api.tests.api.headers;
 
 import atf.api.console.junit.AtfConsoleTestExtension;
+import atf.api.core.http.HttpHeader;
+import atf.api.core.http.MediaTypes;
 import atf.api.core.reporting.AtfReportStatus;
-import atf.api.tests.support.ApiTestFixture;
+import atf.api.tests.support.junit.ApiTestFixture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,11 +31,11 @@ class ApiHeadersAndEdgeCasesTests {
 
         assertAll(
                 () -> assertEquals(200, execution.response().status()),
-                () -> assertEquals("application/json", request.headers().get("Accept")),
-                () -> assertEquals("corr-headers-001", request.headers().get("X-Correlation-Id")),
-                () -> assertEquals("req-catalog-003", execution.response().header("X-Request-Id")),
-                () -> assertEquals("97", execution.response().header("X-RateLimit-Remaining")),
-                () -> assertEquals("W/catalog-3", execution.response().header("ETag")),
+                () -> assertEquals(MediaTypes.APPLICATION_JSON, request.headers().get(HttpHeader.ACCEPT.value())),
+                () -> assertEquals("corr-headers-001", request.headers().get(HttpHeader.X_CORRELATION_ID.value())),
+                () -> assertEquals("req-catalog-003", execution.response().header(HttpHeader.X_REQUEST_ID.value())),
+                () -> assertEquals("97", execution.response().header(HttpHeader.X_RATE_LIMIT_REMAINING.value())),
+                () -> assertEquals("W/catalog-3", execution.response().header(HttpHeader.ETAG.value())),
                 () -> assertEquals(AtfReportStatus.PASS, decision.status()));
     }
 
@@ -45,10 +47,10 @@ class ApiHeadersAndEdgeCasesTests {
 
         assertAll(
                 () -> assertEquals(429, execution.response().status()),
-                () -> assertEquals("text/csv", request.headers().get("Accept")),
-                () -> assertEquals("2.4", request.headers().get("X-Client-Version")),
-                () -> assertEquals("2", execution.response().header("Retry-After")),
-                () -> assertEquals("0", execution.response().header("X-RateLimit-Remaining")),
+                () -> assertEquals(MediaTypes.TEXT_CSV, request.headers().get(HttpHeader.ACCEPT.value())),
+                () -> assertEquals("2.4", request.headers().get(HttpHeader.X_CLIENT_VERSION.value())),
+                () -> assertEquals("2", execution.response().header(HttpHeader.RETRY_AFTER.value())),
+                () -> assertEquals("0", execution.response().header(HttpHeader.X_RATE_LIMIT_REMAINING.value())),
                 () -> assertTrue(execution.response().body().contains("RATE_LIMITED")),
                 () -> assertEquals(AtfReportStatus.PASS, decision.status()));
     }
@@ -61,9 +63,9 @@ class ApiHeadersAndEdgeCasesTests {
 
         assertAll(
                 () -> assertEquals(304, execution.response().status()),
-                () -> assertEquals("W/catalog-42", request.headers().get("If-None-Match")),
-                () -> assertEquals("W/catalog-42", execution.response().header("ETag")),
-                () -> assertEquals("max-age=60", execution.response().header("Cache-Control")),
+                () -> assertEquals("W/catalog-42", request.headers().get(HttpHeader.IF_NONE_MATCH.value())),
+                () -> assertEquals("W/catalog-42", execution.response().header(HttpHeader.ETAG.value())),
+                () -> assertEquals("max-age=60", execution.response().header(HttpHeader.CACHE_CONTROL.value())),
                 () -> assertTrue(execution.response().body().isBlank()),
                 () -> assertEquals(AtfReportStatus.PASS, decision.status()));
     }

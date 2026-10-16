@@ -8,7 +8,8 @@ import static atf.api.reporting.HtmlReportMarkupSupport.escape;
 
 /** Renders only the fallback Overview aggregate. */
 final class HtmlReportOverviewView {
-    String render(List<HtmlReportSemanticDocument.ScenarioModel> scenarios) {
+    String render(HtmlReportSemanticSnapshot snapshot) {
+        List<HtmlReportSemanticSnapshot.Scenario> scenarios = snapshot.scenarios();
         long passed = scenarios.stream().filter(s -> s.status() == AtfReportStatus.PASS).count();
         long failed = scenarios.stream().filter(s -> s.status() == AtfReportStatus.FAIL).count();
         long skipped = scenarios.stream().filter(s -> s.status() == AtfReportStatus.SKIP).count();

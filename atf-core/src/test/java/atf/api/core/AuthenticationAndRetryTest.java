@@ -28,6 +28,12 @@ class AuthenticationAndRetryTest {
         assertEquals("configured", auth.describeTokenState("bearer"));
         assertEquals("api_key", auth.describeMode("key"));
         assertEquals("Basic dXNlcjpwYXNz", basicHeader(auth));
+        var key = HttpRequest.newBuilder(URI.create("https://example.test"));
+        auth.apply(key, "key");
+        assertEquals("value", key.build().headers().firstValue("X-Api-Key").orElseThrow());
+        var custom = HttpRequest.newBuilder(URI.create("https://example.test"));
+        auth.apply(custom, "custom");
+        assertEquals("demo", custom.build().headers().firstValue("X-Trace").orElseThrow());
     }
 
     private static String basicHeader(ConfiguredApiAuthenticator auth) {

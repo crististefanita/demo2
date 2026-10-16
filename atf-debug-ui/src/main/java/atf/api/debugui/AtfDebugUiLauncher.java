@@ -8,6 +8,7 @@ public final class AtfDebugUiLauncher {
     private AtfDebugUiLauncher() { }
 
     public static void main(String[] args) throws InterruptedException {
+        DebugUiMemoryPolicy.enforce();
         Arguments arguments = Arguments.parse(args);
         try (DebugUiServer server = DebugUiServer.start(
                 DebugUiConfiguration.forHtml(arguments.html(), arguments.port()))) {

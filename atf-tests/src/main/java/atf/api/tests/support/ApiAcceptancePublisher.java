@@ -1,14 +1,19 @@
 package atf.api.tests.support;
 
+import atf.api.core.http.HttpHeader;
+import atf.api.core.security.SensitiveDataRedactor;
+
 import atf.api.core.http.ApiExecutionResult;
 import atf.api.core.http.ApiRequest;
 import atf.api.core.reporting.AtfReportPorts;
 import atf.api.core.reporting.AtfReportStatus;
 import atf.api.validation.contract.ResponseContract;
 import atf.api.validation.evaluation.ApiValidationException;
+import atf.api.validation.evaluation.ValidationFailureEvidence;
 import atf.api.validation.publishing.ResponseContractReporter;
 
 import java.net.URI;
+import java.util.function.Consumer;
 
 /** Publishes one API execution and its contract evidence into the report port.
  *
@@ -18,6 +23,7 @@ import java.net.URI;
  */
 public final class ApiAcceptancePublisher {
     private static final ResponseContractReporter VALIDATOR = new ResponseContractReporter();
+    private static final SensitiveDataRedactor REDACTOR = new SensitiveDataRedactor();
 
     private ApiAcceptancePublisher() { }
 
@@ -31,12 +37,27 @@ public final class ApiAcceptancePublisher {
     public static void publish(AtfReportPorts.Phase phase, String title,
                                ApiExecutionResult execution, ResponseContract contract,
                                boolean warningMode, String requestJson, ApiRequest sourceRequest) {
-        var decision = publishDecision(phase, title, execution, contract, warningMode, requestJson, sourceRequest);
+        var decision = publishDecisionInternal(phase, title, execution, contract, warningMode, requestJson, sourceRequest, null);
         if (decision.status() == AtfReportStatus.WARNING) {
             throw new atf.api.execution.lifecycle.ApiScenarioLifecycleRunner.WarningSignal(decision.message());
         }
         if (decision.status() == AtfReportStatus.FAIL) {
-            throw new atf.api.execution.lifecycle.ApiScenarioLifecycleRunner.FailureSignal(decision.message());
+            throw failureSignal(decision, execution);
+        }
+    }
+
+    /** Publishes a response and appends flow-level assertions inside that request's evidence. */
+    public static void publish(AtfReportPorts.Phase phase, String title,
+                               ApiExecutionResult execution, ResponseContract contract,
+                               boolean warningMode, String requestJson, ApiRequest sourceRequest,
+                               Consumer<AtfReportPorts.Request> flowEvidence) {
+        var decision = publishDecisionInternal(phase, title, execution, contract, warningMode,
+                requestJson, sourceRequest, flowEvidence);
+        if (decision.status() == AtfReportStatus.WARNING) {
+            throw new atf.api.execution.lifecycle.ApiScenarioLifecycleRunner.WarningSignal(decision.message());
+        }
+        if (decision.status() == AtfReportStatus.FAIL) {
+            throw failureSignal(decision, execution);
         }
     }
 
@@ -49,44 +70,84 @@ public final class ApiAcceptancePublisher {
             AtfReportPorts.Phase phase, String title,
             ApiExecutionResult execution, ResponseContract contract,
             boolean warningMode, String requestJson, ApiRequest sourceRequest) {
+        return publishDecisionInternal(phase, title, execution, contract, warningMode,
+                requestJson, sourceRequest, null);
+    }
+
+    public static atf.api.validation.evaluation.ValidationDecision publishDecision(
+            AtfReportPorts.Phase phase, String title,
+            ApiExecutionResult execution, ResponseContract contract,
+            boolean warningMode, String requestJson, ApiRequest sourceRequest,
+            Consumer<AtfReportPorts.Request> flowEvidence) {
+        return publishDecisionInternal(phase, title, execution, contract, warningMode, requestJson,
+                sourceRequest, flowEvidence);
+    }
+
+    /** Publishes a modeled negative outcome while retaining the normal JSON write contract. */
+    public static atf.api.validation.evaluation.ValidationDecision publishNegativeDecision(
+            AtfReportPorts.Phase phase, String title,
+            ApiExecutionResult execution, ResponseContract contract,
+            boolean warningMode, ApiRequest sourceRequest) {
+        return publishDecisionInternal(phase, title, execution, contract, warningMode, null,
+                sourceRequest, null);
+    }
+
+    private static atf.api.validation.evaluation.ValidationDecision publishDecisionInternal(
+            AtfReportPorts.Phase phase, String title,
+            ApiExecutionResult execution, ResponseContract contract,
+            boolean warningMode, String requestJson, ApiRequest sourceRequest,
+            Consumer<AtfReportPorts.Request> flowEvidence) {
         var response = execution.response();
-        String method = sourceRequest == null ? executionRequestMethod(title) : sourceRequest.method();
-        String path = sourceRequest == null ? URI.create(response.url()).getPath() : sourceRequest.path();
+        ApiRequest capturedRequest = sourceRequest != null ? sourceRequest : execution.request();
+        String method = capturedRequest == null ? executionRequestMethod(title) : capturedRequest.method();
+        String path = capturedRequest == null ? URI.create(response.url()).getPath() : capturedRequest.path();
         var request = phase.startRequest(title, method, path);
         request.execution(execution);
-        request.detail("Duration", response.duration().toMillis() + " ms");
-        request.detail("URL", response.url());
-        request.detail("HTTP STATUS", Integer.toString(response.status()));
-        request.detail("Content-Type", String.valueOf(response.header("Content-Type")));
-        request.detail("Attempt", Integer.toString(execution.attempts()));
-        if (sourceRequest != null) {
-            request.detail("Auth profile", sourceRequest.authProfile());
-            if (sourceRequest.route() != null) {
-                request.detail("Auth type", sourceRequest.route().authType().name());
+        detail(request, ApiEvidenceField.DURATION, response.duration().toMillis() + " ms");
+        detail(request, ApiEvidenceField.URL, response.url());
+        detail(request, ApiEvidenceField.HTTP_STATUS, Integer.toString(response.status()));
+        detail(request, ApiEvidenceField.CONTENT_TYPE, String.valueOf(response.header(HttpHeader.CONTENT_TYPE.value())));
+        detail(request, ApiEvidenceField.ATTEMPTS, Integer.toString(execution.attempts()));
+        if (capturedRequest != null) {
+            detail(request, ApiEvidenceField.AUTH_PROFILE, capturedRequest.authProfile());
+            if (capturedRequest.route() != null) {
+                detail(request, ApiEvidenceField.AUTH_TYPE, capturedRequest.route().authType().name());
             }
-            if (!sourceRequest.query().isEmpty()) {
-                request.detail("Query params", sourceRequest.query().toString());
+            if (!capturedRequest.queryParameters().isEmpty()) {
+                detail(request, ApiEvidenceField.QUERY_PARAMS, capturedRequest.queryParameters().display());
             }
-            if (!sourceRequest.headers().isEmpty()) {
-                request.detail("Request headers", sourceRequest.headers().toString());
+            if (!capturedRequest.headers().isEmpty()) {
+                detail(request, ApiEvidenceField.REQUEST_HEADERS, redactHeaders(capturedRequest.headers().entrySet()));
             }
         }
         var responseHeaders = response.headers().entrySet().stream()
-                .filter(entry -> !entry.getKey().equalsIgnoreCase("Content-Type"))
+                .filter(entry -> !entry.getKey().equalsIgnoreCase(HttpHeader.CONTENT_TYPE.value()))
                 .toList();
         if (!responseHeaders.isEmpty()) {
-            request.detail("Response headers", responseHeaders.toString());
+            detail(request, ApiEvidenceField.RESPONSE_HEADERS, redactHeaders(responseHeaders));
         }
         String effectiveRequestJson = requestJson;
-        if (effectiveRequestJson == null && sourceRequest != null && !sourceRequest.bodyText().isBlank()) {
-            effectiveRequestJson = sourceRequest.bodyText();
+        if (effectiveRequestJson == null && capturedRequest != null && !capturedRequest.bodyText().isBlank()) {
+            effectiveRequestJson = capturedRequest.bodyText();
         }
-        if (effectiveRequestJson != null) request.json("REQUEST JSON", effectiveRequestJson);
-        if (!response.body().isBlank()) request.json("RESPONSE JSON", response.body());
+        ApiJsonEvidence.publish(request, effectiveRequestJson, response.body());
+        var jsonContractViolations = ApiJsonEvidence.writeContractViolations(
+                method, effectiveRequestJson, response.body());
+        if (!jsonContractViolations.isEmpty()) {
+            String message = "JSON request/response contract failed for " + method + " " + path
+                    + ": " + String.join("; ", jsonContractViolations);
+            detail(request, ApiEvidenceField.JSON_CONTRACT, message);
+            request.complete(AtfReportStatus.FAIL);
+            request.close();
+            throw new atf.api.execution.lifecycle.ApiScenarioLifecycleRunner.FailureSignal(message);
+        }
         atf.api.validation.evaluation.ValidationDecision decision;
         try {
             decision = VALIDATOR.validate(request, "Contract validation", response, contract,
                     warningMode, false);
+            if (flowEvidence != null) {
+                flowEvidence.accept(request);
+            }
             request.complete(decision.status());
         } catch (ApiValidationException | RuntimeException failure) {
             request.complete(AtfReportStatus.FAIL);
@@ -99,5 +160,26 @@ public final class ApiAcceptancePublisher {
 
     private static String executionRequestMethod(String title) {
         return title.substring(0, title.indexOf(' '));
+    }
+
+    private static atf.api.execution.lifecycle.ApiScenarioLifecycleRunner.FailureSignal failureSignal(
+            atf.api.validation.evaluation.ValidationDecision decision,
+            ApiExecutionResult execution) {
+        ValidationFailureEvidence evidence = decision.failureEvidence();
+        var details = new java.util.LinkedHashMap<>(evidence.details());
+        details.put("Attempts", Integer.toString(execution.attempts()));
+        return new atf.api.execution.lifecycle.ApiScenarioLifecycleRunner.FailureSignal(
+                evidence.cause(), details);
+    }
+
+    private static void detail(AtfReportPorts.Request request, ApiEvidenceField field, String value) {
+        request.detail(field.label(), value);
+    }
+
+    private static String redactHeaders(Iterable<java.util.Map.Entry<String, String>> headers) {
+        java.util.List<String> values = new java.util.ArrayList<>();
+        headers.forEach(entry -> values.add(entry.getKey() + "="
+                + REDACTOR.redactField(entry.getKey(), entry.getValue())));
+        return values.toString();
     }
 }

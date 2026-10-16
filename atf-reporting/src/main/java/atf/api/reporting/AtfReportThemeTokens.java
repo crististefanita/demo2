@@ -24,6 +24,12 @@ final class AtfReportThemeTokens {
     static final String META_BADGE_LINE_HEIGHT = "10.6624px";
     /** Key/value evidence tables reserve one common column plus a small text delta. */
     static final String EVIDENCE_KEY_COLUMN_WIDTH = "28%";
+    /** Stable STATUS lane shared by UI and API evidence event tables. */
+    static final String EVIDENCE_STATUS_COLUMN_WIDTH = "52px";
+    static final String EVIDENCE_SUMMARY_PADDING = "9px 12px";
+    static final String EVIDENCE_SUMMARY_LINE_HEIGHT = "16px";
+    static final String EVIDENCE_SUMMARY_HEIGHT = "34px";
+    static final String EVIDENCE_RADIUS = "10px";
 
     private AtfReportThemeTokens() {
     }
@@ -65,6 +71,11 @@ final class AtfReportThemeTokens {
                 + ";--atf-meta-badge-font-size:" + META_BADGE_FONT_SIZE
                 + ";--atf-meta-badge-line-height:" + META_BADGE_LINE_HEIGHT
                 + ";--atf-evidence-key-column-width:" + EVIDENCE_KEY_COLUMN_WIDTH
+                + ";--atf-evidence-status-column-width:" + EVIDENCE_STATUS_COLUMN_WIDTH
+                + ";--atf-evidence-summary-padding:" + EVIDENCE_SUMMARY_PADDING
+                + ";--atf-evidence-summary-line-height:" + EVIDENCE_SUMMARY_LINE_HEIGHT
+                + ";--atf-evidence-summary-height:" + EVIDENCE_SUMMARY_HEIGHT
+                + ";--atf-evidence-radius:" + EVIDENCE_RADIUS
                 + ";--atf-overview-font-family:" + FONT_STACK + ";--atf-overview-font-size:" + AtfReportTypography.OVERVIEW_FONT_SIZE
                 + ";--atf-audit-scroll-height:340px}";
     }

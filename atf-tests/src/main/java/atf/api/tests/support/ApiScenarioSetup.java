@@ -7,10 +7,12 @@ import java.lang.annotation.Target;
 
 /**
  * Declares that a UI exploration needs an API artifact prepared first.
- * An empty value delegates ordering to {@code ui.apiSetup.scenarioFamilies}.
+ * Exact {@link #tests()} selection takes precedence over families and YAML.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ApiScenarioSetup {
     String[] families() default {};
+
+    ApiTestRef[] tests() default {};
 }

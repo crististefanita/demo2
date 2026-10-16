@@ -21,72 +21,8 @@ final class AtfReportTheme {
 
     static String css() {
         return (AtfReportThemeTokens.cssVariables()
-                + "html,body,body.dark,.app,.layout,.vcontainer,.main-content,.view,.test-content,.test-list{"
-                + "background:var(--atf-dark)!important;color:var(--atf-text)!important;font-family:" + FONT_STACK + "!important}"
-                + "body{font-size:14px!important;line-height:1.55!important}"
-                + ".header.navbar,.side-nav,.side-nav-inner,.test-list-tools,.test-content-tools{"
-                + "background:var(--atf-dark)!important;border-color:var(--atf-border)!important}"
-                + ".card,.test-list-item>li,.test-item,.category-view .card,.dashboard-view .card{"
-                + "background:var(--atf-surface)!important;border-color:var(--atf-card-border)!important;"
-                + "color:var(--atf-card-text)!important}"
-                + ".dark .card,.dark .card-header,.dark .card-body,.dark .card-footer{"
-                + "background:var(--atf-surface)!important}"
-                + ".card-header,.card-body,.card-footer,.detail-body{background:var(--atf-surface)!important;"
-                + "border-color:var(--atf-card-border)!important;"
-                + "color:var(--atf-card-text)!important}"
-                + ".card-title,.card-title a,.card-title span,.test-name,.test-detail .name,.dashboard-view h3,"
-                + ".dashboard-view h6{color:var(--atf-text)!important;font-size:14px!important;line-height:1.55!important}"
-                + ".test-detail .text-sm,.duration,.test-list .duration{color:var(--atf-muted)!important}"
-                + ".test-item.active,.test-item:hover,.side-nav .nav-item.active{background:var(--atf-panel)!important}"
+                + AtfReportThemeBaseCss.css()
                 + AtfReportEvidenceCss.css()
-                + ".test-view .test-content-detail .card[data-atf-scenario-id]>.card-header,.test-view .test-content-detail .card[data-atf-node-role]>.card-header{display:flex!important;align-items:center!important;column-gap:8px!important;row-gap:4px!important;flex-wrap:wrap!important}"
-                + ".test-view .test-content-detail .card[data-atf-scenario-id]>.card-header>.card-title,.test-view .test-content-detail .card[data-atf-node-role]>.card-header>.card-title{display:flex!important;align-items:center!important;flex:1 1 auto!important;min-width:0!important;margin:0!important}"
-                + ".test-view .test-content-detail .card[data-atf-scenario-id]>.card-header:before,.test-view .test-content-detail .card[data-atf-node-role]>.card-header:before{display:inline-flex!important;flex:0 0 18px!important;width:18px!important;height:18px!important;align-items:center!important;justify-content:center!important;color:var(--atf-accent)!important;font-size:17px!important;font-weight:500!important;line-height:18px!important;content:'＋'!important}"
-                + ".test-view .test-content-detail .card[data-atf-scenario-open='true']>.card-header:before,.test-view .test-content-detail .card[data-atf-phase-open='true']>.card-header:before,.test-view .test-content-detail .card[data-atf-node-open='true']>.card-header:before{content:'−'!important}"
-                + ".test-view .test-content-detail .card[data-atf-node-expandable='false']>.card-header:before{display:none!important}"
-                // Scenario annotations follow the .NET reference: real tags are
-                // visible inline under the scenario title; the generic label is
-                // retained only as an accessible aria-label on the tag list.
-                + ".atf-scenario-annotations{display:flex!important;align-items:center!important;gap:5px!important;"
-                + "flex-wrap:wrap!important;margin-top:7px!important;min-height:18px!important}"
-                + ".atf-tag-annotation{display:inline-flex!important;align-items:center!important;padding:2px 7px!important;"
-                + "border:1px solid var(--atf-accent)!important;border-radius:999px!important;"
-                + "color:var(--atf-accent)!important;background:transparent!important;"
-                + "font-size:11px!important;line-height:14px!important;font-weight:400!important;white-space:nowrap!important}"
-                + ".helm-scroll-block{max-height:360px!important;overflow:auto!important;border:1px solid var(--atf-border)!important;background:var(--atf-code)!important}"
-                + ".helm-scroll-block-title{padding:8px 10px!important;border-bottom:1px solid var(--atf-border)!important;color:var(--atf-muted)!important;font-size:11.2px!important;text-transform:uppercase!important}"
-                + ".helm-scroll-block-body{padding:0!important}.helm-scroll-block pre.code-block{max-height:none!important;border:0!important}"
-                + ".badge{display:inline-flex!important;align-items:center!important;justify-content:center!important;"
-                + "box-sizing:border-box!important;min-width:0!important;width:auto!important;"
-                + "height:var(--atf-badge-height)!important;padding:var(--atf-badge-padding)!important;"
-                + "border:0!important;border-radius:var(--atf-badge-radius)!important;"
-                + "font-family:var(--atf-font-sans)!important;font-size:var(--atf-badge-font-size)!important;"
-                + "line-height:var(--atf-badge-line-height)!important;font-weight:400!important;white-space:nowrap!important}"
-                + ".badge:not(.badge-default){background:var(--atf-accent)!important;color:var(--atf-accent-contrast)!important}"
-// Status badges remain compact; duration, anchor, and controls
-// use separate metadata geometry so Pass/Fail do not grow.
-                + ".badge.badge-default{height:var(--atf-meta-badge-height)!important;min-height:var(--atf-meta-badge-height)!important;"
-                + "padding:var(--atf-meta-badge-padding)!important;border-radius:var(--atf-meta-badge-radius)!important;"
-                + "font-size:var(--atf-meta-badge-font-size)!important;line-height:var(--atf-meta-badge-line-height)!important}"
-                + ".pass-bg,.pass-bg.badge{background:var(--atf-pass)!important;color:var(--atf-pass-text)!important}"
-                + ".fail-bg,.fail-bg.badge{background:var(--atf-fail)!important;color:var(--atf-fail-text)!important}"
-                + ".warning-bg,.warning-bg.badge{background:var(--atf-warning)!important;color:var(--atf-warning-text)!important}"
-                + ".skip-bg,.skip-bg.badge{background:var(--atf-skip)!important;color:var(--atf-skip-text)!important}"
-                + ".info-bg,.info-bg.badge{background:var(--atf-info)!important;color:var(--atf-info-text)!important}"
-                + ".status-info{color:var(--atf-info-text)!important;background:var(--atf-info)!important}"
-                // The .NET adapter deliberately leaves direct scenario cards
-                // transparent and reserves the strong card border for evidence.
-                // Keep this precedence layer after the broad Extent card rules.
-                + ".test-contents>.mt-4>.accordion>.card{background:transparent!important;"
-                + "border-color:var(--atf-border)!important;border-radius:0!important;"
-                + "box-shadow:0 10px 26px " + AtfReportColors.SHADOW_STRONG + "!important}"
-                + ".test-contents>.mt-4>.accordion>.card>.card-header{background:transparent!important}"
-                + ".test-contents>.mt-4>.accordion>.card .node{background:transparent!important;"
-                + "border:0!important;border-radius:0!important;box-shadow:none!important;margin:0!important}"
-                + ".atf-scenario-annotations{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:6px!important;margin-top:8px!important}"
-                + ".atf-tag-annotation{display:inline-flex!important;align-items:center!important;padding:4px 9px!important;border:1px solid var(--atf-border)!important;border-radius:999px!important;background:var(--atf-panel)!important;color:var(--atf-text)!important;font-size:11px!important;line-height:16px!important}"
-                + ".test-view .test-list{background:var(--atf-dark)!important}"
-                + ".test-view .test-content-detail{background:var(--atf-dark)!important}"
                 // Category view follows the .NET reference surface contract:
                 // both panes and the selected category use one dark token.
                 + ".category-view,.category-view .test-list,.category-view .test-list-tools,"
@@ -214,9 +150,10 @@ final class AtfReportTheme {
                 + "body:has(#test-view:target) #dashboard-view,body:has(#test-view:target) #category-view,body:has(#test-view:target) #atf-fails-view,"
                 + "body:has(#category-view:target) #dashboard-view,body:has(#category-view:target) #test-view,body:has(#category-view:target) #atf-fails-view,"
                 + "body:has(#atf-fails-view:target) #dashboard-view,body:has(#atf-fails-view:target) #test-view,body:has(#atf-fails-view:target) #category-view{display:none!important}"
-                + "#atf-fails-view.exception-view.atf-fails-view{display:none!important}#atf-fails-view.exception-view.atf-fails-view:not(.hide){display:flex!important;align-items:stretch!important;padding:0!important;min-height:calc(100vh - 56px)!important;overflow:hidden!important}"
-                + ".exception-view.atf-fails-view .test-list{flex:0 0 32%!important;max-width:32%!important;min-width:280px!important;overflow:auto!important;background:var(--atf-dark)!important;border-right:1px solid var(--atf-border)!important}"
-                + ".exception-view.atf-fails-view .test-content{display:block!important;flex:1 1 auto!important;min-width:0!important;overflow:auto!important;background:var(--atf-dark)!important}"
+                + "#atf-fails-view.exception-view.atf-fails-view{display:none!important}"
+                + AtfReportFailsLayoutCss.css()
+                + ".exception-view.atf-fails-view .test-list{background:var(--atf-dark)!important;border-right:1px solid var(--atf-border)!important}"
+                + ".exception-view.atf-fails-view .test-content{background:var(--atf-dark)!important}"
                 + ".exception-view.atf-fails-view .test-list-tools{background:var(--atf-dark)!important;border-bottom:1px solid var(--atf-border)!important;color:var(--atf-accent)!important}"
                 + ".exception-view.atf-fails-view .test-list-wrapper{background:var(--atf-dark)!important}"
                 + ".exception-view.atf-fails-view .test-list-item>.test-item{display:flex!important;align-items:center!important;justify-content:space-between!important;min-height:74px!important;padding:14px 14px 14px 18px!important;background:var(--atf-dark)!important;border-bottom:1px solid var(--atf-border)!important;border-left:3px solid transparent!important;color:var(--atf-text)!important;cursor:pointer!important}"
@@ -288,6 +225,7 @@ final class AtfReportTheme {
                 + ".atf-failure>.status{order:2;flex:0 0 auto;display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:0!important;height:var(--atf-badge-height)!important;box-sizing:border-box!important;padding:var(--atf-badge-padding)!important;border:0!important;border-radius:var(--atf-badge-radius)!important;background:var(--atf-fail)!important;color:var(--atf-fail-text)!important;font-family:var(--atf-font-sans)!important;font-size:var(--atf-badge-font-size)!important;line-height:var(--atf-badge-line-height)!important;font-weight:400!important;white-space:nowrap!important}"
                 + "@media(max-width:1100px){.atf-tag-grid,.atf-secondary-metadata-grid{grid-template-columns:1fr}.atf-fails-view .atf-failure{align-items:flex-start}}"
                  + overviewMetricsCss()
+                + AtfReportCategoryCss.css()
                  + categoryStatusCss()
                  + failsStatusColorCss()).replace("atf-failure-test-detail", "atf-failure-detail");
     }

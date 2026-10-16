@@ -53,8 +53,8 @@ public final class UrlConnectionTransport implements ApiTransport {
             connection.setReadTimeout(timeoutMillis);
             connection.setRequestMethod(request.method());
             connection.setDoInput(true);
-            connection.setRequestProperty("Accept", "application/json");
-            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setRequestProperty(HttpHeader.ACCEPT.value(), MediaTypes.APPLICATION_JSON);
+            connection.setRequestProperty(HttpHeader.CONTENT_TYPE.value(), MediaTypes.APPLICATION_JSON);
             request.headers().forEach(connection::setRequestProperty);
             applyAuthentication(connection, url, authProfile);
 

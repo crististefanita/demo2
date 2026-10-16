@@ -26,6 +26,15 @@ mock:
         Content-Type: application/json
       body: |
         {"message":"Authentication required"}
+    - method: POST
+      path: /public/v2/posts
+      status: 201
+      duration: PT0.012S
+      headers:
+        Content-Type: application/json
+        X-Mock-Scenario: post-create
+      body: |
+        {"id":102,"user_id":1,"title":"ATF created post","body":"contract","status":"published","created":true}
     - method: GET
       path: /public/v2/posts
       status: 200
@@ -33,7 +42,7 @@ mock:
       headers:
         Content-Type: application/json
       body: |
-        [{"id":101,"user_id":1,"title":"ATF post","body":"contract"}]
+        [{"id":101,"user_id":1,"title":"ATF post","body":"contract"},{"id":102,"user_id":1,"title":"ATF created post","body":"contract","status":"published"}]
     - method: GET
       path: /public/v2/posts/101
       status: 200
@@ -42,6 +51,24 @@ mock:
         Content-Type: application/json
       body: |
         {"id":101,"user_id":1,"title":"ATF post","body":"contract"}
+    - method: GET
+      path: /public/v2/posts/102
+      status: 200
+      duration: PT0.012S
+      headers:
+        Content-Type: application/json
+        X-Mock-Scenario: post-created-read
+      body: |
+        {
+          "id":102,
+          "user_id":1,
+          "title":"ATF created post",
+          "body":"contract",
+          "status":"published",
+          "timestamps":{"createdAt":"2026-10-16T15:00:00Z","updatedAt":"2026-10-16T15:00:00Z"},
+          "links":{"self":"/public/v2/posts/102","author":"/public/v2/users/1"},
+          "audit":{"source":"atf-mock","version":1}
+        }
     - method: GET
       path: /public/v2/users/1/posts
       status: 200
@@ -83,6 +110,70 @@ mock:
           "links": {"self": "/public/v2/search?page=2&include=details", "next": null},
           "audit": {"requestId": "mock-search-0002", "source": "atf-mock", "redactionApplied": true}
         }
+    - method: GET
+      path: /public/v2/search
+      auth-profile: bearer
+      query:
+        page: invalid
+        include: details
+      request-headers:
+        Accept: application/json
+      status: 400
+      duration: PT0.008S
+      headers:
+        Content-Type: application/json
+        X-Mock-Scenario: invalid-search-query
+      body: |
+        {"error":{"code":"INVALID_QUERY","parameter":"page","message":"page must be a positive integer"}}
+    - method: GET
+      path: /public/v2/search
+      auth-profile: bearer
+      query:
+        - name: include
+          value: details
+      request-headers:
+        Accept: application/json
+      status: 422
+      duration: PT0.008S
+      headers:
+        Content-Type: application/json
+        X-Mock-Scenario: missing-search-query
+      body: |
+        {"error":{"code":"MISSING_QUERY","parameter":"page","message":"page is required"}}
+    - method: GET
+      path: /public/v2/search
+      auth-profile: bearer
+      query:
+        - name: page
+          value: ""
+        - name: include
+          value: details
+      request-headers:
+        Accept: application/json
+      status: 422
+      duration: PT0.008S
+      headers:
+        Content-Type: application/json
+        X-Mock-Scenario: empty-search-query
+      body: |
+        {"error":{"code":"EMPTY_QUERY","parameter":"page","message":"page must not be empty"}}
+    - method: GET
+      path: /public/v2/search
+      auth-profile: bearer
+      query:
+        - name: tag
+          value: quality
+        - name: tag
+          value: owner
+      request-headers:
+        Accept: application/json
+      status: 200
+      duration: PT0.009S
+      headers:
+        Content-Type: application/json
+        X-Mock-Scenario: duplicate-search-query
+      body: |
+        {"meta":{"tags":["quality","owner"]},"items":[],"audit":{"duplicateKeys":true}}
     - method: POST
       path: /public/v2/bulk-import
       auth-profile: api-key
@@ -127,7 +218,28 @@ mock:
           "updated": true,
           "profile": {"displayName": "ATF User", "locale": "ro-RO", "timezone": "Europe/Bucharest"},
           "permissions": {"effective": ["read", "write"], "inherited": [{"from": "quality", "permissions": ["read"]}], "overrides": {"export": false}},
-          "changes": [{"field": "locale", "from": "en-US", "to": "ro-RO"}, {"field": "timezone", "from": "UTC", "to": "Europe/Bucharest"}]
+          "changes": [{"field": "locale", "from": "en-US", "to": "ro-RO"}, {"field": "timezone", "from": "UTC", "to": "Europe/Bucharest"}],
+          "operation": "profile-update"
+        }
+    - method: GET
+      path: /public/v2/profiles/1
+      auth-profile: basic
+      request-headers:
+        Accept: application/json
+      status: 200
+      duration: PT0.012S
+      headers:
+        Content-Type: application/json
+        X-Mock-Scenario: profile-updated-read
+      body: |
+        {
+          "id": 1,
+          "version": 7,
+          "profile": {"displayName": "ATF User", "locale": "ro-RO", "timezone": "Europe/Bucharest"},
+          "permissions": {"effective": ["read", "write"], "inherited": [{"from": "quality", "permissions": ["read"]}]},
+          "readModel": "profile",
+          "links": {"self": "/public/v2/profiles/1", "permissions": "/public/v2/profiles/1/permissions"},
+          "audit": {"lastMutation": "profile-update", "lastChangedFields": ["locale", "timezone"]}
         }
     - method: PATCH
       path: /public/v2/preferences
@@ -207,6 +319,82 @@ mock:
         Cache-Control: max-age=60
         X-Request-Id: req-catalog-042
       body: ""
+    # Negative request matrix: every POST/PUT still carries valid JSON in both
+    # directions; the negative outcome is modeled by status, code and headers.
+    - method: POST
+      path: /public/v2/posts/invalid-json
+      request-body-mode: json
+      status: 400
+      duration: PT0.008S
+      headers:
+        Content-Type: application/json
+      body: |
+        {"error":{"code":"INVALID_JSON","message":"Request body is not valid JSON"}}
+    - method: POST
+      path: /public/v2/posts/missing-body
+      request-body-mode: json
+      status: 400
+      duration: PT0.008S
+      headers:
+        Content-Type: application/json
+      body: |
+        {"error":{"code":"BODY_REQUIRED","message":"Request body is required"}}
+    - method: POST
+      path: /public/v2/posts/wrong-content-type
+      request-body-mode: wrong-content-type
+      status: 415
+      duration: PT0.008S
+      headers:
+        Content-Type: application/json
+      body: |
+        {"error":{"code":"UNSUPPORTED_MEDIA_TYPE","message":"Content-Type must be application/json"}}
+    - method: POST
+      path: /public/v2/posts/missing-title
+      request-body-mode: json
+      request-body: '{"body":"contract","user_id":1}'
+      status: 422
+      duration: PT0.008S
+      headers:
+        Content-Type: application/json
+      body: |
+        {"error":{"code":"VALIDATION_FAILED","fields":[{"name":"title","reason":"required"}]}}
+    - method: POST
+      path: /public/v2/posts/conflict
+      request-body-mode: json
+      status: 409
+      duration: PT0.008S
+      headers:
+        Content-Type: application/json
+      body: |
+        {"error":{"code":"RESOURCE_CONFLICT","message":"Post already exists"}}
+    - method: PUT
+      path: /public/v2/profiles/1/forbidden
+      request-body-mode: json
+      status: 403
+      duration: PT0.008S
+      headers:
+        Content-Type: application/json
+      body: |
+        {"error":{"code":"FORBIDDEN","message":"Profile update is not allowed"}}
+    - method: POST
+      path: /public/v2/posts/unknown-auth
+      auth-profile: unknown
+      request-body-mode: json
+      status: 401
+      duration: PT0.008S
+      headers:
+        Content-Type: application/json
+      body: |
+        {"error":{"code":"UNKNOWN_AUTH_PROFILE","message":"Authentication profile is not recognized"}}
+    - method: POST
+      path: /public/v2/posts/server-error
+      request-body-mode: json
+      status: 500
+      duration: PT0.008S
+      headers:
+        Content-Type: application/json
+      body: |
+        {"error":{"code":"INTERNAL_ERROR","message":"Unexpected server error"}}
   fallback:
     status: 500
     duration: PT0.012S

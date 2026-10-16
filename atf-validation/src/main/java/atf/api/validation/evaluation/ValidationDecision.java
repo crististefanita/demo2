@@ -18,4 +18,12 @@ public record ValidationDecision(
     public ValidationDecision {
         rows = List.copyOf(rows);
     }
+
+    /** Returns the compact explanation for the failed contract rows. */
+    public ValidationFailureEvidence failureEvidence() {
+        if (status != AtfReportStatus.FAIL) {
+            throw new IllegalStateException("failure evidence is available only for failed decisions");
+        }
+        return ValidationFailureEvidence.from(rows);
+    }
 }

@@ -3,120 +3,113 @@ package atf.api.ui.playwright;
 import atf.api.core.ui.AtfUiActionRecord;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
-import com.microsoft.playwright.options.LoadState;
-import com.microsoft.playwright.options.WaitForSelectorState;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Objects;
 
 /**
- * Records the ordered Playwright operations performed for one visual state.
- * The class owns execution timing and evidence only; it does not render HTML.
+ * Stable facade for ordered Playwright evidence.
+ *
+ * <p>Execution is delegated to browser and locator action owners; this class
+ * keeps only the public sequence vocabulary and recorder lifecycle.</p>
  */
 public final class PlaywrightActionSequence {
     private final UiActionRecorder recorder = new UiActionRecorder();
+    private final PlaywrightLocatorActions locatorActions = new PlaywrightLocatorActions(recorder);
+    private final PlaywrightBrowserActions browserActions = new PlaywrightBrowserActions(recorder);
 
     public void navigate(Page page, URI uri) {
-        Objects.requireNonNull(page, "page");
-        Objects.requireNonNull(uri, "uri");
-        recorder.run("Navigate", uri.toString(), "document is loaded", () -> {
-            page.navigate(uri.toString());
-            page.waitForLoadState(LoadState.DOMCONTENTLOADED);
-            return "document loaded";
-        });
+        navigate(page, uri, "document is loaded");
+    }
+
+    public void navigate(Page page, URI uri, String expected) {
+        browserActions.navigate(page, uri, expected);
     }
 
     public void click(Locator locator, String locatorTarget, String expected) {
-        String target = requireElementTarget(locator, locatorTarget);
-        recorder.run("Click", target, expected, () -> {
-            locator.click();
-            return "click completed";
-        });
+        locatorActions.click(locator, locatorTarget, expected);
+    }
+
+    public void click(AtfLocator element, String expected) {
+        locatorActions.click(element, expected);
+    }
+
+    public Page clickAndWaitForPopup(Page page, Locator locator, String locatorTarget,
+                                     String expected) {
+        return browserActions.clickAndWaitForPopup(page, locator, locatorTarget, expected);
     }
 
     public String getText(Locator locator, String locatorTarget, String expected) {
-        String target = requireElementTarget(locator, locatorTarget);
-        return recorder.run("Get text", target, expected,
-                () -> locator.innerText().trim());
+        return locatorActions.getText(locator, locatorTarget, expected);
     }
 
-    /** Records the locator lookup itself as auditable Playwright evidence. */
+    public String getText(AtfLocator element, String expected) {
+        return locatorActions.getText(element, expected);
+    }
+
     public Locator findElement(Locator locator, String locatorTarget) {
-        String target = requireElementTarget(locator, locatorTarget);
-        recorder.run("Find element", target, "element exists", () -> {
-            if (locator.count() == 0) {
-                throw new AssertionError("Element was not found: " + target);
-            }
-            return "element found";
-        });
-        return locator;
+        return locatorActions.findElement(locator, locatorTarget);
     }
 
-    /** Reads and validates text through Playwright as one auditable operation. */
+    public Locator findElement(AtfLocator element) {
+        return locatorActions.findElement(element);
+    }
+
     public String expectText(Locator locator, String locatorTarget, String expected) {
-        String target = requireElementTarget(locator, locatorTarget);
-        String expectedText = expected == null ? "" : expected.trim();
-        return recorder.run("Expect text", target, "text contains: " + expectedText, () -> {
-            String observed = locator.innerText().trim();
-            if (!observed.contains(expectedText)) {
-                throw new AssertionError("Expected text '" + expectedText + "' but observed '"
-                        + observed + "'");
-            }
-            return observed;
-        });
+        return locatorActions.expectText(locator, locatorTarget, expected);
+    }
+
+    public String expectText(AtfLocator element, String expected) {
+        return locatorActions.expectText(element, expected);
     }
 
     public void focus(Locator locator, String locatorTarget, String expected) {
-        String target = requireElementTarget(locator, locatorTarget);
-        recorder.run("Focus", target, expected, () -> {
-            locator.focus();
-            return "focus completed";
-        });
+        locatorActions.focus(locator, locatorTarget, expected);
+    }
+
+    public void focus(AtfLocator element, String expected) {
+        locatorActions.focus(element, expected);
+    }
+
+    public void pressKey(Page page, String key, String locatorTarget, String expected) {
+        browserActions.pressKey(page, key, locatorTarget, expected);
     }
 
     public void waitForVisible(Locator locator, String locatorTarget) {
-        String target = requireElementTarget(locator, locatorTarget);
-        recorder.run("Wait for visible", target, "state=Visible", () -> {
-            locator.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE));
-            return "state reached";
-        });
+        locatorActions.waitForVisible(locator, locatorTarget);
+    }
+
+    public void waitForVisible(AtfLocator element) {
+        locatorActions.waitForVisible(element);
     }
 
     public void assertVisible(Locator locator, String locatorTarget) {
-        String target = requireElementTarget(locator, locatorTarget);
-        recorder.run("Expect visible", target, "locator is visible", () -> {
-            if (!locator.isVisible()) throw new AssertionError("Locator is not visible: " + target);
-            return "operation completed";
-        });
+        locatorActions.assertVisible(locator, locatorTarget);
     }
 
-    /**
-     * Records a short stabilization wait anchored to the UI locator whose state
-     * is being observed. Prefer a semantic state wait when the page exposes one.
-     */
-    public void waitForTimeout(Page page, double seconds, Locator anchor,
-                               String locatorTarget, String expected) {
-        Objects.requireNonNull(page, "page");
-        String target = requireElementTarget(anchor, locatorTarget);
-        recorder.run("Wait", target, expected, () -> {
-            anchor.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE));
-            page.waitForTimeout((float) Math.max(0, seconds * 1000));
-            return "wait completed";
-        });
+    public void assertVisible(AtfLocator element) {
+        locatorActions.assertVisible(element);
     }
 
-    /** Records a non-Playwright observation while keeping it in the same sequence. */
+    /** Waits on a DOM state transition instead of sleeping for an arbitrary duration. */
+    public void waitForAttribute(Page page, AtfLocator element, String attribute,
+                                 String expectedValue, String expected) {
+        browserActions.waitForAttribute(page, element, attribute, expectedValue, expected);
+    }
+
+    /** Waits for the native disclosure state; the DOM's {@code details.open} is authoritative. */
+    public void waitForDisclosureOpen(Page page, AtfLocator summary, String expected) {
+        browserActions.waitForDisclosureOpen(page, summary, expected);
+    }
+
     public void observation(String operation, String target, String expected, String observed) {
         recorder.observation(operation, target, expected, observed);
     }
 
-    /** Returns a stable snapshot without changing the sequence. */
     public List<AtfUiActionRecord> snapshot() {
         return recorder.snapshot();
     }
 
-    /** Returns the current consecutive sequence and starts a fresh one. */
     public List<AtfUiActionRecord> drain() {
         return recorder.drain();
     }
@@ -135,11 +128,7 @@ public final class PlaywrightActionSequence {
 
     private static boolean looksLikeCssSelector(String target) {
         return target.startsWith("#") || target.startsWith(".") || target.startsWith("[")
-                || target.startsWith(":") || target.matches(".*[.#\\[\\]:>+~()].*");
-    }
-
-    private static String requireElementTarget(Locator locator, String locatorTarget) {
-        Objects.requireNonNull(locator, "locator");
-        return requireLocatorTarget(locatorTarget);
+                || target.startsWith(":") || target.matches(".*[.#\\[\\]:>+~()].*")
+                || target.matches("[A-Za-z][A-Za-z0-9_-]*");
     }
 }

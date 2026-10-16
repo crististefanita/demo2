@@ -181,7 +181,8 @@ public final class ApiExecutor {
             retryWaiter.await(retry.get().delay(), cancellationToken);
             attempt++;
             }
-            var result = new ApiExecutionResult(response, attempt, Duration.ofNanos(deadline.elapsedNanos()), retryEvents, attemptHistory);
+            var result = new ApiExecutionResult(response, attempt,
+                    Duration.ofNanos(deadline.elapsedNanos()), retryEvents, attemptHistory, request);
             console.publish(AtfConsoleEvent.detail(AtfConsoleEvent.Scope.REQUEST,
                     "response.status", Integer.toString(response.status())));
             console.publish(AtfConsoleEvent.detail(AtfConsoleEvent.Scope.REQUEST,

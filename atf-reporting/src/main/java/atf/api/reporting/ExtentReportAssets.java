@@ -6,6 +6,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Base64;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 /**
@@ -15,8 +18,38 @@ import java.util.stream.Stream;
  */
 final class ExtentReportAssets {
     static final String SPARK_DIRECTORY = "spark";
+    static final String BASE64_SCREENSHOT_LABEL = "📷 base64 img";
 
     private ExtentReportAssets() {
+    }
+
+    /** Shared clickable Base64 screenshot: one text-only anchor, one payload and one safe opener. */
+    static String base64ScreenshotLink(String cssClass, String title, String base64Png) {
+        String normalizedClass = cssClass == null || cssClass.isBlank()
+                ? "atf-ui-action-screenshot-link" : cssClass.trim();
+        String normalizedTitle = title == null || title.isBlank() ? "UI screenshot" : title.trim();
+        String escapedTitle = escapeHtml(normalizedTitle);
+        String dataUri = "data:image/png;base64," + escapeHtml(base64Png.trim());
+        return "<a class=\"" + escapeHtml(normalizedClass)
+                + "\" data-atf-screenshot=\"base64\" href=\"" + dataUri
+                + "\" data-featherlight=\"image\" target=\"_blank\" rel=\"noopener\""
+                + " aria-label=\"Open " + escapedTitle + "\"><span class=\"badge badge-gradient-primary\">"
+                + BASE64_SCREENSHOT_LABEL + "</span></a>";
+    }
+
+    /** Keeps the first title for each payload while preserving the original order. */
+    static List<String[]> distinctScreenshots(List<String[]> screenshots) {
+        if (screenshots == null || screenshots.isEmpty()) return List.of();
+        Map<String, String[]> unique = new LinkedHashMap<>();
+        for (String[] screenshot : screenshots) {
+            if (screenshot == null || screenshot.length < 2
+                    || screenshot[1] == null || screenshot[1].isBlank()) continue;
+            String payload = screenshot[1].trim();
+            String title = screenshot[0] == null || screenshot[0].isBlank()
+                    ? "UI screenshot" : screenshot[0];
+            unique.putIfAbsent(payload, new String[]{title, payload});
+        }
+        return List.copyOf(unique.values());
     }
 
     static String inlineSparkAssets(String html, Path assetDirectory) throws IOException {
@@ -103,6 +136,11 @@ final class ExtentReportAssets {
                     .findFirst()
                     .orElse(null);
         }
+    }
+
+    private static String escapeHtml(String value) {
+        return value.replace("&", "&amp;").replace("<", "&lt;")
+                .replace(">", "&gt;").replace("\"", "&quot;");
     }
 
     private static final class AssetCleanupException extends RuntimeException {

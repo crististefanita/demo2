@@ -17,13 +17,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** Keeps renderer/test dependencies outside renderer-neutral production modules. */
 class ArchitectureBoundaryTest {
     private static final int PACKAGE_COHESION_LIMIT = 8;
+    private static final List<String> PRODUCTION_MODULES = List.of(
+            "atf-core", "atf-mock", "atf-validation", "atf-execution",
+            "atf-console", "atf-reporting", "atf-ui", "atf-debug-ui", "atf-tests");
     private static final Map<String, String> REVIEWED_COHESION_EXCEPTIONS = Map.of(
             "atf.api.core.http", "transport primitives share one renderer-neutral boundary",
             "atf.api.core.reporting", "status, assertion and console ports share the core reporting contract",
-            "atf.api.reporting", "Extent, fallback and published-artifact projections still share the reporting facade");
+            "atf.api.reporting", "Extent, fallback and published-artifact projections still share the reporting facade",
+            "atf.api.reporting.artifact", "artifact identity, structure, evidence, navigation and theme contracts form one artifact-audit boundary",
+            "atf.api.tests.support", "typed API setup, selection and acceptance publication form one API test composition boundary",
+            "atf.ui.tests.extent.flows", "navigation, disclosure and report-flow adapters share one UI traversal boundary",
+            "atf.ui.tests.extent.audit", "reusable Overview, Categories, Fails, Evidence and API contract validators form one UI audit boundary",
+            "atf.ui.tests.extent.flows.inspection", "flow-specific DOM inspectors share one renderer audit boundary",
+            "atf.ui.tests.extent.support", "UI audit lifecycle, input and closed report vocabulary form one semantic support boundary");
 
     @Test
-    void coreAndExecutionDoNotImportRendererOrTestFrameworks() throws Exception {
+    void productionModulesDoNotImportForbiddenLayersOrMarkup() throws Exception {
         Path root = locateProjectRoot();
         var violations = new ArrayList<String>();
         assertNoForbidden(root.resolve("atf-core/src/main/java"),
@@ -37,6 +46,12 @@ class ArchitectureBoundaryTest {
         assertNoForbidden(root.resolve("atf-validation/src/main/java"),
                 List.of("com.aventstack", "org.junit", "<style", "<script",
                         "atf.api.reporting"), violations);
+        assertNoForbidden(root.resolve("atf-ui/src/main/java"),
+                List.of("atf.api.execution", "atf.api.validation", "atf.api.reporting",
+                        "atf.api.mock", "org.junit", "<style", "<script"), violations);
+        assertNoForbidden(root.resolve("atf-debug-ui/src/main/java"),
+                List.of("atf.api.execution", "atf.api.validation", "atf.api.reporting",
+                        "atf.api.mock", "org.junit", "<style", "<script"), violations);
         assertTrue(violations.isEmpty(), () -> "Architecture boundary violations: " + violations);
     }
 
@@ -57,6 +72,7 @@ class ArchitectureBoundaryTest {
                 () -> assertDependencyPresent(root, "atf-execution", "atf-validation"),
                 () -> assertDependencyPresent(root, "atf-console", "atf-core"),
                 () -> assertDependencyPresent(root, "atf-reporting", "atf-core"),
+                () -> assertDependencyPresent(root, "atf-ui", "atf-core"),
                 () -> assertDependencyPresent(root, "atf-tests", "atf-reporting"));
     }
 
@@ -78,8 +94,7 @@ class ArchitectureBoundaryTest {
     void productionModulesDoNotDeclareMutableStaticFields() throws Exception {
         Path root = locateProjectRoot();
         var violations = new ArrayList<String>();
-        for (String module : List.of("atf-core", "atf-mock", "atf-validation", "atf-execution",
-                "atf-console", "atf-reporting")) {
+        for (String module : PRODUCTION_MODULES) {
             Path sourceRoot = root.resolve(module).resolve("src/main/java");
             if (!Files.isDirectory(sourceRoot)) continue;
             try (var files = Files.walk(sourceRoot)) {
@@ -129,7 +144,10 @@ class ArchitectureBoundaryTest {
         Path root = locateProjectRoot();
         Path module = root.resolve("atf-tests");
         Path main = module.resolve("src/main/java/atf/api/tests");
+        Path uiSupport = module.resolve("src/main/java/atf/ui/tests/extent/support");
+        Path uiAudit = module.resolve("src/main/java/atf/ui/tests/extent/audit");
         Path tests = module.resolve("src/test/java/atf/api/tests");
+        Path junitSupport = tests.resolve("support/junit");
 
         assertAll(
                 () -> assertTrue(Files.isRegularFile(main.resolve("api/users/UsersApiScenarios.java")),
@@ -138,12 +156,54 @@ class ArchitectureBoundaryTest {
                         "PostsApiScenarios belongs to src/main/java"),
                 () -> assertTrue(Files.isRegularFile(main.resolve("support/ApiAcceptancePublisher.java")),
                         "ApiAcceptancePublisher belongs to src/main/java"),
+                () -> assertTrue(Files.isRegularFile(junitSupport.resolve("ApiResourceTestBase.java")),
+                        "JUnit fixtures belong to the explicit support.junit namespace"),
+                () -> assertTrue(Files.isRegularFile(junitSupport.resolve("RecordingApiTransport.java")),
+                        "test transport belongs to the explicit support.junit namespace"),
+                () -> assertFalse(Files.isRegularFile(tests.resolve("support/ApiResourceTestBase.java")),
+                        "JUnit infrastructure must not remain in the reusable support namespace"),
+                () -> assertTrue(Files.isRegularFile(uiSupport.resolve("ReportAuditContext.java")),
+                        "ReportAuditContext belongs to src/main/java"),
+                () -> assertTrue(Files.isRegularFile(uiSupport.resolve("UiAuditLifecycle.java")),
+                        "UiAuditLifecycle belongs to src/main/java"),
+                () -> assertTrue(Files.isRegularFile(uiAudit.resolve("ExistingReportStructureAuditor.java")),
+                        "Existing report DOM auditing belongs to the reusable audit package"),
+                () -> assertFalse(containsJavaFileNamed(module.resolve("src/test/java/atf/ui/tests"),
+                                "ReportAuditContext.java"),
+                        "UI audit infrastructure must not remain in src/test/java"),
                 () -> assertTrue(Files.isRegularFile(tests.resolve("api/users/UsersApiTests.java")),
                         "UsersApiTests belongs to src/test/java"),
                 () -> assertTrue(Files.isRegularFile(tests.resolve("api/posts/PostsApiTests.java")),
                         "PostsApiTests belongs to src/test/java"),
                 () -> assertFalse(containsJavaFileNamed(tests, "ApiScenarios.java"),
                         "reusable *ApiScenarios classes must not be hidden in src/test/java"));
+    }
+
+    @Test
+    void reportUiAuditsUseOneSharedFlowBoundary() throws Exception {
+        Path root = locateProjectRoot().resolve("atf-tests/src/test/java/atf/ui/tests/extent");
+        List<String> auditTests = List.of(
+                "exploratory/ApiExtentReportExploratoryTest.java",
+                "exploratory/ExistingExtentReportExploratoryTest.java",
+                "exploratory/ExistingExtentCategoriesExploratoryTest.java",
+                "flows/ReportNavigationAggregationFlowTest.java");
+        var violations = new ArrayList<String>();
+        for (String relative : auditTests) {
+            Path source = root.resolve(relative);
+            if (!Files.isRegularFile(source)) {
+                violations.add("missing UI audit test: " + source);
+                continue;
+            }
+            String content = Files.readString(source);
+            if (!content.contains("UiAuditFlow")) {
+                violations.add(relative + " must use UiAuditFlow");
+            }
+            if (content.contains("UiAuditLifecycle") || content.contains("beginAudit")
+                    || content.contains("class UiAudit")) {
+                violations.add(relative + " still owns duplicated audit lifecycle");
+            }
+        }
+        assertTrue(violations.isEmpty(), () -> "UI audit flow boundary violations: " + violations);
     }
 
     private static boolean containsJavaFileNamed(Path root, String suffix) throws Exception {
@@ -205,8 +265,7 @@ class ArchitectureBoundaryTest {
     private static Map<String, Integer> productionPackageCounts(Path root) throws Exception {
         Map<String, Integer> counts = new TreeMap<>();
         Pattern declaration = Pattern.compile("(?m)^package\\s+([^;]+);");
-        for (String module : List.of("atf-core", "atf-validation", "atf-execution",
-                "atf-console", "atf-reporting")) {
+        for (String module : PRODUCTION_MODULES) {
             Path sourceRoot = root.resolve(module).resolve("src/main/java");
             if (!Files.isDirectory(sourceRoot)) continue;
             try (var files = Files.walk(sourceRoot)) {
@@ -221,3 +280,5 @@ class ArchitectureBoundaryTest {
         return counts;
     }
 }
+
+

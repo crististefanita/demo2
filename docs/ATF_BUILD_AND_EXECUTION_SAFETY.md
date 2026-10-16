@@ -5,7 +5,9 @@ Acest ghid protejează execuțiile ATF care rulează deja. Principiul este simpl
 ~~~text
 codul live rămâne sursa de lucru;
 build-ul și testele se execută într-un staging separat;
-artifactele generate nu se sincronizează în checkout-ul activ.
+output-urile intermediare nu se sincronizează în checkout-ul activ;
+doar artifactul final, validat prin TAB MCP, se publică explicit în
+`artifacts/reports/` sau `artifacts/reports/ui/`.
 ~~~
 
 ## Ce nu se face
@@ -100,6 +102,16 @@ excluse din sync. Testele de raportare acceptă
 report folosește `-Datf.report.config=<stage>\atf.yaml`; astfel raportul de
 verificat este determinist sub `<stage>\artifacts\reports`, indiferent de
 working directory-ul IDE/Maven.
+
+### Bucla periodică de sync pentru feedback și build
+
+La fiecare reluare a unui ToDo se pornește de la checkout-ul live, se recreează
+staging-ul și se copiază numai sursele; `target`, rapoartele HTML, capturile și
+dump-urile nu sunt surse de adevăr și nu se sincronizează înapoi. După build se
+leagă dovada de codul sincronizat prin trei identificatori: commit/snapshot-ul
+de lucru, artifactul timestamped și verificarea interactivă în TAB MCP. Dacă
+un agent lucrează într-o altă locație, aceeași secvență se repetă înainte de
+fiecare build; nu se acceptă un artifact vechi ca dovadă pentru codul live.
 
 Publicația pe aceeași cale finală este serializată printr-un lock per cale în
 directorul temporar al procesului; lock-ul nu este scris lângă raport și nu

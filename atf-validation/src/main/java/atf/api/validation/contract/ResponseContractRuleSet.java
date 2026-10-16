@@ -70,6 +70,50 @@ final class ResponseContractRuleSet {
         });
     }
 
+    ResponseContractRuleDefinition jsonPathType(String path, String expectedType) {
+        String normalizedType = expectedType.trim().toLowerCase(java.util.Locale.ROOT);
+        return rule("json-type:" + path + ":" + normalizedType,
+                "JSON type: " + path, (response, table) -> {
+                    var actual = JsonPathSupport.read(response.body(), path);
+                    String actualType = actual == null || actual.isNull() ? "null"
+                            : actual.isObject() ? "object"
+                            : actual.isArray() ? "array"
+                            : actual.isTextual() ? "string"
+                            : actual.isIntegralNumber() ? "integer"
+                            : actual.isNumber() ? "number"
+                            : actual.isBoolean() ? "boolean" : "unknown";
+                    table.add("JSON type: " + path, normalizedType, actualType,
+                            normalizedType.equals(actualType));
+                });
+    }
+
+    ResponseContractRuleDefinition jsonPathRequired(String path) {
+        return rule("json-required:" + path, "JSON required: " + path, (response, table) -> {
+            var actual = JsonPathSupport.read(response.body(), path);
+            table.add("JSON required: " + path, "present", actual == null ? "<missing>" : actual.toString(),
+                    actual != null);
+        });
+    }
+
+    ResponseContractRuleDefinition jsonPathAbsent(String path) {
+        return rule("json-absent:" + path, "JSON absent: " + path, (response, table) -> {
+            var actual = JsonPathSupport.read(response.body(), path);
+            table.add("JSON absent: " + path, "missing", actual == null ? "<missing>" : actual.toString(),
+                    actual == null);
+        });
+    }
+
+    ResponseContractRuleDefinition jsonArraySize(String path, int expectedSize) {
+        return rule("json-array-size:" + path + ":" + expectedSize,
+                "JSON array size: " + path, (response, table) -> {
+                    var actual = JsonPathSupport.read(response.body(), path);
+                    boolean passed = actual != null && actual.isArray() && actual.size() == expectedSize;
+                    table.add("JSON array size: " + path, Integer.toString(expectedSize),
+                            actual == null ? "<missing>" : actual.isArray() ? Integer.toString(actual.size()) : "<not-array>",
+                            passed);
+                });
+    }
+
     ResponseContractRuleDefinition everyArrayItemEquals(String path, String property, String expected) {
         return rule("every-array:" + path + ":" + property + ":" + expected,
                 "Every " + path + " item " + property, (response, table) -> {

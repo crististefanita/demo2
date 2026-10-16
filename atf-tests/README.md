@@ -4,6 +4,21 @@
 scenariile API concrete și testele care demonstrează că API layer-ul,
 execuția, validarea și raportarea colaborează corect.
 
+## Contractul de output și verificarea artifactului
+
+Artifactele sunt output-uri timestamped, nu surse de cod și nu se fixează în
+acest README după nume de rulare. Output-ul API aparține
+`artifacts/reports/`, iar dovada auditului UI aparține
+`artifacts/reports/ui/`. Pentru o schimbare observabilă, artifactul exact este
+generat în staging, deschis prin ATF Debug UI/browser MCP și copiat selectiv în
+directorul configurat numai după verificare.
+
+Contractul verificat este: POST/PUT au JSON valid și nevid în request și
+response; `Screen validation` păstrează acțiuni, observații și assertions ca
+zone-soră fără separatoare orizontale decorative; captura relevantă este linkul
+inline `📷 base64 img`. Dovezile punctuale (nume, hash, staging) rămân în
+feedback/handoff, nu în documentația stabilă.
+
 ## Organizarea testelor
 
 Modulul separă explicit codul reutilizabil de clasele care chiar execută teste.
@@ -19,6 +34,7 @@ ca un proiect API de consumator:
 ```text
 src/main/java/atf/api/tests
 ├── api
+│   ├── data/ApiFixtureData                  cross-family domain fixtures și builders
 │   ├── users/UsersApiScenarios              scenarii reutilizabile pentru Users
 │   ├── posts/PostsApiScenarios              scenarii reutilizabile pentru Posts
 │   ├── requests
@@ -30,26 +46,28 @@ src/main/java/atf/api/tests
     ├── ApiAcceptancePlanBuilder              DSL pentru metadata și lifecycle
     └── ApiAcceptancePublisher                bridge execuție → validation → evidence
 
+src/main/java/atf/ui/tests/extent
+├── support                                     lifecycle și input report partajate
+└── locators/ReportUiLocators                  owner semantic pentru flow/action/validation
+   
+src/main/java/atf/ui/tests/extent/audit
+    └── ExistingReportStructureAuditor          discovery/expansion DOM pentru Tests + Overview
+
 src/test/java/atf/api/tests
 ├── api
 │   ├── users/UsersApiTests                    teste efective pentru Users API
 │   ├── posts/PostsApiTests                    teste efective pentru Posts API
 │   ├── requests/RequestVariantsApiTests      query params, body-uri și auth variat
 │   ├── headers/ApiHeadersAndEdgeCasesTests   headere, cache, paginare și rate-limit
-│   ├── lifecycle/ApiLifecycleAndCombinationsTests  setup → test body → teardown
-│   └── reporting
-│       ├── ApiAcceptanceReportTest            coordinator pentru artifactul complet
-│       ├── ApiReportSmokeTest                 dovadă API → report minimală
-│       ├── EndToEndContractTest               rută → service → validation → report
-│       └── ApiLiveReportTest                  scenarii live, opt-in
+│   └── flows/ApiRequestFlowsTests             POST/GET și PUT/GET stateful
 ├── architecture/ArchitectureBoundaryTest    reguli de module și source-set-uri
-└── support
+└── support/junit
     ├── ApiTestFixture                         composition root offline pentru teste
     ├── ApiResourceTestBase                    compoziție pentru rularea directă
     ├── ApiReportTestContext                   legătura test → scenario Extent
     ├── AtfExtentReportTestExtension           sesiune Extent per clasă
     ├── RecordingApiTransport                  request semantic pentru evidence
-    └── TestReportPaths                        output izolat pentru rulări paralele
+    └── ApiAcceptanceFixtureSupportTest        fixture pentru acceptance/report tests
 ```
 
 `ArchitectureBoundaryTest` inventariază și package-urile de producție. Pragul
@@ -58,9 +76,11 @@ ceară o allow-list motivată. Excepțiile actuale sunt documentate în test și
 `docs/README_Atf_BestPractices.md`, astfel încât o separare viitoare să fie
 semantică, nu cosmetică.
 
-`api/reporting` din `src/test/java` conține verificările cross-resource și
-boundary-urile de raportare. `ApiAcceptanceReportTest` coordonează suita și
-verifică artifactul final; nu conține logica fiecărei resurse. Pachetele
+Verificările cross-resource ale artifactului și auditul browserului aparțin
+pachetului `atf.ui.tests.extent`, nu unui package `atf.api.tests.reporting`. Acesta din
+urmă nu trebuie reintrodus. `ApiReportAuditSetup` compune precondițiile API
+configurabile pentru testele UI, iar `ApiExtentReportExploratoryTest` verifică
+artifactul rezultat fără să mute browserul în namespace-ul API. Pachetele
 `users` și `posts` păstrează aceeași organizare semantică în ambele source-set-uri:
 testul efectiv este în `src/test/java`, iar scenariul reutilizabil este în
 `src/main/java`. Astfel, un contributor vede clar ce se execută și ce se
@@ -68,16 +88,25 @@ reutilizează, fără să confunde o proiecție de raport cu un test JUnit.
 Pachetul `lifecycle` izolează testele care verifică secvența
 `SETUP → TEST BODY → TEARDOWN → report`, fără să o amestece cu testele de
 resursă. Clasele `*ApiScenarios` păstrează doar proiecția reutilizabilă necesară
-artifactului agregat. `src/main/java/.../support` conține DSL-ul de scenarii și
-publisher-ul comun, reutilizabile de mai multe host-uri. `src/test/java/.../support`
-conține fixture-uri, extensii JUnit și adaptoare strict legate de rularea
-testelor; scenariile reutilizabile nu se ascund acolo.
+artifactului agregat. `src/main/java/.../support` conține DSL-ul de scenarii,
+publisher-ul comun și infrastructura UI de audit (`ReportAuditContext`,
+`ReportAuditInput*`, `ReportAuditChecks`, `UiAuditLifecycle`), reutilizabile de
+mai multe host-uri. `ui/tests/audit` deține auditori tipizați pentru suprafețe
+DOM reutilizabile; testele păstrează intenția Gherkin și verdictul vizibil.
+`src/test/java/.../support/junit` conține doar fixture-uri, extensii și
+adaptoare strict legate de rularea JUnit; acestea nu sunt infrastructură de
+producție și nu trebuie importate din `src/main/java`. Separarea este protejată
+de `ArchitectureBoundaryTest`, inclusiv pentru ca namespace-ul vechi
+`atf.api.tests.support` să nu reapară ca director test-only.
 
 Secvența din pachetul `lifecycle` este un caz intenționat, nu o regulă pentru
 toate testele. Un test autonom poate avea numai `TEST BODY`; `SETUP` se adaugă
 doar pentru precondiții/fixture-uri, iar `TEARDOWN` doar pentru cleanup,
 read-back sau un outcome de lifecycle care are valoare de audit. Raportul
 publică numai fazele create explicit de test.
+
+Auditorul structural nu generează un al doilea verdict: întoarce snapshot-uri
+typed, iar clasa JUnit le transformă în assertion-uri și evidence auditabil.
 
 Pachetul `api/requests` verifică variațiile care trebuie să rămână vizibile în
 raport, fără să amestece intenția lor cu testele Users sau Posts:
@@ -97,6 +126,23 @@ include URL-ul complet cu query string, `HTTP STATUS`, `AUTH PROFILE`, `AUTH
 TYPE`, `QUERY PARAMS` și headerele request-ului. Testele rulează offline prin
 `AtfMockTransport`, dar păstrează URL-ul semantic pentru evidence.
 
+Configurația API este rezolvată o singură dată la composition root prin
+`ApiBootstrapConfigurationLoader` și ajunge tipizat în `ApiModuleFactory`:
+
+```yaml
+api:
+  baseUri: https://gorest.co.in
+  defaultAuthProfile: default
+  timeout: PT20S
+  retryStatuses: [429]
+  maxAttempts: 2
+  transport: acceptance
+```
+
+`acceptance`/`mock` selectează mock-ul determinist. `live` este opt-in explicit
+prin `-Datf.api.live.optIn=true` sau `ATF_API_LIVE_OPT_IN=true`; setup-ul UI nu
+poate schimba implicit transportul.
+
 Pachetul `api/headers` verifică situații HTTP care apar frecvent în integrare:
 headere de negociere și corelare trimise de client, headere de rate-limit și
 ETag primite de la server, răspuns `429 Too Many Requests` cu `Retry-After` și
@@ -105,10 +151,31 @@ case-insensitive înainte să returneze fixture-ul, iar raportul publică separa
 `REQUEST HEADERS` și `RESPONSE HEADERS`, astfel încât cele două direcții să nu
 fie confundate.
 
+### Boundary-ul locatorilor în `atf.ui.tests.extent`
+
+Testele UI nu accesează direct `page.locator(...)` sau selectorii CSS. Acestea
+aparțin unor clase din `atf.ui.tests.extent.locators`, organizate după intenție:
+
+```text
+ReportUiLocators
+├── flow()       tab-uri, owner, scenario, phase și navigare
+├── action()     click/getText/focus/wait/expect și action sequence
+└── validation() Screen validation, assertions și screenshot evidence
+```
+
+Testul păstrează numai propozițiile Gherkin, apelurile de flow și verdictul.
+Locatorul efectiv este returnat de metoda semantică a owner-ului, apoi acțiunea
+este executată prin `UiAuditFlow`, pentru ca `OPERATION`, `TARGET`, `EXPECTED`,
+`OBSERVED`, `TIME` și emoji-ul de rezultat să ajungă în raportul Extent și în
+consolă. Orice selector nou se adaugă în ownerul corespunzător și se protejează
+cu un test de contract; nu se copiază în clasele de test.
+
 Regula de citire este: caută mai întâi resursa în `api/users` sau `api/posts`,
 apoi urmărește publisher-ul din `support` pentru secvența comună. Pentru
-comportamentul transversal și fluxul complet, citește `api/lifecycle` și
-`api/reporting`. Nu copia transportul, validarea sau randarea în fiecare test.
+comportamentul transversal și fluxul complet, citește `api/flows` și
+`ApiReportAuditSetup` din `atf.ui.tests.extent.composition` (cu
+`ApiReportSetupFlow` păstrat doar ca fațadă). Nu copia transportul, validarea sau
+randarea în fiecare test.
 
 Testele de resursă sunt clase JUnit executabile direct, nu doar date pentru un
 host de raportare:
@@ -127,18 +194,24 @@ UsersApiTests / PostsApiTests
 resursă: atașează consola, atașează adaptorul Extent și construiește fixture-ul
 izolat. Testul rămâne explicit — apelează serviciul și contractul — iar
 `ApiReportTestContext` publică aceeași execuție, request/response evidence și
-validation sibling în artifactul Extent. Pachetul `api/reporting` rămâne
-rezervat testelor care verifică raportul agregat, contractul visual și rularea
-live; nu devine un loc pentru a ascunde testele Users sau Posts.
+validation sibling în artifactul Extent. Verificarea artifactului agregat este
+deținută de `atf.ui.tests.extent`, prin setup API configurabil și audit Playwright;
+namespace-ul `atf.api.tests.api` rămâne exclusiv pentru API.
 
 ## Cum se citește un test pe layere
 
-## Pachetul `atf.ui.tests`
+## Pachetul `atf.ui.tests.extent`
 
 Testele UI sunt un pachet al acestui modul, nu un modul Maven separat. Ele
 verifică raportul Extent deja generat de testele API prin Playwright; nu
 construiesc un renderer UI paralel și nu mută responsabilitatea HTML în codul
 de test.
+
+Contractul local de responsabilitate și extensie este documentat în
+[`src/test/java/atf/ui/tests/extent/README.md`](src/test/java/atf/ui/tests/extent/README.md).
+Namespace-ul `atf.ui.tests.extent` este rezervat auditului de raport; pentru
+viitoarele teste UI ale aplicației se va folosi un namespace separat, de
+exemplu `atf.ui.tests.product`.
 
 Pentru investigație manuală, modulul [`atf-debug-ui`](../atf-debug-ui/README.md)
 publică read-only un HTML existent pe loopback și afișează URL-ul pentru
@@ -146,25 +219,35 @@ Playwright/TAB MCP. El nu este un modul de teste și nu schimbă raportul.
 
 ```text
 atf-tests
+├── src/main/java
+│   └── atf/ui/tests/extent/support  infrastructură reutilizabilă de audit UI
 └── src/test/java
     ├── atf/api/tests   teste API executabile
-    └── atf/ui/tests
-        ├── ApiExtentReportUiTest           contract de navigare al raportului
-        └── exploratory
-            ├── ApiExtentReportExploratoryTest  generează input API + audit E2E
+    └── atf/ui/tests/extent
+        ├── exploratory
+            ├── ApiExtentReportExploratoryTest  setup API configurabil + audit E2E
             └── ExistingExtentReportExploratoryTest  audită un HTML existent
+        └── flows
+            ├── ReportNavigationAggregationFlowTest  Tests → filtre → Categories → Overview
+            └── failure
+                └── FailureEvidenceFlowTest          failure boundary + screenshot policy
 ```
 
-Activarea este explicită pentru ca build-ul API offline să nu depindă de o
-instalare de browser:
+Build-ul API offline rămâne independent de instalarea browserului; testele UI
+folosesc secțiunea `ui` configurată în `atf.yaml`:
 
 ```text
 mvn -pl atf-tests -am test
-mvn -pl atf-tests -am -Datf.ui.enabled=true -Dtest=atf.ui.tests.ApiExtentReportUiTest test
-mvn -pl atf-tests -am -Datf.ui.enabled=true -Dtest=atf.ui.tests.exploratory.ApiExtentReportExploratoryTest test
-mvn -pl atf-tests -am -Datf.ui.enabled=true \
+mvn -pl atf-tests -am -Dtest=atf.ui.tests.extent.exploratory.ApiExtentReportExploratoryTest test
+mvn -pl atf-tests -am \
   -Datf.ui.report="artifacts/reports/ui/ui-atf-extent-report-TIMESTAMP.html" \
-  -Dtest=atf.ui.tests.exploratory.ExistingExtentReportExploratoryTest test
+  -Dtest=atf.ui.tests.extent.exploratory.ExistingExtentReportExploratoryTest test
+mvn -pl atf-tests -am \
+  -Datf.ui.report="artifacts/reports/api-atf-extent-report-TIMESTAMP.html" \
+  -Dtest=atf.ui.tests.extent.flows.ReportNavigationAggregationFlowTest test
+mvn -pl atf-tests -am \
+  -Datf.ui.report="artifacts/reports/api-atf-extent-report-TIMESTAMP.html" \
+  -Dtest=atf.ui.tests.extent.flows.failure.FailureEvidenceFlowTest test
 ```
 
 `ExistingExtentReportExploratoryTest` primește un raport Extent existent prin
@@ -193,21 +276,72 @@ doar artifactul investigat:
 
 ```text
 mvn -pl atf-tests -am `
-  '-Datf.ui.enabled=true' `
   '-Datf.ui.report=artifacts/reports/api-atf-extent-report-TIMESTAMP.html' `
-  '-Dtest=atf.ui.tests.exploratory.ExistingExtentReportExploratoryTest' test
+  '-Dtest=atf.ui.tests.extent.exploratory.ExistingExtentReportExploratoryTest' test
 ```
 
 Comanda de mai sus este forma PowerShell; ghilimelele din jurul proprietăților
 `-D` sunt intenționate, deoarece altfel PowerShell poate interpreta sufixul
 `atf.ui...` ca lifecycle phase Maven.
 
-`ReportAuditContext` este infrastructura comună pentru raportul generat în
+`ReportAuditContext` este infrastructura comună din `src/main/java` pentru raportul generat în
 setup și pentru raportul primit ca input: verifică artifactul, pornește
 servirea read-only, deschide browserul Playwright, navighează între tab-uri și
 închide/publică auditul. Testele păstrează doar pașii Gherkin și validările
 specifice tab-ului; nu mai reimplementează lifecycle-ul serverului și al
 browserului.
+
+Originea inputului este tipată înainte de deschiderea contextului:
+
+```text
+ReportAuditInputKind.API_GENERATED  ← API setup → report HTML
+ReportAuditInputKind.EXISTING      ← YAML / -Datf.ui.report
+                  ↓
+        ReportAuditContext.open(...)
+                  ↓
+      același Debug UI + Playwright lifecycle
+```
+
+`ReportAuditInputs.existing()` aplică rezoluția configurată, iar
+`ReportAuditInput.apiGenerated(...)` marchează explicit artifactul publicat în
+setup. Ambele moduri rămân read-only și produc separat raportul UI de audit;
+diferența de sursă nu trebuie să schimbe matricea de validări. Validatorii DOM
+comuni sunt următorul pas de decuplare și nu trebuie duplicați în wrapper-ele
+Gherkin.
+
+### Flow-uri UI și failure cases
+
+Flow-urile din `atf.ui.tests.extent.flows` sunt distincte de explorările de contract
+și descriu traseul de audit al unui utilizator. `ReportNavigationAggregationFlowTest`
+nu fixează numele sau numărul de tag-uri: descoperă Tests, aplică dinamic
+`Pass`, primul și al doilea tag disponibil, verifică starea combinată, execută
+`Clear`, traversează Categories și compară apoi agregările din Overview cu
+baseline-ul nefiltrat din Tests. Orice raport cu zero/one/many tag-uri trebuie
+să rămână un input valid.
+
+`atf.ui.tests.extent.flows.failure.FailureEvidenceFlowTest` este pachetul separat
+pentru scenarii de failure. El produce intenționat un scenariu `FAIL` în
+artifactul de audit, păstrează acțiunile deja executate și verifică efectul
+configurației `ui.screenshotOnFailure`: când este `true`, failure evidence
+include un singur link Base64 către PNG; când este `false`, failure-ul rămâne
+auditabil fără captură. Eșecul controlat din raport este așteptat și nu este
+mascat prin schimbarea verdictului JUnit.
+
+Secvența obligatorie este:
+
+```text
+GIVEN input Extent read-only
+  → Tests: discover owners/scenarios
+  → status + tag filters: select one/many, observe counts
+  → Clear: restore exact unfiltered baseline
+  → Categories: inspect selected filter and linked rows
+  → Overview: reconcile class/scenario/tag aggregates
+  → THEN one collapsible validation with actions, assertions and Base64 screenshot
+```
+
+Acțiunile Playwright și observațiile rămân separate: `Click`, `Get text`,
+`Focus`, `Find`, `Wait` și navigarea au locatorul efectiv în coloana `TARGET`,
+iar screenshot-ul este o observație a stării finale, nu o acțiune inventată.
 
 Auditul are două categorii de verificări, care nu trebuie confundate:
 
@@ -230,8 +364,13 @@ flux dinamic al artifactului primit
 
 Inputul este tratat ca un contract read-only, iar testele dinamice nu fixează
 numărul sau numele testelor din acel raport. Pentru fiecare stare vizuală,
-`UiScreenValidation` capturează un singur payload PNG Base64, publicat ca ancoră
-nativă `data:image/png;base64,...` cu eticheta `Open screenshot · Base64 image`, și
+`UiScreenValidation` capturează un singur payload PNG Base64, publicat într-o
+ancoră nativă text-only cu `href="data:image/png;base64,..."`,
+`data-featherlight="image"`, `target="_blank"`, `rel="noopener"` și eticheta
+auditabilă `📷 base64 img`; nu există `<img>` inline, PNG extern sau handler
+inline. Payload-ul apare o singură dată, în `href`, fără imagine duplicată și
+fără un al doilea `href` cu payload,
+iar linkul rămâne sub tabelul acțiunilor în aceeași zonă colapsabilă. 
 `UiExtentReportSession` grupează assert-urile aferente într-o singură zonă
 colapsabilă.
 
@@ -246,9 +385,9 @@ exprimat în `ms`. Rezultatul folosește markerul emoji canonic, nu textul
 `passed` și nu repetă verdictul în celulă.
 După o captură sau o schimbare de pagină, `drain()` începe un grup nou, astfel
 încât rândurile nu amestecă stări vizuale diferite. Captura asociată acțiunilor
-este imediat sub tabel ca ancoră media Base64, în același disclosure și în aceeași
-propoziție Gherkin; nu este publicată ca nod frate, nu folosește fișier extern și
-nu duplică imaginea într-un element `<img>`.
+este imediat sub tabel ca link Base64 clickable, în același disclosure și în
+aceeași propoziție Gherkin; nu este publicată ca nod frate și nu folosește fișier
+PNG extern. Aceeași ancoră este sursa deschiderii în tab nou.
 
 În tabelul Playwright, celula `RESULT` afișează exclusiv markerul emoji al
 statusului (`✅`, `⚠️`, `❌`, `⏭️`, `ℹ️`); textul verdictului nu este duplicat în
@@ -307,9 +446,8 @@ rula testul dedicat care selectează fiecare categorie descoperită din DOM:
 
 ```powershell
 mvn -pl atf-tests -am `
-  '-Datf.ui.enabled=true' `
   '-Datf.ui.report=artifacts/reports/api-atf-extent-report-TIMESTAMP.html' `
-  '-Dtest=atf.ui.tests.exploratory.ExistingExtentCategoriesExploratoryTest' `
+  '-Dtest=atf.ui.tests.extent.exploratory.ExistingExtentCategoriesExploratoryTest' `
   '-Dsurefire.failIfNoSpecifiedTests=false' test
 ```
 
@@ -320,7 +458,9 @@ un filtru cu zero rezultate este o stare validă și trebuie verificat explicit,
 nu respins prin presupunerea că fiecare categorie are cel puțin un link;
 apoi verifică navigarea unui link către `Tests`. Fiecare stare explorată este
 publicată sub un pas Gherkin, cu tabelul consecutiv de acțiuni Playwright și o
-ancoră nativă Base64 către screenshot, fără `<img>` și fără PNG extern. Inputul
+ancoră nativă Base64 text-only cu `href="data:image/png;base64,..."`,
+`data-featherlight="image"`, `target="_blank"`, `rel="noopener"`, payload unic
+și fără `<img>` inline sau PNG extern. Inputul
 rămâne read-only; raportul de audit este separat, de exemplu
 `artifacts/reports/ui/existing-ui-categories-atf-extent-report_...html`.
 
@@ -329,8 +469,9 @@ Titlul pasului include parametrul real și cardinalitatea verificată, de forma
 Tabelul de acțiuni rămâne lizibil la viewport îngust prin lățime contractuală
 de minimum `760px`, layout fix și scroll orizontal în wrapper; nu se acceptă
 antete rupte literă-cu-literă. Linkul Base64 este clicabil și se deschide într-o
-nouă pagină, iar auditul verifică separat prefixul `data:image/png;base64,`,
-`target=_blank`, `rel=noopener` și absența unui `<img>` duplicat. `target=_blank`
+nouă pagină, iar auditul verifică separat prefixul din `a[href]`,
+`target=_blank`, `rel=noopener` și exact un link/payload per stare.
+`target=_blank`
 este un contract al artifactului, nu dovada că sesiunea Playwright a inspectat
 automat popup-ul.
 
@@ -349,25 +490,57 @@ verifice asocierea locală: același pas Gherkin → același disclosure → tab
 acțiunilor → captura Base64. La failure, acțiunile deja executate trebuie
 publicate chiar dacă `screenValidation(...)` nu mai este atins.
 
-În prezent, cele două clase exploratorii concentrează încă prea multă logică de
-infrastructură (`openTab`, `audit`, snapshots, capturi și assertions). Ele
-trebuie simplificate prin suport reutilizabil în `atf.ui.tests.support`; o
-clasă de test trebuie să descrie intenția auditului, nu să fie un mini-framework
-Playwright. Un test care spune „every discovered ...” trebuie să itereze toate
+Lifecycle-ul, input contractul și flow-ul comun de audit sunt în
+`src/main/java/atf/ui/tests/extent/support`, prin `ReportAuditContext`,
+`ReportAuditInput*`, `UiAuditLifecycle` și `UiAuditFlow`. Clasele de test
+descriu intenția Gherkin și păstrează navigarea/asserțiile specifice suprafeței
+auditate; nu mai dețin un mini-framework Playwright. Un test care spune „every discovered ...” trebuie să itereze toate
 nodurile descoperite, nu doar primul scenariu. Găsirile și criteriile de
-F-08 este închis prin verificarea de cardinalitate din renderer și testul
-negativ aferent; criteriile rămase de închidere sunt urmărite în feedback-ul
-UI F-09–F-13.
+reconciliere ale suprafețelor sunt extrase incremental în
+`src/main/java/atf/ui/tests/extent/audit`: `ExistingReportStructureAuditor` acoperă
+Tests/Overview, iar `CategoryFilterAuditor` acoperă discovery-ul și reconcilierea
+unui filtru Categories. Testele păstrează în continuare pașii Gherkin,
+asserțiile și publicarea evidence-ului.
+Contractul de cardinalitate al capturilor este închis prin verificarea din
+renderer și testul negativ aferent. `UiAuditLifecycleTest` garantează că
+acțiunile executate, cauza și statusul Fail sunt flush-uite în artifact înainte
+de închiderea scenariului. Criteriile rămase sunt urmărite numai în feedback-ul
+UI activ.
+
+### Regula obligatorie pentru locatorii UI
+
+Metodele Gherkin nu au voie să construiască direct `page.locator(...)`,
+`getByRole(...)` sau `getByText(...)`. Orice selector nou intră într-o clasă
+dedicată de locatori/page objects, cu metode semantice și scoping explicit.
+Acțiunile Playwright sunt centralizate în action adapters, flow-urile descriu
+ordinea scenariului, iar auditorii/validatorii verifică DOM-ul observat:
+
+```text
+ReportLocators → ReportActions → ReportFlow → ReportAuditor/Assertions
+```
+
+În codul live, `atf-tests` oferă `atf.ui.tests.extent.locators.ReportUiLocators` ca
+fațadă pentru suprafața raportului. Metodele sale (`testsView()`,
+`categoryItems()`, `requestDetails()`, `responseJsonBodies()` etc.) sunt
+singurul loc în care selectorii raportului sunt definiți pentru testele UI.
+Un test nou trebuie să consume această fațadă sau un page object echivalent;
+nu este acceptat un `page.locator(...)` introdus direct într-o metodă Gherkin,
+într-un flow sau într-un auditor.
+
+Acest boundary este obligatoriu pentru testele noi și este protejat prin
+`ApiReportContractValidation` plus auditul UI dinamic. Un flow poate primi
+un locator deja rezolvat, dar nu trebuie să cunoască selectorul CSS; un auditor
+poate citi starea, dar nu poate naviga implicit; iar fiecare acțiune reală
+trebuie să păstreze locatorul efectiv în `TARGET`. Pașii Gherkin rămân vizibili
+și lizibili, fără ca infrastructura comună să ascundă intenția testului.
 
 ### Verdict de mentenanță — codul live
 
-La 2026-10-16, dimensiunile reale sunt `ApiExtentReportExploratoryTest` = 706
-linii, `ExistingExtentReportExploratoryTest` = 367 și
-`ExistingExtentCategoriesExploratoryTest` = 252. Acestea nu sunt o problemă
-pentru că au multe assertions, ci pentru că amestecă intenția Gherkin cu
-`openTab`, navigarea, capturile, parsing-ul și publicarea. Următoarea evoluție
-trebuie să extragă suportul în `atf.ui.tests.support` și să lase în clasele de
-test doar scenariile lizibile și validatorii specifici tab-ului.
+Structura curentă păstrează `ApiExtentReportExploratoryTest` ca golden E2E
+subțire, iar regulile reutilizabile în engine, module de secțiune, inspectori și
+validatori. Extracțiile ulterioare se fac numai pentru un owner semantic nou și
+un test de contract asociat; nu se mută pașii Gherkin în utilitare opace și nu
+se separă clase doar după numărul de linii.
 
 Un raport este considerat auditabil numai dacă poate răspunde, pentru fiecare
 stare: ce acțiune Playwright s-a executat, pe ce locator, ce se aștepta, ce s-a
@@ -385,9 +558,9 @@ deja inclusivă nu este adunată încă o dată.
 Al doilea command generează în setup un raport API input, îl servește read-only
 prin loopback și deschide acel input într-un context Playwright izolat. În
 paralel, testul creează `ui-atf-extent-report.html` pentru propria dovadă.
-În IntelliJ se poate rula direct `ApiExtentReportUiTest`, cu VM option-ul
-`-Datf.ui.enabled=true`; pentru explorarea E2E se rulează
-`ApiExtentReportExploratoryTest` cu același flag.
+În IntelliJ se rulează `ApiExtentReportExploratoryTest`; acesta citește politica
+UI și familiile API din `atf.yaml`, iar precondiția API este deținută de
+`ApiReportAuditSetup`, nu de testul UI.
 
 ### Explorarea E2E a raportului Extent
 
@@ -397,7 +570,7 @@ compoziție API folosită de acceptance tests, apoi îl deschide prin serverul
 read-only și Playwright. Secvența auditabilă este:
 
 ```text
-GIVEN UI enabled + atf.yaml încărcat
+GIVEN politica UI din atf.yaml este încărcată
   → GIVEN transportul API determinist și composition root-ul sunt create
   → GIVEN ExtentReportSession este deschisă
 WHEN  UsersApiScenarios sunt publicate
@@ -434,9 +607,8 @@ fără copil artificial `UI validation`. `UiExtentReportSession` este owner-ul
 sesiunii UI, iar `atf-reporting` rămâne owner-ul HTML-ului și al rendererului
 comun.
 
-În IntelliJ se poate rula direct `ApiExtentReportExploratoryTest` cu VM option
-`-Datf.ui.enabled=true`. Playwright trebuie instalat local; fără acest flag
-testul este opt-in și nu afectează rulările API offline.
+În IntelliJ se poate rula direct `ApiExtentReportExploratoryTest`. Playwright
+trebuie instalat local; rulările API offline nu pornesc automat acest test UI.
 
 Modulul de producție [`atf-ui`](../atf-ui/README.md) deține numai configurația
 UI și adaptorul Playwright. `atf-tests` deține intenția testului și criteriul
@@ -458,7 +630,7 @@ flowchart LR
 Într-un test API obișnuit, `ApiTestFixture` compune graph-ul izolat, testul
 apelează explicit service-ul, iar contractul validează response-ul. Raportarea
 nu este ascunsă în testele unitare; ea este demonstrată separat de
-`ApiAcceptanceReportTest` și de testul de lifecycle. Astfel se vede imediat ce
+`ApiExtentReportExploratoryTest` și de testele API de flow. Astfel se vede imediat ce
 aparține API layer-ului, ce aparține validării și ce aparține reporting-ului.
 
 Pentru rularea directă a unui test JUnit, `AtfConsoleTestExtension` din
@@ -540,10 +712,10 @@ TEST BODY
 ├── GET /public/v2/users/1
 │   ├── Request details
 │   │   ├── URL / method / path / headers / params / auth
-│   │   └── Request JSON, dacă există
+│   │   └── REQUEST JSON (payload sau `null` dacă body-ul lipsește)
 │   ├── Response details
 │   │   ├── Technical trace
-│   │   └── Response JSON, dacă există
+│   │   └── RESPONSE JSON (payload sau `null` dacă body-ul lipsește)
 │   └── Execution evidence
 └── Validate: item contract
     └── Assertions
@@ -570,7 +742,7 @@ void getsUserById() {
                             "GET /public/v2/users/1", "GET", "/public/v2/users/1");
                     request.detail("response.status", Integer.toString(result.response().status()));
                     request.detail("response.duration.ms", Long.toString(result.response().duration().toMillis()));
-                    request.json("RESPONSE JSON", result.response().body());
+                    ApiJsonEvidence.publish(request, null, result.response().body());
                     validator.validate(
                             request,
                             "Validate user contract",
@@ -586,6 +758,28 @@ void getsUserById() {
     }
 }
 ```
+
+`ApiJsonEvidence.publish(request, requestBody, responseBody)` este adaptorul
+standard pentru scenariile API care publică raport. El scrie întotdeauna ambele
+canale JSON. Pentru GET/204/304 fără body scrie JSON-ul valid `null`, iar pentru
+`POST` și `PUT` cere în ambele canale un document JSON ne-gol și valid; `null`,
+șirul gol și JSON invalid sunt încălcări de contract. Payload-ul valid păstrează
+conținutul venit din `ApiRequest.bodyText()` și `ApiResponse.body()`. Nu se
+folosește `{}` ca substitut pentru un body absent.
+`ApiJsonEvidenceAuditor` este reutilizat de testele UI și validează că ambele
+disclosures există, nu sunt goale și conțin JSON parsabil; testele cu payload
+real sunt reconciliate cu ruta rezolvată din catalogul mock prin comparație de
+arbore JSON și status HTTP. `MockReportContractAuditor` verifică suplimentar
+request-ul și response-ul fiecărui `POST`/`PUT` și compară profund response-ul
+randat cu body-ul din YAML; nu există tokeni hardcodați în validatorul UI.
+`UsersPostsApiReportUiTest` este calea declarativă minimă: `@ApiScenarioSetup`
+selectează `UsersApiTests` și `PostsApiTests`, `ApiReportAuditSetup` publică
+artifactul API în `artifacts/reports/`, iar `ApiReportUiFlow` plus
+`ApiReportContractValidation` auditează inputul read-only și publică separat
+raportul UI în `artifacts/reports/ui/`. `UiReportAuditDynamicTest` folosește
+spec-ul și manifestul pentru colecția YAML completă și validează dinamic fiecare
+owner și fiecare request randat, inclusiv body JSON pentru POST/PUT; agregatorul
+legacy `AllApiReportUiContractTest` a fost retras.
 
 Numele exacte ale helperelor pot varia, dar responsabilitățile nu se schimbă:
 
@@ -610,8 +804,8 @@ Numele exacte ale helperelor pot varia, dar responsabilitățile nu se schimbă:
 
 ### Transportul acceptance nu este HTTP real
 
-`ApiAcceptanceReportTest`, `ApiReportSmokeTest`, testele de resurse și
-`ApiLifecycleAndCombinationsTests` folosesc intenționat `AtfMockTransport` din
+`ApiExtentReportExploratoryTest`, testele de resurse și
+`ApiRequestFlowsTests` folosesc intenționat `AtfMockTransport` din
 modulul decuplat `atf-mock`. Acesta este un fake determinist injectat la
 composition root și produce
 `ApiResponse`-uri cunoscute pentru rutele scenariilor. Nu deschide socket,
@@ -628,7 +822,7 @@ host există sau că a fost contactat. Păstrăm această abordare pentru ca
 raportul, lifecycle-ul, retry-ul și contractele să poată fi verificate
 reproductibil, offline și în rulări paralele.
 
-Testul care folosește HTTP real este exclusiv `ApiLiveReportTest`. El este
+Testul care folosește HTTP real este exclusiv testul live dedicat. El este
 marcat `@Tag("live")`, este dezactivat implicit și trebuie activat explicit:
 
 ```text
@@ -638,8 +832,8 @@ marcat `@Tag("live")`, este dezactivat implicit și trebuie activat explicit:
 ```
 
 În IntelliJ, aceste valori se pun în **Run Configuration → VM options**, iar
-testul selectat trebuie să fie `ApiLiveReportTest`, nu
-`ApiAcceptanceReportTest`. Host-ul ales trebuie să fie accesibil din mediul
+testul selectat trebuie să fie testul live dedicat, nu host-ul acceptance
+offline. Host-ul ales trebuie să fie accesibil din mediul
 de rulare, să rezolve prin DNS/hosts și, pentru HTTPS, să aibă un certificat
 acceptat de JVM. Dacă aceste condiții nu sunt îndeplinite, un eșec live este
 un eșec de conectivitate/configurație, nu un rezultat al fake-ului acceptance.
@@ -647,8 +841,8 @@ un eșec de conectivitate/configurație, nu un rezultat al fake-ului acceptance.
 Regula de ownership este strictă:
 
 ```text
-ApiAcceptanceReportTest -> AtfMockTransport -> raport offline determinist
-ApiLiveReportTest       -> HttpClientTransport -> endpoint HTTP real
+ApiExtentReportExploratoryTest -> AtfMockTransport -> raport offline determinist
+testul live dedicat             -> HttpClientTransport -> endpoint HTTP real
 ```
 
 Nu schimbăm transportul acceptance printr-un flag ascuns. Dacă în viitor
@@ -693,8 +887,15 @@ nu se schimbă transportul, contractul sau rezultatul testului. Output-ul este
 rezolvat relativ la fișierul YAML, iar timestamp-ul trebuie păstrat activ pentru
 rulări paralele.
 
+Pentru audituri UI, `ui.report.filePrefix` este sursa unică a prefixului de
+output. `ReportAuditContext` adaugă suffix-ul rolului (`api`, `existing` sau
+`categories`) și timestamp-ul, apoi pasează numele complet către sesiunea
+Extent fără o a doua decorare. Rezultatul este un artifact distinct per audit,
+de forma `artifacts/reports/ui/ui-atf-extent-report_api_<timestamp>.html`.
+Nu redenumi manual artifactul și nu introduce nume fixe în clasele de test.
+
 Pentru artifactul agregat Users + Posts + lifecycle, rulează în continuare
-`ApiAcceptanceReportTest` din pachetul `api/reporting`. Pentru o singură resursă,
+`ApiReportAuditSetup` prin host-ul UI configurabil. Pentru o singură resursă,
 rulează direct `UsersApiTests` sau `PostsApiTests`; raportul este generat de
 adaptorul comun și nu trebuie copiată compoziția Extent în fiecare test.
 
@@ -707,6 +908,18 @@ căi pot indica fișiere diferite în rulări paralele, iar composition root-ul
 injectează transportul ales o singură dată.
 Păstrează timestamp-ul activ când pot exista rulări paralele.
 
+Pentru o selecție manuală ad-hoc a colecției API validate de un test UI, se
+poate folosi `-Datf.ui.api.families=users,posts` (sau orice combinație validă,
+de exemplu `requests,headers`). Precedența este:
+
+```text
+-Datf.ui.api.families  >  -Datf.ui.audit.suite/listă JVM  >  @ApiScenarioSetup(families = ...)  >  ui.apiSetup.scenarioFamilies
+```
+
+Valoarea este normalizată, deduplicată și validată fail-fast. Astfel aceeași
+clasă UI poate fi rulată manual pe o colecție diferită fără să fie copiat testul
+sau setup-ul; raportul Extent și validatorii aplică exact familiile selectate.
+
 ## Reguli pentru contribuții
 
 - nu modifica testul pentru a ascunde o regresie în framework;
@@ -716,3 +929,83 @@ Păstrează timestamp-ul activ când pot exista rulări paralele.
 - nu trata un raport istoric ca dovadă pentru codul live;
 - după o schimbare HTML/CSS/JS, verifică artifactul nou în TAB MCP înainte de
   închiderea lucrării.
+## Audit de structură al suitei exploratory
+
+## Audit API executabil și flow-uri stateful
+
+`ApiRouteCoverageMatrixTest` încarcă rutele reale din `atf-mock.yaml` și
+verifică owner-ul fiecărei rute, astfel încât o modificare YAML fără test sau
+un test fără contract mock să eșueze explicit. `ApiNegativeMatrixTests` acoperă
+400/401/403/409/415/422/500 și folosește `request-body-mode` pentru payload
+invalid, body lipsă și content type greșit. `validateNegative` păstrează
+evidence-ul brut și îl marchează intenționat, fără să slăbească invariantul
+JSON pentru POST/PUT pozitive.
+
+`ApiRequestFlowsTests` corelează ID-ul returnat de POST prin GET collection și
+GET item, apoi validează self-link, read model și lineage. Flow-ul PUT→GET
+compară și versiunea; testele dedicate resping stale version și broken
+`links.self`. `ApiUrlBuilder` sortează cheile și encodează spațiile ca `%20`,
+iar `ApiUrlBuilderTest` verifică echivalența independent de ordinea map-ului.
+Modelul public este `ApiQueryParameters`, o colecție tipizată care păstrează
+duplicatele și valorile goale; `Map<String,String>` rămâne doar o vedere de
+compatibilitate pentru consumatorii vechi. `ApiUrlBuilder` serializează
+determinist, iar mock-ul compară aparițiile independent de ordinea query
+string-ului. Testele acoperă query invalid, lipsă, explicit gol și duplicate.
+
+`ApiExtentReportExploratoryTest` păstrează doar setup-ul declarativ, intenția
+Gherkin și verdictul; setup-ul API este în `ApiReportAuditSetup`, iar navigarea,
+selectorii, parsarea DOM, reconcilierea duratelor și publicarea evidence-ului
+sunt în flows/auditors dedicate. `ApiReportExplorationFlow` este acum fațadă
+stabilă peste inspectori separați pentru structură, filtre, durate responsive
+și evidence request/response. Clasa de test rămâne orchestration lizibil, iar
+observațiile typed nu sunt reimplementate în metode Gherkin.
+
+Refactorizarea țintă este:
+
+```text
+ApiExtentReportExploratoryTest
+    → ReportAuditContext / lifecycle
+    → TestsTabAudit
+    → OverviewAudit
+    → CategoriesAudit / FailsAudit
+    → DurationContractAudit
+    → UiAuditEvidencePublisher
+```
+
+Clasele extrase trebuie să fie stateless sau scoped pe un singur audit, să
+primească `Page`/snapshot și să returneze rezultate typed. Nu se mută pașii
+Gherkin în utilitare opace: testul rămâne orchestration lizibil, iar helperul
+întoarce `Snapshot`/`AuditResult` cu dovezi și încălcări. Refactorizarea este
+acceptată numai dacă păstrează dinamismul raportului, acoperirea tuturor
+ownerilor și aceeași formă de artifact.
+
+Înainte de a închide acest punct se măsoară separat numărul de clase, metodele
+publice, selectorii duplicați, timpul de audit și numărul de rânduri ACTION;
+nu se acceptă reducerea artificială a liniilor prin metode gigantice sau
+assert-uri ascunse în JavaScript.
+
+## Section modules și guard pentru teste declarative
+
+Registry-ul `atf.ui.tests.extent.section.module.SectionAuditRegistry` are câte
+un modul distinct pentru `Overview`, `Tests`, `Categories`, `Fails`, `Evidence`
+și `Screen validation`. Modulele rulează prin aceeași `SectionAuditFixture`,
+dar păstrează responsabilități izolate și publică evidence pe secțiunea lor.
+`SectionAuditDynamicEngine` este orchestratorul test-only; nu introduce un nou
+composition root și nu mută browserul în `atf.api.tests.api`.
+Fundația este închisă, dar consolidarea încă activă este uniformizarea execuției
+fiecărui `ExtentSectionCheck` și extragerea publisherului Extent/JUnit din modul;
+statusul și criteriile sunt în `docs/feedback/ATF_Ui_Extent_Section_Architecture_Feedback.md`.
+
+Clasele declarative din `section`/`configurable` conțin numai intenție,
+adnotări și compoziție. `DeclarativeUiTestArchitectureTest` blochează `Page`,
+`Locator`, `ReportUiLocators`, `.locator(...)`, `getByRole`, `getByText` și
+`getByLabel`; toate interacțiunile browser sunt în flow/module, iar selectorii
+rămân în boundary-ul locators. `SectionAuditRegistryTest` protejează
+înregistrarea distinctă a celor șase module.
+
+Gate-ul static dedicat pentru `Screen validation` rămâne read-only și protejează
+cele trei zone-soră fără delimitatoare orizontale decorative, plus linkul inline
+`📷 base64 img`; numele și hash-urile artifactelor exacte se păstrează în
+feedback/handoff-ul rulării, nu ca valori normative aici.
+
+

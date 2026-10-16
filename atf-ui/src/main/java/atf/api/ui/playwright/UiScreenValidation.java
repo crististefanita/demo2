@@ -15,6 +15,10 @@ import java.util.Objects;
  * assertions and publish them with one evidence object.</p>
  */
 public final class UiScreenValidation {
+    private static final byte[] PNG_SIGNATURE = {
+            (byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
+    };
+
     private UiScreenValidation() { }
 
     public static Evidence capture(Page page, UiScreenValidationConfiguration configuration,
@@ -36,7 +40,7 @@ public final class UiScreenValidation {
 
         /** Returns true when the evidence contains a captured Base64 screenshot payload. */
         public boolean hasScreenshotPayload() {
-            return captured && !base64Png.isBlank();
+            return captured && isValidPngPayload(base64Png);
         }
 
         /** @deprecated use {@link #hasScreenshotPayload()} for renderer-neutral terminology. */
@@ -44,5 +48,25 @@ public final class UiScreenValidation {
         public boolean hasInlineImage() {
             return hasScreenshotPayload();
         }
+    }
+
+    /**
+     * Validates the renderer-neutral screenshot contract without decoding or
+     * writing an image file. The report stores raw Base64 PNG bytes, not a
+     * data-URI prefix.
+     */
+    public static boolean isValidPngPayload(String base64Png) {
+        if (base64Png == null || base64Png.isBlank()) return false;
+        final byte[] decoded;
+        try {
+            decoded = Base64.getDecoder().decode(base64Png.trim());
+        } catch (IllegalArgumentException invalidBase64) {
+            return false;
+        }
+        if (decoded.length < PNG_SIGNATURE.length) return false;
+        for (int index = 0; index < PNG_SIGNATURE.length; index++) {
+            if (decoded[index] != PNG_SIGNATURE[index]) return false;
+        }
+        return true;
     }
 }

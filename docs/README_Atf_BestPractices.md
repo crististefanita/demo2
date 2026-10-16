@@ -22,6 +22,61 @@ sunt întâlnite. Un fixture poate păstra o valoare românească numai dacă te
 verifică explicit un serviciu sau un payload care trebuie să conțină acea
 valoare; comentariul și explicația testului rămân în engleză.
 
+### Naming pentru README-uri și documentație
+
+Numele fișierelor README și ale documentelor Markdown descriptive folosesc
+`PascalCase` după primul separator `_`: numai primul segment este acronimul
+scris integral cu majuscule, iar segmentele următoare au doar inițiala mare.
+Exemple conforme: `ATF_Java_Improvement_Backlog.md` și
+`README_Atf_BestPractices.md`. Nu se introduc nume precum
+`ATF_UI_Extent_Inventory.md`; forma nouă este
+`ATF_Ui_Extent_Inventory.md`. `README.md` rămâne forma canonicală pentru
+README-ul principal al unui modul.
+
+Fișierele existente cu naming istoric nu se redenumesc într-un refactor de cod
+fără actualizarea tuturor linkurilor și a indexurilor; normalizarea lor este o
+schimbare documentațională separată.
+
+### Abrevieri și ID-uri de trasabilitate
+
+ID-urile de tip `ARCH-04`, `UI-22`, `F-01` sau `D-03` aparțin ledger-ului de
+feedback și ajută la prioritizare, nu înlocuiesc numele responsabilității din
+cod. În cod nu se introduce un comentariu care spune doar `Guards ARCH-04`:
+fără un contract stabil în afara feedback-ului, abrevierea devine zgomot și nu
+explică ce trebuie protejat.
+
+Regula este:
+
+```text
+feedback ID
+   → owner README / contract stabil
+   → invariantă exprimată în cod și test
+```
+
+- un ID este permis în feedback, backlog și tabelul de status;
+- un comentariu sau Javadoc din cod descrie invarianta, boundary-ul și motivul
+  tehnic; poate indica README-ul ownerului, dar nu depinde de feedback ca să fie
+  inteligibil;
+- când un ToDo este închis, contractul relevant se mută în README-ul modulului,
+  iar ID-ul rămâne doar în ledgerul istoric/status, nu în comentarii noi din
+  cod;
+- nu se creează un glossary separat pentru fiecare ID: se documentează numai
+  prefixele recurente și doar dacă au mai mult de o utilizare reală.
+
+Exemplul corect pentru separarea duratei de viewport este o explicație a
+invariantei, nu un cod de backlog:
+
+```java
+/**
+ * Guards the separation between duration contract, projection observation and
+ * responsive badge geometry; the facade must remain orchestration-only.
+ */
+class ApiReportDurationArchitectureTest { /* ... */ }
+```
+
+Astfel, testul rămâne inteligibil și după arhivarea feedback-ului, iar README-ul
+ownerului păstrează contractul stabil și diagrama responsabilităților.
+
 ## Principii de design
 
 1. O clasă are un motiv dominant de schimbare.
@@ -33,6 +88,63 @@ valoare; comentariul și explicația testului rămân în engleză.
 7. Cleanup-ul are ownership clar și rulează în ordine inversă.
 8. O interfață se introduce numai pentru o dependență care trebuie înlocuită,
    observată sau izolată.
+9. O opțiune declarativă trebuie să aibă efect executabil și evidence; nu se
+   adaugă câmpuri în adnotări/config doar pentru vocabular sau documentație.
+10. Un validator nu își construiește expectation-ul din aceeași observație pe
+    care o verifică; sursa expected trebuie să fie independentă de DOM-ul
+    actual, mai ales pentru artifactele statice.
+11. Un modul de audit returnează un rezultat renderer-neutral; JUnit, Extent și
+    orice alt publisher sunt adaptoare, nu responsabilitatea contractului pur.
+
+## Boundary obligatoriu pentru locatori UI
+
+Testele UI nu folosesc direct `page.locator(...)`, `locator.locator(...)` sau
+selectorii CSS împrăștiați în metodele de test. Locatori trebuie deținuți de
+clase dedicate din pachetul UI, cu metode numite după intenție și responsabilitate:
+
+```text
+ReportUiLocators
+├── flow()       navigare, tab-uri, owner/scenario/phase
+├── action()     acțiuni Playwright, tabel de pași și screenshot link
+└── validation() Screen validation, assertions și evidence tables
+```
+
+Regulile sunt stricte:
+
+- testul descrie Gherkin-ul, ordinea flow-ului și verdictul; nu cunoaște
+  selectorul intern;
+- `action` expune ținte pentru `click`, `getText`, `focus`, `wait` și `expect`,
+  iar fiecare acțiune este înregistrată prin `UiAuditFlow`;
+- `flow` expune doar navigarea și nodurile structurale necesare tranziției;
+- `validation` expune doar suprafețele validate și tabelele de evidence;
+- schimbarea unui selector se face într-un singur owner de locatori și se
+  protejează printr-un test de contract, nu prin modificarea tuturor testelor;
+- locatorii dinamici primesc metode cu parametri semantică (`scenario(int)`,
+  `phase(String)`, `actionSequence()`), nu concatenări de selector în test.
+
+Un test nou care introduce `page.locator` direct este regresie arhitecturală.
+Migrarea suprafețelor existente pentru testele, flow-urile și auditorii UI Extent
+este închisă pentru codul live verificat; selectorii rămași în adaptoarele
+`section.extract` sau în clasele din `locators` sunt infrastructură DOM, nu
+intenție de test. Orice suprafață nouă intră numai prin același boundary și prin
+un guard arhitectural focalizat.
+
+## Contract write API și raportare
+
+Serviciile API construiesc acțiuni semantice, iar `ApiRoute.requestBody(...)`
+este owner-ul construcției JSON pentru `POST` și `PUT`. Ambele body-uri — request
+și response — trebuie să fie documente JSON ne-goale și valide; `null` este
+rezervat exchange-urilor fără body. Mock-ul YAML, publisher-ul Extent și
+auditorul UI verifică aceeași regulă, astfel încât lanțul auditabil rămâne:
+
+```text
+setup → API action → mock route → request/response evidence → UI audit → deep validation
+```
+
+Testele nu pun JSON, locatori sau comparații de arbori direct în metodele
+Gherkin. Payload-urile sunt deținute de modele/routes/mock, locatori de clase
+dedicate, acțiunile de adaptoare, ordinea de flows, iar verificările de
+validatori/auditori.
 
 ## Coeziunea pachetelor
 
@@ -54,9 +166,13 @@ Pragul nu înlocuiește analiza de design: un package cu 8 clase poate fi încă
 slab coeziv, iar unul cu mai mult de 8 poate necesita o separare justificată.
 `ArchitectureBoundaryTest` inventariază acum package-urile de producție și
 respinge orice hotspot nou care nu apare într-o allow-list explicită. Excepțiile
-curente sunt `atf.api.core.http`, `atf.api.core.reporting` și
-`atf.api.reporting`; fiecare are un motiv semantic documentat și rămâne datorie
-de refactorizare, nu o anulare a pragului.
+curente sunt `atf.api.core.http`, `atf.api.core.reporting`, `atf.api.reporting`,
+`atf.api.reporting.artifact`, `atf.api.tests.support`,
+`atf.ui.tests.extent.flows`, `atf.ui.tests.extent.audit`,
+`atf.ui.tests.extent.flows.inspection` și `atf.ui.tests.extent.support`; acestea
+sunt allow-list-ul verificat de `ArchitectureBoundaryTest`. Fiecare are un
+motiv semantic documentat și rămâne o suprafață de review, nu o anulare a
+pragului.
 
 ## Separarea modulelor
 
@@ -167,6 +283,15 @@ dimensiuni direct în rendererul unui singur nod. Pentru orice schimbare de UI:
 3. generează artifactul în staging;
 4. verifică randarea și computed styles în TAB MCP;
 5. confirmă că Extent și fallback-ul arată la fel.
+
+Pentru culori folosim exclusiv notația hexadecimală în sursa CSS și în tokenii
+temei: `#RRGGBB` sau `#RRGGBBAA` când este necesar alpha. Nu introducem
+`rgb(...)`, `rgba(...)` sau variantele lor cu spații în cod, markup ori
+configurație. Culorile rămân token-uri semantice centralizate, iar un test nou
+trebuie să verifice token-ul sursă și componenta care îl consumă. Browserul
+poate normaliza o valoare HEX în `rgb(...)` atunci când citim `computedStyle`;
+aceasta este doar reprezentarea de runtime și nu schimbă regula pentru codul
+ATF.
 
 Pentru header-ele din `Tests`, regula este separată pe axe: titlul și tag-urile
 sunt aliniate la stânga, tag-urile rămân sub titlu, iar grupul lor este centrat

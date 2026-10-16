@@ -20,13 +20,18 @@ public final class ApiUrlBuilder {
             value.append('/');
         }
         value.append(request.path());
-        if (!request.query().isEmpty()) {
+        if (!request.queryParameters().isEmpty()) {
             value.append('?');
-            value.append(request.query().entrySet().stream()
-                    .map(entry -> URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8) + "="
-                            + URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8))
+            value.append(request.queryParameters().values().stream()
+                    .sorted(java.util.Comparator.comparing(ApiQueryParameter::name)
+                            .thenComparing(ApiQueryParameter::value))
+                    .map(entry -> encode(entry.name()) + "=" + encode(entry.value()))
                     .collect(java.util.stream.Collectors.joining("&")));
         }
         return value.toString();
+    }
+
+    private static String encode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
     }
 }

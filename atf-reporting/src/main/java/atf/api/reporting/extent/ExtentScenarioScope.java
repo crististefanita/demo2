@@ -3,6 +3,7 @@ package atf.api.reporting.extent;
 import atf.api.core.reporting.AtfReportPorts;
 import atf.api.core.reporting.AtfReportStatus;
 import atf.api.core.reporting.ReportStatusAggregator;
+import atf.api.reporting.AtfReportSemanticRecorder;
 import atf.api.reporting.ExtentReportTree;
 import com.aventstack.extentreports.ExtentTest;
 
@@ -13,12 +14,15 @@ public final class ExtentScenarioScope implements AtfReportPorts.Scenario {
     private final ExtentTest test;
     private final String className;
     private final ReportStatusAggregator statuses = new ReportStatusAggregator();
+    private final AtfReportSemanticRecorder.ScenarioHandle semantic;
     private boolean closed;
 
-    public ExtentScenarioScope(ExtentReportTree tree, ExtentTest test, String className) {
+    public ExtentScenarioScope(ExtentReportTree tree, ExtentTest test, String className,
+                               AtfReportSemanticRecorder.ScenarioHandle semantic) {
         this.tree = tree;
         this.test = test;
         this.className = className;
+        this.semantic = semantic;
     }
 
     @Override public String id() { return test.getModel().getName(); }
@@ -27,7 +31,8 @@ public final class ExtentScenarioScope implements AtfReportPorts.Scenario {
         ensureScenarioOpen();
         String phaseName = name == null ? "" : name;
         tree.consoleStarted(atf.api.core.reporting.AtfConsoleEvent.Scope.PHASE, phaseName);
-        return new ExtentPhaseScope(tree, this, test.createNode(phaseName), phaseName);
+        return new ExtentPhaseScope(tree, this, test.createNode(phaseName), phaseName,
+                semantic.startPhase(phaseName));
     }
 
     @Override public void complete(AtfReportStatus status) {
@@ -37,6 +42,7 @@ public final class ExtentScenarioScope implements AtfReportPorts.Scenario {
         tree.markEnded(test);
         tree.markEnded(tree.classRoot(className));
         tree.recordClassStatus(className, effective);
+        semantic.complete(effective);
         tree.consoleCompleted(atf.api.core.reporting.AtfConsoleEvent.Scope.SCENARIO,
                 className + " :: " + test.getModel().getName(), effective, test);
         closed = true;

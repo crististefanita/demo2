@@ -30,6 +30,42 @@ final class HtmlReportTestsView {
         this.redactor = redactor;
     }
 
+    String render(HtmlReportSemanticSnapshot snapshot) {
+        return render(snapshot.scenarios().stream().map(HtmlReportTestsView::toModel).toList());
+    }
+
+    private static HtmlReportSemanticDocument.ScenarioModel toModel(HtmlReportSemanticSnapshot.Scenario source) {
+        var target = new HtmlReportSemanticDocument.ScenarioModel(source.id(), source.testClass(),
+                source.scenario(), source.tags());
+        target.status = source.status();
+        source.phases().forEach(phase -> {
+            var targetPhase = new HtmlReportSemanticDocument.PhaseModel(phase.name());
+            targetPhase.status = phase.status();
+            phase.details().forEach(detail -> targetPhase.details.add(new String[]{detail.name(), detail.value()}));
+            phase.children().forEach(child -> targetPhase.children.add(toModel(child)));
+            target.phases.add(targetPhase);
+        });
+        return target;
+    }
+
+    private static HtmlReportSemanticDocument.NodeModel toModel(HtmlReportSemanticSnapshot.Node source) {
+        if (source instanceof HtmlReportSemanticSnapshot.Request request) {
+            var target = new HtmlReportSemanticDocument.RequestModel(request.title(),
+                    request.method(), request.path());
+            target.status = request.status();
+            request.details().forEach(detail -> target.details.add(new String[]{detail.name(), detail.value()}));
+            request.json().forEach(json -> target.json.add(new String[]{json.label(), json.value()}));
+            target.execution = request.execution();
+            request.children().forEach(child -> target.children.add(toModel(child)));
+            return target;
+        }
+        var validation = (HtmlReportSemanticSnapshot.Validation) source;
+        var target = new HtmlReportSemanticDocument.ValidationModel(validation.title());
+        target.status = validation.status();
+        target.assertions = validation.assertions();
+        return target;
+    }
+
     String render(List<HtmlReportSemanticDocument.ScenarioModel> scenarios) {
         var html = new StringBuilder();
         html.append("<section id=\"tests\" class=\"tab-panel\"><div class=\"layout\"><aside><h2>Tests</h2>");

@@ -74,16 +74,21 @@ rendererul fallback:
 `TECHNICAL TRACE` nu este titlul disclosure-ului. El descrie conținutul din
 `Response details`; `N` este numărul real de rânduri ale tabelului trace.
 `Request details` descrie contextul cererii înainte de transport: method, URL/path,
-headers, params, auth și request body când există. Response JSON este inclus în
-aceeași zonă colapsabilă cu `Response details`.
+headers, params, auth și request body. `REQUEST JSON` este întotdeauna prezent
+pentru request-urile API raportate prin publisher-ul standard: conține payload-ul
+real sau JSON `null` când HTTP request-ul nu are body. `RESPONSE JSON` este la
+fel întotdeauna prezent și conține body-ul din `ApiResponse`, respectiv `null`
+pentru un response fără body. Astfel lipsa body-ului este o stare explicită,
+nu o zonă de evidence dispărută. Response JSON este inclus în aceeași zonă
+colapsabilă cu `Response details`.
 
 ```mermaid
 flowchart TD
     Request[HTTP request] --> RequestDetails[Request details · N fields]
     Request --> Details[Response details · N fields]
     Details --> Trace[TECHNICAL TRACE · response context]
-    Details --> ResponseBody[RESPONSE JSON, if present]
-    RequestDetails --> RequestBody[REQUEST JSON, if present]
+    Details --> ResponseBody[RESPONSE JSON or null]
+    RequestDetails --> RequestBody[REQUEST JSON or null]
     Request --> Execution[Execution evidence · N attempts]
     Execution --> Retry[Retry history]
     Request --> Assertions[Assertions · N]
@@ -194,6 +199,29 @@ Evidence-ul complet — request/response JSON, trace, response details și tabel
 de assertions — rămâne în arborele Tests. `Open in Tests` este legătura
 autoritativă către nodul original și nu schimbă verdictul sau ownership-ul
 evidence-ului.
+
+### Failure semantics pentru lifecycle API
+
+Un raport API poate fi `Fail` în mod intenționat atunci când fixture-ul negativ
+verifică faptul că un contract respins ajunge vizibil în report. Acest verdict
+nu trebuie confundat cu un failure al testului UI care inspectează raportul:
+raportul sursă rămâne roșu, iar auditul UI trebuie să fie verde dacă redarea este
+corectă.
+
+Pentru un failure de contract, faza expune un rezumat compact și semantic:
+
+~~~text
+FAILURE CAUSE | Contract assertion failed: HTTP status
+ASSERTION     | HTTP status
+EXPECTED      | 201
+ACTUAL        | 200
+~~~
+
+Pentru mai multe assertion-uri se păstrează perechi `name = value`, iar pentru
+un failure de teardown se publică o cauză lizibilă, fără să expună doar
+`FailureSignal` sau numele clasei Java. Tabelul agregat din request rămâne
+evidence-ul detaliat; faza are numai proiecția compactă necesară navigării și
+tab-ului Fails.
 
 Durata din indexul Fails este derivată din `RESPONSE DURATION`, nu din
 timestamp. Dacă failure-ul nu are response măsurat, indexul afișează explicit

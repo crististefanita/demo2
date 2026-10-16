@@ -29,9 +29,11 @@ final class ExtentReportPublicationPipeline {
         html = injectAtfTheme(html);
         html = injectNavigationAndFailureView(html);
         html = ensureViewIdentifiersAndOverviewDefault(html);
+        html = ExtentReportCategoryMarkup.ensureView(html);
         html = injectOverviewMetadata(html);
         html = injectRuntimeBehaviour(html);
         html = removeLegacyFailureTreeHook(html);
+        html = ExtentReportScreenshotDeduplicator.deduplicate(html);
         writeAtomically(reportPath, html);
         ExtentReportAssets.removeGeneratedAssets(assetDirectory);
     }

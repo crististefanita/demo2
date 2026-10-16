@@ -2,6 +2,8 @@ package atf.api.core.http;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 
 public record ApiRoute(
@@ -54,8 +56,17 @@ public record ApiRoute(
 
     public ApiRequest request(Map<String, ?> values, Map<String, String> query,
                               Map<String, String> headers) {
+        return request(values, ApiQueryParameters.fromMap(query), headers);
+    }
+
+    public ApiRequest request(Map<String, ?> values, ApiQueryParameters query,
+                              Map<String, String> headers) {
+        if (JsonBodyPolicy.appliesTo(method)) {
+            throw new IllegalArgumentException(method.toUpperCase(Locale.ROOT)
+                    + " routes require requestBody(...) with a non-empty JSON body");
+        }
         return new ApiRequest(java.net.http.HttpRequest.BodyPublishers.noBody(), method,
-                resolvePath(values), query, headers, authProfile, this);
+                resolvePath(values), query, headers, authProfile, this, "");
     }
 
     public ApiRequest requestBody(String bodyJson, Map<String, ?> values) {
@@ -64,9 +75,16 @@ public record ApiRoute(
 
     public ApiRequest requestBody(String bodyJson, Map<String, ?> values,
                                   Map<String, String> query, Map<String, String> headers) {
-        if (bodyJson == null) throw new IllegalArgumentException("bodyJson must not be null");
+        return requestBody(bodyJson, values, ApiQueryParameters.fromMap(query), headers);
+    }
+
+    public ApiRequest requestBody(String bodyJson, Map<String, ?> values,
+                                  ApiQueryParameters query, Map<String, String> headers) {
+        JsonBodyPolicy.requireWriteDocument(bodyJson, "bodyJson");
+        var effectiveHeaders = new LinkedHashMap<>(headers == null ? Map.of() : headers);
+        effectiveHeaders.put(HttpHeader.CONTENT_TYPE.value(), MediaTypes.APPLICATION_JSON);
         return new ApiRequest(java.net.http.HttpRequest.BodyPublishers.ofString(bodyJson), method,
-                resolvePath(values), query, headers, authProfile, this, bodyJson);
+                resolvePath(values), query, effectiveHeaders, authProfile, this, bodyJson);
     }
 
     private static void require(String value, String field) {

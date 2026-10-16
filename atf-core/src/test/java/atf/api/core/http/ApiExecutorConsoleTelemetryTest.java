@@ -33,6 +33,8 @@ class ApiExecutorConsoleTelemetryTest {
 
         assertAll(
                 () -> assertEquals(201, result.response().status()),
+                () -> assertEquals(request, result.request(),
+                        "the execution result must retain the exact request used by the transport"),
                 () -> assertTrue(events.stream().anyMatch(event ->
                         event.type() == AtfConsoleEvent.Type.START
                                 && event.scope() == AtfConsoleEvent.Scope.REQUEST

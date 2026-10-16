@@ -5,11 +5,9 @@ import java.util.Objects;
 
 /** Process-boundary inputs captured once before loading UI configuration. */
 public record AtfUiConfigurationContext(Path startDirectory, String systemPropertyConfig,
-                                        String environmentConfig, String enabledOverride,
-                                        String reportOverride) {
+                                        String environmentConfig, String reportOverride) {
     public static final String CONFIG_PROPERTY = "atf.ui.config";
     public static final String CONFIG_ENVIRONMENT_VARIABLE = "ATF_UI_CONFIG";
-    public static final String ENABLED_PROPERTY = "atf.ui.enabled";
     public static final String REPORT_PROPERTY = "atf.ui.report";
 
     public AtfUiConfigurationContext {
@@ -17,19 +15,18 @@ public record AtfUiConfigurationContext(Path startDirectory, String systemProper
                 .toAbsolutePath().normalize();
         systemPropertyConfig = normalize(systemPropertyConfig);
         environmentConfig = normalize(environmentConfig);
-        enabledOverride = normalize(enabledOverride);
         reportOverride = normalize(reportOverride);
     }
 
     public AtfUiConfigurationContext(Path startDirectory, String systemPropertyConfig,
-                                     String environmentConfig, String enabledOverride) {
-        this(startDirectory, systemPropertyConfig, environmentConfig, enabledOverride, null);
+                                     String environmentConfig) {
+        this(startDirectory, systemPropertyConfig, environmentConfig, null);
     }
 
     public static AtfUiConfigurationContext fromProcess() {
         return new AtfUiConfigurationContext(Path.of(System.getProperty("user.dir", ".")),
                 System.getProperty(CONFIG_PROPERTY), System.getenv(CONFIG_ENVIRONMENT_VARIABLE),
-                System.getProperty(ENABLED_PROPERTY), System.getProperty(REPORT_PROPERTY));
+                System.getProperty(REPORT_PROPERTY));
     }
 
     public Path explicitConfigPath() {

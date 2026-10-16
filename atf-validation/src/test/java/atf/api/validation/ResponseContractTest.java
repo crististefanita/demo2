@@ -53,12 +53,29 @@ class ResponseContractTest {
                 response("{\"id\":1,\"user_id\":7}"), false);
         var relationship = new ValidationEvaluator().evaluate(
                 ContractValidators.relationshipCollection("7"),
-                response("[{\"id\":1,\"user_id\":7}]"), false);
+                response("[{\"id\":1,\"user_id\":7,\"title\":\"ATF post\"}]"), false);
 
         assertEquals(AtfReportStatus.PASS, item.status());
         assertEquals(AtfReportStatus.PASS, relationship.status());
         assertTrue(item.rows().stream().anyMatch(row -> row.name().equals("JSON path exists: $.user_id") && row.passed()));
         assertTrue(relationship.rows().stream().anyMatch(row -> row.name().equals("Every $ item user_id") && row.passed()));
+    }
+
+    @Test
+    void resourceCollectionContractsRejectStructurallyIncompletePayloads() {
+        var users = new ValidationEvaluator().evaluate(
+                ContractValidators.userCollection(),
+                response("[{\"id\":1}]"), false);
+        var posts = new ValidationEvaluator().evaluate(
+                ContractValidators.postCollection(),
+                response("[{\"id\":101,\"user_id\":1,\"title\":\"ATF post\"}]"), false);
+
+        assertEquals(AtfReportStatus.FAIL, users.status());
+        assertEquals(AtfReportStatus.FAIL, posts.status());
+        assertTrue(users.rows().stream().anyMatch(row -> row.name().equals("JSON path exists: $[0].email")
+                && !row.passed()));
+        assertTrue(posts.rows().stream().anyMatch(row -> row.name().equals("JSON path exists: $[0].body")
+                && !row.passed()));
     }
 
     @Test

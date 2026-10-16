@@ -9,6 +9,20 @@ Nu este o colecție de preferințe CSS. Orice schimbare de culoare, suprafață,
 tipografie, ierarhie, disclosure, navigare sau tabel este o schimbare de
 contract și trebuie să păstreze cerințele de mai jos.
 
+## Output și gate de acceptare
+
+Artifactul HTML este output-ul sesiunii și se publică în directorul configurat
+de `reporting.extent.outputDirectory`; în proiectul ATF, API-ul este în
+`artifacts/reports/`, iar dovada UI în `artifacts/reports/ui/`. Numele exacte și
+hash-urile unei rulări nu sunt contract permanent și se păstrează în feedback
+sau în handoff-ul acelei rulări.
+
+Orice schimbare de markup, CSS, disclosure sau evidence cere artifact fresh în
+staging și verificare prin ATF Debug UI/browser MCP. Gate-ul vizual trebuie să
+confirme request/response JSON pentru POST și PUT, evidence-ul de transport,
+linkul `📷 base64 img` clicabil și cele trei disclosure-uri `Screen validation`
+ca zone-soră continue, fără delimitatoare orizontale decorative.
+
 ## Modelul de randare
 
 ```mermaid
@@ -44,6 +58,20 @@ Responsabilitățile sunt separate astfel:
 
 Rendererul primește modelul neutru și îl proiectează. Nu reconstruiește reguli
 de business, statusuri sau relații între request și validation.
+
+### Snapshot semantic comun
+
+`AtfReportSemanticSnapshot` este contractul immutable renderer-neutral pentru
+populația raportului: clase, scenarii, faze, request-uri, JSON, execution,
+validări, assertions, acțiuni, capturi și statusuri. `ExtentReportSession` și
+`HtmlReportSession` îl înregistrează în paralel cu proiecția lor proprie și
+publică aceeași populație; testul `AtfReportSemanticSnapshotTest` compară
+Extent cu fallback la nivel de structură, nu prin scraping HTML.
+
+Fallback-ul verifică înainte de render că numărul scenariilor din document și
+din snapshot este identic. Orice divergență oprește publicarea, astfel încât
+un renderer să nu poată ascunde sau inventa un nod. Package-ul testului este
+transportat în snapshot în ambele overload-uri `startScenario`.
 
 ## Contractul vizual comun
 
@@ -110,16 +138,66 @@ auditabilitatea, chiar dacă HTML-ul este valid. În artifactul UI auditabil, un
 tabel de acțiuni fără captură nu este acceptat. Pașii tehnici non-vizuali pot
 rămâne fără imagine numai dacă nu emit tabel Playwright; politica de captură
 dezactivată produce doar audit funcțional, nu dovadă vizuală completă.
+În `Screen validation`, acțiunile, observațiile și assertions sunt disclosure-uri
+surori, lipite vertical una sub alta, fără spațiu gol sau padding de rând între
+ele; nu se desenează linii orizontale decorative între cele trei zone.
+Delimitarea vizuală rămâne doar conturul comun al grupului și al tabelelor
+interne.
+Contractul de geometrie este același ca pentru evidence-ul API: cele trei
+disclosure-uri folosesc aceeași coloană `DETAILS` și aceeași lățime calculată,
+fără padding rezidual în celulele evenimentelor; primul disclosure are numai
+colțurile exterioare de sus, cel din mijloc păstrează doar separatorul intern,
+iar ultimul are numai colțurile exterioare de jos. Regula este scoped la cardul
+`data-atf-node-role="validation"`, deci nu poate altera cardurile transport.
+Același shell disclosure este folosit și de `Contract validation` din raportul
+API: `Assertions · N` este un modul expandabil, cu același header, glyph,
+spacing și tabel agregat `ASSERTION / EXPECTED / ACTUAL / RESULT`.
 Rendererul verifică acum cardinalitatea la publicare și respinge o secvență de
 acțiuni cu zero sau mai mult de o captură Base64 validă; nu inventează și nu
 poate repara semantic o dovadă lipsă. Contractul trebuie validat în
 `atf-ui`/`atf-tests`, unde se decide ce stare vizuală trebuie capturată.
+Toate căile de publicare UI folosesc helperul comun
+`ExtentReportAssets.base64ScreenshotLink`, astfel încât payload-ul, label-ul,
+`target="_blank"` și `rel="noopener"` să rămână un singur contract; fiecare
+stare randată are exact o ancoră clickable cu
+`href="data:image/png;base64,..."`. Click-ul deschide aceeași imagine într-o
+pagină nouă. Nu se emite PNG extern, `<img>` nested, handler JavaScript inline
+sau a doua copie a payload-ului.
 
 Atunci când evidence-ul este furnizat prin `UiExtentReportSession`, secvența de
 acțiuni și captura sunt randate în nodul de validare care le-a produs
 (`Screen validation`), în această ordine. Verificările UI sunt rânduri de
 acțiuni Playwright; tabelul `AtfAssertion` este doar sumarul semantic și nu
 duplică operația de citire/verificare.
+
+Responsabilitatea de publicare este implementată în `UiEvidencePublisher`.
+`UiExtentReportSession` păstrează doar lifecycle-ul sesiunii/scenario/phase,
+iar publisher-ul comun tratează identic căile normale, media și failure pentru
+actions, screenshot, assertions și status. Orice schimbare de markup/evidence
+trebuie să treacă prin contractele reporting înainte de a modifica fațada.
+
+## Contract comun UI/API — documentație stabilă
+
+Status: `CLOSED — 100/100 pentru incrementul de unificare UI/API`.
+
+UI și API păstrează semantici diferite în interiorul evidence-ului, dar folosesc
+același shell vizual:
+
+- contur exterior comun pentru grupul de evidence;
+- aceeași coloană `STATUS` și aceeași coloană fluidă `DETAILS`;
+- aceleași glyph-uri, badge-uri, padding, radius și aliniere verticală;
+- fără delimitatoare orizontale decorative între disclosure-urile-soră;
+- overflow-ul tabelului Playwright este local, niciodată la nivelul paginii;
+- UI păstrează `📷 base64 img` ca link inline clicabil, iar API păstrează separat
+  `Request details`, `Response details` și `Execution evidence`;
+- request/response JSON și tabelele specializate nu se reduc la un generic
+  `FIELD / VALUE`.
+
+Contractul este protejat de `AtfEvidenceStackCss`, `AtfReportThemeTokens`,
+`ReportEvidenceStyleContract` și testele lor de computed-style/DOM. Perechea
+UI/API de referință rămâne în `artifacts/reports/ui` și
+`artifacts/reports`; schimbările vizuale se închid numai după artifact fresh și
+verificare prin ATF Debug UI/browser MCP.
 
 Tabelul Playwright are layout fix și un minim contractual de `760px`, cu lățimi
 explicite pentru cele șapte coloane. Astfel operația, locatorul, expected și
@@ -209,8 +287,15 @@ Bootstrap-ul JavaScript nu mai este deținut direct de pipeline.
 și compune explicit controlerele specializate pentru durate, failure/cause-chain
 și interacțiuni DOM. Astfel, pipeline-ul rămâne orchestration-only, iar ordinea
 controllerelor este protejată de `ExtentReportRuntimeScriptTest`. Această
-extracție este primul pas al splitului F-01; navigation/hash, filters, collapse
-și DOM contract vor fi izolate incremental, fără schimbarea artifactului.
+extracție separă deja runtime-ul de pipeline; navigation/hash, filters, collapse
+și DOM contract vor fi izolate incremental, fără schimbarea artifactului. Orice
+extracție nouă cere un owner semantic și un test de caracterizare; nu se face
+doar pentru reducerea numărului de linii.
+În plus, `AtfReportCategoryCss` deține acum empty-state-ul semantic pentru
+Categories, iar `ExtentReportCategoryMarkup` garantează shell-ul stabil
+`#category-view` când Spark nu emite deloc markup de categorii. Contractul este
+protejat de `ExtentReportCategoryMarkupTest`; markup-ul vendorului existent nu
+este rescris.
 
 ## Consola: contract consumat, implementare separată
 
@@ -318,12 +403,11 @@ de fișierul YAML. Astfel, un test de reportare poate fi rulat cu butonul Run
 din IntelliJ fără să reconstruiască output path-ul și fără să copieze
 configurație în test.
 
-`atf-tests` păstrează host-uri subțiri pentru acest caz:
+`atf-tests` păstrează scenariile API și setup-ul UI subțire pentru acest caz:
 
-- `PostsApiReportTest` compune transportul offline, `PostsApiScenarios` și
-  `ApiScenarioLifecycleRunner`, apoi deschide sesiunea configurată;
-- `ApiAcceptanceReportTest` publică Users, Posts și lifecycle în același
-  artifact configurat;
+- `ApiReportAuditSetup` compune transportul offline, scenariile API și
+  `ApiScenarioLifecycleRunner`, apoi publică inputul API pentru raportul UI;
+  `ApiReportSetupFlow` rămâne doar fațadă de compatibilitate;
 - scenariile rămân proprietarul pașilor API, iar host-ul rămâne proprietarul
   compoziției și al sesiunii.
 
@@ -334,10 +418,9 @@ cererii, nu dovada unui request HTTP real. Transportul fake nu face DNS, TLS
 sau conectare la server; această proprietate păstrează raportul determinist și
 reproductibil.
 
-Pentru trafic real există separat `ApiLiveReportTest`, care trebuie activat
-explicit cu `-Datf.liveApi.enabled=true` și configurat cu
-`-Datf.liveApi.baseUri=https://host-ul-real`. Nu folosi raportul acceptance ca
-health-check al unui serviciu și nu activa live HTTP printr-un flag implicit.
+Pentru trafic real se folosește separat `HttpClientTransport`, configurat
+explicit prin profilul live. Nu folosi raportul mock ca health-check al unui
+serviciu și nu activa trafic live printr-un flag implicit.
 
 Pentru o configurație aleasă explicit în IntelliJ se poate folosi VM option-ul
 `-Datf.report.config=atf.yaml` sau o cale relativă precum
@@ -470,10 +553,10 @@ TestCase
 │   │   ├── Request details
 │   │   │   ├── URL / method / path
 │   │   │   ├── headers / params / auth
-│   │   │   └── request JSON body, dacă există
+│   │   │   └── REQUEST JSON (payload sau `null`)
 │   │   ├── Response details
 │   │   │   ├── TECHNICAL TRACE
-│   │   │   └── response JSON body, dacă există
+│   │   │   └── RESPONSE JSON (payload sau `null`)
 │   │   └── Execution evidence
 │   └── Validation — sibling direct al request-ului owner
 │       └── aggregate assertion table
@@ -534,7 +617,7 @@ flowchart LR
 
 ## Disclosure și evidence
 
-### Raport UI separat și evidence Playwright ca Base64 inline
+### Raport UI separat și evidence Playwright ca link Base64
 
 `UiExtentReportSession` creează un artifact Extent separat, configurat prin
 aceleași setări de output ca raportul API, dar cu numele
@@ -546,13 +629,19 @@ Fiecare pas Playwright este publicat în raportul UI ca nod auditabil sub
 `GIVEN`/`WHEN`/`THEN`, targetul inspectat, assertions și status. Când există captură, `UiExtentReportSession`
 folosește portul comun de reporting pentru a o scrie direct în nod ca
 `data:image/png;base64,...`, într-un link nativ din disclosure-ul `details`
-colapsabil și închis implicit. Linkul afișează eticheta `Open screenshot · Base64 image`,
+colapsabil și închis implicit. Linkul afișează eticheta `📷 base64 img`,
 are `target="_blank"` și `rel="noopener"`; nu se scriu fișiere PNG temporare,
 nu se creează linkuri externe și nu se folosește `data-featherlight`.
 
+Payload-ul Base64 este emis o singură dată în `href`, iar markerul compact
+`📷 base64 img` este emis o singură dată în aceeași ancoră. Iconul și textul sunt
+aliniate prin `align-items:center`, `justify-content:center` și
+`vertical-align:middle`; nu se aplică offset-uri artificiale de tip `translateY`.
+Clickul pe marker deschide `href`-ul Base64 într-un tab nou.
+
 Regula de cardinalitate este strictă: orice secvență care conține cel puțin o
 acțiune Playwright trebuie să conțină exact un screenshot Base64 local, plasat
-după tabelul acțiunilor, în aceeași zonă colapsabilă. Screenshot-ul nu se
+ după tabelul acțiunilor, în aceeași zonă colapsabilă. Linkul Base64 nu se
 deschide automat (`<details>` nu are atribut `open`). Dacă o captură nu poate fi
 obținută după un failure, se publică explicit evidence de failure fără a inventa
 o imagine; acesta este singurul caz permis fără screenshot.
@@ -597,10 +686,10 @@ Disclosure-ul preferat pentru Java este:
 ```text
 [+] expand Request details · N fields
     URL / method / path / headers / params / auth
-    REQUEST JSON (dacă există)
+    REQUEST JSON (payload sau `null` dacă request-ul nu are body)
 [+] expand Response details · N fields
     TECHNICAL TRACE
-    RESPONSE JSON (dacă există)
+    RESPONSE JSON (payload sau `null` dacă response-ul nu are body)
 [+] expand Execution evidence · N attempts
     response.status / response.url / response.duration.ms
     attempts / retry.events / retry history
@@ -629,8 +718,21 @@ dintr-un renderer extern. Aceeași disciplină se aplică pentru `RESPONSE JSON`
 tabelul agregat de assertions.
 
 JSON-ul este un code block dark, scrollabil vertical, cu înălțime bounded și
-fără să lărgească pagina. Validation-ul publică un singur tabel agregat de
-assertions, nu câte un tabel pentru fiecare assertion.
+fără să lărgească pagina. Pentru request-urile API raportate prin publisher-ul
+standard, cele două canale sunt obligatorii: `REQUEST JSON` și `RESPONSE JSON`.
+Pentru exchange-uri fără body, inclusiv `GET` fără payload și răspunsurile
+`204`/`304`, body-ul absent se reprezintă explicit prin JSON valid `null`; nu se
+omite disclosure-ul și nu se inventează `{}`. Pentru `POST` și `PUT`, ambele
+canale trebuie să conțină documente JSON ne-goale și valide; `null`, golul sau
+JSON-ul invalid sunt încălcări de contract publicate ca failure. Validation-ul
+publică un singur tabel agregat de assertions, nu câte un tabel pentru fiecare
+assertion.
+
+Body-ul de request provine din `ApiRequest.bodyText()` sau din payload-ul
+explicit al scenariului, iar body-ul de response provine din `ApiResponse.body()`
+configurat de `atf-mock.yaml` sau returnat de transportul live. UI audit-ul
+parsează ambele blocuri ca JSON și verifică fragmentele contractului pentru
+cazurile cu payload real.
 
 ## Tab-ul `Tests`
 
@@ -741,6 +843,15 @@ al doilea arbore executabil. Evidence-ul complet rămâne în testul original di
 un failure nu poate produce duplicate DOM, verdicturi concurente sau o a doua
 versiune a pașilor colapsabili.
 
+The intended Fails detail pane explicitly overrides the vendor fixed off-canvas
+position and remains in the same flex row as the failure list, including at
+narrow viewports. The Fails layout contract is closed: the inspected artifact computes
+the explicit no-wrap row contract, so the detail pane remains to the right of
+the list. `Open in Tests` first uses the runtime controller and then falls back
+to the encoded `test-id`/`scenario-index` hash if runtime activation throws or
+is unavailable. This keeps the link actionable in offline and DOM-only viewers
+as well as in the full browser runtime.
+
 Request-ul din index este scoped la faza care a eșuat; scenariile cu `SETUP`,
 `TEST BODY` și `TEARDOWN` nu pot împrumuta request-ul unei alte faze. Dacă există
 mai multe cauze, assertion-ul selectat rămâne vizibil, iar câmpul `CAUSE`
@@ -841,3 +952,30 @@ Pentru lucrările încă neimplementate, vezi
 [`docs/feedback/README.md`](../docs/feedback/README.md) și
 [`docs/feedback/ATF_Reporting_Duration_Semantics.md`](../docs/feedback/ATF_Reporting_Duration_Semantics.md).
 Feedback-ul păstrează numai ToDo-uri; acest README păstrează contractul stabil.
+## Audit critic al rendererelor UI
+
+Contractul vizual este corect numai dacă și sursa lui are un singur owner.
+Markup-ul pentru linkul screenshot Base64 este deținut acum de
+`ExtentReportAssets.base64ScreenshotLink`; `ExtentUiEvidenceRenderer`,
+`ExtentTransportEvidenceRenderer` și `ExtentReportUiEvidence` îl consumă în
+loc să-l reconstruiască. Orice schimbare de etichetă, accesibilitate sau
+deschidere în tab nou se face în helper și se verifică în toate proiecțiile.
+
+`ExtentReportAssets.base64ScreenshotLink` primește titlu, payload și clasa
+contextului și returnează un fragment HTML escap-at. Testele verifică aceeași
+ieșire pentru UI action, transport evidence și captură de overview. În plus,
+contractul de deduplicare cere exact un screenshot reference/label per stare
+vizuală, câte un result emoji per acțiune și un singur `target="_blank"` pentru
+linkul respectiv; repetarea pozei sau a emoji-ului este regresie.
+
+Validarea de contract trebuie separată în trei niveluri:
+
+```text
+payload valid → markup valid → comportament verificat în TAB MCP
+```
+
+Un substring în testul Java nu dovedește că browserul poate deschide imaginea,
+iar un link care se deschide nu dovedește că payload-ul este PNG valid. Ambele
+proprietăți trebuie păstrate în testele de reporting și în gate-ul UI.
+
+

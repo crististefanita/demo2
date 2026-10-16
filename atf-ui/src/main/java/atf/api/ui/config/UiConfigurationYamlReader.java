@@ -9,6 +9,8 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.StreamSupport;
 
@@ -36,11 +38,12 @@ final class UiConfigurationYamlReader {
             List<String> scenarioFamilies = scenarioFamilies(ui);
             UiScreenValidationConfiguration screenValidation = screenValidation(ui);
             Optional<Path> auditInputReport = auditInputReport(ui, base);
+            Map<String, UiAuditSuiteConfiguration> auditSuites = auditSuites(ui);
             JsonNode report = ui.path("report");
 
-            return new UiConfiguration(bool(ui, "enabled", false), browser, reportDirectory,
+            return new UiConfiguration(browser, reportDirectory,
                     text(report, "filePrefix", "ui-atf-extent-report_"), scenarioFamilies,
-                    screenValidation, auditInputReport);
+                    screenValidation, auditInputReport, auditSuites);
         } catch (IOException error) {
             throw new IllegalStateException("Cannot read ATF UI configuration: " + config, error);
         }
@@ -61,7 +64,7 @@ final class UiConfigurationYamlReader {
 
     private static Path reportDirectory(JsonNode ui, Path base) {
         JsonNode report = ui.path("report");
-        Path directory = Path.of(text(report, "directory", "artifacts/reports"));
+        Path directory = Path.of(text(report, "directory", "artifacts/reports/ui"));
         Path normalizedBase = base.toAbsolutePath().normalize();
         Path resolved = (directory.isAbsolute() ? directory : base.resolve(directory))
                 .toAbsolutePath().normalize();
@@ -106,6 +109,36 @@ final class UiConfigurationYamlReader {
             throw new IllegalStateException("ui.audit.inputReport escapes the configuration directory");
         }
         return Optional.of(resolved);
+    }
+
+    private static Map<String, UiAuditSuiteConfiguration> auditSuites(JsonNode ui) {
+        JsonNode suites = ui.path("audit").path("suites");
+        if (!suites.isObject()) return Map.of();
+        Map<String, UiAuditSuiteConfiguration> result = new LinkedHashMap<>();
+        suites.fields().forEachRemaining(entry -> {
+            String id = entry.getKey().trim().toLowerCase(java.util.Locale.ROOT).replace('_', '-');
+            JsonNode suite = entry.getValue();
+            result.put(id, new UiAuditSuiteConfiguration(id,
+                    strings(suite, "scenarioFamilies", "families"),
+                    strings(suite, "tabs"), strings(suite, "validators"),
+                    text(suite, "depth", "deep"), text(suite, "source", "yaml")));
+        });
+        return result;
+    }
+
+    private static List<String> strings(JsonNode parent, String... names) {
+        JsonNode value = null;
+        for (String name : names) {
+            JsonNode candidate = parent.path(name);
+            if (candidate.isArray()) { value = candidate; break; }
+        }
+        if (value == null) return List.of();
+        return StreamSupport.stream(value.spliterator(), false).map(node -> {
+            if (!node.isTextual() || node.asText().isBlank()) {
+                throw new IllegalStateException("ATF UI suite list values must be text");
+            }
+            return node.asText().trim();
+        }).toList();
     }
 
     private static String text(JsonNode parent, String name, String fallback) {

@@ -5,6 +5,7 @@ import atf.api.core.reporting.AtfReportPorts;
 import atf.api.core.reporting.AtfReportStatus;
 import atf.api.core.ui.AtfUiActionRecord;
 import atf.api.core.ui.AtfUiEvidenceSource;
+import atf.api.reporting.AtfReportSemanticRecorder;
 import atf.api.reporting.ExtentReportTree;
 import com.aventstack.extentreports.ExtentTest;
 
@@ -17,6 +18,7 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
     private final ExtentRequestScope owner;
     private final ExtentTest validation;
     private final String validationTitle;
+    private final AtfReportSemanticRecorder.ValidationHandle semantic;
     private List<AtfAssertion> assertions = List.of();
     private final List<AtfUiActionRecord> uiActions = new ArrayList<>();
     private final List<String[]> screenshots = new ArrayList<>();
@@ -26,20 +28,23 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
     private boolean screenshotOptional;
 
     ExtentValidationScope(ExtentReportTree tree, ExtentRequestScope owner, ExtentTest validation,
-                          String validationTitle) {
+                          String validationTitle, AtfReportSemanticRecorder.ValidationHandle semantic) {
         this.tree = tree;
         this.owner = owner;
         this.validation = validation;
         this.validationTitle = validationTitle;
+        this.semantic = semantic;
         tree.markStarted(validation);
     }
 
     @Override public void assertions(Collection<AtfAssertion> rows) {
         assertions = rows == null ? List.of() : List.copyOf(rows);
+        semantic.assertions(rows);
     }
 
     @Override public void uiActions(Collection<AtfUiActionRecord> actions) {
         if (actions != null) uiActions.addAll(actions);
+        semantic.uiActions(actions);
     }
 
     @Override public void screenshot(String title, String base64Png) {
@@ -48,6 +53,7 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
         }
         screenshots.add(new String[]{title == null || title.isBlank() ? "UI screenshot" : title,
                 base64Png});
+        semantic.screenshot();
     }
 
     @Override public void mediaScreenshot(String title, String base64Png) {
@@ -56,6 +62,7 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
         }
         mediaScreenshots.add(new String[]{title == null || title.isBlank() ? "UI screenshot" : title,
                 base64Png});
+        semantic.screenshot();
     }
 
     @Override public void complete(AtfReportStatus status) {
@@ -92,11 +99,15 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
                 validationTitle, status, validation);
         completed = true;
         owner.record(status);
+        semantic.complete(status);
         owner.validationCompleted();
     }
 
     @Override public void completeFailure(AtfReportStatus status) {
-        screenshotOptional = true;
+        // A failure may happen before a page can be captured, but an already
+        // supplied screenshot is still first-class evidence and must not be
+        // discarded by the failure completion path.
+        screenshotOptional = screenshots.isEmpty() && mediaScreenshots.isEmpty();
         complete(status);
     }
 

@@ -23,9 +23,6 @@ public final class AtfUiConfigurationLoader {
                     .map(UiConfigurationYamlReader::read)
                     .orElseGet(() -> UiConfiguration.defaults(context.startDirectory()))
                 : UiConfigurationYamlReader.read(explicit);
-        if (context.enabledOverride() != null) {
-            loaded = loaded.withEnabled(parseBoolean(context.enabledOverride(), "atf.ui.enabled"));
-        }
         Path reportBase = discovered == null ? context.startDirectory() : discovered.getParent();
         Path reportOverride = context.reportOverridePath(reportBase);
         return reportOverride == null ? loaded : loaded.withAuditInputReport(reportOverride);
@@ -50,11 +47,6 @@ public final class AtfUiConfigurationLoader {
             current = current.getParent();
         }
         return null;
-    }
-
-    private static boolean parseBoolean(String value, String key) {
-        if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false")) return Boolean.parseBoolean(value);
-        throw new IllegalArgumentException(key + " must be true or false");
     }
 
 }

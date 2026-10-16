@@ -1,16 +1,22 @@
 package atf.api.ui.config;
 
 import java.nio.file.Path;
+import java.time.Clock;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
 /** UI execution policy plus the report discovery policy used by UI checks. */
-public record UiConfiguration(boolean enabled, UiBrowserConfiguration browser,
-                              Path reportDirectory, String reportFilePrefix,
+public record UiConfiguration(UiBrowserConfiguration browser, Path reportDirectory,
+                              String reportFilePrefix,
                               List<String> apiScenarioFamilies,
                               UiScreenValidationConfiguration screenValidation,
-                              Optional<Path> auditInputReport) {
+                              Optional<Path> auditInputReport,
+                              Map<String, UiAuditSuiteConfiguration> auditSuites) {
+    private static final DateTimeFormatter REPORT_TIMESTAMP =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss-SSS");
     static List<String> defaultScenarioFamilies() {
         return List.of("posts", "users", "requests", "headers", "lifecycle");
     }
@@ -28,36 +34,55 @@ public record UiConfiguration(boolean enabled, UiBrowserConfiguration browser,
         screenValidation = Objects.requireNonNull(screenValidation, "screenValidation");
         auditInputReport = Objects.requireNonNull(auditInputReport, "auditInputReport")
                 .map(path -> path.toAbsolutePath().normalize());
+        auditSuites = Map.copyOf(Objects.requireNonNull(auditSuites, "auditSuites"));
     }
 
-    public UiConfiguration(boolean enabled, UiBrowserConfiguration browser,
-                           Path reportDirectory, String reportFilePrefix) {
-        this(enabled, browser, reportDirectory, reportFilePrefix,
+    public UiConfiguration(UiBrowserConfiguration browser, Path reportDirectory, String reportFilePrefix) {
+        this(browser, reportDirectory, reportFilePrefix,
                 defaultScenarioFamilies(),
                 UiScreenValidationConfiguration.defaults(), Optional.empty());
     }
 
-    public UiConfiguration(boolean enabled, UiBrowserConfiguration browser,
-                           Path reportDirectory, String reportFilePrefix,
+    public UiConfiguration(UiBrowserConfiguration browser, Path reportDirectory, String reportFilePrefix,
                            List<String> apiScenarioFamilies) {
-        this(enabled, browser, reportDirectory, reportFilePrefix, apiScenarioFamilies,
+        this(browser, reportDirectory, reportFilePrefix, apiScenarioFamilies,
                 UiScreenValidationConfiguration.defaults(), Optional.empty());
     }
 
-    /** Returns the same immutable UI policy with only the process override applied. */
-    public UiConfiguration withEnabled(boolean enabled) {
-        return new UiConfiguration(enabled, browser, reportDirectory, reportFilePrefix,
-                apiScenarioFamilies, screenValidation, auditInputReport);
+    public UiConfiguration(UiBrowserConfiguration browser, Path reportDirectory,
+                           String reportFilePrefix, List<String> apiScenarioFamilies,
+                           UiScreenValidationConfiguration screenValidation,
+                           Optional<Path> auditInputReport) {
+        this(browser, reportDirectory, reportFilePrefix, apiScenarioFamilies,
+                screenValidation, auditInputReport, Map.of());
     }
 
     public UiConfiguration withAuditInputReport(Path report) {
-        return new UiConfiguration(enabled, browser, reportDirectory, reportFilePrefix,
+        return new UiConfiguration(browser, reportDirectory, reportFilePrefix,
                 apiScenarioFamilies, screenValidation, Optional.ofNullable(report));
     }
 
+    public Optional<UiAuditSuiteConfiguration> auditSuite(String id) {
+        if (id == null || id.isBlank()) return Optional.empty();
+        return Optional.ofNullable(auditSuites.get(normalizeSuiteId(id)));
+    }
+
+    private static String normalizeSuiteId(String value) {
+        return value.trim().toLowerCase(java.util.Locale.ROOT).replace('_', '-');
+    }
+
+    /** Resolves a collision-resistant artifact name for one audit role. */
+    public String timestampedReportFileName(String logicalSuffix, Clock clock) {
+        Objects.requireNonNull(clock, "clock");
+        String suffix = logicalSuffix == null ? "" : logicalSuffix.trim();
+        if (!suffix.isEmpty() && !suffix.endsWith("_")) suffix += "_";
+        return reportFilePrefix + suffix
+                + REPORT_TIMESTAMP.withZone(clock.getZone()).format(clock.instant()) + ".html";
+    }
+
     public static UiConfiguration defaults(Path baseDirectory) {
-        return new UiConfiguration(false, UiBrowserConfiguration.defaults(),
-                baseDirectory.resolve("artifacts/reports"), "api-atf-extent-report_",
+        return new UiConfiguration(UiBrowserConfiguration.defaults(),
+                baseDirectory.resolve("artifacts/reports/ui"), "ui-atf-extent-report_",
                 defaultScenarioFamilies(),
                 UiScreenValidationConfiguration.defaults(), Optional.empty());
     }

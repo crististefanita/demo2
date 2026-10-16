@@ -99,17 +99,13 @@ final class ExtentTransportEvidenceRenderer {
     }
 
     void renderScreenshots(ExtentTest node, List<String[]> screenshots) {
-        if (screenshots == null || screenshots.isEmpty()) return;
-        for (String[] screenshot : screenshots) {
-            if (screenshot == null || screenshot.length < 2 || screenshot[1].isBlank()) continue;
+        for (String[] screenshot : ExtentReportAssets.distinctScreenshots(screenshots)) {
             String title = screenshot[0] == null || screenshot[0].isBlank()
                     ? "UI screenshot" : screenshot[0];
-            String base64 = escapeHtml(screenshot[1]);
             node.info(() -> "<div class=\"atf-ui-action-screenshot\">"
-                    + "<a class=\"atf-ui-action-screenshot-link\" data-atf-screenshot=\"base64\""
-                    + " href=\"data:image/png;base64," + base64
-                    + "\" target=\"_blank\" rel=\"noopener\" data-featherlight=\"image\" aria-label=\"Open "
-                    + escapeHtml(title) + "\"><span class=\"badge badge-gradient-primary\">📷 base64 img</span></a></div>");
+                    + ExtentReportAssets.base64ScreenshotLink(
+                            "atf-ui-action-screenshot-link", title, screenshot[1])
+                    + "</div>");
         }
     }
 

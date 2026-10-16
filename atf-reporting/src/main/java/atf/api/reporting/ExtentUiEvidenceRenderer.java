@@ -39,12 +39,8 @@ final class ExtentUiEvidenceRenderer {
 
     private void renderBrowserActions(ExtentTest node, List<AtfUiActionRecord> actions,
                                       List<String[]> screenshots) {
-        long base64ScreenshotCount = screenshots == null ? 0 : screenshots.stream()
-                .filter(screenshot -> screenshot != null
-                        && screenshot.length >= 2
-                        && screenshot[1] != null
-                        && !screenshot[1].isBlank())
-                .count();
+        List<String[]> distinctScreenshots = ExtentReportAssets.distinctScreenshots(screenshots);
+        long base64ScreenshotCount = distinctScreenshots.size();
         if (base64ScreenshotCount != 1) {
             throw new IllegalStateException(
                     "A UI action sequence requires exactly one Base64 screenshot; found "
@@ -52,27 +48,23 @@ final class ExtentUiEvidenceRenderer {
         }
         var html = actionTable(actions);
         html.append("</tbody></table>");
-        for (String[] screenshot : screenshots) {
-            if (screenshot == null || screenshot.length < 2 || screenshot[1].isBlank()) continue;
+        for (String[] screenshot : distinctScreenshots) {
             String title = screenshot[0] == null || screenshot[0].isBlank()
                     ? "UI screenshot" : screenshot[0];
             html.append("<div class=\"atf-ui-action-screenshot\">")
-                    .append("<a class=\"atf-ui-action-screenshot-link\" data-atf-screenshot=\"base64\"")
-                    .append(" href=\"data:image/png;base64,")
-                    .append(escapeHtml(screenshot[1]))
-                    .append("\" target=\"_blank\" rel=\"noopener\" aria-label=\"Open ")
-                    .append(escapeHtml(title))
-                    .append("\" target=\"_blank\" rel=\"noopener\" data-featherlight=\"image\" aria-label=\"Open ")
-                    .append(escapeHtml(title))
-                    .append("\"><span class=\"badge badge-gradient-primary\">📷 base64 img</span></a></div>");
+                    .append(ExtentReportAssets.base64ScreenshotLink(
+                            "atf-ui-action-screenshot-link", title, screenshot[1]))
+                    .append("</div>");
         }
         String markup = html.append("</div></details>").toString();
         node.info(() -> markup);
     }
 
     private void renderObservations(ExtentTest node, List<AtfUiActionRecord> observations) {
-        var html = new StringBuilder("<details class=\"atf-ui-observations\"><summary>")
-                .append("Audit observations (").append(observations.size()).append(" entries)")
+        String summary = observationSummary(observations);
+        var html = new StringBuilder("<details class=\"atf-ui-observations\"><summary aria-label=\"")
+                .append(escapeHtml(summary)).append("\">")
+                .append(escapeHtml(summary))
                 .append("</summary><div class=\"atf-ui-action-table-wrap\"><table class=\"atf-ui-action-table atf-ui-observation-table\">")
                 .append("<thead><tr><th>#</th><th>OBSERVATION</th><th>TARGET</th><th>EXPECTED</th>")
                 .append("<th>OBSERVED</th><th>TIME</th><th>RESULT</th></tr></thead><tbody>");
@@ -89,6 +81,11 @@ final class ExtentUiEvidenceRenderer {
                     .append(observation.resultEmoji()).append("</span></td></tr>");
         }
         node.info(() -> html.append("</tbody></table></div></details>").toString());
+    }
+
+    private static String observationSummary(List<AtfUiActionRecord> observations) {
+        String checkpointLabel = observations.size() == 1 ? "checkpoint" : "checkpoints";
+        return "Audit observations · " + observations.size() + " " + checkpointLabel;
     }
 
     /** Renders the action table only; the caller adds native media separately. */

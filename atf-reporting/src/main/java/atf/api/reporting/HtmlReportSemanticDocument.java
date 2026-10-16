@@ -36,6 +36,33 @@ final class HtmlReportSemanticDocument {
         return List.copyOf(scenarios);
     }
 
+    HtmlReportSemanticSnapshot snapshot() {
+        return new HtmlReportSemanticSnapshot(scenarios.stream().map(scenario ->
+                new HtmlReportSemanticSnapshot.Scenario(scenario.id, scenario.testClass,
+                        scenario.scenario, scenario.tags,
+                        scenario.phases.stream().map(phase ->
+                                new HtmlReportSemanticSnapshot.Phase(phase.name,
+                                        phase.details.stream().map(detail ->
+                                                new HtmlReportSemanticSnapshot.Detail(detail[0], detail[1])).toList(),
+                                        phase.children.stream().map(HtmlReportSemanticDocument::snapshotNode).toList(),
+                                        phase.status)).toList(), scenario.status)).toList());
+    }
+
+    private static HtmlReportSemanticSnapshot.Node snapshotNode(NodeModel node) {
+        if (node instanceof RequestModel request) {
+            return new HtmlReportSemanticSnapshot.Request(request.title, request.method, request.path,
+                    request.details.stream().map(detail ->
+                            new HtmlReportSemanticSnapshot.Detail(detail[0], detail[1])).toList(),
+                    request.json.stream().map(json ->
+                            new HtmlReportSemanticSnapshot.Json(json[0], json[1])).toList(),
+                    request.execution, request.children.stream()
+                            .map(HtmlReportSemanticDocument::snapshotNode).toList(), request.status);
+        }
+        ValidationModel validation = (ValidationModel) node;
+        return new HtmlReportSemanticSnapshot.Validation(validation.title,
+                validation.assertions, validation.status);
+    }
+
     interface NodeModel {
         AtfReportStatus status();
     }

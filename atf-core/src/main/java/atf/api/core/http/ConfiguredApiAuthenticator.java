@@ -17,12 +17,12 @@ public final class ConfiguredApiAuthenticator implements ApiAuthenticator {
         var profile = profile(profileName);
         switch (profile.type()) {
             case NONE -> { }
-            case BEARER -> request.header("Authorization", "Bearer " + required(profile.token(), profile.name()));
+            case BEARER -> request.header(HttpHeader.AUTHORIZATION.value(), "Bearer " + required(profile.token(), profile.name()));
             case API_KEY -> request.header(required(profile.headerName(), profile.name()), required(profile.token(), profile.name()));
             case BASIC -> {
                 String raw = required(profile.username(), profile.name()) + ":" + required(profile.password(), profile.name());
                 String encoded = Base64.getEncoder().encodeToString(raw.getBytes(StandardCharsets.UTF_8));
-                request.header("Authorization", "Basic " + encoded);
+                request.header(HttpHeader.AUTHORIZATION.value(), "Basic " + encoded);
             }
             case CUSTOM -> profile.customHeaders().forEach(request::header);
         }

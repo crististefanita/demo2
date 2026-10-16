@@ -1,8 +1,16 @@
 package atf.api.tests.api.posts;
 
+import atf.api.core.http.ApiOperationLabel;
+import atf.api.core.http.HttpMethod;
+import atf.api.execution.routing.RoutePaths;
+import atf.api.core.http.MediaTypes;
+
 import atf.api.core.reporting.AtfReportPorts;
 import atf.api.execution.ApiModule;
+import atf.api.execution.data.JsonPayloads;
 import atf.api.execution.lifecycle.ApiScenarioLifecycleRunner;
+import atf.api.execution.model.PostRequest;
+import atf.api.tests.api.data.ApiFixtureData;
 import atf.api.tests.support.ApiAcceptancePlanBuilder;
 import atf.api.tests.support.ApiAcceptancePublisher;
 import atf.api.validation.contract.ContractValidators;
@@ -12,35 +20,107 @@ import java.util.List;
 
 /** Post-resource and relationship scenarios in the public acceptance artifact. */
 public final class PostsApiScenarios {
+    public static final String REPORT_OWNER = "PostsApiTests";
+    public static final String GET_COLLECTION = "getCollection";
+    public static final String GET_BY_ID = "getById";
+    public static final String GET_USER_POSTS = "getUserPosts";
+    public static final String GET_UNKNOWN = "getUnknown";
+    public static final String CREATE_POST = "createPost";
+
     private PostsApiScenarios() { }
 
     public static void publish(AtfReportPorts.Session session, ApiModule api,
                                ApiScenarioLifecycleRunner lifecycle) {
+        publishCollection(session, api, lifecycle);
+        publishItem(session, api, lifecycle);
+        publishUserPosts(session, api, lifecycle);
+        publishUnknown(session, api, lifecycle);
+        publishCreate(session, api, lifecycle);
+    }
+
+    public static void publishSelected(AtfReportPorts.Session session, ApiModule api,
+                                       ApiScenarioLifecycleRunner lifecycle, String method) {
+        switch (method) {
+            case GET_COLLECTION -> publishCollection(session, api, lifecycle);
+            case GET_BY_ID -> publishItem(session, api, lifecycle);
+            case GET_USER_POSTS -> publishUserPosts(session, api, lifecycle);
+            case GET_UNKNOWN -> publishUnknown(session, api, lifecycle);
+            case CREATE_POST -> publishCreate(session, api, lifecycle);
+            default -> throw new IllegalArgumentException("Unknown posts API scenario method: " + method);
+        }
+    }
+
+    public static String scenarioTitle(String method) {
+        return switch (method) {
+            case GET_COLLECTION -> ApiOperationLabel.format(HttpMethod.GET, RoutePaths.POSTS,
+                    "collection contract");
+            case GET_BY_ID -> ApiOperationLabel.format(HttpMethod.GET, RoutePaths.POST_BY_ID,
+                    "item contract");
+            case GET_USER_POSTS -> ApiOperationLabel.format(HttpMethod.GET, RoutePaths.USER_POSTS,
+                    "relationship contract");
+            case GET_UNKNOWN -> ApiOperationLabel.format(HttpMethod.GET,
+                    RoutePaths.POST_BY_ID.replace("{id}", "{unknownId}"), "not found contract");
+            case CREATE_POST -> ApiOperationLabel.format(HttpMethod.POST, RoutePaths.POSTS,
+                    "create contract");
+            default -> throw new IllegalArgumentException("Unknown posts API scenario method: " + method);
+        };
+    }
+
+    private static void publishCollection(AtfReportPorts.Session session, ApiModule api,
+                                          ApiScenarioLifecycleRunner lifecycle) {
         run(lifecycle, session, plan(
-                "GET /public/v2/posts — collection contract",
+                ApiOperationLabel.format(HttpMethod.GET, RoutePaths.POSTS, "collection contract"),
                 List.of("api", "posts", "contract")),
-                phase -> ApiAcceptancePublisher.publish(phase, "GET /public/v2/posts",
+                phase -> ApiAcceptancePublisher.publish(phase, ApiOperationLabel.format(HttpMethod.GET, RoutePaths.POSTS, null),
                         api.posts().getCollection(), ContractValidators.postCollection(), false, null));
+    }
 
+    private static void publishItem(AtfReportPorts.Session session, ApiModule api,
+                                    ApiScenarioLifecycleRunner lifecycle) {
         run(lifecycle, session, plan(
-                "GET /public/v2/posts/{id} — item contract",
+                ApiOperationLabel.format(HttpMethod.GET, RoutePaths.POST_BY_ID, "item contract"),
                 List.of("api", "posts", "contract")),
-                phase -> ApiAcceptancePublisher.publish(phase, "GET /public/v2/posts/101", api.posts().get(101),
+                phase -> ApiAcceptancePublisher.publish(phase, ApiOperationLabel.format(HttpMethod.GET, RoutePaths.POSTS + "/" + ApiFixtureData.EXISTING_POST_ID, null), api.posts().get(ApiFixtureData.EXISTING_POST_ID),
                         ContractValidators.postItem(), false, null));
+    }
 
+    private static void publishUserPosts(AtfReportPorts.Session session, ApiModule api,
+                                         ApiScenarioLifecycleRunner lifecycle) {
         run(lifecycle, session, plan(
-                "GET /public/v2/users/{userId}/posts — relationship contract",
+                ApiOperationLabel.format(HttpMethod.GET, RoutePaths.USER_POSTS, "relationship contract"),
                 List.of("api", "posts", "relationship", "contract")),
-                phase -> ApiAcceptancePublisher.publish(phase, "GET /public/v2/users/1/posts",
-                        api.posts().forUser(1), ContractValidators.relationshipCollection("1"), false, null));
+                phase -> ApiAcceptancePublisher.publish(phase, ApiOperationLabel.format(HttpMethod.GET, RoutePaths.USERS + "/" + ApiFixtureData.USER_ID + "/posts", null),
+                        api.posts().forUser(ApiFixtureData.USER_ID), ContractValidators.relationshipCollection(String.valueOf(ApiFixtureData.USER_ID)), false, null));
+    }
 
+    private static void publishUnknown(AtfReportPorts.Session session, ApiModule api,
+                                       ApiScenarioLifecycleRunner lifecycle) {
         run(lifecycle, session, plan(
-                "GET /public/v2/posts/{unknownId} — not found contract",
+                ApiOperationLabel.format(HttpMethod.GET, RoutePaths.POST_BY_ID.replace("{id}", "{unknownId}"), "not found contract"),
                 List.of("api", "posts", "negative", "contract")),
-                phase -> ApiAcceptancePublisher.publish(phase, "GET /public/v2/posts/999999",
-                        api.posts().get(999999),
-                        new ResponseContract().status(404).contentTypeContains("application/json")
+                phase -> ApiAcceptancePublisher.publish(phase, ApiOperationLabel.format(HttpMethod.GET, RoutePaths.POSTS + "/" + ApiFixtureData.UNKNOWN_POST_ID, null),
+                        api.posts().get(ApiFixtureData.UNKNOWN_POST_ID),
+                        new ResponseContract().status(404).contentTypeContains(MediaTypes.APPLICATION_JSON)
                                 .bodyContains("Not found"), false, null));
+    }
+
+    private static void publishCreate(AtfReportPorts.Session session, ApiModule api,
+                                      ApiScenarioLifecycleRunner lifecycle) {
+        run(lifecycle, session, plan(
+                ApiOperationLabel.format(HttpMethod.POST, RoutePaths.POSTS, "create contract"),
+                List.of("api", "posts", "write", "contract")),
+                phase -> {
+                    var payload = ApiFixtureData.createdPostRequest();
+                    ApiAcceptancePublisher.publish(phase, ApiOperationLabel.format(HttpMethod.POST, RoutePaths.POSTS, null),
+                            api.posts().create(payload),
+                            new ResponseContract().status(201)
+                                    .contentTypeContains(MediaTypes.APPLICATION_JSON)
+                                    .jsonPathEquals("$.id", String.valueOf(ApiFixtureData.CREATED_POST_ID))
+                                    .jsonPathEquals("$.user_id", String.valueOf(ApiFixtureData.USER_ID))
+                                    .jsonPathEquals("$.title", ApiFixtureData.CREATED_POST_TITLE)
+                                    .jsonPathEquals("$.body", ApiFixtureData.POST_BODY),
+                            false, JsonPayloads.write(payload));
+                });
     }
 
     private static void run(ApiScenarioLifecycleRunner lifecycle, AtfReportPorts.Session session,

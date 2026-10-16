@@ -45,11 +45,30 @@ public final class UiExtentReportSession implements AutoCloseable {
     public static UiExtentReportSession openConfigured(Path outputDirectory,
                                                        String fileName,
                                                        AtfConsoleSink console) {
+        return openConfigured(outputDirectory, fileName, console, true);
+    }
+
+    /**
+     * Opens a report whose collision-resistant file name was already resolved
+     * by the owning configuration snapshot. This prevents a second timestamp
+     * from being appended when a caller deliberately composes a logical suffix
+     * and timestamp for parallel UI audits.
+     */
+    public static UiExtentReportSession openConfiguredResolved(Path outputDirectory,
+                                                                String resolvedFileName,
+                                                                AtfConsoleSink console) {
+        return openConfigured(outputDirectory, resolvedFileName, console, false);
+    }
+
+    private static UiExtentReportSession openConfigured(Path outputDirectory,
+                                                        String fileName,
+                                                        AtfConsoleSink console,
+                                                        boolean timestampEnabled) {
         var apiConfiguration = AtfReportConfigurationLoader.load();
         var uiConfiguration = new ExtentReportConfiguration(
                 Objects.requireNonNull(outputDirectory, "outputDirectory"),
                 Objects.requireNonNull(fileName, "fileName"),
-                apiConfiguration.timestampEnabled(),
+                timestampEnabled && apiConfiguration.timestampEnabled(),
                 apiConfiguration.timestampPattern(),
                 apiConfiguration.timestampZone(),
                 apiConfiguration.reportingSettings(),
@@ -111,10 +130,12 @@ public final class UiExtentReportSession implements AutoCloseable {
 
     public final class UiPhase implements AutoCloseable {
         private final AtfReportPorts.Phase delegatePhase;
+        private final UiEvidencePublisher evidencePublisher;
         private boolean completed;
 
         private UiPhase(AtfReportPorts.Phase delegatePhase) {
             this.delegatePhase = delegatePhase;
+            this.evidencePublisher = new UiEvidencePublisher(delegatePhase);
         }
 
         /** Adds one Gherkin-shaped Playwright step and optional Base64 screenshot link. */
@@ -142,17 +163,7 @@ public final class UiExtentReportSession implements AutoCloseable {
         public void outcome(String keyword, String title, String target,
                             AtfReportStatus status) {
             ensureOpen();
-            String stepTitle = ((keyword == null ? "" : keyword.trim()) + " "
-                    + (title == null ? "" : title.trim())).trim();
-            var request = delegatePhase.startRequest(stepTitle, "", "");
-            try {
-                request.detail("request.action", stepTitle);
-                if (target != null && !target.isBlank()) request.detail("request.target", target);
-                request.detail("outcome.type", "artifact-publication");
-                request.complete(status == null ? AtfReportStatus.PASS : status);
-            } finally {
-                request.close();
-            }
+            evidencePublisher.publishOutcome(keyword, title, target, status);
         }
 
         /**
@@ -178,33 +189,16 @@ public final class UiExtentReportSession implements AutoCloseable {
 
         /**
          * Publishes the consecutive Playwright actions in a table and the
-         * visual state as native Base64 media. The screenshot is a compact
-         * clickable report artifact, not an inline HTML image.
+         * visual state as native Base64 media. The screenshot is rendered once
+         * as an inline HTML image and opened from that same image on click.
          */
         public void screenValidationAsMedia(String title, String target, String base64Png,
                                             Collection<AtfAssertion> assertions,
                                             Collection<AtfUiActionRecord> actions,
                                             AtfReportStatus status) {
             ensureOpen();
-            String stepTitle = ("THEN " + (title == null ? "" : title.trim())).trim();
-            var request = delegatePhase.startRequest(stepTitle, "", "");
-            try {
-                request.detail("request.action", stepTitle);
-                if (target != null && !target.isBlank()) request.detail("request.target", target);
-                request.detail("evidence.type", "screen-validation");
-                request.detail("evidence.policy", "Base64 native media link; no inline image");
-                var validation = request.startValidation("Screen validation");
-                if (actions != null && !actions.isEmpty()) validation.uiActions(actions);
-                if (base64Png != null && !base64Png.isBlank()) {
-                    validation.mediaScreenshot("UI screenshot — " + title + " — "
-                            + (status == null ? AtfReportStatus.PASS : status), base64Png);
-                }
-                validation.assertions(assertions);
-                validation.complete(status == null ? AtfReportStatus.PASS : status);
-                request.complete(status == null ? AtfReportStatus.PASS : status);
-            } finally {
-                request.close();
-            }
+            evidencePublisher.publishScreenValidationAsMedia(title, target, base64Png,
+                    assertions, actions, status);
         }
 
         /**
@@ -216,25 +210,15 @@ public final class UiExtentReportSession implements AutoCloseable {
         public void failureEvidence(String title, String target,
                                      Collection<AtfUiActionRecord> actions,
                                      Throwable failure) {
+            failureEvidence(title, target, actions, failure, null);
+        }
+
+        /** Publishes failure evidence and an optional policy-controlled screenshot. */
+        public void failureEvidence(String title, String target,
+                                     Collection<AtfUiActionRecord> actions,
+                                     Throwable failure, String base64Png) {
             ensureOpen();
-            String safeTitle = title == null || title.isBlank() ? "UI audit failure" : title.trim();
-            String cause = failure == null ? "failure recorded" : failure.getClass().getSimpleName()
-                    + ": " + (failure.getMessage() == null ? "" : failure.getMessage());
-            var request = delegatePhase.startRequest("THEN " + safeTitle, "", "");
-            try {
-                request.detail("request.action", safeTitle);
-                if (target != null && !target.isBlank()) request.detail("request.target", target);
-                request.detail("evidence.type", "ui-failure");
-                request.detail("evidence.policy", "preserve executed actions; screenshot optional");
-                var validation = request.startValidation("Failure evidence");
-                if (actions != null && !actions.isEmpty()) validation.uiActions(actions);
-                validation.assertions(List.of(new AtfAssertion(
-                        "Failure cause", "no failure", cause, false)));
-                validation.completeFailure(AtfReportStatus.FAIL);
-                request.complete(AtfReportStatus.FAIL);
-            } finally {
-                request.close();
-            }
+            evidencePublisher.publishFailure(title, target, actions, failure, base64Png);
         }
 
         private void action(String keyword, String title, String target,
@@ -242,32 +226,8 @@ public final class UiExtentReportSession implements AutoCloseable {
                             AtfReportStatus status, String validationTitle,
                             Collection<AtfUiActionRecord> actions) {
             ensureOpen();
-            String stepTitle = ((keyword == null ? "" : keyword.trim()) + " "
-                    + (title == null ? "" : title.trim())).trim();
-            var request = delegatePhase.startRequest(stepTitle, "", "");
-            try {
-                request.detail("request.action", stepTitle);
-                if (target != null && !target.isBlank()) request.detail("request.target", target);
-                if ("Screen validation".equals(validationTitle)) {
-                    request.detail("evidence.type", "screen-validation");
-                    request.detail("evidence.policy", "one Base64 screenshot link per visual state");
-                }
-                boolean visualValidation = "Screen validation".equals(validationTitle);
-                if (visualValidation || (assertions != null && !assertions.isEmpty())) {
-                    var validation = request.startValidation(validationTitle);
-                    if (actions != null && !actions.isEmpty()) validation.uiActions(actions);
-                    if (base64Png != null && !base64Png.isBlank()) {
-                        validation.screenshot("UI assertion — " + title + " — "
-                                        + (status == null ? AtfReportStatus.PASS : status),
-                                base64Png);
-                    }
-                    validation.assertions(assertions);
-                    validation.complete(status == null ? AtfReportStatus.PASS : status);
-                }
-                request.complete(status == null ? AtfReportStatus.PASS : status);
-            } finally {
-                request.close();
-            }
+            evidencePublisher.publishAction(keyword, title, target, base64Png, assertions,
+                    status, validationTitle, actions);
         }
 
         public void complete(AtfReportStatus status) {

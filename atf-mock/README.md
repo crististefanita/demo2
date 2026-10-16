@@ -92,6 +92,14 @@ URL-ul complet, query string-ul, tipul de auth și răspunsul nested. Aceasta
 rămâne o simulare deterministă; nu transformă accidental testele offline în
 apeluri către `https://atf.local`.
 
+Toate rutele `POST` și `PUT` din catalogul proiectului sunt write-contracts
+JSON: request-ul trebuie să aibă body JSON non-gol și `Content-Type` JSON, iar
+response-ul configurat trebuie să fie un document JSON non-gol și valid. `ApiRoute`
+adaugă automat header-ul `Content-Type: application/json` pentru
+`requestBody(...)`, iar mock-ul face fail-closed către fallback pentru body lipsă
+sau invalid. Publisher-ul și auditorul UI verifică apoi aceleași două canale în
+raport, astfel încât mock-ul să fie sursa de adevăr pentru validarea UI.
+
 `duration` este o durată ISO-8601 Java (`java.time.Duration`): 12 ms se scrie
 `PT0.012S`, nu `PT12MS`. Forma este intenționată și este verificată de testul
 YAML al transportului, pentru ca fixture-urile să nu depindă de un parser
@@ -99,8 +107,9 @@ permisiv sau de unități inventate.
 
 Configurația este încărcată o singură dată la composition root. Un fallback
 explică rutele uitate fără să transforme un request necunoscut într-un 200.
-`ApiAcceptanceReportTest` și `ApiTestFixture` folosesc configurația proiectului;
+Scenariile API și `ApiReportAuditSetup` folosesc configurația proiectului;
+`ApiReportSetupFlow` este doar fațada de compatibilitate;
 testele unitare pot folosi `AtfMockTransport.defaults()` pentru izolare.
 
 `atf-mock` nu este live HTTP. Pentru un endpoint real se folosește separat
-`HttpClientTransport` și profilul live opt-in din `ApiLiveReportTest`.
+`HttpClientTransport` și profilul live opt-in configurat la execuție.

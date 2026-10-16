@@ -4,6 +4,7 @@ import atf.api.core.reporting.AtfReportPorts;
 import atf.api.core.reporting.AtfReportStatus;
 
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -32,7 +33,22 @@ public final class ApiScenarioLifecycleRunner {
      * phase as FAIL without aborting teardown.
      */
     public static class FailureSignal extends RuntimeException {
-        public FailureSignal(String message) { super(message); }
+        private final Map<String, String> evidence;
+
+        public FailureSignal(String message) {
+            this(message, Map.of());
+        }
+
+        public FailureSignal(String message, Map<String, String> evidence) {
+            super(message);
+            this.evidence = java.util.Collections.unmodifiableMap(
+                    new LinkedHashMap<>(evidence == null ? Map.of() : evidence));
+        }
+
+        /** Compact, renderer-neutral fields shown beside the failure cause. */
+        public Map<String, String> evidence() {
+            return evidence;
+        }
     }
 
     private final ApiScenarioPhaseExecutor phaseExecutor = new ApiScenarioPhaseExecutor();

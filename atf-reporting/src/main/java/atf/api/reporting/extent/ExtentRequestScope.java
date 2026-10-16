@@ -6,6 +6,7 @@ import atf.api.core.reporting.AtfReportStatus;
 import atf.api.core.reporting.ReportStatusAggregator;
 import atf.api.core.ui.AtfUiActionRecord;
 import atf.api.core.ui.AtfUiEvidenceSource;
+import atf.api.reporting.AtfReportSemanticRecorder;
 import atf.api.reporting.ExtentReportTree;
 import com.aventstack.extentreports.ExtentTest;
 
@@ -22,22 +23,25 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
     private final List<String[]> screenshots = new ArrayList<>();
     private final List<AtfUiActionRecord> uiActions = new ArrayList<>();
     private final ReportStatusAggregator statuses = new ReportStatusAggregator();
+    private final AtfReportSemanticRecorder.RequestHandle semantic;
     private ApiExecutionResult execution;
     private int openValidations;
     private boolean closed;
 
     ExtentRequestScope(ExtentReportTree tree, ExtentPhaseScope phase, ExtentTest request,
-                       String requestTitle) {
+                       String requestTitle, AtfReportSemanticRecorder.RequestHandle semantic) {
         this.tree = tree;
         this.phase = phase;
         this.request = request;
         this.requestTitle = requestTitle;
+        this.semantic = semantic;
         tree.markStarted(request);
     }
 
     @Override public void detail(String name, String value) {
         String redacted = tree.redactor().redactField(name, value);
         details.add(new String[]{tree.normalizeDetailName(name), redacted});
+        semantic.detail(name);
         tree.consoleDetail(atf.api.core.reporting.AtfConsoleEvent.Scope.REQUEST,
                 tree.normalizeDetailName(name), redacted);
     }
@@ -45,6 +49,7 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
     @Override public void json(String label, String value) {
         String redacted = tree.redactor().redactJson(value);
         json.add(new String[]{label, redacted});
+        semantic.json(label);
         tree.consoleCode(atf.api.core.reporting.AtfConsoleEvent.Scope.REQUEST, label, redacted);
     }
 
@@ -54,15 +59,18 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
             throw new IllegalArgumentException("base64Png must not be blank");
         }
         screenshots.add(new String[]{title == null || title.isBlank() ? "UI screenshot" : title, base64Png});
+        semantic.screenshot();
     }
 
     @Override public void uiActions(java.util.Collection<AtfUiActionRecord> actions) {
         ensureRequestOpen();
         if (actions != null) uiActions.addAll(actions);
+        semantic.uiActions(actions);
     }
 
     @Override public void execution(ApiExecutionResult result) {
         execution = result;
+        semantic.execution();
     }
 
     @Override public void complete(AtfReportStatus status) {
@@ -81,6 +89,7 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
         tree.complete(request, effective);
         tree.markEnded(request);
         phase.record(effective);
+        semantic.complete(effective);
         tree.consoleCompleted(atf.api.core.reporting.AtfConsoleEvent.Scope.REQUEST,
                 requestTitle, effective, request);
         closed = true;
@@ -94,7 +103,8 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
         // A validation is a substep of the Gherkin-shaped request/statement.
         // Creating it from the phase makes it a misleading sibling in Tests;
         // creating it from the request preserves the semantic hierarchy.
-        return new ExtentValidationScope(tree, this, request.createNode(validationTitle), validationTitle);
+        return new ExtentValidationScope(tree, this, request.createNode(validationTitle), validationTitle,
+                semantic.startValidation(validationTitle));
     }
 
     void record(AtfReportStatus status) { statuses.record(status); }

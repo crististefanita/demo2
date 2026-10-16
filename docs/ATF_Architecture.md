@@ -51,6 +51,37 @@ Regula practică: dacă un comportament poate fi verificat cu un fake și fără
 rețea, testul lui aparține în atf-tests; dacă dovedește comportamentul unui
 serviciu real, aparține scenariilor de produs.
 
+## Boundary-ul testelor API și al auditului UI
+
+`atf.api.tests.api` este exclusiv pentru teste API: resurse, request-uri,
+headere, contracte, scenarii stateful și lifecycle. Nu poate importa browser,
+Playwright, `Page`, `Locator`, DOM, screenshot sau Debug UI.
+
+Auditul raportului Extent aparține `atf.ui.tests.extent` din `atf-tests`.
+`atf-ui` furnizează configurația și adaptorul Playwright, iar
+`atf-debug-ui` servește read-only HTML-ul rezultat pentru inspecție prin TAB
+MCP. Precondiția API pentru un audit UI este compusă de
+`ApiReportAuditSetup`; `ApiReportSetupFlow` este doar fațada de compatibilitate.
+
+Lanțul observabil este:
+
+```text
+setup configurabil
+  → scenarii API
+  → atf-mock.yaml / AtfMockTransport
+  → raport API read-only
+  → audit Playwright în atf.ui.tests.extent
+  → validare DOM/evidence
+  → raport UI separat
+```
+
+Expected-ul UI se construiește înainte de browser din selecția API, catalog și
+mock; actualul se citește din DOM prin locatorii semantici. Selectorii stau
+numai în `ReportUiLocators` și sub-locatorii dedicați, acțiunile în adapters,
+ordinea în flows, iar verdictul în validators/snapshot-uri. Nu se introduce
+`ui.enabled`; selecția suitei și a regulilor este configurată prin adnotare,
+YAML sau proprietăți JVM.
+
 ## Fluxul unei cereri
 
 ~~~mermaid
@@ -90,7 +121,7 @@ ATF are două profile de transport, cu scopuri diferite:
 | Profil | Implementare | Rețea | Proprietar | Scop |
 |---|---|---:|---|---|
 | `acceptance` | `AtfMockTransport` (`atf-mock`) | nu | `atf-tests` | raport determinist, contracte, lifecycle și randare |
-| `live` | `HttpClientTransport` | da | `ApiLiveReportTest` / consumator | verificarea unui serviciu HTTP disponibil |
+| `live` | `HttpClientTransport` | da | testul live / consumator | verificarea unui serviciu HTTP disponibil |
 
 `AtfMockTransport` nu este un HTTP server local și nu este un proxy către
 `atf.local`. El este un test double din `atf-mock`, injectat explicit în
@@ -107,7 +138,7 @@ flowchart LR
     Fake --> Offline[Deterministic ApiResponse]
     Offline --> Report[Extent artifact]
 
-    Live[ApiLiveReportTest] --> FactoryLive[ApiModuleFactory]
+    Live[Live API test] --> FactoryLive[ApiModuleFactory]
     FactoryLive --> Http[HttpClientTransport]
     Http --> Server[Real HTTP endpoint]
     Server --> LiveReport[Live Extent artifact]
@@ -116,8 +147,8 @@ flowchart LR
 Regula verificabilă este:
 
 ~~~text
-ApiAcceptanceReportTest -> AtfMockTransport -> offline artifact
-ApiLiveReportTest       -> HttpClientTransport -> real endpoint
+ApiReportAuditSetup -> AtfMockTransport -> offline artifact
+Live API test       -> HttpClientTransport -> real endpoint
 ~~~
 
 Un URL precum `https://atf.local/public/v2/users` dintr-un acceptance report
@@ -125,7 +156,7 @@ este metadata a request-ului, nu o afirmație că host-ul a fost contactat.
 Disponibilitatea DNS, TLS, autentificarea și contractul serviciului sunt
 verificabile numai în profilul `live`.
 
-`ApiLiveReportTest` este opt-in prin `-Datf.liveApi.enabled=true`, iar baza
+Testele live sunt opt-in prin `-Datf.liveApi.enabled=true`, iar baza
 URL este explicită prin `-Datf.liveApi.baseUri`. Testele acceptance nu citesc
 această proprietate și nu trebuie să fie convertite implicit în teste de
 rețea.
@@ -152,38 +183,38 @@ de mediu.
 
 `atf.yaml` este configurația generală a proiectului consumator, nu un asset al
 unui modul și nu o configurație citită de fiecare request. Fișierul versionat
-conține numai secțiunile `api`, `validation` și `reporting`; loaderul din
-`atf-reporting` consumă efectiv numai `reporting.extent`, iar loaderul din
-`atf-console` consumă efectiv numai `reporting.console`. Catalogul fake nu mai
-este în acest fișier: rutele, răspunsurile, body-urile și fallback-ul sunt în
-`atf-mock.yaml`, deținut de `atf-mock`.
-API-ul este încă asamblat prin `ApiSettings`/`AtfConfiguration`. Integrarea
-completă a tuturor secțiunilor este ToDo-ul F-03 și nu trebuie presupusă ca
-deja activă.
+poate conține secțiunile `api`, `validation`, `reporting` și `ui`; fiecare owner
+consumă numai subarborele său (`reporting.extent`, `reporting.console` și
+`ui`). Catalogul fake nu este în acest fișier: rutele, răspunsurile,
+body-urile și fallback-ul sunt în `atf-mock.yaml`, deținut de `atf-mock`.
+API-ul este asamblat la composition root prin `ApiBootstrapConfiguration`, care
+conține snapshot-ul `ApiSettings` și `ApiTransportPolicy`. Loaderul
+`ApiBootstrapConfigurationLoader` citește o singură dată secțiunea `api`, o
+validează și o transmite către `ApiModuleFactory`; request-urile nu recitesc
+YAML-ul și nu își construiesc singure configurația.
 
-În configurația actuală, `api.baseUri`, timeout-ul, retry-ul și auth profile-ul
-descriu baseline-ul pentru un composition root care construiește explicit un
-transport HTTP. `ApiAcceptanceReportTest` își injectează intenționat
-`AtfMockTransport` în cod; simpla prezență a unui `baseUri` în YAML nu
-schimbă transportul și nu activează rețeaua. Loaderul `atf-reporting` consumă
+În configurația actuală, `api.baseUri`, timeout-ul, retry-ul, auth profile-ul și
+`transport` sunt tipizate la bootstrap. `ApiReportAuditSetup` injectează intenționat
+`AtfMockTransport` când politica este `acceptance`; simpla prezență a unui
+`baseUri` în YAML nu activează rețeaua. Loaderul `atf-reporting` consumă
 efectiv doar `reporting.extent` pentru artifactul HTML; consola nu este
 fallback-ul rendererului și nu este încărcată de modulul Extent.
 
-Nu se introduce încă o cheie YAML `transport: live` care să poată schimba
-implicit natura testelor. Când F-03 va integra configurația API, selecția
-transportului trebuie să fie typed, validată la bootstrap și implicit
-`acceptance` în `atf-tests`; `live` trebuie declarat explicit și să rămână
-opt-in. Astfel YAML-ul poate centraliza ulterior base URI, timeout și retry,
-fără să ascundă diferența dintre un fake și o conexiune reală.
+`api.transport` acceptă `acceptance` (alias compatibil `mock`) sau `live`.
+`acceptance` este implicit și selectează transportul mock; `live` este respins
+fără `-Datf.api.live.optIn=true` sau `ATF_API_LIVE_OPT_IN=true`. Astfel YAML-ul
+centralizează base URI, timeout și retry fără să ascundă diferența dintre un
+fake și o conexiune reală; politica nu poate fi schimbată accidental de un
+test UI.
 
 ~~~mermaid
 flowchart LR
-    General[atf.yaml · api/validation/reporting] --> Loader[composition root loader · F-03]
+    General[atf.yaml · api/validation/reporting] --> Loader[ApiBootstrapConfigurationLoader]
     MockYaml[atf-mock.yaml · routes/responses] --> MockLoader[AtfMockConfigurationLoader]
     MockOverride[atf.mock.config / ATF_MOCK_CONFIG] --> MockLoader
     Env[explicit env/property override] --> Loader
-    Loader --> Config[AtfConfiguration validată · ținta]
-    Config --> Snapshot[immutable runtime snapshot · ținta]
+    Loader --> Config[ApiBootstrapConfiguration validată]
+    Config --> Snapshot[immutable API settings + transport policy]
     Snapshot --> Execution[atf-execution]
     Snapshot --> Validation[atf-validation]
     Snapshot --> Reporting[atf-reporting]

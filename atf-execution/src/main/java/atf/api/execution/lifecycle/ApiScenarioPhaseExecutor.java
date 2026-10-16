@@ -40,12 +40,26 @@ final class ApiScenarioPhaseExecutor {
             result = new PhaseResult(AtfReportStatus.FAIL, failure);
         } finally {
             if (result.status() == AtfReportStatus.FAIL && result.failure() != null) {
-                phase.detail("Failure cause", result.failure().toString());
+                publishFailureEvidence(phase, name, result.failure());
             }
             phase.complete(result.status());
             phase.close();
         }
         return result;
+    }
+
+    private static void publishFailureEvidence(AtfReportPorts.Phase phase,
+                                               String phaseName,
+                                               Throwable failure) {
+        if (failure instanceof ApiScenarioLifecycleRunner.FailureSignal signal) {
+            phase.detail("Failure cause", signal.getMessage());
+            signal.evidence().forEach(phase::detail);
+            return;
+        }
+        String message = failure.getMessage() == null || failure.getMessage().isBlank()
+                ? failure.getClass().getSimpleName()
+                : failure.getMessage();
+        phase.detail("Failure cause", phaseName + " failure: " + message);
     }
 
     PhaseResult executeTeardown(Consumer<Boolean> teardown) {

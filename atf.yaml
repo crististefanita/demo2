@@ -1,13 +1,12 @@
 api:
-  # Baseline values for an explicit live composition. These values do not
-  # switch acceptance tests away from their injected AtfMockTransport.
-  # The acceptance report remains offline and deterministic.
-  # API bootstrap integration is explicit; this file never silently enables HTTP.
+  # Typed API bootstrap. Acceptance is explicit, offline and deterministic;
+  # live requires -Datf.api.live.optIn=true (or ATF_API_LIVE_OPT_IN=true).
   baseUri: https://gorest.co.in
   defaultAuthProfile: default
   timeout: PT20S
   retryStatuses: [429]
   maxAttempts: 2
+  transport: acceptance
 
 validation:
   # Warnings are opt-in at the concrete validation level; the global default
@@ -38,14 +37,12 @@ reporting:
     timestampZone: system
 
 ui:
-  # UI inspection is opt-in so the normal offline API build never requires a
-  # browser binary. Enable explicitly with -Datf.ui.enabled=true.
-  enabled: true
+  # setup -> API scenario collection -> mock YAML -> Extent -> UI deep validation
   browser: chromium
   baseUrl: about:blank
   headless: false
   timeout: PT10S
-  navigationTimeout: PT15S
+  navigationTimeout: PT45S
   viewport:
     width: 1440
     height: 900
@@ -56,15 +53,28 @@ ui:
     enabled: true
     fullPage: false
   apiSetup:
-    # Ordered API scenario families used to build the read-only input report.
-    # The UI test discovers the resulting classes and counts dynamically.
-    scenarioFamilies: [posts, users, requests, headers, lifecycle]
+    # This is the executable API collection. Add/remove families here; the
+    # UI report and mock-driven deep validator discover the resulting routes.
+    scenarioFamilies: [posts, users, requests, headers, flows, negative, lifecycle]
   audit:
     # Optional existing Extent input for ExistingExtentReportExploratoryTest.
     # Keep this unset when the UI test should consume a freshly generated API report.
     # inputReport: artifacts/reports/api-atf-extent-report.html
+    suites:
+      users-posts:
+        scenarioFamilies: [users, posts]
+        tabs: [tests, overview, categories, fails, evidence]
+        validators: [setup, tests, request-contract, overview, categories, fails, duration, responsive, evidence, cross-tab]
+        depth: deep
+        source: yaml
+      all-api:
+        scenarioFamilies: [posts, users, requests, headers, flows, negative, lifecycle]
+        tabs: [tests, overview, categories, fails, evidence]
+        validators: [setup, tests, request-contract, overview, categories, fails, duration, responsive, evidence, cross-tab]
+        depth: deep
+        source: yaml
   report:
     # UI validation artifacts are isolated from the canonical API reports.
     directory: artifacts/reports/ui
-    filePrefix: atf-extent-report_
+    filePrefix: ui-atf-extent-report_
 

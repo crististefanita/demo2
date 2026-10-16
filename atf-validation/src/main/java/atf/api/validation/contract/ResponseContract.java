@@ -57,6 +57,32 @@ public final class ResponseContract {
         return add(ruleSet.jsonPathEquals(path, expected));
     }
 
+    /** Requires a JSON value at {@code path} to have the supplied JSON type. */
+    public ResponseContract jsonPathType(String path, String expectedType) {
+        requireText(path, "path");
+        requireText(expectedType, "expectedType");
+        return add(ruleSet.jsonPathType(path, expectedType));
+    }
+
+    /** Requires a JSON value to be present, including an explicit JSON null. */
+    public ResponseContract jsonPathRequired(String path) {
+        requireText(path, "path");
+        return add(ruleSet.jsonPathRequired(path));
+    }
+
+    /** Requires a JSON value to be absent. */
+    public ResponseContract jsonPathAbsent(String path) {
+        requireText(path, "path");
+        return add(ruleSet.jsonPathAbsent(path));
+    }
+
+    /** Requires an array at {@code path} with the exact cardinality. */
+    public ResponseContract jsonArraySize(String path, int expectedSize) {
+        requireText(path, "path");
+        if (expectedSize < 0) throw new IllegalArgumentException("expectedSize must not be negative");
+        return add(ruleSet.jsonArraySize(path, expectedSize));
+    }
+
     public ResponseContract everyArrayItemEquals(String path, String property, String expected) {
         requireText(path, "path");
         requireText(property, "property");

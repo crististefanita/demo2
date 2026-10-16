@@ -74,6 +74,13 @@ comun al request-ului și delay-ul de retry sunt injectabile; testele nu trebuie
 să aștepte timp real pentru a verifica timeout-ul sau retry-ul. Modelele care
 ies din core nu expun colecții mutabile și nu păstrează state static de rulare.
 
+Pentru write contracts, `ApiRoute.request(...)` respinge `POST` și `PUT` fără
+body, iar `requestBody(...)` cere JSON ne-gol, valid și normalizează
+`Content-Type: application/json`. Această invariantă aparține construcției
+transportului; publisher-ul și auditorii o verifică din nou în evidence, pentru
+ca un fixture sau un mock configurat greșit să nu poată produce un raport aparent
+valid.
+
 Redaction-ul este compus prin `RedactionContext` immutable. Orice evidence
 trimis către reporting trebuie să treacă prin politica de redaction fără să
 modifice request-ul, response-ul sau assertion-ul original.

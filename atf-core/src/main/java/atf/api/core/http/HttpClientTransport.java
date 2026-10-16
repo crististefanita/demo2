@@ -22,8 +22,8 @@ public final class HttpClientTransport implements ApiTransport {
     public CompletableFuture<ApiResponse> send(ApiRequest request, String url, String authProfile) {
         var builder = HttpRequest.newBuilder(URI.create(url))
                 .timeout(timeout)
-                .header("Accept", "application/json")
-                .header("Content-Type", "application/json")
+                .header(HttpHeader.ACCEPT.value(), MediaTypes.APPLICATION_JSON)
+                .header(HttpHeader.CONTENT_TYPE.value(), MediaTypes.APPLICATION_JSON)
                 .method(request.method(), request.body());
         request.headers().forEach(builder::header);
         authenticator.apply(builder, authProfile);

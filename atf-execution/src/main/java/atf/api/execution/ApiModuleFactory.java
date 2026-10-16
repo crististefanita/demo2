@@ -1,6 +1,8 @@
 package atf.api.execution;
 
 import atf.api.core.config.ApiSettings;
+import atf.api.core.config.ApiBootstrapConfiguration;
+import atf.api.core.config.ApiTransportMode;
 import atf.api.core.config.AtfRuntimeSnapshot;
 import atf.api.core.http.ApiExecutor;
 import atf.api.core.http.ApiTransport;
@@ -20,6 +22,24 @@ public final class ApiModuleFactory {
         Objects.requireNonNull(settings, "settings");
         var snapshot = settings.snapshot();
         return new ApiModule(snapshot, new ApiExecutor(transport, snapshot));
+    }
+
+    /** Composes one module from the fully typed bootstrap contract. */
+    public static ApiModule fromTransport(ApiTransport transport,
+                                          ApiBootstrapConfiguration configuration) {
+        Objects.requireNonNull(configuration, "configuration");
+        return fromTransport(transport, configuration.settings());
+    }
+
+    /** Selects the already-created transport only after the typed policy is validated. */
+    public static ApiModule bootstrap(ApiBootstrapConfiguration configuration,
+                                      ApiTransport acceptanceTransport,
+                                      ApiTransport liveTransport) {
+        Objects.requireNonNull(configuration, "configuration");
+        ApiTransport selected = configuration.transportPolicy().mode() == ApiTransportMode.ACCEPTANCE
+                ? Objects.requireNonNull(acceptanceTransport, "acceptanceTransport")
+                : Objects.requireNonNull(liveTransport, "liveTransport");
+        return fromTransport(selected, configuration);
     }
 
     /** Composes execution from the immutable runtime boundary. */
