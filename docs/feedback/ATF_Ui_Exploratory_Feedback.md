@@ -5,18 +5,20 @@ Acest document rămâne feedback-ul UI/Extent activ; statusul exclusiv pentru
 API este centralizat în [`README.md`](README.md) și în README-urile modulelor API.
 
 Pointerul curent de artifact este
-`artifacts/reports/ui/ui-atf-extent-report_api-extent-report-exploratory-test_2026-10-16_22-40-15-301.html`
-(SHA-256 `CAE94267A034BEBCF23B8792FF9E4D5220C45FBF71D8F1C694E11794A3102CAC`).
+`artifacts/reports/ui/ui-atf-extent-report_api-extent-report-exploratory-test_2026-10-16_23-10-51-265.html`
+(SHA-256 `88776EC0CA17F58945255EFAB60318CEE1C868C172B4F8A81FB3642C49207342`).
 Perechea API verificată este
-`artifacts/reports/api-atf-extent-report_2026-10-16_22-40-08-404.html`
-(SHA-256 `931EC5C5BEE51F4D805E283CCFB93A8924BAC9AA1ABDAC0723FB593925B4C7A4`).
+`artifacts/reports/api-atf-extent-report_2026-10-16_23-10-44-916.html`
+(SHA-256 `6FB9C307C25B5249CA91E7042D3F76250FF78237F2281F75225EC05750DC4EF3`).
 Rulările 17-04/17-16/17-26/19-00 rămân doar trasabilitate istorică.
 
 This document contains the active UI/reporting gaps plus the latest closure
 ledger. The stable visual
 contract belongs to [`atf-reporting/README.md`](../../atf-reporting/README.md).
-The deeper plug-and-play architecture, manifest and dynamic test-factory plan
-belongs to [`ATF_Ui_Extent_Reusable_Test_Strategy.md`](ATF_Ui_Extent_Reusable_Test_Strategy.md).
+The implemented plug-and-play architecture, manifest and dynamic test-factory
+contract belongs to the package boundary
+[`atf-tests/.../extent/README.md`](../../atf-tests/src/test/java/atf/ui/tests/extent/README.md);
+this document retains only active gaps.
 
 ## Namespace ownership — DONE 2026-10-16
 
@@ -122,8 +124,8 @@ engine-ul dinamic, resolverul tuturor familiilor, reconcilierea request/mock și
 rezultatul comun `ValidationResult` sunt verificate. `AllApiReportUiContractTest`
 și companion-ul său au fost retrase chirurgical: primul hard-coda owner-i și
 dublează factory-ul dinamic, iar al doilea îl păzea doar pe primul. Soluția
-detaliată este în
-[`ATF_Ui_Extent_Reusable_Test_Strategy.md`](ATF_Ui_Extent_Reusable_Test_Strategy.md),
+stabilă este în
+[`atf-tests/.../extent/README.md`](../../atf-tests/src/test/java/atf/ui/tests/extent/README.md),
 iar boundary-ul tehnic al pachetului este în
 [`atf-tests/.../extent/README.md`](../../atf-tests/src/test/java/atf/ui/tests/extent/README.md).
 
@@ -149,9 +151,8 @@ UiReportAuditSpec
   → ApiScenarioManifest / ExpectedReportProjection (live)
   → UiReportAuditSpec / SectionAuditSpec + SectionAuditRegistry (live)
   → dynamic tests: Tests, Overview, Categories, Fails, Evidence, Cross-tab
-  → ValidationResult / AtfAssertion + Extent evidence (`ValidationResult` live
-    pentru modulele de secțiune și auditorii convergenți; observațiile DOM
-    istorice rămân explicit în consolidare incrementală)
+  → extractor → ReportAuditSnapshot → pure validator → ValidationResult
+  → AtfAssertion + Extent evidence (fără validare DOM în validatorii de secțiune)
 ```
 
 În live, `UiReportAuditSpec` + `ApiScenarioManifest` +
@@ -187,10 +188,17 @@ ToDo rămas:
 - [x] Separă snapshot modelul de facade și converg JSON/mock/contract/style/
   duration în `ValidationResult`; reconcilierea cross-tab și modulele de
   secțiune folosesc același rezultat.
-- [ ] Completează migrarea inspectorilor DOM rămași (request evidence,
-  structure/filter și validatorii istorici Categories/Evidence) la forma
-  `extractor → snapshot → pure validator → ValidationResult`, fără a muta
-  selectorii în test sau a schimba contractul raportului.
+- [x] Migrează complet inspectorii DOM rămași la forma
+  `extractor → ReportAuditSnapshot → pure validator → ValidationResult`.
+  `EvidenceSectionExtractor` + `ApiJsonEvidenceExtractor` separă request/response
+  raw evidence de `JsonEvidenceValidator`; `ApiReportStructureExtractor` și
+  `FilterSectionExtractor` separă Tests/Overview/Annotations/Failures de
+  contractul `Filters`; `CategoriesSectionExtractor` +
+  `CategoriesSectionValidator` și `VisualEvidenceSectionExtractor` +
+  `VisualEvidenceValidator` închid vechile Categories/Evidence paths. Selectorii
+  rămân în adaptoarele extractor/locator, iar validatorii nu primesc `Page`,
+  `Locator` sau DOM; `DomInspectorMigrationBoundaryTest` și convergența pură
+  acoperă replacement-ul fără schimbarea contractului de raport.
 - [x] Retrage agregatorul generic redundant după replacement coverage
   echivalentă; cele două clase configurabile și suportul lor abstract rămân
   intenționat.
@@ -229,16 +237,17 @@ test suite and the API input remains read-only.
   methods and extend the architecture guard across support, flow, audit and
   inspection layers. Direct selector construction remains exclusively in the
   locator boundary.
-- [x] Remove the three superseded `ExistingReport*Inspector` classes after
-  their responsibilities were consolidated into `CategoryScreenValidator`,
-  `FailsScreenValidator` and `EvidenceScreenValidator`.
+- [x] Remove the superseded DOM inspector classes after their responsibilities
+  were consolidated into section extractors, immutable `ReportAuditSnapshot`
+  records and pure `ValidationResult` validators; `FailsScreenValidator` remains
+  only where the existing-report compatibility contract still requires it.
 
 | ID | Priority | Gap | Next verifiable step |
 |---|---:|---|---|
 | ARCH-UI-01 | DONE | Tests/Overview/Categories/Fails and API request/evidence now use reusable typed contracts; dynamic mock reconciliation remains behind the same composition boundary. | Keep the dynamic UI audit, locator boundary and mock-backed audit green. |
 | F-10 | DONE | Source selection, lifecycle, structural, screen and API request/evidence validators are shared without hiding Gherkin intent. | Keep the dedicated request/evidence contract covered by the generated UI audit. |
 | UI-EXTENT-REUSE-01 | DONE / GATE-CLOSED | Spec/manifest/engine/factory, resolverul tuturor celor șapte familii, `ExpectedReportProjection`, `ValidationResult`/`CrossTabReconciler`, fixture-urile generate Categories `zero/one/many`, convergența auditorilor și reconcilierea mock-backed sunt live; cele două profile aprobate și seam-urile legacy rămân intenționat. | Fresh artifact gate, matrix 4/4 și verificarea ATF Debug UI/browser MCP sunt închise. |
-| F-05 | DONE | `ReportProjectionMatrixInspector` verifică într-un singur test browser Overview, Tests, Categories și Fails pentru vizibilitate, computed surface, conținut dinamic și controale de filtrare aplicabile. | Artifactul UI curent `artifacts/reports/ui/ui-atf-extent-report_api-extent-report-exploratory-test_2026-10-16_22-40-15-301.html` a fost deschis și verificat prin ATF Debug UI/browser MCP. |
+| F-05 | DONE | `ReportProjectionMatrixInspector` verifică într-un singur test browser Overview, Tests, Categories și Fails pentru vizibilitate, computed surface, conținut dinamic și controale de filtrare aplicabile. | Artifactul UI curent `artifacts/reports/ui/ui-atf-extent-report_api-extent-report-exploratory-test_2026-10-16_23-10-51-265.html` a fost deschis și verificat prin ATF Debug UI/browser MCP. |
 | UI-15 | DONE | `CategoryCardinalityBrowserFixtureTest` generează și auditează fixture-uri Categories `zero`, `one` și `many`; zero-state-ul publisherului este stabil și a fost deschis prin ATF Debug/browser MCP. | Păstrează fixture gate-ul și contractul `#category-view` pentru zero categories. |
 | LOC-04 | DONE | `ReportUiLocators` is the canonical boundary; the reusable support/flow/audit/inspection guard covers the selector seam and the focused tests pass. | Keep `UiSelectorBoundaryArchitectureTest` and `ReportUiLocatorsTest` green. |
 | D-04 | DONE | Shared badge geometry is gated at normal and narrow viewport using the generated API report. | `ApiExtentReportExploratoryTest.statusBadgesKeepSharedGeometryAtNormalAndNarrowViewport` compares computed signatures. |
@@ -250,7 +259,7 @@ test suite and the API input remains read-only.
 ### Evidence for the implemented increment — 2026-10-16
 
 - [x] Exact final golden artifact copied to
-  `artifacts/reports/ui/ui-atf-extent-report_api-extent-report-exploratory-test_2026-10-16_22-40-15-301.html`.
+  `artifacts/reports/ui/ui-atf-extent-report_api-extent-report-exploratory-test_2026-10-16_23-10-51-265.html`.
 - [x] Artifact opened through ATF Debug UI/browser MCP: Overview shows 1
   report class, 6 passed steps and 0 failures; Tests exposes the exploratory
   UI contract screens.
@@ -266,6 +275,16 @@ test suite and the API input remains read-only.
   the full API/UI chain remains configurable through the dynamic factory and
   the two approved manual profiles. Historical backlog-depth reports are not
   used as the current status pointer.
+- [x] The focused migration gate passed in staging: `7/7` pure convergence and
+  boundary tests, followed by the golden `ApiExtentReportExploratoryTest` with
+  `1/1` test passed. The generated API report visibly exposes request URL,
+  auth profile/type, headers, request JSON, HTTP status, content type, response
+  headers, response JSON and execution attempts for the POST contract.
+- [x] The five superseded DOM inspector classes are absent; the replacement
+  coverage is explicit in `section/extract`, `section/validate` and
+  `ReportAuditSnapshot`. The final staged UI/API pair was opened through ATF
+  Debug UI/browser MCP and visually inspected; no real Windows browser was
+  used.
 - [x] Static section gate copied to
   `artifacts/reports/ui/ui-atf-extent-report_static-screen-validation-report-ui-test_2026-10-16_22-41-46-797.html`;
   it reopens the golden UI input read-only and validates the three-zone contract.

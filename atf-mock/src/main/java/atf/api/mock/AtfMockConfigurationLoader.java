@@ -83,12 +83,12 @@ public final class AtfMockConfigurationLoader {
 
     private static MockRoute readRoute(JsonNode node, String location, boolean fallback) {
         if (!node.isObject()) throw new IllegalStateException(location + " entry must be an object");
-        String method = text(node, "method", fallback ? "*" : null, location);
-        String path = text(node, "path", fallback ? "/*" : null, location);
+        String method = text(node, "method", fallback ? MockRoute.ANY_METHOD : null, location);
+        String path = text(node, "path", fallback ? MockRoute.ANY_PATH : null, location);
         int status = integer(node, "status", fallback ? 500 : -1, location);
         String body = text(node, "body", "", location);
         Duration duration = duration(node, "duration", Duration.ofMillis(12), location);
-        String authProfile = text(node, "auth-profile", "*", location);
+        String authProfile = text(node, "auth-profile", MockRoute.ANY_AUTH_PROFILE, location);
         Map<String, String> headers = new LinkedHashMap<>();
         JsonNode headerNode = node.path("headers");
         if (!headerNode.isMissingNode() && !headerNode.isObject()) {
@@ -128,7 +128,7 @@ public final class AtfMockConfigurationLoader {
         }
         requiredHeadersNode.fields().forEachRemaining(entry ->
                 requiredHeaders.put(entry.getKey(), entry.getValue().asText()));
-        String requestBodyMode = text(node, "request-body-mode", "json", location);
+        String requestBodyMode = text(node, "request-body-mode", MockRequestBodyMode.JSON.value(), location);
         String expectedRequestBody = optionalText(node, "request-body");
         return new MockRoute(method, path, status, body, headers, duration, authProfile, query,
                 parsedQuery,

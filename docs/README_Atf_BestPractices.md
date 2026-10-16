@@ -37,46 +37,6 @@ Fișierele existente cu naming istoric nu se redenumesc într-un refactor de cod
 fără actualizarea tuturor linkurilor și a indexurilor; normalizarea lor este o
 schimbare documentațională separată.
 
-### Abrevieri și ID-uri de trasabilitate
-
-ID-urile de tip `ARCH-04`, `UI-22`, `F-01` sau `D-03` aparțin ledger-ului de
-feedback și ajută la prioritizare, nu înlocuiesc numele responsabilității din
-cod. În cod nu se introduce un comentariu care spune doar `Guards ARCH-04`:
-fără un contract stabil în afara feedback-ului, abrevierea devine zgomot și nu
-explică ce trebuie protejat.
-
-Regula este:
-
-```text
-feedback ID
-   → owner README / contract stabil
-   → invariantă exprimată în cod și test
-```
-
-- un ID este permis în feedback, backlog și tabelul de status;
-- un comentariu sau Javadoc din cod descrie invarianta, boundary-ul și motivul
-  tehnic; poate indica README-ul ownerului, dar nu depinde de feedback ca să fie
-  inteligibil;
-- când un ToDo este închis, contractul relevant se mută în README-ul modulului,
-  iar ID-ul rămâne doar în ledgerul istoric/status, nu în comentarii noi din
-  cod;
-- nu se creează un glossary separat pentru fiecare ID: se documentează numai
-  prefixele recurente și doar dacă au mai mult de o utilizare reală.
-
-Exemplul corect pentru separarea duratei de viewport este o explicație a
-invariantei, nu un cod de backlog:
-
-```java
-/**
- * Guards the separation between duration contract, projection observation and
- * responsive badge geometry; the facade must remain orchestration-only.
- */
-class ApiReportDurationArchitectureTest { /* ... */ }
-```
-
-Astfel, testul rămâne inteligibil și după arhivarea feedback-ului, iar README-ul
-ownerului păstrează contractul stabil și diagrama responsabilităților.
-
 ## Principii de design
 
 1. O clasă are un motiv dominant de schimbare.
@@ -95,6 +55,39 @@ ownerului păstrează contractul stabil și diagrama responsabilităților.
     actual, mai ales pentru artifactele statice.
 11. Un modul de audit returnează un rezultat renderer-neutral; JUnit, Extent și
     orice alt publisher sunt adaptoare, nu responsabilitatea contractului pur.
+
+### Catalogul API este sursa de adevăr pentru testele UI
+
+Testele UI care verifică un raport API nu reconstruiesc local identitatea
+scenariilor. Owner-ele, metodele de selecție, titlurile raportate și identitățile
+de rută sunt constante publice ale catalogului API (`*ApiScenarios`), iar
+`UiTestData.ApiFamily` doar le proiectează în configurația UI. O expresie de
+forma `List.of(...)` poate compune constante canonice, dar nu poate conține
+string-uri duplicate precum `GET /public/... — ...` sau nume de owner API.
+
+Regula este protejată de `DeclarativeUiTestArchitectureTest`, iar proiecția
+`ExpectedReportProjection` consumă aceleași valori ca setup-ul API. Când se
+introduce un scenariu nou, se actualizează întâi catalogul API și lista lui
+`REPORT_SCENARIO_TITLES`; apoi testele UI folosesc referința tipizată. Astfel
+schimbarea unui route/title nu poate lăsa UI-ul cu un expected fals pozitiv sau
+cu un raport greu de auditat.
+
+### Constante și enum-uri cu ownership semantic
+
+Valorile repetate nu se mută mecanic într-o clasă globală `Constants`. Folosim
+`HttpMethod` pentru verbe, `HttpHeader` pentru nume de header, `MediaTypes` pentru
+media type-uri, `RoutePaths` pentru rute, `ApiFixtureData` pentru identități și
+payload-uri cross-family, iar enum-uri dedicate pentru vocabular închis precum
+`MockRequestBodyMode`. Cheile unei proiecții sau ale unui auditor au propriul
+owner semantic, de exemplu `MockReportEvidenceField`.
+
+Regula de decizie este: dacă valoarea este protocol, sentinel, rută, enum de
+configurație sau date reutilizate de minimum două scenarii, are owner tipizat;
+dacă este un payload strict local de edge-case, rămâne în builderul scenariului
+cu nume semantic. Nu se introduc constante doar pentru a ascunde un literal și
+nu se reintroduc string-uri canonice direct în testele API/UI. Matricea și
+ToDo-urile active sunt în
+[`ATF_Refactor_Constants.md`](feedback/ATF_Refactor_Constants.md).
 
 ## Boundary obligatoriu pentru locatori UI
 
@@ -309,7 +302,7 @@ ancorele neutre folosesc token-ul meta separat, fără să mărească statusuril
 Build-ul și testele se fac într-un staging nou, separat de checkout-ul sau
 artifactul folosit de o rulare existentă. Nu se folosesc operații destructive și
 nu se copiază output-uri generate înapoi în surse. Procedura completă este în
-[ATF_BUILD_AND_EXECUTION_SAFETY.md](ATF_BUILD_AND_EXECUTION_SAFETY.md).
+[ATF_Build_And_Execution_Safety.md](ATF_Build_And_Execution_Safety.md).
 
 ## Protocol pentru fiecare refactorizare
 

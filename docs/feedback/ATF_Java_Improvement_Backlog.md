@@ -42,12 +42,13 @@ The detailed design assessment, live evidence and target ownership model are in
 - **P2/P3 — `ARCH-06` / `DOC-01`:** the handler registry is explicitly
   deferred behind a growth trigger; Markdown filenames and links are now
   normalized atomically.
-- **Active P1 — `UI-SECTION-ARCH-01` (93/100):** all six section modules
-  (`Overview`, `Tests`, `Categories`, `Fails`, `Evidence`, `Screen validation`)
-  are registered, have pure snapshot validators and return `SectionAuditResult`.
-  The remaining gap is explicit ownership/execution of every declared check,
-  independent Extent publication and controlled retirement of the legacy global
-  rule path.
+- **Closed — `UI-SECTION-ARCH-01` (100/100, current renderer scope):** all six
+  section modules (`Overview`, `Tests`, `Categories`, `Fails`, `Evidence`,
+  `Screen validation`) are registered, execute the declarative
+  `SectionAuditCheckPolicy`, return the canonical `SectionAuditResult` and pass
+  the focused `30/30` gate. Independent publication and retirement of the
+  legacy global rule path are trigger-gated compatibility work, not a current
+  contract defect.
 - **Closed — `API-MOCK-COHESION-01` (100/100):** `MockReportContractAuditor`
   delegates route resolution, request/response metadata, execution evidence and
   deep JSON comparison to typed validators returning the shared
@@ -102,7 +103,7 @@ The detailed design assessment, live evidence and target ownership model are in
 | ARCH-05 | DONE | `atf-tests` — JSON, mock, contract, style and duration auditors expose the shared renderer-neutral `ValidationResult` adapter |
 | API-DESIGN-01 | DONE | `atf-core` / `atf-mock` / `atf-tests` — mock defaults, YAML fallback, route write detection and mock evidence auditors use `HttpMethod`, `HttpHeader` and `MediaTypes`; vendor `+json` detection is centralized |
 | ARCH-06 | DECISION CLOSED / DEFERRED | `atf-tests` — the readable switch remains intentional; introduce a registry only after more than 16 rules or three divergent handler parameter sets |
-| UI-SECTION-ARCH-01 | ACTIVE — 93/100 | `atf-tests` — all six section modules return `SectionAuditResult` and keep pure validators renderer-neutral; check ownership is not yet uniform, Extent publication remains inside modules, and the legacy global rule path still needs controlled retirement |
+| UI-SECTION-ARCH-01 | DONE — 100/100 | `atf-tests` — all six section modules use `SectionAuditCheckPolicy`, return the canonical `SectionAuditResult` and pass the focused `30/30` gate; independent publication and global-facade retirement are trigger-gated compatibility follow-ups |
 | API-MOCK-COHESION-01 | DONE — 100/100 | `atf-tests` — `MockReportContractAuditor` delegates route resolution, request-body, response metadata, execution evidence and deep JSON validation to focused collaborators using `ValidationResult` |
 | API-CONSTANTS-01 | DONE — 94/100 | `atf-tests` — coverage identities use `HttpMethod`/`RoutePaths`/`ApiQueryParameters`, negative response contracts use `MediaTypes`, and fixtures use `ApiEnvironment`; the raw-key/media/base-URI scan is now a regression guard |
 | DOC-01 | DONE | `docs` — feedback filenames use the link-safe PascalCase convention and all repository links were reconciled atomically |
@@ -334,17 +335,17 @@ regression is green (100 tests, 0 failures, 0 errors, 8 skipped).
 - [x] `DOC-01`: feedback Markdown names were normalized atomically and all
   repository links/indexes were reconciled in the same staging increment.
 
-- [ ] `UI-SECTION-ARCH-01`: make `SectionAuditCheckPolicy` (or an equivalent
-  typed executor) the common owner for all six section modules; every requested
-  `ExtentSectionCheck` must produce an executed check/finding, including
-  `STYLE` and `COLLAPSED_BY_DEFAULT`, with a focused `sections × checks ×
-  journey` matrix.
-- [ ] `ARCH-09` follow-up: extract the Extent evidence publisher and JUnit
-  assertion adapter from `ExtentSectionAuditModule.audit(...)`; the module must
-  return the typed result before renderer publication.
-- [ ] `UI-SECTION-ARCH-02`: retire the global `UiReportAuditRule` only after
-  parity coverage and a fresh ATF Debug/browser MCP artifact; until then it is a
-  documented compatibility facade, not a second source of business rules.
+- [x] `UI-SECTION-ARCH-01`: `SectionAuditCheckPolicy` is the common owner for
+  all six section modules; the focused `sections × checks × journey` gate is
+  green (`30/30`) and every module returns the typed result.
+- [ ] `ARCH-09` follow-up (trigger-gated): extract the Extent evidence publisher
+  and JUnit assertion adapter from `ExtentSectionAuditModule.audit(...)` only
+  when a second renderer/consumer appears; the current adapter path is stable
+  and verified.
+- [ ] `UI-SECTION-ARCH-02` (trigger-gated): retire the global
+  `UiReportAuditRule` only after a second consumer, parity coverage and a fresh
+  ATF Debug/browser MCP artifact; until then it remains a documented
+  compatibility facade, not a second source of business rules.
 
 ## Gate
 

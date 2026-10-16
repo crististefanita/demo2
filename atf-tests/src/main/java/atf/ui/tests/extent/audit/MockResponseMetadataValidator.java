@@ -14,7 +14,7 @@ final class MockResponseMetadataValidator {
                               MockReportContractAuditor.RenderedEvidence rendered) {
         List<String> violations = new ArrayList<>();
         Map<String, String> actualHeaders = MockContractValueSupport.parseMap(
-                rendered.responseFields().get("RESPONSE HEADERS"));
+                rendered.responseFields().get(MockReportEvidenceField.RESPONSE_HEADERS.key()));
         expected.headers().entrySet().stream()
                 .filter(entry -> !entry.getKey().equalsIgnoreCase(HttpHeader.CONTENT_TYPE.value()))
                 .forEach(entry -> {
@@ -25,14 +25,16 @@ final class MockResponseMetadataValidator {
                                 + (actual == null ? "<missing>" : actual));
                     }
                 });
-        String contentType = rendered.responseFields().getOrDefault("CONTENT-TYPE", "");
+        String contentType = rendered.responseFields().getOrDefault(
+                MockReportEvidenceField.CONTENT_TYPE.key(), "");
         String expectedContentType = MockContractValueSupport.caseInsensitiveValue(
                 expected.headers(), HttpHeader.CONTENT_TYPE.value());
         if (expectedContentType != null && !expectedContentType.equals(contentType)) {
             violations.add(expected.key() + " expected CONTENT-TYPE " + expectedContentType
                     + " but report rendered " + (contentType.isBlank() ? "<missing>" : contentType));
         }
-        String renderedStatus = rendered.responseFields().getOrDefault("HTTP STATUS", "");
+        String renderedStatus = rendered.responseFields().getOrDefault(
+                MockReportEvidenceField.HTTP_STATUS.key(), "");
         if (!renderedStatus.isBlank() && !String.valueOf(actualStatus).equals(renderedStatus)) {
             violations.add(expected.key() + " response evidence status differs from execution status");
         }

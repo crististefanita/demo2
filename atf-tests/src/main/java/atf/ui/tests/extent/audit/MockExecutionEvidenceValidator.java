@@ -12,11 +12,11 @@ final class MockExecutionEvidenceValidator {
     ValidationResult validate(MockRoute expected, String requestUrl, int actualStatus,
                               Map<String, String> fields) {
         List<String> violations = new ArrayList<>();
-        String status = fields.getOrDefault("response.status", "");
+        String status = fields.getOrDefault(MockReportEvidenceField.RESPONSE_STATUS.key(), "");
         if (!status.isBlank() && !String.valueOf(actualStatus).equals(status)) {
             violations.add(expected.key() + " execution evidence response.status differs from report status");
         }
-        String url = fields.getOrDefault("response.url", "");
+        String url = fields.getOrDefault(MockReportEvidenceField.RESPONSE_URL.key(), "");
         if (!url.isBlank() && requestUrl != null && !requestUrl.isBlank() && !requestUrl.equals(url)) {
             violations.add(expected.key() + " execution evidence response.url differs from request URL");
         }

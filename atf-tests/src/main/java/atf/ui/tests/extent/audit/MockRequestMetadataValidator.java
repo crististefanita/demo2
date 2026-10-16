@@ -12,7 +12,7 @@ import java.util.Map;
 final class MockRequestMetadataValidator {
     ValidationResult validate(MockRoute expected, String requestUrl, Map<String, String> fields) {
         List<String> violations = new ArrayList<>();
-        String actualProfile = fields.getOrDefault("AUTH PROFILE", "").trim();
+        String actualProfile = fields.getOrDefault(MockReportEvidenceField.AUTH_PROFILE.key(), "").trim();
         if (!"*".equals(expected.authProfile()) && !expected.authProfile().equals(actualProfile)) {
             violations.add(expected.key() + " expected AUTH PROFILE " + expected.authProfile()
                     + " but report rendered " + (actualProfile.isBlank() ? "<missing>" : actualProfile));
@@ -24,7 +24,8 @@ final class MockRequestMetadataValidator {
             violations.add(expected.key() + " expected query " + queryNames + " parameters "
                     + expected.queryParameters().display() + " but report rendered " + query.display());
         }
-        Map<String, String> actualHeaders = MockContractValueSupport.parseMap(fields.get("REQUEST HEADERS"));
+        Map<String, String> actualHeaders = MockContractValueSupport.parseMap(
+                fields.get(MockReportEvidenceField.REQUEST_HEADERS.key()));
         expected.requiredHeaders().forEach((key, value) -> {
             String actual = MockContractValueSupport.caseInsensitiveValue(actualHeaders, key);
             if (!value.equals(actual)) {

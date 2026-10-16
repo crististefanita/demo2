@@ -21,6 +21,8 @@ import java.util.List;
 public final class ApiNegativeScenarios {
     public static final String REPORT_OWNER = "ApiNegativeMatrixTests";
     public static final String NEGATIVE_MATRIX = "negativeMatrix";
+    public static final String NEGATIVE_MATRIX_TITLE = "Negative API wire contract matrix";
+    public static final List<String> REPORT_SCENARIO_TITLES = List.of(NEGATIVE_MATRIX_TITLE);
     private static final String PACKAGE = "atf.api.tests.api.negative";
 
     private ApiNegativeScenarios() { }
@@ -35,7 +37,7 @@ public final class ApiNegativeScenarios {
     }
 
     public static String scenarioTitle(String method) {
-        if (NEGATIVE_MATRIX.equals(method)) return "Negative API wire contract matrix";
+        if (NEGATIVE_MATRIX.equals(method)) return NEGATIVE_MATRIX_TITLE;
         throw new IllegalArgumentException("Unknown negative API scenario method: " + method);
     }
 
@@ -43,7 +45,7 @@ public final class ApiNegativeScenarios {
                                ApiScenarioLifecycleRunner lifecycle) {
         lifecycle.run(session, ApiAcceptancePlanBuilder.scenario(
                         REPORT_OWNER, PACKAGE,
-                        "Negative API wire contract matrix",
+                        NEGATIVE_MATRIX_TITLE,
                         List.of("api", "negative", "error-contract", "mock-contract"))
                 .body(phase -> {
                     publishOne(phase, api, ApiNegativeRoutes.invalidJson(),

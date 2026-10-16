@@ -1,13 +1,12 @@
 package atf.ui.tests.extent.flows;
 
-import atf.ui.tests.extent.audit.ApiJsonEvidenceAuditor;
 import atf.ui.tests.extent.flows.inspection.ApiReportDurationInspector;
-import atf.ui.tests.extent.flows.inspection.ApiReportFilterInspector;
-import atf.ui.tests.extent.flows.inspection.ApiReportRequestEvidenceInspector;
-import atf.ui.tests.extent.flows.inspection.ApiReportStructureInspector;
 import atf.ui.tests.extent.flows.inspection.ReportProjectionMatrixInspector;
 import atf.ui.tests.extent.locators.ReportUiLocators;
 import atf.ui.tests.extent.plan.ReportAuditSnapshot;
+import atf.ui.tests.extent.section.extract.ApiReportStructureExtractor;
+import atf.ui.tests.extent.section.extract.EvidenceSectionExtractor;
+import atf.ui.tests.extent.section.extract.FilterSectionExtractor;
 import atf.ui.tests.extent.section.extract.ScreenValidationSectionExtractor;
 import atf.ui.tests.extent.section.extract.OverviewSectionExtractor;
 import atf.ui.tests.extent.support.UiAuditFlow;
@@ -24,10 +23,10 @@ import java.util.Objects;
  * consume the same facts without depending on this browser facade.</p>
  */
 public final class ApiReportExplorationFlow {
-    private final ApiReportStructureInspector structureInspector;
+    private final ApiReportStructureExtractor structureExtractor;
     private final ApiReportDurationInspector durationInspector;
-    private final ApiReportFilterInspector filterInspector;
-    private final ApiReportRequestEvidenceInspector requestEvidenceInspector;
+    private final FilterSectionExtractor filterExtractor;
+    private final EvidenceSectionExtractor evidenceExtractor;
     private final ReportProjectionMatrixInspector projectionMatrixInspector;
     private final ScreenValidationSectionExtractor screenValidationExtractor;
     private final OverviewSectionExtractor overviewSectionExtractor;
@@ -38,26 +37,24 @@ public final class ApiReportExplorationFlow {
 
     public ApiReportExplorationFlow(UiAuditFlow auditFlow, ReportUiLocators locators) {
         Objects.requireNonNull(auditFlow, "auditFlow");
-        this.structureInspector = new ApiReportStructureInspector(auditFlow, locators);
+        this.structureExtractor = new ApiReportStructureExtractor(auditFlow, locators);
         this.durationInspector = new ApiReportDurationInspector(auditFlow, locators);
-        this.filterInspector = new ApiReportFilterInspector(auditFlow, structureInspector, locators);
-        this.requestEvidenceInspector = new ApiReportRequestEvidenceInspector(auditFlow, locators);
+        this.filterExtractor = new FilterSectionExtractor(auditFlow, structureExtractor, locators);
+        this.evidenceExtractor = new EvidenceSectionExtractor(auditFlow, locators);
         this.projectionMatrixInspector = new ReportProjectionMatrixInspector(locators);
         this.screenValidationExtractor = new ScreenValidationSectionExtractor(auditFlow, locators);
         this.overviewSectionExtractor = new OverviewSectionExtractor(locators);
     }
 
     public ReportAuditSnapshot.Tests inspectEveryTestClass(Page page) {
-        return structureInspector.inspectEveryTestClass(page);
+        return structureExtractor.extractTests(page);
     }
 
     public ReportAuditSnapshot.Duration selectOwnerAndInspectDuration(Page page, int index) {
         return durationInspector.selectOwnerAndInspectDuration(page, index);
     }
 
-    public int ownerCount(Page page) {
-        return structureInspector.ownerCount(page);
-    }
+    public int ownerCount(Page page) { return structureExtractor.ownerCount(page); }
 
     public ReportAuditSnapshot.Duration inspectDurationContract(Page page) {
         return durationInspector.inspectDurationContract(page);
@@ -68,23 +65,25 @@ public final class ApiReportExplorationFlow {
     }
 
     public FiltersSnapshot inspectFiltersAndFailures() {
-        return filterInspector.inspectFiltersAndFailures();
+        FilterSectionExtractor.Extraction extraction = filterExtractor.extract();
+        return new FiltersSnapshot(extraction.categoryPage(), extraction.failsPage(), extraction.snapshot());
     }
 
     public boolean openFirstFailureInTests(FiltersSnapshot snapshot) {
-        return filterInspector.openFirstFailureInTests(snapshot);
+        return filterExtractor.openFirstFailureInTests(new FilterSectionExtractor.Extraction(
+                snapshot.categoryPage(), snapshot.failsPage(), snapshot.snapshot()));
     }
 
     public ReportAuditSnapshot.Annotations inspectAnnotations(Page category) {
-        return structureInspector.inspectAnnotations(category);
+        return structureExtractor.extractAnnotations(category);
     }
 
     public ReportAuditSnapshot.Failures inspectFailures(Page fails) {
-        return structureInspector.inspectFailures(fails);
+        return structureExtractor.extractFailures(fails);
     }
 
     public ReportAuditSnapshot.RequestEvidence inspectFirstRequestWithEvidence(Page page) {
-        return requestEvidenceInspector.inspectFirstRequestWithEvidence(page);
+        return evidenceExtractor.extractFirstRequestWithEvidence(page);
     }
 
     public ReportAuditSnapshot.ScreenValidation inspectScreenValidation(Page page) {
@@ -114,7 +113,10 @@ public final class ApiReportExplorationFlow {
 
     /** Page handles remain flow concerns; the observations inside are neutral snapshots. */
     public record FiltersSnapshot(Page categoryPage, Page failsPage,
-                                  ReportAuditSnapshot.Annotations annotations,
-                                  ReportAuditSnapshot.Failures failures,
-                                  boolean tagLinks, boolean failureLinks) { }
+                                  ReportAuditSnapshot.Filters snapshot) {
+        public ReportAuditSnapshot.Annotations annotations() { return snapshot.annotations(); }
+        public ReportAuditSnapshot.Failures failures() { return snapshot.failures(); }
+        public boolean tagLinks() { return snapshot.tagLinks(); }
+        public boolean failureLinks() { return snapshot.failureLinks(); }
+    }
 }

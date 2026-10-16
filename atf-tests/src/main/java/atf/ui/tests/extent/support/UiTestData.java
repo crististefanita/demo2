@@ -1,5 +1,13 @@
 package atf.ui.tests.extent.support;
 
+import atf.api.tests.api.flows.ApiRequestFlowScenarios;
+import atf.api.tests.api.headers.ApiHeadersAndEdgeCaseScenarios;
+import atf.api.tests.api.lifecycle.LifecycleApiScenarios;
+import atf.api.tests.api.negative.ApiNegativeScenarios;
+import atf.api.tests.api.posts.PostsApiScenarios;
+import atf.api.tests.api.requests.RequestVariantsApiScenarios;
+import atf.api.tests.api.users.UsersApiScenarios;
+
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -17,13 +25,13 @@ public final class UiTestData {
     public static final String LIFECYCLE_FAMILY = "lifecycle";
     public static final String FLOWS_FAMILY = "flows";
     public static final String NEGATIVE_FAMILY = "negative";
-    public static final String USERS_OWNER = "UsersApiTests";
-    public static final String POSTS_OWNER = "PostsApiTests";
-    public static final String REQUESTS_OWNER = "RequestVariantsApiTests";
-    public static final String HEADERS_OWNER = "ApiHeadersAndEdgeCasesTests";
-    public static final String LIFECYCLE_OWNER = "LifecycleApiScenarios";
-    public static final String FLOWS_OWNER = "ApiRequestFlowsTests";
-    public static final String NEGATIVE_OWNER = "ApiNegativeMatrixTests";
+    public static final String USERS_OWNER = UsersApiScenarios.REPORT_OWNER;
+    public static final String POSTS_OWNER = PostsApiScenarios.REPORT_OWNER;
+    public static final String REQUESTS_OWNER = RequestVariantsApiScenarios.REPORT_OWNER;
+    public static final String HEADERS_OWNER = ApiHeadersAndEdgeCaseScenarios.REPORT_OWNER;
+    public static final String LIFECYCLE_OWNER = LifecycleApiScenarios.REPORT_OWNER;
+    public static final String FLOWS_OWNER = ApiRequestFlowScenarios.REPORT_OWNER;
+    public static final String NEGATIVE_OWNER = ApiNegativeScenarios.REPORT_OWNER;
     public static final String TAG_UI = "ui";
     public static final String TAG_API = "api";
     public static final String TAG_MOCK_CONTRACT = "mock-contract";
@@ -33,25 +41,29 @@ public final class UiTestData {
     private UiTestData() { }
 
     public enum ApiFamily {
-        USERS(USERS_FAMILY, USERS_OWNER),
-        POSTS(POSTS_FAMILY, POSTS_OWNER),
-        REQUESTS(REQUESTS_FAMILY, REQUESTS_OWNER),
-        HEADERS(HEADERS_FAMILY, HEADERS_OWNER),
-        FLOWS(FLOWS_FAMILY, FLOWS_OWNER),
-        NEGATIVE(NEGATIVE_FAMILY, NEGATIVE_OWNER),
-        LIFECYCLE(LIFECYCLE_FAMILY, LIFECYCLE_OWNER);
+        USERS(USERS_FAMILY, USERS_OWNER, UsersApiScenarios.REPORT_SCENARIO_TITLES),
+        POSTS(POSTS_FAMILY, POSTS_OWNER, PostsApiScenarios.REPORT_SCENARIO_TITLES),
+        REQUESTS(REQUESTS_FAMILY, REQUESTS_OWNER, RequestVariantsApiScenarios.REPORT_SCENARIO_TITLES),
+        HEADERS(HEADERS_FAMILY, HEADERS_OWNER, ApiHeadersAndEdgeCaseScenarios.REPORT_SCENARIO_TITLES),
+        FLOWS(FLOWS_FAMILY, FLOWS_OWNER, ApiRequestFlowScenarios.REPORT_SCENARIO_TITLES),
+        NEGATIVE(NEGATIVE_FAMILY, NEGATIVE_OWNER, ApiNegativeScenarios.REPORT_SCENARIO_TITLES),
+        LIFECYCLE(LIFECYCLE_FAMILY, LIFECYCLE_OWNER, LifecycleApiScenarios.REPORT_SCENARIO_TITLES);
 
         private final String key;
         private final String ownerName;
+        private final List<String> scenarioTitles;
 
-        ApiFamily(String key, String ownerName) {
+        ApiFamily(String key, String ownerName, List<String> scenarioTitles) {
             this.key = key;
             this.ownerName = ownerName;
+            this.scenarioTitles = List.copyOf(scenarioTitles);
         }
 
         public String key() { return key; }
 
         public String ownerName() { return ownerName; }
+
+        public List<String> scenarioTitles() { return scenarioTitles; }
 
         public static Optional<ApiFamily> fromKey(String value) {
             if (value == null || value.isBlank()) return Optional.empty();

@@ -1,6 +1,8 @@
 package atf.ui.tests.extent.plan;
 
 import atf.api.mock.AtfMockConfiguration;
+import atf.api.tests.api.posts.PostsApiScenarios;
+import atf.ui.tests.extent.support.UiTestData;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -11,13 +13,17 @@ class ApiScenarioManifestTest {
     @Test
     void derivesOwnersAndWriteContractFromSelectedFamiliesAndMock() {
         ApiScenarioManifest manifest = ApiScenarioManifest.from(
-                java.util.List.of("users", "posts"), AtfMockConfiguration.defaults());
+                java.util.List.of(UiTestData.USERS_FAMILY, UiTestData.POSTS_FAMILY),
+                AtfMockConfiguration.defaults());
 
-        assertEquals(java.util.List.of("users", "posts"), manifest.families());
-        assertEquals(java.util.List.of("UsersApiTests", "PostsApiTests"), manifest.expectedOwnerNames());
+        assertEquals(java.util.List.of(UiTestData.USERS_FAMILY, UiTestData.POSTS_FAMILY),
+                manifest.families());
+        assertEquals(java.util.List.of(UiTestData.USERS_OWNER, UiTestData.POSTS_OWNER),
+                manifest.expectedOwnerNames());
         assertTrue(manifest.writeRouteCount() >= 2);
         assertTrue(manifest.writeRoutesHaveJsonResponses());
-        assertTrue(manifest.routes().stream().anyMatch(route -> route.identity().equals("POST /public/v2/posts")));
+        assertTrue(manifest.routes().stream().anyMatch(route ->
+                route.identity().equals(PostsApiScenarios.CREATE_ROUTE_IDENTITY)));
     }
 
     @Test

@@ -25,6 +25,16 @@ public final class UsersApiScenarios {
     public static final String GET_BY_ID = "getById";
     public static final String CREATE_UNAUTHENTICATED = "createUnauthenticated";
     public static final String GET_COLLECTION_WARNING = "getCollectionWarning";
+    public static final String GET_COLLECTION_TITLE = ApiOperationLabel.format(HttpMethod.GET, RoutePaths.USERS,
+            "collection contract");
+    public static final String GET_BY_ID_TITLE = ApiOperationLabel.format(HttpMethod.GET, RoutePaths.USER_BY_ID,
+            "item contract");
+    public static final String CREATE_UNAUTHENTICATED_TITLE = ApiOperationLabel.format(HttpMethod.POST, RoutePaths.USERS,
+            "missing authentication");
+    public static final String GET_COLLECTION_WARNING_TITLE = ApiOperationLabel.format(HttpMethod.GET, RoutePaths.USERS,
+            "soft contract warning");
+    public static final List<String> REPORT_SCENARIO_TITLES = List.of(
+            GET_COLLECTION_TITLE, GET_BY_ID_TITLE, CREATE_UNAUTHENTICATED_TITLE, GET_COLLECTION_WARNING_TITLE);
 
     private UsersApiScenarios() { }
 
@@ -49,14 +59,10 @@ public final class UsersApiScenarios {
 
     public static String scenarioTitle(String method) {
         return switch (method) {
-            case GET_COLLECTION -> ApiOperationLabel.format(HttpMethod.GET, RoutePaths.USERS,
-                    "collection contract");
-            case GET_BY_ID -> ApiOperationLabel.format(HttpMethod.GET, RoutePaths.USER_BY_ID,
-                    "item contract");
-            case CREATE_UNAUTHENTICATED -> ApiOperationLabel.format(HttpMethod.POST, RoutePaths.USERS,
-                    "missing authentication");
-            case GET_COLLECTION_WARNING -> ApiOperationLabel.format(HttpMethod.GET, RoutePaths.USERS,
-                    "soft contract warning");
+            case GET_COLLECTION -> GET_COLLECTION_TITLE;
+            case GET_BY_ID -> GET_BY_ID_TITLE;
+            case CREATE_UNAUTHENTICATED -> CREATE_UNAUTHENTICATED_TITLE;
+            case GET_COLLECTION_WARNING -> GET_COLLECTION_WARNING_TITLE;
             default -> throw new IllegalArgumentException("Unknown users API scenario method: " + method);
         };
     }
@@ -64,7 +70,7 @@ public final class UsersApiScenarios {
     private static void publishCollection(AtfReportPorts.Session session, ApiModule api,
                                           ApiScenarioLifecycleRunner lifecycle) {
         run(lifecycle, session, plan(
-                ApiOperationLabel.format(HttpMethod.GET, RoutePaths.USERS, "collection contract"),
+                GET_COLLECTION_TITLE,
                 List.of("api", "users", "contract", "smoke")),
                 phase -> ApiAcceptancePublisher.publish(phase, ApiOperationLabel.format(HttpMethod.GET, RoutePaths.USERS, null),
                         api.users().getCollection(), ContractValidators.userCollection(), false, null));
@@ -73,7 +79,7 @@ public final class UsersApiScenarios {
     private static void publishItem(AtfReportPorts.Session session, ApiModule api,
                                     ApiScenarioLifecycleRunner lifecycle) {
         run(lifecycle, session, plan(
-                ApiOperationLabel.format(HttpMethod.GET, RoutePaths.USER_BY_ID, "item contract"),
+                GET_BY_ID_TITLE,
                 List.of("api", "users", "contract")),
                 phase -> ApiAcceptancePublisher.publish(phase, ApiOperationLabel.format(HttpMethod.GET, RoutePaths.USERS + "/1", null), api.users().get(1),
                         ContractValidators.userItem(), false, null));
@@ -82,7 +88,7 @@ public final class UsersApiScenarios {
     private static void publishUnauthenticatedCreate(AtfReportPorts.Session session, ApiModule api,
                                                       ApiScenarioLifecycleRunner lifecycle) {
         run(lifecycle, session, plan(
-                ApiOperationLabel.format(HttpMethod.POST, RoutePaths.USERS, "missing authentication"),
+                CREATE_UNAUTHENTICATED_TITLE,
                 List.of("api", "users", "negative", "auth")),
                 phase -> {
                     UserRequest payload = ApiFixtureData.unauthenticatedUserRequest();
@@ -96,7 +102,7 @@ public final class UsersApiScenarios {
     private static void publishCollectionWarning(AtfReportPorts.Session session, ApiModule api,
                                                  ApiScenarioLifecycleRunner lifecycle) {
         run(lifecycle, session, plan(
-                ApiOperationLabel.format(HttpMethod.GET, RoutePaths.USERS, "soft contract warning"),
+                GET_COLLECTION_WARNING_TITLE,
                 List.of("api", "users", "reporting", "soft-assert")),
                 phase -> ApiAcceptancePublisher.publish(phase, ApiOperationLabel.format(HttpMethod.GET, RoutePaths.USERS, null),
                         api.users().getCollection(),

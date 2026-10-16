@@ -14,7 +14,6 @@ import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 /** One deterministic method/path response owned by the ATF mock module. */
 public record MockRoute(String method, String path, int status, String body,
@@ -23,9 +22,13 @@ public record MockRoute(String method, String path, int status, String body,
                         ApiQueryParameters queryParameters,
                         Map<String, String> requiredHeaders,
                         String requestBodyMode, String expectedRequestBody) {
+    public static final String ANY_METHOD = "*";
+    public static final String ANY_PATH = "/*";
+    public static final String ANY_AUTH_PROFILE = "*";
+
     public MockRoute(String method, String path, int status, String body,
                      Map<String, String> headers, Duration duration) {
-        this(method, path, status, body, headers, duration, "*", Map.of(), Map.of());
+        this(method, path, status, body, headers, duration, ANY_AUTH_PROFILE, Map.of(), Map.of());
     }
 
     public MockRoute(String method, String path, int status, String body,
@@ -39,7 +42,7 @@ public record MockRoute(String method, String path, int status, String body,
                      String authProfile, Map<String, String> query,
                      Map<String, String> requiredHeaders) {
         this(method, path, status, body, headers, duration, authProfile, query,
-                ApiQueryParameters.fromMap(query), requiredHeaders, "json", null);
+                ApiQueryParameters.fromMap(query), requiredHeaders, MockRequestBodyMode.JSON.value(), null);
     }
 
     /** Compatibility constructor for callers that configure request-body semantics directly. */
@@ -58,7 +61,7 @@ public record MockRoute(String method, String path, int status, String body,
                      Map<String, String> requiredHeaders) {
         this(method, path, status, body, headers, duration, authProfile,
                 queryParameters == null ? Map.of() : queryParameters.asMap(),
-                queryParameters, requiredHeaders, "json", null);
+                queryParameters, requiredHeaders, MockRequestBodyMode.JSON.value(), null);
     }
 
     public MockRoute(String method, String path, int status, String body,
@@ -84,16 +87,13 @@ public record MockRoute(String method, String path, int status, String body,
         headers = headers == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(headers));
         duration = duration == null ? Duration.ofMillis(12) : duration;
         if (duration.isNegative()) throw new IllegalArgumentException("mock duration must not be negative");
-        authProfile = authProfile == null || authProfile.isBlank() ? "*" : authProfile.trim();
+        authProfile = authProfile == null || authProfile.isBlank()
+                ? ANY_AUTH_PROFILE : authProfile.trim();
         query = query == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(query));
         queryParameters = queryParameters == null ? ApiQueryParameters.fromMap(query) : queryParameters;
         query = queryParameters.asMap();
         requiredHeaders = requiredHeaders == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(requiredHeaders));
-        requestBodyMode = requestBodyMode == null || requestBodyMode.isBlank()
-                ? "json" : requestBodyMode.trim().toLowerCase(java.util.Locale.ROOT);
-        if (!Set.of("json", "wrong-content-type").contains(requestBodyMode)) {
-            throw new IllegalArgumentException("unsupported mock request-body-mode: " + requestBodyMode);
-        }
+        requestBodyMode = MockRequestBodyMode.normalize(requestBodyMode);
         expectedRequestBody = expectedRequestBody == null || expectedRequestBody.isBlank()
                 ? null : expectedRequestBody;
         if (expectedRequestBody != null && !JsonSupport.valid(expectedRequestBody)) {
@@ -113,7 +113,7 @@ public record MockRoute(String method, String path, int status, String body,
 
     public boolean matches(ApiRequest request) {
         Objects.requireNonNull(request, "request");
-        return (method.equals("*") || method.equalsIgnoreCase(request.method()))
+        return (method.equals(ANY_METHOD) || method.equalsIgnoreCase(request.method()))
                 && pathMatches(request)
                 && requestBodyMatches(request)
                 && authMatches(request)
@@ -125,11 +125,11 @@ public record MockRoute(String method, String path, int status, String body,
     }
 
     private boolean pathMatches(ApiRequest request) {
-        return path.equals("/*") || path.equals(request.path());
+        return path.equals(ANY_PATH) || path.equals(request.path());
     }
 
     private boolean authMatches(ApiRequest request) {
-        return authProfile.equals("*") || authProfile.equals(request.authProfile());
+        return authProfile.equals(ANY_AUTH_PROFILE) || authProfile.equals(request.authProfile());
     }
 
     private boolean queryMatches(ApiRequest request) {
@@ -157,9 +157,9 @@ public record MockRoute(String method, String path, int status, String body,
         boolean validJson = !request.bodyText().isBlank()
                 && JsonBodyPolicy.validDocument(request.bodyText());
         boolean jsonContentType = hasJsonContentType(request);
-        boolean matchesMode = switch (requestBodyMode) {
-            case "wrong-content-type" -> validJson && !jsonContentType;
-            default -> validJson && jsonContentType;
+        boolean matchesMode = switch (MockRequestBodyMode.from(requestBodyMode)) {
+            case WRONG_CONTENT_TYPE -> validJson && !jsonContentType;
+            case JSON -> validJson && jsonContentType;
         };
         if (!matchesMode) return false;
         return expectedRequestBody == null || JsonSupport.sameJson(expectedRequestBody, request.bodyText());

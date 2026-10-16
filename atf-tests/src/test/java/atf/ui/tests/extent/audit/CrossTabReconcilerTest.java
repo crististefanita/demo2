@@ -1,6 +1,7 @@
 package atf.ui.tests.extent.audit;
 
 import atf.ui.tests.extent.support.ValidationResult;
+import atf.ui.tests.extent.support.UiTestData;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -14,8 +15,8 @@ class CrossTabReconcilerTest {
     @Test
     void acceptsEquivalentOwnerSetsAndProjectedCounts() {
         ValidationResult result = reconciler.reconcile(
-                List.of("UsersApiTests", "PostsApiTests"),
-                List.of("PostsApiTests", "UsersApiTests"), 2, 4);
+                List.of(UiTestData.USERS_OWNER, UiTestData.POSTS_OWNER),
+                List.of(UiTestData.POSTS_OWNER, UiTestData.USERS_OWNER), 2, 4);
 
         assertTrue(result.valid(), result::failureSummary);
         assertTrue(result.violations().isEmpty());
@@ -24,8 +25,8 @@ class CrossTabReconcilerTest {
     @Test
     void reportsEveryProjectionDrift() {
         ValidationResult result = reconciler.reconcile(
-                List.of("UsersApiTests", "PostsApiTests"),
-                List.of("UsersApiTests", "UnexpectedApiTests"), 3, 0);
+                List.of(UiTestData.USERS_OWNER, UiTestData.POSTS_OWNER),
+                List.of(UiTestData.USERS_OWNER, "UnexpectedApiTests"), 3, 0);
 
         assertFalse(result.valid());
         assertTrue(result.violations().stream().anyMatch(value -> value.startsWith("Owners:")));

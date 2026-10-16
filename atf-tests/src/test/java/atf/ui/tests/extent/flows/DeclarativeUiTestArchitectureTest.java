@@ -42,6 +42,29 @@ class DeclarativeUiTestArchitectureTest {
         }
     }
 
+    @Test
+    void uiTestsDoNotDuplicateApiScenarioIdentityOrOwnerLiterals() throws Exception {
+        Path testRoot = Path.of(DeclarativeUiTestArchitectureTest.class
+                .getProtectionDomain().getCodeSource().getLocation().toURI())
+                .resolve("../../src/test/java/atf/ui/tests/extent").normalize();
+        List<String> forbidden = List.of(
+                "\"GET /public/v2/", "\"POST /public/v2/", "\"PUT /public/v2/",
+                "\"UsersApiTests\"", "\"PostsApiTests\"", "\"RequestVariantsApiTests\"",
+                "\"ApiHeadersAndEdgeCasesTests\"", "\"ApiRequestFlowsTests\"",
+                "\"ApiNegativeMatrixTests\"", "\"LifecycleApiScenarios\"");
+        try (Stream<Path> files = Files.walk(testRoot)) {
+            for (Path file : files.filter(path -> path.toString().endsWith(".java"))
+                    .filter(path -> !path.getFileName().toString().endsWith("ArchitectureTest.java"))
+                    .toList()) {
+                String text = Files.readString(file);
+                for (String token : forbidden) {
+                    assertTrue(!text.contains(token),
+                            () -> "UI test duplicates API catalog literal '" + token + "': " + file);
+                }
+            }
+        }
+    }
+
     private boolean isDeclarativeSource(Path file) {
         try {
             String text = Files.readString(file);

@@ -279,6 +279,9 @@ public final class ReportUiLocators {
     public Locator failedPhaseBadge(Locator phase) {
         return phase.locator(":scope > .card-header " + FAILURE_BADGE);
     }
+    public Locator failedRequestBadge(Locator request) {
+        return request.locator(":scope > .card-header " + FAILURE_BADGE);
+    }
     public Locator phaseDirectBody(Locator phase) {
         return phase.locator(PHASE_DIRECT_BODY
                 + ", :scope > div:not(.card-header):not(.accordion)");

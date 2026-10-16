@@ -2,6 +2,7 @@ package atf.ui.tests.extent.audit;
 
 import atf.api.core.http.HttpHeader;
 import atf.api.core.http.MediaTypes;
+import atf.api.mock.MockRequestBodyMode;
 import atf.api.mock.MockRoute;
 import atf.ui.tests.extent.support.ValidationResult;
 
@@ -19,14 +20,16 @@ final class MockRequestBodyValidator {
         String body = evidence == null ? "" : safe(evidence.requestBody());
         boolean hasPayload = MockContractValueSupport.hasPayload(body);
         boolean validJson = MockContractValueSupport.isJson(body);
-        boolean requestHeadersRendered = rendered.requestFields().containsKey("REQUEST HEADERS");
-        String renderedHeaders = MockContractValueSupport.headerValue(rendered.requestFields(), "REQUEST HEADERS")
+        boolean requestHeadersRendered = rendered.requestFields().containsKey(
+                MockReportEvidenceField.REQUEST_HEADERS.key());
+        String renderedHeaders = MockContractValueSupport.headerValue(rendered.requestFields(),
+                        MockReportEvidenceField.REQUEST_HEADERS.key())
                 .toLowerCase(java.util.Locale.ROOT);
         String jsonHeader = (HttpHeader.CONTENT_TYPE.value() + "=" + MediaTypes.APPLICATION_JSON)
                 .toLowerCase(java.util.Locale.ROOT);
         boolean jsonContentType = renderedHeaders.contains(jsonHeader);
-        switch (expected.requestBodyMode()) {
-            case "json" -> {
+        switch (MockRequestBodyMode.from(expected.requestBodyMode())) {
+            case JSON -> {
                 if (!hasPayload) violations.add(expected.key() + " must expose a non-empty JSON request body");
                 else if (!validJson) violations.add(expected.key() + " must expose a valid JSON request body");
                 if (requestHeadersRendered && !jsonContentType) {
@@ -34,7 +37,7 @@ final class MockRequestBodyValidator {
                             + " " + MediaTypes.APPLICATION_JSON);
                 }
             }
-            case "wrong-content-type" -> {
+            case WRONG_CONTENT_TYPE -> {
                 if (!hasPayload || !validJson) violations.add(expected.key()
                         + " must expose a valid JSON body for the wrong-content-type outcome");
                 if (requestHeadersRendered && jsonContentType) {

@@ -442,6 +442,33 @@ public final class UiReportAuditDynamicEngine {
                             ReportAuditChecks.check("Trace hidden on arrival", "0",
                                     String.valueOf(observation.visibleTraceTablesOnArrival()),
                                     observation.visibleTraceTablesOnArrival() == 0),
+                            ReportAuditChecks.check("Keyboard disclosure open", 
+                                    String.valueOf(observation.failedPhaseCount()),
+                                    String.valueOf(observation.keyboardOpenedCount()),
+                                    observation.keyboardOpenedCount() == observation.failedPhaseCount()),
+                            ReportAuditChecks.check("Focus return", 
+                                    String.valueOf(observation.failedPhaseCount()),
+                                    String.valueOf(observation.focusReturnedCount()),
+                                    observation.focusReturnedCount() == observation.failedPhaseCount()),
+                            ReportAuditChecks.check("Keyboard close/idempotence", 
+                                    String.valueOf(observation.failedPhaseCount()),
+                                    String.valueOf(observation.idempotentClosedCount()),
+                                    observation.idempotentClosedCount() == observation.failedPhaseCount()),
+                            ReportAuditChecks.check("Failed POST/PUT metadata", "> 0 complete",
+                                    observation.writeFailureCount() + "/"
+                                            + observation.writeMetadataCompleteCount(),
+                                    observation.writeFailureCount() > 0
+                                            && observation.writeMetadataCompleteCount()
+                                            == observation.writeFailureCount()),
+                            ReportAuditChecks.check("Failed POST/PUT JSON", "> 0 complete",
+                                    observation.writeFailureCount() + "/"
+                                            + observation.writeJsonCompleteCount(),
+                                    observation.writeFailureCount() > 0
+                                            && observation.writeJsonCompleteCount()
+                                            == observation.writeFailureCount()),
+                            ReportAuditChecks.check("Retry reconciliation", "audited = valid",
+                                    observation.retryAuditedCount() + " = " + observation.retryValidCount(),
+                                    observation.retryAuditedCount() == observation.retryValidCount()),
                             ReportAuditChecks.check("Final Tests state", "collapsed",
                                     String.valueOf(observation.finalStateCollapsed()),
                                     observation.finalStateCollapsed())),

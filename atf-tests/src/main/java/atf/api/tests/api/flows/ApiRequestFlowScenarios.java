@@ -16,6 +16,8 @@ import java.util.List;
 public final class ApiRequestFlowScenarios {
     public static final String REPORT_OWNER = "ApiRequestFlowsTests";
     public static final String PROFILE_UPDATE = "profileUpdate";
+    public static final String PROFILE_UPDATE_TITLE = ApiRequestFlowFixtures.PROFILE_UPDATE_TITLE;
+    public static final List<String> REPORT_SCENARIO_TITLES = List.of(PROFILE_UPDATE_TITLE);
 
     private ApiRequestFlowScenarios() { }
 
@@ -29,7 +31,7 @@ public final class ApiRequestFlowScenarios {
     }
 
     public static String scenarioTitle(String method) {
-        if (PROFILE_UPDATE.equals(method)) return ApiRequestFlowFixtures.PROFILE_UPDATE_TITLE;
+        if (PROFILE_UPDATE.equals(method)) return PROFILE_UPDATE_TITLE;
         throw new IllegalArgumentException("Unknown API flow scenario method: " + method);
     }
 

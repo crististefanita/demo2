@@ -119,6 +119,58 @@ public final class ReportAuditSnapshot {
         }
     }
 
+    /** Renderer-neutral facts for the legacy visual-evidence contract. */
+    public record VisualEvidence(int validationCount, int disclosureCount,
+                                 int actionSequenceCount, int screenshotLinkCount,
+                                 int duplicateScreenshotMarkers, int nestedScreenshotImages,
+                                 int directScreenshotLinks, int featherlightScreenshotLinks,
+                                 int screenshotAnchorCount, int canonicalScreenshotLinks,
+                                 String observedActionText, boolean observedTextIsStructured,
+                                 boolean fixedActionTable) {
+        public VisualEvidence {
+            if (validationCount < 0 || disclosureCount < 0 || actionSequenceCount < 0
+                    || screenshotLinkCount < 0 || duplicateScreenshotMarkers < 0
+                    || nestedScreenshotImages < 0 || directScreenshotLinks < 0
+                    || featherlightScreenshotLinks < 0 || screenshotAnchorCount < 0
+                    || canonicalScreenshotLinks < 0) {
+                throw new IllegalArgumentException("Visual evidence counts must be non-negative");
+            }
+            observedActionText = Objects.requireNonNull(observedActionText, "observedActionText");
+        }
+    }
+
+    /** Renderer-neutral facts for the actionable Base64 screenshot contract. */
+    public record ScreenshotEvidence(boolean actionable, boolean validPngPayload, String target,
+                                     String rel, String featherlight, String markerText,
+                                     String geometry, boolean centeredVertically,
+                                     boolean openedBase64Image, int distinctPayloadCount,
+                                     int inlineImageCount) {
+        public ScreenshotEvidence {
+            target = Objects.requireNonNull(target, "target");
+            rel = Objects.requireNonNull(rel, "rel");
+            featherlight = Objects.requireNonNull(featherlight, "featherlight");
+            markerText = Objects.requireNonNull(markerText, "markerText");
+            geometry = Objects.requireNonNull(geometry, "geometry");
+            if (distinctPayloadCount < 0 || inlineImageCount < 0) {
+                throw new IllegalArgumentException("Screenshot evidence counts must be non-negative");
+            }
+        }
+
+        public static ScreenshotEvidence notAvailable() {
+            return new ScreenshotEvidence(false, false, "", "", "", "", "missing",
+                    false, false, 0, 0);
+        }
+    }
+
+    /** Neutral result of category/failure filter discovery; pages stay in the browser envelope. */
+    public record Filters(Annotations annotations, Failures failures,
+                          boolean tagLinks, boolean failureLinks) {
+        public Filters {
+            annotations = Objects.requireNonNull(annotations, "annotations");
+            failures = Objects.requireNonNull(failures, "failures");
+        }
+    }
+
     public record JsonEvidence(String requestBody, String responseBody,
                                List<String> violations) {
         public JsonEvidence {

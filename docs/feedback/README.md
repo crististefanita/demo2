@@ -8,10 +8,14 @@ or as a running-history diary.
 Specialized ownership: API-only quality is tracked in this central ledger and
 the API module READMEs; [`ATF_Ui_Exploratory_Feedback.md`](ATF_Ui_Exploratory_Feedback.md)
 for UI/Extent gaps, [`ATF_Ui_Extent_Inventory.md`](ATF_Ui_Extent_Inventory.md)
-and [`ATF_Ui_Extent_Reusable_Test_Strategy.md`](ATF_Ui_Extent_Reusable_Test_Strategy.md)
-for the plug-and-play architecture, and
-the module READMEs for the closed cross-report shell and exact-selection
-contracts.
+for ownership and modularization, and the package README for the implemented
+plug-and-play and exact-selection contracts. Remaining active compatibility
+hardening is tracked in
+[`ATF_Ui_Extent_Section_Architecture_Feedback.md`](ATF_Ui_Extent_Section_Architecture_Feedback.md),
+[`ATF_Ui_Extent_Failure_Diagnostic_Audit_Feedback.md`](ATF_Ui_Extent_Failure_Diagnostic_Audit_Feedback.md)
+and [`ATF_Refactor_Constants.md`](ATF_Refactor_Constants.md).
+The module READMEs remain the source of truth for the closed cross-report shell
+and exact-selection contracts.
 
 The live design scorecard and responsibility review are in
 [`ATF_Architecture_Design_Review.md`](ATF_Architecture_Design_Review.md).
@@ -20,9 +24,9 @@ The live design scorecard and responsibility review are in
 
 | Status | IDs | Meaning |
 |---|---|---|
-| DONE | F-01, F-02, F-03, F-05, F-06, F-07, F-09, F-10, F-11, F-12, F-13, API-DESIGN-01, API-JSON-01, API-JSON-02, API-QUERY-01, API-PACKAGE-01, API-CONSTANTS-01, REP-UI-01, UI-14, UI-15, UI-16, UI-17, UI-18, UI-19, UI-20, UI-21, UI-22, UI-23, UI-CONFIG-01, UI-EXTENT-REUSE-01, LOC-03, LOC-04, D-03, D-04, ARCH-01, ARCH-02, ARCH-03, ARCH-04, ARCH-05, ARCH-UI-01, ARCH-UI-02, ARCH-UI-03, DOC-01, OPS-UI-01 | The contract is implemented and protected by source-level, artifact or ATF Debug UI evidence. |
+| DONE | F-01, F-02, F-03, F-05, F-06, F-07, F-09, F-10, F-11, F-12, F-13, API-DESIGN-01, API-JSON-01, API-JSON-02, API-QUERY-01, API-PACKAGE-01, API-CONSTANTS-01, UI-CONSTANTS-01, REP-UI-01, UI-14, UI-15, UI-16, UI-17, UI-18, UI-19, UI-20, UI-21, UI-22, UI-23, UI-CONFIG-01, UI-EXTENT-REUSE-01, LOC-03, LOC-04, D-03, D-04, ARCH-01, ARCH-02, ARCH-03, ARCH-04, ARCH-05, ARCH-UI-01, ARCH-UI-02, ARCH-UI-03, DOC-01, OPS-UI-01 | The contract is implemented and protected by source-level, artifact or ATF Debug UI evidence. |
 | DECISION CLOSED | ARCH-06 | The readable dynamic switch remains intentional; a registry is trigger-gated by rule/parameter growth and is not justified by the current source. |
-| ACTIVE | UI-SECTION-ARCH-01, UI-EXTENT-INSPECTOR-01, `AtfReportTheme`, `UiExtentReportSession` | The section modules need uniform check execution plus independent publication; the remaining DOM inspectors and two reporting composition hotspots need controlled, contract-preserving refactors. |
+| IN PROGRESS | REF-CONSTANTS-01 | The mock-report auditor now follows the typed constants/enums boundary; the remaining API-test literal audit is tracked separately. |
 
 ### Closed contracts moved to module documentation
 
@@ -37,23 +41,30 @@ The exact-selection score is intentionally scoped to that increment; the
 current reusable UI closure is recorded below and does not imply a new class
 for every API-family combination.
 
+### Active constants/enums refactor
+
+[`ATF_Refactor_Constants.md`](ATF_Refactor_Constants.md) is the owner for the
+uniform constants/enums rule. It distinguishes protocol vocabulary, route/data
+fixtures, report evidence keys and intentionally local edge-case values; it is
+not a second generic backlog.
+
 ### Closed gate already verified
 
 **`UI-EXTENT-REUSE-01` fresh artifact gate — DONE:** the selected golden path
    was rerun in isolated `.tmp`, the exact HTML was copied to the configured
    API/UI report folders, and both exact files were opened through ATF
    Debug/browser MCP. Current closure pair:
-   `api-atf-extent-report_2026-10-16_22-40-08-404.html` and
-   `ui/ui-atf-extent-report_api-extent-report-exploratory-test_2026-10-16_22-40-15-301.html`.
+   `api-atf-extent-report_2026-10-16_23-20-42-360.html` and
+   `ui/ui-atf-extent-report_api-extent-report-exploratory-test_2026-10-16_23-20-49-242.html`.
    The API POST/PUT request/response JSON and the UI three-zone/screenshot layout
    were expanded and visually checked. Current runs were not stopped.
 
 Current exact artifact hashes:
 
-- API: `931EC5C5BEE51F4D805E283CCFB93A8924BAC9AA1ABDAC0723FB593925B4C7A4`
-- UI: `CAE94267A034BEBCF23B8792FF9E4D5220C45FBF71D8F1C694E11794A3102CAC`
+- API: `0598D195E41F1EBC001EAF6F8581F46E8ADF7C96197BC78F316C705AC78E56C8`
+- UI: `D4464E8BE01095E40BBFD51B14CFDC00CB384F6BF57562EE0823A3BCF45E1BC7`
 - Screen validation gate: `5DD627F54F04B17637F2659112054DAEAF00FAB323B3205A85BA2E1BA8633D06`
-- staging: `C:/work/ex/java/.tmp/deep-docs-live-20261016-2258`
+- staging: `C:/work/ex/java/.tmp/p2-reporting-refactor-20261016-231500`
 
 ### Priority by impact — current scope closed
 
@@ -156,7 +167,8 @@ contract has passed for both `users,posts` and `requests,headers`. This is
 tracked as `UI-CONFIG-01`.
 
 Direcția pentru reutilizare profundă, manifest și teste dinamice este documentată
-separat în [`ATF_Ui_Extent_Reusable_Test_Strategy.md`](ATF_Ui_Extent_Reusable_Test_Strategy.md).
+în README-ul pachetului Extent; acest index păstrează numai statusul și ToDo-urile
+care mai cer lucru.
 Inventarul tehnic al claselor, ownership-ului, dependency direction și
 deciziei de modularizare este în
 [`ATF_Ui_Extent_Inventory.md`](ATF_Ui_Extent_Inventory.md).
@@ -173,6 +185,25 @@ Debug UI, DOM, screenshot or rendered-report assertion belongs in
 configurable API precondition, but the API setup is not a separately ordered
 test suite and the API input remains read-only.
 
+### UI-CONSTANTS-01 — API scenario constants consumed by UI tests
+
+**Status: DONE.** The UI report contract no longer repeats API scenario
+identities, titles or owner names. Canonical values live in the API scenario
+catalogs (`UsersApiScenarios`, `PostsApiScenarios`, `RequestVariantsApiScenarios`,
+`ApiHeadersAndEdgeCaseScenarios` and the remaining API catalogs) as public
+constants and immutable `REPORT_SCENARIO_TITLES` lists. `UiTestData.ApiFamily`
+references those values; it does not copy them. `ExpectedReportProjection` and
+the UI projection tests therefore validate the same semantic strings that the
+API setup publishes.
+
+The architectural guard
+`DeclarativeUiTestArchitectureTest.uiTestsDoNotDuplicateApiScenarioIdentityOrOwnerLiterals`
+rejects raw `GET/POST/PUT /public/...` identities and API owner literals in UI
+test sources. Adding a scenario follows one path: add the API catalog constant,
+include it in that catalog's report list, then consume the constant from UI.
+This keeps `List.of(...)` readable and compositional without allowing a second
+source of truth.
+
 ## Surgical class-refactor checkpoint — 2026-10-16
 
 The two largest orchestration hotspots were split without changing the public
@@ -185,6 +216,15 @@ flow/report contracts:
   `UiEvidencePublisher` owns the shared action/screenshot/assertion/failure
   publication rules. This prevents the normal, media and failure paths from
   drifting apart and preserves the single inline screenshot contract.
+- `AtfReportTheme` is now a composition root. Navigation and detail CSS are
+  owned by `AtfReportThemeNavigationCss` and `AtfReportThemeDetailCss`; the
+  golden CSS contract is unchanged (`84,622` characters, SHA-256
+  `a771f58bb5f32e4d3b544db98099a42992e2686becd1b7a84d61ce26710a2e35`).
+- `UiExtentReportSession` is now a compatibility facade. Scenario and phase
+  lifecycle state/publication are owned by `UiScenarioLifecycle` and
+  `UiPhaseLifecycle`; the public nested wrappers and all existing signatures
+  remain intact. Composition tests protect node order, duration lineage,
+  evidence publication and lifecycle guards.
 
 The refactor gate is: preserve the facade method signatures, keep locator
 construction in `ReportUiLocators`, run reporting contract tests plus the UI
@@ -305,16 +345,38 @@ by the isolated UI exploration run:
 - [x] `ReportUiLocators` remains the canonical selector boundary and delegates
   semantic category, evidence and failure selectors to dedicated locator
   classes. Locator-contract and UI-layer architecture tests guard the seam.
-- [ ] `AtfReportTheme` remains a CSS composition hotspot; extract theme blocks
-  only with a golden HTML/render comparison.
-- [ ] `UiExtentReportSession` remains a lifecycle API with nested scenario and
-  phase builders; extract those builders only after a snapshot test proves
-  identical node order, duration lineage and evidence publication.
+- [x] `AtfReportTheme` CSS composition was split behind semantic owners with a
+  golden CSS hash/length guard and a fresh ATF Debug UI artifact check; the
+  rendered contract is unchanged.
+- [x] `UiExtentReportSession` lifecycle composition was split into scenario
+  and phase collaborators while preserving its public compatibility facade;
+  composition tests prove unchanged lifecycle/evidence behavior.
 
-Current evidence is intentionally not pinned to a historical filename or
-hash. A report is closure evidence only when the exact fresh artifact from the
-current synchronized build is linked in the handoff after ATF Debug UI/browser
-MCP inspection.
+Current closure evidence is pinned to the fresh synchronized pair above. A
+new report becomes closure evidence only when the exact artifact from the
+current build is linked in the handoff after ATF Debug UI/browser MCP
+inspection.
+
+### P2 closure — reporting composition hotspots — 2026-10-16
+
+The two P2 items are closed without an immediate functional change. The
+implementation was performed in
+`C:/work/ex/java/.tmp/p2-reporting-refactor-20261016-231500` and synchronized
+selectively to the live project only after the gates passed:
+
+- `AtfReportTheme` remains the same CSS composition contract byte-for-byte;
+  the new semantic layers are guarded by the golden length/hash test.
+- `UiExtentReportSession` keeps the public `openConfigured*`, scenario and
+  phase API. Its lifecycle state and evidence publication now have focused
+  collaborators, so the facade no longer owns the nested implementation
+  details.
+- Reporting module suite: `140/140` green before the final golden assertion;
+  focused composition gate: `6/6` green; the final synchronized live suite
+  must remain the release gate.
+- Golden exploratory E2E: `1/1` green. The API artifact contains request and
+  response JSON plus headers/auth/execution evidence; the UI artifact was
+  opened through ATF Debug UI and its three Screen validation zones were
+  visually checked as contiguous siblings with the inline screenshot link.
 
 ## Verified backlog increment — 2026-10-16
 
@@ -397,16 +459,19 @@ auditor tests are green.
 
 | ID | Owner | Current gap | Closure evidence |
 |---|---|---|---|
-| UI-SECTION-ARCH-01 | `atf-tests` | The six section modules return `SectionAuditResult`, but check ownership/execution is not uniform, Extent publication remains inside modules, and the global rule path is still a compatibility seam. | `ATF_Ui_Extent_Section_Architecture_Feedback.md`; close only with a full `sections × checks × journey` matrix, independent publisher and fresh ATF Debug/browser MCP artifact. |
-| UI-EXTENT-INSPECTOR-01 | `atf-tests` | The remaining DOM inspectors for request evidence, structure/filter and historical Categories/Evidence paths must converge to `extractor → snapshot → pure validator → ValidationResult`. | `ATF_Ui_Exploratory_Feedback.md` and `ATF_Ui_Extent_Inventory.md`; no selector or expected-value ownership may move into tests. |
+| UI-EXTENT-INSPECTOR-01 | `atf-tests` | Compatibility hardening remains for legacy DOM inspectors (`request evidence`, structure/filter and historical Categories/Evidence paths): migrate them only when a second consumer requires the `extractor → snapshot → pure validator → ValidationResult` seam. This does not block the current six-module section contract. | `ATF_Ui_Extent_Inventory.md`; selectors and expected values remain outside tests, and the migration is reopened only by a new consumer or a concrete contract defect. |
+
+`UI-SECTION-ARCH-01` is closed for the current renderer scope: all six modules
+return the canonical `SectionAuditResult`, execute the declarative
+`SectionAuditCheckPolicy`, and passed the focused `30/30` gate plus the fresh
+ATF Debug/browser MCP artifact. A standalone evidence publisher and retirement
+of compatibility façades are trigger-gated future extractions, not active defects.
 
 ### P2 — UI contract and semantic metadata
 
 | ID | Owner | Current gap | Closure evidence |
 |---|---|---|---|
-| `AtfReportTheme` | `atf-reporting` | CSS composition hotspot; extracția este permisă doar pe blocuri semantice, fără schimbarea ordinii CSS sau a HTML-ului observabil. | Golden HTML/render comparison plus focused theme contract tests. |
-| `UiExtentReportSession` | `atf-reporting` | Lifecycle API cu scenario/phase builders nested; extracția este permisă numai după snapshot contract pentru node order, duration lineage și evidence publication. | Snapshot comparison, lifecycle contract tests and fresh ATF Debug/browser MCP artifact. |
-| — | — | UI-15, UI-23, D-01 și D-03 sunt contracte închise și rămân doar gardieni de regresie. | Contractele sunt documentate în README-urile ownerilor și în feedback-ul specializat. |
+| — | — | Nu există ToDo P2 activ în acest ledger; UI-15, UI-23, D-01 și D-03 sunt contracte închise și rămân doar gardieni de regresie. | Contractele sunt documentate în README-urile ownerilor și în feedback-ul specializat. |
 
 ### P3 — hardening
 

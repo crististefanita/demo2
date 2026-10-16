@@ -395,14 +395,18 @@ aceeași decizie în execuție și în artifact.
   pentru adăugarea unui test API;
 - [docs/ATF_Reporting_Contract.md](docs/ATF_Reporting_Contract.md) — arborele
   și contractul observabil al raportului;
-- [docs/ATF_REPORTING_REFERENCE_GUARD.md](docs/ATF_REPORTING_REFERENCE_GUARD.md)
+- [docs/ATF_Reporting_Reference_Guard.md](docs/ATF_Reporting_Reference_Guard.md)
   — reperul vizual/funcțional și procedura de comparație;
-- [docs/ATF_BUILD_AND_EXECUTION_SAFETY.md](docs/ATF_BUILD_AND_EXECUTION_SAFETY.md)
+- [docs/ATF_Build_And_Execution_Safety.md](docs/ATF_Build_And_Execution_Safety.md)
   — sync live, staging, build și verificare MCP;
 - [docs/README_Atf_BestPractices.md](docs/README_Atf_BestPractices.md) —
   reguli OOP, testabilitate și mentenanță;
 - [docs/feedback/README.md](docs/feedback/README.md) — ToDo-uri active și
   criterii de închidere validate prin cod și teste.
+
+Documentele descriptive folosesc convenția `ATF_<PascalCase>`, cu acronimul
+`ATF` doar în primul segment; forma canonică și exemplele sunt în
+[docs/README_Atf_BestPractices.md](docs/README_Atf_BestPractices.md).
 
 README-ul rădăcină nu repetă contracte de culori, layout, tab-uri, navigare,
 staging sau validare vizuală. Acestea au un singur owner documentar în

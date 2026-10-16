@@ -16,7 +16,7 @@ class OverviewScreenValidatorTest {
     void buildsDynamicExpectationFromScreenTestsYamlFamiliesAndMockCatalog() {
         var tests = new OverviewScreenValidator.ScreenTestsSnapshot(
                 5, 21, 21, List.of(
-                        "PostsApiTests", "UsersApiTests", "RequestVariantsApiTests",
+                        UiTestData.POSTS_OWNER, UiTestData.USERS_OWNER, UiTestData.REQUESTS_OWNER,
                         UiTestData.HEADERS_OWNER, UiTestData.LIFECYCLE_OWNER));
 
         var expected = OverviewScreenValidator.fromSetup(
@@ -27,13 +27,13 @@ class OverviewScreenValidatorTest {
         assertEquals(5, expected.configuredFamilies().size());
         assertEquals(5, expected.expectedOwnerNames().size());
         assertEquals(9, expected.mockRouteCount());
-        assertTrue(expected.expectedOwnerNames().contains("UsersApiTests"));
+        assertTrue(expected.expectedOwnerNames().contains(UiTestData.USERS_OWNER));
     }
 
     @Test
     void resultIsReusableByAnyScreenTestWithoutReimplementingAssertions() {
         var tests = new OverviewScreenValidator.ScreenTestsSnapshot(
-                2, 7, 9, List.of("UsersApiTests", "PostsApiTests"));
+                2, 7, 9, List.of(UiTestData.USERS_OWNER, UiTestData.POSTS_OWNER));
         var expected = OverviewScreenValidator.fromScreenTests(tests);
         var result = new OverviewScreenValidator.Result(
                 new OverviewScreenValidator.Observation(9, 9, 2, 7, 7, 1, true),

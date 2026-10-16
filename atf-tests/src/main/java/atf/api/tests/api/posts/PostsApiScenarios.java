@@ -26,6 +26,19 @@ public final class PostsApiScenarios {
     public static final String GET_USER_POSTS = "getUserPosts";
     public static final String GET_UNKNOWN = "getUnknown";
     public static final String CREATE_POST = "createPost";
+    public static final String GET_COLLECTION_TITLE = ApiOperationLabel.format(HttpMethod.GET, RoutePaths.POSTS,
+            "collection contract");
+    public static final String GET_BY_ID_TITLE = ApiOperationLabel.format(HttpMethod.GET, RoutePaths.POST_BY_ID,
+            "item contract");
+    public static final String GET_USER_POSTS_TITLE = ApiOperationLabel.format(HttpMethod.GET, RoutePaths.USER_POSTS,
+            "relationship contract");
+    public static final String GET_UNKNOWN_TITLE = ApiOperationLabel.format(HttpMethod.GET,
+            RoutePaths.POST_BY_ID.replace("{id}", "{unknownId}"), "not found contract");
+    public static final String CREATE_POST_TITLE = ApiOperationLabel.format(HttpMethod.POST, RoutePaths.POSTS,
+            "create contract");
+    public static final String CREATE_ROUTE_IDENTITY = HttpMethod.POST.value() + " " + RoutePaths.POSTS;
+    public static final List<String> REPORT_SCENARIO_TITLES = List.of(
+            GET_COLLECTION_TITLE, GET_BY_ID_TITLE, GET_USER_POSTS_TITLE, GET_UNKNOWN_TITLE, CREATE_POST_TITLE);
 
     private PostsApiScenarios() { }
 
@@ -52,16 +65,11 @@ public final class PostsApiScenarios {
 
     public static String scenarioTitle(String method) {
         return switch (method) {
-            case GET_COLLECTION -> ApiOperationLabel.format(HttpMethod.GET, RoutePaths.POSTS,
-                    "collection contract");
-            case GET_BY_ID -> ApiOperationLabel.format(HttpMethod.GET, RoutePaths.POST_BY_ID,
-                    "item contract");
-            case GET_USER_POSTS -> ApiOperationLabel.format(HttpMethod.GET, RoutePaths.USER_POSTS,
-                    "relationship contract");
-            case GET_UNKNOWN -> ApiOperationLabel.format(HttpMethod.GET,
-                    RoutePaths.POST_BY_ID.replace("{id}", "{unknownId}"), "not found contract");
-            case CREATE_POST -> ApiOperationLabel.format(HttpMethod.POST, RoutePaths.POSTS,
-                    "create contract");
+            case GET_COLLECTION -> GET_COLLECTION_TITLE;
+            case GET_BY_ID -> GET_BY_ID_TITLE;
+            case GET_USER_POSTS -> GET_USER_POSTS_TITLE;
+            case GET_UNKNOWN -> GET_UNKNOWN_TITLE;
+            case CREATE_POST -> CREATE_POST_TITLE;
             default -> throw new IllegalArgumentException("Unknown posts API scenario method: " + method);
         };
     }
@@ -69,7 +77,7 @@ public final class PostsApiScenarios {
     private static void publishCollection(AtfReportPorts.Session session, ApiModule api,
                                           ApiScenarioLifecycleRunner lifecycle) {
         run(lifecycle, session, plan(
-                ApiOperationLabel.format(HttpMethod.GET, RoutePaths.POSTS, "collection contract"),
+                GET_COLLECTION_TITLE,
                 List.of("api", "posts", "contract")),
                 phase -> ApiAcceptancePublisher.publish(phase, ApiOperationLabel.format(HttpMethod.GET, RoutePaths.POSTS, null),
                         api.posts().getCollection(), ContractValidators.postCollection(), false, null));
@@ -78,7 +86,7 @@ public final class PostsApiScenarios {
     private static void publishItem(AtfReportPorts.Session session, ApiModule api,
                                     ApiScenarioLifecycleRunner lifecycle) {
         run(lifecycle, session, plan(
-                ApiOperationLabel.format(HttpMethod.GET, RoutePaths.POST_BY_ID, "item contract"),
+                GET_BY_ID_TITLE,
                 List.of("api", "posts", "contract")),
                 phase -> ApiAcceptancePublisher.publish(phase, ApiOperationLabel.format(HttpMethod.GET, RoutePaths.POSTS + "/" + ApiFixtureData.EXISTING_POST_ID, null), api.posts().get(ApiFixtureData.EXISTING_POST_ID),
                         ContractValidators.postItem(), false, null));
@@ -87,7 +95,7 @@ public final class PostsApiScenarios {
     private static void publishUserPosts(AtfReportPorts.Session session, ApiModule api,
                                          ApiScenarioLifecycleRunner lifecycle) {
         run(lifecycle, session, plan(
-                ApiOperationLabel.format(HttpMethod.GET, RoutePaths.USER_POSTS, "relationship contract"),
+                GET_USER_POSTS_TITLE,
                 List.of("api", "posts", "relationship", "contract")),
                 phase -> ApiAcceptancePublisher.publish(phase, ApiOperationLabel.format(HttpMethod.GET, RoutePaths.USERS + "/" + ApiFixtureData.USER_ID + "/posts", null),
                         api.posts().forUser(ApiFixtureData.USER_ID), ContractValidators.relationshipCollection(String.valueOf(ApiFixtureData.USER_ID)), false, null));
@@ -96,7 +104,7 @@ public final class PostsApiScenarios {
     private static void publishUnknown(AtfReportPorts.Session session, ApiModule api,
                                        ApiScenarioLifecycleRunner lifecycle) {
         run(lifecycle, session, plan(
-                ApiOperationLabel.format(HttpMethod.GET, RoutePaths.POST_BY_ID.replace("{id}", "{unknownId}"), "not found contract"),
+                GET_UNKNOWN_TITLE,
                 List.of("api", "posts", "negative", "contract")),
                 phase -> ApiAcceptancePublisher.publish(phase, ApiOperationLabel.format(HttpMethod.GET, RoutePaths.POSTS + "/" + ApiFixtureData.UNKNOWN_POST_ID, null),
                         api.posts().get(ApiFixtureData.UNKNOWN_POST_ID),
@@ -107,7 +115,7 @@ public final class PostsApiScenarios {
     private static void publishCreate(AtfReportPorts.Session session, ApiModule api,
                                       ApiScenarioLifecycleRunner lifecycle) {
         run(lifecycle, session, plan(
-                ApiOperationLabel.format(HttpMethod.POST, RoutePaths.POSTS, "create contract"),
+                CREATE_POST_TITLE,
                 List.of("api", "posts", "write", "contract")),
                 phase -> {
                     var payload = ApiFixtureData.createdPostRequest();

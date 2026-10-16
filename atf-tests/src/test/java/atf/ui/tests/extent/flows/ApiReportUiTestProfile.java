@@ -41,7 +41,7 @@ public final class ApiReportUiTestProfile {
         this.reportKey = Objects.requireNonNull(reportKey, "reportKey");
         this.auditTitle = Objects.requireNonNull(auditTitle, "auditTitle");
         this.families = List.copyOf(Objects.requireNonNull(families, "families"));
-        List<String> resolvedTags = new ArrayList<>(List.of("ui", "api"));
+        List<String> resolvedTags = new ArrayList<>(List.of(UiTestData.TAG_UI, UiTestData.TAG_API));
         resolvedTags.addAll(this.families.stream().map(UiTestData.ApiFamily::key).toList());
         resolvedTags.add(UiTestData.TAG_MOCK_CONTRACT);
         this.tags = List.copyOf(resolvedTags);
@@ -70,6 +70,10 @@ public final class ApiReportUiTestProfile {
 
     List<String> ownerNames() {
         return families.stream().map(UiTestData.ApiFamily::ownerName).toList();
+    }
+
+    List<String> scenarioTitles() {
+        return families.stream().flatMap(family -> family.scenarioTitles().stream()).toList();
     }
 
     String setupDescription() {

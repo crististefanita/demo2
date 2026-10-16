@@ -1,11 +1,13 @@
 package atf.ui.tests.extent.flows;
 
-import atf.api.ui.playwright.UiScreenValidation;
-import atf.ui.tests.extent.audit.CategoryScreenValidator;
 import atf.ui.tests.extent.audit.ExistingReportStructureAuditor;
-import atf.ui.tests.extent.audit.EvidenceScreenValidator;
 import atf.ui.tests.extent.audit.FailsScreenValidator;
 import atf.ui.tests.extent.locators.ReportUiLocators;
+import atf.ui.tests.extent.plan.ReportAuditSnapshot;
+import atf.ui.tests.extent.section.extract.CategoriesSectionExtractor;
+import atf.ui.tests.extent.section.extract.VisualEvidenceSectionExtractor;
+import atf.ui.tests.extent.section.validate.CategoriesSectionValidator;
+import atf.ui.tests.extent.section.validate.VisualEvidenceValidator;
 import atf.ui.tests.extent.support.ReportUiContract;
 import atf.ui.tests.extent.support.UiAuditFlow;
 import com.microsoft.playwright.Page;
@@ -14,10 +16,11 @@ import com.microsoft.playwright.Page;
 public final class ExistingReportUiFlow {
     private final UiAuditFlow auditFlow;
     private final ExistingReportStructureAuditor structureAuditor;
-    private final ReportUiLocators locators;
-    private final CategoryScreenValidator categoryValidator;
+    private final CategoriesSectionExtractor categoriesExtractor;
+    private final CategoriesSectionValidator categoriesValidator;
     private final FailsScreenValidator failsValidator;
-    private final EvidenceScreenValidator evidenceValidator;
+    private final VisualEvidenceSectionExtractor visualEvidenceExtractor;
+    private final VisualEvidenceValidator visualEvidenceValidator;
 
     public ExistingReportUiFlow(UiAuditFlow auditFlow, ExistingReportStructureAuditor structureAuditor) {
         this(auditFlow, structureAuditor, new ReportUiLocators());
@@ -27,15 +30,20 @@ public final class ExistingReportUiFlow {
                                 ReportUiLocators locators) {
         this.auditFlow = auditFlow;
         this.structureAuditor = structureAuditor;
-        this.locators = locators;
-        this.categoryValidator = new CategoryScreenValidator(auditFlow, locators);
+        this.categoriesExtractor = new CategoriesSectionExtractor(auditFlow, locators);
+        this.categoriesValidator = new CategoriesSectionValidator();
         this.failsValidator = new FailsScreenValidator(auditFlow, locators);
-        this.evidenceValidator = new EvidenceScreenValidator(auditFlow, structureAuditor, locators);
+        this.visualEvidenceExtractor = new VisualEvidenceSectionExtractor(auditFlow, structureAuditor, locators);
+        this.visualEvidenceValidator = new VisualEvidenceValidator();
     }
 
     public NavigationSnapshot inspectCategoryAndFailures(Page categoryPage) {
-        CategoryScreenValidator.Observation categories = categoryValidator.inspect(categoryPage);
-        if (categories.linkedScenarioCount() > 0) categoryValidator.navigateToFirstLinkedScenario(categoryPage);
+        ReportAuditSnapshot.Annotations categories = categoriesExtractor.extract(categoryPage);
+        if (categories.linkedScenarioCount() > 0) categoriesExtractor.navigateToFirstLinkedScenario(categoryPage);
+        var categoryValidation = categoriesValidator.validate(categories);
+        if (!categoryValidation.valid()) {
+            throw new AssertionError(categoryValidation.failureSummary());
+        }
         Page failsPage = auditFlow.openTab(ReportUiContract.Tab.FAILS.hash());
         FailsScreenValidator.Observation failures = failsValidator.inspect(failsPage);
         return new NavigationSnapshot(categoryPage, failsPage, categories.categoryCount(),
@@ -45,7 +53,11 @@ public final class ExistingReportUiFlow {
     }
 
     public VisualEvidenceSnapshot inspectVisualEvidence(Page page) {
-        EvidenceScreenValidator.VisualObservation observation = evidenceValidator.inspectVisual(page);
+        ReportAuditSnapshot.VisualEvidence observation = visualEvidenceExtractor.extract(page);
+        var visualValidation = visualEvidenceValidator.validate(observation);
+        if (!visualValidation.valid()) {
+            throw new AssertionError(visualValidation.failureSummary());
+        }
         return new VisualEvidenceSnapshot(observation.validationCount(), observation.disclosureCount(),
                 observation.actionSequenceCount(), observation.screenshotLinkCount(),
                 observation.duplicateScreenshotMarkers(), observation.nestedScreenshotImages(),
@@ -56,7 +68,7 @@ public final class ExistingReportUiFlow {
     }
 
     public ScreenshotSnapshot inspectActionableScreenshot(Page page) {
-        EvidenceScreenValidator.ScreenshotObservation observation = evidenceValidator.inspectActionableScreenshot(page);
+        ReportAuditSnapshot.ScreenshotEvidence observation = visualEvidenceExtractor.extractActionableScreenshot(page);
         return new ScreenshotSnapshot(observation.actionable(), observation.validPngPayload(),
                 observation.target(), observation.rel(), observation.featherlight(), observation.markerText(),
                 observation.geometry(), observation.centeredVertically(), observation.openedBase64Image(),

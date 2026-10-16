@@ -34,8 +34,10 @@ public record AtfMockConfiguration(List<MockRoute> routes, MockRoute fallback) {
         String normalizedMethod = method.trim().toUpperCase(java.util.Locale.ROOT);
         String normalizedPath = path.trim().startsWith("/") ? path.trim() : "/" + path.trim();
         return routes.stream()
-                .filter(route -> (route.method().equals("*") || route.method().equals(normalizedMethod))
-                        && (route.path().equals("/*") || route.path().equals(normalizedPath)))
+                .filter(route -> (route.method().equals(MockRoute.ANY_METHOD)
+                        || route.method().equals(normalizedMethod))
+                        && (route.path().equals(MockRoute.ANY_PATH)
+                        || route.path().equals(normalizedPath)))
                 .findFirst();
     }
 
@@ -64,7 +66,7 @@ public record AtfMockConfiguration(List<MockRoute> routes, MockRoute fallback) {
                         "[{\"id\":101,\"user_id\":1,\"title\":\"ATF post\"}]", json, duration),
                 new MockRoute(HttpMethod.GET.value(), "/public/v2/posts/999999", 404,
                         "{\"message\":\"Not found\"}", json, duration)),
-                new MockRoute("*", "/*", 500,
+                new MockRoute(MockRoute.ANY_METHOD, MockRoute.ANY_PATH, 500,
                         "{\"message\":\"Unexpected mock route\"}", json, duration));
     }
 }

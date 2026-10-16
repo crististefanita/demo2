@@ -25,10 +25,12 @@ public final class FailureDetailsDisplayInspector {
 
     private final UiAuditFlow auditFlow;
     private final ReportUiLocators locators;
+    private final FailureTransportEvidenceInspector transportInspector;
 
     public FailureDetailsDisplayInspector(UiAuditFlow auditFlow, ReportUiLocators locators) {
         this.auditFlow = Objects.requireNonNull(auditFlow, "auditFlow");
         this.locators = Objects.requireNonNull(locators, "locators");
+        this.transportInspector = new FailureTransportEvidenceInspector(auditFlow, locators);
     }
 
     public Observation inspect(Page page, String expectedOwner) {
@@ -46,6 +48,11 @@ public final class FailureDetailsDisplayInspector {
         int assertionEvidence = 0;
         int expectedActualPairs = 0;
         int visibleTraceTablesOnArrival = 0;
+        int keyboardOpened = 0;
+        int focusReturned = 0;
+        int idempotentClosed = 0;
+        FailureTransportEvidenceInspector.Observation transport =
+                new FailureTransportEvidenceInspector.Observation(0, 0, 0, 0, 0, List.of());
 
         for (int scenarioIndex = 0; scenarioIndex < scenarios.count(); scenarioIndex++) {
             Locator scenario = scenarios.nth(scenarioIndex);
@@ -95,11 +102,19 @@ public final class FailureDetailsDisplayInspector {
                     if (!traceHidden) violations.add(phaseTitle(phase)
                             + " technical trace is visible before disclosure is opened");
 
-                    auditFlow.actions().click(locators.phaseFailureDisclosureAction(phase),
-                            "open failure details for " + phaseTitle(phase));
+                    var disclosureAction = locators.phaseFailureDisclosureAction(phase);
+                    Locator summaryLocator = locators.phaseFailureDisclosureSummary(disclosure);
+                    auditFlow.actions().focus(disclosureAction,
+                            "failure disclosure summary receives focus");
+                    auditFlow.actions().pressKey(page, "Enter", disclosureAction.selector(),
+                            "Enter opens failure details for " + phaseTitle(phase));
                     auditFlow.actions().waitForDisclosureOpen(page,
-                            locators.phaseFailureDisclosureAction(phase),
+                            disclosureAction,
                             "failure details are available for " + phaseTitle(phase));
+                    keyboardOpened++;
+                    if (isActiveElement(summaryLocator)) focusReturned++;
+                    else violations.add(phaseTitle(phase)
+                            + " loses focus on the disclosure summary after keyboard open");
                     Locator causeRows = locators.phaseFailureCauseValues(phase);
                     if (causeRows.count() > 0 && !causeRows.first().innerText().isBlank()) {
                         readableCauses++;
@@ -130,8 +145,14 @@ public final class FailureDetailsDisplayInspector {
                         violations.add(phaseTitle(phase)
                                 + " does not expose a readable FAILURE CAUSE when opened");
                     }
-                    auditFlow.actions().click(locators.phaseFailureDisclosureAction(phase),
-                            "close failure details for " + phaseTitle(phase));
+                    auditFlow.actions().pressKey(page, "Enter", disclosureAction.selector(),
+                            "Enter closes failure details for " + phaseTitle(phase));
+                    if (disclosure.getAttribute("open") == null) idempotentClosed++;
+                    else violations.add(phaseTitle(phase)
+                            + " keyboard close did not restore the collapsed disclosure state");
+                    var transportObservation = transportInspector.inspect(page, phase);
+                    transport = mergeTransport(transport, transportObservation);
+                    violations.addAll(transportObservation.violations());
                 }
                 closePhase(page, phase);
             }
@@ -150,11 +171,22 @@ public final class FailureDetailsDisplayInspector {
                 && assertionEvidence > 0
                 && expectedActualPairs > 0
                 && visibleTraceTablesOnArrival == 0
+                && keyboardOpened == failedPhases
+                && focusReturned == failedPhases
+                && idempotentClosed == failedPhases
+                && transport.valid()
                 && violations.isEmpty();
         return new Observation(failedScenarios, failedPhases, failureDisclosures,
                 readableCauses, semanticCauses, assertionEvidence, expectedActualPairs,
-                visibleTraceTablesOnArrival, finalStateCollapsed,
+                visibleTraceTablesOnArrival, finalStateCollapsed, keyboardOpened,
+                focusReturned, idempotentClosed, transport.writeFailureCount(),
+                transport.metadataCompleteCount(), transport.jsonCompleteCount(),
+                transport.retryAuditedCount(), transport.retryValidCount(),
                 valid, List.copyOf(violations));
+    }
+
+    private boolean isActiveElement(Locator element) {
+        return Boolean.TRUE.equals(element.evaluate("node => node === document.activeElement"));
     }
 
     private void openScenario(Page page, Locator scenario) {
@@ -198,9 +230,34 @@ public final class FailureDetailsDisplayInspector {
                               int semanticCauseCount, int assertionEvidenceCount,
                               int expectedActualPairCount,
                               int visibleTraceTablesOnArrival, boolean finalStateCollapsed,
+                              int keyboardOpenedCount, int focusReturnedCount,
+                              int idempotentClosedCount, int writeFailureCount,
+                              int writeMetadataCompleteCount, int writeJsonCompleteCount,
+                              int retryAuditedCount, int retryValidCount,
                               boolean valid, List<String> violations) {
         public Observation {
             violations = List.copyOf(Objects.requireNonNull(violations, "violations"));
         }
+
+        public boolean transportValid() {
+            return writeFailureCount > 0
+                    && writeMetadataCompleteCount == writeFailureCount
+                    && writeJsonCompleteCount == writeFailureCount
+                    && retryAuditedCount == retryValidCount;
+        }
+
+    }
+
+    private static FailureTransportEvidenceInspector.Observation mergeTransport(
+            FailureTransportEvidenceInspector.Observation first,
+            FailureTransportEvidenceInspector.Observation second) {
+        List<String> combined = new ArrayList<>(first.violations());
+        combined.addAll(second.violations());
+        return new FailureTransportEvidenceInspector.Observation(
+                first.writeFailureCount() + second.writeFailureCount(),
+                first.metadataCompleteCount() + second.metadataCompleteCount(),
+                first.jsonCompleteCount() + second.jsonCompleteCount(),
+                first.retryAuditedCount() + second.retryAuditedCount(),
+                first.retryValidCount() + second.retryValidCount(), combined);
     }
 }

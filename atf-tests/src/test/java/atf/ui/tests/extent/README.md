@@ -22,15 +22,27 @@ trei zone-soră contigue (`35px → 34px → 35px` fără gol), `hr=0`, iar link
 Matricea browser data-driven este închisă prin `UiReportAuditBrowserMatrixTest`
 (4/4); nu se reintroduce `ui.enabled`.
 
-Strategia țintă pentru suite plug-and-play, manifestul API/mock și testele
-JUnit dinamice este detaliată în
-[`ATF_Ui_Extent_Reusable_Test_Strategy.md`](../../../../../../../../docs/feedback/ATF_Ui_Extent_Reusable_Test_Strategy.md),
-iar statusul executabil și ToDo-urile rămân în
+Strategia executată pentru suite plug-and-play, manifestul API/mock și testele
+JUnit dinamice este descrisă în acest README; statusul executabil și ToDo-urile rămân în
 [`ATF_Ui_Exploratory_Feedback.md`](../../../../../../../../docs/feedback/ATF_Ui_Exploratory_Feedback.md).
 Inventarul responsabilităților și decizia de modularizare sunt în
 [`ATF_Ui_Extent_Inventory.md`](../../../../../../../../docs/feedback/ATF_Ui_Extent_Inventory.md).
 Acest README este boundary-ul tehnic al pachetului și trebuie să rămână
 sincronizat cu acele două documente.
+
+## Contracte închise consolidate
+
+Acest README este owner-ul stabil pentru contractele care nu mai sunt ToDo-uri:
+
+- selecția exactă API → audit UI și factory-ul dinamic plug-and-play;
+- request/response JSON pentru POST/PUT și proiecția lor în raport;
+- separarea duratei de viewport și regulile de badge responsive;
+- evidence `Screen validation`: un singur contur, fără delimitatoare decorative
+  între cele trei zone, cu `📷 base64 img` inline și aliniere verticală;
+- contractele cross-tab și raportarea `ValidationResult` comună.
+
+Feedback-ul păstrează numai lacune active; documentele de feedback închise au
+fost consolidate aici și nu se recreează ca jurnale paralele.
 
 ## Section modules — toate verticalele sunt live
 
@@ -68,6 +80,14 @@ ramura empty-state și ramura failure rows + primary cause + `Open in Tests`;
 cu `ExtentJourney.FAILURE_NAVIGATION` se execută efectiv traseul
 `Tests → Fails → Open in Tests → Overview`, cu deep-link, metric de failure și
 disclosures colapsate verificate.
+
+Pentru failure-uri API în faze diferite, contractul vizual și matricea de
+ToDo-uri sunt în
+[`docs/feedback/ATF_Ui_Extent_Failure_Diagnostic_Audit_Feedback.md`](../../../../../../../../docs/feedback/ATF_Ui_Extent_Failure_Diagnostic_Audit_Feedback.md).
+Inspectorul existent acoperă deja cauză semantică, `ASSERTION / EXPECTED /
+ACTUAL`, disclosure collapsed-by-default și restaurarea stării compacte; noile
+verificări trebuie adăugate prin locator → flow → inspector/validator, nu prin
+selectori în testele declarative.
 
 Sursa statică este strictă: `STATIC_PATH` cere cheia JVM indicată și verifică
 fișierul read-only; `STATIC_RESOURCE` cere exclusiv resource classpath;

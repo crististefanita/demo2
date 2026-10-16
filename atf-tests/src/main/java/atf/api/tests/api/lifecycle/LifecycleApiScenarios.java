@@ -12,6 +12,7 @@ import atf.api.core.http.ApiResponse;
 import atf.api.core.http.ApiTransport;
 import atf.api.execution.ApiModule;
 import atf.api.execution.ApiModuleFactory;
+import atf.api.execution.routing.ApiRoutes;
 import atf.api.execution.lifecycle.ApiScenarioLifecycleRunner;
 import atf.api.execution.lifecycle.ApiScenarioOutcome;
 import atf.api.tests.support.ApiAcceptancePlanBuilder;
@@ -41,6 +42,13 @@ public final class LifecycleApiScenarios {
     private static final String MISSING_RESPONSE_HEADER = "X-Required-Header";
     private static final String TEARDOWN_AUTHORIZATION_FAILURE =
             "Authorization header was not available";
+    private static final String PROFILE_UPDATE_JSON = """
+            {
+              "profile": {"displayName": "ATF User", "locale": "ro-RO", "timezone": "Europe/Bucharest"},
+              "permissions": {"requested": ["read", "write"], "remove": ["export"], "inherit": true},
+              "reason": "failure diagnostics metadata"
+            }
+            """;
 
     private LifecycleApiScenarios() { }
 
@@ -81,8 +89,48 @@ public final class LifecycleApiScenarios {
         assertEquals(AtfReportStatus.FAIL, outcome.status(),
                 "lifecycle failure must remain visible in the report");
 
+        publishSetupFailure(session, api, lifecycle);
         publishRetryBodyAndTeardownFailure(session, lifecycle);
         publishAssertionFailureVariants(session, api, lifecycle);
+        publishWriteMetadataFailures(session, api, lifecycle);
+    }
+
+    /**
+     * Deliberately fails before the body starts.  The report must retain the
+     * failing SETUP request, mark TEST BODY as skipped and still render the
+     * cleanup phase.  This is the fixture for the setup-failure diagnostic
+     * branch, not a synthetic DOM-only scenario.
+     */
+    private static void publishSetupFailure(AtfReportPorts.Session session,
+                                             ApiModule api,
+                                             ApiScenarioLifecycleRunner lifecycle) {
+        ApiScenarioOutcome outcome = lifecycle.run(session,
+                ApiAcceptancePlanBuilder.scenario(
+                                REPORT_OWNER, LifecycleApiScenarios.class.getPackageName(),
+                                "Users API — setup failure — body skipped",
+                                List.of("api", "users", "lifecycle", "setup", "negative"))
+                        .setup(phase -> ApiAcceptancePublisher.publish(phase,
+                                ApiOperationLabel.format(HttpMethod.GET, RoutePaths.USERS, "setup contract"),
+                                api.users().getCollection(),
+                                new ResponseContract().status(201)
+                                        .contentTypeContains(MediaTypes.APPLICATION_JSON),
+                                false, null))
+                        .body(phase -> ApiAcceptancePublisher.publish(phase,
+                                ApiOperationLabel.format(HttpMethod.GET, RoutePaths.USERS + "/1", "must be skipped"),
+                                api.users().get(1),
+                                ContractValidators.userItem(), false, null))
+                        .teardown(phase -> ApiAcceptancePublisher.publish(phase,
+                                ApiOperationLabel.format(HttpMethod.GET, RoutePaths.POSTS, "cleanup"),
+                                api.posts().getCollection(), ContractValidators.postCollection(), false, null))
+                        .build());
+        assertEquals(AtfReportStatus.FAIL, outcome.status(),
+                "setup failure must remain the scenario failure and skip the body");
+        assertEquals(AtfReportStatus.FAIL,
+                outcome.phaseOutcomes().get(ApiScenarioLifecycleRunner.Phase.SETUP).status());
+        assertEquals(AtfReportStatus.SKIP,
+                outcome.phaseOutcomes().get(ApiScenarioLifecycleRunner.Phase.TEST_BODY).status());
+        assertEquals(AtfReportStatus.PASS,
+                outcome.phaseOutcomes().get(ApiScenarioLifecycleRunner.Phase.TEARDOWN).status());
     }
 
     /**
@@ -167,6 +215,53 @@ public final class LifecycleApiScenarios {
                         .status(200)
                         .contentTypeContains(MediaTypes.APPLICATION_JSON)
                         .headerPresent(MISSING_RESPONSE_HEADER));
+    }
+
+    /**
+     * Keeps POST and PUT transport metadata attached to genuinely failed
+     * request nodes.  The wrong status is intentional; request/response JSON,
+     * headers and auth metadata must survive the failure projection.
+     */
+    private static void publishWriteMetadataFailures(AtfReportPorts.Session session,
+                                                       ApiModule api,
+                                                       ApiScenarioLifecycleRunner lifecycle) {
+        var postRequest = ApiRoutes.postCreate().requestBody(
+                "{\"title\":\"ATF metadata failure\",\"body\":\"contract\",\"user_id\":1}",
+                Map.of());
+        publishWriteFailure(session, api, lifecycle, postRequest,
+                ApiOperationLabel.format(HttpMethod.POST, RoutePaths.POSTS,
+                        "metadata failure"), 202,
+                "Users API — failed POST keeps transport metadata");
+
+        var putRequest = ApiRoutes.profileUpdate().requestBody(PROFILE_UPDATE_JSON,
+                Map.of("id", ApiFixtureData.PROFILE_ID),
+                Map.of("expand", "permissions"), Map.of());
+        publishWriteFailure(session, api, lifecycle, putRequest,
+                ApiOperationLabel.format(HttpMethod.PUT, RoutePaths.PROFILES + "/1",
+                        "metadata failure"), 201,
+                "Users API — failed PUT keeps transport metadata");
+    }
+
+    private static void publishWriteFailure(AtfReportPorts.Session session,
+                                             ApiModule api,
+                                             ApiScenarioLifecycleRunner lifecycle,
+                                             atf.api.core.http.ApiRequest request,
+                                             String requestTitle,
+                                             int wrongExpectedStatus,
+                                             String scenarioTitle) {
+        ApiScenarioOutcome outcome = lifecycle.run(session,
+                ApiAcceptancePlanBuilder.scenario(
+                                REPORT_OWNER, LifecycleApiScenarios.class.getPackageName(),
+                                scenarioTitle,
+                                List.of("api", "lifecycle", "negative", "write", request.method().toLowerCase()))
+                        .body(phase -> ApiAcceptancePublisher.publish(phase, requestTitle,
+                                api.executor().execute(request),
+                                new ResponseContract().status(wrongExpectedStatus)
+                                        .contentTypeContains(MediaTypes.APPLICATION_JSON),
+                                false, null, request))
+                        .build());
+        assertEquals(AtfReportStatus.FAIL, outcome.status(),
+                "write metadata failure must remain visible for " + request.method());
     }
 
     private static void publishAssertionFailureScenario(AtfReportPorts.Session session,

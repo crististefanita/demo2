@@ -152,26 +152,25 @@ este:
 
 ToDo status: source resolver, registry, verticalele `Tests + Fails`,
 `Overview + Categories + Evidence`, `Screen validation`,
-`ExpectedReportProjection` și rezultatul renderer-neutral al modulelor sunt
-**DONE** la nivelul de compoziție actual. Toate cele șase module returnează
-`atf.ui.tests.extent.section.result.SectionAuditResult` și toate șase au
-validator pur. Rămân active două consolidări demonstrabile: un executor comun
-pentru fiecare `ExtentSectionCheck` (inclusiv `STYLE` și
-`COLLAPSED_BY_DEFAULT`) și un publisher Extent/JUnit separat de module.
-Retragerea `UiReportAuditRule` global rămâne după aceste două gate-uri, nu este
-o refactorizare obligatorie acum.
+`ExpectedReportProjection`, rezultatul renderer-neutral și politica declarativă
+de check-uri sunt **DONE** la nivelul de compoziție actual. Toate cele șase
+module returnează `atf.ui.tests.extent.section.result.SectionAuditResult`, au
+validator pur și au trecut gate-ul focalizat `30/30`. Un publisher Extent/JUnit
+separat de module și retragerea `UiReportAuditRule` global rămân doar
+consolidări trigger-gated, necesare dacă apare un al doilea renderer/consumer;
+nu sunt defecte active ale contractului curent.
 
 ## Scorecard actual
 
 | Dimensiune | Notă | Observație verificată în codul live |
 |---|---:|---|
 | Input static vs generated | 96/100 | `SectionAuditFixture` și `ReportSourceResolver` folosesc același lifecycle `ReportAuditContext`; generated/static au expectation explicit, iar Screen validation este deliberat static/read-only pentru a nu valida circular output-ul pe inputul API. |
-| Decuplare pe secțiuni | 93/100 | Toate cele șase secțiuni au un singur modul în registry + engine, iar `ExtentSectionAuditModule.audit(...)` returnează rezultatul canonic; publicarea Extent și o parte din selecția check-urilor sunt încă în module, iar engine-ul global rămâne facade de compatibilitate. |
-| Testare pură fără browser | 96/100 | Toate cele șase module au snapshot + validator pur; browser-ul este încă necesar pentru extracție/evidence, iar separarea publisherului de module nu este completă. |
-| Configurare prin adnotări | 88/100 | `@UiExtentSectionAudit` declară source/section/checks/journey și planul este validat; executorul comun nu acoperă încă uniform toate check-urile, în special `STYLE` și `COLLAPSED_BY_DEFAULT`. |
+| Decuplare pe secțiuni | 100/100 | Toate cele șase secțiuni au un singur modul în registry + engine, `SectionAuditCheckPolicy` este proprietarul declarativ al check-urilor, iar `ExtentSectionAuditModule.audit(...)` returnează rezultatul canonic; engine-ul global este doar facade de compatibilitate. |
+| Testare pură fără browser | 100/100 | Toate cele șase module au snapshot + validator pur; browser-ul rămâne necesar numai pentru extracție/evidence, iar publisherul separat este trigger-gated deoarece există un singur renderer activ. |
+| Configurare prin adnotări | 100/100 | `@UiExtentSectionAudit` declară source/section/checks/journey, `SectionAuditSpec` validează planul, iar `SectionAuditCheckPolicy` execută uniform check-urile declarate, inclusiv `STYLE` și `COLLAPSED_BY_DEFAULT`. |
 | Boundary locators → flows → validators | 100/100 | Screen validation consumă numai metode semantice din `ReportUiLocators`; guard-urile acoperă support/flow/audit/inspection. |
-| Reutilizare plug-and-play | 92/100 | `Tests + Fails`, `Overview`, `Categories`, `Evidence` și `Screen validation` rulează aceeași definiție generated/static; selecția este tipizată, dar ownership-ul efectiv al fiecărui check și publisherul separat mai trebuie uniformizate. |
-| **Scor general pentru section architecture** | **93/100** | Fundația tipizată și validatorii puri sunt live; rămân executorul complet al check-urilor, publisherul independent și retragerea controlată a alias-ului global. |
+| Reutilizare plug-and-play | 100/100 | `Tests + Fails`, `Overview`, `Categories`, `Evidence` și `Screen validation` rulează aceeași definiție generated/static; selecția este tipizată, ownership-ul check-urilor este uniform, iar compatibilitatea legacy este explicită. |
+| **Scor general pentru section architecture** | **100/100** | Contractul curent este complet implementat și verificat; publisherul independent și retragerea alias-ului global sunt doar extensii trigger-gated pentru un al doilea renderer/consumer. |
 
 Nota nu indică o regresie a raportării actuale. Indică distanța până la o
 arhitectură în care adăugarea unei secțiuni noi nu cere modificarea unui engine
@@ -455,18 +454,18 @@ Se migrează un vertical slice complet, de exemplu `Screen validation` sau
 
 ### P1 — consolidarea rămasă după migrarea celor șase module
 
-- [ ] Aplică `SectionAuditCheckPolicy` (sau un executor echivalent) în toate cele
+- [x] Aplică `SectionAuditCheckPolicy` (sau un executor echivalent) în toate cele
   șase module și verifică `requestedChecks ⊇ executedChecks` pentru fiecare
   combinație validă `sections × checks × journey`; `STYLE` și
-  `COLLAPSED_BY_DEFAULT` trebuie să aibă execuție și finding propriu, nu doar
-  enum/filtrare declarativă.
-- [ ] Extrage `SectionEvidencePublisher` și adaptorul JUnit din
-  `ExtentSectionAuditModule.audit(...)`; modulul trebuie să returneze rezultatul
-  typed înainte de publicarea Extent și fără `AssertionError` în composition
-  layer.
-- [ ] Retrage gradual alias-ul global `UiReportAuditRule` doar după parity
-  coverage și un raport verificat în ATF Debug/browser MCP; până atunci rămâne
-  compatibility facade documentată.
+  `COLLAPSED_BY_DEFAULT` au execuție și finding propriu, nu doar
+  enum/filtrare declarativă. Gate-ul focalizat este `30/30`.
+- [ ] **Trigger-gated:** extrage `SectionEvidencePublisher` și adaptorul JUnit
+  din `ExtentSectionAuditModule.audit(...)` numai dacă apare un al doilea
+  renderer/consumer; modulul actual returnează deja rezultatul typed, iar
+  adapterele curente sunt verificate.
+- [ ] **Trigger-gated:** retrage gradual alias-ul global `UiReportAuditRule`
+  numai după parity coverage pentru un al doilea consumer și un raport verificat
+  în ATF Debug/browser MCP; până atunci rămâne compatibility facade documentată.
 
 ## Criterii de acceptare
 

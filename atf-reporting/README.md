@@ -949,9 +949,9 @@ O schimbare de reporting este acceptată numai când:
 - verificarea finală se face prin navigare efectivă în TAB MCP.
 
 Pentru lucrările încă neimplementate, vezi
-[`docs/feedback/README.md`](../docs/feedback/README.md) și
-[`docs/feedback/ATF_Reporting_Duration_Semantics.md`](../docs/feedback/ATF_Reporting_Duration_Semantics.md).
-Feedback-ul păstrează numai ToDo-uri; acest README păstrează contractul stabil.
+[`docs/feedback/README.md`](../docs/feedback/README.md).
+Contractul de durată și contractele vizuale închise sunt păstrate aici;
+feedback-ul păstrează numai ToDo-uri active.
 ## Audit critic al rendererelor UI
 
 Contractul vizual este corect numai dacă și sursa lui are un singur owner.

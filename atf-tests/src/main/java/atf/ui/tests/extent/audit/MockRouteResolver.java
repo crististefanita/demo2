@@ -58,8 +58,10 @@ final class MockRouteResolver {
     }
 
     private static boolean methodAndPathMatch(MockRoute route, Signature signature) {
-        return (route.method().equals("*") || route.method().equals(signature.method()))
-                && (route.path().equals("/*") || route.path().equals(signature.path()));
+        return (route.method().equals(MockRoute.ANY_METHOD)
+                || route.method().equals(signature.method()))
+                && (route.path().equals(MockRoute.ANY_PATH)
+                || route.path().equals(signature.path()));
     }
 
     private static Signature signature(String title, String requestUrl) {

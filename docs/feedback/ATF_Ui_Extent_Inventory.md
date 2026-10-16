@@ -210,10 +210,13 @@ mai sigur și evită o dependență Maven anticipativă.
   identic pentru Tests/Overview/Categories/Fails.
 - [x] inspectorii JSON/mock/contract/style/duration și reconcilierea cross-tab
   expun `ValidationResult`; modulele pe secțiuni folosesc aceeași suprafață.
-- [ ] inspectorii DOM rămași (`ApiReportRequestEvidenceInspector`, structura,
-  filtrele și validatorii istorici Categories/Evidence) trebuie converși treptat
-  la `snapshot → validator pur → ValidationResult`; nu se schimbă selector
-  boundary-ul și nu se deduce expected-ul din DOM.
+- [ ] **Compatibility hardening, non-blocking pentru contractul actual:**
+  inspectorii DOM rămași (`ApiReportRequestEvidenceInspector`, structura,
+  filtrele și validatorii istorici Categories/Evidence) se convertesc la
+  `snapshot → validator pur → ValidationResult` numai când apare un al doilea
+  consumator sau un defect de contract concret. Nu se schimbă selector
+  boundary-ul și nu se deduce expected-ul din DOM; cele șase module curente au
+  deja rezultatul canonic și `SectionAuditCheckPolicy`.
 
 Pentru fiecare item se păstrează aceeași probă: build în `.tmp`, rulările
 active nu sunt oprite, artifactul este publicat în directorul configurat și

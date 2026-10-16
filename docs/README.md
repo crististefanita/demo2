@@ -32,9 +32,9 @@ artifact.
    complet al raportului Extent și criteriile de acceptare.
 11. [ATF_Reporting_Contract.md](ATF_Reporting_Contract.md) — arborele Extent,
    evidence-ul și regulile de randare.
-12. [ATF_REPORTING_REFERENCE_GUARD.md](ATF_REPORTING_REFERENCE_GUARD.md) —
+12. [ATF_Reporting_Reference_Guard.md](ATF_Reporting_Reference_Guard.md) —
    reperul vizual/funcțional și procedura de comparație în TAB MCP.
-13. [ATF_BUILD_AND_EXECUTION_SAFETY.md](ATF_BUILD_AND_EXECUTION_SAFETY.md) —
+13. [ATF_Build_And_Execution_Safety.md](ATF_Build_And_Execution_Safety.md) —
    build, sincronizare și validare fără oprirea execuțiilor existente.
 14. [README_Atf_BestPractices.md](README_Atf_BestPractices.md) — reguli OOP,
    testabilitate și mentenanță.
@@ -71,7 +71,7 @@ testele relevante, să genereze un artifact nou și să fie verificat prin click
 existente nu se opresc, iar output-urile generate nu se copiază în surse.
 
 Ordinea obligatorie și criteriile detaliate sunt în
-[ATF_BUILD_AND_EXECUTION_SAFETY.md](ATF_BUILD_AND_EXECUTION_SAFETY.md) și
+[ATF_Build_And_Execution_Safety.md](ATF_Build_And_Execution_Safety.md) și
 [README_Atf_BestPractices.md](README_Atf_BestPractices.md).
 
 Lucrările încă neînchise sunt păstrate în [feedback/README.md](feedback/README.md)
