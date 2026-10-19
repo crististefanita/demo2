@@ -1,6 +1,5 @@
 package atf.api.validation.evaluation;
-
-import atf.api.core.http.ApiResponse;
+import atf.api.core.http.response.ApiResponse;
 import atf.api.validation.contract.ResponseContract;
 
     /** Connects the contract to the aggregate table and Pass/Warning/Fail policy. */

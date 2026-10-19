@@ -79,6 +79,20 @@ doar locul sigur de lucru și nu devine automat o nouă sursă de adevăr.
    stabil. În feedback păstrează numai ToDo-urile încă deschise, fiecare cu
    testul cerut și criteriul observabil de acceptare.
 
+### Guard software pentru sync live↔staging
+
+Protocolul de mai sus are și un mecanism executabil, nu doar o convenție
+operațională. Înainte de editare, composition root-ul capturează fișierele
+aprobate prin `AtfPromotionManifest.capture(liveRoot, approvedFiles)` și poate
+scrie manifestul JSON pentru auditul procesului. După gate-ul din staging,
+`AtfPromotionGuard.promote(stagingRoot, liveRoot, baseline)` verifică drift-ul
+paralel și copiază atomic numai fișierele din manifest. O modificare sau o
+creare live concurentă oprește promovarea înainte de primul fișier; o cale
+absentă în baseline este singura aprobare explicită pentru crearea unui fișier
+nou. Nu se face overwrite neaprobat, reset sau ștergere implicită. Manifestul
+stochează numai căi relative, prezență, dimensiuni și digest-uri, nu căi locale
+absolute și nu este inclus în raportul HTML.
+
 Ordinea dovezilor este: cod live → teste → artifact HTML → interacțiune TAB MCP
 → documentație. Dacă două surse se contrazic, nu se declară succesul până când
 diferența nu este investigată și reconciliată.
@@ -87,21 +101,32 @@ Exemplu PowerShell, cu căi înlocuite de operator:
 
 ~~~powershell
 $source = '.'
-$stage = '.tmp/atf-java-staging-<id>'
+$stage = Join-Path $env:ATF_STAGING_ROOT 'atf-java-staging-<id>'
 
 New-Item -ItemType Directory -Force $stage | Out-Null
 robocopy $source $stage /E /XD '.git' 'target' 'artifacts' 'spark' 'bin' 'obj' /XF '*.log' 'hs_err_pid*.log'
 mvn -o -f "$stage\pom.xml" test
 ~~~
 
-Pentru execuția Java se păstrează aceeași regulă și în staging-ul din checkout-ul
-Java, de exemplu `.tmp/Atf-java-feedback-<id>`. Sursele se
+Pentru execuția Java se păstrează aceeași regulă într-un staging extern
+checkout-ului, de exemplu `${ATF_STAGING_ROOT}/Atf-java-feedback-<id>`. Sursele se
 resynchronizează înainte de build; `target`, rapoartele și dump-urile rămân
 excluse din sync. Testele de raportare acceptă
 `-Datf.test.reportDirectory=<stage>\artifacts\reports`, iar testul configured
 report folosește `-Datf.report.config=<stage>\atf.yaml`; astfel raportul de
 verificat este determinist sub `<stage>\artifacts\reports`, indiferent de
 working directory-ul IDE/Maven.
+
+### Reactorul este obligatoriu pentru contracte între module
+
+Când un modul de test consumă API-uri schimbate în `atf-core`, `atf-ui` sau
+alte module ale reactorului, verificarea se rulează cu `-am` (de exemplu
+`mvn -pl atf-reporting -am test`). Un `mvn -pl atf-reporting test` izolat poate
+rezolva un JAR instalat anterior din repository-ul local și poate raporta
+constructori/metode lipsă care nu există în sursele stage-ului. Rezultatul
+izolat este acceptabil numai după un reactor build verde sau dacă dependențele
+folosite sunt explicit construite din același stage; altfel nu este dovadă
+pentru codul live.
 
 ### Bucla periodică de sync pentru feedback și build
 

@@ -1,12 +1,15 @@
 package atf.api.validation;
+import atf.api.testkit.AtfUnitTest;
 
-import atf.api.core.reporting.AtfReportStatus;
+import atf.api.core.reporting.contract.AtfReportStatus;
 import atf.api.validation.evaluation.ValidationOutcomePolicy;
 import atf.api.validation.evaluation.ValidationTable;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@AtfUnitTest
 
 class ValidationOutcomePolicyTest {
     @Test

@@ -1,9 +1,13 @@
 package atf.api.reporting.artifact;
+import atf.api.testkit.AtfUnitTest;
+import atf.api.core.reporting.contract.AtfAssertion;
+import atf.api.core.reporting.contract.AtfReportStatus;
+import atf.api.core.http.request.HttpMethod;
+import atf.api.core.http.response.ApiOperationLabel;
+import atf.api.mock.MockRoutePaths;
+import atf.api.reporting.extent.session.ExtentReportSession;
 
-import atf.api.reporting.ExtentReportSession;
 
-import atf.api.core.reporting.AtfAssertion;
-import atf.api.core.reporting.AtfReportStatus;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
@@ -11,8 +15,10 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@AtfUnitTest
 class ReportArtifactInspectorTest {
     @Test
     void inspectsThePublishedExtentArtifactInsteadOfTheBuilder() throws Exception {
@@ -20,9 +26,10 @@ class ReportArtifactInspectorTest {
         try (var session = new ExtentReportSession(report)) {
             var scenario = session.startScenario("UsersApiTests", "POST user — request/response contract", List.of("api", "contract"));
             var phase = scenario.startPhase("TEST BODY");
-            var request = phase.startRequest("POST /public/v2/users", "POST", "/public/v2/users");
+            var request = phase.startRequest(ApiOperationLabel.format(HttpMethod.POST, MockRoutePaths.USERS, null),
+                    HttpMethod.POST.value(), MockRoutePaths.USERS);
             request.detail("RESPONSE DURATION (ms)", "12");
-            request.detail("route", "/public/v2/users/{id}");
+            request.detail("route", MockRoutePaths.USER_BY_ID);
             request.json("REQUEST JSON", "{\"id\":1,\"name\":\"ATF\"}");
             request.json("RESPONSE JSON", "{\"id\":1}");
             var validation = request.startValidation("Validate: user contract");
@@ -41,6 +48,12 @@ class ReportArtifactInspectorTest {
                 || html.contains("&quot;name&quot;:&quot;ATF&quot;"));
         assertTrue(html.contains("\"id\" : 1") || html.contains("&quot;id&quot; : 1")
                 || html.contains("\"id\":1"));
+        assertEquals(1, count(html, "function renderFails("),
+                "the report runtime must publish one authoritative Fails renderer");
+        assertEquals(1, count(html, "function failureContext(item)"),
+                "the report runtime must publish one authoritative failure-context owner");
+        assertTrue(!html.contains("failureContext=function"),
+                "failure context enrichment must use helpers instead of rebinding a global function");
 
         var inspection = ReportArtifactInspector.inspectFresh(report, Instant.now().minusSeconds(30));
         assertTrue(inspection.isCompliant(), () -> "Report violations: " + inspection.violations());
@@ -84,5 +97,15 @@ class ReportArtifactInspectorTest {
         assertTrue(inspection.diagnostics().stream().anyMatch(diagnostic ->
                 diagnostic.owner().equals("evidence") && diagnostic.check().equals("technical trace")
                         && diagnostic.passed()));
+    }
+
+    private static int count(String source, String token) {
+        int count = 0;
+        int offset = 0;
+        while ((offset = source.indexOf(token, offset)) >= 0) {
+            count++;
+            offset += token.length();
+        }
+        return count;
     }
 }

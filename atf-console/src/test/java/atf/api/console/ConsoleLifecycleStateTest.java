@@ -1,10 +1,14 @@
 package atf.api.console;
+import atf.api.testkit.AtfUnitTest;
 
-import atf.api.core.reporting.AtfConsoleEvent;
+import atf.api.core.reporting.console.AtfConsoleEvent;
+
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+
+@AtfUnitTest
 
 class ConsoleLifecycleStateTest {
     @Test

@@ -1,5 +1,6 @@
 package atf.api.ui.playwright;
 
+import atf.api.core.reporting.console.AtfConsoleSink;
 import atf.api.ui.config.UiBrowserConfiguration;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
@@ -17,18 +18,27 @@ public final class PlaywrightUiSession implements AutoCloseable {
     private final Browser browser;
     private final BrowserContext context;
     private final Page page;
+    private final UiActionTrace actionTrace;
     private boolean closed;
 
     private PlaywrightUiSession(Playwright playwright, Browser browser,
-                                BrowserContext context, Page page) {
+                                BrowserContext context, Page page, UiActionTrace actionTrace) {
         this.playwright = playwright;
         this.browser = browser;
         this.context = context;
         this.page = page;
+        this.actionTrace = Objects.requireNonNull(actionTrace, "actionTrace");
     }
 
     public static PlaywrightUiSession open(UiBrowserConfiguration configuration) {
+        return open(configuration, AtfConsoleSink.noOp());
+    }
+
+    /** Opens a session with an injected diagnostic sink; stdout remains console-owned. */
+    public static PlaywrightUiSession open(UiBrowserConfiguration configuration,
+                                           AtfConsoleSink console) {
         Objects.requireNonNull(configuration, "configuration");
+        UiActionTrace trace = UiActionTrace.console(Objects.requireNonNull(console, "console"));
         Playwright playwright = Playwright.create();
         try {
             BrowserType type = switch (configuration.browser()) {
@@ -40,9 +50,10 @@ public final class PlaywrightUiSession implements AutoCloseable {
             Browser browser = type.launch(new BrowserType.LaunchOptions().setHeadless(configuration.headless()));
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
                     .setViewportSize(new ViewportSize(configuration.viewportWidth(), configuration.viewportHeight())));
+            context.addInitScript(zoomInitScript(configuration.zoomPercent()));
             context.setDefaultTimeout(configuration.timeout().toMillis());
             context.setDefaultNavigationTimeout(configuration.navigationTimeout().toMillis());
-            return new PlaywrightUiSession(playwright, browser, context, context.newPage());
+            return new PlaywrightUiSession(playwright, browser, context, context.newPage(), trace);
         } catch (RuntimeException error) {
             playwright.close();
             throw error;
@@ -51,10 +62,24 @@ public final class PlaywrightUiSession implements AutoCloseable {
 
     public Page page() { return page; }
 
+    /**
+     * Init scripts can run before the document element exists.  Keep the
+     * configurable zoom, but apply it only after the root is available so a
+     * normal report load never emits a page error.
+     */
+    static String zoomInitScript(int zoomPercent) {
+        return "(() => { const applyZoom = () => { "
+                + "if (document.documentElement) { document.documentElement.style.zoom = '"
+                + zoomPercent + "%'; } }; "
+                + "if (document.documentElement) { applyZoom(); } "
+                + "else { document.addEventListener('DOMContentLoaded', applyZoom, { once: true }); }"
+                + " })();";
+    }
+
     /** Starts an isolated consecutive action log for one visual validation state. */
     public PlaywrightActionSequence newActionSequence() {
         if (closed) throw new IllegalStateException("Playwright UI session is closed");
-        return new PlaywrightActionSequence();
+        return new PlaywrightActionSequence(actionTrace);
     }
 
     public void navigate(URI uri) {

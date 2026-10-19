@@ -1,10 +1,8 @@
 package atf.api.execution.routing;
-
-import atf.api.core.http.ApiRoute;
-import atf.api.core.http.AuthRequirement;
-import atf.api.core.http.AuthType;
-import atf.api.core.http.HttpMethod;
-
+import atf.api.core.http.auth.AuthRequirement;
+import atf.api.core.http.auth.AuthType;
+import atf.api.core.http.request.ApiRoute;
+import atf.api.core.http.request.HttpMethod;
 import java.util.Set;
 
 public final class ApiRoutes {

@@ -17,6 +17,18 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>atf.api</groupId>
+            <artifactId>atf-validation</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>atf.api</groupId>
+            <artifactId>atf-execution</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-yaml</artifactId>
         </dependency>
@@ -25,9 +37,46 @@
             <artifactId>extentreports</artifactId>
             <version>5.1.2</version>
         </dependency>
+        <!-- The mock is a test adapter only; reporting production stays mock-neutral. -->
+        <dependency>
+            <groupId>atf.api</groupId>
+            <artifactId>atf-mock</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- Reporting owns its configurable API/UI composition tests. -->
+        <dependency>
+            <groupId>atf.api</groupId>
+            <artifactId>atf-console</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>atf.api</groupId>
+            <artifactId>atf-ui</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>atf.api</groupId>
+            <artifactId>atf-debug-ui</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-suite</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>atf.api</groupId>
+            <artifactId>atf-test-kit</artifactId>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

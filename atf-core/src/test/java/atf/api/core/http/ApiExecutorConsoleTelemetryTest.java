@@ -1,8 +1,13 @@
 package atf.api.core.http;
+import atf.api.testkit.AtfUnitTest;
 
-import atf.api.core.reporting.AtfConsoleEvent;
-import atf.api.core.reporting.AtfConsoleSink;
-import atf.api.core.reporting.AtfReportStatus;
+import atf.api.core.http.execution.ApiExecutor;
+import atf.api.core.http.request.ApiRequest;
+import atf.api.core.http.response.ApiResponse;
+import atf.api.core.http.transport.ApiTransport;
+import atf.api.core.reporting.console.AtfConsoleEvent;
+import atf.api.core.reporting.console.AtfConsoleSink;
+import atf.api.core.reporting.contract.AtfReportStatus;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
@@ -15,6 +20,8 @@ import java.util.concurrent.CompletableFuture;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@AtfUnitTest
 
 class ApiExecutorConsoleTelemetryTest {
     @Test

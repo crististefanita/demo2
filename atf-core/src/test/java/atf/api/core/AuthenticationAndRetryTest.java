@@ -1,6 +1,15 @@
 package atf.api.core;
+import atf.api.testkit.AtfUnitTest;
 
-import atf.api.core.http.*;
+import atf.api.core.http.auth.AuthProfile;
+import atf.api.core.http.auth.AuthType;
+import atf.api.core.http.auth.ConfiguredApiAuthenticator;
+import atf.api.core.http.execution.ApiExecutor;
+import atf.api.core.http.request.ApiRequest;
+import atf.api.core.http.response.ApiResponse;
+import atf.api.core.http.transport.ApiTransport;
+import atf.api.core.http.transport.RetryPolicy;
+
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
@@ -12,6 +21,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
+
+@AtfUnitTest
 
 class AuthenticationAndRetryTest {
     @Test

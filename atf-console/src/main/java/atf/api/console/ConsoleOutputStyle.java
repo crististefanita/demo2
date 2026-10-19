@@ -1,6 +1,6 @@
 package atf.api.console;
+import atf.api.core.reporting.contract.AtfReportStatus;
 
-import atf.api.core.reporting.AtfReportStatus;
 
 import java.io.PrintStream;
 

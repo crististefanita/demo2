@@ -1,10 +1,12 @@
 package atf.api.console.junit;
+import atf.api.testkit.AtfUnitTest;
+
+import atf.api.core.reporting.console.AtfConsoleEvent;
+import atf.api.core.reporting.console.AtfConsoleSink;
+import atf.api.core.reporting.contract.AtfReportStatus;
 
 import atf.api.console.AtfConsoleReporter;
 import atf.api.console.ConsoleSettings;
-import atf.api.core.reporting.AtfConsoleEvent;
-import atf.api.core.reporting.AtfConsoleSink;
-import atf.api.core.reporting.AtfReportStatus;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -14,6 +16,8 @@ import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@AtfUnitTest
 
 class AtfConsoleTestLifecycleTest {
     @Test

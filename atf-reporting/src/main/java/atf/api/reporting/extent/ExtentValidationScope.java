@@ -1,12 +1,14 @@
 package atf.api.reporting.extent;
+import atf.api.core.reporting.console.AtfConsoleEvent;
+import atf.api.core.reporting.contract.AtfAssertion;
+import atf.api.core.reporting.contract.AtfReportPorts;
+import atf.api.core.reporting.contract.AtfReportStatus;
+import atf.api.reporting.extent.session.ExtentReportTree;
+import atf.api.reporting.model.ReportScreenshot;
+import atf.api.reporting.semantic.AtfReportSemanticRecorder;
 
-import atf.api.core.reporting.AtfAssertion;
-import atf.api.core.reporting.AtfReportPorts;
-import atf.api.core.reporting.AtfReportStatus;
 import atf.api.core.ui.AtfUiActionRecord;
 import atf.api.core.ui.AtfUiEvidenceSource;
-import atf.api.reporting.AtfReportSemanticRecorder;
-import atf.api.reporting.ExtentReportTree;
 import com.aventstack.extentreports.ExtentTest;
 
 import java.util.ArrayList;
@@ -21,8 +23,8 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
     private final AtfReportSemanticRecorder.ValidationHandle semantic;
     private List<AtfAssertion> assertions = List.of();
     private final List<AtfUiActionRecord> uiActions = new ArrayList<>();
-    private final List<String[]> screenshots = new ArrayList<>();
-    private final List<String[]> mediaScreenshots = new ArrayList<>();
+    private final List<ReportScreenshot> screenshots = new ArrayList<>();
+    private final List<ReportScreenshot> mediaScreenshots = new ArrayList<>();
     private boolean completed;
     private boolean closed;
     private boolean screenshotOptional;
@@ -51,8 +53,7 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
         if (base64Png == null || base64Png.isBlank()) {
             throw new IllegalArgumentException("base64Png must not be blank");
         }
-        screenshots.add(new String[]{title == null || title.isBlank() ? "UI screenshot" : title,
-                base64Png});
+        screenshots.add(new ReportScreenshot(title, base64Png));
         semantic.screenshot();
     }
 
@@ -60,8 +61,7 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
         if (base64Png == null || base64Png.isBlank()) {
             throw new IllegalArgumentException("base64Png must not be blank");
         }
-        mediaScreenshots.add(new String[]{title == null || title.isBlank() ? "UI screenshot" : title,
-                base64Png});
+        mediaScreenshots.add(new ReportScreenshot(title, base64Png));
         semantic.screenshot();
     }
 
@@ -95,7 +95,7 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
         tree.renderAssertions(validation, assertions);
         tree.complete(validation, status);
         tree.markEnded(validation);
-        tree.consoleCompleted(atf.api.core.reporting.AtfConsoleEvent.Scope.VALIDATION,
+        tree.consoleCompleted(atf.api.core.reporting.console.AtfConsoleEvent.Scope.VALIDATION,
                 validationTitle, status, validation);
         completed = true;
         owner.record(status);

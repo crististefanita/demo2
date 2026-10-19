@@ -1,6 +1,7 @@
 package atf.api.core.ui;
+import atf.api.testkit.AtfUnitTest;
 
-import atf.api.core.reporting.AtfReportStatus;
+import atf.api.core.reporting.contract.AtfReportStatus;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -8,6 +9,8 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+@AtfUnitTest
 
 class AtfUiActionRecordTest {
     @Test

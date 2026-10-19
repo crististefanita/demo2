@@ -1,10 +1,8 @@
 package atf.api.mock;
-
-import atf.api.core.http.HttpHeader;
-import atf.api.core.http.MediaTypes;
-
-import atf.api.core.http.ApiQueryParameter;
-import atf.api.core.http.ApiQueryParameters;
+import atf.api.core.http.request.ApiQueryParameter;
+import atf.api.core.http.request.ApiQueryParameters;
+import atf.api.core.http.request.HttpHeader;
+import atf.api.core.http.request.MediaTypes;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;

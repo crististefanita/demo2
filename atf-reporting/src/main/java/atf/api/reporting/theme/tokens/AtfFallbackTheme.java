@@ -1,0 +1,53 @@
+package atf.api.reporting.theme.tokens;
+
+/** CSS contract for the renderer-neutral standalone HTML fallback report. */
+public final class AtfFallbackTheme {
+    private AtfFallbackTheme() {
+    }
+
+    public static String css() {
+        String font = AtfReportThemeTokens.FONT_STACK;
+        String tab = AtfReportCssSelectors.Fallback.TAB.selector();
+        String tabPanel = AtfReportCssSelectors.Fallback.TAB_PANEL.selector();
+        String active = AtfReportCssSelectors.Fallback.ACTIVE.selector();
+        String tabActive = AtfReportCssSelectors.compound(tab, active);
+        String failRow = AtfReportCssSelectors.Fallback.FAIL_ROW.selector();
+        return AtfReportThemeTokens.cssVariables()
+                + "*{box-sizing:border-box}body{margin:0;background:var(--atf-dark);color:var(--atf-text);"
+                + "font-family:" + font + ";font-size:14px;line-height:var(--atf-base-line-height)}"
+                + "header{height:64px;padding:20px 28px;border-bottom:1px solid var(--atf-border);display:flex;gap:18px;align-items:center}"
+                + ".brand{color:var(--atf-accent);font-weight:700;font-size:22px}.title{font-weight:600}"
+                + ".tabs{display:flex;gap:4px;padding:12px 28px;border-bottom:1px solid var(--atf-border);background:var(--atf-dark)}"
+                + tab + "{border:1px solid var(--atf-border);border-radius:5px;background:transparent;color:var(--atf-muted);padding:10px 16px;cursor:pointer}"
+                + tabActive + "{background:var(--atf-panel);color:var(--atf-text);border-color:var(--atf-accent)}"
+                + tabPanel + "{display:none;padding:21px 28px}" + AtfReportCssSelectors.compound(tabPanel, active) + "{display:block}"
+                + "h2{margin:0 0 18px;font-size:18px;line-height:1.55}"
+                + "h3{margin:0;padding:14px 16px;font-size:14px;line-height:1.55;display:flex;justify-content:space-between}"
+                + ".layout{display:grid;grid-template-columns:280px 1fr;gap:20px}aside{border-right:1px solid var(--atf-border);padding-right:14px}"
+                + ".test-link{display:block;padding:12px;border-left:3px solid var(--atf-border);border-bottom:1px solid var(--atf-border);color:var(--atf-text);text-decoration:none}"
+                + ".test-link small{display:block;color:var(--atf-muted);margin-top:5px}.scenario{margin-bottom:24px}"
+                + ".scenario-title,.node-title{display:flex;align-items:center;justify-content:space-between;gap:12px}"
+                + ".scenario-title{padding:12px 16px;border:1px solid var(--atf-border);background:var(--atf-panel)}"
+                + ".scenario-title h2{margin:0;font-size:18px}.phase{margin:12px 0;padding:0;border:1px solid var(--atf-border);border-left:3px solid var(--atf-accent);border-radius:8px;background:var(--atf-dark);box-shadow:0 10px 26px " + AtfReportColors.SHADOW_SOFT + ";overflow:hidden}"
+                + ".request,.validation{margin:12px;border:1px solid var(--atf-card-border);background:var(--atf-surface)}"
+                + ".request{border-left-width:1px}.validation{border-left-width:1px}"
+                + ".node-title{padding:13px 15px;border-bottom:1px solid var(--atf-card-border)}details{border-top:1px solid var(--atf-border)}"
+                + ".step-detail{margin:0;border:1px solid var(--atf-border);border-radius:12px;overflow:hidden;background:var(--atf-dark)}"
+                + ".step-detail>summary{padding:10px 12px;color:var(--atf-accent);cursor:pointer}"
+                + "summary{padding:12px 15px;color:var(--atf-accent);cursor:pointer}table{width:100%;border-collapse:collapse;"
+                + "font-size:12.6px;line-height:16.884px}th,td{border:1px solid var(--atf-border);padding:7px 9px;text-align:left;vertical-align:top;"
+                + "font-size:12.6px;line-height:16.884px}th{color:var(--atf-muted);font-weight:400;text-transform:uppercase}"
+                + "td{color:var(--atf-text);background:" + AtfReportColors.WHITE_02 + "}"
+                + "pre.json-code{margin:0;padding:10px 12px;max-height:360px;overflow:auto;background:var(--atf-code);color:var(--atf-json-text);"
+                + "font:12.5px/18.75px ui-monospace,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere}"
+                + ".status{font-size:11.9px;line-height:11.9px;font-weight:700;padding:4px 7px;border-radius:4px;white-space:nowrap}"
+                + ".status-pass{color:var(--atf-pass-text);background:var(--atf-pass)}.status-fail{color:var(--atf-fail-text);background:var(--atf-fail)}"
+                + ".status-warning{color:var(--atf-warning-text);background:var(--atf-warning)}.status-skip{color:var(--atf-skip-text);background:var(--atf-skip)}"
+                + ".status-info{color:var(--atf-info-text);background:var(--atf-info)}.tag-list{display:flex;gap:8px;flex-wrap:wrap}"
+                + ".tag{border:1px solid var(--atf-border);border-radius:16px;padding:7px 12px;color:var(--atf-accent)}"
+                + ".fail-list{display:grid;gap:8px}" + failRow + "{display:grid;grid-template-columns:64px 220px 1fr;gap:12px;align-items:center;"
+                + "padding:12px;border:1px solid var(--atf-border);color:var(--atf-text);text-decoration:none}.empty,.contract{color:var(--atf-muted)}"
+                + ".summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.metric{border:1px solid var(--atf-border);"
+                + "background:var(--atf-surface);padding:18px;display:flex;flex-direction:column;gap:8px}.metric span{color:var(--atf-muted)}.metric strong{font-size:28px}";
+    }
+}

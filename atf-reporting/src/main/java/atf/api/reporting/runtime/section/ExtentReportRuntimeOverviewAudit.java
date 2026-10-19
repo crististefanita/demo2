@@ -1,0 +1,17 @@
+package atf.api.reporting.runtime.section;
+
+/** Overview fragment for status counters and audit-table projection. */
+final class ExtentReportRuntimeOverviewAudit {
+    private static final String COUNT_STATUSES =
+            "function countStatuses(items){var result={pass:0,fail:0,skip:0,warning:0};items.forEach(function(item){var status=statusOf(item);if(result[status]!==undefined)result[status]++;});return result;}";
+    private static final String AUDIT_ROWS =
+            "function auditRows(id,data,share,total,keepOrder){var body=document.querySelector('#'+id+' tbody');if(!body)return;body.innerHTML='';var keys=Object.keys(data);if(!keepOrder)keys.sort();keys.forEach(function(k){var tr=document.createElement('tr'),cells=share?[k,data[k],total?Math.round(data[k]*100/total)+'%':'0%']:[k,data[k]];tr.innerHTML=cells.map(function(v){return '<td>'+esc(v)+'</td>';}).join('');body.appendChild(tr);});}";
+    private static final String POPULATE_AUDIT =
+            "function populateAudit(){var roots=classItems(),items=testItems();normalizeScenarioAnnotations();var total=items.length,scenarios={},classes={},packages={},tags={},classCounts=countStatuses(roots),scenarioCounts=countStatuses(items);items.forEach(function(item){var c=testClass(item);classes[c]=(classes[c]||0)+1;var identity=c+' · '+testName(item);scenarios[identity]=(scenarios[identity]||0)+1;var packageName=testPackage(item);packages[packageName]=(packages[packageName]||0)+1;testTags(item).forEach(function(tag){tags[tag]=(tags[tag]||0)+1;});});auditRows('atf-audit-scenarios',scenarios,true,total,true);auditRows('atf-audit-packages',packages,true,total,false);auditRows('atf-audit-tags',tags,false,total,false);q('.dashboard-view .card-body').forEach(function(body){var label=text(body,'p'),h=body.querySelector('h3');if(!h)return;if(label==='Tests Passed')h.textContent=scenarioCounts.pass;if(label==='Tests Failed')h.textContent=scenarioCounts.fail;});var parentCard=document.getElementById('parent-analysis');if(parentCard){var card=parentCard.closest('.card'),foot=card&&card.querySelectorAll('.card-footer small');if(foot&&foot.length>1){foot[0].innerHTML='<b>'+classCounts.pass+'</b> test classes passed';foot[1].innerHTML='<b>'+classCounts.fail+'</b> test classes failed, <b>'+classCounts.skip+'</b> skipped, <b>'+classCounts.warning+'</b> warnings';}}var grid=document.getElementById('atf-execution-metadata-grid');if(grid){grid.innerHTML=[['Test classes in this run',roots.length],['Scenarios in this run',total],['Scenario pass',scenarioCounts.pass],['Scenario fail',scenarioCounts.fail],['Scenario skipped',scenarioCounts.skip],['Scenario warnings',scenarioCounts.warning]].map(function(pair){return '<div class=\"atf-secondary-metric\"><small>'+esc(pair[0])+'</small><strong>'+esc(pair[1])+'</strong></div>';}).join('');}}";
+
+    private ExtentReportRuntimeOverviewAudit() { }
+
+    static String script() {
+        return String.join("", COUNT_STATUSES, AUDIT_ROWS, POPULATE_AUDIT);
+    }
+}

@@ -1,4 +1,6 @@
 package atf.api.execution;
+import atf.api.testkit.AtfComponentTest;
+
 
 import atf.api.execution.lifecycle.CleanupRegistry;
 import org.junit.jupiter.api.Test;
@@ -12,6 +14,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@AtfComponentTest
 
 class CleanupRegistryTest {
     @Test

@@ -1,10 +1,14 @@
 package atf.api.execution;
 
-import atf.api.core.http.ApiExecutor;
-import atf.api.core.http.ApiResponse;
-import atf.api.core.http.ApiTransport;
+import atf.api.core.http.auth.AuthRequirement;
+import atf.api.core.http.auth.AuthType;
+import atf.api.core.http.execution.ApiExecutor;
+import atf.api.core.http.response.ApiResponse;
+import atf.api.core.http.transport.ApiTransport;
 import atf.api.execution.model.UserRequest;
+import atf.api.execution.routing.ApiRoutes;
 import atf.api.execution.service.UsersService;
+import atf.api.testkit.AtfComponentTest;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
@@ -13,6 +17,8 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
+
+@AtfComponentTest
 
 class WriteRouteContractTest {
     @Test
@@ -30,9 +36,9 @@ class WriteRouteContractTest {
                 .create(new UserRequest("ATF", "atf@example.test", "male", "active"));
 
         assertEquals(201, result.response().status());
-        var route = atf.api.execution.routing.ApiRoutes.userCreate();
-        assertEquals(atf.api.core.http.AuthRequirement.REQUIRED, route.authRequirement());
-        assertEquals(atf.api.core.http.AuthType.BEARER, route.authType());
+        var route = ApiRoutes.userCreate();
+        assertEquals(AuthRequirement.REQUIRED, route.authRequirement());
+        assertEquals(AuthType.BEARER, route.authType());
         assertTrue(route.tags().contains("write"));
     }
 }

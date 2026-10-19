@@ -1,7 +1,6 @@
 package atf.api.execution;
-
 import atf.api.core.config.ApiSettingsSnapshot;
-import atf.api.core.http.ApiExecutor;
+import atf.api.core.http.execution.ApiExecutor;
 import atf.api.execution.service.PostsService;
 import atf.api.execution.service.UsersService;
 

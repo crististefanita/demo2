@@ -1,7 +1,9 @@
 package atf.api.console;
+import atf.api.testkit.AtfUnitTest;
 
-import atf.api.core.reporting.AtfConsoleEvent;
-import atf.api.core.reporting.AtfReportStatus;
+import atf.api.core.reporting.console.AtfConsoleEvent;
+import atf.api.core.reporting.contract.AtfReportStatus;
+
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -11,6 +13,8 @@ import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@AtfUnitTest
 
 class AtfConsoleReporterTest {
     @Test
@@ -74,6 +78,17 @@ class AtfConsoleReporterTest {
                 new ConsoleSettings(false, true));
         silent.publish(AtfConsoleEvent.started(AtfConsoleEvent.Scope.SCENARIO, "silent"));
         assertTrue(disabled.toString(StandardCharsets.UTF_8).isEmpty());
+    }
+
+    @Test
+    void ownsOneLineDiagnosticsForLaunchersAndOtherConsoleClients() {
+        var bytes = new ByteArrayOutputStream();
+        var reporter = new AtfConsoleReporter(new PrintStream(bytes, true, StandardCharsets.UTF_8),
+                new ConsoleSettings(true, false));
+
+        reporter.info("debug target ready");
+
+        assertTrue(bytes.toString(StandardCharsets.UTF_8).contains("[ATF] debug target ready"));
     }
 
     @Test
@@ -145,5 +160,22 @@ class AtfConsoleReporterTest {
         assertTrue(output.contains("▶ Validate status: expect 201"));
         assertTrue(output.contains("• actual=201"));
         assertTrue(output.contains("✅ PASS: Validated"));
+    }
+
+    @Test
+    void rendersUiActionIdentityAsOperationArrowTarget() {
+        var bytes = new ByteArrayOutputStream();
+        var reporter = new AtfConsoleReporter(new PrintStream(bytes, true, StandardCharsets.UTF_8),
+                new ConsoleSettings(true, false));
+
+        reporter.publish(AtfConsoleEvent.started(AtfConsoleEvent.Scope.UI_ACTION,
+                "Click -> #nav-test"));
+        reporter.publish(AtfConsoleEvent.completed(AtfConsoleEvent.Scope.UI_ACTION,
+                "Click -> #nav-test", AtfReportStatus.PASS, 3));
+
+        String output = bytes.toString(StandardCharsets.UTF_8);
+        assertAll(
+                () -> assertTrue(output.contains("▶ Click -> #nav-test")),
+                () -> assertTrue(output.contains("✅ PASS: UI action completed (3 ms)")));
     }
 }

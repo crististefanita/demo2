@@ -1,9 +1,13 @@
 package atf.api.ui.playwright;
+import atf.api.testkit.AtfComponentTest;
+
 
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@AtfComponentTest
 
 class UiScreenValidationTest {
     private static final String ONE_PIXEL_PNG =

@@ -27,7 +27,9 @@ public final class UiScreenValidation {
         Objects.requireNonNull(configuration, "configuration");
         String safeTitle = title == null || title.isBlank() ? "Screen validation" : title.trim();
         if (!configuration.enabled()) return new Evidence(safeTitle, "", false);
-        byte[] png = page.screenshot(new Page.ScreenshotOptions().setFullPage(configuration.fullPage()));
+        byte[] png = page.screenshot(new Page.ScreenshotOptions()
+                .setFullPage(configuration.fullPage())
+                .setTimeout(configuration.screenshotTimeout().toMillis()));
         String base64 = Base64.getEncoder().encodeToString(png);
         return new Evidence(safeTitle, base64, true);
     }

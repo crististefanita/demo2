@@ -12,6 +12,7 @@
     <description>Port Java renderer-neutral al ATF-ului API</description>
 
     <modules>
+        <module>atf-test-kit</module>
         <module>atf-core</module>
         <module>atf-mock</module>
         <module>atf-validation</module>

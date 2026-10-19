@@ -4,6 +4,17 @@
 doar de `atf-core` și implementează `ApiTransport`; nu cunoaște Extent, JUnit,
 serviciile Users/Posts sau validarea de business.
 
+## Diagramă de bază
+
+```mermaid
+flowchart LR
+    Fixture[atf-mock.yaml<br/>route + request/response JSON] --> Loader[AtfMockConfigurationLoader]
+    Loader --> Mock[AtfMockTransport]
+    Mock --> Transport[ApiTransport]
+    Transport --> Executor[ApiExecutor]
+    Executor --> Evidence[request/response evidence]
+```
+
 ## Contract
 
 ```text
@@ -15,11 +26,39 @@ Mock-ul nu face DNS, TLS sau conexiuni HTTP. URL-ul primit de transport este
 păstrat în `ApiResponse` pentru evidence, astfel încât raportul poate afișa
 ruta completă fără să pretindă că serverul a fost contactat.
 
+Publisher-ul adaugă `ACCEPTANCE / MOCK — network was not executed` și marchează
+replay-ul manual ca `NOT EXECUTABLE`. Faptul că `api.baseUri` este un endpoint
+public real nu schimbă comportamentul mock; pentru request real se folosește
+separat `HttpClientTransport`, configurație `live` și opt-in explicit.
+
+## Ownership pentru vocabularul de test
+
+Valorile protocolului și ale catalogului nu se repetă direct în testele de
+transport. `HttpMethod` deține verbele HTTP, `HttpHeader` numele headerelor,
+`MediaTypes` media type-urile, iar fixture-urile locale dețin rutele,
+payload-urile și profilele de autentificare ale scenariului. Un fixture este
+extras numai când valoarea are ownership semantic sau este reutilizată;
+payload-urile negative strict locale rămân lângă testul care le explică. Nu se
+introduce o clasă globală `AtfConstants` ca sertar pentru valori fără owner.
+În testele acestui modul, `MockTransportTestFixtures` este owner-ul local pentru
+URL-ul mock, payload-uri și query-shape-uri, deoarece `atf-mock` nu depinde de
+scenariile din test scope-ul `atf-reporting`. Pentru fixture-ul built-in,
+`MockRoutePaths` este owner-ul rutelor concrete; el compune segmentele prin
+`ApiPathTemplate` și nu expune catalogul mock în `atf-core`. Default-ul neutru
+`ApiEnvironment` este în `atf-core/config.source`, fără ca mock-ul să depindă
+de test-kit.
+
+`MockRoutePaths` este vocabularul mock-ului, nu o sursă de endpoint-uri de
+producție. Când `atf-reporting` este testat independent, testul importă această
+clasă numai în test scope și citește răspunsul efectiv din `atf-mock.yaml`.
+Reporting production nu vede nici ruta, nici loader-ul; primește request/response
+ca date deja executate și poate fi livrat ca librărie endpoint-neutrală.
+
 ## Configurație YAML
 
 Catalogul mock este separat intenționat de configurația generală ATF:
-`atf.yaml` păstrează doar API, validation și reporting, iar `atf-mock.yaml`
-deține rutele, răspunsurile și fallback-ul fake. `AtfMockConfigurationLoader`
+`atf.yaml` păstrează doar API, validation și reporting. `atf-mock.yaml` deține
+rutele, răspunsurile și fallback-ul fake. `AtfMockConfigurationLoader`
 caută implicit `atf-mock.yaml`/`atf-mock.yml` în directorul curent și părinții
 lui. Pentru o compoziție explicită, ordinea este:
 
@@ -33,9 +72,15 @@ permite rulări directe din IntelliJ, CI sau workspace-uri paralele. Dacă o cal
 explicită există dar este invalidă, încărcarea eșuează fail-fast; nu revine
 silențios la fixture-ul built-in și nu pornește HTTP real.
 
-Fișierul implicit din repository este [`../atf-mock.yaml`](../atf-mock.yaml).
-Un consumator poate păstra catalogul în altă locație fără să schimbe
-`atf.yaml`, folosind override-ul de mai sus.
+În acest repository, catalogul folosit de raportare este mutat explicit în
+`atf-reporting/src/test/resources/atf-mock.yaml`. Este încărcat prin
+`ReportingTestResources.mockConfiguration()` sau `.mockTransport()`, astfel
+încât testele de raportare nu depind de working directory și nu concurează cu
+un catalog folosit de o altă rulare. Loader-ul, schema și transportul rămân în
+`atf-mock`; YAML-ul din reporting este fixture-ul de integrare al modulului
+consumator. Pentru consumatori externi, override-ul `-Datf.mock.config=...`
+rămâne mecanismul explicit recomandat; lipsa unui catalog extern folosește
+fixture-ul built-in.
 
 ```yaml
 mock:
@@ -113,3 +158,29 @@ testele unitare pot folosi `AtfMockTransport.defaults()` pentru izolare.
 
 `atf-mock` nu este live HTTP. Pentru un endpoint real se folosește separat
 `HttpClientTransport` și profilul live opt-in configurat la execuție.
+
+## Adaptor pentru testarea reporting-ului
+
+`atf-mock` nu importă `atf-reporting` și nu devine dependent de renderer. Când
+raportarea este testată independent, test classpath-ul `atf-reporting` poate
+adapta `MockRoute` la portul `ApiReportContractCatalog`. Direcția este:
+
+```text
+MockRoute / atf-mock.yaml
+        → catalog adapter (test only)
+        → atf.api.reporting.api.contract.ApiReportContractAuditor
+        → ValidationResult
+```
+
+Adaptorul nu copiază reguli: `POST`/`PUT` JSON, headers, query, status și
+compararea JSON sunt verificate de motorul de reporting. În test scope-ul
+`atf-reporting`, bridge-ul DOM→contract face aceeași conversie pentru auditul
+Playwright. Astfel mock-ul
+poate testa reporting-ul ca modul independent, fără ca reporting-ul să execute
+transport sau să cunoască fixture-uri de produs.
+
+Auditul static al documentelor JSON publicate este de asemenea deținut de
+`atf-reporting` (`ApiReportJsonEvidenceAuditor`). Testele reporting adaptează
+`MockRoute` la `ApiReportContractCatalog`; `atf-tests` deține doar auditorul de
+guvernanță globală și nu conține un auditor
+duplicat doar pentru că inputul provine din mock.

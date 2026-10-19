@@ -1,6 +1,5 @@
 package atf.api.validation.evaluation;
-
-import atf.api.core.reporting.AtfAssertion;
+import atf.api.core.reporting.contract.AtfAssertion;
 
 import java.util.LinkedHashMap;
 import java.util.List;

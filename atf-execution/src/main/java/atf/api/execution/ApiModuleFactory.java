@@ -1,12 +1,12 @@
 package atf.api.execution;
+import atf.api.core.http.execution.ApiExecutor;
+import atf.api.core.http.transport.ApiTransport;
+import atf.api.core.reporting.console.AtfConsoleSink;
 
 import atf.api.core.config.ApiSettings;
 import atf.api.core.config.ApiBootstrapConfiguration;
 import atf.api.core.config.ApiTransportMode;
 import atf.api.core.config.AtfRuntimeSnapshot;
-import atf.api.core.http.ApiExecutor;
-import atf.api.core.http.ApiTransport;
-import atf.api.core.reporting.AtfConsoleSink;
 
 import java.net.URI;
 import java.time.Duration;
@@ -39,7 +39,9 @@ public final class ApiModuleFactory {
         ApiTransport selected = configuration.transportPolicy().mode() == ApiTransportMode.ACCEPTANCE
                 ? Objects.requireNonNull(acceptanceTransport, "acceptanceTransport")
                 : Objects.requireNonNull(liveTransport, "liveTransport");
-        return fromTransport(selected, configuration);
+        return new ApiModule(configuration.settings().snapshot(),
+                new ApiExecutor(selected, configuration.settings().snapshot(),
+                        configuration.transportPolicy().mode()));
     }
 
     /** Composes execution from the immutable runtime boundary. */
@@ -47,6 +49,17 @@ public final class ApiModuleFactory {
         Objects.requireNonNull(transport, "transport");
         Objects.requireNonNull(runtime, "runtime");
         return new ApiModule(runtime.api(), new ApiExecutor(transport, runtime.api()));
+    }
+
+    /** Composes execution while preserving the explicit acceptance/live binding in evidence. */
+    public static ApiModule fromTransport(ApiTransport transport, AtfRuntimeSnapshot runtime,
+                                          atf.api.execution.ApiTransportMode transportMode) {
+        Objects.requireNonNull(transport, "transport");
+        Objects.requireNonNull(runtime, "runtime");
+        Objects.requireNonNull(transportMode, "transportMode");
+        var coreMode = transportMode == atf.api.execution.ApiTransportMode.LIVE
+                ? ApiTransportMode.LIVE : ApiTransportMode.ACCEPTANCE;
+        return new ApiModule(runtime.api(), new ApiExecutor(transport, runtime.api(), coreMode));
     }
 
     public static ApiModule fromTransport(ApiTransport transport, URI baseUri) {

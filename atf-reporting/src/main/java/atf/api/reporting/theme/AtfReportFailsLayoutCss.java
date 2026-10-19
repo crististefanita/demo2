@@ -19,8 +19,11 @@ public final class AtfReportFailsLayoutCss {
                 + "height:auto!important;flex:1 1 auto!important;align-self:stretch!important;"
                 + "box-sizing:border-box!important;min-width:0!important;overflow:auto!important}"
                 + "@media(max-width:760px){#atf-fails-view.exception-view.atf-fails-view:not(.hide){"
-                + "overflow:auto!important}.exception-view.atf-fails-view .test-list{"
-                + "min-width:240px!important;flex-basis:36%!important;max-width:36%!important}"
-                + ".exception-view.atf-fails-view .test-content{flex-basis:64%!important}}";
+                + "left:0!important;right:0!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important;"
+                + "flex-direction:column!important;overflow:auto!important}.exception-view.atf-fails-view .test-list{"
+                + "flex:0 0 auto!important;width:100%!important;max-width:none!important;min-width:0!important;"
+                + "max-height:40vh!important;overflow:auto!important}"
+                + ".exception-view.atf-fails-view .test-content{flex:1 1 auto!important;width:100%!important;"
+                + "max-width:none!important;min-width:0!important;overflow:visible!important}}";
     }
 }

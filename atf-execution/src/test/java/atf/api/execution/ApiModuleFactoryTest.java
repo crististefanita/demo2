@@ -1,13 +1,15 @@
 package atf.api.execution;
+import atf.api.testkit.AtfComponentTest;
 
+import atf.api.core.http.request.ApiRequest;
+import atf.api.core.http.response.ApiExecutionException;
+import atf.api.core.http.response.ApiResponse;
+import atf.api.core.http.transport.ApiTransport;
 import atf.api.core.config.ApiSettings;
 import atf.api.core.config.ApiBootstrapConfiguration;
 import atf.api.core.config.AtfConfiguration;
 import atf.api.core.config.ReportingSettings;
-import atf.api.core.http.ApiExecutionException;
-import atf.api.core.http.ApiRequest;
-import atf.api.core.http.ApiResponse;
-import atf.api.core.http.ApiTransport;
+import atf.api.core.http.transport.ApiTransportProvenance;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
@@ -19,6 +21,8 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+@AtfComponentTest
 
 class ApiModuleFactoryTest {
     @Test
@@ -60,6 +64,21 @@ class ApiModuleFactoryTest {
 
         assertEquals("acceptance", module.executor().execute(ApiRequest.of("GET", "/health"))
                 .response().body());
+        assertEquals(ApiTransportProvenance.ACCEPTANCE_MOCK,
+                module.executor().execute(ApiRequest.of("GET", "/health")).provenance());
+    }
+
+    @Test
+    void explicitLiveBootstrapMarksTheExchangeAsNetworkBacked() {
+        ApiTransport live = (request, url, auth) -> CompletableFuture.completedFuture(
+                new ApiResponse(200, "live", Map.of(), Duration.ZERO, url));
+        var configuration = ApiBootstrapConfiguration.live(
+                new ApiSettings(URI.create("https://configured.example"), "none"));
+
+        var module = ApiModuleFactory.bootstrap(configuration, live, live);
+
+        assertEquals(ApiTransportProvenance.LIVE_HTTP,
+                module.executor().execute(ApiRequest.of("GET", "/health")).provenance());
     }
 
     @Test

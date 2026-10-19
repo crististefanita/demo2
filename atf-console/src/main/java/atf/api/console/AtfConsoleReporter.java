@@ -1,7 +1,6 @@
 package atf.api.console;
-
-import atf.api.core.reporting.AtfConsoleEvent;
-import atf.api.core.reporting.AtfConsoleSink;
+import atf.api.core.reporting.console.AtfConsoleEvent;
+import atf.api.core.reporting.console.AtfConsoleSink;
 
 import java.io.PrintStream;
 import java.util.Objects;
@@ -25,6 +24,21 @@ public final class AtfConsoleReporter implements AtfConsoleSink {
         this.output = Objects.requireNonNull(output, "output");
         this.settings = Objects.requireNonNull(settings, "settings");
         this.formatter = new AtfConsoleFormatter(ConsoleOutputStyle.forStream(output));
+    }
+
+    /** Creates the configured process-console adapter; stdout ownership stays here. */
+    public static AtfConsoleReporter configuredStdout() {
+        return new AtfConsoleReporter(System.out, AtfConsoleConfigurationLoader.load().settings());
+    }
+
+    /** Publishes one launcher/diagnostic line without leaking a PrintStream to callers. */
+    public synchronized void info(String message) {
+        if (!settings.enabled()) return;
+        try {
+            output.println(PREFIX + Objects.requireNonNullElse(message, ""));
+        } catch (RuntimeException ignored) {
+            // Console output is diagnostic; it must never change a test verdict.
+        }
     }
 
     @Override

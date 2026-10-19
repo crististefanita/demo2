@@ -1,0 +1,117 @@
+package atf.ui.tests.extent.e2e.navigation;
+import atf.api.testkit.AtfE2eTest;
+import atf.api.core.reporting.contract.AtfAssertion;
+import atf.ui.tests.extent.support.navigation.ReportNavigationFlow;
+import atf.api.reporting.audit.ReportAuditChecks;
+import atf.ui.tests.extent.support.audit.ReportAuditContext;
+import atf.ui.tests.extent.support.lifecycle.UiAuditFlow;
+import atf.api.reporting.ui.audit.vocabulary.UiAuditGherkin;
+
+import atf.ui.tests.extent.support.config.ReportingTestResources;
+import atf.ui.tests.extent.support.config.UiConfiguration;
+import atf.api.ui.playwright.UiScreenValidation;
+import atf.api.reporting.ui.audit.section.OverviewSectionValidator;
+import atf.api.core.config.module.AtfModule;
+import atf.api.reporting.test.AtfModuleTest;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.condition.EnabledIf;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+
+import static atf.api.reporting.audit.ReportAuditChecks.check;
+import static atf.api.reporting.audit.ReportAuditChecks.status;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/** Gherkin intent only; selector mechanics are delegated to {@link ReportNavigationFlow}. */
+@EnabledIf("isConfigured")
+@AtfModuleTest(requires = {AtfModule.REPORTING, AtfModule.UI})
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Execution(ExecutionMode.SAME_THREAD)
+@DisplayName("Extent report navigation and aggregation flow")
+@AtfE2eTest
+class ReportNavigationAggregationFlowTest {
+    private UiConfiguration configuration;
+    private Path inputReport;
+    private Path auditReport;
+    private ReportAuditContext auditContext;
+    private UiAuditFlow auditFlow;
+    private ReportNavigationFlow reportFlow;
+
+    static boolean isConfigured() { return ReportingTestResources.uiConfiguration().auditInputReport().isPresent(); }
+
+    @BeforeAll
+    void openConfiguredReport() {
+        configuration = ReportingTestResources.uiConfiguration();
+        inputReport = configuration.auditInputReport().orElseThrow(() -> new IllegalStateException("No existing Extent report configured"));
+        assertTrue(Files.isRegularFile(inputReport), "Configured Extent report does not exist: " + inputReport);
+        auditContext = ReportAuditContext.open(configuration, inputReport, "navigation-flow");
+        auditFlow = new UiAuditFlow(auditContext, configuration,
+                "ReportNavigationAggregationFlowTest", "atf.ui.tests.extent.component.architecture",
+                List.of("ui", "flow", "navigation", "aggregation"),
+                UiAuditGherkin.CONFIGURED_REPORT_READY,
+                "Navigation flow audit failure", "configured Extent report");
+        reportFlow = new ReportNavigationFlow(auditFlow);
+        auditReport = auditContext.reportPath();
+    }
+
+    @AfterAll
+    void closeAudit() { if (auditContext != null) auditContext.close(); }
+
+    @Test
+    @DisplayName("GIVEN a report WHEN Tests, filters, Categories and Overview are traversed THEN the artifact remains consistent")
+    void testsFiltersCategoriesAndOverviewReconcile() {
+        audit("Tests → status/tag filters → Clear → Categories → Overview", audit -> {
+            ReportNavigationFlow.NavigationSnapshot snapshot = reportFlow.traverse();
+            UiScreenValidation.Evidence evidence = capture(snapshot.overviewPage(), "Tests, filters, Categories and Overview reconciled");
+            var baseline = snapshot.baseline();
+            var category = snapshot.category();
+            var overview = new OverviewSectionValidator().validate(snapshot.overview(), baseline,
+                    new OverviewSectionValidator.Expected(List.of(), 0, java.util.Set.of()));
+            boolean valid = snapshot.passSelected() && snapshot.passScenarioCount() >= 0
+                    && snapshot.combinedScenarioCount() >= 0 && snapshot.tagCombinationValid()
+                    && snapshot.clearRestoresBaseline() && category.valid() && overview.valid()
+                    && evidence.hasScreenshotPayload();
+            List<atf.api.core.reporting.contract.AtfAssertion> assertions = new ArrayList<>(overview.assertions());
+            assertions.add(0, check("Tests baseline", "owners/scenarios > 0", baseline.classCount() + "/" + baseline.scenarioCount(), baseline.classCount() > 0 && baseline.scenarioCount() > 0));
+            assertions.add(check("Pass filter", "selected and non-negative", snapshot.passSelected() + " / " + snapshot.passScenarioCount(), snapshot.passSelected() && snapshot.passScenarioCount() >= 0));
+            assertions.add(check("Dynamic tag combination",
+                    "second tag replaces first; one active tag remains",
+                    "'" + snapshot.firstTagName() + "' (" + snapshot.firstTagScenarioCount()
+                            + " visible) → '" + snapshot.secondTagName() + "'"
+                            + ", active=" + snapshot.activeTagCount()
+                            + ", replaced=" + snapshot.firstTagReplaced()
+                            + ", selections=" + snapshot.tagSelectionSteps(),
+                    snapshot.tagCombinationValid()));
+            assertions.add(check("Clear",
+                    "owners=" + baseline.classCount() + ", status=Clear, tags=0",
+                    "owners=" + snapshot.clearedOwnerCount()
+                            + ", status=" + (snapshot.statusClearSelected() ? "Clear" : "active")
+                            + ", tags=" + snapshot.activeTagCountAfterClear()
+                            + ", selected-owner scenarios=" + snapshot.clearedScenarioCount(),
+                    snapshot.clearRestoresBaseline()));
+            assertions.add(check("Categories", "selected category has coherent rows/links", category.toString(), category.valid()));
+            assertions.add(check("Inline Base64 screenshot", "valid PNG payload", String.valueOf(evidence.hasScreenshotPayload()), evidence.hasScreenshotPayload()));
+            audit.screen("Overview reconciles the unfiltered Tests baseline after filter exploration",
+                    "#test-view → #category-view → #dashboard-view", evidence, assertions, status(valid));
+            assertAll(() -> assertTrue(snapshot.passSelected()), () -> assertTrue(snapshot.tagCombinationValid()),
+                    () -> assertTrue(snapshot.clearRestoresBaseline()), () -> assertTrue(category.valid()),
+                    () -> assertTrue(overview.valid(), overview.failureSummary()));
+        });
+    }
+
+    private UiScreenValidation.Evidence capture(com.microsoft.playwright.Page page, String title) {
+        return auditFlow.capture(page, title);
+    }
+
+    private void audit(String title, UiAuditFlow.AuditAction action) { auditFlow.audit(title, action); }
+}

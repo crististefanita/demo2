@@ -1,6 +1,5 @@
 package atf.api.core.ui;
-
-import atf.api.core.reporting.AtfReportStatus;
+import atf.api.core.reporting.contract.AtfReportStatus;
 
 import java.util.Objects;
 

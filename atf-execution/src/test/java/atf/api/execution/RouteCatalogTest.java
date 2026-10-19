@@ -1,10 +1,14 @@
 package atf.api.execution;
+import atf.api.testkit.AtfComponentTest;
+
 
 import atf.api.execution.routing.ApiRoutes;
 import atf.api.execution.routing.RoutePaths;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+
+@AtfComponentTest
 
 class RouteCatalogTest {
     @Test

@@ -1,19 +1,24 @@
 package atf.api.execution;
+import atf.api.testkit.AtfComponentTest;
 
-import atf.api.core.reporting.AtfReportStatus;
-import atf.api.core.reporting.AtfReportPorts;
-import atf.api.execution.lifecycle.ApiScenarioLifecycleRunner;
-import atf.api.execution.lifecycle.ApiScenarioPlan;
+import atf.api.core.reporting.contract.AtfAssertion;
+import atf.api.core.reporting.contract.AtfReportPorts;
+import atf.api.core.reporting.contract.AtfReportStatus;
+import atf.api.core.lifecycle.ApiScenarioLifecycleRunner;
+import atf.api.core.lifecycle.ApiScenarioPlan;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
-import java.util.Collection;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.*;
+
+@AtfComponentTest
 
 class ApiScenarioLifecycleRunnerTest {
     @Test
@@ -45,7 +50,7 @@ class ApiScenarioLifecycleRunnerTest {
         var result = new ApiScenarioLifecycleRunner().run(
                 null,
                 () -> { throw new IllegalStateException("body"); },
-                (java.util.function.Consumer<Boolean>) ignored -> { throw new IllegalStateException("teardown"); });
+                (Consumer<Boolean>) ignored -> { throw new IllegalStateException("teardown"); });
 
         assertEquals(AtfReportStatus.FAIL, result.status());
         assertEquals("body", result.primaryFailure().getMessage());
@@ -96,7 +101,7 @@ class ApiScenarioLifecycleRunnerTest {
         var result = new ApiScenarioLifecycleRunner().run(
                 () -> { throw new IllegalStateException("setup"); },
                 () -> { throw new IllegalStateException("body must be skipped"); },
-                (java.util.function.Consumer<Boolean>) ignored -> { throw new IllegalStateException("teardown"); });
+                (Consumer<Boolean>) ignored -> { throw new IllegalStateException("teardown"); });
 
         assertEquals(AtfReportStatus.FAIL, result.status());
         assertEquals("setup", result.primaryFailure().getMessage());
@@ -358,7 +363,7 @@ class ApiScenarioLifecycleRunnerTest {
     }
 
     private static final class NoOpValidation implements AtfReportPorts.Validation {
-        @Override public void assertions(Collection<atf.api.core.reporting.AtfAssertion> assertions) { }
+        @Override public void assertions(Collection<AtfAssertion> assertions) { }
         @Override public void complete(AtfReportStatus status) { }
         @Override public void close() { }
     }

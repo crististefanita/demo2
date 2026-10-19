@@ -1,6 +1,6 @@
 package atf.api.console.junit;
+import atf.api.core.reporting.contract.AtfReportStatus;
 
-import atf.api.core.reporting.AtfReportStatus;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.TestWatcher;

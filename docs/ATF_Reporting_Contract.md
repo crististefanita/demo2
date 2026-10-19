@@ -53,6 +53,17 @@ Reguli de ownership:
 4. faza nu repetă failure-ul deja detaliat în tabel;
 5. scenariul arată verdictul agregat, nu duplică evidence-ul fiecărei faze.
 
+## Evidence-ul de setup
+
+`SETUP` poate publica disponibilitatea unui artifact read-only pentru un audit
+UI, dar nu este un request HTTP și nu este o validare de ecran. Când detaliul
+`evidence.type` are valoarea `report-setup`, rendererul publică un singur bloc
+`Setup evidence` cu tabelul `CHECK | EXPECTED | ACTUAL | RESULT`. Sunt permise
+doar check-urile de input și rezultatul lor; nu se repetă în această zonă
+`Request details`, `Response details`, JSON de transport, `UI validation` sau
+`Screen validation`. Acestea rămân în ownerii lor: API request evidence,
+respectiv `TEST BODY` → `Screen validation` pentru browser/DOM/style.
+
 ## Evidence-ul unui request
 
 ### Label-uri canonice
@@ -82,6 +93,19 @@ pentru un response fără body. Astfel lipsa body-ului este o stare explicită,
 nu o zonă de evidence dispărută. Response JSON este inclus în aceeași zonă
 colapsabilă cu `Response details`.
 
+`TRANSPORT PROVENANCE` este un fapt al composition root-ului și nu se deduce din
+hostname: `ACCEPTANCE / MOCK — network was not executed` înseamnă că URL-ul este
+doar ruta construită pentru mock; `LIVE / HTTP — network was executed` înseamnă
+că transportul live a contactat endpointul; `UNKNOWN` nu este suficient pentru a
+pretinde că s-a făcut un apel. Un URL real configurat în acceptance nu schimbă
+această regulă.
+
+`MANUAL REPLAY` este o instrucțiune safe, nu o promisiune de acces. În acceptance
+este `NOT EXECUTABLE`, iar în live conține un cURL cu method, URL, headers și
+body. Header-ele sensibile și credențialele auth sunt redacted; operatorul le
+completează din profilul configurat înainte de execuție. Astfel un cititor poate
+copia schimbul fără ca raportul să inventeze un endpoint sau să publice secrete.
+
 ```mermaid
 flowchart TD
     Request[HTTP request] --> RequestDetails[Request details · N fields]
@@ -91,6 +115,8 @@ flowchart TD
     RequestDetails --> RequestBody[REQUEST JSON or null]
     Request --> Execution[Execution evidence · N attempts]
     Execution --> Retry[Retry history]
+    Request --> Provenance[TRANSPORT PROVENANCE]
+    Request --> Replay[MANUAL REPLAY · safe]
     Request --> Assertions[Assertions · N]
 ```
 
@@ -278,6 +304,26 @@ Paleta semantică este comună: Pass `#9ccc65`, Warning `#ffc107`, Fail
 Selectorii de tab sau container nu pot introduce altă geometrie ori altă
 culoare semantică.
 
+### Header metadata: durată, deep-link și controale
+
+În `detail-head .info` există trei tipuri diferite de elemente și nu trebuie
+tratate printr-un selector generic de `badge-default`:
+
+```text
+durată                 → badge neutru, normalizat numeric (`9 ms`, `1.2 s`)
+uri-anchor             → deep-link machine-readable, păstrat în DOM, ascuns vizual
+Expand/Collapse        → controale pointer, păstrează iconițele vendor (`fa-expand` / `fa-compress`)
+```
+
+Runtime-ul de durate consumă selectorul tipizat `DURATION_MARKERS` și exclude
+explicit `.uri-anchor` și `.pointer`. Astfel nu mai poate transforma accidental
+un anchor sau o iconiță într-un `—`, iar metadata-ul nu concurează vizual cu
+timpul. Deep-link-ul rămâne disponibil pentru navigarea programatică, în timp
+ce acțiunea vizibilă pentru utilizator este `Open in Tests` din Fails. Separatorul
+vendor `·` dintre durata măsurată și ancora ascunsă este eliminat din DOM numai
+când este un text-node izolat, astfel încât headerul să nu rămână cu un simbol
+fără semnificație.
+
 Artifactul final trebuie să fie un singur HTML autonom:
 
 - CSS și JavaScript incluse;
@@ -316,16 +362,16 @@ reporting:
   bodyMaxDisplayCharacters: 12000
   extent:
     outputDirectory: artifacts/reports
-    fileName: api-atf-extent-report.html
+    fileName: ${REPORT_FILE_NAME}
     timestampEnabled: true
     timestampPattern: yyyy-MM-dd_HH-mm-ss-SSS
     timestampZone: system
 ```
 
-Cu `timestampEnabled: true`, numele devine, de exemplu,
-`api-atf-extent-report_2026-10-14_12-34-56-789.html`. Timestamp-ul este
-inserat înainte de extensie și este rezolvat exact o dată, la deschiderea
-sesiunii. Acest lucru diferențiază rulările, păstrează linkul raportului stabil
+Cu `timestampEnabled: true`, runtime-ul compune numele din baza configurată și
+timestamp-ul inserat înainte de extensie; valoarea concretă nu este documentată
+și nu este păstrată ca artifact normativ. Timestamp-ul este rezolvat exact o
+dată, la deschiderea sesiunii. Acest lucru diferențiază rulările, păstrează linkul raportului stabil
 în timpul execuției și evită suprascrierea accidentală a unei rulări deschise.
 
 `timestampPattern` folosește sintaxa Java `DateTimeFormatter`, iar

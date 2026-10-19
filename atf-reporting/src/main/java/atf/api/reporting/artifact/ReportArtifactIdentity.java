@@ -35,7 +35,11 @@ public record ReportArtifactIdentity(Path path, String fileName, String sha256) 
         return sha256.substring(0, Math.min(12, sha256.length()));
     }
 
+    /**
+     * Human-facing label for Extent steps. The digest remains available to
+     * technical gates, but it must not leak into the readable report copy.
+     */
     public String display() {
-        return fileName + " · SHA-256 " + shortSha256();
+        return fileName;
     }
 }

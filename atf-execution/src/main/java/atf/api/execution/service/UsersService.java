@@ -1,7 +1,6 @@
 package atf.api.execution.service;
-
-import atf.api.core.http.ApiExecutionResult;
-import atf.api.core.http.ApiExecutor;
+import atf.api.core.http.execution.ApiExecutor;
+import atf.api.core.http.response.ApiExecutionResult;
 import atf.api.execution.routing.ApiRoutes;
 import atf.api.execution.data.JsonPayloads;
 import atf.api.execution.model.UserRequest;

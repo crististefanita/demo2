@@ -1,4 +1,7 @@
 package atf.api.core.reporting;
+import atf.api.testkit.AtfUnitTest;
+
+import atf.api.core.reporting.duration.AtfDurationFormatter;
 
 import org.junit.jupiter.api.Test;
 
@@ -6,6 +9,8 @@ import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+@AtfUnitTest
 
 class AtfDurationFormatterTest {
     @Test

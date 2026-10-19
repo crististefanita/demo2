@@ -1,12 +1,16 @@
 package atf.api.validation.publishing;
 
-import atf.api.core.http.ApiResponse;
-import atf.api.core.reporting.AtfReportStatus;
-import atf.api.core.reporting.ValidationSink;
+import atf.api.core.http.response.ApiResponse;
+import atf.api.core.reporting.contract.AtfAssertion;
+import atf.api.core.reporting.contract.AtfReportStatus;
+import atf.api.core.reporting.inventory.ValidationSink;
 import atf.api.validation.contract.ResponseContract;
 import atf.api.validation.evaluation.ApiValidationException;
 import atf.api.validation.evaluation.ValidationDecision;
 import atf.api.validation.evaluation.ValidationEvaluator;
+
+import java.util.List;
+import java.util.Objects;
 
 /**
  * Publishes one response contract as one validation sibling of its request.
@@ -21,7 +25,7 @@ public final class ResponseContractReporter {
     }
 
     public ResponseContractReporter(ValidationEvaluator evaluator) {
-        this.evaluator = java.util.Objects.requireNonNull(evaluator, "evaluator");
+        this.evaluator = Objects.requireNonNull(evaluator, "evaluator");
     }
 
     public ValidationDecision validate(ValidationSink request, String title,
@@ -52,7 +56,7 @@ public final class ResponseContractReporter {
             return decision;
         } catch (RuntimeException failure) {
             try {
-                validation.assertions(java.util.List.of(new atf.api.core.reporting.AtfAssertion(
+                validation.assertions(List.of(new AtfAssertion(
                         "Validation execution", "rule evaluation completes", failure.getMessage(), false,
                         AtfReportStatus.FAIL)));
                 validation.complete(AtfReportStatus.FAIL);

@@ -1,7 +1,6 @@
 package atf.api.console;
-
-import atf.api.core.reporting.AtfConsoleEvent;
-import atf.api.core.reporting.AtfDurationFormatter;
+import atf.api.core.reporting.console.AtfConsoleEvent;
+import atf.api.core.reporting.duration.AtfDurationFormatter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -75,6 +74,12 @@ final class AtfConsoleFormatter {
                 case INFO -> "Validation finished";
             };
             case SCENARIO, PHASE -> displayName(event.name());
+            case UI_ACTION -> switch (event.status()) {
+                case PASS, WARNING -> "UI action completed";
+                case FAIL -> "UI action failed";
+                case SKIP -> "UI action skipped";
+                case INFO -> "UI action finished";
+            };
         };
     }
 

@@ -1,7 +1,6 @@
 package atf.api.validation.evaluation;
-
-import atf.api.core.reporting.AtfAssertion;
-import atf.api.core.reporting.AtfReportStatus;
+import atf.api.core.reporting.contract.AtfAssertion;
+import atf.api.core.reporting.contract.AtfReportStatus;
 
 import java.util.Objects;
 

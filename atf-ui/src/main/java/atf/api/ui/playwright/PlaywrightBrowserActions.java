@@ -5,11 +5,14 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.LoadState;
 import com.microsoft.playwright.options.WaitForSelectorState;
 
-import java.net.URI;
 import java.util.Objects;
+
+import java.net.URI;
 
 /** Executes and records page navigation, keyboard and stabilization actions. */
 final class PlaywrightBrowserActions {
+    private static final int STATE_POLL_INTERVAL_MS = 25;
+    private static final int STATE_TIMEOUT_MS = 10_000;
     private final UiActionRecorder recorder;
 
     PlaywrightBrowserActions(UiActionRecorder recorder) {
@@ -54,11 +57,25 @@ final class PlaywrightBrowserActions {
         String value = Objects.requireNonNull(expectedValue, "expectedValue");
         if (name.isEmpty()) throw new IllegalArgumentException("attribute must not be blank");
         recorder.run("Wait for state", element.selector(), expected, () -> {
-            element.locator().waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE));
-            page.waitForFunction("args => { const element = document.querySelector(args.selector); "
-                    + "return !!element && element.getAttribute(args.attribute) === args.value; }",
-                    java.util.Map.of("selector", element.selector(), "attribute", name, "value", value));
+            Locator target = element.locator();
+            target.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE));
+            waitUntil(page, () -> value.equals(target.getAttribute(name)),
+                    name + "=" + value + " on " + element.selector());
             return name + "=" + value;
+        });
+    }
+
+    void waitForText(Page page, AtfLocator element, String expectedText, String expected) {
+        Objects.requireNonNull(page, "page");
+        Objects.requireNonNull(element, "element");
+        String value = Objects.requireNonNull(expectedText, "expectedText");
+        if (value.isBlank()) throw new IllegalArgumentException("expectedText must not be blank");
+        recorder.run("Wait for text", element.selector(), expected, () -> {
+            Locator target = element.locator();
+            target.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE));
+            waitUntil(page, () -> target.isVisible() && target.innerText().contains(value),
+                    "text contains '" + value + "' on " + element.selector());
+            return value;
         });
     }
 
@@ -66,12 +83,24 @@ final class PlaywrightBrowserActions {
         Objects.requireNonNull(page, "page");
         Objects.requireNonNull(summary, "summary");
         recorder.run("Wait for disclosure", summary.selector(), expected, () -> {
-            summary.locator().waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE));
-            page.waitForFunction("selector => { const summary = document.querySelector(selector); "
-                    + "const details = summary && summary.closest('details'); "
-                    + "return !!details && details.open === true; }", summary.selector());
+            Locator summaryTarget = summary.locator();
+            summaryTarget.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE));
+            Locator details = summaryTarget.locator("xpath=..");
+            waitUntil(page, () -> details.getAttribute("open") != null,
+                    "details.open=true on " + summary.selector());
             return "details.open=true";
         });
+    }
+
+    private static void waitUntil(Page page, java.util.function.BooleanSupplier condition,
+                                  String description) {
+        long deadline = System.nanoTime()
+                + java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(STATE_TIMEOUT_MS);
+        while (System.nanoTime() < deadline) {
+            if (condition.getAsBoolean()) return;
+            page.waitForTimeout(STATE_POLL_INTERVAL_MS);
+        }
+        throw new IllegalStateException("Timed out waiting for " + description);
     }
 
     private static void requireExactlyOne(AtfLocator element, String operation) {

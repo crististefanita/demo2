@@ -1,8 +1,7 @@
 package atf.api.mock;
-
-import atf.api.core.http.ApiRequest;
-import atf.api.core.http.ApiResponse;
-import atf.api.core.http.ApiTransport;
+import atf.api.core.http.request.ApiRequest;
+import atf.api.core.http.response.ApiResponse;
+import atf.api.core.http.transport.ApiTransport;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;

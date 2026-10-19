@@ -1,11 +1,14 @@
 package atf.api.core;
+import atf.api.testkit.AtfUnitTest;
 
-import atf.api.core.reporting.AtfReportStatus;
-import atf.api.core.reporting.ReportStatusAggregator;
+import atf.api.core.reporting.contract.AtfReportStatus;
+import atf.api.core.reporting.contract.ReportStatusAggregator;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@AtfUnitTest
 
 class ReportStatusAggregatorTest {
     @Test

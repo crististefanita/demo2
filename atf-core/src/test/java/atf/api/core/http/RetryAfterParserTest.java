@@ -1,4 +1,8 @@
 package atf.api.core.http;
+import atf.api.testkit.AtfUnitTest;
+
+import atf.api.core.http.response.ApiResponse;
+import atf.api.core.http.transport.RetryPolicy;
 
 import org.junit.jupiter.api.Test;
 
@@ -8,6 +12,8 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+
+@AtfUnitTest
 
 class RetryAfterParserTest {
     private static final Instant NOW = Instant.parse("2026-10-14T12:00:00Z");

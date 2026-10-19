@@ -14,7 +14,21 @@ public record UiBrowserConfiguration(
         Duration navigationTimeout,
         int viewportWidth,
         int viewportHeight,
+        int zoomPercent,
         boolean screenshotOnFailure) {
+
+    public static final int DEFAULT_ZOOM_PERCENT = 100;
+    public static final int MIN_ZOOM_PERCENT = 25;
+    public static final int MAX_ZOOM_PERCENT = 200;
+
+    /** Backwards-compatible constructor for callers that use the pre-zoom policy. */
+    public UiBrowserConfiguration(URI baseUrl, String browser, boolean headless,
+                                  Duration timeout, Duration navigationTimeout,
+                                  int viewportWidth, int viewportHeight,
+                                  boolean screenshotOnFailure) {
+        this(baseUrl, browser, headless, timeout, navigationTimeout,
+                viewportWidth, viewportHeight, DEFAULT_ZOOM_PERCENT, screenshotOnFailure);
+    }
 
     public UiBrowserConfiguration {
         baseUrl = Objects.requireNonNull(baseUrl, "baseUrl");
@@ -27,11 +41,16 @@ public record UiBrowserConfiguration(
         if (viewportWidth <= 0 || viewportHeight <= 0) {
             throw new IllegalArgumentException("ui.viewport dimensions must be positive");
         }
+        if (zoomPercent < MIN_ZOOM_PERCENT || zoomPercent > MAX_ZOOM_PERCENT) {
+            throw new IllegalArgumentException("ui.zoomPercent must be between "
+                    + MIN_ZOOM_PERCENT + " and " + MAX_ZOOM_PERCENT);
+        }
     }
 
     public static UiBrowserConfiguration defaults() {
         return new UiBrowserConfiguration(URI.create("about:blank"), "chromium", true,
-                Duration.ofSeconds(10), Duration.ofSeconds(15), 1440, 900, true);
+                Duration.ofSeconds(10), Duration.ofSeconds(15), 1440, 900,
+                DEFAULT_ZOOM_PERCENT, true);
     }
 
     private static Duration positive(Duration value, String name) {

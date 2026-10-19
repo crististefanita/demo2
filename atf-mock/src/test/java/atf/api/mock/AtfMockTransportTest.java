@@ -1,12 +1,20 @@
 package atf.api.mock;
+import atf.api.testkit.AtfComponentTest;
 
-import atf.api.core.http.ApiRequest;
-import atf.api.core.http.ApiQueryParameters;
+import atf.api.core.http.request.ApiQueryParameter;
+import atf.api.core.http.request.ApiQueryParameters;
+import atf.api.core.http.request.ApiRequest;
+import atf.api.core.http.request.ApiRoute;
+import atf.api.core.http.request.HttpHeader;
+import atf.api.core.http.request.HttpMethod;
+import atf.api.mock.fixtures.MockTransportTestFixtures;
 import org.junit.jupiter.api.Test;
 
-import java.net.http.HttpRequest;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.util.Comparator;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -14,62 +22,71 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@AtfComponentTest
+
 class AtfMockTransportTest {
     @Test
     void acceptsJsonRequestBodyAndReturnsTheConfiguredResponse() {
-        String body = "{\"name\":\"ATF user\",\"email\":\"atf@example.test\"}";
-        var request = new ApiRequest(HttpRequest.BodyPublishers.ofString(body), "POST",
-                "/public/v2/users", Map.of(), Map.of("Content-Type", "application/json"),
-                "none", null, body);
+        var request = MockTransportTestFixtures.jsonRequest(HttpMethod.POST,
+                MockTransportTestFixtures.USERS_PATH, MockTransportTestFixtures.USER_BODY);
 
         var response = AtfMockTransport.defaults()
-                .send(request, "https://atf.local/public/v2/users", "none")
+                .send(request, MockTransportTestFixtures.url(MockTransportTestFixtures.USERS_PATH),
+                        MockTransportTestFixtures.NO_AUTH_PROFILE)
                 .join();
 
         assertAll(
                 () -> assertEquals(401, response.status()),
-                () -> assertEquals("application/json", response.header("Content-Type")),
-                () -> assertEquals("{\"message\":\"Authentication required\"}", response.body()));
+                () -> assertEquals(MockTransportTestFixtures.JSON,
+                        response.header(HttpHeader.CONTENT_TYPE.value())),
+                () -> assertEquals(MockTransportTestFixtures.AUTH_REQUIRED_BODY, response.body()));
     }
 
     @Test
     void builtInFixturePreservesAcceptanceNegativeRoute() {
-        String body = "{\"name\":\"ATF user\",\"email\":\"atf@example.test\"}";
-        var request = new ApiRequest(HttpRequest.BodyPublishers.ofString(body), "POST",
-                "/public/v2/users", Map.of(), Map.of("Content-Type", "application/json"),
-                "none", null, body);
+        var request = MockTransportTestFixtures.jsonRequest(HttpMethod.POST,
+                MockTransportTestFixtures.USERS_PATH, MockTransportTestFixtures.USER_BODY);
         var response = AtfMockTransport.defaults()
                 .send(request,
-                        "https://atf.local/public/v2/users", "none")
+                        MockTransportTestFixtures.url(MockTransportTestFixtures.USERS_PATH),
+                        MockTransportTestFixtures.NO_AUTH_PROFILE)
                 .join();
 
         assertAll(
                 () -> assertEquals(401, response.status()),
-                () -> assertEquals("application/json", response.header("Content-Type")),
-                () -> assertEquals("{\"message\":\"Authentication required\"}", response.body()),
-                () -> assertEquals("https://atf.local/public/v2/users", response.url()));
+                () -> assertEquals(MockTransportTestFixtures.JSON,
+                        response.header(HttpHeader.CONTENT_TYPE.value())),
+                () -> assertEquals(MockTransportTestFixtures.AUTH_REQUIRED_BODY, response.body()),
+                () -> assertEquals(MockTransportTestFixtures.url(MockTransportTestFixtures.USERS_PATH),
+                        response.url()));
     }
 
     @Test
     void writeRoutesRejectEmptyOrNonJsonRequestsAndInvalidJsonResponses() throws Exception {
-        var route = new MockRoute("POST", "/write", 201, "{\"ok\":true}",
-                Map.of("Content-Type", "application/json"), java.time.Duration.ZERO);
+        var route = MockTransportTestFixtures.apiRoute(HttpMethod.POST,
+                MockTransportTestFixtures.WRITE_PATH, 201, MockTransportTestFixtures.WRITE_BODY);
         var transport = new AtfMockTransport(new AtfMockConfiguration(
-                java.util.List.of(route), new MockRoute("*", "/*", 500,
-                "{\"message\":\"fallback\"}", Map.of(), java.time.Duration.ZERO)));
+                MockTransportTestFixtures.routes(route),
+                MockTransportTestFixtures.fallbackRoute(500, MockTransportTestFixtures.FALLBACK_BODY)));
 
-        var empty = transport.send(ApiRequest.of("POST", "/write"),
-                "https://atf.local/write", "none").join();
-        var invalid = new ApiRequest(HttpRequest.BodyPublishers.ofString("not-json"), "POST",
-                "/write", Map.of(), Map.of("Content-Type", "application/json"),
-                "none", null, "not-json");
-        var rejected = transport.send(invalid, "https://atf.local/write", "none").join();
+        var empty = transport.send(MockTransportTestFixtures.emptyRequest(HttpMethod.POST,
+                MockTransportTestFixtures.WRITE_PATH),
+                MockTransportTestFixtures.url(MockTransportTestFixtures.WRITE_PATH),
+                MockTransportTestFixtures.NO_AUTH_PROFILE).join();
+        var invalid = MockTransportTestFixtures.jsonRequest(HttpMethod.POST,
+                MockTransportTestFixtures.WRITE_PATH, MockTransportTestFixtures.INVALID_RESPONSE_BODY);
+        var rejected = transport.send(invalid,
+                MockTransportTestFixtures.url(MockTransportTestFixtures.WRITE_PATH),
+                MockTransportTestFixtures.NO_AUTH_PROFILE).join();
 
         assertAll(
                 () -> assertEquals(500, empty.status()),
                 () -> assertEquals(500, rejected.status()),
-                () -> org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
-                        () -> new MockRoute("PUT", "/broken", 200, "not-json", Map.of(), java.time.Duration.ZERO)));
+                () -> assertThrows(IllegalArgumentException.class,
+                        () -> new MockRoute(HttpMethod.PUT.value(),
+                                MockTransportTestFixtures.BROKEN_RESPONSE_PATH, 200,
+                                MockTransportTestFixtures.INVALID_RESPONSE_BODY, Map.of(),
+                                Duration.ZERO)));
     }
 
     @Test
@@ -94,15 +111,20 @@ class AtfMockTransportTest {
                     """);
 
             var transport = AtfMockTransport.fromConfiguration(config);
-            var matched = transport.send(ApiRequest.of("GET", "/demo"),
-                    "https://atf.local/demo", "none").join();
-            var fallback = transport.send(ApiRequest.of("GET", "/missing"),
-                    "https://atf.local/missing", "none").join();
+            var matched = transport.send(ApiRequest.of(HttpMethod.GET.value(),
+                            MockTransportTestFixtures.DEMO_PATH),
+                    MockTransportTestFixtures.url(MockTransportTestFixtures.DEMO_PATH),
+                    MockTransportTestFixtures.NO_AUTH_PROFILE).join();
+            var fallback = transport.send(ApiRequest.of(HttpMethod.GET.value(),
+                            MockTransportTestFixtures.MISSING_PATH),
+                    MockTransportTestFixtures.url(MockTransportTestFixtures.MISSING_PATH),
+                    MockTransportTestFixtures.NO_AUTH_PROFILE).join();
 
             assertAll(
                     () -> assertEquals(202, matched.status()),
                     () -> assertEquals("{\"accepted\":true}", matched.body()),
-                    () -> assertEquals("application/custom+json", matched.header("Content-Type")),
+                    () -> assertEquals(MockTransportTestFixtures.CUSTOM_JSON,
+                            matched.header(HttpHeader.CONTENT_TYPE.value())),
                     () -> assertEquals(7, matched.duration().toMillis()),
                     () -> assertEquals(418, fallback.status()),
                     () -> assertTrue(fallback.body().contains("not configured")));
@@ -132,18 +154,22 @@ class AtfMockTransportTest {
                         body: '{"message":"unmatched"}'
                     """);
 
-            var route = new atf.api.core.http.ApiRoute(
-                    "search", "GET", "/search", "search", "read", "bearer");
+            var route = new ApiRoute("search", HttpMethod.GET.value(),
+                    MockTransportTestFixtures.SEARCH_PATH, "search", "read",
+                    MockTransportTestFixtures.BEARER_PROFILE);
             var request = route.request(Map.of(),
                     Map.of("page", "2", "include", "details"), Map.of());
             var matched = AtfMockTransport.fromConfiguration(config)
-                    .send(request, "https://atf.local/search?page=2&include=details", "bearer")
+                    .send(request, MockTransportTestFixtures.url(
+                            MockTransportTestFixtures.SEARCH_PATH + "?page=2&include=details"),
+                    MockTransportTestFixtures.BEARER_PROFILE)
                     .join();
 
             assertAll(
                     () -> assertEquals(200, matched.status()),
                     () -> assertTrue(matched.body().contains("\"active\":true")),
-                    () -> assertEquals("application/json", matched.header("Content-Type")));
+                    () -> assertEquals(MockTransportTestFixtures.JSON,
+                            matched.header(HttpHeader.CONTENT_TYPE.value())));
         } finally {
             Files.deleteIfExists(config);
         }
@@ -184,25 +210,37 @@ class AtfMockTransportTest {
                     """);
 
             var transport = AtfMockTransport.fromConfiguration(config);
-            var missing = new atf.api.core.http.ApiRoute("missing", "GET", "/query/missing",
-                    "query", "read", "none").request(Map.of(),
+            var missing = new ApiRoute("missing", HttpMethod.GET.value(),
+                    MockTransportTestFixtures.QUERY_MISSING_PATH, "query", "read",
+                    MockTransportTestFixtures.NO_AUTH_PROFILE).request(Map.of(),
                     Map.of("include", "details"), Map.of());
-            var empty = new atf.api.core.http.ApiRoute("empty", "GET", "/query/empty",
-                    "query", "read", "none").request(Map.of(),
-                    ApiQueryParameters.of(new atf.api.core.http.ApiQueryParameter("page", "")), Map.of());
-            var duplicate = new atf.api.core.http.ApiRoute("duplicate", "GET", "/query/duplicate",
-                    "query", "read", "none").request(Map.of(),
-                    ApiQueryParameters.of(new atf.api.core.http.ApiQueryParameter("tag", "api"),
-                            new atf.api.core.http.ApiQueryParameter("tag", "contract")), Map.of());
+            var empty = new ApiRoute("empty", HttpMethod.GET.value(),
+                    MockTransportTestFixtures.QUERY_EMPTY_PATH, "query", "read",
+                    MockTransportTestFixtures.NO_AUTH_PROFILE).request(Map.of(),
+                    ApiQueryParameters.of(new ApiQueryParameter("page", "")), Map.of());
+            var duplicate = new ApiRoute("duplicate", HttpMethod.GET.value(),
+                    MockTransportTestFixtures.QUERY_DUPLICATE_PATH, "query", "read",
+                    MockTransportTestFixtures.NO_AUTH_PROFILE).request(Map.of(),
+                    ApiQueryParameters.of(new ApiQueryParameter("tag", "api"),
+                            new ApiQueryParameter("tag", "contract")), Map.of());
 
             assertAll(
-                    () -> assertEquals(200, transport.send(missing, "https://atf.local/query/missing?include=details", "none").join().status()),
-                    () -> assertEquals(400, transport.send(empty, "https://atf.local/query/empty?page=", "none").join().status()),
-                    () -> assertEquals(200, transport.send(duplicate, "https://atf.local/query/duplicate?tag=api&tag=contract", "none").join().status()),
+                    () -> assertEquals(200, transport.send(missing,
+                            MockTransportTestFixtures.url(MockTransportTestFixtures.QUERY_MISSING_PATH + "?include=details"),
+                            MockTransportTestFixtures.NO_AUTH_PROFILE).join().status()),
+                    () -> assertEquals(400, transport.send(empty,
+                            MockTransportTestFixtures.url(MockTransportTestFixtures.QUERY_EMPTY_PATH + "?page="),
+                            MockTransportTestFixtures.NO_AUTH_PROFILE).join().status()),
+                    () -> assertEquals(200, transport.send(duplicate,
+                            MockTransportTestFixtures.url(MockTransportTestFixtures.QUERY_DUPLICATE_PATH + "?tag=api&tag=contract"),
+                            MockTransportTestFixtures.NO_AUTH_PROFILE).join().status()),
                     () -> assertEquals(418, transport.send(
-                            new atf.api.core.http.ApiRoute("duplicate", "GET", "/query/duplicate", "query", "read", "none")
-                                    .request(Map.of(), ApiQueryParameters.of(new atf.api.core.http.ApiQueryParameter("tag", "api")), Map.of()),
-                            "https://atf.local/query/duplicate?tag=api", "none").join().status()));
+                            new ApiRoute("duplicate", HttpMethod.GET.value(),
+                                    MockTransportTestFixtures.QUERY_DUPLICATE_PATH, "query", "read",
+                                    MockTransportTestFixtures.NO_AUTH_PROFILE)
+                                    .request(Map.of(), ApiQueryParameters.of(new ApiQueryParameter("tag", "api")), Map.of()),
+                            MockTransportTestFixtures.url(MockTransportTestFixtures.QUERY_DUPLICATE_PATH + "?tag=api"),
+                            MockTransportTestFixtures.NO_AUTH_PROFILE).join().status()));
         } finally {
             Files.deleteIfExists(config);
         }
@@ -231,15 +269,20 @@ class AtfMockTransportTest {
                         body: '{"message":"required headers missing"}'
                     """);
 
-            var route = new atf.api.core.http.ApiRoute(
-                    "headers", "GET", "/headers", "headers", "read", "none");
+            var route = new ApiRoute("headers", HttpMethod.GET.value(),
+                    MockTransportTestFixtures.HEADERS_PATH, "headers", "read",
+                    MockTransportTestFixtures.NO_AUTH_PROFILE);
             var accepted = route.request(Map.of(), Map.of(),
-                    Map.of("x-correlation-id", "corr-001", "accept", "application/json"));
+                    Map.of("x-correlation-id", "corr-001", "accept", MockTransportTestFixtures.JSON));
             var rejected = route.request(Map.of(), Map.of(),
-                    Map.of("Accept", "application/json"));
+                    Map.of(HttpHeader.ACCEPT.value(), MockTransportTestFixtures.JSON));
             var transport = AtfMockTransport.fromConfiguration(config);
-            var matched = transport.send(accepted, "https://atf.local/headers", "none").join();
-            var fallback = transport.send(rejected, "https://atf.local/headers", "none").join();
+            var matched = transport.send(accepted,
+                    MockTransportTestFixtures.url(MockTransportTestFixtures.HEADERS_PATH),
+                    MockTransportTestFixtures.NO_AUTH_PROFILE).join();
+            var fallback = transport.send(rejected,
+                    MockTransportTestFixtures.url(MockTransportTestFixtures.HEADERS_PATH),
+                    MockTransportTestFixtures.NO_AUTH_PROFILE).join();
 
             assertAll(
                     () -> assertEquals(200, matched.status()),
@@ -276,16 +319,18 @@ class AtfMockTransportTest {
             assertEquals(mockConfig.toAbsolutePath().normalize(),
                     AtfMockConfigurationLoader.discover(nested));
             var response = AtfMockTransport.fromConfiguration(mockConfig)
-                    .send(ApiRequest.of("GET", "/owned"), "https://atf.local/owned", "none")
+                    .send(ApiRequest.of(HttpMethod.GET.value(), MockTransportTestFixtures.OWNED_PATH),
+                            MockTransportTestFixtures.url(MockTransportTestFixtures.OWNED_PATH),
+                            MockTransportTestFixtures.NO_AUTH_PROFILE)
                     .join();
             assertEquals(204, response.status());
         } finally {
             Files.walk(root)
-                    .sorted(java.util.Comparator.reverseOrder())
+                    .sorted(Comparator.reverseOrder())
                     .forEach(path -> {
                         try {
                             Files.deleteIfExists(path);
-                        } catch (java.io.IOException error) {
+                        } catch (IOException error) {
                             throw new RuntimeException(error);
                         }
                     });
@@ -304,7 +349,7 @@ class AtfMockTransportTest {
                         enabled: true
                     """);
 
-            var error = org.junit.jupiter.api.Assertions.assertThrows(
+            var error = assertThrows(
                     IllegalStateException.class,
                     () -> AtfMockConfigurationLoader.load(config));
             assertTrue(error.getMessage().contains("root 'mock' section"));
@@ -315,23 +360,20 @@ class AtfMockTransportTest {
 
     @Test
     void matchesNegativeRequestBodyModesWithoutWeakeningPostPutJsonContracts() {
-        var invalidJsonOutcome = new MockRoute("POST", "/invalid", 400, "{\"ok\":false}",
-                Map.of("Content-Type", "application/json"), java.time.Duration.ZERO,
-                "*", Map.of(), Map.of(), "json", null);
-        var missingBodyOutcome = new MockRoute("POST", "/missing", 400, "{\"ok\":false}",
-                Map.of("Content-Type", "application/json"), java.time.Duration.ZERO,
-                "*", Map.of(), Map.of(), "json", null);
+        var invalidJsonOutcome = MockTransportTestFixtures.jsonContractRoute(HttpMethod.POST,
+                "/invalid", 400, "{\"ok\":false}");
+        var missingBodyOutcome = MockTransportTestFixtures.jsonContractRoute(HttpMethod.POST,
+                MockTransportTestFixtures.MISSING_PATH, 400, "{\"ok\":false}");
 
-        var invalidOutcome = new ApiRequest(java.net.http.HttpRequest.BodyPublishers.ofString("{\"rawBody\":\"not-json\"}"),
-                "POST", "/invalid", Map.of(), Map.of("Content-Type", "application/json"), "none", null,
-                "{\"rawBody\":\"not-json\"}");
-        var missingOutcome = new ApiRequest(java.net.http.HttpRequest.BodyPublishers.ofString("{\"body\":null}"),
-                "POST", "/missing", Map.of(), Map.of("Content-Type", "application/json"), "none", null,
-                "{\"body\":null}");
+        var invalidOutcome = MockTransportTestFixtures.jsonRequest(HttpMethod.POST,
+                "/invalid", "{\"rawBody\":\"not-json\"}");
+        var missingOutcome = MockTransportTestFixtures.jsonRequest(HttpMethod.POST,
+                MockTransportTestFixtures.MISSING_PATH, "{\"body\":null}");
 
         assertTrue(invalidJsonOutcome.matches(invalidOutcome));
         assertTrue(missingBodyOutcome.matches(missingOutcome));
         assertThrows(IllegalArgumentException.class, () -> new MockRoute(
-                "PUT", "/bad-response", 200, "not-json", Map.of(), java.time.Duration.ZERO));
+                HttpMethod.PUT.value(), MockTransportTestFixtures.BAD_RESPONSE_PATH, 200,
+                MockTransportTestFixtures.INVALID_RESPONSE_BODY, Map.of(), Duration.ZERO));
     }
 }

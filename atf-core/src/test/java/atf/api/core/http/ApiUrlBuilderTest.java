@@ -1,4 +1,10 @@
 package atf.api.core.http;
+import atf.api.testkit.AtfUnitTest;
+
+import atf.api.core.http.request.ApiQueryParameter;
+import atf.api.core.http.request.ApiQueryParameters;
+import atf.api.core.http.request.ApiRequest;
+import atf.api.core.http.request.ApiUrlBuilder;
 
 import org.junit.jupiter.api.Test;
 
@@ -9,6 +15,8 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@AtfUnitTest
 
 class ApiUrlBuilderTest {
     @Test

@@ -1,4 +1,6 @@
 package atf.api.core;
+import atf.api.testkit.AtfUnitTest;
+
 
 import atf.api.core.config.ApiTransportMode;
 import atf.api.core.config.ApiTransportPolicy;
@@ -6,6 +8,8 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+@AtfUnitTest
 
 class ApiTransportPolicyTest {
     @Test

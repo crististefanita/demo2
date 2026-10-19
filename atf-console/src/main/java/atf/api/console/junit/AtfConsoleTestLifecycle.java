@@ -1,10 +1,8 @@
 package atf.api.console.junit;
-
-import atf.api.console.AtfConsoleConfigurationLoader;
 import atf.api.console.AtfConsoleReporter;
-import atf.api.core.reporting.AtfConsoleEvent;
-import atf.api.core.reporting.AtfConsoleSink;
-import atf.api.core.reporting.AtfReportStatus;
+import atf.api.core.reporting.console.AtfConsoleEvent;
+import atf.api.core.reporting.console.AtfConsoleSink;
+import atf.api.core.reporting.contract.AtfReportStatus;
 
 import java.util.Objects;
 import java.util.function.LongSupplier;
@@ -35,9 +33,8 @@ public final class AtfConsoleTestLifecycle {
 
     /** Creates a lifecycle using the discovered {@code atf.yaml}. */
     public static AtfConsoleTestLifecycle configured(String scenarioName, String testName) {
-        var settings = AtfConsoleConfigurationLoader.load().settings();
         return new AtfConsoleTestLifecycle(
-                new AtfConsoleReporter(System.out, settings), scenarioName, testName);
+                AtfConsoleReporter.configuredStdout(), scenarioName, testName);
     }
 
     public void start() {

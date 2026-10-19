@@ -1,6 +1,5 @@
 package atf.api.validation.contract;
-
-import atf.api.core.http.ApiResponse;
+import atf.api.core.http.response.ApiResponse;
 import atf.api.validation.evaluation.ValidationTable;
 
 import java.util.ArrayList;

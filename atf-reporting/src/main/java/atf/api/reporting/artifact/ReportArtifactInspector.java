@@ -1,4 +1,6 @@
 package atf.api.reporting.artifact;
+import atf.api.reporting.artifact.contract.ReportArtifactContractChecks;
+
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

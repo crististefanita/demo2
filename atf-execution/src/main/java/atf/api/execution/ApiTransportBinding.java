@@ -1,6 +1,5 @@
 package atf.api.execution;
-
-import atf.api.core.http.ApiTransport;
+import atf.api.core.http.transport.ApiTransport;
 
 import java.util.Objects;
 

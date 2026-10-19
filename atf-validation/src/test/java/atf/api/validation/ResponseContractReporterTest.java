@@ -1,9 +1,10 @@
 package atf.api.validation;
+import atf.api.testkit.AtfUnitTest;
 
-import atf.api.core.http.ApiResponse;
-import atf.api.core.reporting.AtfAssertion;
-import atf.api.core.reporting.AtfReportPorts;
-import atf.api.core.reporting.AtfReportStatus;
+import atf.api.core.http.response.ApiResponse;
+import atf.api.core.reporting.contract.AtfAssertion;
+import atf.api.core.reporting.contract.AtfReportPorts;
+import atf.api.core.reporting.contract.AtfReportStatus;
 import atf.api.validation.contract.ResponseContract;
 import atf.api.validation.evaluation.ApiValidationException;
 import atf.api.validation.publishing.ResponseContractReporter;
@@ -16,6 +17,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+
+@AtfUnitTest
 
 class ResponseContractReporterTest {
     @Test

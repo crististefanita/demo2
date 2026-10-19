@@ -1,12 +1,15 @@
 package atf.api.ui.playwright;
+import atf.api.testkit.AtfComponentTest;
 
-import atf.api.core.reporting.AtfReportStatus;
+import atf.api.core.reporting.contract.AtfReportStatus;
 import atf.api.core.ui.AtfUiEvidenceSource;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@AtfComponentTest
 
 class PlaywrightActionSequenceTest {
     @Test
@@ -51,5 +54,19 @@ class PlaywrightActionSequenceTest {
                 () -> new AtfLocator(null, "#test-view"));
         assertThrows(IllegalArgumentException.class,
                 () -> PlaywrightActionSequence.requireLocatorTarget("selected owner detail"));
+    }
+
+    @Test
+    void publishesUiTraceThroughAnInjectedPortWithoutTakingConsoleOwnership() {
+        var events = new java.util.ArrayList<UiActionTrace.UiActionEvent>();
+        var actions = new PlaywrightActionSequence(events::add);
+
+        actions.observation("Click", "#nav-test", "Tests tab is visible", "Tests tab is visible");
+
+        assertEquals(1, events.size());
+        assertEquals(UiActionTrace.Kind.OBSERVATION, events.get(0).kind());
+        assertEquals("Click", events.get(0).operation());
+        assertEquals("#nav-test", events.get(0).target());
+        assertEquals(AtfReportStatus.PASS, events.get(0).status());
     }
 }

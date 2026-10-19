@@ -1,6 +1,6 @@
 package atf.api.validation.contract;
-
-import atf.api.core.http.ApiResponse;
+import atf.api.core.http.response.ApiResponse;
+import atf.api.core.http.request.HttpHeader;
 import atf.api.validation.evaluation.ValidationTable;
 
 import java.nio.file.Files;
@@ -37,8 +37,8 @@ final class ResponseContractRuleSet {
 
     ResponseContractRuleDefinition contentTypeContains(String expected) {
         return rule("content-type:" + expected, "Content-Type", (response, table) -> {
-            var actual = response.header("Content-Type");
-            table.add("Content-Type", expected, actual == null ? "<missing>" : actual,
+            var actual = response.header(HttpHeader.CONTENT_TYPE.value());
+            table.add(HttpHeader.CONTENT_TYPE.value(), expected, actual == null ? "<missing>" : actual,
                     actual != null && actual.toLowerCase().contains(expected.toLowerCase()));
         });
     }

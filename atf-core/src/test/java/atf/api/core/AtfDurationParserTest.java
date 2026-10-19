@@ -1,10 +1,13 @@
 package atf.api.core;
+import atf.api.testkit.AtfUnitTest;
 
-import atf.api.core.reporting.AtfDurationParser;
+import atf.api.core.reporting.duration.AtfDurationParser;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@AtfUnitTest
 
 class AtfDurationParserTest {
     @Test

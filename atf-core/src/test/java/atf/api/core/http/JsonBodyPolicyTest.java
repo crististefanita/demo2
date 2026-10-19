@@ -1,10 +1,15 @@
 package atf.api.core.http;
+import atf.api.testkit.AtfUnitTest;
+
+import atf.api.core.http.response.JsonBodyPolicy;
 
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@AtfUnitTest
 
 class JsonBodyPolicyTest {
     @Test

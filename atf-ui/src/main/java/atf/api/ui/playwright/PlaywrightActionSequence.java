@@ -14,9 +14,19 @@ import java.util.List;
  * keeps only the public sequence vocabulary and recorder lifecycle.</p>
  */
 public final class PlaywrightActionSequence {
-    private final UiActionRecorder recorder = new UiActionRecorder();
-    private final PlaywrightLocatorActions locatorActions = new PlaywrightLocatorActions(recorder);
-    private final PlaywrightBrowserActions browserActions = new PlaywrightBrowserActions(recorder);
+    private final UiActionRecorder recorder;
+    private final PlaywrightLocatorActions locatorActions;
+    private final PlaywrightBrowserActions browserActions;
+
+    public PlaywrightActionSequence() {
+        this(UiActionTrace.noOp());
+    }
+
+    public PlaywrightActionSequence(UiActionTrace trace) {
+        recorder = new UiActionRecorder(trace);
+        locatorActions = new PlaywrightLocatorActions(recorder);
+        browserActions = new PlaywrightBrowserActions(recorder);
+    }
 
     public void navigate(Page page, URI uri) {
         navigate(page, uri, "document is loaded");
@@ -81,6 +91,11 @@ public final class PlaywrightActionSequence {
 
     public void waitForVisible(AtfLocator element) {
         locatorActions.waitForVisible(element);
+    }
+
+    /** Waits for a concrete DOM text marker and records the synchronization step. */
+    public void waitForText(Page page, AtfLocator element, String expectedText, String expected) {
+        browserActions.waitForText(page, element, expectedText, expected);
     }
 
     public void assertVisible(Locator locator, String locatorTarget) {

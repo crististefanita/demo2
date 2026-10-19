@@ -1,9 +1,8 @@
 package atf.api.mock;
-
-import atf.api.core.http.ApiRequest;
-import atf.api.core.http.HttpHeader;
-import atf.api.core.http.HttpMethod;
-import atf.api.core.http.MediaTypes;
+import atf.api.core.http.request.ApiRequest;
+import atf.api.core.http.request.HttpHeader;
+import atf.api.core.http.request.HttpMethod;
+import atf.api.core.http.request.MediaTypes;
 
 import java.time.Duration;
 import java.util.List;
@@ -46,25 +45,25 @@ public record AtfMockConfiguration(List<MockRoute> routes, MockRoute fallback) {
         Map<String, String> json = Map.of(HttpHeader.CONTENT_TYPE.value(), MediaTypes.APPLICATION_JSON);
         Duration duration = Duration.ofMillis(12);
         return new AtfMockConfiguration(List.of(
-                new MockRoute(HttpMethod.GET.value(), "/public/v2/users", 200,
+                new MockRoute(HttpMethod.GET.value(), MockRoutePaths.USERS, 200,
                         "[{\"id\":1,\"name\":\"ATF User\",\"email\":\"atf@example.test\"}]", json, duration),
-                new MockRoute(HttpMethod.GET.value(), "/public/v2/users/1", 200,
+                new MockRoute(HttpMethod.GET.value(), MockRoutePaths.userById("1"), 200,
                         "{\"id\":1,\"name\":\"ATF User\",\"email\":\"atf@example.test\"}", json, duration),
-                new MockRoute(HttpMethod.POST.value(), "/public/v2/users", 401,
+                new MockRoute(HttpMethod.POST.value(), MockRoutePaths.USERS, 401,
                         "{\"message\":\"Authentication required\"}", json, duration),
-                new MockRoute(HttpMethod.POST.value(), "/public/v2/posts", 201,
+                new MockRoute(HttpMethod.POST.value(), MockRoutePaths.POSTS, 201,
                         "{\"id\":102,\"user_id\":1,\"title\":\"ATF created post\",\"body\":\"contract\"}",
                         json, duration),
-                new MockRoute(HttpMethod.PUT.value(), "/public/v2/profiles/1", 200,
+                new MockRoute(HttpMethod.PUT.value(), MockRoutePaths.profileById("1"), 200,
                         "{\"id\":1,\"updated\":true,\"profile\":{\"locale\":\"ro-RO\"},\"permissions\":{\"inherited\":[]},\"changes\":[]}",
                         json, duration),
-                new MockRoute(HttpMethod.GET.value(), "/public/v2/posts", 200,
+                new MockRoute(HttpMethod.GET.value(), MockRoutePaths.POSTS, 200,
                         "[{\"id\":101,\"user_id\":1,\"title\":\"ATF post\",\"body\":\"contract\"}]", json, duration),
-                new MockRoute(HttpMethod.GET.value(), "/public/v2/posts/101", 200,
+                new MockRoute(HttpMethod.GET.value(), MockRoutePaths.postById("101"), 200,
                         "{\"id\":101,\"user_id\":1,\"title\":\"ATF post\",\"body\":\"contract\"}", json, duration),
-                new MockRoute(HttpMethod.GET.value(), "/public/v2/users/1/posts", 200,
+                new MockRoute(HttpMethod.GET.value(), MockRoutePaths.userPosts("1"), 200,
                         "[{\"id\":101,\"user_id\":1,\"title\":\"ATF post\"}]", json, duration),
-                new MockRoute(HttpMethod.GET.value(), "/public/v2/posts/999999", 404,
+                new MockRoute(HttpMethod.GET.value(), MockRoutePaths.postById("999999"), 404,
                         "{\"message\":\"Not found\"}", json, duration)),
                 new MockRoute(MockRoute.ANY_METHOD, MockRoute.ANY_PATH, 500,
                         "{\"message\":\"Unexpected mock route\"}", json, duration));

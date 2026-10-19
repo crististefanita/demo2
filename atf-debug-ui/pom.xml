@@ -13,8 +13,19 @@
     <description>Loopback publisher for manual Playwright/TAB MCP inspection of local HTML artifacts</description>
     <dependencies>
         <dependency>
+            <groupId>atf.api</groupId>
+            <artifactId>atf-console</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>atf.api</groupId>
+            <artifactId>atf-test-kit</artifactId>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

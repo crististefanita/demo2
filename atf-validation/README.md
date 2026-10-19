@@ -5,7 +5,7 @@ de response într-o decizie verificabilă și într-un set de assertions publica
 Este un JAR reutilizabil: nu face HTTP, nu cunoaște Extent și nu construiește
 HTML/CSS.
 
-## Colaborarea runtime
+## Diagramă de bază
 
 Diagrama arată fluxul de date și colaborarea runtime; nu este graful de
 dependențe Maven. Graful de module și sensul săgeților sunt în README-ul
@@ -15,7 +15,7 @@ rădăcină și în `docs/ATF_Architecture.md`.
 flowchart LR
     Core[atf-core<br/>modele + porturi] --> Validation[atf-validation<br/>contracte + evaluator]
     Execution[atf-execution<br/>rute + lifecycle] --> Validation
-    Tests[atf-tests] --> Validation
+    Tests[atf-reporting test scope] --> Validation
     Validation --> Decision[ValidationDecision<br/>status + assertions]
     Validation --> Sink[ValidationSink<br/>port îngust de publicare]
     Reporting[atf-reporting<br/>Extent + HTML] --> Sink
@@ -29,8 +29,8 @@ Direcția este intenționată:
   regulile de contract;
 - `atf-reporting` implementează portul de publicare și deține exclusiv Extent,
   HTML, CSS, asset-urile și finalizarea artifactului;
-- `atf-tests` verifică modulele prin fake-uri deterministe și scenarii de
-  integrare.
+- `atf-reporting` test scope verifică modulele prin fake-uri deterministe și
+  scenarii de integrare; `atf-tests` păstrează numai guvernanța globală a reactorului.
 
 ## Responsabilități publice
 

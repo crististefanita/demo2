@@ -1,4 +1,5 @@
 package atf.api.execution;
+import atf.api.core.http.transport.ApiTransport;
 
 import atf.api.core.config.AtfRuntimeSnapshot;
 
@@ -19,16 +20,16 @@ public final class ApiBootstrap {
                                     ApiTransportBinding binding) {
         Objects.requireNonNull(runtime, "runtime");
         Objects.requireNonNull(binding, "binding");
-        return ApiModuleFactory.fromTransport(binding.transport(), runtime);
+        return ApiModuleFactory.fromTransport(binding.transport(), runtime, binding.mode());
     }
 
     public static ApiModule acceptance(AtfRuntimeSnapshot runtime,
-                                       atf.api.core.http.ApiTransport transport) {
+                                       atf.api.core.http.transport.ApiTransport transport) {
         return compose(runtime, ApiTransportBinding.acceptance(transport));
     }
 
     public static ApiModule live(AtfRuntimeSnapshot runtime,
-                                 atf.api.core.http.ApiTransport transport) {
+                                 atf.api.core.http.transport.ApiTransport transport) {
         return compose(runtime, ApiTransportBinding.live(transport));
     }
 }

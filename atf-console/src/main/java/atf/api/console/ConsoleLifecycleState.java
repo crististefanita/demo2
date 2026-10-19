@@ -1,6 +1,6 @@
 package atf.api.console;
+import atf.api.core.reporting.console.AtfConsoleEvent;
 
-import atf.api.core.reporting.AtfConsoleEvent;
 
 /** Maintains only the indentation state of one console event stream. */
 final class ConsoleLifecycleState {

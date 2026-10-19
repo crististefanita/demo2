@@ -1,5 +1,7 @@
 package atf.api.debugui;
 
+import atf.api.console.AtfConsoleReporter;
+
 import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
 
@@ -12,11 +14,12 @@ public final class AtfDebugUiLauncher {
         Arguments arguments = Arguments.parse(args);
         try (DebugUiServer server = DebugUiServer.start(
                 DebugUiConfiguration.forHtml(arguments.html(), arguments.port()))) {
-            System.out.println("[ATF DEBUG UI] Read-only loopback server started");
-            System.out.println("[ATF DEBUG UI] Target for Playwright/TAB MCP: "
+            AtfConsoleReporter console = AtfConsoleReporter.configuredStdout();
+            console.info("[ATF DEBUG UI] Read-only loopback server started");
+            console.info("[ATF DEBUG UI] Target for Playwright/TAB MCP: "
                     + server.uriFor(arguments.html()));
-            System.out.println("[ATF DEBUG UI] Root: " + arguments.html().toAbsolutePath().normalize().getParent());
-            System.out.println("[ATF DEBUG UI] Stop with Ctrl+C");
+            console.info("[ATF DEBUG UI] Root: " + arguments.html().toAbsolutePath().normalize().getParent());
+            console.info("[ATF DEBUG UI] Stop with Ctrl+C");
             new CountDownLatch(1).await();
         }
     }

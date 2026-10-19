@@ -88,6 +88,31 @@ Dacă testul începe să conțină JSON de infrastructură, CSS, markup Extent,
 politici de retry sau endpoint-uri literale, responsabilitatea este în locul
 greșit.
 
+## Replay manual și request-uri reale
+
+Raportul API este sursa de pași reproductibili: `METHOD`, `URL`, headers
+efective, `REQUEST JSON`, `RESPONSE JSON`, `TRANSPORT PROVENANCE` și
+`MANUAL REPLAY`. În acceptance, un URL real configurat este numai metadata a
+mock-ului; raportul îl marchează `ACCEPTANCE / MOCK` și `NOT EXECUTABLE`. Nu se
+copiează un cURL dintr-un raport mock ca și cum ar fi fost executat.
+
+Request-urile reale sunt separate și opt-in:
+
+~~~yaml
+api:
+  transport: live
+  baseUri: https://<real-api-host>/<base-path>
+~~~
+
+Rularea mai cere `-Datf.api.live.optIn=true` sau
+`ATF_API_LIVE_OPT_IN=true`, apoi deschiderea unui endpoint prin
+`ApiLiveTransportCatalog`. După execuție, raportul poate genera cURL-ul de
+replay pentru schimbul live; token-urile și header-ele sensibile rămân
+redacted. Un test care nu declară explicit `live` nu are voie să deschidă
+network-ul doar pentru că `baseUri` arată ca un endpoint public. Catalogul
+respinge placeholder-ul acceptance și limitează request-urile la originea
+endpoint-ului selectat.
+
 ## Cleanup și failure
 
 - resursa creată se înregistrează imediat în registry-ul scenariului;

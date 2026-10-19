@@ -6,6 +6,24 @@ fluxurile și responsabilitățile. Contractele detaliate de raportare, staging,
 build și verificare a artifactului sunt documentate în modulele și documentele
 specializate către care trimite această pagină.
 
+## Diagramă de bază
+
+```mermaid
+flowchart LR
+    Test[API/UI test intent] --> Execution[atf-execution<br/>lifecycle + services]
+    Execution --> Core[atf-core<br/>models + ports]
+    Execution --> Validation[atf-validation<br/>contracts + verdicts]
+    Execution --> Reporting[atf-reporting<br/>Extent/HTML artifact]
+    Test --> Mock[atf-mock<br/>deterministic transport]
+    Test --> Ui[atf-ui<br/>Playwright runtime]
+    Reporting --> Debug[atf-debug-ui<br/>read-only inspection]
+    Reporting --> Console[atf-console<br/>diagnostic projection]
+```
+
+Săgeata înseamnă „folosește/deține colaborarea”, nu neapărat o dependență
+Maven directă. Graful exact al modulelor este în
+[`docs/ATF_Architecture.md`](docs/ATF_Architecture.md).
+
 ## Secvența completă a unui test API
 
 Testul exprimă intenția, API layer-ul produce acțiunea, execuția coordonează
@@ -41,7 +59,7 @@ sequenceDiagram
 ```
 
 Pentru verificarea interactivă a artifactului există infrastructura
-`atf-ui`: testele de audit al rapoartelor Extent rămân în pachetul `atf.ui.tests.extent` din `atf-tests`, iar
+`atf-ui`: testele de audit al rapoartelor Extent rămân în pachetul `atf.ui.tests.extent` din test scope-ul `atf-reporting`, iar
 Playwright consumă raportul Extent deja publicat.
 Pentru investigație manuală există `atf-debug-ui`, care servește read-only un
 HTML existent pe loopback și tipărește URL-ul pentru Playwright/TAB MCP.
@@ -61,16 +79,45 @@ Regula de diagnostic este strictă: dacă un fișier din `atf.api.tests.*` impor
 Playwright, `Page`, `Locator`, `DebugUiServer` sau `atf.api.ui`, este clasificat
 greșit și trebuie mutat în `atf.ui.tests.extent` (sau în namespace-ul UI al
 produsului), niciodată în `atf.api.tests.api`. Setup-ul API pentru un test UI este
-deținut de `atf.ui.tests.extent.composition.ApiReportAuditSetup`; vechiul
-`atf.ui.tests.extent.flows.ApiReportSetupFlow` este doar o fațadă de compatibilitate.
+deținut de `atf.ui.tests.extent.support.api.ApiReportAuditSetup`; flow-urile
+auxiliare rămân în `atf.ui.tests.extent.support.api`, iar testele nu compun
+transportul direct.
+Testele API care verifică catalogul mock folosesc `atf.api.tests.support.ApiTestResources`;
+nu importă `ReportingTestResources`, deoarece acesta aparține setup-ului UI/report.
 UI-ul consumă raportul API ca input read-only și publică dovada UI într-un artifact separat. Direcția
 este `API/setup → raport API → browser UI → raport UI`, niciodată invers.
+
+### Auditul UI Extent pe secțiuni
+
+Auditul raportului Extent este o compoziție declarativă în test scope-ul
+`atf-reporting`, nu o
+regulă globală ascunsă în test:
+
+```text
+@UiExtentSectionAudit
+  → SectionAuditSpec + SectionAuditFixture
+  → SectionAuditRegistry
+  → section module (snapshot + validator pur)
+  → SectionAuditCheckExecutor + SectionAuditCheckPolicy
+  → SectionAuditResult
+  → ExtentSectionAuditPublisher
+  → artifact UI + verdict JUnit
+```
+
+Modulele active sunt `Overview`, `Tests`, `Categories`, `Fails`, `Evidence` și
+`Screen validation`. Modulele nu publică Extent și nu aruncă aserțiuni JUnit;
+executorul comun decide check-urile aplicabile, iar publisherul separat este
+singurul adapter care scrie evidence-ul Extent, screenshot-ul și verdictul.
+Selecția API poate porni din `@ApiScenarioSetup` și mock/YAML, dar namespace-ul
+`atf.api.tests.api` rămâne exclusiv pentru teste API și nu primește browser.
+Contractul detaliat și exemplele plug-and-play sunt în
+[`atf-reporting/src/test/java/atf/ui/tests/extent/README.md`](atf-reporting/src/test/java/atf/ui/tests/extent/README.md).
 
 ### Ownership pe fiecare pas
 
 | Pas | Owner | Responsabilitate | Nu face |
 |---:|---|---|---|
-| 1 | `atf-tests` | definește scenariul, tag-urile și fazele | nu construiește HTTP sau HTML |
+| 1 | `atf-reporting` test scope | definește scenariul, tag-urile și fazele pentru suitele de raportare | nu construiește HTTP sau HTML |
 | 2 | `atf-execution` | coordonează sesiunea, lifecycle-ul și precedence-ul | nu evaluează contracte |
 | 3 | API services | exprimă acțiuni semantice (`UsersService`, `PostsService`) | nu cunosc JUnit/Extent |
 | 4 | `atf-core` | modelează request, transport, auth, retry și rezultat | nu deține servicii de business |
@@ -131,7 +178,7 @@ nu este o confirmare artificială a închiderii raportului.
 
 ```mermaid
 flowchart LR
-    Tests[atf-tests] --> Execution[atf-execution]
+    Tests[atf-reporting test scope] --> Execution[atf-execution]
     Tests --> Mock[atf-mock]
     Tests --> Validation[atf-validation]
     Tests --> Console[atf-console]
@@ -139,7 +186,7 @@ flowchart LR
     Tests --> Ui[atf-ui]
     Tests --> DebugUi[atf-debug-ui]
     Execution --> Core[atf-core]
-    Execution --> Validation
+    Execution -.-> Validation
     Validation --> Core
     Console --> Core
     Reporting --> Core
@@ -159,7 +206,8 @@ flowchart LR
 | `atf-reporting` | integrarea Extent, documentul semantic, theme, fallback și publicarea artifactului | transport, business validation, verdicturi inventate |
 | `atf-ui` | configurație UI validată și adaptorul scoped Playwright | HTML Extent, verdicturi, page objects de produs, teste executabile |
 | `atf-debug-ui` | publicare read-only loopback pentru un HTML ales și target URL pentru TAB MCP | generare/modificare HTML, verdicturi, teste executabile |
-| `atf-tests` | teste unitare, contract, componentă și scenarii de integrare; `src/main/java` păstrează scenarii reutilizabile, `src/test/java` păstrează clasele JUnit executabile | implementarea framework-ului |
+| `atf-reporting` test scope | teste unitare, contract, componentă, scenarii API și E2E UI; fixture-uri, flows, locatori și adaptoare Playwright | implementarea framework-ului runtime și decizii de producție |
+| `atf-tests` | guvernanță globală ATF: module boundary, Maven direction, import graph și process-state ownership | API/UI tests, fixture-uri, publisher-e sau suport de reporting |
 
 ### Direcția dependențelor
 
@@ -167,11 +215,11 @@ Săgeata înseamnă „modulul din stânga depinde de modulul din dreapta”.
 
 ```mermaid
 flowchart LR
-    Tests[atf-tests] --> Execution[atf-execution]
+    Tests[atf-reporting test scope] --> Execution[atf-execution]
     Tests --> Mock[atf-mock]
     Validation[atf-validation] --> Core[atf-core]
     Mock[atf-mock] --> Core
-    Execution[atf-execution] --> Validation
+    Execution[atf-execution] -.-> Validation
     Execution --> Core
     Console[atf-console] --> Core
     Reporting[atf-reporting] --> Core
@@ -185,20 +233,24 @@ flowchart LR
 ```
 
 `atf-core` nu depinde de modulele superioare. `atf-validation` nu depinde de
-`atf-reporting`; publicarea se face prin porturi neutre. `atf-reporting` nu
-depinde de `atf-execution`. `atf-tests` le compune în testele de integrare și
-acceptance, dar nu devine runtime dependency a framework-ului.
+`atf-reporting`; publicarea se face prin porturi neutre. `atf-execution` și
+`atf-reporting` folosesc `atf-validation` numai ca adapter de test, marcat
+`scope=test`; runtime-ul ambelor module rămâne decupabil peste `atf-core`.
+`atf-reporting` nu depinde de `atf-execution` la runtime. Test scope-ul reporting
+le compune în testele de integrare și acceptance, dar nu devine runtime
+dependency a framework-ului. `atf-tests` rulează separat suita de guvernanță
+globală și nu devine owner pentru scenarii API/UI sau infrastructură de reporting.
 
 `atf-ui` este un modul de infrastructură, nu un modul de teste. Testele UI
-executabile sunt în `atf-tests/src/test/java/atf/ui/tests/extent`, iar `atf-ui`
-furnizează numai configurația browserului și sesiunea Playwright. Astfel,
-`atf.ui.tests.extent.exploratory.ApiExtentReportExploratoryTest` poate fi rulat direct
-din IntelliJ fără un al doilea source-set sau un al doilea modul Maven de teste.
-Testul exploratoriu regenerează raportul API în setup,
-îl publică read-only și verifică prin Playwright taburile, filtrele, navigarea
-și evidence-ul expandabil din artifactul API input. Aceeași rulare publică un
-artifact UI separat, cu pașii Playwright, tabelul agregat de validări și
-linkurile native către capturile Base64; raportul API nu este modificat.
+executabile sunt în `atf-reporting/src/test/java/atf/ui/tests/extent`, iar `atf-ui`
+furnizează numai configurația browserului și sesiunea Playwright. Composition
+root-ul generated este
+`atf.ui.tests.extent.e2e.section.SelectedApiTestsReportUiTest`: selectează
+exact metode API prin `@ApiTestRef` (GET, POST JSON și lifecycle cu rezultate
+positive/skip/fail), publică raportul API read-only și verifică secțiunile prin
+Playwright. Nu există un al doilea smoke generated care să activeze implicit
+toate familiile API. Pentru un raport UI deja existent există gate-ul opt-in
+`StaticUiExtentReportContractTest`; inputul este read-only și nu este modificat.
 
 `atf-debug-ui` are o responsabilitate diferită: publică temporar un artifact
 HTML deja generat, numai pe loopback, pentru ca un agent să îl poată deschide
@@ -217,10 +269,11 @@ Extent rămâne în `atf-reporting`.
 
 Fișierul `atf.yaml` aparține proiectului consumator și stă la rădăcina lui; nu
 aparține unui singur modul. Loaderele citesc numai secțiunile de care sunt
-responsabile: `atf-reporting` pentru `reporting.extent`, `atf-ui` pentru
-`ui`, iar `atf-debug-ui` folosește launcher-ul explicit și nu modifică
-artifactul. Acesta nu este un snapshot complet al execuției și nu trebuie
-transformat într-un container global de opțiuni.
+responsabile: `atf-reporting` pentru `reporting.extent`, iar configurația
+browser/API de audit este deținută local de `atf-reporting/src/test/resources`.
+`atf-ui` furnizează infrastructura Playwright, iar `atf-debug-ui` folosește
+launcher-ul explicit și nu modifică artifactul. `atf.yaml` nu este un container
+global de opțiuni UI și nu conține `ui.enabled`.
 
 Separarea țintă este:
 
@@ -230,20 +283,21 @@ Separarea țintă este:
 | încărcarea și validarea sursei YAML | owner-ul secțiunii / proiectul consumator | o singură citire la bootstrap, cu erori fail-fast |
 | API timeout/retry/auth/routes | `atf-core` + `atf-execution` | executorul primește doar snapshot-ul |
 | output, timestamp și renderer | `atf-reporting` | consumă setările de reporting, nu API settings |
-| override-uri de test | `atf-tests`/consumator | explicite, locale și fără mutarea configurației globale |
-| catalog de rute și răspunsuri fake | `atf-mock` | separat în `atf-mock.yaml`; nu aparține configurației generale |
+| override-uri de test | `atf-reporting` test scope / consumator | explicite, locale și fără mutarea configurației globale |
+| catalog de rute și răspunsuri fake pentru reporting | `atf-reporting` test scope + `atf-mock` loader | `atf-reporting/src/test/resources/atf-mock.yaml`; nu aparține configurației generale |
 
-În acest repository, composition root-ul
-este `atf-tests`; pentru un consumator extern este proiectul de teste al acelui
-consumator. `atf-core` definește contractele, composition root-ul asamblează
+În acest repository, composition root-ul de test este `atf-reporting/src/test`;
+pentru un consumator extern este proiectul de teste al acelui consumator.
+`atf-core` definește contractele, composition root-ul asamblează
 configurația, iar reporting adaptează numai partea sa. `atf-reporting` păstrează
 loaderul său pentru `reporting.extent`; acesta nu devine loaderul configurației
 API complete. Parserul YAML nu se mută în `atf-core`, deoarece ar transforma
 kernelul într-un owner de filesystem și surse externe.
 
 Configurația este împărțită după ownership. `atf.yaml` este documentul general
-ATF și conține politici API, validation, reporting și UI; debug UI este pornit
-explicit de launcher-ul său și nu este o politică globală de execuție:
+ATF și conține politici API, validation și reporting; configurația UI pentru
+testarea autonomă a raportării este `atf-reporting-ui.yaml` în test resources,
+iar debug UI este pornit explicit de launcher-ul său:
 
 ```yaml
 api:
@@ -263,12 +317,13 @@ reporting:
   extent:
     enabled: true
     outputDirectory: artifacts/reports
-    fileName: api-atf-extent-report.html
+    fileName: ${REPORT_FILE_NAME}
     timestampEnabled: true
 ```
 
-Catalogul operațional al transportului fake este document separat,
-[`atf-mock.yaml`](atf-mock.yaml), deținut de `atf-mock`:
+Catalogul operațional al transportului fake pentru acest proiect este separat
+și este deținut de test scope-ul `atf-reporting`,
+[`atf-reporting/src/test/resources/atf-mock.yaml`](atf-reporting/src/test/resources/atf-mock.yaml):
 
 ```yaml
 mock:
@@ -282,9 +337,10 @@ mock:
     body: '{"message":"Unexpected mock route"}'
 ```
 
-Legătura este configurabilă fără a polua `atf.yaml`: `AtfMockConfigurationLoader`
-folosește, în ordine, `-Datf.mock.config=...`, `ATF_MOCK_CONFIG`, apoi caută
-`atf-mock.yaml`/`atf-mock.yml` din working directory în părinți. O cale
+Legătura este configurabilă fără a polua `atf.yaml`: `ReportingTestResources`
+încarcă explicit resursa classpath pentru testele reporting, iar
+`AtfMockConfigurationLoader` păstrează override-ul generic
+`-Datf.mock.config=...` / `ATF_MOCK_CONFIG` pentru consumatori externi. O cale
 explicită invalidă produce eroare; numai lipsa completă a unui fișier permite
 fixture-ul built-in. Astfel rularea directă din IntelliJ, CI și rulările paralele
 pot selecta cataloage diferite, fără ca un mock să poată activa HTTP live.
@@ -329,8 +385,9 @@ direct din IntelliJ și pot produce artifactul Extent fără un runner separat.
 `reporting.extent.enabled` activează/dezactivează numai publicarea HTML; nu
 schimbă transportul, validarea sau verdictul testului. Loaderul de raportare
 descoperă `atf.yaml` din working directory în sus, iar `outputDirectory` și
-timestamp-ul decid destinația. Loaderul mock descoperă independent
-`atf-mock.yaml`; cele două surse nu se confundă.
+timestamp-ul decid destinația. Loaderul mock are propriul lanț de override și
+descoperire; în acest repository catalogul nu mai există la root, ci este
+fixture-ul test-owned `atf-reporting/src/test/resources/atf-mock.yaml`.
 
 ## Lifecycle și calculul rezultatului
 
@@ -384,10 +441,10 @@ aceeași decizie în execuție și în artifact.
   evaluare renderer-neutrală;
 - [atf-reporting/README.md](atf-reporting/README.md) — contractul vizual,
   conținutul și navigarea artifactului Extent;
-- [atf-console/README.md](atf-console/README.md) — proiecția diagnostică,
+- [atf-console/README.md](atf-console/README.md) — proiecție diagnostică,
   loaderul YAML și politica ASCII/UTF-8;
-- [atf-tests/README.md](atf-tests/README.md) — compunerea unui test end-to-end;
-- [atf-tests/src/test/java/atf/ui/tests/extent/README.md](atf-tests/src/test/java/atf/ui/tests/extent/README.md)
+- [atf-tests/README.md](atf-tests/README.md) — guvernanța globală a modulelor ATF;
+- [atf-reporting/src/test/java/atf/ui/tests/extent/README.md](atf-reporting/src/test/java/atf/ui/tests/extent/README.md)
   — contractul plug-and-play pentru setup API, secțiuni Extent și audit UI;
 - [atf-ui/README.md](atf-ui/README.md) — configurația și adaptorul Playwright;
 - [atf-debug-ui/README.md](atf-debug-ui/README.md) — publicarea read-only pentru investigație manuală în TAB MCP;
@@ -403,6 +460,8 @@ aceeași decizie în execuție și în artifact.
   reguli OOP, testabilitate și mentenanță;
 - [docs/feedback/README.md](docs/feedback/README.md) — ToDo-uri active și
   criterii de închidere validate prin cod și teste.
+- [docs/feedback/ATF_Live_Analysis_2026-10-18.md](docs/feedback/ATF_Live_Analysis_2026-10-18.md)
+  — snapshot de audit, scorecard și plan secvențial.
 
 Documentele descriptive folosesc convenția `ATF_<PascalCase>`, cu acronimul
 `ATF` doar în primul segment; forma canonică și exemplele sunt în

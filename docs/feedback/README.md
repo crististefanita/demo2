@@ -1,562 +1,308 @@
-# ATF Java — active engineering feedback
-
-This directory contains the active gaps plus a compact status ledger used to
-keep feedback synchronized with the live source. Stable contracts belong in
-the module READMEs and `docs/`; completed work is not kept as an active ToDo
-or as a running-history diary.
-
-Specialized ownership: API-only quality is tracked in this central ledger and
-the API module READMEs; [`ATF_Ui_Exploratory_Feedback.md`](ATF_Ui_Exploratory_Feedback.md)
-for UI/Extent gaps, [`ATF_Ui_Extent_Inventory.md`](ATF_Ui_Extent_Inventory.md)
-for ownership and modularization, and the package README for the implemented
-plug-and-play and exact-selection contracts. Remaining active compatibility
-hardening is tracked in
-[`ATF_Ui_Extent_Section_Architecture_Feedback.md`](ATF_Ui_Extent_Section_Architecture_Feedback.md),
-[`ATF_Ui_Extent_Failure_Diagnostic_Audit_Feedback.md`](ATF_Ui_Extent_Failure_Diagnostic_Audit_Feedback.md)
-and [`ATF_Refactor_Constants.md`](ATF_Refactor_Constants.md).
-The module READMEs remain the source of truth for the closed cross-report shell
-and exact-selection contracts.
-
-The live design scorecard and responsibility review are in
-[`ATF_Architecture_Design_Review.md`](ATF_Architecture_Design_Review.md).
-
-## Live status — reconciled with source and final UI artifact
-
-| Status | IDs | Meaning |
-|---|---|---|
-| DONE | F-01, F-02, F-03, F-05, F-06, F-07, F-09, F-10, F-11, F-12, F-13, API-DESIGN-01, API-JSON-01, API-JSON-02, API-QUERY-01, API-PACKAGE-01, API-CONSTANTS-01, UI-CONSTANTS-01, REP-UI-01, UI-14, UI-15, UI-16, UI-17, UI-18, UI-19, UI-20, UI-21, UI-22, UI-23, UI-CONFIG-01, UI-EXTENT-REUSE-01, LOC-03, LOC-04, D-03, D-04, ARCH-01, ARCH-02, ARCH-03, ARCH-04, ARCH-05, ARCH-UI-01, ARCH-UI-02, ARCH-UI-03, DOC-01, OPS-UI-01 | The contract is implemented and protected by source-level, artifact or ATF Debug UI evidence. |
-| DECISION CLOSED | ARCH-06 | The readable dynamic switch remains intentional; a registry is trigger-gated by rule/parameter growth and is not justified by the current source. |
-| IN PROGRESS | REF-CONSTANTS-01 | The mock-report auditor now follows the typed constants/enums boundary; the remaining API-test literal audit is tracked separately. |
-
-### Closed contracts moved to module documentation
-
-The former closed feedback increments are now stable module documentation:
-
-- [`atf-reporting/README.md`](../../atf-reporting/README.md) — UI/API evidence
-  shell and style contract.
-- [`atf-tests/.../extent/README.md`](../../atf-tests/src/test/java/atf/ui/tests/extent/README.md)
-  — exact API-test selection and deep UI audit contract.
-
-The exact-selection score is intentionally scoped to that increment; the
-current reusable UI closure is recorded below and does not imply a new class
-for every API-family combination.
-
-### Active constants/enums refactor
-
-[`ATF_Refactor_Constants.md`](ATF_Refactor_Constants.md) is the owner for the
-uniform constants/enums rule. It distinguishes protocol vocabulary, route/data
-fixtures, report evidence keys and intentionally local edge-case values; it is
-not a second generic backlog.
-
-### Closed gate already verified
-
-**`UI-EXTENT-REUSE-01` fresh artifact gate — DONE:** the selected golden path
-   was rerun in isolated `.tmp`, the exact HTML was copied to the configured
-   API/UI report folders, and both exact files were opened through ATF
-   Debug/browser MCP. Current closure pair:
-   `api-atf-extent-report_2026-10-16_23-20-42-360.html` and
-   `ui/ui-atf-extent-report_api-extent-report-exploratory-test_2026-10-16_23-20-49-242.html`.
-   The API POST/PUT request/response JSON and the UI three-zone/screenshot layout
-   were expanded and visually checked. Current runs were not stopped.
-
-Current exact artifact hashes:
-
-- API: `0598D195E41F1EBC001EAF6F8581F46E8ADF7C96197BC78F316C705AC78E56C8`
-- UI: `D4464E8BE01095E40BBFD51B14CFDC00CB384F6BF57562EE0823A3BCF45E1BC7`
-- Screen validation gate: `5DD627F54F04B17637F2659112054DAEAF00FAB323B3205A85BA2E1BA8633D06`
-- staging: `C:/work/ex/java/.tmp/p2-reporting-refactor-20261016-231500`
-
-### Priority by impact — current scope closed
-
-1. **Closed — `UI-15`:** dedicated browser fixtures now prove Categories
-   `zero`, `one` and `many`, including the generated empty category shell.
-2. **Closed — projection/CSS parity:** Extent/fallback and
-   `ExpectedReportProjection` remain aligned under semantic CSS/evidence guards.
-3. **Closed — `OPS-UI-01`:** the official bounded launcher passed the parallel
-   smoke and produced no new `hs_err_pid` file.
-4. **Closed — `F-01`:** Categories empty-state CSS/markup now have semantic
-   owners and focused contract tests; further splitting is optional and
-   trigger-gated by a new semantic owner.
-
-`D-01`, `F-02`, `D-03`, `LOC-03`, API contract tracks, locator ownership and the
-renderer/style contracts are closed implementation items and remain regression
-guards, not active ToDos.
-
-### Latest reconciliation
-
-`UI-22` is closed. The live CSS, its focused regression test and the exact
-final UI artifact agree: `Screen validation` keeps the three evidence zones as
-direct siblings with one shared contour, no decorative horizontal separators
-between them, and the inline `📷 base64 img` link remains aligned on the same
-line. This is not an active gap anymore.
-
-The authoritative current visual evidence is the exact UI artifact listed in
-the closure pair above (and its separate static Screen validation gate). It
-was opened through ATF Debug UI/browser MCP after an isolated `.tmp` staging
-run; the live copies are under `artifacts/reports/ui/`. Older narrow/write
-artifacts remain historical evidence only and are not current status pointers.
-
-`LOC-03` is closed for the current UI production path: a source scan finds no
-`waitForTimeout` calls in the live UI/test sources, and the browser matrix uses
-semantic structural-card, disclosure and runtime-ready waits. Keep the
-architecture guard and matrix as regression protection.
-
-The screenshot contract is no longer an active gap: every reporting path uses
-`ExtentReportAssets.base64ScreenshotLink` and emits one visible native
-`a[href="data:image/png;base64,..."]` per visual state. The anchor uses
-`data-featherlight="image"`, `target="_blank"` and `rel="noopener"`; the
-Base64 payload occurs exactly once, in the anchor `href`. No external PNG,
-inline `<img>`, inline click handler or duplicate payload is allowed. The
-marker is `📷 base64 img` and remains a compact, vertically centered label in
-the same anchor.
-The marker is a compact 18px inline-flex pill: icon and text are centered on
-the same line. The complete anchor opens the Base64 payload in the Featherlight
-overlay, with a new-tab fallback.
-If the same payload is captured again in the same publication, only the first
-anchor carries the Base64 bytes; later occurrences become an explicit
-`.atf-ui-screenshot-duplicate` marker with a stable SHA-256 reference.
-
-### Color notation rule — HEX only
-
-The live reporting theme and all new UI/CSS changes must express colors as
-hexadecimal tokens: `#RRGGBB` or `#RRGGBBAA` when alpha is required. Do not add
-`rgb(...)`, `rgba(...)` or spaced variants such as `rgb( a, b, c)` to CSS,
-markup, Java constants or configuration. Keep colors semantic and centralized
-in the shared theme/token layer. Browser `computedStyle` output may normalize
-HEX to `rgb(...)`; that runtime representation is acceptable for visual
-inspection, while the source contract remains HEX-only.
-
-`Screen validation` keeps `Playwright action sequence`, `Audit observations`
-and `Assertions` as sibling disclosures. There are no decorative horizontal
-dividers or empty vertical gaps between these three zones: they are stacked
-directly, with the shared group contour and internal table grids retained.
-
-The D-04 badge geometry contract is executable in
-`atf.ui.tests.extent.exploratory.ApiExtentReportExploratoryTest.statusBadgesKeepSharedGeometryAtNormalAndNarrowViewport`.
-The test discovers the status population from the generated report, captures
-the computed display/box/height/padding/line-height/radius signature at the
-normal viewport, repeats it at 520px, and requires the same labels and
-signature without assuming that every run contains every status.
-
-The visual reference `RegressionExtent.html` was inspected through the read-only
-TAB MCP loopback. Its visual intent is a real clickable screenshot associated
-with the action sequence. ATF keeps that intent with one text-only native link,
-the compact `base64 img` marker and the explicit safe `target="_blank"` /
-`rel="noopener"` contract; tests compare the single data URI source and the
-opened document, not a duplicated inline image.
-
-The two UI input modes now converge before browser work: `API_GENERATED` is the
-fresh artifact created by API setup and `EXISTING` is the read-only artifact
-resolved from YAML or `-Datf.ui.report`. `ReportAuditInputsTest` protects this
-resolution and `ReportAuditContext` serves both through the same loopback
-lifecycle. `UiAuditFlow` now also centralizes lifecycle, action-sequence
-ownership, screenshot capture and failure publication for generated-report,
-  existing-report and navigation-flow tests. Structural DOM auditors own Tests
-  and Overview discovery/expansion, while the API report exploration facade
-  delegates structure, filters, duration/responsive checks and request
-  evidence to focused inspectors under `flows/inspection`.
-
-The API collection used as a UI precondition is now configurable and reusable:
-`UiTestData` owns family keys, API owners and report tags, while
-`ApiReportAuditSetup` resolves the collection with deterministic precedence
-(`ApiReportSetupFlow` remains a compatibility façade):
-`-Datf.ui.api.families` → `-Datf.ui.audit.suite`/suite list →
-`@ApiScenarioSetup(families = ...)` → `ui.apiSetup.scenarioFamilies`. The live catalog supports `posts`, `users`,
-`requests`, `headers`, `flows`, `negative` and `lifecycle`; the focused UI
-contract has passed for both `users,posts` and `requests,headers`. This is
-tracked as `UI-CONFIG-01`.
-
-Direcția pentru reutilizare profundă, manifest și teste dinamice este documentată
-în README-ul pachetului Extent; acest index păstrează numai statusul și ToDo-urile
-care mai cer lucru.
-Inventarul tehnic al claselor, ownership-ului, dependency direction și
-deciziei de modularizare este în
-[`ATF_Ui_Extent_Inventory.md`](ATF_Ui_Extent_Inventory.md).
-Documentul este `DONE / GATE-CLOSED`: factory-ul dinamic, manifestul,
-convergența `ValidationResult` și artifact gate-ul sunt live și verificate.
-
-## API/UI ownership boundary
-
-The API package never owns a browser. `atf.api.tests.api` contains only API
-resource/request/lifecycle tests; API artifact setup is owned by
-`atf.ui.tests.extent.composition.ApiReportAuditSetup`. Any `Page`, `Locator`, Playwright,
-Debug UI, DOM, screenshot or rendered-report assertion belongs in
-`atf.ui.tests.extent`. The generated UI audit may call `ApiReportAuditSetup` for its
-configurable API precondition, but the API setup is not a separately ordered
-test suite and the API input remains read-only.
-
-### UI-CONSTANTS-01 — API scenario constants consumed by UI tests
-
-**Status: DONE.** The UI report contract no longer repeats API scenario
-identities, titles or owner names. Canonical values live in the API scenario
-catalogs (`UsersApiScenarios`, `PostsApiScenarios`, `RequestVariantsApiScenarios`,
-`ApiHeadersAndEdgeCaseScenarios` and the remaining API catalogs) as public
-constants and immutable `REPORT_SCENARIO_TITLES` lists. `UiTestData.ApiFamily`
-references those values; it does not copy them. `ExpectedReportProjection` and
-the UI projection tests therefore validate the same semantic strings that the
-API setup publishes.
-
-The architectural guard
-`DeclarativeUiTestArchitectureTest.uiTestsDoNotDuplicateApiScenarioIdentityOrOwnerLiterals`
-rejects raw `GET/POST/PUT /public/...` identities and API owner literals in UI
-test sources. Adding a scenario follows one path: add the API catalog constant,
-include it in that catalog's report list, then consume the constant from UI.
-This keeps `List.of(...)` readable and compositional without allowing a second
-source of truth.
-
-## Surgical class-refactor checkpoint — 2026-10-16
-
-The two largest orchestration hotspots were split without changing the public
-flow/report contracts:
-
-- `ApiReportExplorationFlow` is now a small semantic facade. Structure,
-  duration/responsive geometry, filters and request evidence are owned by
-  focused inspectors under `atf-tests/src/main/java/atf/ui/tests/extent/flows/inspection/`.
-- `UiExtentReportSession` keeps lifecycle ownership, while
-  `UiEvidencePublisher` owns the shared action/screenshot/assertion/failure
-  publication rules. This prevents the normal, media and failure paths from
-  drifting apart and preserves the single inline screenshot contract.
-- `AtfReportTheme` is now a composition root. Navigation and detail CSS are
-  owned by `AtfReportThemeNavigationCss` and `AtfReportThemeDetailCss`; the
-  golden CSS contract is unchanged (`84,622` characters, SHA-256
-  `a771f58bb5f32e4d3b544db98099a42992e2686becd1b7a84d61ce26710a2e35`).
-- `UiExtentReportSession` is now a compatibility facade. Scenario and phase
-  lifecycle state/publication are owned by `UiScenarioLifecycle` and
-  `UiPhaseLifecycle`; the public nested wrappers and all existing signatures
-  remain intact. Composition tests protect node order, duration lineage,
-  evidence publication and lifecycle guards.
-
-The refactor gate is: preserve the facade method signatures, keep locator
-construction in `ReportUiLocators`, run reporting contract tests plus the UI
-architecture/lifecycle tests, and re-open the final HTML through ATF Debug UI
-before publishing it. Do not split `AtfReportTheme` or the locator facade only
-to reduce line count: those classes are cohesive boundaries until a new
-semantic owner and contract test exist.
-
-## API evidence status summary
-
-Auditul și backlog-ul exclusiv pentru testele API sunt reflectate în acest
-ledger și în README-urile modulelor API. Acest document general ține statusul
-transversal și regulile comune; nu duplica aici ToDo-urile API.
-
-| ID | Owner | Closure |
-|---|---|---|
-| API-JSON-01 | `atf-core` + `atf-tests` + `atf-reporting` | Every standard API publisher emits `REQUEST JSON` and `RESPONSE JSON`. `ApiExecutionResult` retains the effective request. Body-less `GET`/`204`/`304` exchanges use explicit JSON `null`, while every `POST`/`PUT` requires a non-empty valid JSON request and response. `ApiRoute`, `ApiJsonEvidence.writeContractViolations`, `ApiReportAuditSetup` and `MockReportContractAuditor` protect the rule; the dynamic UI contract expands every generated request and deeply reconciles configured YAML response trees. |
-| API-COV-01 | `atf-mock` + `atf-tests` | DONE — `MockRoute.key()` includes sorted query identity, so the route matrix owns every YAML route including both search variants. |
-| API-NEG-01 | `atf-mock` + `atf-tests` | DONE — `ApiNegativeMatrixTests`, `RequestVariantsApiTests` and their scenario publishers cover malformed writes plus the invalid-query response and report evidence. |
-| API-FLOW-01 | `atf-tests` | DONE — POST→LIST→GET and PUT→GET have separate mutation/read-model contracts plus stale-version/broken-self-link guards; POST read-back consumes the mutation response ID. |
-| API-ASSERT-01 / API-AUTH-01 / API-HEADER-01 | `atf-validation` + `atf-core` + `atf-tests` | Structural JSON rules, all four auth profiles, header matrix and redacted wire evidence are covered by focused contracts. |
-| API-REPORT-01 / API-PARALLEL-01 / API-DELETE-01 / API-DATA-01 | `atf-tests` + `atf-reporting` | Request/evidence and mock reconciliation are reusable; timestamped parallel sessions are tested; cross-family fixture data is centralized; no DELETE route exists in the current product mock contract and coverage fails if one is added without an owner. |
-
-This item is closed only for the standard API report path. A new direct
-`startRequest(...).json(...)` integration must use `ApiJsonEvidence.publish`
-or add an equivalent contract test; publishing only the response body is not
-an acceptable shortcut.
-
-The remaining API engineering queue is intentionally kept in
-[`ATF_Java_Improvement_Backlog.md`](ATF_Java_Improvement_Backlog.md), not
-duplicated in this cross-cutting ledger. There is no open `MockReportContractAuditor`
-refactor: its public facade already delegates route resolution, request-body,
-request/response metadata, execution-evidence and deep-JSON checks to focused
-typed collaborators while preserving `ValidationResult`. The typed
-route/header/media/environment vocabulary, JSON body contract, API/UI boundary
-and report evidence are implemented and remain regression guards.
-
-## Repeatable API audit checklist
-
-This is the required sequence for every API report refresh. It is intentionally
-explicit so a report cannot be declared current from a partial test selection:
-
-1. Read every test under `atf-tests/src/test/java/atf/api/tests/api/` and every
-   scenario under `atf-tests/src/main/java/atf/api/tests/api/`.
-2. Reconcile each route with `atf-mock.yaml`: method, path/template, status,
-   response body, response headers, auth profile and request headers.
-3. Run the configured API setup/report flow (`ApiReportAuditSetup`, normally
-   through `ApiExtentReportExploratoryTest`) with an isolated
-    `atf.report.config` whose output is inside `.tmp`; do not overwrite or
-   close an existing live report.
-4. Assert that every request node publishes exactly one `REQUEST JSON` and one
-   `RESPONSE JSON`. Body-less exchanges remain explicit JSON `null`.
-5. Assert that every `POST` and `PUT` has non-empty valid JSON on both sides;
-   reject missing, blank or JSON-`null` bodies.
-6. Inspect headers, auth profile/type, query parameters, URL, status, duration,
-   retry evidence and contract assertions in the generated report.
-7. Open that exact artifact through ATF Debug UI/browser MCP, expand at least
-   one GET, one POST and one PUT, and visually verify the JSON and assertion
-   disclosures.
-8. Copy only the validated artifact to `artifacts/reports/`, update this file
-   with any new gap, and keep the full report path/hash in the handoff.
-
-Current closure: the mock route `POST /public/v2/posts` is now covered by both
-`PostsApiTests` and `PostsApiScenarios`; all mock `POST`/`PUT` routes are present
-in the acceptance report and are protected by the non-null JSON contract.
-
-The first stateful baseline is now executable in
-`atf.api.tests.api.flows.ApiRequestFlowsTests` and projected by
-`ApiRequestFlowScenarios`: `POST → GET → validate` and `PUT → GET → validate`.
-The mutation and read-back contracts are intentionally different: POST/PUT
-assert the operation result (`created`, `updated`, `changes`, version), while
-GET asserts the persisted read model (links, timestamps, audit/read-model
-metadata). `ApiFlowAssertions` additionally proves the cross-request relation
-(created id → GET self link; PUT id → GET id and mutation lineage). This is a
-hard rule: a flow is not deep merely because both requests return `200`/`201`
-and repeat the same JSON paths.
-
-### Stateful API flow — closed baseline
-
-- [x] Keep mutation and read-model contracts separate in fixtures and report
-  nodes.
-- [x] Add deterministic mock fields that make the transition observable and
-  validate them from the YAML-backed response, not from invented test data.
-- [x] Add cross-request assertions and render them as `FLOW ASSERTIONS` in the
-  read-back request, without creating a fake third HTTP request.
-- [x] Add a negative mutation/read-back fixture for stale version and broken
-  `links.self`, isolated from the positive flow.
-- [x] Add a correlated `POST → LIST/FILTER → GET` collection flow; the read
-  request must use the identifier returned by the mutation response.
-
-The first stateful baseline is now executable in
-`atf.api.tests.api.flows.ApiRequestFlowsTests` and projected by
-`ApiRequestFlowScenarios`: `POST → GET → validate` and `PUT → GET → validate`.
-The mutation and read-back contracts are intentionally different: POST/PUT
-assert the operation result (`created`, `updated`, `changes`, version), while
-GET asserts the persisted read model (links, timestamps, audit/read-model
-metadata). `ApiFlowAssertions` additionally proves the cross-request relation
-(created id → GET self link; PUT id → GET id and mutation lineage). This is a
-hard rule: a flow is not deep merely because both requests return `200`/`201`
-and repeat the same JSON paths.
-
-## Surgical refactor status — 2026-10-16
-
-The large classes were reviewed by responsibility and public-contract risk,
-not by blind line deletion. The following seams are implemented and covered
-by the isolated UI exploration run:
-
-- [x] `ApiReportExplorationFlow` is a stable facade; structure,
-  category/failure navigation, duration geometry and request evidence are
-  separate inspectors returning the original typed snapshots.
-- [x] `ExistingReportUiFlow` is a facade over navigation, visual evidence and
-  actionable screenshot inspectors.
-- [x] `PlaywrightActionSequence` is a recorder facade over locator and browser
-  action adapters; the effective locator contract is unchanged.
-- [x] Architecture and exploratory UI tests pass after extraction; the fresh
-  artifact was opened through ATF Debug UI and its Screen validation zones are
-  contiguous, aligned and free of decorative separators/gaps.
-- [x] `ReportUiLocators` remains the canonical selector boundary and delegates
-  semantic category, evidence and failure selectors to dedicated locator
-  classes. Locator-contract and UI-layer architecture tests guard the seam.
-- [x] `AtfReportTheme` CSS composition was split behind semantic owners with a
-  golden CSS hash/length guard and a fresh ATF Debug UI artifact check; the
-  rendered contract is unchanged.
-- [x] `UiExtentReportSession` lifecycle composition was split into scenario
-  and phase collaborators while preserving its public compatibility facade;
-  composition tests prove unchanged lifecycle/evidence behavior.
-
-Current closure evidence is pinned to the fresh synchronized pair above. A
-new report becomes closure evidence only when the exact artifact from the
-current build is linked in the handoff after ATF Debug UI/browser MCP
-inspection.
-
-### P2 closure — reporting composition hotspots — 2026-10-16
-
-The two P2 items are closed without an immediate functional change. The
-implementation was performed in
-`C:/work/ex/java/.tmp/p2-reporting-refactor-20261016-231500` and synchronized
-selectively to the live project only after the gates passed:
-
-- `AtfReportTheme` remains the same CSS composition contract byte-for-byte;
-  the new semantic layers are guarded by the golden length/hash test.
-- `UiExtentReportSession` keeps the public `openConfigured*`, scenario and
-  phase API. Its lifecycle state and evidence publication now have focused
-  collaborators, so the facade no longer owns the nested implementation
-  details.
-- Reporting module suite: `140/140` green before the final golden assertion;
-  focused composition gate: `6/6` green; the final synchronized live suite
-  must remain the release gate.
-- Golden exploratory E2E: `1/1` green. The API artifact contains request and
-  response JSON plus headers/auth/execution evidence; the UI artifact was
-  opened through ATF Debug UI and its three Screen validation zones were
-  visually checked as contiguous siblings with the inline screenshot link.
-
-## Verified backlog increment — 2026-10-16
-
-The synchronized staging build closed the API route-key collision and the
-mutation correlation gap. `MockRoute.key()` now carries sorted query identity;
-`ApiFlowAssertions.resourceId(...)` drives the POST flow read-back; and the
-invalid search query is published as a dedicated YAML-backed JSON contract.
-`ApiReportContractValidation` remains the shared API/UI composition boundary
-for JSON, mock response trees, request metadata, headers and execution evidence.
-
-The current paired artifacts are:
-
-- API: `artifacts/reports/api-atf-extent-report_2026-10-16_19-46-21-599.html`
-  (SHA-256 `2DF990AECAB7C8029C9DCF0364B9F9C9854D3AFD9E329101024523C6A298FCAD`)
-- UI: `artifacts/reports/ui/ui-atf-extent-report_api-extent-report-exploratory-test_2026-10-16_19-46-29-161.html`
-  (SHA-256 `C63F56400B161BEB8CE3923BCCA86510334034F08EB1874A67DA873BE0DC68C2`)
-
-The UI artifact is the authoritative visual closure evidence: it was served by
-the official ATF Debug UI and inspected through browser MCP. The API artifact
-is the paired report from the same synchronized staging area
-`.tmp/top4-live-merge-20261016-194500`; its GET/POST/PUT JSON and transport
-evidence were opened and inspected through ATF Debug. Older
-17-04/17-16/17-26/17-45 paths remain historical run evidence, not the current
-status pointer.
-
-The synchronized run publishes all configured API families for the audit, while
-the current UI artifact contains contiguous `Screen validation` sibling zones
-and the native inline `📷 base64 img` screenshot link. The paired API artifact
-contains the deep POST/PUT request/response JSON and transport metadata used by
-the mock-YAML reconciliation. The surgical and backlog-depth filenames from
-earlier iterations are intentionally retained only as historical traceability;
-the 19-35 pair above is the current closure pointer.
-
-The precedence smoke proof is separately published at
-`artifacts/reports/api-atf-extent-report_2026-10-16_19-52-depth-smoke.html` and
-`artifacts/reports/ui/ui-atf-extent-report_users-posts_2026-10-16_19-52-depth-smoke.html`.
-It was generated with `-Datf.ui.audit.suite=users-posts` and
-`-Datf.ui.audit.depth=smoke`; the explicit JVM depth selected only SETUP,
-TESTS, REQUEST_CONTRACT and OVERVIEW despite the deep validators in YAML. The
-exact smoke HTML files were opened and expanded in official ATF Debug
-launchers after publication.
-
-The API increment is closed: query semantics, the support namespace and
-cross-family fixture data are implemented and architecture-tested. The
-reporting increment now publishes one immutable `AtfReportSemanticSnapshot`
-from both Extent and fallback, with a pre-render population guard. The typed
-API bootstrap is acceptance-by-default and live-opt-in. The UI browser matrix
-proves empty/failure, one/many categories, GET/POST/PUT, normal/narrow
-viewports and mock-backed request contracts.
-
-### Latest surgical closure — Fails layout and selector boundary
-
-The fresh failure artifact
-`artifacts/reports/api-atf-extent-report_backlog-fails-layout-final_2026-10-16_20-03-35-065.html`
-was opened through ATF Debug UI/browser MCP. It contains two real failure rows;
-the rendered Fails projection keeps the list on the left and the diagnostic
-detail on the right, on the same row, with the primary/secondary cause chain
-and `Open in Tests` link visible. The promoted API artifact SHA-256 is
-`704DEF32265D55029AC707DAC188855942D915256B43D238459A991F2E2F9C8C`.
-Paired UI audit artifact:
-`artifacts/reports/ui/ui-atf-extent-report_backlog-fails-layout-final_2026-10-16_20-03-39-042.html`
-(SHA-256 `688FC00CEE463EE65E5BF4D492140EC7720BC2D8E032467AD7A90E9B365E2131`).
-
-The selector boundary is closed for the reusable audit layers: hash-based tab
-navigation and the runtime root are owned by `ReportUiLocators`; the focused
-architecture/locator guard passes 6/6 tests. Duplicate source trees discovered
-during the clean-build audit were quarantined under the active `.tmp` staging
-workspace and removed from live source. Remaining open work is limited to the
-explicit architecture/design queue in the table below.
-
-`API-DESIGN-01` is also closed: `HttpMethod`, `HttpHeader` and `MediaTypes`
-now own the mock defaults, YAML fallback, write-method detection and rendered
-mock-evidence comparisons. `MediaTypes.isJson(...)` accepts vendor JSON
-variants without reintroducing a raw media literal. The focused mock and
-auditor tests are green.
-
-## Active gaps
-
-### P1 — boundaries and composition
-
-| ID | Owner | Current gap | Closure evidence |
-|---|---|---|---|
-| UI-EXTENT-INSPECTOR-01 | `atf-tests` | Compatibility hardening remains for legacy DOM inspectors (`request evidence`, structure/filter and historical Categories/Evidence paths): migrate them only when a second consumer requires the `extractor → snapshot → pure validator → ValidationResult` seam. This does not block the current six-module section contract. | `ATF_Ui_Extent_Inventory.md`; selectors and expected values remain outside tests, and the migration is reopened only by a new consumer or a concrete contract defect. |
-
-`UI-SECTION-ARCH-01` is closed for the current renderer scope: all six modules
-return the canonical `SectionAuditResult`, execute the declarative
-`SectionAuditCheckPolicy`, and passed the focused `30/30` gate plus the fresh
-ATF Debug/browser MCP artifact. A standalone evidence publisher and retirement
-of compatibility façades are trigger-gated future extractions, not active defects.
-
-### P2 — UI contract and semantic metadata
-
-| ID | Owner | Current gap | Closure evidence |
-|---|---|---|---|
-| — | — | Nu există ToDo P2 activ în acest ledger; UI-15, UI-23, D-01 și D-03 sunt contracte închise și rămân doar gardieni de regresie. | Contractele sunt documentate în README-urile ownerilor și în feedback-ul specializat. |
-
-### P3 — hardening
-
-| ID | Owner | Current gap | Closure evidence |
-|---|---|---|---|
-| — | — | Nu există ToDo P3 activ; hardening-ul LOC-03, UI-18 și OPS-UI-01 este închis și rămâne guard de regresie. | Reopen only on a new failing contract or a new observable artifact defect. |
-
-## Required process gate
-
-Every implementation increment follows the same sequence:
-
-```text
-read live source and owner README
-  → create one isolated staging workspace
-  → write the failing regression test
-  → implement the smallest owner-scoped change
-  → run unit/component/integration tests
-  → generate a fresh artifact when observable behaviour changes
-  → inspect the exact artifact in TAB MCP (clicks, disclosures, navigation, styles)
-  → synchronize selectively back to live
-  → update only the remaining feedback items
+# ATF Java — registru de feedback
+
+Acest fișier păstrează numai gap-uri reproductibile, decizii care cer încă un
+contract nou sau hardening condiționat de un trigger observabil. O capabilitate
+închisă se mută în README-ul ownerului și este apărată de teste; nu rămâne aici
+ca jurnal de rulări și nu conține linkuri către rapoarte HTML timestamped.
+
+## Fluxul de închidere
+
+```mermaid
+flowchart LR
+    Observe[gap reproductibil] --> Classify[owner + nivel de test]
+    Classify --> Implement[schimbare chirurgicală]
+    Implement --> Verify[unit / component / integration / e2e]
+    Verify --> Stage[staging extern]
+    Stage --> Render[ATF Debug + Chromium/Playwright MCP]
+    Render --> Promote[sincronizare selectivă în live]
+    Promote --> Docs[README owner actualizat]
+    Docs --> Close[feedback redus la gap-ul rămas]
 ```
 
-Building from another directory does not remove the live-sync gate. A build
-must start from a fresh sync with the live source, and its artifact must be
-traceable to that synchronized revision. Existing processes are not stopped,
-generated output is not copied into source trees, and a failing test is fixed
-in code rather than weakened.
+Un build verde nu închide singur un gap de reporting. Pentru markup, CSS,
+JavaScript, layout sau interacțiune sunt necesare atât contracte statice, cât și
+verificarea artifactului generat prin ATF Debug și Playwright/Chromium headless.
+Browserul Windows real nu face parte din protocol, iar procesele active nu se
+opresc.
 
-## Evidence rule
+## Unde este informația stabilă
 
-An item is closed only when the implementation, the focused test and the
-fresh artifact agree. A historical report, a source-only assertion, or a
-green test obtained after changing the requirement is not closure evidence.
+| Document | Owner | Conținut stabil |
+|---|---|---|
+| [`README.md`](../../README.md) | proiect | arhitectura de ansamblu, fluxul API, boundary API/UI și configurația comună |
+| [`docs/README.md`](../README.md) | documentație | hartă, reguli de documentare și protocolul comun de verificare |
+| [`docs/ATF_Architecture.md`](../ATF_Architecture.md) | arhitectură | module, dependențe și direcția boundary-urilor |
+| [`atf-core/README.md`](../../atf-core/README.md) | core | modele immutable, porturi, selecție și reguli renderer-neutral |
+| [`atf-reporting/README.md`](../../atf-reporting/README.md) | reporting | semantic model, vocabulary, renderer, publisher, test matrix și coeziunea contractelor Extent |
+| [`atf-reporting/src/test/java/atf/ui/tests/extent/README.md`](../../atf-reporting/src/test/java/atf/ui/tests/extent/README.md) | reporting test-kit | `component/e2e/support`, setup API, fixture-uri și contractul UI |
+| [`docs/README_Atf_BestPractices.md`](../README_Atf_BestPractices.md) | toate modulele | OOP, constante/enum-uri, POJO-uri, coeziune și refactorizare sigură |
+| [`ATF_Test_Layering_Feedback.md`](ATF_Test_Layering_Feedback.md) | test architecture | matricea nivelurilor de test și criteriile de promovare |
 
-The detailed reporting contract is in
-[`atf-reporting/README.md`](../../atf-reporting/README.md); UI execution and
-Playwright ownership are in [`atf-ui/README.md`](../../atf-ui/README.md) and
-[`atf-tests/README.md`](../../atf-tests/README.md).
+Feedback-ul nu repetă contractele de mai sus și nu indexează fișiere generate.
+Pentru un gap nou sunt obligatorii: owner, nivel de test, reproducer, criteriu
+de acceptare și regula de redeschidere.
 
-## UI locator architecture rule
+### Hardening închis — `E2E-RENDER-CONTRACT-01`
 
-New UI tests must follow the explicit boundary documented by `atf-ui` and
-`atf-tests`: selector strings live in locator/page-object classes, Playwright
-interactions live in action adapters, scenario order lives in flows, and DOM
-observations live in auditors/assertions. Direct `page.locator`, `getByRole`
-or `getByText` calls are not allowed in new Gherkin methods. Direct selector
-construction is forbidden in the UI test/flow/auditor layers and is
-protected by `UiSelectorBoundaryArchitectureTest` and
-`UiTestLayerArchitectureTest`. The concrete boundary is
-`atf.ui.tests.extent.locators.ReportUiLocators`; it owns report selectors and exposes
-semantic methods for action, flow and validation layers.
+Auditul profund al pachetului `atf.ui.tests.extent.e2e` a găsit inițial o
+acoperire funcțională bună, dar verdictul comun nu impunea complet toate
+regulile din contractul E2E al randării: nu erau centralizate overflow-ul
+semantic, `<hr>` decorative, ordinea markerului `＋/−`, imagini rupte și
+diagnosticele console/page/request; în plus, `Screen validation` nu cerea
+explicit ca toate cele trei zone de evidence să existe.
 
-## Evidence location
+Gap-ul este închis și reconciliat:
 
-Fresh test output and generated artifacts are evidence for the current change,
-not permanent backlog content. Keep the artifact under `artifacts/reports/`
-and link it from the owning test or module README only when the evidence is
-needed to explain a stable contract or close a specific ToDo.
+- ✅ `UiReportStyleValidator` verifică document/body și elementele vizibile
+  non-scrollable, fără să trateze wrapper-ele intenționat scrollable ale
+  tabelelor ca defect;
+- ✅ gate-ul verifică zero `<hr>`/separatoare decorative, imagini complete,
+  markerul `＋/−` înaintea titlului și alinierea inline;
+- ✅ `ReportAuditContext` colectează erori de consolă, page errors și request
+  failures pe întregul lifecycle, iar acestea intră în verdictul tab-ului;
+- ✅ `ScreenValidationSectionExtractor` cere Playwright action sequence,
+  Audit observations, Assertions și screenshot inline;
+- ✅ cauza page error observată la baseline a fost reală: scriptul de zoom din
+  `PlaywrightUiSession` accesa `document.documentElement.style` prea devreme.
+  Aplicarea este acum guarded și are test de componentă;
+- ✅ verificarea focalizată a raportului real a trecut toate cele patru tab-uri:
+  4 teste, 0 failures, 0 errors, fără oprirea sesiunilor active.
 
-## Surgical UI/API evidence checkpoint — 2026-10-16
+Regula de redeschidere: orice schimbare de markup/CSS/runtime, policy de zoom,
+asset evidence sau viewport trebuie să reruleze raportul fresh prin ATF Debug /
+Chromium headless și să confirme aceeași listă de diagnostice zero. O suprafață
+MCP sub limita de viewport suportată rămâne explorare `known issue`, nu verdict
+de release.
 
-The shared validation display is now enforced at the rendered-report boundary:
+### Audit E2E închis — `E2E-RENDER-CONTRACT-02`
 
-1. API request evidence remains the semantic reference: one details column,
-   contiguous request/response/execution disclosures and rounded corners only
-   on the outer contour; table grid lines remain internal data delimiters.
-2. UI `Screen validation` now applies the same contract to Playwright action
-   sequence, audit observations and assertion evidence. Validation table cells
-   have no residual horizontal padding, all three disclosures are `width:100%`,
-   and their y positions are consecutive.
-3. The fresh ATF Debug measurement for the final UI artifact reported equal
-   summary geometry for all three zones: `height=33.9946px`,
-   `width=561.2365px`, `margin=0`, `padding=9px 12px`, and zero top/bottom
-   summary borders. `scrollWidth=clientWidth=1280`; no decorative horizontal
-   separator remains between the three zones.
-4. The 10-rule dynamic audit artifact is historical evidence for the factory;
-   the current visual closure pointer is the exact 19-11 UI artifact listed
-   above.
+Explorarea manuală a raportului UI generat și a raportului API pereche a arătat
+un boundary important: inputul API pur nu publică `Screen validation`; această
+evidence aparține raportului UI care îl auditează. Încercarea de a cere zona
+în modulul de input API a fost lăsată să eșueze explicit și a fost retrasă, nu
+relaxată printr-un assertion fals. Planul final este:
 
-Latest increment evidence: `CrossTabReconciler` now reconciles owner sets,
-Overview class projection and Category links through one `ValidationResult`,
-and `CategoryFilterAuditor` has focused zero/one/many contract tests. This is
-not a closure of the full browser fixture matrix.
+- ✅ `SelectedApiTestsReportUiTest` include request-ul PUT configurabil, astfel
+  selecția generated API verifică împreună POST și PUT cu request/response JSON;
+- ✅ `SectionAuditDynamicEngine` rulează un render-health gate comun pe toate
+  tab-urile API și colectează console errors, page errors, request failures,
+  overflow semantic, `<hr>` și imagini broken;
+- ✅ `StaticUiExtentReportContractTest` verifică artefactul UI rezultat în
+  ATF Debug/Chromium: SETUP → TEST BODY → THEN → Screen validation, acțiuni,
+  audit observations, assertions, screenshot Base64 și disclosure-uri;
+- ✅ extractorul de Screen validation validează PNG data URI, markerul
+  `📷 base64 img` și centrare verticală, pe lângă cele trei zone directe și
+  ordinea lor verticală;
+- ✅ explorarea MCP a confirmat manual POST și PUT JSON, lightbox Base64,
+  toate tab-urile, `scrollWidth == clientWidth`, zero `<hr>` și zero imagini
+  broken la viewport-ul configurat.
 
-Remaining ToDo: keep the geometry contract covered when a new UI evidence type
-is introduced; do not add a one-off CSS exception outside the shared validation
-selector boundary.
+Dovada executabilă a acestui audit rămâne în run-ul curent și în artifactul
+promovat; README-ul nu păstrează nume sau timestamp-uri generate. Regula de
+redeschidere este aceeași: schimbarea ownerului unei secțiuni, a markup-ului,
+CSS-ului, evidence-ului, viewport-ului sau a selecției API cere rerun generated
+API plus gate static pe UI fresh prin ATF Debug/Chromium și explorare MCP.
+
+### Gap închis — `E2E-RENDER-CONTRACT-03`
+
+Rerularea pe artefactul UI produs de suita E2E a găsit un caz real: când două
+stări vizuale aveau același PNG, publisher-ul păstra bytes-ul o singură dată,
+dar în a doua zonă publica doar un `<span>` cu textul `same image`. Asta făcea
+evidence-ul neclickabil și încălca regula de screenshot inline per stare.
+
+- ✅ `ExtentReportScreenshotDeduplicator` păstrează deduplicarea bytes, dar
+  publică pentru fiecare stare un anchor inline cu `📷 base64 img`,
+  `data-atf-screenshot="base64"` și `data-atf-screenshot-ref`;
+- ✅ prima captură primește ancora PNG canonică, iar duplicatele duc la ea prin
+  fragment link; nu se reintroduc payload-uri Base64 duplicate;
+- ✅ `ScreenValidationSectionExtractor` validează atât PNG-ul direct, cât și
+  referința deduplicată către un PNG canonic real, inclusiv geometria/centrarea
+  linkului în rândul său;
+- ✅ testele component/unit pentru asset-uri și screenshot contract sunt
+  verzi: 11/11;
+- ✅ problema a fost găsită de gate-ul E2E pe artefact fresh, nu prin relaxarea
+  assertion-ului și nu prin validarea unui HTML istoric.
+
+Regula rămâne: hash-ul singur nu este evidence; numai un link inline vizibil,
+cu marker și țintă PNG verificabilă, este acceptat.
+
+### Reconfirmare de contract — `E2E-RENDER-CONTRACT-04`
+
+Auditul comparativ al pachetului `atf.ui.tests.extent.e2e` pe artifacte fresh a
+reconfirmat contractul fără a depinde de un nume de fișier generat:
+
+- ✅ raportul UI static acoperă `Overview`, `Tests`, `Categories`, `Fails`,
+  `SETUP → TEST BODY → THEN → Screen validation`, acțiuni Playwright,
+  `Audit observations`, assertions, screenshot PNG inline, overflow semantic,
+  delimitări și diagnostice browser;
+- ✅ raportul API generated verifică în Chromium toate cele patru tab-uri,
+  proiecția Tests/Overview/Categories/Fails și request/response JSON pentru
+  POST și PUT; matricea lifecycle expune intenționat și ramurile FAIL în Fails,
+  cu cauză și navigare, fără ca acestea să fie confundate cu o regresie de
+  randare;
+- ✅ flow-ul de navigare a repetat manual `Tests → status/tag filters → Clear
+  → Categories → Overview`, iar fixture-urile Categories au acoperit zero,
+  one și many;
+- ✅ sanity-ul pentru disclosure a confirmat separat `THEN` și fazele
+  `SETUP`/`TEST BODY`, inclusiv absența corectă a `TEARDOWN` când nu este cerut;
+- ✅ diagnosticele Chromium au rămas zero, `scrollWidth <= clientWidth`, fără
+  `<hr>` decorative și fără imagini rupte la viewport-ul configurat.
+
+Nu există un gap de produs deschis în urma acestei explorări. Rularea wrapper-
+ului integral poate fi limitată de instalarea Playwright driver în mediul local;
+criteriul de release rămâne rerun-ul direct al claselor E2E relevante plus gate-ul
+static/generated și verificarea Chromium. O eroare de provisioning nu se
+transformă într-un verdict fals despre HTML și nu justifică oprirea altor rulări.
+
+## Contracte închise și mutate în documentație
+
+Itemii închiși nu mai sunt păstrați ca tabel de feedback. Contractele lor sunt
+normative în README-urile ownerilor:
+
+| Contract | Document owner |
+|---|---|
+| module, boundary API/UI, guvernanță globală în `atf-tests` și layering | [`docs/ATF_Architecture.md`](../ATF_Architecture.md) și [`atf-tests/README.md`](../../atf-tests/README.md) |
+| semantic model, parity Extent↔fallback, vocabulary, CSS/JavaScript și publication | [`atf-reporting/README.md`](../../atf-reporting/README.md) |
+| status vocabulary și discovery de fișiere/source roots | [`atf-core/README.md`](../../atf-core/README.md) și [`atf-reporting/README.md`](../../atf-reporting/README.md) |
+| component/e2e/support, locatori și selecție configurabilă | [`atf-reporting/src/test/java/atf/ui/tests/extent/README.md`](../../atf-reporting/src/test/java/atf/ui/tests/extent/README.md) |
+| layering, ownership și criterii de promovare | [`ATF_Test_Layering_Feedback.md`](ATF_Test_Layering_Feedback.md) |
+| guvernanță whole-ATF, module IDs și boundary-ul reactorului | [`atf-tests/README.md`](../../atf-tests/README.md) și [`ATF_Test_Layering_Feedback.md`](ATF_Test_Layering_Feedback.md) |
+| politica lowercase pentru tag-uri/adnotări și normalizarea comună Extent/runtime | [`ATF_Report_Tag_Lowercase_Feedback.md`](ATF_Report_Tag_Lowercase_Feedback.md) și [`atf-reporting/README.md`](../../atf-reporting/README.md) |
+
+Feedback-ul de aici rămâne registru de gap-uri, nu istoric de implementare.
+
+## Stare ToDo-uri
+
+Starea curentă este: boundary-ul runtime este închis, dar rămân verificări de
+artifact și packaging documentate în analiza live. Guard-ul de promovare și
+catalogul live explicit sunt implementate și apărate de teste unitare; contractele
+lor permanente sunt în [`atf-core/README.md`](../../atf-core/README.md) și în
+[`docs/ATF_Build_And_Execution_Safety.md`](../ATF_Build_And_Execution_Safety.md).
+Contractele Extent care fuseseră grupate într-o clasă mixtă sunt acum separate
+în interaction, failure projection și navigation, cu guard de coeziune în
+`atf-reporting`; detaliul stabil este în [`atf-reporting/README.md`](../../atf-reporting/README.md).
+Nu se recreează ToDo-uri pentru split cosmetic de CSS/JavaScript, status
+projection, mutări deja apărate de architecture guards sau rapoarte generate
+care nu fac parte din sursa permanentă.
+Pentru starea curentă a decuplării reporting/execution și lista ordonată de
+verificări rămase, se urmărește [`ATF_Live_Analysis_2026-10-19.md`](ATF_Live_Analysis_2026-10-19.md).
+
+### Hardening închis — `RUNTIME-JS-FUNCTION-COHESION-01`
+
+Auditul funcțiilor generate a fost închis pe boundary-urile cu risc verificabil:
+`failureContext` are un singur owner și separă colectarea DOM, derivarea și
+proiecția; `renderFails` delegă selecția, sortarea și construirea rândului;
+`ExtentReportDurationRuntime` separă traversarea arborelui, decizia de agregare
+și publicarea duratelor. Contractele statice verifică helperii și unicitatea
+funcțiilor în artifact, iar gate-ul browser rămâne criteriul pentru orice
+schimbare de comportament. Nu s-a făcut split cosmetic și nu s-au păstrat
+rapoarte generate ca exemple.
+
+### Hardening închis — `RUNTIME-JS-DURATION-FRAGMENTS-07`
+
+Refactorizarea live a închis monolitul de durată în patru seams testabile:
+`ExtentReportDurationParsing`, `ExtentReportDurationAggregation`,
+`ExtentReportDurationProjection` și `ExtentReportDurationLifecycle`; facade-ul
+public rămâne `ExtentReportDurationRuntime`. `ExtentReportDurationRuntimeComponentTest`
+verifică ordinea, owner-ul unic și delimitarea funcțiilor, iar gate-ul de
+integrare/E2E verifică parity pentru durate măsurate, agregate și absente.
+Verificarea finală în ATF Debug a confirmat `data-atf-duration-ready`, fără
+overflow orizontal, fără `<hr>` decorative și fără erori de consolă. Nu se
+deschide un ToDo nou pentru o împărțire cosmetică a stringurilor JavaScript.
+
+### Hardening închis — `RUNTIME-JS-VOCABULARY-02`
+
+Reconcilierea live a închis și ultimul gap de lizibilitate din core-ul runtime:
+`ExtentReportRuntimeVocabulary` deține acum funcțiile injectate, selectorii,
+atributele, clasele CSS semantice și statusurile/match-token-urile lor, iar
+`ExtentReportRuntimeCore` le emite prin helperi coeziți. Nu mai există statusuri
+sau clase semantice duplicate în builder-ul JavaScript. `ExtentReportRuntimeScriptTest`
+verifică unicitatea declarațiilor și prezența contractului public. Acesta este
+un hardening închis, nu un motiv pentru un nou pachet de constante generic.
+
+### Hardening închis — `RUNTIME-JS-MODULE-GRAPH-03`
+
+Auditul claselor `ExtentReportDurationRuntime`, `ExtentReportRuntimeEvidence`,
+`ExtentReportRuntimeOverview`, `ExtentReportRuntimeNavigation`,
+`ExtentReportRuntimeTests` și `ExtentReportFailureRuntime` a confirmat că
+responsabilitățile lor sunt semantice și nu trebuie combinate într-un runtime
+monolitic. Pentru a elimina singura duplicare structurală rămasă,
+`ExtentReportRuntimeModule` deține registry-ul tipizat al producerilor și al
+owner-ilor de publicare, iar `ExtentReportRuntimeBehaviour` doar îl compune.
+`ExtentReportRuntimeModuleTest` verifică ordinea, source-ul non-empty și
+unicitatea globală a declarațiilor de funcții. Durata, evidence, overview,
+navigarea, Tests și Fails au acum fiecare un seam component stabil; nu se adaugă
+clase noi doar pentru a împărți string-uri JavaScript și nu se păstrează rapoarte
+generate ca fixtures.
+
+### Hardening închis — `HTML-VOCABULARY-04`
+
+Gate-ul complet a relevat și a închis un defect punctual în vocabularul HTML:
+`AtfReportHtmlVocabulary.escapeHtml` encodează acum și apostroful (`&#39;`), la
+fel ca celelalte caractere rezervate. Fixul este acoperit de
+`AtfReportHtmlVocabularyTest`; nu schimbă contractul runtime, dar elimină
+diferența dintre textul HTML și valorile de atribut înainte de publicare.
+
+### Regulă permanentă — promovarea verificărilor spre component
+
+Pentru orice test E2E care produce sau consumă un raport Extent, auditul se
+împarte astfel:
+
+| Conținut | Nivel corect | Motiv |
+|---|---|---|
+| HTML/CSS/JavaScript static, enum-uri și builders | unit/component | poate fi verificat fără browser |
+| mock body, request/response JSON și reconciliere de contract | component/integration | inputul este determinist și auditabil |
+| raport API folosit ca setup pentru UI | setup read-only | este precondiție, nu screen validation |
+| click, tab, collapse, computed-style, wrapping, screenshot și consolă | E2E | depinde de randarea browserului |
+
+`SelectedApiTestsReportUiTest` rămâne composition root configurabil; nu se
+duplică aceeași verificare în câte un test pentru fiecare secțiune. La fiecare
+refactorizare se verifică mai întâi dacă o aserțiune poate coborî în component;
+E2E-ul rămâne minim și păstrează numai comportamentul imposibil de demonstrat
+static. Nu se păstrează rapoarte HTML concrete ca exemple în feedback.
+
+## Îmbunătățiri urmărite fără ToDo activ
+
+Acestea sunt criterii de revizie pentru schimbări viitoare, nu lucrări restante.
+Se activează numai dacă apare trigger-ul din prima coloană:
+
+| Trigger observabil | Invariant urmărit | Dovadă necesară |
+|---|---|---|
+| secțiune nouă în raport | vocabular tipizat, model runtime și proiecții coerente în toate tab-urile | component contract + parity + E2E doar pentru interacțiune/layout |
+| input sau opțiune nouă de publicare | cale și nume rezolvate la boundary, fără scurgere de filesystem în evidence sau docs | loader/publication test + verificare statică a documentației |
+| mutare de package sau owner | `production`, `test`, `support` și nivelul de test rămân separabile | architecture guard + inventory live |
+| status nou sau failure-path nou | `Tests`, `Overview`, `Categories` și `Fails` spun aceeași poveste | caz pozitiv și negativ + parity assertion |
+| explorare MCP sub limita de viewport suportată | gate-ul folosește viewport-ul configurat și o probă cu cel mult 25% mai îngustă; abaterile mai jos sunt `known issue`, nu verdict de release | observație fără nume de HTML, owner + limită de redeschidere |
+| documentația ar cere un raport generat ca exemplu | contractul nu este suficient de self-explanatory | rescriere cu diagramă, tabel și placeholder semantic; niciun fișier generat păstrat |
+
+La fiecare audit se verifică întâi dacă trigger-ul există în codul live. Dacă nu
+există, nu se deschide un ToDo speculativ și nu se adaugă un README de pachet doar
+pentru inventar.
+
+## Criterii de redeschidere
+
+Un gap închis se redeschide numai dacă apare unul dintre următoarele:
+
+| Trigger | Dovadă necesară |
+|---|---|
+| schimbare de markup/CSS/JavaScript | test component/static actualizat și verificare browser a comportamentului afectat |
+| schimbare în arborele semantic | parity test sau contract de model nou |
+| mutare de package/owner | architecture guard și inventory al surselor |
+| schimbare de output/configurație | test de loader + test de publication path; fără cale absolută în documentație |
+| schimbare de sync/promovare | manifest/guard actualizat și staging extern; niciun run activ oprit |
+
+## Protocol repetabil
+
+```text
+cod live curent
+  → staging extern nou, cu target/artifacts excluse
+  → test focalizat și apoi gate-ul relevant
+  → raport HTML proaspăt în staging, dacă schimbarea produce reporting
+  → ATF Debug + Chromium/Playwright MCP: DOM, computed-style, tab-uri, click/collapse, consolă
+  → sincronizare selectivă live, după reconcilierea driftului paralel
+  → README owner actualizat; aici rămâne numai gap-ul observabil
+```
+
+Output-ul generat este verificat prin tipul și locația configurată, nu printr-un
+nume concret păstrat în documentație. Rapoartele temporare nu sunt exemple
+normative și nu sunt referențiate de README-uri.

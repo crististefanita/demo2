@@ -1,0 +1,13 @@
+package atf.api.reporting.runtime.evidence;
+
+public final class ExtentReportRuntimeEvidenceRoles {
+    private ExtentReportRuntimeEvidenceRoles() {}
+
+    public static String script() {
+        return ""
+                + "function assignNodeRoles(){q('.test-contents .card-title a.node,.atf-failure-test-detail .card-title a.node').forEach(function(node){var title=text(node,''),card=node.closest('.card');if(!card||isScenarioCard(card))return;var upper=title.toUpperCase(),role='';if(upper==='SETUP'||upper==='TEST BODY'||upper==='TEARDOWN')role='phase';else if(/^GET |^POST |^PUT |^PATCH |^DELETE |^HEAD /.test(upper)||/^(GIVEN|WHEN|THEN|AND|BUT)\\s+/.test(upper))role='request';else if(/^VALIDATE[: ]/.test(upper)||upper.indexOf('VALIDATION')>=0)role='validation';if(role)card.setAttribute('data-atf-node-role',role);if(role==='phase')card.setAttribute('data-atf-phase-name',upper.toLowerCase().replace(/\\s+/g,'-'));if(card.querySelector('.helm-trace-table'))card.setAttribute('data-atf-evidence-kind','trace');if(card.querySelector('pre.code-block,textarea.code-block'))card.setAttribute('data-atf-evidence-kind','json');if(card.querySelector('.helm-validation-table'))card.setAttribute('data-atf-evidence-kind','assertions');});}"
+                + "function nodeEventTable(card){if(!card)return null;var panel=card.querySelector(':scope>.collapse')||card.querySelector(':scope>.show')||card.querySelector(':scope>.accordion');return (panel&&panel.querySelector('table.table'))||card.querySelector('table.table');}"
+                + "function directEvidenceTable(card){return card.querySelector(':scope>.card-body>.table')||card.querySelector(':scope>.collapse>.card-body>.table')||card.querySelector(':scope>.show>.card-body>.table')||card.querySelector(':scope>div:not(.card-header):not(.accordion)>.card-body>.table');}";
+    }
+}
+

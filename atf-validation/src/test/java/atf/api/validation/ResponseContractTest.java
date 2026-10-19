@@ -1,20 +1,25 @@
 package atf.api.validation;
 
-import atf.api.core.http.ApiResponse;
-import atf.api.core.reporting.AtfReportStatus;
+import atf.api.core.http.response.ApiResponse;
+import atf.api.core.reporting.contract.AtfReportStatus;
 import atf.api.validation.contract.ContractValidators;
 import atf.api.validation.contract.ResponseContract;
 import atf.api.validation.contract.SchemaResourceResolver;
 import atf.api.validation.evaluation.ValidationEvaluator;
 import atf.api.validation.evaluation.ValidationTable;
+import atf.api.testkit.AtfUnitTest;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Comparator;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+
+@AtfUnitTest
 
 class ResponseContractTest {
     private static ApiResponse response(String body) {
@@ -93,9 +98,9 @@ class ResponseContractTest {
     void contractRejectsDuplicateRulesAndSecondEvaluation() {
         var contract = new ResponseContract().status(200);
         assertThrows(IllegalArgumentException.class, () -> contract.status(200));
-        var table = new atf.api.validation.evaluation.ValidationTable();
+        var table = new ValidationTable();
         contract.evaluate(response("{}"), table);
-        assertThrows(IllegalStateException.class, () -> contract.evaluate(response("{}"), new atf.api.validation.evaluation.ValidationTable()));
+        assertThrows(IllegalStateException.class, () -> contract.evaluate(response("{}"), new ValidationTable()));
     }
 
     @Test
@@ -150,8 +155,8 @@ class ResponseContractTest {
         } finally {
             Files.deleteIfExists(outside);
             try (var paths = Files.walk(root)) {
-                paths.sorted(java.util.Comparator.reverseOrder()).forEach(path -> {
-                    try { Files.deleteIfExists(path); } catch (java.io.IOException ignored) { }
+                paths.sorted(Comparator.reverseOrder()).forEach(path -> {
+                    try { Files.deleteIfExists(path); } catch (IOException ignored) { }
                 });
             }
         }

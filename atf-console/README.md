@@ -1,8 +1,19 @@
-# ATF Console — proiecția diagnostică
+# ATF Console — proiecție diagnostică
 
 `atf-console` este implementarea separată și configurabilă YAML a proiecției de
 consolă pentru evenimentele neutre ATF. Nu produce HTML, nu cunoaște
 ExtentReports și nu calculează verdicturi.
+
+## Diagramă de bază
+
+```mermaid
+flowchart LR
+    Core[atf-core<br/>AtfConsoleEvent + sink] --> Console[atf-console<br/>formatter + lifecycle]
+    Execution[atf-execution<br/>optional events] --> Console
+    Config[reporting.console<br/>YAML settings] --> Console
+    Console --> Output[stdout/stderr diagnostic projection]
+    Console -. nu deține .-> Reporting[atf-reporting HTML artifact]
+```
 
 ## Boundary
 
@@ -18,6 +29,13 @@ atf-reporting  produce numai artifacte HTML/Extent
 `ConsoleSettings` din propriul modul. Detaliile sunt opt-in prin
 `reporting.console.detailsEnabled`, iar
 consola nu poate modifica statusul sau cauza unui test.
+
+`atf-console` este singurul owner al stream-urilor procesului: numai aici
+există referințe la `System.out`/`System.err` și numai aici se face `println`.
+Launcher-ele și test-kit-ul nu primesc `PrintStream` și nu scriu direct; folosesc
+`AtfConsoleReporter.configuredStdout()` sau un `AtfConsoleSink` injectat.
+`AtfDebugUiLauncher` folosește `info(...)` pentru mesajele de bootstrap, iar
+raportarea HTML rămâne renderer-neutrală.
 
 Implementarea este OOP și are responsabilități separate: `AtfConsoleReporter`
 este adaptorul thread-safe către `PrintStream`, `AtfConsoleFormatter` este
@@ -61,7 +79,7 @@ Un composition root injectează explicit sink-ul:
 
 ```java
 var settings = AtfConsoleConfigurationLoader.load().settings();
-var console = new AtfConsoleReporter(System.out, settings);
+var console = AtfConsoleReporter.configuredStdout();
 var module = ApiModuleFactory.create(config, console);
 ```
 

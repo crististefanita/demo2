@@ -1,6 +1,7 @@
 package atf.api.validation.contract;
+import atf.api.testkit.AtfUnitTest;
 
-import atf.api.core.http.ApiResponse;
+import atf.api.core.http.response.ApiResponse;
 import atf.api.validation.evaluation.ValidationTable;
 import org.junit.jupiter.api.Test;
 
@@ -9,6 +10,8 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@AtfUnitTest
 
 class ResponseContractRuleSetTest {
     @Test

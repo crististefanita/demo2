@@ -1,7 +1,16 @@
 package atf.api.debugui;
+import atf.api.testkit.AtfComponentTest;
 
+
+import atf.api.console.AtfConsoleReporter;
+import atf.api.core.reporting.console.AtfConsoleSink;
+import com.fasterxml.jackson.annotation.JsonView;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.yaml.snakeyaml.Yaml;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -26,8 +35,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * The test owns and terminates only the two child launchers it creates; it
  * never discovers or touches any already-running ATF Debug UI process.
  */
+@AtfComponentTest
 class AtfDebugUiLauncherParallelTest {
-    private static final String TARGET_PREFIX = "[ATF DEBUG UI] Target for Playwright/TAB MCP: ";
+    private static final String TARGET_PREFIX = "[ATF] [ATF DEBUG UI] Target for Playwright/TAB MCP: ";
     private static final Pattern ERROR_FILE = Pattern.compile("hs_err_pid\\d+\\.log");
 
     @Test
@@ -82,13 +92,25 @@ class AtfDebugUiLauncherParallelTest {
 
     private static String launcherClasspath() {
         try {
-            Path launcherClasses = Path.of(AtfDebugUiLauncher.class.getProtectionDomain()
-                    .getCodeSource().getLocation().toURI());
+            List<String> locations = List.of(
+                    codeSource(AtfDebugUiLauncher.class),
+                    codeSource(AtfConsoleReporter.class),
+                    codeSource(AtfConsoleSink.class),
+                    codeSource(JsonView.class),
+                    codeSource(JsonFactory.class),
+                    codeSource(ObjectMapper.class),
+                    codeSource(YAMLFactory.class),
+                    codeSource(Yaml.class));
             String current = System.getProperty("java.class.path", "");
-            return launcherClasses + java.io.File.pathSeparator + current;
+            return String.join(java.io.File.pathSeparator, locations)
+                    + java.io.File.pathSeparator + current;
         } catch (Exception error) {
             throw new IllegalStateException("Cannot resolve ATF Debug UI launcher classes", error);
         }
+    }
+
+    private static String codeSource(Class<?> type) throws Exception {
+        return Path.of(type.getProtectionDomain().getCodeSource().getLocation().toURI()).toString();
     }
 
     private static URI readTarget(Process process) {

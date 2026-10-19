@@ -1,3 +1,5 @@
+modules: [api, reporting, ui]
+
 api:
   # Typed API bootstrap. Acceptance is explicit, offline and deterministic;
   # live requires -Datf.api.live.optIn=true (or ATF_API_LIVE_OPT_IN=true).
@@ -36,45 +38,4 @@ reporting:
     timestampPattern: yyyy-MM-dd_HH-mm-ss-SSS
     timestampZone: system
 
-ui:
-  # setup -> API scenario collection -> mock YAML -> Extent -> UI deep validation
-  browser: chromium
-  baseUrl: about:blank
-  headless: false
-  timeout: PT10S
-  navigationTimeout: PT45S
-  viewport:
-    width: 1440
-    height: 900
-  screenshotOnFailure: true
-  screenValidation:
-    # One native Base64 screenshot link backs any number of assertions captured
-    # from the same visual state. The disclosure stays collapsed by default.
-    enabled: true
-    fullPage: false
-  apiSetup:
-    # This is the executable API collection. Add/remove families here; the
-    # UI report and mock-driven deep validator discover the resulting routes.
-    scenarioFamilies: [posts, users, requests, headers, flows, negative, lifecycle]
-  audit:
-    # Optional existing Extent input for ExistingExtentReportExploratoryTest.
-    # Keep this unset when the UI test should consume a freshly generated API report.
-    # inputReport: artifacts/reports/api-atf-extent-report.html
-    suites:
-      users-posts:
-        scenarioFamilies: [users, posts]
-        tabs: [tests, overview, categories, fails, evidence]
-        validators: [setup, tests, request-contract, overview, categories, fails, duration, responsive, evidence, cross-tab]
-        depth: deep
-        source: yaml
-      all-api:
-        scenarioFamilies: [posts, users, requests, headers, flows, negative, lifecycle]
-        tabs: [tests, overview, categories, fails, evidence]
-        validators: [setup, tests, request-contract, overview, categories, fails, duration, responsive, evidence, cross-tab]
-        depth: deep
-        source: yaml
-  report:
-    # UI validation artifacts are isolated from the canonical API reports.
-    directory: artifacts/reports/ui
-    filePrefix: ui-atf-extent-report_
 

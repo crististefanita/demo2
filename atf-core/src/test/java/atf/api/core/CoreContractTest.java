@@ -1,16 +1,20 @@
 package atf.api.core;
 
-import atf.api.core.http.ApiRoute;
-import atf.api.core.http.ApiUrlBuilder;
-import atf.api.core.reporting.AtfReportStatus;
+import atf.api.core.http.request.ApiRoute;
+import atf.api.core.http.request.ApiUrlBuilder;
+import atf.api.core.reporting.contract.AtfReportStatus;
+import atf.api.core.security.RedactionSettings;
 import atf.api.core.security.SensitiveDataRedactor;
+import atf.api.testkit.AtfUnitTest;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
-import java.util.Set;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
+
+@AtfUnitTest
 
 class CoreContractTest {
     @Test
@@ -84,7 +88,7 @@ class CoreContractTest {
 
     @Test
     void piiRedactionIsExplicitAndDoesNotChangeTransportDefaults() {
-        var redactor = new SensitiveDataRedactor(new atf.api.core.security.RedactionSettings(
+        var redactor = new SensitiveDataRedactor(new RedactionSettings(
                 true, "[hidden]", false, true, Set.of("authorization")));
 
         assertEquals("[hidden] [hidden]", redactor.redact("person@example.test +40 (721) 123-456"));

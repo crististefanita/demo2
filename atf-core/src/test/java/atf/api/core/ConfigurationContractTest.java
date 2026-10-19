@@ -1,4 +1,6 @@
 package atf.api.core;
+import atf.api.testkit.AtfUnitTest;
+
 
 import atf.api.core.config.ApiSettings;
 import atf.api.core.config.AtfConfiguration;
@@ -11,6 +13,8 @@ import java.time.Duration;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
+
+@AtfUnitTest
 
 class ConfigurationContractTest {
     @Test

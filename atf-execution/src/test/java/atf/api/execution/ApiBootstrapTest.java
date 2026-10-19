@@ -1,10 +1,11 @@
 package atf.api.execution;
+import atf.api.testkit.AtfComponentTest;
 
+import atf.api.core.http.request.ApiRequest;
+import atf.api.core.http.response.ApiResponse;
+import atf.api.core.http.transport.ApiTransport;
 import atf.api.core.config.AtfConfiguration;
 import atf.api.core.config.ReportingSettings;
-import atf.api.core.http.ApiRequest;
-import atf.api.core.http.ApiResponse;
-import atf.api.core.http.ApiTransport;
 import atf.api.core.config.ApiSettings;
 import org.junit.jupiter.api.Test;
 
@@ -15,6 +16,8 @@ import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+@AtfComponentTest
 
 class ApiBootstrapTest {
     private static final ApiTransport TRANSPORT = (request, url, auth) ->
