@@ -1,21 +1,21 @@
 package atf.api.reporting.evidence;
-import atf.api.core.http.response.ApiAttemptRecord;
-import atf.api.core.http.response.ApiExecutionResult;
-import atf.api.core.reporting.duration.AtfDurationFormatter;
+import atf.api.reporting.api.ReportAttemptRecord;
+import atf.api.reporting.model.ReportExecutionEvidence;
+import atf.api.reporting.duration.AtfDurationFormatter;
 import atf.api.reporting.markup.AtfReportEvidenceKeys;
 import atf.api.reporting.markup.AtfReportLabels;
 import atf.api.reporting.markup.AtfReportMarkup;
 import atf.api.reporting.markup.ExtentReportAssets;
 import atf.api.reporting.markup.ExtentReportNodeSupport;
 import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
-import atf.api.core.reporting.contract.AtfReportStatus;
+import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.model.ReportField;
 import atf.api.reporting.model.ReportJsonBody;
 import atf.api.reporting.model.ReportCheck;
 import atf.api.reporting.model.ReportScreenshot;
 
-import atf.api.core.config.ReportingSettings;
-import atf.api.core.security.SensitiveDataRedactor;
+import atf.api.reporting.configuration.ReportingSettings;
+import atf.api.reporting.security.SensitiveDataRedactor;
 import com.aventstack.extentreports.ExtentTest;
 import com.aventstack.extentreports.markuputils.MarkupHelper;
 
@@ -213,7 +213,7 @@ public final class ExtentTransportEvidenceRenderer {
                 .startsWith(AtfReportLabels.REQUEST_JSON);
     }
 
-    void renderExecution(ExtentTest node, ApiExecutionResult execution) {
+    void renderExecution(ExtentTest node, ReportExecutionEvidence execution) {
         if (execution == null) return;
         var body = new StringBuilder(AtfReportHtmlVocabulary.openTag(
                 AtfReportHtmlVocabulary.Tag.DIV,
@@ -292,17 +292,17 @@ public final class ExtentTransportEvidenceRenderer {
                 .replace(">", "&gt;").replace("\"", "&quot;");
     }
 
-    private String[][] attemptRows(List<ApiAttemptRecord> attempts) {
+    private String[][] attemptRows(List<ReportAttemptRecord> attempts) {
         String[][] rows = new String[attempts.size() + 1][5];
         rows[0] = new String[]{AtfReportLabels.ATTEMPT, AtfReportLabels.STATUS,
                 AtfReportLabels.DURATION, AtfReportLabels.OUTCOME, AtfReportLabels.REASON};
         for (int index = 0; index < attempts.size(); index++) {
-            ApiAttemptRecord attempt = attempts.get(index);
+            ReportAttemptRecord attempt = attempts.get(index);
             rows[index + 1] = new String[]{
                     String.valueOf(attempt.number()),
                     String.valueOf(attempt.statusCode()),
                     AtfDurationFormatter.format(attempt.duration()),
-                    attempt.outcome().name(),
+                    attempt.outcome(),
                     redactor.redactText(attempt.reason())};
         }
         return rows;

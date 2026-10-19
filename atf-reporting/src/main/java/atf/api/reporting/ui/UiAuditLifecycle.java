@@ -1,8 +1,8 @@
 package atf.api.reporting.ui;
 
-import atf.api.core.reporting.contract.AtfAssertion;
-import atf.api.core.reporting.contract.AtfReportStatus;
-import atf.api.core.ui.AtfUiActionRecord;
+import atf.api.reporting.contract.AtfAssertion;
+import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.ui.AtfUiActionRecord;
 
 import java.util.Collection;
 import java.util.List;

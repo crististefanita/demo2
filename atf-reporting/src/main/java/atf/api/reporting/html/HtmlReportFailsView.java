@@ -20,7 +20,7 @@ public final class HtmlReportFailsView {
                             AtfReportHtmlVocabulary.CssClass.FAIL_ROW))
                     .append(" href=\"#").append(failure.scenarioId()).append("\">")
                     .append("<span ").append(AtfReportHtmlVocabulary.classAttribute(
-                            AtfReportHtmlVocabulary.statusClasses(atf.api.core.reporting.contract.AtfReportStatus.FAIL)))
+                            AtfReportHtmlVocabulary.statusClasses(atf.api.reporting.contract.AtfReportStatus.FAIL)))
                     .append(">Fail</span><strong>")
                     .append(escape(failure.assertionName())).append("</strong><span>")
                     .append(escape(failure.actual())).append("</span></a>");

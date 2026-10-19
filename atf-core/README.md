@@ -4,15 +4,30 @@
 abstracții reutilizabile, fără să decidă cum este orchestrat un scenariu sau
 cum este randat un raport.
 
+## Overall
+
+| Deține | Consumatori | Limită |
+|---|---|---|
+| lifecycle, ports, HTTP vocabulary și module IDs | execution, validation, mock, UI și guvernanță | nu publică HTML |
+| snapshot-uri și politici neutre | composition roots | nu deține scenarii concrete |
+
 ## Diagramă de bază
 
 ```mermaid
-flowchart LR
+flowchart TB
     Validation[atf-validation] --> Core[atf-core]
-    Execution[atf-execution] --> Core
+    ReportingTests[atf-reporting-tests test fixtures] --> Core
     Reporting[atf-reporting] --> Core
-    Tests[atf-reporting test scope] --> Core
+    Tests[atf-reporting-tests composition] --> Core
 ```
+
+<details>
+<summary><strong>Legendă — poziția kernelului</strong></summary>
+- săgeata înseamnă „modulul de sus depinde de modulul de jos”;
+- atf-core este ultimul boundary comun din această hartă;
+- atf-core nu depinde de modulele care îl consumă;
+- fixture-urile concrete, browserul, JUnit-ul și rendererul rămân în modulele consumatoare.
+</details>
 
 Săgeata înseamnă „modulul din stânga depinde de modulul din dreapta”.
 `atf-core` nu depinde de modulele de deasupra lui. El furnizează vocabularul
@@ -54,11 +69,10 @@ core lifecycle ports + immutable outcome
 execution service | reporting publisher | another consumer
 ```
 
-`atf-execution` păstrează numai responsabilitățile de execuție concrete
-(`ApiModule`, servicii, `RoutePaths` și `CleanupRegistry`). `atf-reporting`
-poate utiliza lifecycle-ul din core în producție fără să depindă de execution;
-testele sale pot atașa un adapter de test separat când verifică scenarii
-existente. Un lifecycle nou se adaugă în core numai dacă rămâne endpoint-neutral
+`atf-reporting-tests` păstrează fixture-urile concrete (`ApiModule`, servicii,
+`RoutePaths` și adapter-ele lor) în test scope, iar `CleanupRegistry` rămâne
+în core ca mecanism generic. `atf-reporting` poate utiliza lifecycle-ul din core
+în producție fără să depindă de fixture-uri concrete. Un lifecycle nou se adaugă în core numai dacă rămâne endpoint-neutral
 și este acoperit de teste unitare fără browser sau transport real.
 
 ## Cohesiune și ownership pentru vocabularul HTTP
@@ -71,17 +85,16 @@ un boundary distinct. `ApiPathTemplate` este mecanismul generic pentru join,
 validare și rezolvare sigură a segmentelor; nu este catalogul unui produs.
 
 Catalogul concret este deținut de consumerul care execută sau simulează ruta:
-`atf-execution` deține `RoutePaths` pentru serviciile Users/Posts și metadatele
-`ApiRoutes`, iar `atf-mock` deține `MockRoutePaths` pentru fixture-ul built-in.
-Testele `atf-reporting` consumă aceste referințe prin test scope; reporting
-production nu deține endpoint-uri și nu devine dependent de un catalog de
-business. `ApiPaths` a fost eliminat din core tocmai pentru a evita ca un
-catalog concret să pară platformă generică și pentru a evita o dependență
-ciclică `atf-reporting → atf-execution → core`.
+`atf-reporting-tests` deține `RoutePaths`, `ApiRoutes` și serviciile Users/Posts
+în test scope, iar `atf-mock` deține `MockRoutePaths` pentru fixture-ul built-in.
+Reporting production nu deține endpoint-uri și nu devine dependent de un catalog
+de business. `ApiPaths` a fost eliminat din core tocmai pentru a evita ca un
+catalog concret să pară platformă generică. Direcția corectă este
+`consumer → atf-core`, iar reporting rămâne standalone.
 
 ```text
 ApiPathTemplate (core, generic)
-        ├── RoutePaths / ApiRoutes (execution, concrete API)
+        ├── RoutePaths / ApiRoutes (reporting-tests, concrete API fixtures)
         ├── MockRoutePaths (mock, built-in fixture)
         └── reporting tests consume semantic references; no raw URL literals
 ```
@@ -167,7 +180,7 @@ consumer annotation
 ```
 
 Catalogul care știe cum se mapează `UsersApiScenarios`, `PostsApiScenarios` sau
-`LifecycleApiScenarios` rămâne în test scope-ul `atf-reporting`: este o
+`LifecycleApiScenarios` rămâne în composition scope-ul `atf-reporting-tests`: este o
 compoziție de produs, nu platformă. Loaderul generic pentru `atf.yaml` este însă în `config.source`,
 fiind reutilizabil de orice composition root; catalogul concret, YAML-ul mock,
 JUnit și orchestration-ul rămân în modulele consumatoare.
@@ -260,5 +273,5 @@ Testele din `atf-core` verifică separat:
 - `ApiScenarioSelection` și contractele de annotation fără JUnit/browser;
 
 Un test core nu generează raport HTML. Dovada vizuală și scenariile end-to-end
-ale raportării aparțin test scope-ului `atf-reporting`; `atf-tests` este doar
+ale raportării aparțin composition scope-ului `atf-reporting-tests`; `atf-tests` este doar
 shell de compatibilitate.

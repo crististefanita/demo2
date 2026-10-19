@@ -1,5 +1,5 @@
 package atf.api.reporting.evidence;
-import atf.api.core.reporting.duration.AtfDurationFormatter;
+import atf.api.reporting.duration.AtfDurationFormatter;
 import atf.api.reporting.model.ReportField;
 
 

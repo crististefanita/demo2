@@ -1,5 +1,5 @@
 package atf.api.reporting.ui.audit.section;
-import atf.api.core.reporting.contract.AtfAssertion;
+import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.audit.ReportAuditChecks;
 import atf.api.reporting.audit.ValidationResult;
 import atf.api.reporting.audit.ReportAuditSnapshot;

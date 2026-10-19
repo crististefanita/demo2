@@ -11,7 +11,6 @@ import java.net.URI;
 
 /** Executes and records page navigation, keyboard and stabilization actions. */
 final class PlaywrightBrowserActions {
-    private static final int STATE_POLL_INTERVAL_MS = 25;
     private static final int STATE_TIMEOUT_MS = 10_000;
     private final UiActionRecorder recorder;
 
@@ -49,6 +48,11 @@ final class PlaywrightBrowserActions {
         });
     }
 
+    void pressKey(Page page, String key, AtfLocator element, String expected) {
+        Objects.requireNonNull(element, "element");
+        pressKey(page, key, element.selector(), expected);
+    }
+
     void waitForAttribute(Page page, AtfLocator element, String attribute,
                           String expectedValue, String expected) {
         Objects.requireNonNull(page, "page");
@@ -79,6 +83,18 @@ final class PlaywrightBrowserActions {
         });
     }
 
+    void waitForEnabled(Page page, AtfLocator element, String expected) {
+        Objects.requireNonNull(page, "page");
+        Objects.requireNonNull(element, "element");
+        recorder.run("Wait for enabled", element.selector(), expected, () -> {
+            Locator target = element.locator();
+            target.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE));
+            waitUntil(page, target::isEnabled,
+                    "enabled=true on " + element.selector());
+            return "enabled=true";
+        });
+    }
+
     void waitForDisclosureOpen(Page page, AtfLocator summary, String expected) {
         Objects.requireNonNull(page, "page");
         Objects.requireNonNull(summary, "summary");
@@ -94,13 +110,12 @@ final class PlaywrightBrowserActions {
 
     private static void waitUntil(Page page, java.util.function.BooleanSupplier condition,
                                   String description) {
-        long deadline = System.nanoTime()
-                + java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(STATE_TIMEOUT_MS);
-        while (System.nanoTime() < deadline) {
-            if (condition.getAsBoolean()) return;
-            page.waitForTimeout(STATE_POLL_INTERVAL_MS);
+        try {
+            page.waitForCondition(condition,
+                    new Page.WaitForConditionOptions().setTimeout(STATE_TIMEOUT_MS));
+        } catch (RuntimeException error) {
+            throw new IllegalStateException("Timed out waiting for " + description, error);
         }
-        throw new IllegalStateException("Timed out waiting for " + description);
     }
 
     private static void requireExactlyOne(AtfLocator element, String operation) {

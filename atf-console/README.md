@@ -4,22 +4,38 @@
 consolă pentru evenimentele neutre ATF. Nu produce HTML, nu cunoaște
 ExtentReports și nu calculează verdicturi.
 
+## Overall
+
+| Intrare | Output | Limită |
+|---|---|---|
+| `AtfConsoleEvent` + `ConsoleSettings` | diagnostic stdout/stderr | nu produce artifact |
+| lifecycle execution | evenimente formatate | nu decide verdictul |
+| YAML `reporting.console` | detalii configurabile | nu schimbă execuția |
+
 ## Diagramă de bază
 
 ```mermaid
-flowchart LR
+flowchart TB
     Core[atf-core<br/>AtfConsoleEvent + sink] --> Console[atf-console<br/>formatter + lifecycle]
-    Execution[atf-execution<br/>optional events] --> Console
+    CoreEvents[atf-core<br/>optional events] --> Console
     Config[reporting.console<br/>YAML settings] --> Console
     Console --> Output[stdout/stderr diagnostic projection]
     Console -. nu deține .-> Reporting[atf-reporting HTML artifact]
 ```
 
+<details>
+<summary><strong>Legendă — proiecția de consolă</strong></summary>
+- atf-core definește evenimentul neutru și portul; atf-console îl formatează;
+- configurația reporting.console controlează numai această proiecție;
+- ieșirea este diagnostică (stdout/stderr), nu artifact HTML și nu verdict;
+- muchia punctată este o limită: consola nu deține rendererul atf-reporting.
+</details>
+
 ## Boundary
 
 ```text
 atf-core       definește AtfConsoleEvent și AtfConsoleSink
-atf-execution  publică evenimente prin sink-ul opțional
+atf-core        publică evenimente prin sink-ul opțional
 atf-console    formatează evenimentele și citește reporting.console din YAML
 atf-console    include lifecycle-ul și extension-ul JUnit opțional
 atf-reporting  produce numai artifacte HTML/Extent

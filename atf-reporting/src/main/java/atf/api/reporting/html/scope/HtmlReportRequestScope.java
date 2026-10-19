@@ -1,11 +1,11 @@
 package atf.api.reporting.html.scope;
 
-import atf.api.core.http.response.ApiExecutionResult;
-import atf.api.core.reporting.console.AtfConsoleEvent;
-import atf.api.core.reporting.console.AtfConsoleSink;
-import atf.api.core.reporting.contract.AtfReportPorts;
-import atf.api.core.reporting.contract.AtfReportStatus;
-import atf.api.core.ui.AtfUiActionRecord;
+import atf.api.reporting.model.ReportExecutionEvidence;
+import atf.api.reporting.console.AtfConsoleEvent;
+import atf.api.reporting.console.AtfConsoleSink;
+import atf.api.reporting.contract.AtfReportPorts;
+import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.ui.AtfUiActionRecord;
 import atf.api.reporting.html.HtmlReportSemanticDocument;
 import atf.api.reporting.semantic.AtfReportSemanticRecorder;
 
@@ -43,7 +43,7 @@ public final class HtmlReportRequestScope implements AtfReportPorts.Request {
     }
 
     @Override
-    public void execution(ApiExecutionResult result) {
+    public void execution(ReportExecutionEvidence result) {
         model.execution(result);
         semantic.execution();
     }

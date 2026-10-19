@@ -6,16 +6,40 @@ există execuții active în alt checkout. Documentele sunt scrise pentru oameni
 care întrețin framework-ul, nu pentru o singură rulare sau pentru un singur
 artifact.
 
+## Overall
+
+| Nivel | Documente | Întrebarea la care răspund |
+|---|---|---|
+| hartă | `ATF_Architecture.md`, README-ul root | cine deține ce și în ce direcție curg dependențele? |
+| contract | `ATF_Reporting_Contract.md`, ghidurile de modul | ce comportament este stabil? |
+| practică | `README_Atf_BestPractices.md` | cum adăugăm cod fără drift? |
+| execuție | `ATF_Build_And_Execution_Safety.md` | cum lucrăm fără să oprim run-uri? |
+| feedback | `feedback/README.md` și documentele active pe owner | ce gap observabil rămâne? |
+
+Indexul păstrează harta; detaliile sunt în documentul ownerului și cresc în
+specificitate pe măsură ce coborâm în pagină.
+
 ## Diagramă de bază
 
 ```mermaid
-flowchart TD
+flowchart TB
     Docs[docs index] --> Architecture[architecture + module boundaries]
     Docs --> Guides[API/UI guides + contracts]
     Docs --> Safety[build and execution safety]
     Docs --> Practices[best practices]
-    Docs --> Feedback[feedback register + dated audits]
+    Docs --> Feedback[feedback register + active owner docs]
 ```
+
+<details>
+<summary><strong>Legendă — cum citești harta documentației</strong></summary>
+
+- `Architecture` fixează modulele, boundaries și direcția dependențelor;
+- `Guides` și contractele descriu folosirea stabilă a framework-ului;
+- `Safety` descrie staging-ul, sync-ul și gate-urile de execuție;
+- `Practices` descrie regulile transversale, iar `Feedback` păstrează numai gap-uri
+  reproductibile și ownership-ul lor.
+
+</details>
 
 ## Ordinea recomandată de lectură
 
@@ -24,63 +48,74 @@ flowchart TD
    și modelele comune.
 3. [../atf-test-kit/README.md](../atf-test-kit/README.md) — contractul test-only
    pentru nivelurile unit/component/integration/e2e și guard-ul transversal.
-4. [../atf-execution/README.md](../atf-execution/README.md) — API layer,
-   servicii, composition root și lifecycle.
+4. [../atf-reporting-tests/README.md](../atf-reporting-tests/README.md) — fixture-uri
+   API, composition root și lifecycle de test.
 5. [../atf-validation/README.md](../atf-validation/README.md) — validarea
    independentă și portul de publicare.
 6. [../atf-reporting/README.md](../atf-reporting/README.md) — rendererul,
-   contractele și suita test-only/component/E2E pentru raportare.
-7. [../atf-tests/README.md](../atf-tests/README.md) — guvernanța globală a
-   modulelor ATF și testul de boundary al întregului reactor.
-8. [../atf-console/README.md](../atf-console/README.md) — proiecția diagnostică
+   contractele pure ale librăriei și suita de compoziție component/E2E pentru raportare.
+7. [../atf-test-practice-shop/README.md](../atf-test-practice-shop/README.md) —
+   consumer Practice Shop, config, flow-uri și purchase E2E.
+8. [../atf-tests/README.md](../atf-tests/README.md) — guvernanța întregului reactor.
+9. [../atf-console/README.md](../atf-console/README.md) — proiecția diagnostică
    de consolă și contractul de output.
-9. [../atf-ui/README.md](../atf-ui/README.md) — politicile generice și adaptorul
+10. [../atf-ui/README.md](../atf-ui/README.md) — politicile generice și adaptorul
    Playwright.
-10. [../atf-reporting/src/test/java/atf/ui/tests/extent/README.md](../atf-reporting/src/test/java/atf/ui/tests/extent/README.md)
+11. [../atf-reporting-tests/src/test/java/atf/ui/tests/extent/README.md](../atf-reporting-tests/src/test/java/atf/ui/tests/extent/README.md)
    — contractul stabil pentru selecția API, mock-backed expected projection,
    secțiuni Extent și validarea UI reutilizabilă.
-11. [../atf-debug-ui/README.md](../atf-debug-ui/README.md) — publicarea
+12. [../atf-debug-ui/README.md](../atf-debug-ui/README.md) — publicarea
    read-only a unui HTML pentru investigație manuală în Playwright/TAB MCP.
-12. [ATF_API_TEST_GUIDE.md](ATF_API_TEST_GUIDE.md) — pașii minimali pentru un test API nou.
-13. [ATF_Reporting_Contract.md](ATF_Reporting_Contract.md) — arborele Extent,
+13. [ATF_Api_Test_Guide.md](ATF_Api_Test_Guide.md) — pașii minimali pentru un test API nou.
+14. [ATF_Reporting_Contract.md](ATF_Reporting_Contract.md) — arborele Extent,
    evidence-ul și regulile de randare.
-14. [ATF_Reporting_Reference_Guard.md](ATF_Reporting_Reference_Guard.md) —
+15. [ATF_Reporting_Reference_Guard.md](ATF_Reporting_Reference_Guard.md) —
    reperul vizual/funcțional și procedura de comparație în TAB MCP.
-15. [ATF_Build_And_Execution_Safety.md](ATF_Build_And_Execution_Safety.md) —
+16. [ATF_Build_And_Execution_Safety.md](ATF_Build_And_Execution_Safety.md) —
    build, sincronizare și validare fără oprirea execuțiilor existente.
-16. [README_Atf_BestPractices.md](README_Atf_BestPractices.md) — reguli OOP,
+17. [README_Atf_BestPractices.md](README_Atf_BestPractices.md) — reguli OOP,
    testabilitate și mentenanță.
-17. [feedback/ATF_Test_Layering_Feedback.md](feedback/ATF_Test_Layering_Feedback.md)
-   — delimitarea activă `unit → component → integration → e2e` și rolul
-   infrastructurii `support` pentru API, UI și reporting.
+18. [feedback/README.md](feedback/README.md) — ToDo active, criterii de închidere
+    și registrul de ownership pentru API, UI și reporting.
 
 ## Hartă rapidă a responsabilităților
 
 ```mermaid
-flowchart LR
-    ReportingTests[atf-reporting test scope<br/>API/UI tests + E2E] --> Execution[atf-execution<br/>API + lifecycle]
+flowchart TB
+    ReportingTests[atf-reporting-tests<br/>reporting-only API/UI + E2E] --> Reporting[atf-reporting<br/>standalone renderer]
+    ReportingTests --> Core[atf-core<br/>generic API + lifecycle]
+    ReportingTests --> Fixtures[concrete API fixtures<br/>test scope]
+    Fixtures --> Core
     ReportingTests --> Mock[atf-mock<br/>fake determinist]
     ReportingTests --> Validation[atf-validation<br/>contract + verdict]
     ReportingTests --> Reporting[atf-reporting<br/>Extent + HTML]
     ReportingTests --> Ui[atf-ui<br/>Playwright adapter]
     ReportingTests --> DebugUi[atf-debug-ui<br/>read-only inspector]
-    Execution --> Core[atf-core<br/>modele + porturi]
     Mock --> Core
     Validation --> Core
-    Reporting --> Core
     Ui --> Core
+    ShopTests[atf-test-practice-shop<br/>Practice Shop consumer] --> Reporting
+    ShopTests -. uses .-> Ui
+    AppTests[atf-tests<br/>whole-ATF governance] --> Reporting
 ```
 
-Săgeata înseamnă „depinde de”. `atf-reporting` production publică artifactul,
-iar test scope-ul aceluiași modul compune testele API, mock, contract/component
-și E2E UI. `atf-tests` deține doar testele de guvernanță globală și nu este
-composition root pentru API/UI; `atf-ui` controlează browserul, iar
-`atf-debug-ui` doar servește read-only un HTML deja generat.
-Pentru detalii și limitele exacte, `README.md` din root și
-`ATF_Architecture.md` sunt sursele normative.
+<details>
+<summary><strong>Legendă — harta responsabilităților</strong></summary>
+
+- săgeata solidă înseamnă „folosește/deține o dependență”;
+- săgeata punctată marchează o limită read-only sau de guvernanță;
+- `atf-reporting` este librăria standalone, iar modulele de testare sunt
+  consumatori/composition roots;
+- `atf-reporting-tests` verifică reporting-ul, `atf-test-practice-shop` verifică
+  aplicația Practice Shop, iar `atf-tests` guvernează întregul reactor.
+- `atf-ui` controlează browserul, iar `atf-debug-ui` servește read-only un HTML
+  deja generat;
+- detaliile exacte sunt în `README.md` din root și în `ATF_Architecture.md`.
+
+</details>
 
 Pentru auditul UI Extent, sursa normativă de implementare este README-ul
-pachetului `atf.ui.tests.extent` din `atf-reporting/src/test/java`:
+pachetului `atf.ui.tests.extent` din `atf-reporting-tests/src/test/java`:
 `SectionAuditRegistry` leagă cele șase module,
 `SectionAuditCheckExecutor` aplică policy-ul comun pe rezultate renderer-neutral,
 iar `ExtentSectionAuditPublisher` publică separat Extent/JUnit. Feedback-ul
@@ -100,11 +135,15 @@ Ordinea obligatorie și criteriile detaliate sunt în
 [README_Atf_BestPractices.md](README_Atf_BestPractices.md).
 
 Lucrările încă neînchise sunt păstrate în [feedback/README.md](feedback/README.md)
-și în documentele ToDo pe responsabilități. Analizele punctuale datate sunt
-indexate în [feedback/ATF_Live_Analysis_2026-10-18.md](feedback/ATF_Live_Analysis_2026-10-18.md).
-Deciziile închise sunt reflectate
-direct în README-urile ownerilor și în teste; feedback-ul rămâne concentrat pe
-riscurile și pașii care mai trebuie validați.
+și în documentul activ pe responsabilitate. Analizele datate cu toate ToDo-urile
+închise sunt arhivate în afara proiectului, nu sunt surse normative. Deciziile
+închise sunt reflectate direct în README-urile ownerilor și în teste; feedback-ul
+activ rămâne concentrat pe riscurile și pașii care mai trebuie validați.
+
+Testele aplicațiilor nu se documentează în README-ul de reporting. De exemplu,
+Practice Shop și configurația sa sunt în `atf-test-practice-shop/src/test`; un viitor
+consumator poate folosi `atf-reporting` dintr-un jar fără să importe
+`atf-reporting-tests`.
 
 Regula de promovare este strictă: când un ToDo devine parte din soluție, contractul
 stabil, ownership-ul și modul de folosire se mută în README-ul ownerului. Feedback-ul
@@ -114,6 +153,9 @@ sursa normativă pentru o capabilitate deja livrată.
 ## Reguli de documentație
 
 - README-urile descriu contracte, ownership și fluxuri reproductibile.
+- Numele documentelor descriptive folosesc `ATF_<PascalCase>`; acronimul `ATF`
+  apare o singură dată, în primul segment. README-ul unui modul rămâne
+  `README.md`, iar indexul feedback-ului rămâne `docs/feedback/README.md`.
 - Nu se introduc scoruri, timestamp-uri, nume de rapoarte sau stări intermediare.
 - Nu se păstrează linkuri către artefacte HTML generate; se documentează doar
   tipul de output, locația configurabilă și criteriul de verificare.
@@ -145,7 +187,7 @@ valid/nevid și să reconcilieze mock expectation-ul cu `ValidationResult`.
 
 Build-ul se face în staging extern, sub `${ATF_STAGING_ROOT}`, nu în staging-ul
 proiectului; raportul fresh se copiază în
-`artifacts/reports/` sau `artifacts/reports/ui/` numai după verificarea prin
+`${ATF_REPORT_OUTPUT_DIR}` sau subdirectorul UI configurat numai după verificarea prin
 ATF Debug UI și browser MCP. Browserul Windows real și oprirea rulărilor curente
 sunt interzise.
 

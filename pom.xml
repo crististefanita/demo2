@@ -16,12 +16,13 @@
         <module>atf-core</module>
         <module>atf-mock</module>
         <module>atf-validation</module>
-        <module>atf-execution</module>
         <module>atf-console</module>
         <module>atf-reporting</module>
         <module>atf-ui</module>
         <module>atf-debug-ui</module>
+        <module>atf-test-practice-shop</module>
         <module>atf-tests</module>
+        <module>atf-reporting-tests</module>
     </modules>
 
     <properties>

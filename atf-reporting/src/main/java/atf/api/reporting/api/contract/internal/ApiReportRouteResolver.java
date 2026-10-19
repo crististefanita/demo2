@@ -1,6 +1,6 @@
 package atf.api.reporting.api.contract.internal;
 
-import atf.api.core.http.request.ApiQueryParameters;
+import atf.api.reporting.api.ReportQueryParameters;
 import atf.api.reporting.api.contract.ApiReportRouteContract;
 import atf.api.reporting.audit.ValidationResult;
 
@@ -30,7 +30,7 @@ public final class ApiReportRouteResolver {
             return new Resolution(Optional.empty(), ValidationResult.ofViolations(List.of(message)));
         }
 
-        ApiQueryParameters query = ApiReportContractValueSupport.queryFromUrl(requestUrl);
+        ReportQueryParameters query = ApiReportContractValueSupport.queryFromUrl(requestUrl);
         List<ApiReportRouteContract> candidates = routes.stream()
                 .filter(route -> route.matches(signature.method(), signature.path()))
                 .toList();

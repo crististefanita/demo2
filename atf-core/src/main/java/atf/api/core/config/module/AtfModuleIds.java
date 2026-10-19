@@ -8,20 +8,22 @@ public final class AtfModuleIds {
     public static final String CORE = "atf-core";
     public static final String MOCK = "atf-mock";
     public static final String VALIDATION = "atf-validation";
-    public static final String EXECUTION = "atf-execution";
     public static final String CONSOLE = "atf-console";
     public static final String REPORTING = "atf-reporting";
     public static final String UI = "atf-ui";
     public static final String DEBUG_UI = "atf-debug-ui";
+    public static final String PRACTICE_SHOP = "atf-test-practice-shop";
     public static final String TESTS = "atf-tests";
+    public static final String REPORTING_TESTS = "atf-reporting-tests";
 
     /** Every Maven module in the ATF reactor, in the root POM order. */
     public static final List<String> REACTOR_MODULES = List.of(
-            TEST_KIT, CORE, MOCK, VALIDATION, EXECUTION, CONSOLE, REPORTING, UI, DEBUG_UI, TESTS);
+            TEST_KIT, CORE, MOCK, VALIDATION, CONSOLE, REPORTING, UI, DEBUG_UI, PRACTICE_SHOP, TESTS,
+            REPORTING_TESTS);
 
     /** Modules whose production/test source boundaries are governed by the whole-ATF guard. */
     public static final List<String> SOURCE_GOVERNED_MODULES = List.of(
-            CORE, MOCK, VALIDATION, EXECUTION, CONSOLE, REPORTING, UI, DEBUG_UI, TESTS);
+            CORE, MOCK, VALIDATION, CONSOLE, REPORTING, UI, DEBUG_UI, TESTS);
 
     private AtfModuleIds() {
     }

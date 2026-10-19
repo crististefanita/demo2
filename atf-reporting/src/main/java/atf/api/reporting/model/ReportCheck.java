@@ -1,6 +1,6 @@
 package atf.api.reporting.model;
 
-import atf.api.core.reporting.contract.AtfReportStatus;
+import atf.api.reporting.contract.AtfReportStatus;
 
 import java.util.Objects;
 

@@ -1,6 +1,4 @@
 package atf.api.reporting.configuration;
-import atf.api.core.http.execution.ApiExecutor;
-import atf.api.core.http.transport.ApiTransport;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

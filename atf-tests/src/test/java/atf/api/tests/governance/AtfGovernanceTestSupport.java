@@ -20,7 +20,6 @@ final class AtfGovernanceTestSupport {
                 .toAbsolutePath().normalize();
         while (current != null) {
             if (Files.isDirectory(current.resolve(AtfModuleIds.CORE))
-                    && Files.isDirectory(current.resolve(AtfModuleIds.EXECUTION))
                     && Files.isDirectory(current.resolve(AtfModuleIds.VALIDATION))
                     && Files.isRegularFile(current.resolve("pom.xml"))) {
                 return current;
@@ -57,6 +56,19 @@ final class AtfGovernanceTestSupport {
                 () -> module + " must not depend on " + dependency);
     }
 
+    static void assertProductionDependencyAbsent(Path root, String module, String dependency)
+            throws Exception {
+        String pom = Files.readString(root.resolve(module).resolve("pom.xml"));
+        String marker = "<artifactId>" + dependency + "</artifactId>";
+        int start = pom.indexOf(marker);
+        if (start < 0) return;
+        int end = pom.indexOf("</dependency>", start);
+        assertTrue(end >= 0, () -> module + " has an unterminated dependency block for " + dependency);
+        String block = pom.substring(start, end);
+        assertTrue(block.contains("<scope>test</scope>"),
+                () -> module + " must not have a production dependency on " + dependency);
+    }
+
     static void assertDependencyScope(Path root, String module, String dependency, String scope)
             throws Exception {
         String pom = Files.readString(root.resolve(module).resolve("pom.xml"));
@@ -70,6 +82,55 @@ final class AtfGovernanceTestSupport {
         String block = pom.substring(dependencyStart, dependencyEnd);
         assertTrue(block.contains("<scope>" + scope + "</scope>"),
                 () -> module + " -> " + dependency + " must use " + scope + " scope");
+    }
+
+    static void assertAllAtfDependenciesAreTestScoped(Path root, String module)
+            throws Exception {
+        String pom = Files.readString(root.resolve(module).resolve("pom.xml"));
+        var violations = new java.util.ArrayList<String>();
+        int cursor = 0;
+        while ((cursor = pom.indexOf("<dependency>", cursor)) >= 0) {
+            int end = pom.indexOf("</dependency>", cursor);
+            if (end < 0) break;
+            String block = pom.substring(cursor, end);
+            if (block.contains("<groupId>atf.api</groupId>")) {
+                String artifact = extractXmlValue(block, "artifactId");
+                if (artifact != null && !block.contains("<scope>test</scope>")) {
+                    violations.add(artifact + " is not test-scoped");
+                }
+            }
+            cursor = end + "</dependency>".length();
+        }
+        assertTrue(violations.isEmpty(), () -> module
+                + " must keep every ATF dependency test-only: " + violations);
+    }
+
+    static void assertNoAtfDependencies(Path root, String module) throws Exception {
+        String pom = Files.readString(root.resolve(module).resolve("pom.xml"));
+        var violations = new java.util.ArrayList<String>();
+        int cursor = 0;
+        while ((cursor = pom.indexOf("<dependency>", cursor)) >= 0) {
+            int end = pom.indexOf("</dependency>", cursor);
+            if (end < 0) break;
+            String block = pom.substring(cursor, end);
+            if (block.contains("<groupId>atf.api</groupId>")) {
+                String artifact = extractXmlValue(block, "artifactId");
+                violations.add(artifact == null ? "unknown ATF dependency" : artifact);
+            }
+            cursor = end + "</dependency>".length();
+        }
+        assertTrue(violations.isEmpty(), () -> module
+                + " must not declare ATF module dependencies: " + violations);
+    }
+
+    private static String extractXmlValue(String block, String element) {
+        String open = "<" + element + ">";
+        String close = "</" + element + ">";
+        int start = block.indexOf(open);
+        if (start < 0) return null;
+        start += open.length();
+        int end = block.indexOf(close, start);
+        return end < 0 ? null : block.substring(start, end).trim();
     }
 
     static void assertNoForbidden(Path sourceRoot, List<String> forbidden,

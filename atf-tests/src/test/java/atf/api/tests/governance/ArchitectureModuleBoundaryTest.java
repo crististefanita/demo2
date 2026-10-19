@@ -45,6 +45,8 @@ class ArchitectureModuleBoundaryTest {
                 .map(rule -> () -> {
                     if (rule.required()) {
                         assertDependencyPresent(root, rule.module(), rule.dependency());
+                    } else if (rule.module().equals(AtfModuleIds.REPORTING)) {
+                        assertProductionDependencyAbsent(root, rule.module(), rule.dependency());
                     } else {
                         assertDependencyAbsent(root, rule.module(), rule.dependency());
                     }
@@ -56,19 +58,43 @@ class ArchitectureModuleBoundaryTest {
         Path root = locateProjectRoot();
         var violations = new ArrayList<String>();
         assertNoForbiddenReportingCore(moduleSource(root, AtfModuleIds.REPORTING, false),
-                List.of("atf.api.execution", "atf.api.validation", "atf.api.console",
-                        "org.junit", "org.junit.jupiter"), violations);
+                AtfGovernanceRules.REPORTING_FORBIDDEN_PRODUCTION_PACKAGES, violations);
         assertNoForbidden(moduleSource(root, AtfModuleIds.CONSOLE, false),
                 List.of("atf.api.reporting", "com.aventstack"), violations);
         assertTrue(violations.isEmpty(), () -> "Reporting boundary violations: " + violations);
     }
 
     @Test
-    void executionAndReportingRuntimeGraphsAreCoreOnly() throws Exception {
+    void concreteExecutionFixtureIsTestOnlyAndGenericExecutionIsCoreOwned() throws Exception {
         Path root = locateProjectRoot();
-        assertDependencyScope(root, AtfModuleIds.EXECUTION, AtfModuleIds.VALIDATION, "test");
-        assertDependencyScope(root, AtfModuleIds.REPORTING, AtfModuleIds.VALIDATION, "test");
-        assertDependencyScope(root, AtfModuleIds.REPORTING, AtfModuleIds.EXECUTION, "test");
+        assertTrue(Files.notExists(root.resolve("atf-execution")),
+                "the retired concrete atf-execution module must not return");
+        assertTrue(Files.isRegularFile(root.resolve(
+                        "atf-core/src/main/java/atf/api/core/lifecycle/CleanupRegistry.java")),
+                "generic lifecycle cleanup belongs to core");
+        assertTrue(Files.isRegularFile(root.resolve(
+                        "atf-reporting-tests/src/test/java/atf/api/execution/ApiModule.java")),
+                "concrete API fixtures belong to reporting-tests test scope");
+    }
+
+    @Test
+    void everyAtfDependencyDeclaredByReportingIsTestOnly() throws Exception {
+        Path root = locateProjectRoot();
+        assertNoAtfDependencies(root, AtfModuleIds.REPORTING);
+    }
+
+    @Test
+    void reportingCompositionIsExplicitlyTestOnlyAndConsumesStandaloneReporting() throws Exception {
+        Path root = locateProjectRoot();
+        assertDependencyScope(root, AtfModuleIds.REPORTING_TESTS, AtfModuleIds.REPORTING, "test");
+        assertAllAtfDependenciesAreTestScoped(root, AtfModuleIds.REPORTING_TESTS);
+    }
+
+    @Test
+    void applicationTestsConsumeFrameworkModulesOnlyInTestScope() throws Exception {
+        Path root = locateProjectRoot();
+        assertAllAtfDependenciesAreTestScoped(root, AtfModuleIds.TESTS);
+        assertAllAtfDependenciesAreTestScoped(root, AtfModuleIds.PRACTICE_SHOP);
     }
 
     @Test

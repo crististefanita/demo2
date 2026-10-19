@@ -1,10 +1,9 @@
 package atf.api.reporting.api;
 
-import atf.api.core.http.request.ApiRequest;
-import atf.api.core.http.request.HttpHeader;
-import atf.api.core.http.request.MediaTypes;
-import atf.api.core.http.transport.ApiTransportProvenance;
-import atf.api.core.security.SensitiveDataRedactor;
+import atf.api.reporting.api.ReportRequest;
+import atf.api.reporting.api.ReportHttpHeaders;
+import atf.api.reporting.api.ReportTransportProvenance;
+import atf.api.reporting.security.SensitiveDataRedactor;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -17,11 +16,11 @@ public final class ApiManualReplay {
 
     private ApiManualReplay() { }
 
-    public static String describe(ApiTransportProvenance provenance, ApiRequest request,
+    public static String describe(ReportTransportProvenance provenance, ReportRequest request,
                                   String url, String requestBody) {
         Objects.requireNonNull(provenance, "provenance");
         if (!provenance.networkExecuted()) {
-            return provenance == ApiTransportProvenance.ACCEPTANCE_MOCK
+            return provenance == ReportTransportProvenance.ACCEPTANCE_MOCK
                     ? "NOT EXECUTABLE — ACCEPTANCE / MOCK; network was not executed. "
                     + "The URL is route metadata only; configure an explicit live base URI before replay."
                     : "NOT VERIFIED — transport provenance is unavailable. "
@@ -33,8 +32,13 @@ public final class ApiManualReplay {
         return curl(request, url, requestBody);
     }
 
+    /** Migration overload: accepts a legacy core DTO without importing core. */
+    public static String describe(Object provenance, Object request, String url, String requestBody) {
+        return describe(ReportModelAdapters.provenance(provenance), ReportModelAdapters.request(request), url, requestBody);
+    }
+
     /** Returns the effective non-secret headers a manual reader needs to reproduce the call. */
-    public static String redactedHeaders(ApiRequest request) {
+    public static String redactedHeaders(ReportRequest request) {
         if (request == null) return "[]";
         return effectiveHeaders(request).entrySet().stream()
                 .map(entry -> entry.getKey() + "="
@@ -42,7 +46,9 @@ public final class ApiManualReplay {
                 .collect(Collectors.joining(", ", "[", "]"));
     }
 
-    private static String curl(ApiRequest request, String url, String requestBody) {
+    public static String redactedHeaders(Object request) { return redactedHeaders(ReportModelAdapters.request(request)); }
+
+    private static String curl(ReportRequest request, String url, String requestBody) {
         StringBuilder command = new StringBuilder("curl --request ")
                 .append(shellQuote(request.method()))
                 .append(" --url ").append(shellQuote(REDACTOR.redactText(url)));
@@ -59,10 +65,10 @@ public final class ApiManualReplay {
         return command.toString();
     }
 
-    private static Map<String, String> effectiveHeaders(ApiRequest request) {
+    private static Map<String, String> effectiveHeaders(ReportRequest request) {
         var headers = new LinkedHashMap<String, String>();
-        headers.put(HttpHeader.ACCEPT.value(), MediaTypes.APPLICATION_JSON);
-        headers.put(HttpHeader.CONTENT_TYPE.value(), MediaTypes.APPLICATION_JSON);
+        headers.put(ReportHttpHeaders.ACCEPT, "application/json");
+        headers.put(ReportHttpHeaders.CONTENT_TYPE, "application/json");
         request.headers().forEach(headers::put);
         return Map.copyOf(headers);
     }

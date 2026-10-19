@@ -1,6 +1,6 @@
 package atf.api.reporting.extent.session;
-import atf.api.core.reporting.console.AtfConsoleSink;
-import atf.api.core.reporting.contract.AtfReportPorts;
+import atf.api.reporting.console.AtfConsoleSink;
+import atf.api.reporting.contract.AtfReportPorts;
 import atf.api.reporting.configuration.AtfReportConfigurationLoader;
 import atf.api.reporting.configuration.ExtentReportConfiguration;
 import atf.api.reporting.configuration.ReportEnvironment;
@@ -8,8 +8,8 @@ import atf.api.reporting.semantic.AtfReportSemanticSnapshot;
 import atf.api.reporting.theme.AtfReportTheme;
 import atf.api.reporting.markup.AtfReportLabels;
 
-import atf.api.core.config.ReportingSettings;
-import atf.api.core.security.SensitiveDataRedactor;
+import atf.api.reporting.configuration.ReportingSettings;
+import atf.api.reporting.security.SensitiveDataRedactor;
 import com.aventstack.extentreports.ExtentReports;
 import com.aventstack.extentreports.reporter.ExtentSparkReporter;
 import com.aventstack.extentreports.reporter.configuration.Theme;

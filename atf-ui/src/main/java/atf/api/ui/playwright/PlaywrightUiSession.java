@@ -10,10 +10,14 @@ import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.options.ViewportSize;
 
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Objects;
 
 /** Scoped Playwright adapter. One instance owns exactly one browser context. */
 public final class PlaywrightUiSession implements AutoCloseable {
+    private static final String EXECUTABLE_PROPERTY = "atf.ui.playwright.executablePath";
+    private static final String EXECUTABLE_ENVIRONMENT = "ATF_UI_PLAYWRIGHT_EXECUTABLE_PATH";
     private final Playwright playwright;
     private final Browser browser;
     private final BrowserContext context;
@@ -47,7 +51,10 @@ public final class PlaywrightUiSession implements AutoCloseable {
                 case "webkit" -> playwright.webkit();
                 default -> throw new IllegalArgumentException("Unsupported browser: " + configuration.browser());
             };
-            Browser browser = type.launch(new BrowserType.LaunchOptions().setHeadless(configuration.headless()));
+            BrowserType.LaunchOptions launchOptions = new BrowserType.LaunchOptions()
+                    .setHeadless(configuration.headless());
+            configuredExecutablePath().ifPresent(launchOptions::setExecutablePath);
+            Browser browser = type.launch(launchOptions);
             BrowserContext context = browser.newContext(new Browser.NewContextOptions()
                     .setViewportSize(new ViewportSize(configuration.viewportWidth(), configuration.viewportHeight())));
             context.addInitScript(zoomInitScript(configuration.zoomPercent()));
@@ -74,6 +81,27 @@ public final class PlaywrightUiSession implements AutoCloseable {
                 + "if (document.documentElement) { applyZoom(); } "
                 + "else { document.addEventListener('DOMContentLoaded', applyZoom, { once: true }); }"
                 + " })();";
+    }
+
+    /**
+     * Allows CI/ATF Debug to point at an already provisioned Playwright browser
+     * without changing the business YAML or attempting an uncontrolled CDN download.
+     */
+    static java.util.Optional<Path> configuredExecutablePath() {
+        String configured = System.getProperty(EXECUTABLE_PROPERTY);
+        if (configured == null || configured.isBlank()) {
+            configured = System.getenv(EXECUTABLE_ENVIRONMENT);
+        }
+        return configuredExecutablePath(configured);
+    }
+
+    static java.util.Optional<Path> configuredExecutablePath(String configured) {
+        if (configured == null || configured.isBlank()) return java.util.Optional.empty();
+        Path executable = Path.of(configured.trim()).toAbsolutePath().normalize();
+        if (!Files.isRegularFile(executable)) {
+            throw new IllegalArgumentException("Configured Playwright executable does not exist: " + executable);
+        }
+        return java.util.Optional.of(executable);
     }
 
     /** Starts an isolated consecutive action log for one visual validation state. */

@@ -5,30 +5,46 @@ browserul, contextul, pagina, timeout-urile, viewport-ul, screenshot-ul și
 recorderul de acțiuni. Nu conține testele UI ale raportului, rendererul HTML,
 publisherul Extent sau page objects de produs.
 
+## Overall
+
+| Input | Output | Boundary |
+|---|---|---|
+| YAML browser policy | browser/context/page | runtime generic |
+| Playwright actions | neutral action records | fără Extent |
+| screenshot/viewport | UI evidence | consumat de reporting la compoziție |
+
 ## Diagramă de bază
 
 ```mermaid
-flowchart LR
-    Tests[atf-reporting test scope] --> Config[UiBrowserConfiguration<br/>screen validation policy]
+flowchart TB
+    Tests[atf-reporting-tests composition] --> Config[UiBrowserConfiguration<br/>screen validation policy]
     Config --> Session[PlaywrightUiSession]
     Session --> Browser[browser / context / page]
     Browser --> Evidence[action recorder + screenshot payload]
     Evidence --> Reporting[atf-reporting<br/>HTML artifact]
 ```
 
+<details>
+<summary><strong>Legendă — runtime browser fără reporting</strong></summary>
+- configurația descrie browserul și evidence-ul generic;
+- sesiunea compune browser, context și page, apoi înregistrează acțiuni;
+- atf-ui livrează payload-ul către consumer, nu decide verdictul și nu construiește HTML/CSS/Extent;
+- publisherul și auditul aparțin atf-reporting, iar scenariile concrete aparțin test scope-ului consumator.
+</details>
+
 | Responsabilitate | Owner |
 |---|---|
 | browser, context, page, viewport, timeout | `atf-ui` |
 | acțiuni Playwright primitive și recorder neutru | `atf-ui` |
-| locatori, page objects, flows și testele declarative | `atf-reporting` test scope |
-| snapshot contract și validatori de browser | `atf-reporting` production + test scope |
+| locatori, page objects, flows și testele declarative | `atf-reporting-tests` test scope |
+| snapshot contract și validatori de browser | `atf-reporting` production + `atf-reporting-tests` test scope |
 | HTML, CSS, Extent lifecycle și publisher | `atf-reporting` |
-| mock, API scenarios și contract validation | `atf-reporting` test scope + modulele API |
+| mock, API scenarios și contract validation | `atf-reporting-tests` test scope + modulele API |
 
 `SectionAuditCheckExecutor` și `ExtentSectionAuditPublisher` NU aparțin
 `atf-ui`. Validarea statică și proiecția de raport aparțin `atf-reporting`;
 execuția browserului și scenariile E2E apar explicit în
-[`atf-reporting/src/test/java/atf/ui/tests/extent/README.md`](../atf-reporting/src/test/java/atf/ui/tests/extent/README.md).
+[`atf-reporting-tests/src/test/java/atf/ui/tests/extent/README.md`](../atf-reporting-tests/src/test/java/atf/ui/tests/extent/README.md).
 `atf-ui` nu trebuie să importe acele clase, să publice Extent sau să emită
 assert-uri de secțiune.
 
@@ -55,7 +71,7 @@ generică. Nu este owner pentru `report.directory`, `apiSetup`, `audit` sau
 `filePrefix`; aceste valori sunt test-only și aparțin configurației interne a
 modulului `atf-reporting`:
 
-[`atf-reporting/src/test/resources/atf-reporting-ui.yaml`](../atf-reporting/src/test/resources/atf-reporting-ui.yaml)
+[`atf-reporting-tests/src/test/resources/atf-reporting-ui.yaml`](../atf-reporting-tests/src/test/resources/atf-reporting-ui.yaml)
 
 ```yaml
 ui:
@@ -90,7 +106,8 @@ rezoluția inputului audit sunt responsabilitatea exclusivă a test scope-ului
 ## Acțiuni și locatori
 
 `atf-ui` poate executa o operație pe un `AtfLocator`, dar nu decide selectorul
-și nu știe intenția business. Locator facade-urile sunt în `atf-reporting` test scope:
+și nu știe intenția business. Locator facade-urile sunt în `atf-reporting-tests`
+test scope:
 
 ```text
 Report*Locators
@@ -105,6 +122,16 @@ Testele nu scriu direct `page.locator(...)`, `getByRole(...)` sau `getByText(...
 `"selected owner"` sau `"collapse node"`. Operațiile suportate explicit sunt
 `Navigate`, `Click`, `Get text`, `Find element`, `Expect text`, `Focus`,
 `Wait for visible`, `Expect visible` și `Wait`.
+Pentru stări asincrone, runtime-ul folosește așteptări Playwright cu timeout
+(`waitFor`, `waitForCondition`, `waitForURL`); `waitForTimeout` nu este API de
+stabilizare acceptat.
+
+În CI/ATF Debug, când revizia Playwright cerută nu este disponibilă în cache,
+runnerul poate primi un browser headless deja provisionat prin
+`-Datf.ui.playwright.executablePath=<chromium-executable>` sau prin
+`ATF_UI_PLAYWRIGHT_EXECUTABLE_PATH`. Este un override de bootstrap, nu o cheie
+de business YAML; în lipsa lui, launcherul păstrează comportamentul Playwright
+standard și fail-closed dacă nu poate provisiona browserul.
 
 `PlaywrightActionSequence` este recorderul, nu auditorul: înregistrează ordinea,
 target-ul, expected, observed, durata și statusul. Validatorul pur din
@@ -137,7 +164,7 @@ markup și randare este în
 - teste JUnit sau colecții API;
 - `UiConfiguration`, `UiAuditSuiteConfiguration`, loaderul YAML și contextul
   pentru `atf.ui.config`/`atf.ui.report` — sunt configurație de test a
-  raportării și stau în `atf-reporting/src/test/java/.../support/config`;
+  raportării și stau în `atf-reporting-tests/src/test/java/.../support/config`;
 - `SectionAuditCheckExecutor`, `SectionAuditCheckPolicy` sau
   `ExtentSectionAuditPublisher`;
 - `ReportProjection`, reguli pentru Tests/Fails/Categories sau contractul static HTML;
@@ -147,7 +174,7 @@ markup și randare este în
 
 Aceste limite sunt intenționate: `atf-ui` rămâne reutilizabil și testabil ca
 runtime Playwright, `atf-reporting` rămâne reutilizabil ca librărie de raportare,
-iar test scope-ul reporting compune scenariile E2E și adaptorul browser.
+iar `atf-reporting-tests` compune scenariile E2E și adaptorul browser.
 
 ## Verificare
 
@@ -157,15 +184,16 @@ Teste runtime/config:
 mvn -pl atf-ui -am test
 ```
 
-Testele de raport UI se rulează din `atf-reporting`, de exemplu:
+Testele de raport UI se rulează din composition module-ul
+`atf-reporting-tests`, de exemplu:
 
 ```text
-mvn -pl atf-reporting -am -Dtest=SelectedApiTestsReportUiTest test
+mvn -pl atf-reporting-tests -am -Dtest=SelectedApiTestsReportUiTest test
 ```
 
 Build-ul se face în staging extern (`${ATF_STAGING_ROOT}/atf-ui-<id>`) pentru a păstra
-rulările curente și serverele intacte. Raportul UI aprobat se copiază numai în
-`artifacts/reports/ui/`. Verificarea finală se face pe artifactul HTML rezultat,
+rulările curente și serverele intacte. Raportul UI aprobat se publică numai în
+directorul configurat al consumerului. Verificarea finală se face pe artifactul HTML rezultat,
 prin ATF Debug UI și Playwright/browser MCP: click-uri, expand/collapse,
 accessibility tree, console/network și randare. Nu se folosește browser Windows
 real.

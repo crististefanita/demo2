@@ -1,6 +1,6 @@
 package atf.api.reporting.api.contract;
 
-import atf.api.core.http.request.ApiQueryParameters;
+import atf.api.reporting.api.ReportQueryParameters;
 import atf.api.reporting.audit.ValidationResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -77,7 +77,7 @@ public final class ApiReportJsonEvidenceAuditor {
         } catch (IllegalArgumentException error) {
             return List.of("invalid API report URL: " + url);
         }
-        ApiQueryParameters query = ApiQueryParameters.fromUri(actual);
+        ReportQueryParameters query = ReportQueryParameters.fromUri(actual);
         Optional<ApiReportRouteContract> route = routes.stream()
                 .filter(candidate -> candidate.matches(method.trim(), actual.getPath()))
                 .filter(candidate -> query.containsAll(candidate.queryParameters()))

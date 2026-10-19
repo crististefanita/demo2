@@ -1,13 +1,17 @@
 package atf.api.reporting.ui;
-import atf.api.core.reporting.contract.AtfAssertion;
-import atf.api.core.reporting.contract.AtfGherkinKeyword;
-import atf.api.core.reporting.contract.AtfReportPorts;
-import atf.api.core.reporting.contract.AtfReportStatus;
+import atf.api.reporting.contract.AtfAssertion;
+import atf.api.reporting.contract.AtfGherkinKeyword;
+import atf.api.reporting.contract.AtfReportPorts;
+import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.model.ReportExecutionEvidence;
+import atf.api.reporting.api.ReportRequest;
+import atf.api.reporting.api.ReportResponse;
 
-import atf.api.core.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.AtfUiActionRecord;
 import atf.api.reporting.markup.AtfReportEvidenceKeys;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.List;
 
 /**
@@ -76,11 +80,20 @@ public final class UiEvidencePublisher {
     void publishAction(String keyword, String title, String target, String base64Png,
                        Collection<AtfAssertion> assertions, AtfReportStatus status,
                        String validationTitle, Collection<AtfUiActionRecord> actions) {
+        publishAction(keyword, title, target, base64Png, assertions, status,
+                validationTitle, actions, List.of());
+    }
+
+    void publishAction(String keyword, String title, String target, String base64Png,
+                       Collection<AtfAssertion> assertions, AtfReportStatus status,
+                       String validationTitle, Collection<AtfUiActionRecord> actions,
+                       Collection<ReportExecutionEvidence> apiEvidence) {
         String stepTitle = stepTitle(keyword, title);
         var request = phase.startRequest(stepTitle, "", "");
         try {
             request.detail(AtfReportEvidenceKeys.REQUEST_ACTION, stepTitle);
             detailTarget(request, target);
+            publishApiEvidence(request, apiEvidence);
             boolean visualValidation = SCREEN_VALIDATION.equals(validationTitle);
             if (visualValidation) {
                 request.detail(AtfReportEvidenceKeys.EVIDENCE_TYPE, AtfReportEvidenceKeys.SCREEN_VALIDATION);
@@ -97,6 +110,53 @@ public final class UiEvidencePublisher {
         } finally {
             request.close();
         }
+    }
+
+    /**
+     * Projects an API exchange into the canonical request/response/execution
+     * disclosures already used by API reports. The UI step remains the owner;
+     * no duplicate assertion table or second test node is created.
+     */
+    private static void publishApiEvidence(AtfReportPorts.Request request,
+                                           Collection<ReportExecutionEvidence> apiEvidence) {
+        if (apiEvidence == null) return;
+        int exchangeNumber = 0;
+        for (ReportExecutionEvidence evidence : apiEvidence) {
+            if (evidence == null || evidence.request() == null || evidence.response() == null) continue;
+            exchangeNumber++;
+            ReportRequest apiRequest = evidence.request();
+            ReportResponse apiResponse = evidence.response();
+            request.detail("request.api." + exchangeNumber + ".method", apiRequest.method());
+            request.detail("request.api." + exchangeNumber + ".path", apiRequest.path());
+            request.detail("request.api." + exchangeNumber + ".url", apiResponse.url());
+            request.detail("request.api." + exchangeNumber + ".auth.type", apiRequest.authProfile());
+            request.detail("request.api." + exchangeNumber + ".headers", format(apiRequest.headers()));
+            if (!apiRequest.query().isEmpty()) {
+                request.detail("request.api." + exchangeNumber + ".query.params", format(apiRequest.query()));
+            }
+            request.detail("request.api." + exchangeNumber + ".transport", evidence.provenance().reportLabel());
+            if (!apiRequest.bodyText().isBlank()) {
+                request.json("REQUEST JSON · API " + exchangeNumber, apiRequest.bodyText());
+            }
+            request.detail("response.api." + exchangeNumber + ".status", String.valueOf(apiResponse.status()));
+            request.detail("response.api." + exchangeNumber + ".content.type", header(apiResponse.headers(), "content-type"));
+            request.detail("response.api." + exchangeNumber + ".headers", format(apiResponse.headers()));
+            if (!apiResponse.body().isBlank()) {
+                request.json("RESPONSE JSON · API " + exchangeNumber, apiResponse.body());
+            }
+            request.execution(evidence);
+        }
+    }
+
+    private static String header(Map<String, String> headers, String name) {
+        if (headers == null) return "";
+        return headers.entrySet().stream()
+                .filter(entry -> entry.getKey().equalsIgnoreCase(name))
+                .map(Map.Entry::getValue).findFirst().orElse("");
+    }
+
+    private static String format(Map<String, String> values) {
+        return values == null || values.isEmpty() ? "{}" : values.toString();
     }
 
     void publishScreenValidationAsMedia(String title, String target, String base64Png,

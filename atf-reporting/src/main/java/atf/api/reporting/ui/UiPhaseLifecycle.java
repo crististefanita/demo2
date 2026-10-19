@@ -1,10 +1,11 @@
 package atf.api.reporting.ui;
-import atf.api.core.reporting.contract.AtfAssertion;
-import atf.api.core.reporting.contract.AtfGherkinKeyword;
-import atf.api.core.reporting.contract.AtfReportPorts;
-import atf.api.core.reporting.contract.AtfReportStatus;
+import atf.api.reporting.contract.AtfAssertion;
+import atf.api.reporting.contract.AtfGherkinKeyword;
+import atf.api.reporting.contract.AtfReportPorts;
+import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.model.ReportExecutionEvidence;
 
-import atf.api.core.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.AtfUiActionRecord;
 
 import java.util.Collection;
 import java.util.List;
@@ -39,6 +40,20 @@ public final class UiPhaseLifecycle implements AutoCloseable {
     void step(AtfGherkinKeyword keyword, String title, String target, String base64Png,
               Collection<AtfAssertion> assertions, AtfReportStatus status) {
         step(keyword.text(), title, target, base64Png, assertions, status);
+    }
+
+    void step(AtfGherkinKeyword keyword, String title, String target, String base64Png,
+              Collection<AtfAssertion> assertions, Collection<AtfUiActionRecord> actions,
+              AtfReportStatus status) {
+        action(keyword.text(), title, target, base64Png, assertions, status,
+                "UI validation", actions);
+    }
+
+    void step(String keyword, String title, String target, String base64Png,
+              Collection<AtfAssertion> assertions, Collection<AtfUiActionRecord> actions,
+              Collection<ReportExecutionEvidence> apiEvidence, AtfReportStatus status) {
+        action(keyword, title, target, base64Png, assertions, status,
+                "UI validation", actions, apiEvidence);
     }
 
     void setup(String keyword, String title, String target,
@@ -106,9 +121,18 @@ public final class UiPhaseLifecycle implements AutoCloseable {
                         String base64Png, Collection<AtfAssertion> assertions,
                         AtfReportStatus status, String validationTitle,
                         Collection<AtfUiActionRecord> actions) {
+        action(keyword, title, target, base64Png, assertions, status,
+                validationTitle, actions, List.of());
+    }
+
+    private void action(String keyword, String title, String target,
+                        String base64Png, Collection<AtfAssertion> assertions,
+                        AtfReportStatus status, String validationTitle,
+                        Collection<AtfUiActionRecord> actions,
+                        Collection<ReportExecutionEvidence> apiEvidence) {
         ensureOpen();
         evidencePublisher.publishAction(keyword, title, target, base64Png, assertions,
-                status, validationTitle, actions);
+                status, validationTitle, actions, apiEvidence);
     }
 
     private void ensureOpen() {

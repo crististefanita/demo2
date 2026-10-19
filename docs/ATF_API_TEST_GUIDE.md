@@ -25,7 +25,7 @@ un request HTTP inventat.
 
 ## Structura minimă a unui scenariu
 
-~~~mermaid
+```mermaid
 flowchart TD
     Test[Test API] --> Plan[Scenario plan]
     Plan --> Setup[SETUP opțional]
@@ -37,7 +37,7 @@ flowchart TD
     BodyValidation --> Assertions[Aggregate assertion table]
     Plan --> Teardown[TEARDOWN]
     Teardown --> Cleanup[Cleanup/read-back]
-~~~
+```
 
 Pentru un test simplu, TEST BODY trebuie să conțină request-ul și validarea
 lui. Pentru lifecycle, fazele sunt create numai când au conținut real. Un nod
@@ -74,7 +74,7 @@ durată și nu apare ca o coloană în tab-ul Tests.
 
 ## Separarea responsabilităților
 
-~~~text
+```text
 RoutePaths           -> căi relative
 ApiRoutes             -> metadate operaționale
 Service               -> acțiune semantică
@@ -82,7 +82,7 @@ ApiExecutor           -> transport, retry și durată
 Validator             -> assertions și tabel agregat
 Report session        -> arbore și evidence
 Scenario              -> ordine și intenție
-~~~
+```
 
 Dacă testul începe să conțină JSON de infrastructură, CSS, markup Extent,
 politici de retry sau endpoint-uri literale, responsabilitatea este în locul
@@ -98,11 +98,11 @@ copiează un cURL dintr-un raport mock ca și cum ar fi fost executat.
 
 Request-urile reale sunt separate și opt-in:
 
-~~~yaml
+```yaml
 api:
   transport: live
   baseUri: https://<real-api-host>/<base-path>
-~~~
+```
 
 Rularea mai cere `-Datf.api.live.optIn=true` sau
 `ATF_API_LIVE_OPT_IN=true`, apoi deschiderea unui endpoint prin

@@ -11,7 +11,7 @@ public final class VisualEvidenceValidator {
     public ValidationResult validate(ReportAuditSnapshot.VisualEvidence snapshot) {
         Objects.requireNonNull(snapshot, "snapshot");
         boolean actionContract = snapshot.actionSequenceCount() == 0
-                || (snapshot.screenshotLinkCount() > 0 && snapshot.fixedActionTable()
+                || (snapshot.screenshotLinkCount() > 0 && snapshot.responsiveActionTable()
                 && snapshot.observedTextIsStructured());
         return ValidationResult.of(List.of(
                 ReportAuditChecks.check("Validation tables", "> 0",
@@ -23,7 +23,7 @@ public final class VisualEvidenceValidator {
                         snapshot.canonicalScreenshotLinks() == snapshot.screenshotLinkCount()),
                 ReportAuditChecks.check("Nested screenshot images", "0",
                         String.valueOf(snapshot.nestedScreenshotImages()), snapshot.nestedScreenshotImages() == 0),
-                ReportAuditChecks.check("Action table contract", "structured fixed table",
+                ReportAuditChecks.check("Action table contract", "structured responsive table",
                         snapshot.observedActionText(), actionContract)));
     }
 

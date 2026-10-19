@@ -1,10 +1,10 @@
 package atf.api.reporting.evidence;
-import atf.api.core.config.ReportingSettings;
-import atf.api.core.reporting.contract.AtfAssertion;
-import atf.api.core.reporting.contract.AtfReportStatus;
-import atf.api.core.security.SensitiveDataRedactor;
-import atf.api.core.ui.AtfUiActionRecord;
-import atf.api.core.ui.AtfUiEvidenceSource;
+import atf.api.reporting.configuration.ReportingSettings;
+import atf.api.reporting.contract.AtfAssertion;
+import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.security.SensitiveDataRedactor;
+import atf.api.reporting.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.AtfUiEvidenceSource;
 import atf.api.reporting.markup.AtfReportLabels;
 import atf.api.reporting.markup.AtfReportMarkup;
 import atf.api.reporting.markup.ExtentReportAssets;
@@ -100,7 +100,7 @@ public final class ExtentUiEvidenceRenderer {
                     .append(close(AtfReportHtmlVocabulary.Tag.SPAN))
                     .append(open(AtfReportHtmlVocabulary.Tag.SPAN,
                             AtfReportHtmlVocabulary.classAttribute(
-                                    AtfReportHtmlVocabulary.CssClass.ATF_UI_ACTION_SEQUENCE)))
+                                    AtfReportHtmlVocabulary.CssClass.ATF_UI_ACTION_NUMBER)))
                     .append("#").append(observation.sequence())
                     .append(close(AtfReportHtmlVocabulary.Tag.SPAN))
                     .append(close(AtfReportHtmlVocabulary.Tag.TD))
@@ -180,7 +180,7 @@ public final class ExtentUiEvidenceRenderer {
                     .append(close(AtfReportHtmlVocabulary.Tag.SPAN))
                     .append(open(AtfReportHtmlVocabulary.Tag.SPAN,
                             AtfReportHtmlVocabulary.classAttribute(
-                                    AtfReportHtmlVocabulary.CssClass.ATF_UI_ACTION_SEQUENCE)))
+                                    AtfReportHtmlVocabulary.CssClass.ATF_UI_ACTION_NUMBER)))
                     .append("#").append(action.sequence())
                     .append(close(AtfReportHtmlVocabulary.Tag.SPAN))
                     .append(close(AtfReportHtmlVocabulary.Tag.TD))

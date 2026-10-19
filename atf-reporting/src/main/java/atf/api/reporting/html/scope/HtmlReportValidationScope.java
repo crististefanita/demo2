@@ -1,11 +1,11 @@
 package atf.api.reporting.html.scope;
 
-import atf.api.core.reporting.console.AtfConsoleEvent;
-import atf.api.core.reporting.console.AtfConsoleSink;
-import atf.api.core.reporting.contract.AtfAssertion;
-import atf.api.core.reporting.contract.AtfReportPorts;
-import atf.api.core.reporting.contract.AtfReportStatus;
-import atf.api.core.ui.AtfUiActionRecord;
+import atf.api.reporting.console.AtfConsoleEvent;
+import atf.api.reporting.console.AtfConsoleSink;
+import atf.api.reporting.contract.AtfAssertion;
+import atf.api.reporting.contract.AtfReportPorts;
+import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.ui.AtfUiActionRecord;
 import atf.api.reporting.html.HtmlReportSemanticDocument;
 import atf.api.reporting.semantic.AtfReportSemanticRecorder;
 

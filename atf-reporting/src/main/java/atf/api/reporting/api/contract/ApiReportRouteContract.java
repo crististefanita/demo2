@@ -1,6 +1,6 @@
 package atf.api.reporting.api.contract;
 
-import atf.api.core.http.request.ApiQueryParameters;
+import atf.api.reporting.api.ReportQueryParameters;
 
 import java.util.LinkedHashMap;
 import java.util.Comparator;
@@ -16,10 +16,18 @@ public record ApiReportRouteContract(
         String responseBody,
         Map<String, String> responseHeaders,
         String authProfile,
-        ApiQueryParameters queryParameters,
+        ReportQueryParameters queryParameters,
         Map<String, String> requiredHeaders,
         String requestBodyMode,
         String expectedRequestBody) {
+
+    public ApiReportRouteContract(String method, String path, int status, String responseBody,
+                                  Map<String, String> responseHeaders, String authProfile,
+                                  Object queryParameters, Map<String, String> requiredHeaders,
+                                  String requestBodyMode, String expectedRequestBody) {
+        this(method, path, status, responseBody, responseHeaders, authProfile,
+                ReportQueryParameters.from(queryParameters), requiredHeaders, requestBodyMode, expectedRequestBody);
+    }
 
     public static final String ANY_METHOD = "*";
     public static final String ANY_PATH = "/*";
@@ -35,7 +43,7 @@ public record ApiReportRouteContract(
         responseHeaders = copy(responseHeaders);
         authProfile = authProfile == null || authProfile.isBlank()
                 ? ANY_AUTH_PROFILE : authProfile.trim();
-        queryParameters = queryParameters == null ? ApiQueryParameters.empty() : queryParameters;
+        queryParameters = queryParameters == null ? ReportQueryParameters.empty() : queryParameters;
         requiredHeaders = copy(requiredHeaders);
         requestBodyMode = ApiReportRequestBodyMode.from(requestBodyMode).value();
         expectedRequestBody = expectedRequestBody == null || expectedRequestBody.isBlank()

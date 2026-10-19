@@ -177,12 +177,31 @@ public final class ExtentReportRuntimeVocabulary {
         }
     }
 
+    /** Function names published by another controller and consumed as hooks. */
+    public enum ExternalFunction {
+        CAPTURE_DOM_CONTRACT("captureDomContract");
+
+        private final String value;
+
+        ExternalFunction(String value) {
+            this.value = value;
+        }
+
+        public String value() {
+            return value;
+        }
+    }
+
     public static String js(String value) {
         Objects.requireNonNull(value, "value");
         return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'";
     }
 
     public static String function(Function function) {
+        return Objects.requireNonNull(function, "function").value();
+    }
+
+    public static String externalFunction(ExternalFunction function) {
         return Objects.requireNonNull(function, "function").value();
     }
 }

@@ -1,11 +1,11 @@
 package atf.api.reporting.extent.session;
-import atf.api.core.http.response.ApiExecutionResult;
-import atf.api.core.reporting.console.AtfConsoleEvent;
-import atf.api.core.reporting.console.AtfConsoleSink;
-import atf.api.core.reporting.contract.AtfAssertion;
-import atf.api.core.reporting.contract.AtfReportPorts;
-import atf.api.core.reporting.contract.AtfReportStatus;
-import atf.api.core.reporting.contract.ReportStatusAggregator;
+import atf.api.reporting.model.ReportExecutionEvidence;
+import atf.api.reporting.console.AtfConsoleEvent;
+import atf.api.reporting.console.AtfConsoleSink;
+import atf.api.reporting.contract.AtfAssertion;
+import atf.api.reporting.contract.AtfReportPorts;
+import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.contract.ReportStatusAggregator;
 import atf.api.reporting.evidence.ExtentEvidenceRenderer;
 import atf.api.reporting.extent.ExtentScenarioScope;
 import atf.api.reporting.markup.ExtentReportNodeSupport;
@@ -16,9 +16,9 @@ import atf.api.reporting.model.ReportTagNormalizer;
 import atf.api.reporting.semantic.AtfReportSemanticRecorder;
 import atf.api.reporting.semantic.AtfReportSemanticSnapshot;
 
-import atf.api.core.config.ReportingSettings;
-import atf.api.core.security.SensitiveDataRedactor;
-import atf.api.core.ui.AtfUiActionRecord;
+import atf.api.reporting.configuration.ReportingSettings;
+import atf.api.reporting.security.SensitiveDataRedactor;
+import atf.api.reporting.ui.AtfUiActionRecord;
 import com.aventstack.extentreports.ExtentReports;
 import com.aventstack.extentreports.ExtentTest;
 
@@ -139,7 +139,7 @@ public final class ExtentReportTree {
     }
 
     /** Publishes one renderer-neutral transport evidence block at the request boundary. */
-    public void renderExecution(ExtentTest node, ApiExecutionResult execution) {
+    public void renderExecution(ExtentTest node, ReportExecutionEvidence execution) {
         evidence.renderExecution(node, execution);
     }
 

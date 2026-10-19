@@ -1,5 +1,5 @@
 package atf.api.reporting.ui.audit.result;
-import atf.api.core.reporting.contract.AtfAssertion;
+import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.audit.ValidationResult;
 
 import atf.api.reporting.ui.audit.plan.ExtentJourney;
@@ -40,7 +40,7 @@ public record SectionAuditResult(ExtentSection section,
         return validation.valid();
     }
 
-    public List<atf.api.core.reporting.contract.AtfAssertion> assertions() {
+    public List<atf.api.reporting.contract.AtfAssertion> assertions() {
         return validation.assertions();
     }
 

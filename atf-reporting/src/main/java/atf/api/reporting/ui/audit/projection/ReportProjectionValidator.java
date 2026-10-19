@@ -18,7 +18,7 @@ public final class ReportProjectionValidator {
         boolean matches = expected.matches(observed);
         List<String> expectedOwners = expected.owners().stream()
                 .map(ReportProjection.Owner::name).toList();
-        List<atf.api.core.reporting.contract.AtfAssertion> assertions = new ArrayList<>(List.of(
+        List<atf.api.reporting.contract.AtfAssertion> assertions = new ArrayList<>(List.of(
                 ReportAuditChecks.check("Expected owners", expectedOwners.toString(),
                         observed.classNames().toString(), sameMultiset(observed.classNames(), expectedOwners)),
                 ReportAuditChecks.check("Selected scenario count", String.valueOf(expected.scenarioCount()),

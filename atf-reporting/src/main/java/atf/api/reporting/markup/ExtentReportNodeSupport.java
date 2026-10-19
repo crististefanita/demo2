@@ -1,7 +1,7 @@
 package atf.api.reporting.markup;
-import atf.api.core.reporting.contract.AtfReportStatus;
+import atf.api.reporting.contract.AtfReportStatus;
 
-import atf.api.core.config.ReportingSettings;
+import atf.api.reporting.configuration.ReportingSettings;
 
 
 /** Small, renderer-local policies shared by the Extent tree scopes. */

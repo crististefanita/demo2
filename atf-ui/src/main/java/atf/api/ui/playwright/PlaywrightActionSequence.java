@@ -57,6 +57,16 @@ public final class PlaywrightActionSequence {
         return locatorActions.getText(element, expected);
     }
 
+    /** Fills a field while keeping the value itself out of action evidence. */
+    public void fill(AtfLocator element, String value, String expected) {
+        locatorActions.fill(element, value, expected);
+    }
+
+    /** Selects a native option by its visible label while keeping the action in the trace. */
+    public void selectOption(AtfLocator element, String label, String expected) {
+        locatorActions.selectOption(element, label, expected);
+    }
+
     public Locator findElement(Locator locator, String locatorTarget) {
         return locatorActions.findElement(locator, locatorTarget);
     }
@@ -73,6 +83,11 @@ public final class PlaywrightActionSequence {
         return locatorActions.expectText(element, expected);
     }
 
+    /** Verifies a native input/select value and records the observed value. */
+    public String expectValue(AtfLocator element, String expectedValue) {
+        return locatorActions.expectValue(element, expectedValue);
+    }
+
     public void focus(Locator locator, String locatorTarget, String expected) {
         locatorActions.focus(locator, locatorTarget, expected);
     }
@@ -83,6 +98,10 @@ public final class PlaywrightActionSequence {
 
     public void pressKey(Page page, String key, String locatorTarget, String expected) {
         browserActions.pressKey(page, key, locatorTarget, expected);
+    }
+
+    public void pressKey(Page page, String key, AtfLocator element, String expected) {
+        browserActions.pressKey(page, key, element, expected);
     }
 
     public void waitForVisible(Locator locator, String locatorTarget) {
@@ -96,6 +115,11 @@ public final class PlaywrightActionSequence {
     /** Waits for a concrete DOM text marker and records the synchronization step. */
     public void waitForText(Page page, AtfLocator element, String expectedText, String expected) {
         browserActions.waitForText(page, element, expectedText, expected);
+    }
+
+    /** Waits for a form control to become enabled after its page data is ready. */
+    public void waitForEnabled(Page page, AtfLocator element, String expected) {
+        browserActions.waitForEnabled(page, element, expected);
     }
 
     public void assertVisible(Locator locator, String locatorTarget) {

@@ -1,15 +1,12 @@
 package atf.api.reporting.runtime.section;
 
-/** Overview fragment for chart palette and percentage normalization. */
-final class ExtentReportRuntimeOverviewCharts {
-    private static final String NORMALIZE_CHART_PALETTES =
-            "function normalizeChartPalettes(){if(typeof Chart==='undefined')return;var root=getComputedStyle(document.documentElement),tokens=['--atf-pass','--atf-fail','--atf-skip','--atf-skip','--atf-info'],fallback=['#9ccc65','#e57373','#ff9900','#ff9900','#46BFBD'],palette=tokens.map(function(token,index){return root.getPropertyValue(token).trim()||fallback[index];});var registry=Chart.instances||{},charts=Array.isArray(registry)?registry:Object.keys(registry).map(function(key){return registry[key];});charts.forEach(function(chart){if(!chart||!chart.data||!chart.data.datasets)return;chart.data.datasets.forEach(function(dataset){var length=dataset.data&&dataset.data.length||0;dataset.backgroundColor=palette.slice(0,length);dataset.borderColor='transparent';});if(typeof chart.update==='function')chart.update();});}";
-    private static final String NORMALIZE_PERCENTAGES =
-            "function normalizePercentages(){q('.dashboard-view table td').forEach(function(td){var v=String(td.textContent||'').trim(),m=v.match(/^(-?\\d+(?:\\.\\d+)?)%$/);if(m)td.textContent=String(Math.round(Number(m[1])))+'%';});}";
+import atf.api.reporting.asset.ReportAssetComposer;
 
+/** Native-resource facade for Overview chart palette and percentage normalization. */
+final class ExtentReportRuntimeOverviewCharts {
     private ExtentReportRuntimeOverviewCharts() { }
 
     static String script() {
-        return String.join("", NORMALIZE_CHART_PALETTES, NORMALIZE_PERCENTAGES);
+        return ReportAssetComposer.extentOverviewChartsScript();
     }
 }

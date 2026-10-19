@@ -1,12 +1,12 @@
 package atf.api.reporting.api;
-import atf.api.core.http.request.HttpHeader;
+import atf.api.reporting.api.ReportHttpHeaders;
 
 /** Canonical report field labels shared by every API evidence publisher. */
 public enum ApiEvidenceField {
     DURATION("Duration"),
     URL("URL"),
     HTTP_STATUS("HTTP STATUS"),
-    CONTENT_TYPE(HttpHeader.CONTENT_TYPE.value()),
+    CONTENT_TYPE(ReportHttpHeaders.CONTENT_TYPE),
     ATTEMPTS("Attempt"),
     AUTH_PROFILE("Auth profile"),
     AUTH_TYPE("Auth type"),

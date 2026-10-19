@@ -8,9 +8,9 @@ publică evidence-ul într-o formă lizibilă și navigabilă.
 
 Ordinea aprobată a tab-urilor este:
 
-~~~text
+```text
 Tests → Category → Fails → Overview
-~~~
+```
 
 Overview este suprafața de sinteză și se deschide implicit la încărcarea sau
 refresh-ul raportului. Nu se mută în față doar pentru că este sumarul. Fiecare
@@ -25,7 +25,7 @@ suprafață are un rol:
 
 ## Arborele unui test
 
-~~~mermaid
+```mermaid
 flowchart TD
     Scenario[Scenariu<br/>status + durată + tag-uri] --> Setup[SETUP]
     Scenario --> Body[TEST BODY]
@@ -39,7 +39,7 @@ flowchart TD
     SV --> ST[Un tabel de assertions]
     BV --> BT[Un tabel de assertions]
     TV --> TT[Un tabel de assertions]
-~~~
+```
 
 În fiecare fază, request-ul și validation-ul sunt ramuri surori ale fazei;
 legătura lor semantică este aceeași, dar validation-ul nu este copil vizual al
@@ -128,12 +128,12 @@ ca headers, JSON și valorile assertions; un renderer nu reconstruiește secrete
 Trace-ul tehnic este compact și relevant. El păstrează URL-ul cererii, dar nu
 repetă statusul response-ului sau mecanica execuției:
 
-~~~text
+```text
 URL
 CONTENT-TYPE
 FAILURE CAUSE (dacă există)
 alte facts HTTP non-duplicative
-~~~
+```
 
 `Execution evidence · N attempts` este disclosure-ul separat pentru mecanica
 transportului. El păstrează URL-ul efectiv, durata response-ului, numărul de
@@ -184,9 +184,9 @@ input-ul primit de la transport sau de la validator.
 
 Toate verificările pentru același response apar într-o singură structură:
 
-~~~text
+```text
 ASSERTION | EXPECTED | ACTUAL | RESULT
-~~~
+```
 
 RESULT poate fi PASS, FAIL sau WARNING, iar statusul tabelului derivă din
 rândurile sale. În cazul unui failure sunt păstrate toate rândurile deja
@@ -195,12 +195,23 @@ TEST BODY pentru aceleași assertions.
 
 Precedence-ul unic este:
 
-~~~text
+```text
 FAIL > SKIP > WARNING > PASS
-~~~
+```
 
 Această regulă se aplică la rând, tabel, validation, phase și scenario. Dacă
 runnerul are o regulă mai strictă, raportul o reflectă și nu o suprascrie.
+
+### Layout adaptiv pentru assertions
+
+Tabelul își păstrează cele patru coloane în ordinea `ASSERTION`, `EXPECTED`,
+`ACTUAL`, `RESULT`, însă lățimile nu sunt contractate prin pixeli fixați.
+Runtime-ul măsoară textul vizibil din toate rândurile, alocă proporțional mai
+mult spațiu coloanei cu valorile flexibile cele mai lungi și păstrează `RESULT`
+compact. Recalcularea se repetă la redimensionarea viewport-ului. Astfel,
+body-urile, listele și mesajele lungi rămân lizibile fără overflow orizontal,
+iar verificarea browser confirmă atât suma lățimilor, cât și faptul că acea
+coloană dominantă primește lățimea dominantă.
 
 ## Fails și legături
 
@@ -236,12 +247,12 @@ corectă.
 
 Pentru un failure de contract, faza expune un rezumat compact și semantic:
 
-~~~text
+```text
 FAILURE CAUSE | Contract assertion failed: HTTP status
 ASSERTION     | HTTP status
 EXPECTED      | 201
 ACTUAL        | 200
-~~~
+```
 
 Pentru mai multe assertion-uri se păstrează perechi `name = value`, iar pentru
 un failure de teardown se publică o cauză lizibilă, fără să expună doar

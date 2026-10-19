@@ -1,8 +1,8 @@
 package atf.api.reporting.html;
-import atf.api.core.http.response.ApiExecutionResult;
-import atf.api.core.reporting.contract.AtfAssertion;
-import atf.api.core.reporting.contract.AtfReportStatus;
-import atf.api.core.ui.AtfUiActionRecord;
+import atf.api.reporting.model.ReportExecutionEvidence;
+import atf.api.reporting.contract.AtfAssertion;
+import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.ui.AtfUiActionRecord;
 import atf.api.reporting.model.ReportField;
 import atf.api.reporting.model.ReportJsonBody;
 import atf.api.reporting.model.ReportExecutionModel;
@@ -151,7 +151,7 @@ public final class HtmlReportSemanticDocument {
         final List<ReportField> details = new ArrayList<>();
         final List<ReportJsonBody> json = new ArrayList<>();
         final List<NodeModel> children = new ArrayList<>();
-        ApiExecutionResult execution;
+        ReportExecutionEvidence execution;
         int uiActionCount;
         int screenshotCount;
         AtfReportStatus status = AtfReportStatus.INFO;
@@ -174,7 +174,7 @@ public final class HtmlReportSemanticDocument {
             return List.copyOf(json);
         }
 
-        public ApiExecutionResult execution() {
+        public ReportExecutionEvidence execution() {
             return execution;
         }
 
@@ -182,8 +182,13 @@ public final class HtmlReportSemanticDocument {
             this.json.add(new ReportJsonBody(label, json));
         }
 
-        public void execution(ApiExecutionResult result) {
+        public void execution(ReportExecutionEvidence result) {
             this.execution = result;
+        }
+
+        /** Compatibility seam for test-only legacy execution fixtures. */
+        public void execution(Object result) {
+            this.execution = atf.api.reporting.api.ReportModelAdapters.execution(result);
         }
 
         public void addUiActions(Collection<AtfUiActionRecord> actions) {

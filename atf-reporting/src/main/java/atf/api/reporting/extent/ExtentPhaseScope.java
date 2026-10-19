@@ -1,8 +1,8 @@
 package atf.api.reporting.extent;
-import atf.api.core.reporting.console.AtfConsoleEvent;
-import atf.api.core.reporting.contract.AtfReportPorts;
-import atf.api.core.reporting.contract.AtfReportStatus;
-import atf.api.core.reporting.contract.ReportStatusAggregator;
+import atf.api.reporting.console.AtfConsoleEvent;
+import atf.api.reporting.contract.AtfReportPorts;
+import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.contract.ReportStatusAggregator;
 import atf.api.reporting.extent.session.ExtentReportTree;
 import atf.api.reporting.model.ReportField;
 import atf.api.reporting.semantic.AtfReportSemanticRecorder;
@@ -35,7 +35,7 @@ final class ExtentPhaseScope implements AtfReportPorts.Phase {
     @Override public AtfReportPorts.Request startRequest(String title, String method, String path) {
         ensurePhaseOpen();
         String requestTitle = tree.renderRequestTitle(title, method, path);
-        tree.consoleStarted(atf.api.core.reporting.console.AtfConsoleEvent.Scope.REQUEST, requestTitle);
+        tree.consoleStarted(atf.api.reporting.console.AtfConsoleEvent.Scope.REQUEST, requestTitle);
         return new ExtentRequestScope(tree, this, phase.createNode(requestTitle), requestTitle,
                 semantic.startRequest(title, method, path));
     }
@@ -44,7 +44,7 @@ final class ExtentPhaseScope implements AtfReportPorts.Phase {
         String normalizedName = name == null || name.isBlank() ? "DETAIL" : name;
         details.add(new ReportField(normalizedName, tree.redactor().redactField(name, value)));
         semantic.detail(name);
-        tree.consoleDetail(atf.api.core.reporting.console.AtfConsoleEvent.Scope.PHASE,
+        tree.consoleDetail(atf.api.reporting.console.AtfConsoleEvent.Scope.PHASE,
                 name, tree.redactor().redactField(name, value));
     }
 
@@ -56,7 +56,7 @@ final class ExtentPhaseScope implements AtfReportPorts.Phase {
         tree.markEnded(phase);
         scenario.record(effective);
         semantic.complete(effective);
-        tree.consoleCompleted(atf.api.core.reporting.console.AtfConsoleEvent.Scope.PHASE,
+        tree.consoleCompleted(atf.api.reporting.console.AtfConsoleEvent.Scope.PHASE,
                 phaseName, effective, phase);
         closed = true;
     }

@@ -1,5 +1,5 @@
 package atf.api.reporting.audit;
-import atf.api.core.reporting.contract.AtfAssertion;
+import atf.api.reporting.contract.AtfAssertion;
 
 import java.util.List;
 import java.util.Objects;

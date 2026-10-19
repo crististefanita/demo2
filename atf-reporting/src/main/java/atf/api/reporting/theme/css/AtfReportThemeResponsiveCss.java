@@ -1,9 +1,9 @@
 package atf.api.reporting.theme.css;
 
-import atf.api.reporting.theme.tokens.AtfReportThemeTokens;
+import atf.api.reporting.asset.ReportAssetComposer;
 
 /**
- * Responsive layout overrides for the Extent test split view.
+ * Responsive layout facade for the Extent test split view.
  *
  * <p>Extent's desktop layout keeps the test list and the selected test side by
  * side.  Its mobile rule intentionally moves the wrapper by the desktop
@@ -17,15 +17,6 @@ public final class AtfReportThemeResponsiveCss {
     }
 
     public static String css() {
-        return "@media only screen and (max-width:" + AtfReportThemeTokens.NARROW_VIEWPORT + "){"
-                + ".test-wrapper,.test-view{left:var(--atf-narrow-nav-inset)!important;"
-                + "width:calc(100% - var(--atf-narrow-nav-inset))!important;max-width:calc(100% - var(--atf-narrow-nav-inset))!important;"
-                + "box-sizing:border-box!important}"
-                + ".test-wrapper .test-list,.test-view .test-list{width:100%!important;max-width:100%!important;"
-                + "box-sizing:border-box!important}"
-                + ".test-wrapper .test-content,.test-view .test-content{left:var(--atf-narrow-nav-inset)!important;"
-                + "width:calc(100% - var(--atf-narrow-nav-inset))!important;max-width:calc(100% - var(--atf-narrow-nav-inset))!important;"
-                + "box-sizing:border-box!important}"
-                + "}";
+        return ReportAssetComposer.themeResponsiveCss();
     }
 }

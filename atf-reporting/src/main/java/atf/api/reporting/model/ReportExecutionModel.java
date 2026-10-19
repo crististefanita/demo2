@@ -1,8 +1,8 @@
 package atf.api.reporting.model;
 
-import atf.api.core.http.response.ApiExecutionResult;
-import atf.api.core.reporting.contract.AtfAssertion;
-import atf.api.core.reporting.contract.AtfReportStatus;
+import atf.api.reporting.model.ReportExecutionEvidence;
+import atf.api.reporting.contract.AtfAssertion;
+import atf.api.reporting.contract.AtfReportStatus;
 
 import java.util.List;
 import java.util.Objects;
@@ -128,11 +128,11 @@ public record ReportExecutionModel(List<Scenario> scenarios) {
 
     public record Request(String title, String method, String path,
                           List<ReportField> details, List<ReportJsonBody> json,
-                          ApiExecutionResult execution, List<Node> children,
+                          ReportExecutionEvidence execution, List<Node> children,
                           AtfReportStatus status, int uiActionCount, int screenshotCount) implements Node {
         public Request(String title, String method, String path,
                        List<ReportField> details, List<ReportJsonBody> json,
-                       ApiExecutionResult execution, List<Node> children,
+                       ReportExecutionEvidence execution, List<Node> children,
                        AtfReportStatus status) {
             this(title, method, path, details, json, execution, children, status, 0, 0);
         }

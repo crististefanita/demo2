@@ -1,5 +1,5 @@
 package atf.api.reporting.ui.audit.section;
-import atf.api.core.reporting.contract.AtfAssertion;
+import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.audit.ReportAuditChecks;
 import atf.api.reporting.audit.ValidationResult;
 import atf.api.reporting.audit.ReportAuditSnapshot;
@@ -15,7 +15,7 @@ public final class JsonEvidenceValidator {
 
     public ValidationResult validate(ReportAuditSnapshot.JsonEvidence snapshot) {
         Objects.requireNonNull(snapshot, "snapshot");
-        List<atf.api.core.reporting.contract.AtfAssertion> assertions = new ArrayList<>();
+        List<atf.api.reporting.contract.AtfAssertion> assertions = new ArrayList<>();
         assertions.add(ReportAuditChecks.check("Request JSON", "valid JSON document",
                 snapshot.requestBody(), validJson(snapshot.requestBody())));
         assertions.add(ReportAuditChecks.check("Response JSON", "valid JSON document",

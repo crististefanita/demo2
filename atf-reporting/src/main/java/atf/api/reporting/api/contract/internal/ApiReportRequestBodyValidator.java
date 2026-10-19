@@ -1,8 +1,7 @@
 package atf.api.reporting.api.contract.internal;
 
-import atf.api.core.http.request.HttpHeader;
-import atf.api.core.http.request.MediaTypes;
-import atf.api.core.http.response.JsonBodyPolicy;
+import atf.api.reporting.api.ReportHttpHeaders;
+import atf.api.reporting.api.ReportJsonBodyPolicy;
 import atf.api.reporting.api.contract.ApiReportEvidenceField;
 import atf.api.reporting.api.contract.ApiReportRequestBodyMode;
 import atf.api.reporting.api.contract.ApiReportRouteContract;
@@ -15,7 +14,7 @@ import java.util.List;
 /** Validates JSON write evidence and the explicit response JSON channel. */
 public final class ApiReportRequestBodyValidator {
     public ValidationResult validate(ApiReportRouteContract expected, ApiReportContractInput input) {
-        if (!JsonBodyPolicy.appliesTo(expected.method())) {
+        if (!ReportJsonBodyPolicy.appliesTo(expected.method())) {
             return ValidationResult.empty();
         }
         List<String> violations = new ArrayList<>();
@@ -24,7 +23,7 @@ public final class ApiReportRequestBodyValidator {
         boolean validJson = ApiReportContractValueSupport.isJson(body);
         String renderedHeaders = ApiReportContractValueSupport.value(input.requestFields(),
                 ApiReportEvidenceField.REQUEST_HEADERS.key()).toLowerCase(java.util.Locale.ROOT);
-        String jsonHeader = (HttpHeader.CONTENT_TYPE.value() + "=" + MediaTypes.APPLICATION_JSON)
+        String jsonHeader = (ReportHttpHeaders.CONTENT_TYPE + "=application/json")
                 .toLowerCase(java.util.Locale.ROOT);
         boolean jsonContentType = renderedHeaders.contains(jsonHeader);
         switch (ApiReportRequestBodyMode.from(expected.requestBodyMode())) {
@@ -32,8 +31,8 @@ public final class ApiReportRequestBodyValidator {
                 if (!hasPayload) violations.add(expected.key() + " must expose a non-empty JSON request body");
                 else if (!validJson) violations.add(expected.key() + " must expose a valid JSON request body");
                 if (!renderedHeaders.isBlank() && !jsonContentType) {
-                    violations.add(expected.key() + " must expose " + HttpHeader.CONTENT_TYPE.value()
-                            + " " + MediaTypes.APPLICATION_JSON);
+                    violations.add(expected.key() + " must expose " + ReportHttpHeaders.CONTENT_TYPE
+                            + " application/json");
                 }
             }
             case WRONG_CONTENT_TYPE -> {

@@ -15,8 +15,11 @@ public final class ExtentReportDurationRuntime {
 
     enum Fragment {
         PARSING(ExtentReportDurationParsing.script()),
+        DOM(ExtentReportDurationDom.script()),
+        MEMORY(ExtentReportDurationMemory.script()),
         AGGREGATION(ExtentReportDurationAggregation.script()),
         PROJECTION(ExtentReportDurationProjection.script()),
+        SCHEDULING(ExtentReportDurationScheduling.script()),
         LIFECYCLE(ExtentReportDurationLifecycle.script());
 
         private final String source;

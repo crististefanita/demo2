@@ -1,6 +1,6 @@
 package atf.api.reporting.audit;
-import atf.api.core.reporting.contract.AtfAssertion;
-import atf.api.core.reporting.contract.AtfReportStatus;
+import atf.api.reporting.contract.AtfAssertion;
+import atf.api.reporting.contract.AtfReportStatus;
 
 import java.util.OptionalDouble;
 import java.util.OptionalInt;

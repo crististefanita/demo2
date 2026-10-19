@@ -4,7 +4,7 @@ import atf.api.reporting.audit.ReportAuditChecks;
 import atf.api.reporting.audit.ReportAuditSnapshot;
 import atf.api.reporting.audit.ValidationResult;
 import atf.api.reporting.ui.audit.plan.ReportProjection;
-import atf.api.core.reporting.contract.AtfReportStatus;
+import atf.api.reporting.contract.AtfReportStatus;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +38,7 @@ public final class FailsSectionValidator {
     public ValidationResult validate(ReportAuditSnapshot.Failures snapshot, ReportProjection projection) {
         ValidationResult structural = validate(snapshot);
         boolean tabProjected = projection.tabs().stream().anyMatch(tab -> "Fails".equalsIgnoreCase(tab));
-        List<atf.api.core.reporting.contract.AtfAssertion> checks = new ArrayList<>(List.of(
+        List<atf.api.reporting.contract.AtfAssertion> checks = new ArrayList<>(List.of(
                 ReportAuditChecks.check("Expected Fails tab", "declared by projection",
                         projection.tabs().toString(), tabProjected)));
         if (projection.hasStatusExpectation()) {

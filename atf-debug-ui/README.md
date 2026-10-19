@@ -5,6 +5,16 @@ unui HTML deja generat. Nu generează raportul, nu îl modifică și nu conține
 teste executabile. Publică numai pe `127.0.0.1` directorul care conține
 artifactul ales și tipărește URL-ul care trebuie deschis în Playwright/TAB MCP.
 
+## Overall
+
+| Pas | Owner | Rezultat |
+|---:|---|---|
+| 1 | launcher | validează path-ul și root-ul |
+| 2 | loopback server | servește read-only HTML/CSS/JS |
+| 3 | Playwright/TAB MCP | verifică DOM, click, screenshot și consolă |
+
+Nu este browser de produs și nu înlocuiește gate-ul E2E.
+
 ## Diagramă de bază
 
 ```mermaid
@@ -22,6 +32,14 @@ sequenceDiagram
     P-->>A: snapshot, click, screenshot, console, network
 ```
 
+<details>
+<summary><strong>Legendă — investigație read-only</strong></summary>
+- launcher-ul validează inputul și publică numai loopback;
+- Playwright/TAB MCP observă artifactul, nu îl repară și nu îl rescrie;
+- HTML/CSS/JavaScript-ul aparține artifactului produs de atf-reporting;
+- testul E2E rămâne gate-ul pentru comportamentul observabil, iar debug UI este instrumentul de explorare.
+</details>
+
 Responsabilitățile rămân separate:
 
 | Componentă | Responsabilitate |
@@ -29,7 +47,7 @@ Responsabilitățile rămân separate:
 | `atf-reporting` | generează și publică HTML-ul Extent |
 | `atf-debug-ui` | servește read-only artifactul local pe loopback |
 | `atf-ui` | deține politicile generice și adaptorul Java Playwright |
-| `atf-reporting` test scope / `atf.ui.tests.extent` | verificări automate UI pentru rapoarte Extent |
+| `atf-reporting-tests` / `atf.ui.tests.extent` | verificări automate UI pentru rapoarte Extent |
 | agentul + TAB MCP | investigație manuală interactivă |
 
 ## Pornire
@@ -81,7 +99,7 @@ Checklist-ul obligatoriu pentru închiderea unei schimbări de raport:
 
 Build-ul și testele rulează în staging extern, de exemplu
 `${ATF_STAGING_ROOT}/atf-debug-ui-<id>`, nu în staging-ul proiectului. Artifactele aprobate se copiază ulterior în
-`artifacts/reports/` sau `artifacts/reports/ui/`.
+`${ATF_REPORT_OUTPUT_DIR}` sau subdirectorul UI configurat al acestuia.
 
 Pentru compilare și testul de contract:
 
@@ -91,7 +109,7 @@ mvn -pl atf-debug-ui -am test
 
 Testul verifică publicarea HTML și blocarea traversal-ului către fișiere din
 afara root-ului. Nu se adaugă un modul separat pentru teste: testele automate
-UI de audit Extent rămân în `atf-reporting/src/test/java/atf/ui/tests/extent`;
+UI de audit Extent rămân în `atf-reporting-tests/src/test/java/atf/ui/tests/extent`;
 `atf-tests` deține doar testul de guvernanță globală; nu conține teste de browser.
 
 ### Rulări paralele și memorie

@@ -1,0 +1,7 @@
+#atf-fails-view.exception-view.atf-fails-view:not(.hide){display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:stretch!important;width:100%!important;box-sizing:border-box!important;padding:0!important;min-height:calc(100vh - 56px)!important;overflow:hidden!important}
+.exception-view.atf-fails-view .test-list{flex:0 0 32%!important;max-width:32%!important;min-width:280px!important;overflow:auto!important;box-sizing:border-box!important}
+.exception-view.atf-fails-view .test-content{display:block!important;position:relative!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;width:auto!important;max-width:none!important;height:auto!important;flex:1 1 auto!important;align-self:stretch!important;box-sizing:border-box!important;min-width:0!important;overflow:auto!important}
+@media(max-width:760px){#atf-fails-view.exception-view.atf-fails-view:not(.hide){left:0!important;right:0!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important;flex-direction:column!important;overflow:auto!important}
+.exception-view.atf-fails-view .test-list{flex:0 0 auto!important;width:100%!important;max-width:none!important;min-width:0!important;max-height:40vh!important;overflow:auto!important}
+.exception-view.atf-fails-view .test-content{flex:1 1 auto!important;width:100%!important;max-width:none!important;min-width:0!important;overflow:visible!important}
+}

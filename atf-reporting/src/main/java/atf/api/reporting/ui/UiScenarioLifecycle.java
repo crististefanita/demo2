@@ -1,6 +1,6 @@
 package atf.api.reporting.ui;
-import atf.api.core.reporting.contract.AtfReportPorts;
-import atf.api.core.reporting.contract.AtfReportStatus;
+import atf.api.reporting.contract.AtfReportPorts;
+import atf.api.reporting.contract.AtfReportStatus;
 
 
 /** Owns scenario completion state while the public UI facade stays thin. */

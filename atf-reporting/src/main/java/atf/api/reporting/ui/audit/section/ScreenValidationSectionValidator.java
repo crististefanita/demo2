@@ -1,5 +1,5 @@
 package atf.api.reporting.ui.audit.section;
-import atf.api.core.reporting.contract.AtfAssertion;
+import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.audit.ReportAuditChecks;
 import atf.api.reporting.audit.ValidationResult;
 import atf.api.reporting.audit.ReportAuditSnapshot;
@@ -12,7 +12,7 @@ import java.util.Objects;
 public final class ScreenValidationSectionValidator {
     public ValidationResult validate(ReportAuditSnapshot.ScreenValidation snapshot) {
         Objects.requireNonNull(snapshot, "snapshot");
-        List<atf.api.core.reporting.contract.AtfAssertion> assertions = new ArrayList<>();
+        List<atf.api.reporting.contract.AtfAssertion> assertions = new ArrayList<>();
         assertions.add(ReportAuditChecks.check("Screen validation node", "1",
                 String.valueOf(snapshot.sectionCount()), snapshot.sectionCount() == 1));
         assertions.add(ReportAuditChecks.check("Evidence zones", "action + observations + assertions",

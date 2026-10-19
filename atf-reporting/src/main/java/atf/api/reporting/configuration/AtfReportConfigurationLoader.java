@@ -1,6 +1,6 @@
 package atf.api.reporting.configuration;
 
-import atf.api.core.config.ReportingSettings;
+import atf.api.reporting.configuration.ReportingSettings;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

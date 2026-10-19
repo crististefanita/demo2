@@ -7,11 +7,11 @@ import java.util.List;
 /** Closed vocabulary and stable identifiers of the rendered ATF Extent report. */
 public final class ReportUiContract {
     public static final String INPUT_SOURCE_TEMP_PREFIX = "atf-input-source-";
-    public static final String TEST_OWNER_SELECTOR = AtfReportCssSelectors.descendant(
-            AtfReportCssSelectors.Component.TEST_LIST,
-            AtfReportCssSelectors.Component.TEST_ITEM);
+    public static final String TEST_OWNER_SELECTOR =
+            AtfReportCssSelectors.Component.TEST_LIST.attributeSelector() + " "
+                    + AtfReportCssSelectors.Component.TEST_ITEM.attributeSelector();
     public static final String VISIBLE_DETAIL_SELECTOR =
-            AtfReportCssSelectors.Component.TEST_CONTENT_DETAIL.visible();
+            AtfReportCssSelectors.Component.TEST_CONTENT_DETAIL.attributeSelector() + ":visible";
     public static final String SCREENSHOT_MARKER = "📷 base64 img";
     public static final String BASE64_SCREENSHOT_ATTRIBUTE = "data-atf-screenshot";
     public static final String BASE64_SCREENSHOT_VALUE = "base64";
@@ -22,9 +22,10 @@ public final class ReportUiContract {
     public static final String OVERVIEW_SCENARIO_AUDIT = "#atf-audit-scenarios";
     public static final String BODY_SELECTOR = AtfReportCssSelectors.Surface.BODY.selector();
     public static final String TAG_FILTER_MENU = "#tag-toggle";
-    public static final String VALIDATION_TABLE_SELECTOR = "table.helm-validation-table";
-    public static final String ACTION_SEQUENCE_SELECTOR = "details.atf-ui-action-sequence";
-    public static final String SCREENSHOT_LINK_SELECTOR = "a.atf-ui-action-screenshot-link";
+    public static final String VALIDATION_TABLE_SELECTOR = "table[class~='helm-validation-table']";
+    public static final String ACTION_SEQUENCE_SELECTOR = "details[class~='atf-ui-action-sequence']";
+    public static final String ACTION_NUMBER_SELECTOR = "[class~='atf-ui-action-number']";
+    public static final String SCREENSHOT_LINK_SELECTOR = "a[class~='atf-ui-action-screenshot-link']";
     public static final int ACTION_TABLE_COLUMN_COUNT = 6;
 
     private ReportUiContract() { }

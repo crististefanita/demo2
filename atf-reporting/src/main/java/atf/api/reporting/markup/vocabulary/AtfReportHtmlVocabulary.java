@@ -1,6 +1,6 @@
 package atf.api.reporting.markup.vocabulary;
 
-import atf.api.core.reporting.contract.AtfReportStatus;
+import atf.api.reporting.contract.AtfReportStatus;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -82,6 +82,7 @@ public final class AtfReportHtmlVocabulary {
         ATF_UI_ACTION_IDENTITY("atf-ui-action-identity"),
         ATF_UI_ACTION_OPERATION("atf-ui-action-operation"),
         ATF_UI_ACTION_SEQUENCE("atf-ui-action-sequence"),
+        ATF_UI_ACTION_NUMBER("atf-ui-action-number"),
         ATF_UI_ACTION_SCREENSHOT("atf-ui-action-screenshot"),
         ATF_UI_ACTION_SCREENSHOT_LINK("atf-ui-action-screenshot-link"),
         ATF_UI_ACTION_TABLE("atf-ui-action-table"),

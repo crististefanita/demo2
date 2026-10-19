@@ -1,9 +1,9 @@
 package atf.api.reporting.extent;
-import atf.api.core.http.response.ApiExecutionResult;
-import atf.api.core.reporting.console.AtfConsoleEvent;
-import atf.api.core.reporting.contract.AtfReportPorts;
-import atf.api.core.reporting.contract.AtfReportStatus;
-import atf.api.core.reporting.contract.ReportStatusAggregator;
+import atf.api.reporting.model.ReportExecutionEvidence;
+import atf.api.reporting.console.AtfConsoleEvent;
+import atf.api.reporting.contract.AtfReportPorts;
+import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.contract.ReportStatusAggregator;
 import atf.api.reporting.extent.session.ExtentReportTree;
 import atf.api.reporting.markup.AtfReportEvidenceKeys;
 import atf.api.reporting.model.ReportField;
@@ -11,8 +11,8 @@ import atf.api.reporting.model.ReportJsonBody;
 import atf.api.reporting.model.ReportScreenshot;
 import atf.api.reporting.semantic.AtfReportSemanticRecorder;
 
-import atf.api.core.ui.AtfUiActionRecord;
-import atf.api.core.ui.AtfUiEvidenceSource;
+import atf.api.reporting.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.AtfUiEvidenceSource;
 import com.aventstack.extentreports.ExtentTest;
 
 import java.util.ArrayList;
@@ -29,7 +29,7 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
     private final List<AtfUiActionRecord> uiActions = new ArrayList<>();
     private final ReportStatusAggregator statuses = new ReportStatusAggregator();
     private final AtfReportSemanticRecorder.RequestHandle semantic;
-    private ApiExecutionResult execution;
+    private ReportExecutionEvidence execution;
     private int openValidations;
     private boolean closed;
 
@@ -47,7 +47,7 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
         String redacted = tree.redactor().redactField(name, value);
         details.add(new ReportField(tree.normalizeDetailName(name), redacted));
         semantic.detail(name);
-        tree.consoleDetail(atf.api.core.reporting.console.AtfConsoleEvent.Scope.REQUEST,
+        tree.consoleDetail(atf.api.reporting.console.AtfConsoleEvent.Scope.REQUEST,
                 tree.normalizeDetailName(name), redacted);
     }
 
@@ -55,7 +55,7 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
         String redacted = tree.redactor().redactJson(value);
         json.add(new ReportJsonBody(label == null || label.isBlank() ? "JSON BODY" : label, redacted));
         semantic.json(label);
-        tree.consoleCode(atf.api.core.reporting.console.AtfConsoleEvent.Scope.REQUEST, label, redacted);
+        tree.consoleCode(atf.api.reporting.console.AtfConsoleEvent.Scope.REQUEST, label, redacted);
     }
 
     @Override public void screenshot(String title, String base64Png) {
@@ -73,7 +73,7 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
         semantic.uiActions(actions);
     }
 
-    @Override public void execution(ApiExecutionResult result) {
+    @Override public void execution(ReportExecutionEvidence result) {
         execution = result;
         semantic.execution();
     }
@@ -99,7 +99,7 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
         tree.markEnded(request);
         phase.record(effective);
         semantic.complete(effective);
-        tree.consoleCompleted(atf.api.core.reporting.console.AtfConsoleEvent.Scope.REQUEST,
+        tree.consoleCompleted(atf.api.reporting.console.AtfConsoleEvent.Scope.REQUEST,
                 requestTitle, effective, request);
         closed = true;
     }
@@ -108,7 +108,7 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
         ensureRequestOpen();
         openValidations++;
         String validationTitle = title == null ? "Validation" : title;
-        tree.consoleStarted(atf.api.core.reporting.console.AtfConsoleEvent.Scope.VALIDATION, validationTitle);
+        tree.consoleStarted(atf.api.reporting.console.AtfConsoleEvent.Scope.VALIDATION, validationTitle);
         // A validation is a substep of the Gherkin-shaped request/statement.
         // Creating it from the phase makes it a misleading sibling in Tests;
         // creating it from the request preserves the semantic hierarchy.

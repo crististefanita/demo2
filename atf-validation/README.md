@@ -5,6 +5,14 @@ de response într-o decizie verificabilă și într-un set de assertions publica
 Este un JAR reutilizabil: nu face HTTP, nu cunoaște Extent și nu construiește
 HTML/CSS.
 
+## Overall
+
+| Input | Decision | Output |
+|---|---|---|
+| response + rules | contract evaluation | typed validation outcome |
+| outcome + evidence sink | semantic publication | port neutru către reporting |
+| invalid payload | failure evidence | fără renderer în runtime |
+
 ## Diagramă de bază
 
 Diagrama arată fluxul de date și colaborarea runtime; nu este graful de
@@ -12,24 +20,32 @@ dependențe Maven. Graful de module și sensul săgeților sunt în README-ul
 rădăcină și în `docs/ATF_Architecture.md`.
 
 ```mermaid
-flowchart LR
+flowchart TB
     Core[atf-core<br/>modele + porturi] --> Validation[atf-validation<br/>contracte + evaluator]
-    Execution[atf-execution<br/>rute + lifecycle] --> Validation
-    Tests[atf-reporting test scope] --> Validation
+    ReportingTests[atf-reporting-tests<br/>concrete API fixtures] --> Validation
+    Tests[atf-reporting-tests composition] --> Validation
     Validation --> Decision[ValidationDecision<br/>status + assertions]
     Validation --> Sink[ValidationSink<br/>port îngust de publicare]
     Reporting[atf-reporting<br/>Extent + HTML] --> Sink
 ```
 
+<details>
+<summary><strong>Legendă — verdict fără renderer</strong></summary>
+- `atf-core` oferă modele și porturi neutre;
+- `atf-validation` evaluează contractul și produce decizia typed;
+- `ValidationSink` este singurul seam către publicare;
+- `atf-reporting` implementează publicarea, dar nu schimbă verdictul calculat.
+</details>
+
 Direcția este intenționată:
 
 - `atf-core` definește modele neutre și porturi mici;
 - `atf-validation` depinde numai de core și de biblioteca JSON necesară evaluării;
-- `atf-execution` orchestrează request-ul și folosește validarea, dar nu deține
-  regulile de contract;
+- `atf-core` orchestrează mecanica generică a request-ului și lifecycle-ului, dar
+  nu deține regulile de contract;
 - `atf-reporting` implementează portul de publicare și deține exclusiv Extent,
   HTML, CSS, asset-urile și finalizarea artifactului;
-- `atf-reporting` test scope verifică modulele prin fake-uri deterministe și
+- `atf-reporting-tests` test scope verifică modulele prin fake-uri deterministe și
   scenarii de integrare; `atf-tests` păstrează numai guvernanța globală a reactorului.
 
 ## Responsabilități publice
@@ -82,7 +98,7 @@ publică propriul artifact Extent și propriul verdict.
 ```mermaid
 sequenceDiagram
     participant T as Test
-    participant E as atf-execution
+    participant E as atf-core / generic lifecycle
     participant V as atf-validation
     participant S as ValidationSink
     participant R as atf-reporting
@@ -96,6 +112,13 @@ sequenceDiagram
     V->>S: complete PASS/WARNING/FAIL
     S->>R: renderer-neutral evidence
 ```
+
+<details>
+<summary><strong>Legendă — secvența unei validări</strong></summary>
+- testul execută operația și trimite response-ul către evaluator;
+- evaluatorul compune un singur tabel de assertions și un verdict agregat;
+- sink-ul primește evidence renderer-neutral, iar reporting-ul doar îl proiectează.
+</details>
 
 ## Reguli de separare
 

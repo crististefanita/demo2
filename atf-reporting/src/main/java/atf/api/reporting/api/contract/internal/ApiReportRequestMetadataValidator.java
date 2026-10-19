@@ -1,6 +1,6 @@
 package atf.api.reporting.api.contract.internal;
 
-import atf.api.core.http.request.ApiQueryParameter;
+import atf.api.reporting.api.ReportQueryParameter;
 import atf.api.reporting.api.contract.ApiReportEvidenceField;
 import atf.api.reporting.api.contract.ApiReportRouteContract;
 import atf.api.reporting.api.contract.ApiReportContractInput;
@@ -25,7 +25,7 @@ public final class ApiReportRequestMetadataValidator {
         var query = ApiReportContractValueSupport.queryFromUrl(input.requestUrl());
         if (!query.containsAll(expected.queryParameters())) {
             String queryNames = expected.queryParameters().values().stream()
-                    .map(ApiQueryParameter::name).distinct()
+                    .map(ReportQueryParameter::name).distinct()
                     .collect(Collectors.joining(","));
             violations.add(expected.key() + " expected query " + queryNames + " parameters "
                     + expected.queryParameters().display() + " but report rendered " + query.display());

@@ -2,13 +2,13 @@
 
 Acest ghid protejează execuțiile ATF care rulează deja. Principiul este simplu:
 
-~~~text
+```text
 codul live rămâne sursa de lucru;
 build-ul și testele se execută într-un staging separat;
 output-urile intermediare nu se sincronizează în checkout-ul activ;
 doar artifactul final, validat prin TAB MCP, se publică explicit în
 `artifacts/reports/` sau `artifacts/reports/ui/`.
-~~~
+```
 
 ## Ce nu se face
 
@@ -31,7 +31,7 @@ output printr-un `user.dir` schimbat sau printr-un path relativ ambiguu.
 
 ## Fluxul izolat
 
-~~~mermaid
+```mermaid
 flowchart TD
     Live[Checkout live] --> Inspect[inspectare read-only]
     Inspect --> Stage[staging nou în director temporar]
@@ -41,7 +41,7 @@ flowchart TD
     Report --> MCP[validare în TAB MCP]
     MCP --> Review[review diff și rezultate]
     Review --> SyncBack[sincronizare controlată doar a surselor aprobate]
-~~~
+```
 
 ## Protocol obligatoriu pentru refactorizare
 
@@ -99,14 +99,14 @@ diferența nu este investigată și reconciliată.
 
 Exemplu PowerShell, cu căi înlocuite de operator:
 
-~~~powershell
+```powershell
 $source = '.'
 $stage = Join-Path $env:ATF_STAGING_ROOT 'atf-java-staging-<id>'
 
 New-Item -ItemType Directory -Force $stage | Out-Null
 robocopy $source $stage /E /XD '.git' 'target' 'artifacts' 'spark' 'bin' 'obj' /XF '*.log' 'hs_err_pid*.log'
 mvn -o -f "$stage\pom.xml" test
-~~~
+```
 
 Pentru execuția Java se păstrează aceeași regulă într-un staging extern
 checkout-ului, de exemplu `${ATF_STAGING_ROOT}/Atf-java-feedback-<id>`. Sursele se
@@ -121,7 +121,8 @@ working directory-ul IDE/Maven.
 
 Când un modul de test consumă API-uri schimbate în `atf-core`, `atf-ui` sau
 alte module ale reactorului, verificarea se rulează cu `-am` (de exemplu
-`mvn -pl atf-reporting -am test`). Un `mvn -pl atf-reporting test` izolat poate
+`mvn -pl atf-reporting-tests -am test`). Pentru librăria standalone, `mvn -f atf-reporting/pom.xml test`
+este gate-ul izolat intenționat; un `mvn -pl atf-reporting-tests test` izolat poate
 rezolva un JAR instalat anterior din repository-ul local și poate raporta
 constructori/metode lipsă care nu există în sursele stage-ului. Rezultatul
 izolat este acceptabil numai după un reactor build verde sau dacă dependențele
@@ -147,11 +148,11 @@ lease exclusiv cât timp sesiunea este activă. După o întrerupere forțată,
 operatorul poate rula explicit sweeper-ul bounded din
 `atf.api.reporting.ReportStagingWorkspace`, de exemplu:
 
-~~~java
+```java
 var result = ReportStagingWorkspace.sweep(
         reportDirectory,
         Duration.ofHours(1));
-~~~
+```
 
 Sweeper-ul inspectează numai directoarele `.atf-extent-session-*` marcate direct
 sub `reportDirectory`, păstrează workspace-urile fresh, active, malformate sau
@@ -184,6 +185,28 @@ Nu se propagă:
 Sincronizarea înapoi este o operație selectivă, după review de diff. Dacă există
 modificări concurente în același fișier, se oprește doar editarea acelui fișier
 și se recitește conținutul live; nu se repară prin overwrite sau reset.
+
+### Regula anti-undo la revenirea din staging
+
+Staging-ul este o copie de lucru, nu o sursă autoritară. La revenirea în live nu
+se face mirror al directorului și nu se copiază recursiv staging-ul peste
+checkout. Se promovează numai fișierele din zona task-ului, după această
+secvență:
+
+```text
+live actual → baseline pentru fișierele aprobate
+staging     → diff limitat la aceleași fișiere
+reconciliere cu modificările paralele din live
+promovare selectivă numai dacă baseline-ul este neschimbat
+re-citire live și verificare a ownerului/documentației
+```
+
+Dacă live-ul conține o modificare mai nouă sau o mutare făcută de alt proces,
+acea modificare se păstrează și se integrează punctual; nu se reintroduc fișiere
+șterse din staging doar pentru că existau în copia inițială. Un fișier absent din
+staging nu este autorizație de ștergere în live. Orice conflict devine ToDo
+explicit și oprește doar promovarea fișierului conflictual, nu rulările active
+și nu celelalte fișiere aprobate.
 
 ## Raportul din staging
 

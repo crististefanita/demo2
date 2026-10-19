@@ -1,8 +1,8 @@
 package atf.api.reporting.ui.audit.plan;
 
-import atf.api.core.reporting.contract.AtfReportStatus;
+import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.audit.ReportAuditSnapshot;
-import atf.api.core.testing.api.ApiScenarioSelection;
+import atf.api.reporting.api.ReportScenarioSelection;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -67,9 +67,9 @@ public record ReportProjection(List<Owner> owners,
      * an annotation remains in the consumer module. This keeps expected report
      * shape reusable by reporting, API acceptance and UI composition roots.</p>
      */
-    public static ReportProjection from(Collection<ApiScenarioSelection> selections) {
+    public static ReportProjection from(Collection<ReportScenarioSelection> selections) {
         Objects.requireNonNull(selections, "selections");
-        List<ApiScenarioSelection> selected = selections.stream()
+        List<ReportScenarioSelection> selected = selections.stream()
                 .filter(Objects::nonNull)
                 .toList();
         List<Owner> owners = selected.stream()

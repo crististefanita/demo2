@@ -4,16 +4,32 @@
 doar de `atf-core` și implementează `ApiTransport`; nu cunoaște Extent, JUnit,
 serviciile Users/Posts sau validarea de business.
 
+## Overall
+
+| Input | Determinism | Output |
+|---|---|---|
+| YAML route catalog | fără DNS/TLS/network | `ApiResponse` cu status, headers și JSON |
+| request method/path/query/body | matching explicit | evidence replayable |
+| setup API | test composition only | poate alimenta raportul UI |
+
 ## Diagramă de bază
 
 ```mermaid
-flowchart LR
+flowchart TB
     Fixture[atf-mock.yaml<br/>route + request/response JSON] --> Loader[AtfMockConfigurationLoader]
     Loader --> Mock[AtfMockTransport]
     Mock --> Transport[ApiTransport]
     Transport --> Executor[ApiExecutor]
     Executor --> Evidence[request/response evidence]
 ```
+
+<details>
+<summary><strong>Legendă — mock determinist</strong></summary>
+- YAML-ul este inputul fixture-ului, nu configurație de producție;
+- loaderul construiește transportul fake, iar executorul îl consumă prin portul neutru ApiTransport;
+- evidence-ul păstrează forma request/response fără a pretinde că a existat trafic HTTP;
+- transportul live este un profil separat, explicit și opt-in.
+</details>
 
 ## Contract
 
@@ -42,7 +58,7 @@ payload-urile negative strict locale rămân lângă testul care le explică. Nu
 introduce o clasă globală `AtfConstants` ca sertar pentru valori fără owner.
 În testele acestui modul, `MockTransportTestFixtures` este owner-ul local pentru
 URL-ul mock, payload-uri și query-shape-uri, deoarece `atf-mock` nu depinde de
-scenariile din test scope-ul `atf-reporting`. Pentru fixture-ul built-in,
+scenariile din composition scope-ul `atf-reporting-tests`. Pentru fixture-ul built-in,
 `MockRoutePaths` este owner-ul rutelor concrete; el compune segmentele prin
 `ApiPathTemplate` și nu expune catalogul mock în `atf-core`. Default-ul neutru
 `ApiEnvironment` este în `atf-core/config.source`, fără ca mock-ul să depindă
@@ -73,7 +89,7 @@ explicită există dar este invalidă, încărcarea eșuează fail-fast; nu revi
 silențios la fixture-ul built-in și nu pornește HTTP real.
 
 În acest repository, catalogul folosit de raportare este mutat explicit în
-`atf-reporting/src/test/resources/atf-mock.yaml`. Este încărcat prin
+`atf-reporting-tests/src/test/resources/atf-mock.yaml`. Este încărcat prin
 `ReportingTestResources.mockConfiguration()` sau `.mockTransport()`, astfel
 încât testele de raportare nu depind de working directory și nu concurează cu
 un catalog folosit de o altă rulare. Loader-ul, schema și transportul rămân în

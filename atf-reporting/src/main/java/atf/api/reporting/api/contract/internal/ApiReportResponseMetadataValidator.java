@@ -1,6 +1,6 @@
 package atf.api.reporting.api.contract.internal;
 
-import atf.api.core.http.request.HttpHeader;
+import atf.api.reporting.api.ReportHttpHeaders;
 import atf.api.reporting.api.contract.ApiReportEvidenceField;
 import atf.api.reporting.api.contract.ApiReportRouteContract;
 import atf.api.reporting.api.contract.ApiReportContractInput;
@@ -17,7 +17,7 @@ public final class ApiReportResponseMetadataValidator {
         Map<String, String> actualHeaders = ApiReportContractValueSupport.parseMap(
                 input.responseFields().get(ApiReportEvidenceField.RESPONSE_HEADERS.key()));
         expected.responseHeaders().entrySet().stream()
-                .filter(entry -> !entry.getKey().equalsIgnoreCase(HttpHeader.CONTENT_TYPE.value()))
+                .filter(entry -> !entry.getKey().equalsIgnoreCase(ReportHttpHeaders.CONTENT_TYPE))
                 .forEach(entry -> {
                     String actual = ApiReportContractValueSupport.caseInsensitiveValue(actualHeaders, entry.getKey());
                     if (!entry.getValue().equals(actual)) {
@@ -29,7 +29,7 @@ public final class ApiReportResponseMetadataValidator {
         String contentType = ApiReportContractValueSupport.value(input.responseFields(),
                 ApiReportEvidenceField.CONTENT_TYPE.key());
         String expectedContentType = ApiReportContractValueSupport.caseInsensitiveValue(
-                expected.responseHeaders(), HttpHeader.CONTENT_TYPE.value());
+                expected.responseHeaders(), ReportHttpHeaders.CONTENT_TYPE);
         if (expectedContentType != null && !expectedContentType.equals(contentType)) {
             violations.add(expected.key() + " expected CONTENT-TYPE " + expectedContentType
                     + " but report rendered " + (contentType.isBlank() ? "<missing>" : contentType));

@@ -12,8 +12,7 @@ public enum AtfModule {
     CONSOLE("console"),
     DEBUG_UI("debug-ui"),
     CORE("core"),
-    VALIDATION("validation"),
-    EXECUTION("execution");
+    VALIDATION("validation");
 
     private final String key;
 

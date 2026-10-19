@@ -87,6 +87,22 @@ public final class AtfReportCssSelectors {
             return selector;
         }
 
+        /**
+         * Attribute-form selector for the stable component class token.
+         * The renderer keeps CSS shorthand, while browser tests bind to the
+         * semantic class attribute instead.
+         */
+        public String attributeSelector() {
+            if (!selector.matches("\\.[A-Za-z0-9_-]+")) {
+                throw new IllegalStateException("Component is not a single class token: " + selector);
+            }
+            return "[class~='" + selector.substring(1) + "']";
+        }
+
+        public String attributeSelector(String element) {
+            return Objects.requireNonNull(element, "element") + attributeSelector();
+        }
+
         /** Returns this component constrained to visible DOM. */
         public String visible() {
             return selector + ":visible";

@@ -1,5 +1,5 @@
 package atf.api.reporting.audit;
-import atf.api.core.reporting.contract.AtfAssertion;
+import atf.api.reporting.contract.AtfAssertion;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -15,7 +15,7 @@ public final class CrossTabReconciler {
                                       int linkedCategoryScenarioCount) {
         Set<String> expected = normalized(expectedOwners);
         Set<String> actual = normalized(actualOwners);
-        List<atf.api.core.reporting.contract.AtfAssertion> assertions = List.of(
+        List<atf.api.reporting.contract.AtfAssertion> assertions = List.of(
                 ReportAuditChecks.check("Owners", expected.toString(), actual.toString(),
                         actual.equals(expected)),
                 ReportAuditChecks.check("Overview classes", String.valueOf(actual.size()),

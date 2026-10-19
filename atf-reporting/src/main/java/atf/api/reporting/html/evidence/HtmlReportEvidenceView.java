@@ -1,11 +1,11 @@
 package atf.api.reporting.html.evidence;
 
-import atf.api.core.config.ReportingSettings;
-import atf.api.core.http.response.ApiAttemptRecord;
-import atf.api.core.http.response.ApiExecutionResult;
-import atf.api.core.reporting.contract.AtfAssertion;
-import atf.api.core.reporting.duration.AtfDurationFormatter;
-import atf.api.core.security.SensitiveDataRedactor;
+import atf.api.reporting.configuration.ReportingSettings;
+import atf.api.reporting.api.ReportAttemptRecord;
+import atf.api.reporting.model.ReportExecutionEvidence;
+import atf.api.reporting.contract.AtfAssertion;
+import atf.api.reporting.duration.AtfDurationFormatter;
+import atf.api.reporting.security.SensitiveDataRedactor;
 import atf.api.reporting.evidence.EvidenceTableFormatter;
 import atf.api.reporting.markup.AtfReportLabels;
 import atf.api.reporting.markup.ExtentReportNodeSupport;
@@ -13,6 +13,7 @@ import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
 import atf.api.reporting.model.ReportExecutionModel;
 import atf.api.reporting.model.ReportField;
 import atf.api.reporting.model.ReportJsonBody;
+import atf.api.reporting.api.ReportModelAdapters;
 
 import java.util.List;
 import java.util.Locale;
@@ -142,7 +143,7 @@ public final class HtmlReportEvidenceView {
         return label != null && label.trim().toUpperCase(Locale.ROOT).startsWith(AtfReportLabels.REQUEST_PREFIX);
     }
 
-    public void renderExecution(StringBuilder html, ApiExecutionResult execution) {
+    public void renderExecution(StringBuilder html, ReportExecutionEvidence execution) {
         if (execution == null) return;
         html.append(openTag(DETAILS, classAttribute(STEP_DETAIL, EXECUTION_EVIDENCE)))
                 .append(openTag(SUMMARY, attribute(ARIA_EXPANDED, FALSE)))
@@ -171,17 +172,22 @@ public final class HtmlReportEvidenceView {
                     .append(openTag(TH)).append(AtfReportLabels.OUTCOME).append(closeTag(TH))
                     .append(openTag(TH)).append(AtfReportLabels.REASON).append(closeTag(TH))
                     .append(closeTag(TR)).append(closeTag(THEAD)).append(openTag(TBODY));
-            for (ApiAttemptRecord attempt : execution.attemptHistory()) {
+            for (ReportAttemptRecord attempt : execution.attemptHistory()) {
                 html.append(openTag(TR)).append(openTag(TD)).append(attempt.number()).append(closeTag(TD))
                         .append(openTag(TD)).append(attempt.statusCode()).append(closeTag(TD))
                         .append(openTag(TD)).append(AtfDurationFormatter.format(attempt.duration())).append(closeTag(TD))
-                        .append(openTag(TD)).append(escape(attempt.outcome().name())).append(closeTag(TD))
+                        .append(openTag(TD)).append(escape(attempt.outcome())).append(closeTag(TD))
                         .append(openTag(TD)).append(escape(redactor.redactText(attempt.reason())))
                         .append(closeTag(TD)).append(closeTag(TR));
             }
             html.append(closeTag(TBODY)).append(closeTag(TABLE));
         }
         html.append(closeTag(DETAILS));
+    }
+
+    /** Test/composition seam for legacy execution snapshots; typed production callers stay unchanged. */
+    public void renderExecution(StringBuilder html, Object execution) {
+        renderExecution(html, ReportModelAdapters.execution(execution));
     }
 
     private static void row(StringBuilder html, String field, String value) {

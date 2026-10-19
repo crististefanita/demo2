@@ -1,10 +1,10 @@
 package atf.api.reporting.evidence;
-import atf.api.core.http.response.ApiExecutionResult;
-import atf.api.core.reporting.contract.AtfAssertion;
+import atf.api.reporting.model.ReportExecutionEvidence;
+import atf.api.reporting.contract.AtfAssertion;
 
-import atf.api.core.config.ReportingSettings;
-import atf.api.core.security.SensitiveDataRedactor;
-import atf.api.core.ui.AtfUiActionRecord;
+import atf.api.reporting.configuration.ReportingSettings;
+import atf.api.reporting.security.SensitiveDataRedactor;
+import atf.api.reporting.ui.AtfUiActionRecord;
 import atf.api.reporting.model.ReportField;
 import atf.api.reporting.model.ReportJsonBody;
 import atf.api.reporting.model.ReportScreenshot;
@@ -41,7 +41,7 @@ public final class ExtentEvidenceRenderer {
         transport.renderSetupEvidence(node, details);
     }
 
-    public void renderExecution(ExtentTest node, ApiExecutionResult execution) {
+    public void renderExecution(ExtentTest node, ReportExecutionEvidence execution) {
         transport.renderExecution(node, execution);
     }
 

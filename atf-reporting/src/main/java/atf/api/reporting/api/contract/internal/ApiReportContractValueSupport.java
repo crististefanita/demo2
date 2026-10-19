@@ -1,6 +1,6 @@
 package atf.api.reporting.api.contract.internal;
 
-import atf.api.core.http.request.ApiQueryParameters;
+import atf.api.reporting.api.ReportQueryParameters;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -64,12 +64,12 @@ public final class ApiReportContractValueSupport {
         return result;
     }
 
-    public static ApiQueryParameters queryFromUrl(String requestUrl) {
-        if (requestUrl == null || requestUrl.isBlank()) return ApiQueryParameters.empty();
+    public static ReportQueryParameters queryFromUrl(String requestUrl) {
+        if (requestUrl == null || requestUrl.isBlank()) return ReportQueryParameters.empty();
         try {
-            return ApiQueryParameters.fromUri(URI.create(requestUrl.trim()));
+            return ReportQueryParameters.fromUri(URI.create(requestUrl.trim()));
         } catch (IllegalArgumentException ignored) {
-            return ApiQueryParameters.empty();
+            return ReportQueryParameters.empty();
         }
     }
 

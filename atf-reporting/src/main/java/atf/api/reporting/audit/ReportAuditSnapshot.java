@@ -1,6 +1,6 @@
 package atf.api.reporting.audit;
 
-import atf.api.core.reporting.contract.AtfReportStatus;
+import atf.api.reporting.contract.AtfReportStatus;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -142,7 +142,7 @@ public final class ReportAuditSnapshot {
                                  int directScreenshotLinks, int featherlightScreenshotLinks,
                                  int screenshotAnchorCount, int canonicalScreenshotLinks,
                                  String observedActionText, boolean observedTextIsStructured,
-                                 boolean fixedActionTable) {
+                                 boolean responsiveActionTable) {
         public VisualEvidence {
             if (validationCount < 0 || disclosureCount < 0 || actionSequenceCount < 0
                     || screenshotLinkCount < 0 || duplicateScreenshotMarkers < 0

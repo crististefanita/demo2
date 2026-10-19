@@ -1,5 +1,5 @@
 package atf.api.reporting.extent.session;
-import atf.api.core.reporting.contract.AtfReportStatus;
+import atf.api.reporting.contract.AtfReportStatus;
 
 import com.aventstack.extentreports.ExtentTest;
 import com.aventstack.extentreports.Status;

@@ -1,14 +1,15 @@
 package atf.api.reporting.ui;
 
-import atf.api.core.reporting.console.AtfConsoleSink;
-import atf.api.core.reporting.contract.AtfAssertion;
-import atf.api.core.reporting.contract.AtfGherkinKeyword;
-import atf.api.core.reporting.contract.AtfReportStatus;
-import atf.api.core.security.SensitiveDataRedactor;
+import atf.api.reporting.console.AtfConsoleSink;
+import atf.api.reporting.contract.AtfAssertion;
+import atf.api.reporting.contract.AtfGherkinKeyword;
+import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.model.ReportExecutionEvidence;
+import atf.api.reporting.security.SensitiveDataRedactor;
 import atf.api.reporting.configuration.AtfReportConfigurationLoader;
 import atf.api.reporting.configuration.ExtentReportConfiguration;
 import atf.api.reporting.extent.session.ExtentReportSession;
-import atf.api.core.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.AtfUiActionRecord;
 
 import java.nio.file.Path;
 import java.time.Clock;
@@ -144,6 +145,22 @@ public final class UiExtentReportSession implements AutoCloseable {
                          String base64Png, Collection<AtfAssertion> assertions,
                          AtfReportStatus status) {
             lifecycle.step(keyword, title, target, base64Png, assertions, status);
+        }
+
+        public void step(AtfGherkinKeyword keyword, String title, String target,
+                         String base64Png, Collection<AtfAssertion> assertions,
+                         Collection<AtfUiActionRecord> actions,
+                         AtfReportStatus status) {
+            lifecycle.step(keyword, title, target, base64Png, assertions, actions, status);
+        }
+
+        public void step(AtfGherkinKeyword keyword, String title, String target,
+                         String base64Png, Collection<AtfAssertion> assertions,
+                         Collection<AtfUiActionRecord> actions,
+                         Collection<ReportExecutionEvidence> apiEvidence,
+                         AtfReportStatus status) {
+            lifecycle.step(keyword.text(), title, target, base64Png, assertions, actions,
+                    apiEvidence, status);
         }
 
         public void setup(String keyword, String title, String target,

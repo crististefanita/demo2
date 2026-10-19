@@ -1,16 +1,14 @@
 package atf.api.reporting.runtime.core;
 
-/** Scheduling and DOM lifecycle hooks for duration aggregation. */
+import atf.api.reporting.asset.ReportAssetComposer;
+
+/** Native-asset facade for the duration lifecycle browser seam. */
 final class ExtentReportDurationLifecycle {
-    private ExtentReportDurationLifecycle() { }
+    private ExtentReportDurationLifecycle() {
+    }
 
     static String script() {
-        return "var atfDurationAggregationPending=false;function scheduleDurationAggregation(){if(atfDurationAggregationPending)return;atfDurationAggregationPending=true;setTimeout(function(){atfDurationAggregationPending=false;aggregateClassDurations();},0);}"
-                + "var atfBaseActivate=window.atfActivate;window.atfActivate=function(id){rememberMeasuredDurations();atfBaseActivate(id);aggregateClassDurations();setTimeout(aggregateClassDurations,0);setTimeout(aggregateClassDurations,150);setTimeout(aggregateClassDurations,500);};"
-                + "document.addEventListener('DOMContentLoaded',function(){setTimeout(aggregateClassDurations,0);});"
-                + "window.addEventListener('load',function(){setTimeout(aggregateClassDurations,0);});"
-                + "function scheduleDurationAggregationAfterClassClick(){scheduleDurationAggregation();setTimeout(aggregateClassDurations,100);setTimeout(aggregateClassDurations,500);}"
-                + "function bindDurationClassClicks(){classItems().forEach(function(item){if(item.getAttribute('data-atf-duration-click-bound'))return;item.setAttribute('data-atf-duration-click-bound','true');item.addEventListener('click',scheduleDurationAggregationAfterClassClick,true);});}"
-                + "function watchDurationNodes(){var root=document.getElementById('test-view');if(!root)return;bindDurationClassClicks();if(root.getAttribute('data-atf-duration-watch'))return;if(window.MutationObserver){root.setAttribute('data-atf-duration-watch','true');var observer=new MutationObserver(function(){bindDurationClassClicks();if(q('.test-contents > .mt-4 > .accordion > .card').length)scheduleDurationAggregation();});observer.observe(root,{childList:true,subtree:true});}}";
+        return ReportAssetComposer.durationLifecycleScript();
     }
 }
+

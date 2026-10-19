@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import com.microsoft.playwright.options.WaitForSelectorState;
+import com.microsoft.playwright.options.SelectOption;
 
 /** Executes and records actions whose target is a Playwright locator. */
 final class PlaywrightLocatorActions {
@@ -37,6 +38,24 @@ final class PlaywrightLocatorActions {
                 () -> readableText(element.locator()));
     }
 
+    void fill(AtfLocator element, String value, String expected) {
+        String target = element.selector();
+        recorder.run("Fill", target, expected, () -> {
+            requireExactlyOne(element, "Fill");
+            element.locator().fill(value == null ? "" : value);
+            return "value entered";
+        });
+    }
+
+    void selectOption(AtfLocator element, String label, String expected) {
+        String target = element.selector();
+        recorder.run("Select option", target, expected, () -> {
+            requireExactlyOne(element, "Select option");
+            element.locator().selectOption(new SelectOption().setLabel(label));
+            return "option selected";
+        });
+    }
+
     Locator findElement(Locator locator, String locatorTarget) {
         return findElement(new AtfLocator(locator, locatorTarget));
     }
@@ -64,6 +83,18 @@ final class PlaywrightLocatorActions {
             if (!observed.contains(expectedText)) {
                 throw new AssertionError("Expected text '" + expectedText + "' but observed '"
                         + observed + "'");
+            }
+            return observed;
+        });
+    }
+
+    String expectValue(AtfLocator element, String expectedValue) {
+        String target = element.selector();
+        String expected = expectedValue == null ? "" : expectedValue;
+        return recorder.run("Expect value", target, "value equals: " + expected, () -> {
+            String observed = element.locator().inputValue();
+            if (!observed.equals(expected)) {
+                throw new AssertionError("Expected value '" + expected + "' but observed '" + observed + "'");
             }
             return observed;
         });

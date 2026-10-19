@@ -1,6 +1,6 @@
 package atf.api.reporting.theme.tokens;
 
-import atf.api.core.reporting.contract.AtfReportStatus;
+import atf.api.reporting.contract.AtfReportStatus;
 
 /**
  * Immutable visual vocabulary shared by the Extent and fallback renderers.

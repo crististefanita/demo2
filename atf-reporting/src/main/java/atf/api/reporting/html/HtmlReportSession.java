@@ -1,7 +1,7 @@
 package atf.api.reporting.html;
-import atf.api.core.reporting.console.AtfConsoleSink;
-import atf.api.core.reporting.console.AtfConsoleEvent;
-import atf.api.core.reporting.contract.AtfReportPorts;
+import atf.api.reporting.console.AtfConsoleSink;
+import atf.api.reporting.console.AtfConsoleEvent;
+import atf.api.reporting.contract.AtfReportPorts;
 import atf.api.reporting.semantic.AtfReportSemanticRecorder;
 import atf.api.reporting.semantic.AtfReportSemanticSnapshot;
 import atf.api.reporting.theme.AtfReportTheme;
@@ -12,8 +12,8 @@ import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
 import atf.api.reporting.markup.AtfReportLabels;
 import atf.api.reporting.ui.model.ReportDocumentModel;
 
-import atf.api.core.config.ReportingSettings;
-import atf.api.core.security.SensitiveDataRedactor;
+import atf.api.reporting.configuration.ReportingSettings;
+import atf.api.reporting.security.SensitiveDataRedactor;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

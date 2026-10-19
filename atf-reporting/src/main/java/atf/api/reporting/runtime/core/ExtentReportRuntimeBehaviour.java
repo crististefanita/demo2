@@ -1,6 +1,7 @@
 package atf.api.reporting.runtime.core;
-import atf.api.reporting.html.script.HtmlReportScriptBuilder;
-import atf.api.reporting.html.script.HtmlReportScriptModule;
+import atf.api.reporting.asset.ReportAssetComposer;
+
+import java.util.stream.Collectors;
 
 /**
  * Composes the semantic browser-runtime controllers injected into the vendor document.
@@ -14,11 +15,6 @@ public final class ExtentReportRuntimeBehaviour {
     private static final String SCRIPT_OPEN_SUFFIX = "\" type=\"text/javascript\">";
     private static final String SCRIPT_CLOSE = "</script>";
     private static final String RUNTIME_ELEMENT_ID = "atf-report-behaviour";
-    private static final String RUNTIME_BOOT_FLAG = "__atfRuntimeBoot";
-    private static final String RUNTIME_READY_FLAG = "__atfRuntimeReady";
-    private static final String RUNTIME_ERROR_FLAG = "__atfRuntimeError";
-    private static final String RUNTIME_READY_ATTRIBUTE = "data-atf-runtime-ready";
-
     private ExtentReportRuntimeBehaviour() { }
 
     public static String inject(String html) {
@@ -28,16 +24,9 @@ public final class ExtentReportRuntimeBehaviour {
     }
 
     private static String runtimeScript() {
-        var script = new HtmlReportScriptBuilder()
-                .append(HtmlReportScriptModule.RUNTIME_BOOT,
-                        "(function(){try{window." + RUNTIME_BOOT_FLAG + "='starting';");
-        for (ExtentReportRuntimeModule module : ExtentReportRuntimeModule.values()) {
-            module.appendTo(script);
-        }
-        script
-                .append(HtmlReportScriptModule.RUNTIME_READY, "window." + RUNTIME_READY_FLAG + "=true;document.documentElement.setAttribute('"
-                        + RUNTIME_READY_ATTRIBUTE + "','true');}catch(error){window." + RUNTIME_ERROR_FLAG
-                        + "=String(error&&error.stack||error);}})();");
-        return script.build();
+        String modules = java.util.Arrays.stream(ExtentReportRuntimeModule.values())
+                .map(ExtentReportRuntimeModule::script)
+                .collect(Collectors.joining());
+        return ReportAssetComposer.runtimeBootScript(modules);
     }
 }

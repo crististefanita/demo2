@@ -1,14 +1,14 @@
 package atf.api.reporting.extent;
-import atf.api.core.reporting.console.AtfConsoleEvent;
-import atf.api.core.reporting.contract.AtfAssertion;
-import atf.api.core.reporting.contract.AtfReportPorts;
-import atf.api.core.reporting.contract.AtfReportStatus;
+import atf.api.reporting.console.AtfConsoleEvent;
+import atf.api.reporting.contract.AtfAssertion;
+import atf.api.reporting.contract.AtfReportPorts;
+import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.extent.session.ExtentReportTree;
 import atf.api.reporting.model.ReportScreenshot;
 import atf.api.reporting.semantic.AtfReportSemanticRecorder;
 
-import atf.api.core.ui.AtfUiActionRecord;
-import atf.api.core.ui.AtfUiEvidenceSource;
+import atf.api.reporting.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.AtfUiEvidenceSource;
 import com.aventstack.extentreports.ExtentTest;
 
 import java.util.ArrayList;
@@ -95,7 +95,7 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
         tree.renderAssertions(validation, assertions);
         tree.complete(validation, status);
         tree.markEnded(validation);
-        tree.consoleCompleted(atf.api.core.reporting.console.AtfConsoleEvent.Scope.VALIDATION,
+        tree.consoleCompleted(atf.api.reporting.console.AtfConsoleEvent.Scope.VALIDATION,
                 validationTitle, status, validation);
         completed = true;
         owner.record(status);

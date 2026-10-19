@@ -1,8 +1,8 @@
 package atf.api.reporting.extent;
-import atf.api.core.reporting.console.AtfConsoleEvent;
-import atf.api.core.reporting.contract.AtfReportPorts;
-import atf.api.core.reporting.contract.AtfReportStatus;
-import atf.api.core.reporting.contract.ReportStatusAggregator;
+import atf.api.reporting.console.AtfConsoleEvent;
+import atf.api.reporting.contract.AtfReportPorts;
+import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.contract.ReportStatusAggregator;
 import atf.api.reporting.extent.session.ExtentReportTree;
 import atf.api.reporting.semantic.AtfReportSemanticRecorder;
 
@@ -31,7 +31,7 @@ public final class ExtentScenarioScope implements AtfReportPorts.Scenario {
     @Override public AtfReportPorts.Phase startPhase(String name) {
         ensureScenarioOpen();
         String phaseName = name == null ? "" : name;
-        tree.consoleStarted(atf.api.core.reporting.console.AtfConsoleEvent.Scope.PHASE, phaseName);
+        tree.consoleStarted(atf.api.reporting.console.AtfConsoleEvent.Scope.PHASE, phaseName);
         return new ExtentPhaseScope(tree, this, test.createNode(phaseName), phaseName,
                 semantic.startPhase(phaseName));
     }
@@ -44,7 +44,7 @@ public final class ExtentScenarioScope implements AtfReportPorts.Scenario {
         tree.markEnded(tree.classRoot(className));
         tree.recordClassStatus(className, effective);
         semantic.complete(effective);
-        tree.consoleCompleted(atf.api.core.reporting.console.AtfConsoleEvent.Scope.SCENARIO,
+        tree.consoleCompleted(atf.api.reporting.console.AtfConsoleEvent.Scope.SCENARIO,
                 className + " :: " + test.getModel().getName(), effective, test);
         closed = true;
     }

@@ -4,6 +4,7 @@ import atf.api.reporting.runtime.evidence.ExtentReportRuntimeEvidenceDisclosure;
 import atf.api.reporting.runtime.evidence.ExtentReportRuntimeEvidenceFailures;
 import atf.api.reporting.runtime.evidence.ExtentReportRuntimeEvidenceLifecycle;
 import atf.api.reporting.runtime.evidence.ExtentReportRuntimeEvidenceRoles;
+import atf.api.reporting.runtime.evidence.ExtentReportRuntimeEvidenceTableLayout;
 
 /** Public facade for semantic evidence roles, disclosures and UI failure projection. */
 public final class ExtentReportRuntimeEvidence {
@@ -13,6 +14,7 @@ public final class ExtentReportRuntimeEvidence {
         ROLES(ExtentReportRuntimeEvidenceRoles::script),
         DISCLOSURE(ExtentReportRuntimeEvidenceDisclosure::script),
         FAILURES(ExtentReportRuntimeEvidenceFailures::script),
+        TABLE_LAYOUT(ExtentReportRuntimeEvidenceTableLayout::script),
         LIFECYCLE(ExtentReportRuntimeEvidenceLifecycle::script);
 
         private final java.util.function.Supplier<String> source;

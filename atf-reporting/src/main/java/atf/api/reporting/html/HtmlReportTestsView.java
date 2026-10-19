@@ -1,7 +1,7 @@
 package atf.api.reporting.html;
 
-import atf.api.core.config.ReportingSettings;
-import atf.api.core.security.SensitiveDataRedactor;
+import atf.api.reporting.configuration.ReportingSettings;
+import atf.api.reporting.security.SensitiveDataRedactor;
 import atf.api.reporting.html.evidence.HtmlReportEvidenceView;
 import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
 import atf.api.reporting.model.ReportField;

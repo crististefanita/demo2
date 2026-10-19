@@ -1,22 +1,12 @@
 package atf.api.reporting.runtime.section;
 
-/** Hash routing, tab activation, deep-links and runtime bootstrap. */
+import atf.api.reporting.asset.ReportAssetComposer;
+
+/** Native-resource facade for hash routing, tab activation and runtime bootstrap. */
 final class ExtentReportRuntimeNavigationController {
     private ExtentReportRuntimeNavigationController() { }
 
     static String script() {
-        return String.join("",
-                "window.atfOpenTest=function(id,scenarioIndex){var hash='test-id='+id;if(scenarioIndex!==undefined)hash+='&scenario-index='+scenarioIndex;window.location.hash=hash;atfActivate('test-view');var item=document.querySelector('.test-item[test-id=\"'+id+'\"]');",
-                "if(item){var detail=item.querySelector('.test-detail');if(detail&&detail.click)detail.click();if(scenarioIndex!==undefined){var index=Number(scenarioIndex);setTimeout(function(){var detailCards=directScenarioCards(document.querySelector('#test-view .test-content-detail')),card=detailCards[index];if(card){openScenarioCard(card);}},120);}}};",
-                "window.atfActivate=function(id){document.body.classList.remove('atf-overview-default');q('.view').forEach(function(v){var active=v.id===id;v.classList.toggle('hide',!active);v.classList.toggle('d-none',!active);});",
-                "q('.side-nav .nav-item').forEach(function(v){v.classList.remove('active');});var nav={'test-view':'nav-test','category-view':'nav-category','atf-fails-view':'nav-fails','dashboard-view':'nav-overview'}[id],navLink=nav&&document.getElementById(nav);if(navLink){navLink.classList.add('active');if(navLink.parentElement)navLink.parentElement.classList.add('active');}",
-                "normalizeDurations();assignNodeRoles();normalizeEvidenceDisclosures();if(id==='test-view'){normalizeTestPackageMetadata();normalizeScenarioAnnotations();bindScenarioCollapse();bindPhaseCollapse();bindNodeCollapse();setTimeout(function(){normalizeTestPackageMetadata();normalizeScenarioAnnotations();bindPhaseCollapse();bindNodeCollapse();collapseDirectScenarioCards();collapseScenarioCards();},0);setTimeout(function(){normalizeTestPackageMetadata();normalizeScenarioAnnotations();bindPhaseCollapse();bindNodeCollapse();collapseDirectScenarioCards();collapseScenarioCards();},100);}if(id==='atf-fails-view')renderFails();if(id==='dashboard-view'){removeUnsupportedOverviewCards();populateAudit();normalizeTagTableHeaders();normalizeNativeSummaryLabels();normalizeChartPalettes();normalizePercentages();setTimeout(removeUnsupportedOverviewCards,0);setTimeout(normalizeChartPalettes,150);setTimeout(removeUnsupportedOverviewCards,150);}if(id==='category-view'){ensureCategoryFilters();ensureCategoryDetail();normalizeCategorySummaryLabels();normalizeCategoryLinks();}captureDomContract();};",
-                "function activateFromHash(){var hash=String(window.location.hash||'').replace(/^#/,'');var view=hash.split('&')[0];if(view==='test-view')atfActivate('test-view');else if(view==='category-view')atfActivate('category-view');else if(view==='atf-fails-view')atfActivate('atf-fails-view');else if(view==='dashboard-view'||!view)atfActivate('dashboard-view');else if(view.indexOf('test-id=')===0){var parts=hash.split('&'),id=decodeURIComponent(view.substring(8)),scenario;parts.forEach(function(part){if(part.indexOf('scenario-index=')===0)scenario=decodeURIComponent(part.substring(15));});atfOpenTest(id,scenario);}}",
-                "window.addEventListener('hashchange',activateFromHash);",
-                "function normalizeNavigationLinks(){var links={'nav-test':'#test-view','nav-category':'#category-view','nav-fails':'#atf-fails-view','nav-overview':'#dashboard-view'};Object.keys(links).forEach(function(id){var link=document.getElementById(id);if(link)link.setAttribute('href',links[id]);});normalizeTagFilter();bindTestFilters();ensureCategoryFilters();bindScenarioCollapse();bindPhaseCollapse();bindNodeCollapse();watchScenarioCards();}",
-                "document.addEventListener('DOMContentLoaded',function(){q('.collapse').forEach(function(v){v.classList.remove('show');});",
-                "q('.test-contents').forEach(function(v){v.classList.add('d-none');});normalizeCodeBlocks();normalizeNavigationLinks();watchDurationNodes();normalizeTestPackageMetadata();atfActivate('dashboard-view');setTimeout(function(){activateFromHash();},0);setTimeout(normalizeNavigationLinks,0);setTimeout(function(){watchDurationNodes();normalizeTestPackageMetadata();removeUnsupportedOverviewCards();collapseDirectScenarioCards();collapseScenarioCards();applyTestFilters();},250);});",
-                "window.addEventListener('load',function(){setTimeout(function(){normalizeCodeBlocks();normalizeNavigationLinks();watchDurationNodes();removeUnsupportedOverviewCards();activateFromHash();applyTestFilters();},0);});"
-        );
+        return ReportAssetComposer.extentNavigationControllerScript();
     }
 }
