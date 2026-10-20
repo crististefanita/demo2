@@ -102,11 +102,16 @@ declarați explicit; nu există motiv pentru shaded JAR în acest moment.
 |---|---|---|---|
 | P1 | `atf-core` + `atf-console` + `atf-reporting` | `SHOP-CONSOLE-02`: reconcilierea typed a celor două perechi `AtfConsoleEvent/Sink` | există un port comun sau un adapter owner-uit explicit; Practice Shop nu face mapping duplicat; component/integration tests verifică aceeași secvență și nu rup independența reportingului |
 | P1 | `atf-reporting` | `REP-RENDER-09`: rendererele transport/UI/fallback folosesc acum disclosure, tabel key/value, escaping, politica JSON și vocabularul typed de marker/label status; rămâne doar parity-ul vendor-specific al badge-urilor Extent | primitive typed comune și parity component tests pentru Extent + fallback HTML, fără copiere de disclosure/tabel/JSON |
+| P1 | `atf-reporting` | `REP-MODEL-01`: snapshot mapper-ul este boundary-ul semantic; lifecycle mutation și modelele nested încă au nesting care trebuie redus fără a le amesteca cu projection-ul HTML | scopes/lifecycle explicite, unit tests pe model/snapshot și component tests pe projection |
+| P1 | `atf-reporting` | `REP-VOCAB-01`: `AtfReportHtmlVocabulary` a redus markup-ul raw, dar views/contract checks mai au literals în afara unui allowlist explicit | facade compatibil, enum-uri pe domenii, allowlist vendor și zero literals noi nejustificate |
+| P1 | `atf-reporting` + `atf-reporting-tests` | `REP-SIZE-01`: compactorul, inventarul și politica configurabilă pe total/format/owner există; lipsește baseline-ul consumer pentru bundle-ul HTML/evidence | component/integration verifică pragurile configurate, reducerea sigură și conservarea textului, JSON-ului, screenshot-ului și DOM-ului |
+| P1 | `atf-reporting-tests` | `REP-TEST-08`: testele mari și support-ul trebuie separate incremental după contract, fără să transforme support-ul în suite executabilă | fiecare test are un motiv, helper-ele rămân neexecutabile, iar coverage-ul lower-level crește |
 | P1 | `atf-core` + `atf-console` + `atf-reporting` + `atf-reporting-tests` | `REP-CONSOLE-01`: există perechi duplicate `AtfConsoleEvent/Sink`, iar no-op-ul poate ascunde wiring-ul | port comun sau adapter clar, standalone păstrat, in-memory sink și matrice `PASS/FAIL/WARNING/SKIP` verificată component/integration |
+| P0 | `atf-test-practice-shop` + mediu extern | `SHOP-API-REAL-01`: business journey-ul live nu poate fi declarat PASS cât timp login-ul real răspunde `401` | account fixture acceptat, rerun `LIVE_HTTP` și artifact MCP cu login → catalog → cart → payment; component/mock nu închide acest ToDo |
+| P0 | `atf-test-practice-shop` + mediu extern | `SHOP-API-REAL-02`: comparațiile exacte product/cart/payment sunt implementate, dar neverificate end-to-end fără sesiune live | assertion-uri reale pentru `product_id`, `name`, `quantity`, `cart_items`, `payment_method` și success message verificate într-un flow live |
 | P2 | `atf-test-practice-shop` + mediu extern | `SHOP-NET-02`: E2E-ul autentificat primește diagnosticuri de bootstrap anonim (`401`, `Unauthorized`, `/users/me` și `TypeError` pe `cart_items`) clasificate acum ca warning | mediul extern este curățat sau excepția este aprobată explicit; evidence păstrează source/route/status/message, guest și authenticated rămân distincte, iar diagnosticul necunoscut continuă să eșueze E2E-ul |
-| P1 | `atf-reporting-tests` | `REP-SUITE-01`: consumerul are 295 clase, 135 support neadnotat și dependențe către opt module; reporting-only, API fixture și UI/E2E nu sunt suficient de separabile la rulare | profile/launcher și boundary guard pentru reporting-only; fiecare executabil are owner/layer; numărul E2E rămâne plafonat |
-| P2 | `atf-reporting-tests` | `REP-LOCATOR-01`: `ReportUiLocators` are 400 linii și 256 delegări, devenind god-facade pentru testele UI | surface-uri typed pe domenii, fără delegări noi legacy, locator boundary testat și API compatibil măsurat |
-| P1 | `atf-tests` + ownerii README | `DOC-DIAG-05`: guard-ul whole-ATF identifică flowchart-uri non-root cu relații multiple fără verb scurt pe muchie | fiecare flowchart non-root trece `DocumentationDiagramGovernanceTest`; relațiile sunt etichetate semantic, legenda rămâne imediată, iar `WholeAtfGovernanceSuiteTest` revine verde |
+| P1 | `atf-reporting-tests` | `REP-SUITE-01`: consumerul live are 306 clase, 139 support/non-executable și 8 E2E; separarea reporting-only, API fixture, UI audit și E2E nu este încă un profil de rulare complet | profile/launcher sau boundary guard pentru reporting-only; fiecare executabil are owner/layer; plafonul de 8 E2E rămâne verificat |
+| P2 | `atf-reporting-tests` | `REP-LOCATOR-01`: `ReportUiLocators` are live 443 linii și 29.943 bytes și rămâne facade de compatibilitate peste suprafețele typed | testele noi nu adaugă delegări; domeniile evidence/screen/category/failure migrează incremental; locator boundary și compatibilitatea rămân testate |
 | P3 | structura testelor | `TEST-ARCH-07`: gruparea semantică a support-ului fără ștergeri speculative | fiecare mutare are owner, motiv observabil, test de boundary și zero ștergeri speculative; detaliile sunt în [`ATF_Test_Architecture_Feedback.md`](ATF_Test_Architecture_Feedback.md) |
 
 Închise și scoase din registrul activ după reconcilierea cod–test–artifact:
@@ -117,7 +122,13 @@ declarați explicit; nu există motiv pentru shaded JAR în acest moment.
 | `SHOP-REPORT-FAILURE-01` | ✅ | failure-flow E2E și verificare MCP a cauzei concrete în `Fails`. |
 | `SHOP-CONFIG-01` | ✅ pe consumer | configurația și evidence policy sunt consumate typed; parity-ul generic rămâne în ownerul reporting. |
 | `SHOP-FLOW-01` | ✅ component scope | cart lifecycle stateful verificat create → add → read → update → read → remove → read. |
+| `SHOP-API-REAL-03/04` | ✅ pe implementare | transportul live este fail-closed și provenance-ul se separă de component/mock; business PASS rămâne condiționat de `SHOP-API-REAL-01/02`. |
 | `REP-ASSET-07` | ✅ | asset/component gates pentru CSS/JS și facades. |
+| `REP-EVID-07` | ✅ | normalizarea evidence este idempotentă; disclosure-urile canonical, request/response JSON și execution trace sunt verificate în component/browser proof. |
+| `REP-AUDIT-08` | ✅ | snapshot renderer-neutral și validatorii puri acoperă Overview, Categories, Fails, Screen validation și projection. |
+| `REP-COVERAGE-08` | ✅ ca mecanism de guvernanță | `ReportingCoverageMatrixTest` leagă seam-urile publice de o dovadă lower-level; matricea rămâne extensibilă pentru seam-uri noi. |
+| `REP-E2E-08` | ✅ | `E2eSuiteBudgetArchitectureTest` plafonează la 8 clase `@AtfE2eTest`, toate în `e2e/`, cu entry-point unic. |
+| `DOC-DIAG-05` | ✅ | `DocumentationDiagramGovernanceTest` și suita de documentație trec; relațiile au etichete semantice, flowchart-urile sunt orientate după regulă, iar harta root are guard compact. |
 
 <details>
 <summary><strong>Închideri și explorări istorice — dovadă tehnică</strong></summary>
@@ -278,7 +289,9 @@ după întrebarea diagramei, costul vizual și criteriul formal din bunele pract
 | module, dependențe și direcția reactorului | [`docs/ATF_Architecture.md`](../ATF_Architecture.md), [`README.md`](../../README.md) |
 | standalone reporting, API public și test matrix | [`atf-reporting/README.md`](../../atf-reporting/README.md) |
 | API/UI/E2E composition, mock-backed projection și locatori | [`atf-reporting-tests/src/test/java/atf/ui/tests/extent/README.md`](../../atf-reporting-tests/src/test/java/atf/ui/tests/extent/README.md) |
-| teste de aplicație, config/flows/locators/pages și guvernanță whole-ATF | [`atf-tests/README.md`](../../atf-tests/README.md) |
+| config/flows/locators/pages și testele consumer Practice Shop | [`atf-test-practice-shop/README.md`](../../atf-test-practice-shop/README.md) |
+| guvernanță whole-ATF și guard-uri de documentație | [`atf-tests/README.md`](../../atf-tests/README.md) |
+| coverage matrix, budget E2E și composition reporting | [`atf-reporting-tests/README.md`](../../atf-reporting-tests/README.md) |
 | reguli OOP, constante, hex colors, naming și test layering | [`docs/README_Atf_CodeBestPractices.md`](../README_Atf_CodeBestPractices.md) |
 | build extern, sync live și browser gate | [`docs/ATF_Build_And_Execution_Safety.md`](../ATF_Build_And_Execution_Safety.md) |
 | proiecție diagnostică stdout/stderr | [`atf-console/README.md`](../../atf-console/README.md) |

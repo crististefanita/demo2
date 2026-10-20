@@ -517,6 +517,28 @@ invalid rămâne neschimbat pentru diagnostic și nu este transformat artificial
 - body-ul rămâne responsabilitatea renderer-ului concret: Extent poate publica
   markup vendor-specific, iar fallback-ul păstrează `<pre>`.
 
+### Normalizarea evidence în artifact
+
+Normalizarea este un boundary de publicare, nu o a doua sursă de evidence:
+
+```mermaid
+flowchart LR
+    Java[renderer Java] -->|publică| Canonical[disclosure canonicală]
+    Canonical -->|păstrează| Dom[request response trace]
+    Legacy[JavaScript legacy] -->|completează idempotent| Dom
+```
+
+<details>
+<summary><strong>Legendă — cine scrie și cine doar completează</strong></summary>
+
+- renderer-ul Java publică disclosure-ul canonical și metadata typed;
+- JavaScript-ul completează numai rândurile vendor legacy care lipsesc;
+- un disclosure existent nu este înlocuit și nu se reserializează inutil;
+- request JSON, response JSON și execution trace rămân împreună în DOM;
+- idempotența este verificată în `atf-reporting-tests`, inclusiv pe artifact HTML.
+
+</details>
+
 ## Publicare și output
 
 Output-ul este configurabil prin `reporting.extent.outputDirectory` și
@@ -614,7 +636,10 @@ de testat separat.
 
 `ReportAssetSizeInventory` măsoară separat bytes pentru fiecare sursă nativă și
 copia publicată, agregat pe format și owner. El este un instrument de diagnostic
-și contract test, nu un prag fix legat de un HTML generat; astfel o optimizare
+și contract test. `ReportAssetSizeBudget` primește limitele din configurația
+consumerului pentru total, format și owner și produce doar încălcările
+observate; nu are baseline hardcodat. Bundle-ul HTML/evidence se bugetează în
+consumer, unde există artifactul complet, nu în biblioteca standalone. Astfel o optimizare
 poate fi verificată fără să transforme numele sau hash-ul artifactului în API.
 
 Facade-urile Java (`AtfFallbackTheme`, `AtfReportOverviewCss`, facades-urile CSS

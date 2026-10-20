@@ -175,11 +175,17 @@ Fiecare clasă declară layer-ul prin adnotare; package-ul exprimă domeniul și
 boundary-ul, nu nivelul de testare. Setup-ul, mock-ul și validatorii comuni
 rămân în `support`, ca o clasă nouă să compună scenariul fără copiere.
 
-`ReportingCoverageMatrixTest` păstrează această hartă executabilă: verifică
-prin reflecție că fiecare seam reprezentativ are o dovadă cu adnotarea corectă
-(`unit`, `component`, `integration` sau `e2e`). Adăugarea unui seam public fără
-un test lower-level identificabil devine astfel o regresie de guvernanță, nu doar
-o observație în documentație.
+`ReportingCoverageMatrixTest` este harta executabilă a seam-urilor publice:
+
+| Verificare | Dovadă obligatorie | Limită intenționată |
+|---|---|---|
+| coverage | fiecare seam are test `unit`, `component`, `integration` sau `e2e` | un seam nou fără dovadă lower-level e regresie de guvernanță |
+| audit semantic | `Overview`, `Categories`, `Fails`, `Screen validation` și projection | `ReportAuditSnapshot` rămâne renderer-neutral |
+| convergență | JSON și visual sunt verificate împreună | browserul observă; regulile se verifică fără Playwright |
+| browser proof | `E2eSuiteBudgetArchitectureTest` plafonează la 8 clase `@AtfE2eTest` | orice clasă nouă cere justificare în feedback și modificarea bugetului |
+
+`ExtentReportingE2eSuite` este entry-point-ul unic pentru rularea E2E din IntelliJ;
+component și integration rămân nivelurile implicite pentru contractele noi.
 
 ## Boundary-ul aplicațiilor consumatoare
 
@@ -215,3 +221,9 @@ semnătura PNG și viewport-ul; nu pornește un endpoint, nu cunoaște Practice
 Shop și nu intră în production JAR. Contractele DOM/CSS rămân verificabile prin
 validatorii component/ATF Debug, iar această captură este doar dovada că
 artefactul static poate fi rasterizat real.
+
+Detaliul normativ al normalizării evidence este în
+[`atf-reporting/README.md`](../atf-reporting/README.md#normalizarea-evidence-în-artifact).
+Aici rămâne numai dovada de consumer: `ExtentReportRuntimeEvidenceComponentTest`
+și browser proof-ul verifică faptul că request/response JSON supraviețuiesc
+împreună cu execution trace în DOM-ul raportului deschis.

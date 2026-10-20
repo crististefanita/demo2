@@ -2,7 +2,7 @@ package atf.api.reporting.browser;
 
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.html.HtmlReportSession;
-import atf.api.reporting.support.TestReportPaths;
+import atf.api.reporting.support.ApiReportTestUrls;
 import atf.api.testkit.AtfIntegrationTest;
 import org.junit.jupiter.api.Test;
 
@@ -27,7 +27,7 @@ class StaticHtmlScreenshotAdapterTest {
             var scenario = session.startScenario("StaticReportContract", "render browser proof",
                     List.of("reporting", "browser"));
             scenario.startPhase("TEST BODY")
-                    .startRequest("GET /static-report", "GET", "https://atf.local/static-report")
+                    .startRequest("GET /static-report", "GET", ApiReportTestUrls.example("/static-report"))
                     .complete(AtfReportStatus.PASS);
             scenario.complete(AtfReportStatus.PASS);
         }

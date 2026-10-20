@@ -9,22 +9,29 @@ import static atf.api.reporting.html.HtmlReportMarkupSupport.escape;
 public final class HtmlReportOverviewView {
     String render(ReportExecutionModel snapshot) {
         var overview = snapshot.overview();
-        return "<section " + AtfReportHtmlVocabulary.idAttribute(
-                AtfReportHtmlVocabulary.FallbackTab.OVERVIEW.value()) + " "
-                + AtfReportHtmlVocabulary.classAttribute(
-                AtfReportHtmlVocabulary.CssClass.TAB_PANEL) + "><h2>Overview</h2><div "
-                + AtfReportHtmlVocabulary.classAttribute(
-                AtfReportHtmlVocabulary.CssClass.SUMMARY) + ">"
-                + metric("Tests", overview.tests()) + metric("Passed", overview.passed())
-                + metric("Failed", overview.failed()) + metric("Skipped", overview.skipped())
-                + "</div><p " + AtfReportHtmlVocabulary.classAttribute(
-                AtfReportHtmlVocabulary.CssClass.CONTRACT)
-                + ">Overview is the default view; its tab remains last in the navigation contract.</p></section>";
+        String summary = metric("Tests", overview.tests()) + metric("Passed", overview.passed())
+                + metric("Failed", overview.failed()) + metric("Skipped", overview.skipped());
+        String body = AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.H2, "Overview")
+                + AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.DIV, summary,
+                AtfReportHtmlVocabulary.classAttribute(
+                        AtfReportHtmlVocabulary.CssClass.SUMMARY))
+                + AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.P,
+                "Overview is the default view; its tab remains last in the navigation contract.",
+                AtfReportHtmlVocabulary.classAttribute(
+                        AtfReportHtmlVocabulary.CssClass.CONTRACT));
+        return AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.SECTION, body,
+                AtfReportHtmlVocabulary.idAttribute(
+                        AtfReportHtmlVocabulary.FallbackTab.OVERVIEW.value()),
+                AtfReportHtmlVocabulary.classAttribute(
+                        AtfReportHtmlVocabulary.CssClass.TAB_PANEL));
     }
 
     private static String metric(String label, long value) {
-        return "<div " + AtfReportHtmlVocabulary.classAttribute(
-                AtfReportHtmlVocabulary.CssClass.METRIC) + "><span>"
-                + escape(label) + "</span><strong>" + value + "</strong></div>";
+        return AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.DIV,
+                AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.SPAN, escape(label))
+                        + AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.STRONG,
+                        Long.toString(value)),
+                AtfReportHtmlVocabulary.classAttribute(
+                        AtfReportHtmlVocabulary.CssClass.METRIC));
     }
 }

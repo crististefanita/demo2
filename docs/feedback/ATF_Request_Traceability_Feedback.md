@@ -31,6 +31,24 @@ de date.
 
 Scorul nu închide niciun ToDo; este numai o hartă de risc pentru implementare.
 
+## Status curent — reconciliere cu codul live la 2026-10-20
+
+Contractul stabil este documentat în
+[`atf-test-practice-shop/README.md`](../../atf-test-practice-shop/README.md) și în
+[`docs/ATF_Reporting_Contract.md`](../ATF_Reporting_Contract.md). Acest feedback
+păstrează numai statusul și limita de redeschidere:
+
+| Zonă | Status | Dovadă / limită |
+|---|---|---|
+| `TRACE-REQ-01..10` | ✅ închis pe contract/local | metadata typed, request signature, role/phase, event correlation, JSON/visual parity și component audit sunt verificate fără a confunda mock-ul cu business live |
+| trace în artifact | ✅ închis | request/response JSON, execution trace și ordered evidence rămân în disclosure-uri canonice; normalizarea este idempotentă |
+| `SHOP-API-REAL-01/02` | 🟡 blocat extern | contractul de trace nu poate declara catalog/cart/payment PASS fără login `LIVE_HTTP` acceptat și comparații business reale |
+| replay/MCP | 🔁 verificare de prezentare | MCP/Chromium confirmă randarea și navigarea; nu înlocuiește testele typed și nu devine sursă normativă |
+
+Orice regresie a event id/sequence/phase/role/correlation sau a cardinalității
+`observations` versus `unique signatures` redeschide itemul corespunzător; o
+captură nouă, un timestamp sau un artifact local nu îl redeschide singur.
+
 ## Ce am extras din raportul de referință
 
 Raportul extern este util prin structură, nu prin numele testelor sau timestamp-
@@ -148,7 +166,7 @@ explicit `initiator`, `phase` și `role`.
 `TRACE-REQ-02` nu cere eliminarea rezumatului auth existent. Cere două
 proiecții distincte: auth/transport grouping și business request signature.
 
-## Contractul de date propus
+## Contractul de date — snapshot istoric al propunerii
 
 ### Event ledger canonic
 
@@ -294,7 +312,7 @@ cookie-uri sau valori de secret query.
 | `TRACE-REQ-09` | display contract și overflow | reporting UI | Chromium/ATF Debug | `scrollWidth <= clientWidth`, disclosure-uri accesibile, body-uri inline |
 | `TRACE-REQ-10` | manual replay contract | reporting tests | E2E exploratory | cititorul poate repeta setup → UI → API → validation fără cod intern |
 
-## Plan de implementare, în ordinea riscului
+## Plan de implementare — snapshot istoric, reconciliat mai jos
 
 ### P0 — identitate și pierdere de informație
 
@@ -403,5 +421,25 @@ sunt `ReportExecutionEvidence`, `ReportTraceMetadata`,
 Prin urmare, nu rămâne un ToDo funcțional pe contractul de traceability. Rămâne
 doar un gate operațional de regresie finală și, separat, limita business externă
 `SHOP-API-REAL-01/02` când login-ul Practice Shop răspunde `401`.
+
+### Verificare MCP a artifactului component — 2026-10-20 18:09
+
+Gate-ul de componentă a fost rerulat după integrarea `ReportTraceMetadata` în
+publisher și în evidence renderer:
+
+- `PracticeShopApiContractReportComponentTest`: **1 test, 0 failures, 0 errors**;
+- artifact fresh: `<configured-api-report-file>`;
+- în MCP Tab au fost expandate manual `TEST BODY`, `POST /users/login`,
+  `Request details` și `Response details`;
+- raportul afișează `REQUEST SIGNATURE`, JSON request redacted și `TECHNICAL TRACE`
+  cu event id, sequence, phase, role, step id, initiator, correlation, digests,
+  source, expected și observed;
+- provenance-ul este vizibil și corect: `ACCEPTANCE / MOCK — network was not executed`.
+
+Această verificare închide dovada de contract și randare pentru traceability,
+dar nu închide `SHOP-API-REAL-01/02`: componenta nu execută rețeaua, iar rerun-ul
+live separat a fost blocat la recompilare de native memory a JVM-ului. Nu a fost
+oprit niciun proces activ și nu se promovează un artifact component la business
+PASS real.
 
 

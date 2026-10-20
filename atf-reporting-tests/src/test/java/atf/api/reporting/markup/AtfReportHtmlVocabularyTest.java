@@ -76,6 +76,14 @@ class AtfReportHtmlVocabularyTest {
         assertEquals("aria-expanded=\"false\"",
                 AtfReportHtmlVocabulary.attribute(
                         AtfReportHtmlVocabulary.Attribute.ARIA_EXPANDED, "false"));
+        assertEquals("<p class=\"contract\">fallback</p>",
+                AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.P, "fallback",
+                        AtfReportHtmlVocabulary.classAttribute(
+                                AtfReportHtmlVocabulary.CssClass.CONTRACT)));
+        assertEquals("<meta charset=\"utf-8\">",
+                AtfReportHtmlVocabulary.voidElement(AtfReportHtmlVocabulary.Tag.META,
+                        AtfReportHtmlVocabulary.attribute(
+                                AtfReportHtmlVocabulary.Attribute.CHARSET, "utf-8")));
     }
 
     @Test

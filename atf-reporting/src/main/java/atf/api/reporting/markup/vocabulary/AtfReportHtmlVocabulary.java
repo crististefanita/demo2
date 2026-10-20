@@ -27,6 +27,7 @@ public final class AtfReportHtmlVocabulary {
         STYLE("style"),
         SCRIPT("script"),
         NAV("nav"),
+        HEADER("header"),
         MAIN("main"),
         DIV("div"),
         SECTION("section"),
@@ -34,12 +35,18 @@ public final class AtfReportHtmlVocabulary {
         DETAILS("details"),
         SUMMARY("summary"),
         PRE("pre"),
+        P("p"),
+        H1("h1"),
         OL("ol"),
+        UL("ul"),
         LI("li"),
         H2("h2"),
+        H3("h3"),
         BUTTON("button"),
         A("a"),
         SPAN("span"),
+        STRONG("strong"),
+        I("i"),
         LINK("link"),
         TABLE("table"),
         COLGROUP("colgroup"),
@@ -94,6 +101,8 @@ public final class AtfReportHtmlVocabulary {
         ATF_UI_ASSERTIONS("atf-ui-assertions"),
         ATF_UI_EVIDENCE_SCREENSHOT_LINK("atf-ui-evidence-screenshot-link"),
         BADGE("badge"),
+        BRAND("brand"),
+        TITLE("title"),
         BADGE_GRADIENT_PRIMARY("badge-gradient-primary"),
         EVIDENCE_KEY_COLUMN("atf-evidence-key-column"),
         EVIDENCE_VALUE_COLUMN("atf-evidence-value-column"),
@@ -161,6 +170,10 @@ public final class AtfReportHtmlVocabulary {
     public enum Attribute {
         HREF("href"),
         SRC("src"),
+        LANG("lang"),
+        CHARSET("charset"),
+        NAME("name"),
+        CONTENT("content"),
         TARGET("target"),
         REL("rel"),
         STYLE("style"),
@@ -341,6 +354,16 @@ public final class AtfReportHtmlVocabulary {
 
     public static String closeTag(Tag tag) {
         return "</" + Objects.requireNonNull(tag, "tag").value() + ">";
+    }
+
+    /** Builds a semantic element while keeping the renderer's content opaque. */
+    public static String element(Tag tag, String content, String... attributes) {
+        return openTag(tag, attributes) + Objects.requireNonNullElse(content, "") + closeTag(tag);
+    }
+
+    /** Builds a void HTML element such as {@code meta}, without inventing a slash style. */
+    public static String voidElement(Tag tag, String... attributes) {
+        return openTag(tag, attributes);
     }
 
     public static String idAttribute(String id) {

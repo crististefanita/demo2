@@ -65,6 +65,7 @@ nu există count-uri hardcodate sau directoare goale create artificial.
 | `ROOT-README-04` | ✅ baseline-ul root este acceptat și protejat | conținutul, forma aprobată a overview-ului și ownership table rămân stabile; orice schimbare ulterioară cere cerință explicită și dovadă nouă |
 | `DOC-DIAG-02` | ✅ diagrama modulelor este acceptată ca formă și conținut | feedback confirmat: „Harta modulelor” este clară și elegantă; platforma versus consumers/governance rămâne explicată în legenda colapsată și tabel |
 | `DOC-READ-01` | ✅ digestie vizuală aplicată în root, owner docs și feedback | fiecare diagramă are legendă imediată, orientarea este aleasă după întrebare, iar explicațiile secundare sunt colapsabile |
+| `DOC-DIAG-05` | ✅ guard de diagramă whole-ATF | `DocumentationDiagramGovernanceTest` trece pe documentația live; muchiile au relații scurte și semantice, flowchart-urile non-root păstrează orientarea cerută, iar harta root are limite compacte de nod/muchie |
 
 ## Layer policy
 
@@ -150,7 +151,6 @@ scopul, owner-ul sau criteriul principal de acceptare.
 
 | ID | Prioritate | ToDo | Criteriu de închidere |
 |---|---:|---|---|
-| `DOC-DIAG-05` | P1 | `DocumentationDiagramGovernanceTest` găsește flowchart-uri non-root cu mai multe relații neetichetate în README-urile ownerilor | fiecare relație de ownership/consum/flow are un verb scurt; diagramele rămân `LR`, au legendă imediată, iar suita whole-ATF trece |
 | `TEST-ARCH-07` | P3 | păstrează gruparea semantică a zonelor `support` și identifică eventuale subzone care depășesc limita de coeziune | fiecare mutare are owner, motiv observabil, test de boundary și zero ștergeri speculative |
 
 Nu se redeschid item-urile închise pentru o schimbare de stil locală. Se redeschid

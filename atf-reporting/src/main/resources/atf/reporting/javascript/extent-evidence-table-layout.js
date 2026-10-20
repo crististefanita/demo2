@@ -32,17 +32,29 @@ function evidenceTableIsReservedColumn(table, index, count) {
   var header = evidenceTableHeader(table, index);
   return (
     /(^|\b)(result|status|outcome)(\b|$)/.test(header) ||
-    /(^|\b)(time|duration|attempt|attempts)(\b|$)/.test(header) ||
-    (index === count - 1 && count <= 2)
+    /(^|\b)(time|duration|attempt|attempts)(\b|$)/.test(header)
   );
 }
-function evidenceTableReservedWidth(table, index, count, longest) {
+function evidenceTableReservedWidth(table, index, count, longest, intrinsic) {
   var header = evidenceTableHeader(table, index);
+  var tableWidth = table && table.clientWidth ? table.clientWidth : 0;
+  var measuredWidth = intrinsic && intrinsic[index] ? intrinsic[index] : 0;
+  var measuredPercent = tableWidth
+    ? (measuredWidth * 100) / tableWidth + 1.5
+    : 0;
   if (/(^|\b)(result|status|outcome)(\b|$)/.test(header)) {
-    return count === 4 ? 8 : 9;
+    return validationClamp(
+      Math.max(count === 4 ? 8.5 : 9.5, measuredPercent),
+      count === 4 ? 8.5 : 9.5,
+      24
+    );
   }
-  if (/(^|\b)(time|duration)(\b|$)/.test(header)) return 8;
-  if (/(^|\b)(attempt|attempts)(\b|$)/.test(header)) return 10;
+  if (/(^|\b)(time|duration)(\b|$)/.test(header)) {
+    return validationClamp(Math.max(10.5, measuredPercent), 10.5, 24);
+  }
+  if (/(^|\b)(attempt|attempts)(\b|$)/.test(header)) {
+    return validationClamp(Math.max(10, measuredPercent), 10, 24);
+  }
   return validationClamp(8 + (longest[index] || 0) * 0.05, 8, 14);
 }
 function evidenceTableWidthWeights(intrinsic, longest, contentIndexes) {
@@ -57,13 +69,69 @@ function evidenceTableWidthWeights(intrinsic, longest, contentIndexes) {
 }
 function evidenceTableContentMinimumWidth(table, index, count) {
   var header = evidenceTableHeader(table, index);
-  if (/(^|\b)action(\b|$)/.test(header)) return count >= 5 ? 18 : 20;
-  if (/(^|\b)target(\b|$)/.test(header)) return count >= 5 ? 15 : 18;
-  if (/(^|\b)(assertion|check|field)(\b|$)/.test(header)) return 18;
-  if (/(^|\b)(expected|actual|observed|value)(\b|$)/.test(header)) {
-    return count >= 5 ? 13 : 18;
+  var semanticMinimum;
+  if (/(^|\b)action(\b|$)/.test(header)) semanticMinimum = count >= 5 ? 18 : 20;
+  else if (/(^|\b)target(\b|$)/.test(header)) semanticMinimum = count >= 5 ? 15 : 18;
+  else if (/(^|\b)(assertion|check|field)(\b|$)/.test(header)) semanticMinimum = 18;
+  else if (/(^|\b)(expected|actual|observed|value)(\b|$)/.test(header)) semanticMinimum = count >= 5 ? 13 : 18;
+  else semanticMinimum = count <= 3 ? 16 : 13;
+  var headerCell = table && table.tHead && table.tHead.rows
+    && table.tHead.rows[0] && table.tHead.rows[0].cells
+    ? table.tHead.rows[0].cells[index] : null,
+    headerWidth = evidenceTableIntrinsicWidth(headerCell),
+    tableWidth = table && table.clientWidth ? table.clientWidth : 0,
+    headerPercent = tableWidth ? (headerWidth * 100) / tableWidth + 1.5 : 0;
+  return Math.max(semanticMinimum, headerPercent);
+}
+function evidenceTableReservedMaximumWidth(table, index, count) {
+  var header = evidenceTableHeader(table, index);
+  if (/(^|\b)(result|status|outcome)(\b|$)/.test(header)) {
+    return count === 4 ? 13 : 14;
   }
-  return count <= 3 ? 16 : 13;
+  if (/(^|\b)(time|duration)(\b|$)/.test(header)) return 15;
+  if (/(^|\b)(attempt|attempts)(\b|$)/.test(header)) return 14;
+  return 16;
+}
+function evidenceTableDistributeReservedSlack(
+  widths,
+  reservedIndexes,
+  table,
+  count
+) {
+  var total = widths.reduce(function (sum, value) {
+      return sum + (value || 0);
+    }, 0),
+    remaining = Math.max(0, 100 - total),
+    activeIndexes = reservedIndexes.slice();
+  for (var pass = 0; pass < reservedIndexes.length && remaining > 0.01; pass++) {
+    var capacities = activeIndexes.map(function (index) {
+        return Math.max(
+          0,
+          evidenceTableReservedMaximumWidth(table, index, count)
+            - (widths[index] || 0)
+        );
+      }),
+      capacityTotal = capacities.reduce(function (sum, value) {
+        return sum + value;
+      }, 0);
+    if (!capacityTotal) break;
+    var distributed = 0;
+    activeIndexes.forEach(function (index, position) {
+      var addition = Math.min(
+        capacities[position],
+        remaining * capacities[position] / capacityTotal
+      );
+      widths[index] += addition;
+      distributed += addition;
+    });
+    remaining -= distributed;
+    activeIndexes = activeIndexes.filter(function (index) {
+      return evidenceTableReservedMaximumWidth(table, index, count)
+        - widths[index] > 0.01;
+    });
+    if (distributed < 0.01) break;
+  }
+  return widths;
 }
 function evidenceTableAllocateWidths(
   intrinsic,
@@ -77,7 +145,13 @@ function evidenceTableAllocateWidths(
     reservedTotal = 0;
   for (var index = 0; index < count; index++) {
     if (reservedIndexes.indexOf(index) >= 0) {
-      widths[index] = evidenceTableReservedWidth(table, index, count, longest);
+      widths[index] = evidenceTableReservedWidth(
+        table,
+        index,
+        count,
+        longest,
+        intrinsic
+      );
       reservedTotal += widths[index];
     } else {
       contentIndexes.push(index);
@@ -85,14 +159,24 @@ function evidenceTableAllocateWidths(
     }
   }
   if (!contentIndexes.length) return widths;
-  var available = Math.max(0, 100 - reservedTotal),
-    maximum = contentIndexes.length <= 3 ? 52 : 44,
+  var maximum = contentIndexes.length <= 3 ? 52 : 44,
     minimums = contentIndexes.map(function (index) {
       return evidenceTableContentMinimumWidth(table, index, count);
     }),
     minimumTotal = minimums.reduce(function (sum, value) {
       return sum + value;
     }, 0);
+  if (reservedTotal > Math.max(0, 100 - minimumTotal)) {
+    var reservedScale = Math.max(0, 100 - minimumTotal)
+      / Math.max(1, reservedTotal);
+    reservedIndexes.forEach(function (index) {
+      widths[index] *= reservedScale;
+    });
+    reservedTotal = widths.reduce(function (sum, value) {
+      return sum + (value || 0);
+    }, 0);
+  }
+  var available = Math.max(0, 100 - reservedTotal);
   if (minimumTotal > available) {
     var minimumScale = available / Math.max(1, minimumTotal);
     minimums = minimums.map(function (value) {
@@ -137,6 +221,7 @@ function evidenceTableAllocateWidths(
     }
     remainingAvailable = Math.max(0, remainingAvailable);
   }
+  evidenceTableDistributeReservedSlack(widths, reservedIndexes, table, count);
   var total = widths.reduce(function (sum, value) {
     return sum + value;
   }, 0);

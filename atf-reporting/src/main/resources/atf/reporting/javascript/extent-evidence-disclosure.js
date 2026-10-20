@@ -47,6 +47,11 @@ function normalizeEvidenceDisclosures() {
         var row = rows[i],
           next = rows[i + 1],
           label = text(row.cells[2], '').trim();
+        // The Java renderer already emits semantic evidence disclosures.
+        // Keep this normalizer safe for both native Extent rows and the
+        // renderer's canonical form; never replace a disclosure that owns
+        // request/response JSON with a neighbouring trace row.
+        if (row.querySelector('details')) continue;
         if (next && /^Execution evidence/.test(label)) {
           var executionBody = document.createElement('div');
           executionBody.className = 'execution-evidence-body';

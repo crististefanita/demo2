@@ -62,6 +62,9 @@ class ExtentReportRuntimeEvidenceComponentTest {
         assertEquals(ownerNames, names,
                 "the facade must publish exactly the functions owned by its typed fragments");
         assertNotEquals(-1, script.indexOf("var atfLegacyNormalizeEvidenceDisclosures="));
+        assertTrue(ExtentReportRuntimeEvidenceDisclosure.script().matches(
+                "(?s).*if\\s*\\(row\\.querySelector\\('details'\\)\\)\\s*continue;.*"),
+                "evidence normalization must be idempotent for renderer-owned disclosures");
         assertFalse(ExtentReportRuntimeEvidenceRoles.script().contains("appendUiFailureEvidence"));
         assertFalse(ExtentReportRuntimeEvidenceDisclosure.script().contains("uiFailureSource"));
         assertFalse(ExtentReportRuntimeEvidenceFailures.script().contains("normalizeEvidenceDisclosures"));

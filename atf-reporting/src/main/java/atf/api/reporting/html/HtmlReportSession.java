@@ -30,20 +30,6 @@ import static atf.api.reporting.html.HtmlReportMarkupSupport.escape;
  * state, so parallel executions cannot leak nodes or verdicts into each other.
  */
 public final class HtmlReportSession implements AtfReportPorts.Session {
-    private static final String HTML_DOCTYPE = "<!doctype html>";
-    private static final String HTML_OPEN = "<html lang=\"en\"><head>";
-    private static final String HTML_META = "<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">";
-    private static final String HTML_TITLE = "<title>" + AtfReportLabels.REPORT_TITLE + "</title>";
-    private static final String HTML_STYLE_OPEN = "<style>";
-    private static final String HTML_STYLE_CLOSE = "</style>";
-    private static final String HTML_BODY_OPEN = "</head><body>";
-    private static final String HTML_HEADER = "<header><span class=\"brand\">ATF</span><span class=\"title\">"
-            + AtfReportLabels.REPORT_TITLE + "</span></header>";
-    private static final String HTML_MAIN_OPEN = "</nav><main>";
-    private static final String HTML_MAIN_CLOSE = "</main>";
-    private static final String HTML_SCRIPT_OPEN = "<script>";
-    private static final String HTML_SCRIPT_CLOSE = "</script></body></html>";
-
     public static final ReportDocumentModel DOCUMENT_MODEL = ReportDocumentModel.fallback();
 
     private final Path reportPath;
@@ -140,9 +126,7 @@ public final class HtmlReportSession implements AtfReportPorts.Session {
     public String render() {
         assertSemanticPopulationAligned();
         var html = new StringBuilder(32_000);
-        html.append(String.join("", HTML_DOCTYPE, HTML_OPEN, HTML_META, HTML_TITLE,
-                HTML_STYLE_OPEN, AtfReportTheme.fallbackCss(), HTML_STYLE_CLOSE, HTML_BODY_OPEN));
-        html.append(HTML_HEADER);
+        html.append(HtmlReportShell.open(AtfReportTheme.fallbackCss()));
         html.append("<nav ").append(AtfReportHtmlVocabulary.classAttribute(
                 AtfReportHtmlVocabulary.CssClass.TABS)).append(">");
         for (var tabModel : DOCUMENT_MODEL.tabs()) {
@@ -155,14 +139,13 @@ public final class HtmlReportSession implements AtfReportPorts.Session {
                     .append(escape(tab.label()))
                     .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.BUTTON));
         }
-        html.append(HTML_MAIN_OPEN);
+        html.append(HtmlReportShell.mainAfterNavigation());
         var snapshot = document.snapshot();
         html.append(testsView.render(snapshot));
         html.append(categoryView.render(snapshot));
         html.append(failsView.render(snapshot));
         html.append(overviewView.render(snapshot));
-        html.append(HTML_MAIN_CLOSE).append(HTML_SCRIPT_OPEN)
-                .append(navigationScript.source()).append(HTML_SCRIPT_CLOSE);
+        html.append(HtmlReportShell.close(navigationScript.source()));
         return html.toString();
     }
 

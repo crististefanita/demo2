@@ -495,6 +495,9 @@ se pot schimba dinamic.
 
 - `SHOP-CONSOLE-02` — cross-module: porturile console core/reporting au nevoie
   de decizie ATF, nu de mapping duplicat în Practice Shop;
+- `SHOP-API-REAL-01/02` — business API live rămâne blocat de login-ul extern
+  `401`; component/mock poate demonstra contractul și randarea, dar nu poate
+  declara catalog → cart → payment PASS real;
 - `SHOP-NET-02` — mediu extern: warning-urile de bootstrap anonim rămân vizibile
   până la mediu curat sau aprobare explicită de policy.
 
