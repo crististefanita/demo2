@@ -187,6 +187,10 @@ Preferința de stil:
   legături puține și o legendă imediată care explică ramificațiile;
 - dimensiunea vizuală se controlează separat de semantică: etichete scurte în
   noduri, font/padding reduse și vocabularul complet în legendă;
+- în harta de module a root README-ului, un nod are cel mult 18 caractere
+  vizibile și nu introduce `<br>`; o muchie are cel mult 12 caractere;
+- `DocumentationDiagramGovernanceTest` verifică această compactare și explică
+  dinamic linia, limita și remedierea când un chenar devine disproporționat;
 - orientarea se alege după întrebarea diagramei și costul vizual, nu după o
   regulă absolută de sintaxă;
 - o schemă orizontală nu trebuie lățită artificial cu noduri secundare;
