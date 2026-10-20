@@ -1,6 +1,8 @@
 package atf.ui.practiceshop.support;
 
 import atf.api.reporting.contract.AtfAssertion;
+import atf.api.reporting.api.ReportRequest;
+import atf.api.reporting.api.ReportRequestSignature;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.core.http.request.HttpMethod;
 import atf.ui.practiceshop.api.PracticeShopApiOperation;
@@ -207,13 +209,16 @@ public final class PracticeShopApiNetworkJournal {
                            java.util.Map<String, String> requestHeaders,
                            java.util.Map<String, String> responseHeaders,
                            long sequence, Instant capturedAt, String phase,
-                           String signature, String digest) {
+                           String signature, String digest,
+                           String role, String stepId, String initiator,
+                           String evidenceSource, String expected, String observed) {
         public Exchange(String method, String path, String url, int status,
                         String requestBody, String responseBody,
                         java.util.Map<String, String> requestHeaders,
                         java.util.Map<String, String> responseHeaders) {
             this(method, path, url, status, requestBody, responseBody, requestHeaders, responseHeaders,
-                    0, Instant.EPOCH, "unknown", digest(method, path, status, requestBody, responseBody), "");
+                    0, Instant.EPOCH, "unknown", digest(method, path, status, requestBody, responseBody), "",
+                    "", "", "", "", "", "");
         }
 
         public Exchange {
@@ -226,19 +231,34 @@ public final class PracticeShopApiNetworkJournal {
             signature = signature == null || signature.isBlank()
                     ? requestSignature(method, path, requestBody) : signature;
             digest = digest == null ? "" : digest;
+            role = role == null ? "" : role.trim();
+            stepId = stepId == null ? "" : stepId.trim();
+            initiator = initiator == null ? "" : initiator.trim();
+            evidenceSource = evidenceSource == null ? "" : evidenceSource.trim();
+            expected = expected == null ? "" : expected.trim();
+            observed = observed == null ? "" : observed.trim();
         }
 
         public Exchange withTrace(long sequence, Instant capturedAt, String phase) {
+            return withTrace(sequence, capturedAt, phase, "ActionCaused", phase,
+                    reportSummary(), "UI_BROWSER", "", "");
+        }
+
+        public Exchange withTrace(long sequence, Instant capturedAt, String phase,
+                                  String role, String stepId, String initiator,
+                                  String evidenceSource, String expected, String observed) {
             String digest = digest(method, path, status, requestBody, responseBody);
             String signature = requestSignature(method, path, requestBody);
             return new Exchange(method, path, url, status, requestBody, responseBody,
-                    requestHeaders, responseHeaders, sequence, capturedAt, phase, signature, digest);
+                    requestHeaders, responseHeaders, sequence, capturedAt, phase, signature, digest,
+                    role, stepId, initiator, evidenceSource, expected, observed);
         }
 
         public Exchange withResponseBody(String body) {
             return new Exchange(method, path, url, status, requestBody, body,
                     requestHeaders, responseHeaders, sequence, capturedAt, phase, signature,
-                    digest(method, path, status, requestBody, body));
+                    digest(method, path, status, requestBody, body), role, stepId, initiator,
+                    evidenceSource, expected, observed);
         }
 
         public String contentType() {
@@ -272,6 +292,15 @@ public final class PracticeShopApiNetworkJournal {
         }
         public String summary() { return method + " " + path + " → " + status + " " + contentType(); }
 
+        public String eventId() { return sequence > 0 ? "E" + sequence : ""; }
+
+        public String correlationKey() {
+            return (method == null ? "" : method.toUpperCase()) + " "
+                    + PracticeShopApiExchangeSelector.normalize(path);
+        }
+
+        public String evidenceSource() { return evidenceSource; }
+
         /**
          * Human-facing summary for assertions and report evidence. A browser
          * capture alias is never allowed to obscure the real HTTP operation;
@@ -303,21 +332,20 @@ public final class PracticeShopApiNetworkJournal {
 
         /** Stable request identity: retries share it, but different JSON bodies do not. */
         private static String requestSignature(String method, String path, String requestBody) {
-            return (method == null ? "" : method.toUpperCase()) + " "
-                    + PracticeShopApiExchangeSelector.normalize(path)
-                    + "#body=" + sha256(requestBody == null ? "" : requestBody);
-        }
-
-        private static String sha256(String value) {
-            try {
-                byte[] hash = MessageDigest.getInstance("SHA-256")
-                        .digest(value.getBytes(StandardCharsets.UTF_8));
-                StringBuilder result = new StringBuilder(hash.length * 2);
-                for (byte item : hash) result.append(String.format("%02x", item));
-                return result.toString();
-            } catch (java.security.NoSuchAlgorithmException error) {
-                throw new IllegalStateException("SHA-256 is unavailable", error);
+            String target = path == null ? "/" : path;
+            URI uri = URI.create("https://trace.invalid"
+                    + (target.startsWith("/") ? target : "/" + target));
+            Map<String, String> query = new java.util.LinkedHashMap<>();
+            if (uri.getRawQuery() != null) {
+                for (String pair : uri.getRawQuery().split("&")) {
+                    String[] parts = pair.split("=", 2);
+                    query.put(java.net.URLDecoder.decode(parts[0], StandardCharsets.UTF_8),
+                            parts.length == 1 ? "" : java.net.URLDecoder.decode(parts[1], StandardCharsets.UTF_8));
+                }
             }
+            return ReportRequestSignature.forRequest(new ReportRequest(
+                    method == null ? "GET" : method, uri.getRawPath(), query,
+                    Map.of(), "none", requestBody));
         }
     }
 }

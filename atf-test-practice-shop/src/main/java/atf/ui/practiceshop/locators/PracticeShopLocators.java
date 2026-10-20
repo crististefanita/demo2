@@ -39,7 +39,7 @@ public final class PracticeShopLocators {
     private static final String HOME_PRODUCT_IMAGES = "a[data-test^='product-'] img.card-img-top";
     private static final String HOME_PAGINATION = "nav:has([data-test='pagination-next'])";
     private static final String HOME_FOOTER = "footer";
-    private static final String PRODUCT_LINK = "a[href^='/product/']";
+    private static final String PRODUCT_LINK = PracticeShopProductSelector.PRODUCT_CARD;
     // The external Practice Shop contract guarantees data-test, not a stable tag.
     private static final String PRODUCT_NAME = "*[data-test='product-name']";
     private static final String PRODUCT_PRICE = "*[data-test='unit-price']";
@@ -107,9 +107,9 @@ public final class PracticeShopLocators {
     public AtfLocator homePagination(Page page) { return css(page, HOME_PAGINATION); }
     public AtfLocator homeFooter(Page page) { return css(page, HOME_FOOTER); }
     public AtfLocator productLink(Page page, String name) {
-        return css(page, PRODUCT_LINK + ":has-text('" + PracticeShopCssEscaper.quoted(name) + "')");
+        return css(page, PracticeShopProductSelector.exactProductCard(name));
     }
-    /** First matching card is the deterministic interaction target; the collection remains available for diagnostics. */
+    /** First exact-name card is the deterministic interaction target; the collection remains available for diagnostics. */
     public AtfLocator productLinkFirst(Page page, String name) {
         AtfLocator matchingProducts = productLink(page, name);
         return new AtfLocator(matchingProducts.locator().first(), matchingProducts.selector());

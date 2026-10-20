@@ -10,6 +10,7 @@ import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.options.ViewportSize;
 
 import java.net.URI;
+import java.time.Duration;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
@@ -23,15 +24,18 @@ public final class PlaywrightUiSession implements AutoCloseable {
     private final BrowserContext context;
     private final Page page;
     private final UiActionTrace actionTrace;
+    private final Duration actionTimeout;
     private boolean closed;
 
     private PlaywrightUiSession(Playwright playwright, Browser browser,
-                                BrowserContext context, Page page, UiActionTrace actionTrace) {
+                                BrowserContext context, Page page, UiActionTrace actionTrace,
+                                Duration actionTimeout) {
         this.playwright = playwright;
         this.browser = browser;
         this.context = context;
         this.page = page;
         this.actionTrace = Objects.requireNonNull(actionTrace, "actionTrace");
+        this.actionTimeout = Objects.requireNonNull(actionTimeout, "actionTimeout");
     }
 
     public static PlaywrightUiSession open(UiBrowserConfiguration configuration) {
@@ -60,7 +64,8 @@ public final class PlaywrightUiSession implements AutoCloseable {
             context.addInitScript(zoomInitScript(configuration.zoomPercent()));
             context.setDefaultTimeout(configuration.timeout().toMillis());
             context.setDefaultNavigationTimeout(configuration.navigationTimeout().toMillis());
-            return new PlaywrightUiSession(playwright, browser, context, context.newPage(), trace);
+            return new PlaywrightUiSession(playwright, browser, context, context.newPage(), trace,
+                    configuration.timeout());
         } catch (RuntimeException error) {
             playwright.close();
             throw error;
@@ -107,7 +112,7 @@ public final class PlaywrightUiSession implements AutoCloseable {
     /** Starts an isolated consecutive action log for one visual validation state. */
     public PlaywrightActionSequence newActionSequence() {
         if (closed) throw new IllegalStateException("Playwright UI session is closed");
-        return new PlaywrightActionSequence(actionTrace);
+        return new PlaywrightActionSequence(actionTrace, actionTimeout);
     }
 
     public void navigate(URI uri) {

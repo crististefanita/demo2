@@ -17,6 +17,37 @@ function openScenarioCard(card) {
   bindNodeCollapse();
   if (card.scrollIntoView) card.scrollIntoView({ block: 'center' });
 }
+function openDeepLinkCard(card, open) {
+  if (!card || card.getAttribute('data-atf-node-open') === String(open)) return;
+  var header = card.querySelector(':scope>.card-header');
+  if (header) header.click();
+}
+function openScenarioAuditPath(card) {
+  if (!card) return;
+  var testBody = card.querySelector(
+      ':scope>.accordion>[data-atf-node-role="phase"][data-atf-phase-name="test-body"]'
+    );
+  if (!testBody) return;
+  var phaseNode = testBody.querySelector(':scope>.card-header .card-title .node');
+  if (testBody.getAttribute('data-atf-phase-open') !== 'true' && phaseNode)
+    phaseNode.click();
+  bindPhaseCollapse();
+  var thenNode = testBody.querySelector(
+      ':scope>.accordion>[data-atf-node-role="request"]'
+    );
+  openDeepLinkCard(thenNode, true);
+  var validation = thenNode && thenNode.querySelector(
+      ':scope>.accordion>[data-atf-node-role="validation"]'
+    );
+  openDeepLinkCard(validation, true);
+  if (validation) {
+    validation.querySelectorAll(':scope details').forEach(function (detail) {
+      detail.open = true;
+    });
+    if (validation.scrollIntoView)
+      validation.scrollIntoView({ block: 'center' });
+  }
+}
 function collapseDirectScenarioCards() {
   q('.test-content-detail .test-contents > .mt-4 > .accordion > .card').forEach(
     function (card) {

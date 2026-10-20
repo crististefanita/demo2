@@ -30,13 +30,13 @@ flowchart LR
     Audit[Browser audit]
     Governance[Governance]
 
-    Consumers --> Contract
-    Contract --> Runtime
-    Runtime --> Reporting
-    Runtime --> Verdict
-    Verdict --> Reporting
-    Reporting --> Artifact
-    Artifact --> Audit
+    Consumers -->|declară| Contract
+    Contract -->|configurează| Runtime
+    Runtime -->|alimentează| Reporting
+    Runtime -->|produce| Verdict
+    Verdict -->|alimentează| Reporting
+    Reporting -->|publică| Artifact
+    Artifact -->|expune pentru| Audit
     Governance -. architecture gates .-> Contract
     Governance -. dependency gates .-> Reporting
 ```
@@ -83,34 +83,30 @@ a aceleiași legende.
 
 ## Harta modulelor
 
-Overview-ul se încheie aici cu fluxul și ownership-ul. Harta următoare arată
-modulele reale și relațiile lor; contractele interne continuă în README-ul
-fiecărui modul.
+Harta modulelor arată relațiile reale dintre consumatori, platformă și
+guvernanță. Contractele interne continuă în README-ul fiecărui modul.
 
 ```mermaid
 flowchart LR
-    Shared[Platform]
-    Reporting[Reporting library]
-    ReportingTests[Reporting consumer]
-    PracticeShop[Application consumer]
-    Governance[Governance]
+    Consumers[atf-reporting-tests<br/>+ Practice Shop]
+    Governance[ATF governance]
+    Reporting[atf-reporting<br/>standalone library]
+    Platform[Reusable ATF<br/>modules]
 
-    ReportingTests -->|library| Reporting
-    ReportingTests -. test scope .-> Shared
-    PracticeShop -->|library| Reporting
-    PracticeShop -. runtime + test scope .-> Shared
-    Governance -. architecture guards .-> Shared
-    Governance -. architecture guards .-> Reporting
+    Consumers -->|consumă| Reporting
+    Consumers -.->|reutilizează| Platform
+    Governance -.->|verifică| Reporting
+    Governance -.->|verifică| Platform
 ```
 
 <details>
 <summary><strong>Legendă — module, ownership și relații</strong></summary>
 
+- `Consumers` grupează `atf-reporting-tests` și `atf-test-practice-shop`;
 - săgeata solidă = consum de bibliotecă/runtime în composition root;
-- săgeata punctată = dependență de test, runtime generic, browser policy,
-  read-only serving sau guvernanță;
+- săgeata punctată = reutilizare sau verificare de boundary;
 - nodul `Platform` grupează modulele reutilizabile; tabelul de mai jos
-  păstrează ownership-ul fiecărui modul fără a încărca schema principală;
+  păstrează modulele și ownership-ul lor fără a încărca schema principală;
 - `atf-reporting-tests` folosește modulele platformei numai în test scope;
 - `atf-test-practice-shop` este consumer de aplicație și nu mută pages, flows
   sau fixture-uri în reporting;
@@ -151,9 +147,9 @@ flowchart LR
     Scope[boundary și input controlat]
     Proof[evidence și verdict]
 
-    Question --> Layer
-    Layer --> Scope
-    Scope --> Proof
+    Question -->|clarifică| Layer
+    Layer -->|delimitează| Scope
+    Scope -->|produce| Proof
 ```
 
 <details>
@@ -196,7 +192,10 @@ flowchart LR
     Verify[Test + evidence]
     Harden[Contract stabil]
 
-    Need --> Inspect --> Layer --> Change --> Verify
+    Need -->|clarifică| Inspect
+    Inspect -->|alege| Layer
+    Layer -->|delimitează| Change
+    Change -->|produce| Verify
     Verify -->|gap real| Change
     Verify -->|dovadă suficientă| Harden
 ```
@@ -278,9 +277,14 @@ flowchart LR
     Sync[README + feedback]
     Feedback[Feedback activ]
 
-    Request --> Baseline --> Owner --> Gate --> Evidence --> Review --> Sync
+    Request -->|definește| Baseline
+    Baseline -->|identifică| Owner
+    Owner -->|selectează| Gate
+    Gate -->|declanșează| Evidence
+    Evidence -->|confirmă| Review
+    Review -->|promovează| Sync
     Gate -. drift / failure .-> Feedback
-    Feedback --> Owner
+    Feedback -->|redeschide| Owner
 ```
 
 <details>

@@ -6,6 +6,7 @@ import atf.api.core.ui.AtfUiEvidenceSource;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -58,6 +59,16 @@ class PlaywrightActionSequenceTest {
                 () -> new AtfLocator(null, "#test-view"));
         assertThrows(IllegalArgumentException.class,
                 () -> PlaywrightActionSequence.requireLocatorTarget("selected owner detail"));
+    }
+
+    @Test
+    void configuredStateTimeoutIsValidatedBeforeASequenceCanRun() {
+        assertThrows(NullPointerException.class,
+                () -> new PlaywrightActionSequence(UiActionTrace.noOp(), null));
+        assertThrows(IllegalArgumentException.class,
+                () -> new PlaywrightActionSequence(UiActionTrace.noOp(), Duration.ZERO));
+        assertTrue(new PlaywrightActionSequence(UiActionTrace.noOp(), Duration.ofSeconds(20))
+                .snapshot().isEmpty());
     }
 
     @Test

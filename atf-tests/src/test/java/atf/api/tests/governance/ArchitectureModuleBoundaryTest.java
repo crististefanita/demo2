@@ -16,7 +16,7 @@ import static atf.api.tests.governance.AtfGovernanceTestSupport.*;
 
 /** Whole-ATF guard for source imports, Maven direction and process-state ownership. */
 @AtfComponentTest
-class ArchitectureModuleBoundaryTest {
+public class ArchitectureModuleBoundaryTest {
     @Test
     void rootPomExposesTheCanonicalReactorModuleCatalog() throws Exception {
         Path root = locateProjectRoot();

@@ -56,6 +56,7 @@ function collectFailureState(item) {
     requests: [],
     validations: [],
     uiFailures: [],
+    runtimeFailures: [],
     message: '',
     duration: ''
   };
@@ -76,6 +77,8 @@ function collectFailureState(item) {
       uiFailure = failedUiEvidence(card);
     if (setupFailure) state.uiFailures.push(setupFailure);
     if (uiFailure) state.uiFailures.push(uiFailure);
+    var runtimeFailure = failureEvidenceCandidate(card);
+    if (runtimeFailure) state.runtimeFailures.push(runtimeFailure);
     failureTransportEvidence(card, state);
     var candidate = failureValidationCandidate(card);
     if (candidate) state.validations.push(candidate);
@@ -103,6 +106,19 @@ function failureContextFromState(state) {
     assertion = '',
     message = state.message,
     fallback = null;
+  if (state.runtimeFailures.length) {
+    var runtime = state.runtimeFailures[0];
+    return {
+      phase: state.phase || 'Unknown phase',
+      ui: true,
+      request: '',
+      duration: '',
+      step: runtime.step,
+      validation: runtime.validation,
+      assertion: runtime.assertion,
+      message: runtime.message
+    };
+  }
   if (state.phase !== 'TEARDOWN') {
     var requestEntry = latestFailureEntry(state.requests, state.phaseCard);
     request = requestEntry ? requestEntry.title : '';
@@ -177,7 +193,10 @@ function failureContextFor(item, anchor) {
   var validation = anchor.closest('.card');
   if (validation) {
     var title = text(validation, '.card-title a.node');
-    if (title) ctx.validation = title;
+    if (title) {
+      ctx.validation = title;
+      if (title.toLowerCase() === 'failure evidence') ctx.step = 'Failure evidence';
+    }
   }
   ctx.assertion =
     label + ' → ' + statusDisplay(expected) + ' → ' + statusDisplay(actual);

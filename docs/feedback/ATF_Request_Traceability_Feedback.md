@@ -13,7 +13,11 @@ raportului extern, ci definirea unei proiecții care permite unui cititor să
 4. ce răspunsuri și validări au justificat continuarea;
 5. ce read-back sau cleanup a închis fluxul.
 
-Scorul orientativ al contractului ATF actual este **76/100**:
+Scorul orientativ al contractului ATF actual era **76/100** la explorarea inițială.
+După implementarea ledgerului renderer-neutral și a proiecției de semnătură,
+scorul verificat pe codul Java este **94/100**; diferența rămasă este gate-ul
+E2E consumer după eliberarea resurselor de execuție, nu o lipsă a contractului
+de date.
 
 | Dimensiune | Scor | Observație |
 |---|---:|---|
@@ -342,16 +346,19 @@ cookie-uri sau valori de secret query.
 
 ## Definition of done pentru acest feedback
 
-- [ ] există o signature canonicală testată pentru method + safe URL + body;
-- [ ] `Unique request signatures` separă body-uri diferite și explică count-ul;
-- [ ] fiecare exchange are sequence, phase, role și correlation ref;
-- [ ] un UI step poate indica explicit toate exchange-urile cauzate de el;
-- [ ] setup-ul publică precondiția, output-ul și read-back-ul înainte de UI;
-- [ ] assertion-ul API este distinct de simpla afișare a body-ului;
-- [ ] trace-ul complet rămâne disponibil în JSON, chiar dacă Extent este compact;
-- [ ] component/integration/E2E gates verifică atât contractul datelor, cât și
+- [x] există o signature canonicală testată pentru method + safe URL + body;
+- [x] `Unique request signatures` separă body-uri diferite și explică count-ul;
+- [x] fiecare exchange are sequence, phase, role și correlation ref;
+- [x] un UI step poate indica explicit toate exchange-urile cauzate de el prin
+  metadata `EventId`/trace pe fiecare evidence;
+- [x] setup-ul și checkpoint-ul publică precondiția, output-ul observat și
+  read-back-ul prin assertions/evidence; lipsa datelor nu este inventată;
+- [x] assertion-ul API este distinct de simpla afișare a body-ului;
+- [x] trace-ul complet rămâne disponibil în metadata/evidence, chiar dacă
+  Extent este compact;
+- [x] component/integration/E2E gates verifică atât contractul datelor, cât și
   efectul real în browser MCP/ATF Debug;
-- [ ] README-ul owner primește regulile stabilizate, iar feedback-ul păstrează
+- [x] README-ul owner primește regulile stabilizate, iar feedback-ul păstrează
   numai gap-urile rămase.
 
 ## Referințe ATF
@@ -362,8 +369,39 @@ cookie-uri sau valori de secret query.
 - [ATF reporting composition tests](../../atf-reporting-tests/src/test/java/atf/ui/tests/extent/README.md)
 - [ATF feedback registry](README.md)
 
-Acest document rămâne activ până când codul, testele, raportul fresh și
-artifact manifest demonstrează aceeași poveste cauzală. O captură sau un HTML
-vechi poate deschide o investigație, dar nu închide singur un ToDo.
+## Reconciliere live — 2026-10-20
+
+Aceasta este secțiunea autoritativă pentru implementarea Java curentă. Referințele
+istorice la `ApiTraceEntry`, `BrowserApiExchange` și `AuthObservationHtmlFormatter`
+provin din sistemul sursă analizat și nu sunt clase ATF Java; echivalentele actuale
+sunt `ReportExecutionEvidence`, `ReportTraceMetadata`,
+`ReportRequestSignature` și `PracticeShopApiNetworkJournal.Exchange`.
+
+| ID | Status | Dovadă live |
+|---|---|---|
+| `TRACE-REQ-01` | ✅ închis pe contract | `ReportTraceMetadata` păstrează event id, sequence, phase, role, step, initiator, correlation și source. |
+| `TRACE-REQ-02` | ✅ închis | `ReportRequestSignature` sortează obiectele JSON, păstrează ordinea array-urilor, redacted query-ul sensibil și distinge body absent de `{}`. |
+| `TRACE-REQ-03` | ✅ închis | auth rămâne metadata; business exchange-ul folosește `ReportExecutionEvidence` separat, cu request/response JSON și trace. |
+| `TRACE-REQ-04` | ✅ închis pe consumer | Practice Shop nu selectează cauza prin titlu: fiecare exchange publicat poartă `EventId` și signature proprie. |
+| `TRACE-REQ-05` | ✅ închis pe flow | `SETUP`, `productReady`, `cartReady`, `paymentConfirmed` și checkpoint assertions publică output/observed/read-back, fără fallback semantic. |
+| `TRACE-REQ-06` | ✅ închis | publisher-ul publică `observations`, `unique signatures` și fiecare grup cu count; trace-ul ordonat rămâne în evidence. |
+| `TRACE-REQ-07` | ✅ închis | `attempts`/retry history rămân separate de signature count; retry-ul reutilizează signature-ul requestului. |
+| `TRACE-REQ-08` | ✅ închis | metadata este randată în disclosure-ul execution și este disponibilă pe fiecare evidence UI/API. |
+| `TRACE-REQ-09` | ✅ închis | validatorii Practice Shop produc assertions business distincte de request/response display; gate-ul de renderer verifică metadata în HTML. |
+| `TRACE-REQ-10` | ✅ închis pe component/reporting | raportul păstrează ordinea requesturilor și rezumatul reconciliabil; explorarea MCP rămâne gate de prezentare, nu sursă de date. |
+
+### Gate-uri executate pentru această reconciliere
+
+- `ReportRequestSignatureTest`: **4/0/0**;
+- `ReportTraceMetadataRenderingTest`: **1/0/0**;
+- `ExtentReportRuntimeScriptTest`: **8/0/0**;
+- compilare reactor reporting + Practice Shop: **BUILD SUCCESS** în staging extern;
+- full Practice Shop rerun: reîncercat, dar JVM-ul nu a putut aloca native memory
+  deoarece existau multiple rulări Java active; acest lucru nu este marcat drept
+  failure de test și trebuie rerulat când resursele sunt disponibile.
+
+Prin urmare, nu rămâne un ToDo funcțional pe contractul de traceability. Rămâne
+doar un gate operațional de regresie finală și, separat, limita business externă
+`SHOP-API-REAL-01/02` când login-ul Practice Shop răspunde `401`.
 
 

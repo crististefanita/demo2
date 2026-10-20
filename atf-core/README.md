@@ -84,13 +84,16 @@ politica JSON, iar `http.auth`, `http.execution` și `http.transport` dețin câ
 un boundary distinct. `ApiPathTemplate` este mecanismul generic pentru join,
 validare și rezolvare sigură a segmentelor; nu este catalogul unui produs.
 
-Catalogul concret este deținut de consumerul care execută sau simulează ruta:
-`atf-reporting-tests` deține `RoutePaths`, `ApiRoutes` și serviciile Users/Posts
-în test scope, iar `atf-mock` deține `MockRoutePaths` pentru fixture-ul built-in.
-Reporting production nu deține endpoint-uri și nu devine dependent de un catalog
-de business. `ApiPaths` a fost eliminat din core tocmai pentru a evita ca un
-catalog concret să pară platformă generică. Direcția corectă este
-`consumer → atf-core`, iar reporting rămâne standalone.
+### Cataloge concrete și direcția dependency-ului
+
+- `atf-reporting-tests` deține `RoutePaths`, `ApiRoutes` și serviciile Users/Posts
+  în test scope;
+- `atf-mock` deține `MockRoutePaths` pentru fixture-ul built-in;
+- reporting production nu deține endpoint-uri și nu devine dependent de un catalog
+  de business;
+- `ApiPaths` a fost eliminat din core pentru a nu prezenta un catalog concret ca
+  platformă generică;
+- direcția corectă este `consumer → atf-core`, iar reporting rămâne standalone.
 
 ```text
 ApiPathTemplate (core, generic)
@@ -99,31 +102,29 @@ ApiPathTemplate (core, generic)
         └── reporting tests consume semantic references; no raw URL literals
 ```
 
-Verbele HTTP, headerele, media type-urile și identificatorii fizici ai reactorului
-sunt constante/enum-uri cu owner semantic; nu se introduce un `AtfConstants` global.
-`HttpHeader.CONTENT_TYPE`,
-`MediaTypes.APPLICATION_JSON`, `HttpMethod.POST` și `HttpMethod.PUT` sunt
-folosite de construcția request-ului, mock și validare, iar contractul JSON
-pentru write requests este verificat la transport și în raport.
+### Vocabular și guard-uri
 
-`AtfModuleIds` deține string-urile Maven (`atf-core`, `atf-reporting`,
-`atf-tests` etc.) folosite de testul whole-ATF din `atf-tests`. Catalogul
-`REACTOR_MODULES` reprezintă toate modulele din root POM, iar
-`SOURCE_GOVERNED_MODULES` reprezintă modulele inspectate de guardul global;
-`atf-test-kit` rămâne inclus în reactor, dar își guvernează separat test-layer-ul.
-Enum-ul `AtfModule` rămâne separat pentru cheile logice de configurație.
-
-`AtfPackageCohesionGovernanceTest`, rulat din `atf-tests`, verifică inventarul de
-producție și source-set-urile de test. Orice pachet care depășește 8 clase trebuie
-împărțit după responsabilitate, nu după line count; excepțiile rămân explicite și
-revizuibile în catalogul guvernanței.
-
-`AtfPathLocator` este utilitarul comun pentru discovery controlat: caută configurații
-în directoarele părinte și rezolvă un source root numai când markerul relativ
-cerut există. Convenția reutilizabilă `locateAtfTestSourceRoot(...)` păstrează
-candidatele suportate într-un singur owner; testele, loader-ele și composition
-root-urile nu mai repetă `user.dir` traversal. Utilitarul nu expune root-ul în
-evidence și nu introduce căi locale în raport.
+- **HTTP vocabulary** — verbe, headere, media type-uri și identificatori ai
+  reactorului sunt constante/enum-uri cu owner semantic;
+- **fără bucket global** — nu se introduce un `AtfConstants` global;
+- **write requests** — `HttpHeader.CONTENT_TYPE`,
+  `MediaTypes.APPLICATION_JSON`, `HttpMethod.POST` și `HttpMethod.PUT` sunt
+  folosite de request, mock și validare; contractul JSON este verificat la
+  transport și în raport;
+- **reactor** — `AtfModuleIds` deține string-urile Maven, `REACTOR_MODULES`
+  reprezintă modulele root POM, iar `SOURCE_GOVERNED_MODULES` reprezintă modulele
+  inspectate de guardul global;
+- **test-kit** — rămâne în reactor și își guvernează separat test-layer-ul;
+- **config keys** — enum-ul `AtfModule` rămâne separat pentru cheile logice;
+- **package cohesion** — `AtfPackageCohesionGovernanceTest` verifică inventarul
+  de producție și source-set-urile; peste 8 clase înseamnă separare după
+  responsabilitate, iar excepțiile rămân explicite;
+- **controlled discovery** — `AtfPathLocator` caută în directoarele părinte și
+  rezolvă source root-ul numai când markerul relativ există;
+- **single owner** — `locateAtfTestSourceRoot(...)` păstrează candidatele
+  suportate într-un singur loc; testele și composition roots nu repetă traversal-ul;
+- **relocatabilitate** — utilitarul nu expune root-ul în evidence și nu introduce
+  căi locale în raport.
 
 ## Regula de decuplare
 
@@ -194,12 +195,15 @@ component test ori replay fără să copieze fixture-ul din test scope-ul
 
 ## Catalogul live explicit
 
-`ApiLiveTransportCatalog` este adaptorul public pentru request-uri reale. El
-ține endpoint-uri numite și produce un `ApiTransport` numai după ce primește o
-`ApiTransportPolicy` cu profil `LIVE` și opt-in explicit. Politica `ACCEPTANCE`
-nu consultă catalogul. Un endpoint care este încă placeholder-ul acceptance
-(`ApiEnvironment.MOCK_BASE_URI`) este respins chiar dacă operatorul a activat
-opt-in-ul.
+`ApiLiveTransportCatalog` este adaptorul public pentru request-uri reale; regulile
+sale sunt:
+
+- ține endpoint-uri numite;
+- produce un `ApiTransport` numai după `ApiTransportPolicy` cu profil `LIVE` și
+  opt-in explicit;
+- politica `ACCEPTANCE` nu consultă catalogul;
+- placeholder-ul acceptance (`ApiEnvironment.MOCK_BASE_URI`) este respins chiar
+  dacă operatorul a activat opt-in-ul.
 
 ```text
 ApiBootstrapConfiguration
@@ -245,21 +249,18 @@ raport și nu se sincronizează ca output generat.
 
 ## Determinism și concurență
 
-Fiecare execuție primește setări snapshot-uite. Timpul monotonic, deadline-ul
-comun al request-ului și delay-ul de retry sunt injectabile; testele nu trebuie
-să aștepte timp real pentru a verifica timeout-ul sau retry-ul. Modelele care
-ies din core nu expun colecții mutabile și nu păstrează state static de rulare.
-
-Pentru write contracts, `ApiRoute.request(...)` respinge `POST` și `PUT` fără
-body, iar `requestBody(...)` cere JSON ne-gol, valid și normalizează
-`Content-Type: application/json`. Această invariantă aparține construcției
-transportului; publisher-ul și auditorii o verifică din nou în evidence, pentru
-ca un fixture sau un mock configurat greșit să nu poată produce un raport aparent
-valid.
-
-Redaction-ul este compus prin `RedactionContext` immutable. Orice evidence
-trimis către reporting trebuie să treacă prin politica de redaction fără să
-modifice request-ul, response-ul sau assertion-ul original.
+- **snapshot și timp** — fiecare execuție primește setări snapshot-uite;
+- **clock injectabil** — timpul monotonic, deadline-ul request-ului și delay-ul
+  de retry nu cer timp real în teste;
+- **modele immutable** — obiectele ieșite din core nu expun colecții mutabile și
+  nu păstrează state static de rulare;
+- **write contracts** — `ApiRoute.request(...)` respinge `POST` și `PUT` fără
+  body, iar `requestBody(...)` cere JSON valid, ne-gol și normalizează
+  `Content-Type: application/json`;
+- **verdict observabil** — invariantă aparține construcției transportului și este
+  verificată din nou de publisher/auditor în evidence;
+- **redaction** — `RedactionContext` immutable protejează evidence-ul trimis către
+  reporting fără să modifice request-ul, response-ul sau assertion-ul original.
 
 ## Teste
 

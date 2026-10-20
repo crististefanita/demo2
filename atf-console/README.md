@@ -16,9 +16,9 @@ ExtentReports și nu calculează verdicturi.
 
 ```mermaid
 flowchart LR
-    Core[core events] --> Console[console]
-    Config[YAML policy] --> Console
-    Console --> Output[stdout / stderr]
+    Core[core events] -->|formatează| Console[console]
+    Config[YAML policy] -->|configurează| Console
+    Console -->|publică| Output[stdout / stderr]
     Console -. nu deține .-> Reporting[HTML reporting]
 ```
 
@@ -41,24 +41,30 @@ atf-console    include lifecycle-ul și extension-ul JUnit opțional
 atf-reporting  produce numai artifacte HTML/Extent
 ```
 
-`AtfConsoleReporter` consumă doar `AtfConsoleEvent` din `atf-core` și
-`ConsoleSettings` din propriul modul. Detaliile sunt opt-in prin
-`reporting.console.detailsEnabled`, iar
-consola nu poate modifica statusul sau cauza unui test.
+### Contracte de consum
 
-`atf-console` este singurul owner al stream-urilor procesului: numai aici
-există referințe la `System.out`/`System.err` și numai aici se face `println`.
-Launcher-ele și test-kit-ul nu primesc `PrintStream` și nu scriu direct; folosesc
-`AtfConsoleReporter.configuredStdout()` sau un `AtfConsoleSink` injectat.
-`AtfDebugUiLauncher` folosește `info(...)` pentru mesajele de bootstrap, iar
-raportarea HTML rămâne renderer-neutrală.
+- `AtfConsoleReporter` consumă doar `AtfConsoleEvent` din `atf-core` și
+  `ConsoleSettings` din propriul modul;
+- detaliile sunt opt-in prin `reporting.console.detailsEnabled`;
+- consola nu modifică statusul și nu cauzează un test.
 
-Implementarea este OOP și are responsabilități separate: `AtfConsoleReporter`
-este adaptorul thread-safe către `PrintStream`, `AtfConsoleFormatter` este
-renderer-ul pur al unui eveniment, `ConsoleOutputStyle` decide glyph-urile în
-funcție de stream, iar `ConsoleLifecycleState` gestionează exclusiv nesting-ul.
-Niciuna dintre aceste componente nu calculează verdicturi sau nu cunoaște
-HTML/Extent.
+### Owner-ul stream-urilor
+
+- `atf-console` deține singur referințele la `System.out`/`System.err` și
+  singurul `println` din proiecția de consolă;
+- launcher-ele și test-kit-ul nu primesc `PrintStream` și nu scriu direct;
+- consumatorii folosesc `AtfConsoleReporter.configuredStdout()` sau un
+  `AtfConsoleSink` injectat;
+- `AtfDebugUiLauncher` folosește `info(...)` pentru bootstrap;
+- raportarea HTML rămâne renderer-neutrală.
+
+### Responsabilități OOP
+
+- `AtfConsoleReporter` — adaptor thread-safe către `PrintStream`;
+- `AtfConsoleFormatter` — renderer pur al unui eveniment;
+- `ConsoleOutputStyle` — glyph-uri în funcție de stream;
+- `ConsoleLifecycleState` — nesting și numai nesting;
+- niciuna dintre componente nu calculează verdicturi și nu cunoaște HTML/Extent.
 
 Formatterul păstrează secvența:
 
@@ -107,11 +113,13 @@ constructorii lor impliciți folosesc `noOp`.
 
 ## Testare
 
-`AtfConsoleReporterTest` protejează nesting-ul, statusurile și politica de
-durată (`ms` până la `300 ms`, apoi `s`),
-redaction boundary, body-ul pretty-print, opțiunea de detalii și fallback-ul
-ASCII/UTF-8. `ConsoleLifecycleStateTest` protejează tranzițiile de nesting,
-inclusiv completarea defensivă la adâncime zero. `AtfConsoleConfigurationLoaderTest`
-protejează discovery, precedence, path resolution și validarea boolean-urilor.
-Testele de lifecycle JUnit sunt în același modul; testele de execuție verifică
-separat că evenimentele sunt publicate.
+Testarea este împărțită după responsabilitate:
+
+- `AtfConsoleReporterTest` — nesting, statusuri, durată (`ms` până la `300 ms`,
+  apoi `s`), redaction boundary, pretty-print, detalii și fallback ASCII/UTF-8;
+- `ConsoleLifecycleStateTest` — tranziții de nesting și completarea defensivă
+  la adâncime zero;
+- `AtfConsoleConfigurationLoaderTest` — discovery, precedence, path resolution
+  și validarea boolean-urilor;
+- testele de lifecycle JUnit — integrarea extension-ului opțional;
+- testele de execuție — publicarea separată a evenimentelor.

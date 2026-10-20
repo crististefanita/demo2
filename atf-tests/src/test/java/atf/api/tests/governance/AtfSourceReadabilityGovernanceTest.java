@@ -17,7 +17,7 @@ import static atf.api.tests.governance.AtfGovernanceTestSupport.locateProjectRoo
 
 /** Keeps reporting tests readable at the call site and imports semantic vocabulary normally. */
 @AtfComponentTest
-class AtfSourceReadabilityGovernanceTest {
+public class AtfSourceReadabilityGovernanceTest {
     private static final Pattern FULLY_QUALIFIED_ATF_INVOCATION =
             Pattern.compile("\\batf\\.api\\.[A-Za-z0-9_.]+\\(");
     private static final Set<String> REVIEWED_ADAPTERS = Set.of(

@@ -17,11 +17,11 @@ publisherul Extent sau page objects de produs.
 
 ```mermaid
 flowchart LR
-    Tests[consumer tests] --> Config[browser policy]
-    Config --> Session[Playwright session]
-    Session --> Browser[browser / page]
-    Browser --> Evidence[action + screenshot]
-    Evidence --> Reporting[reporting]
+    Tests[consumer tests] -->|selectează| Config[browser policy]
+    Config -->|configurează| Session[Playwright session]
+    Session -->|deschide| Browser[browser / page]
+    Browser -->|produce| Evidence[action + screenshot]
+    Evidence -->|alimentează| Reporting[reporting]
 ```
 
 <details>
@@ -90,19 +90,17 @@ ui:
     fullPage: false
 ```
 
-Nu există și nu se adaugă `ui.enabled`. Runtime-ul este construit când
-consumerul selectează un test; opțiunile concrete descriu browserul și
-evidence-ul.
-`ui.screenValidation.enabled` controlează numai capturarea screenshot-ului,
-nu activarea testelor sau publicarea raportului.
-`ui.zoomPercent` controlează zoom-ul CSS al documentului Playwright pentru
-fiecare pagină navigată. Valoarea recomandată pentru rapoarte Extent este
-`70`, deoarece încadrează mai multă evidence într-un singur screenshot fără
-să schimbe `viewport.width`/`viewport.height`. Valoarea este validată în
-intervalul `25..200`; lipsa cheii păstrează zoom-ul neutru `100`.
-Încărcarea YAML-ului, override-ul `-Datf.ui.config`/`-Datf.ui.report` și
-rezoluția inputului audit sunt responsabilitatea exclusivă a test scope-ului
-`atf-reporting`.
+- nu există și nu se adaugă `ui.enabled`;
+- runtime-ul se construiește când consumerul selectează un test;
+- opțiunile concrete descriu browserul și evidence-ul;
+- `ui.screenValidation.enabled` controlează numai capturarea screenshot-ului;
+- cheia nu activează testele și nu publică raportul;
+- `ui.zoomPercent` controlează zoom-ul CSS pentru fiecare pagină navigată;
+- valoarea recomandată pentru rapoarte Extent este `70`;
+- `viewport.width` și `viewport.height` rămân neschimbate;
+- valoarea este validată în intervalul `25..200`, iar lipsa cheii păstrează `100`;
+- YAML loading, override-ul `-Datf.ui.config`/`-Datf.ui.report` și rezoluția
+  inputului audit aparțin exclusiv test scope-ului `atf-reporting`.
 
 ## Acțiuni și locatori
 
@@ -118,14 +116,15 @@ Report*Locators
     → flow / extractor / validator din atf-reporting
 ```
 
-Testele nu scriu direct `page.locator(...)`, `getByRole(...)` sau `getByText(...)`.
-În `TARGET` se publică selectorul efectiv folosit, nu o descriere precum
-`"selected owner"` sau `"collapse node"`. Operațiile suportate explicit sunt
-`Navigate`, `Click`, `Get text`, `Find element`, `Expect text`, `Focus`,
-`Wait for visible`, `Expect visible` și `Wait`.
-Pentru stări asincrone, runtime-ul folosește așteptări Playwright cu timeout
-(`waitFor`, `waitForCondition`, `waitForURL`); `waitForTimeout` nu este API de
-stabilizare acceptat.
+- testele nu scriu direct `page.locator(...)`, `getByRole(...)` sau
+  `getByText(...)`;
+- în `TARGET` se publică selectorul efectiv folosit, nu descrieri precum
+  `"selected owner"` sau `"collapse node"`;
+- operațiile suportate sunt `Navigate`, `Click`, `Get text`, `Find element`,
+  `Expect text`, `Focus`, `Wait for visible`, `Expect visible` și `Wait`;
+- stările asincrone folosesc așteptări Playwright cu timeout:
+  `waitFor`, `waitForCondition`, `waitForURL`;
+- `waitForTimeout` nu este API de stabilizare acceptat.
 
 În CI/ATF Debug, când revizia Playwright cerută nu este disponibilă în cache,
 runnerul poate primi un browser headless deja provisionat prin
@@ -134,9 +133,11 @@ runnerul poate primi un browser headless deja provisionat prin
 de business YAML; în lipsa lui, launcherul păstrează comportamentul Playwright
 standard și fail-closed dacă nu poate provisiona browserul.
 
-`PlaywrightActionSequence` este recorderul, nu auditorul: înregistrează ordinea,
-target-ul, expected, observed, durata și statusul. Validatorul pur din
-`atf-reporting` decide dacă snapshot-ul DOM corespunde proiecției așteptate.
+`PlaywrightActionSequence` este recorderul, nu auditorul:
+
+- înregistrează ordinea, target-ul, expected, observed, durata și statusul;
+- validatorul pur din `atf-reporting` decide dacă snapshot-ul DOM corespunde
+  proiecției așteptate.
 
 ## Screen validation și screenshot
 
@@ -198,12 +199,16 @@ Testele de raport UI se rulează din composition module-ul
 mvn -pl atf-reporting-tests -am -Dtest=SelectedApiTestsReportUiTest test
 ```
 
-Build-ul se face în staging extern (`${ATF_STAGING_ROOT}/atf-ui-<id>`) pentru a păstra
-rulările curente și serverele intacte. Raportul UI aprobat se publică numai în
-directorul configurat al consumerului. Verificarea finală se face pe artifactul HTML rezultat,
-prin ATF Debug UI și Playwright/browser MCP: click-uri, expand/collapse,
-accessibility tree, console/network și randare. Nu se folosește browser Windows
-real.
+Build și audit:
+
+- build-ul se face în staging extern (`${ATF_STAGING_ROOT}/atf-ui-<id>`);
+- rulările curente și serverele rămân intacte;
+- raportul UI aprobat se publică numai în directorul configurat al consumerului;
+- artifactul HTML rezultat se verifică prin ATF Debug UI și Playwright/browser
+  MCP;
+- verificarea acoperă click-uri, expand/collapse, accessibility tree,
+  console/network și randare;
+- browserul Windows real nu se folosește.
 
 Pentru procesul de sync și siguranță vezi
 [`docs/ATF_Build_And_Execution_Safety.md`](../docs/ATF_Build_And_Execution_Safety.md);

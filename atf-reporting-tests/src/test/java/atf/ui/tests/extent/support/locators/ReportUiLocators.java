@@ -58,6 +58,9 @@ public final class ReportUiLocators {
         return pages.overviewSection(overview, selector);
     }
     public Locator overviewMetrics(Locator overview) { return pages.overviewMetrics(overview); }
+    public Locator overviewTagAuditTables(Locator overview) {
+        return pages.overviewTagAuditTables(overview);
+    }
     public Locator overviewExecutionMetadata(Locator overview) {
         return pages.overviewExecutionMetadata(overview);
     }
@@ -72,6 +75,9 @@ public final class ReportUiLocators {
     }
     public Locator overviewOpenSecondaryZones(Locator overview) {
         return pages.overviewOpenSecondaryZones(overview);
+    }
+    public Locator overviewVisibleClosedSecondaryBodies(Locator overview) {
+        return pages.overviewVisibleClosedSecondaryBodies(overview);
     }
     public Locator overviewPackageRows(Locator overview) {
         return pages.overviewPackageRows(overview);
@@ -88,6 +94,8 @@ public final class ReportUiLocators {
     public Locator overviewAuditRows(Locator overview) { return pages.overviewAuditRows(overview); }
     public Locator metricLabel(Locator metric) { return pages.metricLabel(metric); }
     public Locator metricValue(Locator metric) { return pages.metricValue(metric); }
+    public Locator tableHeaders(Locator table) { return pages.tableHeaders(table); }
+    public Locator tableRows(Locator table) { return pages.tableRows(table); }
     public Locator tableCells(Locator row) { return pages.tableCells(row); }
     public Locator overviewCategoryCells(Locator overview) {
         return pages.overviewCategoryCells(overview);
@@ -253,6 +261,9 @@ public final class ReportUiLocators {
     }
     public Locator screenValidationAssertionTables(Locator card) {
         return screen.screenValidationAssertionTables(card);
+    }
+    public Locator screenValidationEvidenceTables(Locator card) {
+        return screen.screenValidationEvidenceTables(card);
     }
     public Locator setupEvidence(Locator scope) { return screen.setupEvidence(scope); }
     public Locator setupEvidenceRows(Locator evidenceLocator) {

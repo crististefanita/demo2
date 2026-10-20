@@ -1,9 +1,12 @@
 package atf.api.reporting.evidence.markup;
 
+import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
 
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.Attribute.ARIA_EXPANDED;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.Attribute.ARIA_HIDDEN;
+import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.Attribute.EVIDENCE_STATUS;
+import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.Attribute.EVIDENCE_TYPE;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.AttributeValue.FALSE;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.DISCLOSURE_GLYPH;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.SE_TITLE;
@@ -22,9 +25,22 @@ public final class ReportEvidenceMarkup {
     }
 
     public static String disclosureStart(String kind, String title) {
-        String rawTitle = title == null ? "" : title;
+        return disclosureStart(ReportEvidenceDisclosure.standard(kind, title, ""));
+    }
+
+    public static String disclosureStart(ReportEvidenceDisclosure disclosure) {
+        String rawTitle = disclosure.title();
         String safeTitle = AtfReportHtmlVocabulary.escapeHtml(rawTitle);
-        return openTag(DETAILS, classAttribute(STEP_DETAIL.value(), kind))
+        var attributes = new java.util.ArrayList<String>();
+        attributes.add(classAttribute(STEP_DETAIL.value(), disclosure.kind()));
+        if (disclosure.evidenceType() != null) {
+            attributes.add(attribute(EVIDENCE_TYPE, disclosure.evidenceType()));
+        }
+        if (disclosure.status() != null) {
+            attributes.add(attribute(EVIDENCE_STATUS,
+                    AtfReportHtmlVocabulary.statusValue(disclosure.status())));
+        }
+        return openTag(DETAILS, attributes.toArray(String[]::new))
                 + openTag(SUMMARY, attribute(ARIA_EXPANDED, FALSE))
                 + openTag(SPAN, classAttribute(DISCLOSURE_GLYPH),
                 attribute(ARIA_HIDDEN, AtfReportHtmlVocabulary.AttributeValue.TRUE))
@@ -44,6 +60,19 @@ public final class ReportEvidenceMarkup {
     }
 
     public static String disclosure(String kind, String title, String body) {
-        return disclosureStart(kind, title) + body + disclosureEnd();
+        return disclosure(ReportEvidenceDisclosure.standard(kind, title, body));
+    }
+
+    public static String disclosure(ReportEvidenceDisclosure disclosure) {
+        return disclosureStart(disclosure) + disclosure.body() + disclosureEnd();
+    }
+
+    /** Canonical status badge shared by fallback evidence views. */
+    public static String statusBadge(AtfReportStatus status) {
+        AtfReportStatus safeStatus = AtfReportStatus.orInfo(status);
+        return openTag(SPAN, classAttribute(
+                        AtfReportHtmlVocabulary.statusClasses(safeStatus)))
+                + AtfReportHtmlVocabulary.statusLabel(safeStatus)
+                + closeTag(SPAN);
     }
 }

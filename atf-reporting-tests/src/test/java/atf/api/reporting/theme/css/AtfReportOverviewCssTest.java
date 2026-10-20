@@ -21,6 +21,8 @@ class AtfReportOverviewCssTest {
         assertAll(
                 () -> assertTrue(layout.contains(".atf-secondary-overview>summary")),
                 () -> assertTrue(layout.contains(".dashboard-view>.row>.atf-secondary-overview")),
+                () -> assertTrue(layout.contains(".atf-secondary-overview:not([open])>:not(summary)")),
+                () -> assertTrue(layout.contains(".atf-secondary-overview[open]>:not(summary)")),
                 () -> assertTrue(tagAudit.contains(".atf-tag-table{width:100%!important")),
                 () -> assertTrue(categoryTables.contains(".dashboard-view .category-container>.card>.card-body")),
                 () -> assertTrue(categoryTables.contains("height:500px!important;max-height:500px!important")),

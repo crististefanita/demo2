@@ -9,6 +9,7 @@ import atf.api.reporting.markup.ExtentReportAssets;
 import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.evidence.markup.ReportEvidenceMarkup;
+import atf.api.reporting.evidence.markup.ReportEvidenceDisclosure;
 import atf.api.reporting.evidence.markup.ReportEvidenceJsonFormatter;
 import atf.api.reporting.model.ReportField;
 import atf.api.reporting.model.ReportJsonBody;
@@ -39,7 +40,7 @@ public final class ExtentTransportEvidenceRenderer {
         node.info(AtfReportMarkup.table(AtfReportHtmlVocabulary.classList(
                         AtfReportHtmlVocabulary.CssClass.HELM_EVIDENCE_TABLE,
                         AtfReportHtmlVocabulary.CssClass.HELM_TRACE_TABLE),
-                EvidenceTableFormatter.toExtentRowsModel(traceDetails)));
+                EvidenceTableFormatter.toTable(traceDetails)));
     }
 
     void renderRequestDetails(ExtentTest node, List<ReportField> details,
@@ -71,56 +72,25 @@ public final class ExtentTransportEvidenceRenderer {
                                 .startsWith(AtfReportEvidenceKeys.SETUP_CHECK_PREFIX))
                 .map(detail -> setupCheck(detail.value()))
                 .toList();
-        String[][] rows = new String[checks.size() + 1][4];
-        rows[0] = new String[]{AtfReportLabels.CHECK, AtfReportLabels.EXPECTED,
-                AtfReportLabels.ACTUAL, AtfReportLabels.RESULT};
+        var rows = new java.util.ArrayList<List<String>>(checks.size());
         for (int index = 0; index < checks.size(); index++) {
             ReportCheck check = checks.get(index);
-            rows[index + 1] = new String[]{check.check(), check.expected(), check.actual(),
-                    AtfReportStatus.orInfo(check.status()).resultMarker()};
+            rows.add(List.of(check.check(), check.expected(), check.actual(),
+                    AtfReportStatus.orInfo(check.status()).resultMarker()));
         }
         boolean failed = checks.stream().anyMatch(check -> check.status() == AtfReportStatus.FAIL);
         String label = AtfReportLabels.setupEvidence(checks.size());
-        String markup = AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.DETAILS,
-                AtfReportHtmlVocabulary.classAttribute(
-                        AtfReportHtmlVocabulary.CssClass.STEP_DETAIL,
+        String body = AtfReportMarkup.tableHtml(
+                AtfReportHtmlVocabulary.CssClass.ATF_SETUP_EVIDENCE_TABLE.value(),
+                ReportEvidenceTable.of(List.of(AtfReportLabels.CHECK, AtfReportLabels.EXPECTED,
+                        AtfReportLabels.ACTUAL, AtfReportLabels.RESULT), rows));
+        ReportEvidenceDisclosure disclosure = ReportEvidenceDisclosure.withEvidenceStatus(
+                AtfReportHtmlVocabulary.classList(
                         AtfReportHtmlVocabulary.CssClass.SETUP_EVIDENCE,
                         AtfReportHtmlVocabulary.CssClass.ATF_SETUP_EVIDENCE),
-                AtfReportHtmlVocabulary.attribute(
-                        AtfReportHtmlVocabulary.Attribute.EVIDENCE_TYPE,
-                        AtfReportEvidenceKeys.REPORT_SETUP),
-                AtfReportHtmlVocabulary.attribute(
-                        AtfReportHtmlVocabulary.Attribute.EVIDENCE_STATUS,
-                        AtfReportHtmlVocabulary.statusValue(
-                                failed ? AtfReportStatus.FAIL : AtfReportStatus.PASS)))
-                + AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.SUMMARY,
-                AtfReportHtmlVocabulary.attribute(
-                        AtfReportHtmlVocabulary.Attribute.ARIA_EXPANDED,
-                        AtfReportHtmlVocabulary.AttributeValue.FALSE))
-                + AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.SPAN,
-                AtfReportHtmlVocabulary.classAttribute(
-                        AtfReportHtmlVocabulary.CssClass.DISCLOSURE_GLYPH),
-                AtfReportHtmlVocabulary.attribute(
-                        AtfReportHtmlVocabulary.Attribute.ARIA_HIDDEN,
-                        AtfReportHtmlVocabulary.AttributeValue.TRUE))
-                + AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.SPAN)
-                + AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.SPAN,
-                AtfReportHtmlVocabulary.classAttribute(
-                        AtfReportHtmlVocabulary.CssClass.SE_TITLE),
-                AtfReportHtmlVocabulary.attribute(
-                        AtfReportHtmlVocabulary.Attribute.TITLE, label),
-                AtfReportHtmlVocabulary.attribute(
-                        AtfReportHtmlVocabulary.Attribute.ARIA_LABEL, label))
-                + label
-                + AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.SPAN)
-                + AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.SUMMARY)
-                + AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.DIV,
-                AtfReportHtmlVocabulary.classAttribute(
-                        AtfReportHtmlVocabulary.CssClass.BODY))
-                + AtfReportMarkup.tableHtml(
-                AtfReportHtmlVocabulary.CssClass.ATF_SETUP_EVIDENCE_TABLE.value(), rows)
-                + AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DIV)
-                + AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DETAILS);
+                label, body, AtfReportEvidenceKeys.REPORT_SETUP,
+                failed ? AtfReportStatus.FAIL : AtfReportStatus.PASS);
+        String markup = ReportEvidenceMarkup.disclosure(disclosure);
         if (failed) {
             node.fail(markup);
         } else {
@@ -178,7 +148,7 @@ public final class ExtentTransportEvidenceRenderer {
                     : AtfReportHtmlVocabulary.classList(
                     AtfReportHtmlVocabulary.CssClass.HELM_EVIDENCE_TABLE,
                     AtfReportHtmlVocabulary.CssClass.HELM_TRACE_TABLE);
-             html.append(AtfReportMarkup.tableHtml(css, EvidenceTableFormatter.toExtentRowsModel(details)));
+             html.append(AtfReportMarkup.tableHtml(css, EvidenceTableFormatter.toTable(details)));
         }
         for (ReportJsonBody item : json) {
             html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.DIV,
@@ -212,19 +182,27 @@ public final class ExtentTransportEvidenceRenderer {
                         AtfReportHtmlVocabulary.CssClass.EXECUTION_EVIDENCE_BODY)))
                 .append(AtfReportMarkup.table(AtfReportHtmlVocabulary.classList(
                         AtfReportHtmlVocabulary.CssClass.HELM_EVIDENCE_TABLE,
-                        AtfReportHtmlVocabulary.CssClass.EXECUTION_TABLE), new String[][]{
-                {AtfReportLabels.FIELD, AtfReportLabels.VALUE},
-                {AtfReportLabels.RESPONSE_STATUS, String.valueOf(execution.response().status())},
-                {AtfReportLabels.RESPONSE_URL, redactor.redactText(execution.response().url())},
-                {AtfReportLabels.RESPONSE_DURATION_MS, AtfDurationFormatter.format(execution.response().duration())},
-                {AtfReportLabels.ATTEMPTS, String.valueOf(execution.attempts())},
-                {AtfReportLabels.RETRY_EVENTS, String.valueOf(execution.retryEvents().size())}
-        }).getMarkup());
+                        AtfReportHtmlVocabulary.CssClass.EXECUTION_TABLE),
+                        ReportEvidenceTable.of(List.of(AtfReportLabels.FIELD, AtfReportLabels.VALUE), List.of(
+                                List.of(AtfReportLabels.RESPONSE_STATUS, String.valueOf(execution.response().status())),
+                                List.of(AtfReportLabels.RESPONSE_URL, redactor.redactText(execution.response().url())),
+                                List.of(AtfReportLabels.RESPONSE_DURATION_MS, AtfDurationFormatter.format(execution.response().duration())),
+                                List.of(AtfReportLabels.ATTEMPTS, String.valueOf(execution.attempts())),
+                                List.of(AtfReportLabels.RETRY_EVENTS, String.valueOf(execution.retryEvents().size()))
+                        ))).getMarkup());
         if (!execution.attemptHistory().isEmpty()) {
             body.append(AtfReportMarkup.table(AtfReportHtmlVocabulary.classList(
                             AtfReportHtmlVocabulary.CssClass.HELM_EVIDENCE_TABLE,
                             AtfReportHtmlVocabulary.CssClass.RETRY_HISTORY_TABLE),
-                    attemptRows(execution.attemptHistory())).getMarkup());
+                    attemptTable(execution.attemptHistory())).getMarkup());
+        }
+        if (execution.trace().present()) {
+            body.append(AtfReportMarkup.table(AtfReportHtmlVocabulary.classList(
+                            AtfReportHtmlVocabulary.CssClass.HELM_EVIDENCE_TABLE,
+                            AtfReportHtmlVocabulary.CssClass.HELM_TRACE_TABLE),
+                    ReportEvidenceTable.of(List.of(AtfReportLabels.FIELD, AtfReportLabels.VALUE),
+                            execution.trace().fields().entrySet().stream()
+                                    .map(entry -> List.of(entry.getKey(), entry.getValue())).toList())).getMarkup());
         }
         node.info(ReportEvidenceMarkup.disclosure(
                 AtfReportHtmlVocabulary.CssClass.EXECUTION_EVIDENCE.value(),
@@ -244,19 +222,14 @@ public final class ExtentTransportEvidenceRenderer {
         }
     }
 
-    private String[][] attemptRows(List<ReportAttemptRecord> attempts) {
-        String[][] rows = new String[attempts.size() + 1][5];
-        rows[0] = new String[]{AtfReportLabels.ATTEMPT, AtfReportLabels.STATUS,
-                AtfReportLabels.DURATION, AtfReportLabels.OUTCOME, AtfReportLabels.REASON};
-        for (int index = 0; index < attempts.size(); index++) {
-            ReportAttemptRecord attempt = attempts.get(index);
-            rows[index + 1] = new String[]{
-                    String.valueOf(attempt.number()),
-                    String.valueOf(attempt.statusCode()),
-                    AtfDurationFormatter.format(attempt.duration()),
-                    attempt.outcome(),
-                    redactor.redactText(attempt.reason())};
-        }
-        return rows;
+    private ReportEvidenceTable attemptTable(List<ReportAttemptRecord> attempts) {
+        var rows = attempts.stream().map(attempt -> List.of(
+                String.valueOf(attempt.number()),
+                String.valueOf(attempt.statusCode()),
+                AtfDurationFormatter.format(attempt.duration()),
+                attempt.outcome(),
+                redactor.redactText(attempt.reason()))).toList();
+        return ReportEvidenceTable.of(List.of(AtfReportLabels.ATTEMPT, AtfReportLabels.STATUS,
+                AtfReportLabels.DURATION, AtfReportLabels.OUTCOME, AtfReportLabels.REASON), rows);
     }
 }

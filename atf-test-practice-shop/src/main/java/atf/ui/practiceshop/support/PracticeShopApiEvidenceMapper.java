@@ -5,6 +5,8 @@ import atf.api.reporting.api.ReportRequest;
 import atf.api.reporting.api.ReportResponse;
 import atf.api.reporting.api.ReportRetryEvent;
 import atf.api.reporting.api.ReportTransportProvenance;
+import atf.api.reporting.api.ReportRequestSignature;
+import atf.api.reporting.api.ReportTraceMetadata;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.core.http.response.ApiExecutionResult;
 import atf.api.core.http.response.ApiAttemptRecord;
@@ -35,12 +37,26 @@ public final class PracticeShopApiEvidenceMapper {
         var attempt = new ReportAttemptRecord(1, exchange.status(), Duration.ZERO,
                 exchange.status() >= 200 && exchange.status() < 400 ? "SUCCESS" : "FAILURE",
                 "final response");
+        ReportTraceMetadata trace = ReportTraceMetadata.from(request).withCapture(
+                exchange.eventId(), exchange.sequence(), exchange.phase(), exchange.role(),
+                exchange.stepId(), exchange.initiator(), exchange.evidenceSource(),
+                ReportRequestSignature.bodyDigest(response.body()),
+                exchange.expected(), exchange.observed());
         return new ReportExecutionEvidence(response, 1, Duration.ZERO, List.of(), List.of(attempt),
-                request, ReportTransportProvenance.LIVE_HTTP);
+                request, ReportTransportProvenance.LIVE_HTTP, trace);
     }
 
     /** Maps a direct screen-flow execution for the standalone API artifact. */
     public static ReportExecutionEvidence toExecution(ApiExecutionResult execution) {
+        return toExecution(execution, 0, "", "", "", "", "", "", "");
+    }
+
+    /** Maps a direct execution while retaining its ordered causal context. */
+    public static ReportExecutionEvidence toExecution(ApiExecutionResult execution,
+                                                       long sequence, String phase,
+                                                       String role, String stepId,
+                                                       String initiator, String evidenceSource,
+                                                       String expected, String observed) {
         if (execution == null) {
             throw new IllegalArgumentException("API execution must contain request and response");
         }
@@ -66,8 +82,12 @@ public final class PracticeShopApiEvidenceMapper {
                 .map(retry -> new ReportRetryEvent(retry.attempt(), retry.statusCode(), retry.header(),
                         retry.delay(), retry.reason()))
                 .toList();
+        ReportTraceMetadata trace = ReportTraceMetadata.from(reportRequest).withCapture(
+                sequence > 0 ? "E" + sequence : "", sequence, phase, role, stepId,
+                initiator, evidenceSource, ReportRequestSignature.bodyDigest(reportResponse.body()),
+                expected, observed);
         return new ReportExecutionEvidence(reportResponse, execution.attempts(), execution.totalDuration(),
-                retries, attempts, reportRequest, provenance(execution));
+                retries, attempts, reportRequest, provenance(execution), trace);
     }
 
     private static ReportAttemptRecord attempt(ApiAttemptRecord attempt) {

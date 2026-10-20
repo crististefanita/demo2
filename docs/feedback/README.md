@@ -2,23 +2,20 @@
 
 ## Overall
 
-Acest director păstrează numai riscuri sau decizii care mai pot schimba codul,
-testele ori contractele publice. Un ToDo este activ numai dacă are owner,
-reproducere, criteriu de acceptare și nivel de test. Regulile deja implementate
-se mută în README-ul ownerului; analizele datate fără acțiune se arhivează în
-afara proiectului.
+- **scope:** riscuri sau decizii care mai pot schimba codul, testele ori contractele
+  publice;
+- **ToDo activ:** owner, reproducere, criteriu de acceptare și nivel de test;
+- **regulă implementată:** se mută în README-ul ownerului;
+- **analiză datată fără acțiune:** se arhivează în afara proiectului.
 
-În checkout rămân intenționat registrul și feedback-urile care au ToDo-uri
-reproductibile. Pentru consumerul Practice Shop, piramida API/UI este urmărită în
-[`ATF_Practice_Shop_API_Screen_Pyramid_Feedback.md`](ATF_Practice_Shop_API_Screen_Pyramid_Feedback.md).
-Boundary-ul standalone al
-`atf-reporting` este deja documentat de owner și nu are un feedback duplicat.
-Contractul transversal pentru semnături request, precondiții dinamice și
-intercalarea API cu pașii UI este urmărit în
-[`ATF_Request_Traceability_Feedback.md`](ATF_Request_Traceability_Feedback.md).
-Nu se creează câte un fișier
-pentru fiecare rulare sau captură; un raport HTML este dovadă de execuție, nu
-documentație permanentă.
+- registrul și feedback-urile cu ToDo-uri reproductibile rămân în checkout;
+- piramida API/UI Practice Shop este urmărită în
+  [`ATF_Practice_Shop_API_Screen_Pyramid_Feedback.md`](ATF_Practice_Shop_API_Screen_Pyramid_Feedback.md);
+- boundary-ul standalone `atf-reporting` rămâne în README-ul ownerului;
+- semnăturile request, precondițiile dinamice și intercalarea API/UI sunt urmărite
+  în [`ATF_Request_Traceability_Feedback.md`](ATF_Request_Traceability_Feedback.md);
+- nu se creează câte un fișier pentru fiecare run sau captură;
+- raportul HTML este dovadă de execuție, nu documentație permanentă.
 
 ## Reconcilierea cu codul live
 
@@ -51,10 +48,10 @@ dovada relevantă.
 
 ```mermaid
 flowchart LR
-    Finding[problemă reproductibilă] --> Owner[owner module / document]
-    Owner --> Test[test layers]
-    Test --> Contract[README normativ]
-    Contract --> Registry[feedback activ sau închis]
+    Finding[problemă reproductibilă] -->|atrage| Owner[owner module / document]
+    Owner -->|alege| Test[test layers]
+    Test -->|dovedește| Contract[README normativ]
+    Contract -->|lasă limita în| Registry[feedback activ sau închis]
 ```
 
 <details>
@@ -83,39 +80,44 @@ produs. Rezultatele unui run nu sunt documentație permanentă și nu se păstre
 în acest registru. Decizia de packaging este JAR Maven normal cu vendorii
 declarați explicit; nu există motiv pentru shaded JAR în acest moment.
 
-`atf-reporting` este librăria. `atf-reporting-tests` este un consumer/reference
-composition root care dovedește API și E2E fără să contamineze librăria cu mock,
-browser sau fixture-uri ale unei aplicații. `atf-test-practice-shop` este
-composition root-ul pentru aplicația Practice Shop, iar `atf-tests` este numai
-composition root-ul guvernanței whole-ATF. Aceasta este separarea necesară pentru
-un viitor framework care va folosi reporting ca dependency.
+- `atf-reporting` — librăria standalone;
+- `atf-reporting-tests` — consumer/reference composition root pentru API și E2E;
+- `atf-test-practice-shop` — composition root pentru aplicația Practice Shop;
+- `atf-tests` — composition root pentru guvernanța whole-ATF;
+- boundary-ul păstrează reporting-ul reutilizabil ca dependency pentru consumatori
+  viitori.
 
-`SHOP-CONSOLE-01` este închis pe consumer: Practice Shop declară `atf-console`,
-injectează reporterul configurat în sesiunile Playwright și îl transmite și
-publisher-ului API standalone pentru lifecycle-ul `REQUEST → VALIDATION →
-COMPLETE`. Rămâne activ numai
-`SHOP-CONSOLE-02`, care este decizie cross-module pentru cele două porturi
-standalone `AtfConsoleEvent/Sink`; nu se copiază un adapter în Practice Shop.
+- `SHOP-CONSOLE-01` — închis pe consumer;
+  - Practice Shop declară `atf-console`;
+  - reporterul configurat intră în sesiunile Playwright;
+  - același reporter ajunge la publisher-ul API standalone;
+  - lifecycle-ul urmărit este `REQUEST → VALIDATION → COMPLETE`;
+- `SHOP-CONSOLE-02` — activ ca decizie cross-module pentru porturile standalone
+  `AtfConsoleEvent/Sink`;
+- Practice Shop nu copiază un adapter.
 
 ## ToDo active, ordonate după impact și risc
 
 | Prioritate | Owner | ToDo | Criteriu de închidere |
 |---|---|---|---|
-| P0 | `atf-ui` + `atf-reporting` | `TRACE-REQ-01..04`: event ledger, request signature canonicală, intercalare UI/API și corelare explicită a exchange-ului cu pasul UI | fiecare exchange are `EventId`, sequence, phase, role, correlation și body digest; POST/PUT cu body diferit nu se unesc; artifactul ordonat rămâne lossless |
-| P1 | `atf-ui` + consumerii UI | `TRACE-REQ-05..08`: precondiții dinamice typed, logical exchange versus retry, output consumat de UI și assertions API distincte de body display | setup-ul publică input/output/read-back; pasul UI indică exchange-urile cauzate; retry-ul nu falsifică signature count; expected/observed/result sunt verificabile |
+| ~~P0~~ | `atf-ui` + `atf-reporting` | `TRACE-REQ-01..04` ✅ închis | `ReportTraceMetadata` + `ReportRequestSignature` oferă EventId, sequence, phase, role, correlation și body digest; body-uri diferite nu se unesc. |
+| ~~P1~~ | `atf-ui` + consumerii UI | `TRACE-REQ-05..08` ✅ închis pe Practice Shop/reporting | checkpoint-ul păstrează output/read-back, exchange-ul poartă trace explicit, retry-ul nu falsifică signature count, iar assertions sunt distincte de body display. |
 | P1 | `atf-core` + `atf-console` + `atf-reporting` | `SHOP-CONSOLE-02`: reconcilierea typed a celor două perechi `AtfConsoleEvent/Sink` | există un port comun sau un adapter owner-uit explicit; Practice Shop nu face mapping duplicat; component/integration tests verifică aceeași secvență și nu rup independența reportingului |
-| P1 | `atf-reporting` | `SHOP-REPORT-FAILURE-01`: `Fails` poate proiecta un fallback semantic verde (`Page route → / → /`) când failure-ul real vine din runtime diagnostics | failure chain preferă `Failure cause`/failure evidence concretă și nu alege primul rând semantic verde; component + E2E verifică aceeași cauză în `Fails` și `Tests` |
+| ~~P1~~ | `atf-reporting` | `SHOP-REPORT-FAILURE-01` ✅ închis | `Fails` prioritizează `Failure evidence`/cauza concretă; component + failure-flow E2E au fost verificate în MCP. |
 | P1 | `atf-reporting` | `REP-RENDER-09`: rendererele transport/UI/fallback folosesc acum disclosure, tabel key/value, escaping, politica JSON și vocabularul typed de marker/label status; rămâne doar parity-ul vendor-specific al badge-urilor Extent | primitive typed comune și parity component tests pentru Extent + fallback HTML, fără copiere de disclosure/tabel/JSON |
 | P1 | `atf-core` + `atf-console` + `atf-reporting` + `atf-reporting-tests` | `REP-CONSOLE-01`: există perechi duplicate `AtfConsoleEvent/Sink`, iar no-op-ul poate ascunde wiring-ul | port comun sau adapter clar, standalone păstrat, in-memory sink și matrice `PASS/FAIL/WARNING/SKIP` verificată component/integration |
 | P2 | `atf-test-practice-shop` + mediu extern | `SHOP-NET-02`: E2E-ul autentificat primește diagnosticuri de bootstrap anonim (`401`, `Unauthorized`, `/users/me` și `TypeError` pe `cart_items`) clasificate acum ca warning | mediul extern este curățat sau excepția este aprobată explicit; evidence păstrează source/route/status/message, guest și authenticated rămân distincte, iar diagnosticul necunoscut continuă să eșueze E2E-ul |
-| P2 | `atf-reporting` (consumer seam închis) | `SHOP-CONFIG-01`: screenshot policy PASS/FAIL este închisă pe seam-ul Practice Shop; rămâne compatibilitatea UI-only și contractul generic de policy | reporting owner închide numai după parity generic și fără lifecycle duplicat; consumerul nu mai are ToDo local |
+| ~~P2~~ | `atf-reporting` (consumer seam închis) | `SHOP-CONFIG-01` ✅ închis pe consumer | `api.mode`, directoarele de raport și evidence policy sunt consumate typed; parity-ul generic este contractul reporting, nu ToDo Practice Shop. |
 | P1 | `atf-test-practice-shop` | `SHOP-FLOW-01` ✅ închis pe component scope: fixture-ul stateful acoperă create → add → read → update → read → remove → read | testul verifică status, quantity și lista goală după remove; fără E2E nou |
 | P1 | `atf-reporting-tests` | `REP-SUITE-01`: consumerul are 295 clase, 135 support neadnotat și dependențe către opt module; reporting-only, API fixture și UI/E2E nu sunt suficient de separabile la rulare | profile/launcher și boundary guard pentru reporting-only; fiecare executabil are owner/layer; numărul E2E rămâne plafonat |
 | P2 | `atf-reporting-tests` | `REP-LOCATOR-01`: `ReportUiLocators` are 400 linii și 256 delegări, devenind god-facade pentru testele UI | surface-uri typed pe domenii, fără delegări noi legacy, locator boundary testat și API compatibil măsurat |
 | P2 | `atf-reporting-tests` | `TRACE-REQ-09..10`: projection compactă și manual replay al raportului | component/integration/E2E verifică disclosure-urile, artifact manifest, overflow și fluxul SETUP → UI → API → validation → CLEANUP prin ATF Debug/Chromium MCP |
-| P2 | `atf-reporting` | `REP-ASSET-07`: audit final al vocabularului/builder-ului CSS și al seam-urilor mici de publicare Java; nu reintroduce corpuri JS/CSS mari în facade-uri | `ScenarioCss`/`CssBuilder` rămân builders typed mici sau sunt mutate numai dacă există duplicare observabilă; `HtmlReportNavigationScript` și boot-ul Extent rămân fațade peste asset-uri native; testele de asset/component și raportul fresh păstrează paritatea |
+| ~~P2~~ | `atf-reporting` | `REP-ASSET-07` ✅ închis | auditul asset-urilor și seam-urilor Java are teste component; nu se reintroduc corpuri JS/CSS monolitice în facade-uri. |
 | P1 | `atf-tests` + ownerii README | `DOC-DIAG-05`: guard-ul whole-ATF identifică flowchart-uri non-root cu relații multiple fără verb scurt pe muchie | fiecare flowchart non-root trece `DocumentationDiagramGovernanceTest`; relațiile sunt etichetate semantic, legenda rămâne imediată, iar `WholeAtfGovernanceSuiteTest` revine verde |
 | P3 | structura testelor | `TEST-ARCH-07`: gruparea semantică a support-ului fără ștergeri speculative | fiecare mutare are owner, motiv observabil, test de boundary și zero ștergeri speculative; detaliile sunt în [`ATF_Test_Architecture_Feedback.md`](ATF_Test_Architecture_Feedback.md) |
+
+<details>
+<summary><strong>Închideri și explorări istorice — dovadă tehnică</strong></summary>
 
 ### Observație de explorare live — închisă prin contract și gate
 
@@ -168,6 +170,8 @@ extern; staging-ul este doar un spațiu de lucru și nu este documentație.
 
 `REP-01` și `REP-02` sunt închise: contractul stabil este documentat în README-ul
 `atf-reporting`, iar verificarea se reface prin protocolul de build și browser gate.
+
+</details>
 
 ### Sincronizare staging → live
 

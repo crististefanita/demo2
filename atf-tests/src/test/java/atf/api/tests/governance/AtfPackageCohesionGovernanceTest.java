@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Guards package size and keeps cohesion exceptions explicit. */
 @AtfComponentTest
-class AtfPackageCohesionGovernanceTest {
+public class AtfPackageCohesionGovernanceTest {
     @Test
     void productionPackageCohesionUsesAnExplicitReviewedExceptionList() throws Exception {
         Path root = locateProjectRoot();

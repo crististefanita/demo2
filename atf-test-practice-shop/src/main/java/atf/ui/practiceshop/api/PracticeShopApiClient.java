@@ -6,13 +6,13 @@ import atf.api.core.http.execution.ApiExecutor;
 import atf.api.core.http.response.ApiExecutionResult;
 import atf.api.core.http.transport.ApiLiveTransportCatalog;
 import atf.api.core.http.transport.ApiTransport;
+import atf.api.core.http.transport.UrlConnectionTransport;
 import atf.ui.practiceshop.config.PracticeShopApiConfiguration;
 import atf.ui.practiceshop.config.PracticeShopCredentials;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.net.URI;
-import java.net.http.HttpClient;
 import java.util.Map;
 import java.util.Objects;
 
@@ -45,9 +45,9 @@ public final class PracticeShopApiClient {
         if (configuration.mode() != ApiTransportMode.LIVE) {
             throw new IllegalArgumentException("Practice Shop live API client requires api.mode=live");
         }
-        HttpClient http = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build();
         ApiLiveTransportCatalog catalog = ApiLiveTransportCatalog.single("practice-shop",
-                configuration.endpoint(), PracticeShopApiAuthProfile.NONE.wireValue(), configuration.timeout(), http);
+                configuration.endpoint(), PracticeShopApiAuthProfile.NONE.wireValue(), configuration.timeout(),
+                (endpoint, authenticator) -> new UrlConnectionTransport(authenticator, endpoint.timeout()));
         ApiTransport transport = catalog.open("practice-shop",
                 atf.api.core.config.ApiTransportPolicy.explicitLive(),
                 new ConfiguredApiAuthenticator(Map.of()));

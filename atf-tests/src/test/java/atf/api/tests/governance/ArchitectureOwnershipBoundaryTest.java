@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Guards whole-ATF ownership and keeps reporting composition in its consumer module. */
 @AtfComponentTest
-class ArchitectureOwnershipBoundaryTest {
+public class ArchitectureOwnershipBoundaryTest {
     private static final String MAIN_JAVA = "src/main/java";
     private static final String TEST_JAVA = "src/test/java";
     private static final String TESTS_GOVERNANCE_PACKAGE = "atf/api/tests/governance";

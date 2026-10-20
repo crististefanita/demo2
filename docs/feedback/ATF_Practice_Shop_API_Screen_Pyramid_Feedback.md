@@ -1217,3 +1217,245 @@ raportul UI este ramura guest externă cunoscută și este separată de assertio
 business verzi; nu a fost convertit în PASS. Regressions din reporting-tests
 nu sunt atribuite modulului Practice Shop și rămân active în feedback-ul
 ownerului `atf-reporting`.
+
+## Reaudit autoritativ după remedierea selecției și propagarea timeout-ului — 2026-10-20
+
+Această secțiune este cea mai nouă dovadă pentru codul live și supersedează
+numărătorile, URL-urile ATF Debug și concluziile de randare din secțiunile mai
+vechi. Verificarea raportului s-a făcut numai prin taburile MCP/Chromium
+headless; nu s-a folosit browserul Windows și nu s-au oprit rulări existente.
+
+| ID | Status | Dovadă observată în cod și artifacte |
+|---|---:|---|
+| `SHOP-SELECT-02` | ✅ închis | Locatorul vechi, bazat pe text parțial, putea selecta `Combination Pliers` înaintea produsului exact `Pliers`; `PracticeShopProductSelector` impune potrivire `:text-is(...)`. Testul component verifică selectorul, escaping-ul și inputul invalid; rerun-ul E2E a trecut de `Wait for enabled`, cart și payment. |
+| `SHOP-TIMEOUT-01` | ✅ închis | `ui.timeout` este propagat până în `PlaywrightBrowserActions.waitUntil`; testele de componentă pentru configurație și sesiune trec, iar E2E-ul nu mai expiră pe `input[data-test='quantity']`. |
+| `SHOP-GATE-20261020-1703` | ✅ | Suita completă `atf-test-practice-shop`: **87 teste, 0 failures, 0 errors, 4 skipped**; reactorul Practice Shop a terminat cu `SUCCESS`. |
+| `SHOP-REPORT-UI-1702` | ✅ verificat MCP | Raportul UI fresh are `SETUP` separat de `TEST BODY`, checkpoint-uri business verzi, acțiuni Playwright, audit observations și assertions expandabile. În checkpoint-ul de home, auditul arată `status=PASS; assertions=7; screenshot=valid PNG; url=...`, iar cele 7 assertions sunt PASS. Linkul inline `📷 base64 img` deschide captura în modal. |
+| `SHOP-REPORT-API-1702` | ✅ verificat MCP | Raportul API fresh este PASS; pasul `POST /carts/{id} — add product to cart` afișează request headers JSON, request JSON pretty, `CART_ADD`, route template, transport `ACCEPTANCE / MOCK`, response headers JSON, response JSON pretty și execution attempt cu status `200`. |
+| `SHOP-REPORT-LAYOUT-1702` | ✅ verificat MCP | Pentru UI și API: `scrollWidth == clientWidth == 1280`, `bodyScrollWidth == bodyClientWidth`, `<hr> = 0`, fără failed action/result în DOM. Raportul UI are 27 linkuri inline de screenshot; raportul API are 36 disclosure-uri `REQUEST/RESPONSE JSON` în DOM. |
+| `SHOP-REPORT-NAV-1702` | ✅ verificat MCP | `Fails` afișează `No failed tests` în ambele rapoarte; `Overview` API arată `1 passed / 0 failed / 0 warnings`, iar `Overview` UI arată `0 passed / 0 failed / 1 warning`, conform warning-ului extern guest. Am revenit apoi în `Tests`; nu există verdict verde inventat pentru UI. |
+
+### Ce rămâne activ
+
+Nu toate ToDo-urile sunt închise. Starea reală după acest rerun este:
+
+| ID | Status | Următorul criteriu de închidere |
+|---|---:|---|
+| `SHOP-NET-02` | 🔎 activ | Warning-ul extern al branch-ului guest la `/checkout` trebuie separat definitiv de diagnosticele runtime necunoscute; este necesar mediu curat sau aprobare explicită de policy cu `source/route/status/message` și test dedicat. Nu se transformă în PASS prin documentație. |
+| `SHOP-CONFIG-01` | 🟡 parțial | Seam-ul local screenshot policy este închis; parity-ul generic UI-only și contractul cross-module rămân la ownerul reporting. |
+| `SHOP-CONSOLE-02` | 🔎 activ cross-module | Unificarea porturilor console core/reporting trebuie decisă la nivel ATF; Practice Shop nu introduce un adapter duplicat local. |
+| `SHOP-REPORT-FAILURE-01` | 🔎 activ cross-module | Într-un raport care are failure runtime real, tabul `Fails` trebuie să prefere cauza/evidence-ul failure-ului în locul primului assertion semantic verde; criteriul aparține `atf-reporting`, nu consumerului Practice Shop. |
+
+### Criteriul de audit repetabil
+
+```text
+YAML product + precondition
+        ↓
+exact product-card locator
+        ↓
+UI action sequence + checkpoint
+        ↓
+ordered API exchange / mock contract
+        ↓
+request JSON + response JSON + execution evidence
+        ↓
+audit observation + typed assertions + inline screenshot
+```
+
+Concluzia este chirurgicală: defectul de selecție și timeout-ul local sunt
+închise prin cod și teste, iar evidence-ul API/UI este vizibil și repetabil în
+MCP. Warning-ul extern, parity-ul reporting, porturile console și failure
+projection-ul `Fails` rămân explicit active; nu se declară închisă suita
+documentațională Practice Shop cât timp aceste criterii nu sunt rezolvate de
+ownerii lor.
+
+## Clarificare critică: raportul business nu acceptă mock — 2026-10-20
+
+Raportul API deschis anterior nu este dovadă business autoritativă. Verificarea
+MCP a arătat explicit `ACCEPTANCE / MOCK — network was not executed`, iar codul
+din `PracticeShopStandaloneApiReportTest` construiește clientul prin
+`PracticeShopApiComponentFixture.client()`. Assertions-urile sale sunt reale ca
+validări structurale ale execuției mock, dar nu demonstrează că sistemul extern
+a executat flow-ul de business.
+
+| ID | Prioritate | Status | Cerință obligatorie |
+|---|---:|---:|---|
+| `SHOP-API-REAL-01` | P0 | 🔎 activ | Raportul API business autoritativ trebuie produs prin transport `LIVE_HTTP`; orice raport cu `ACCEPTANCE_MOCK` este component evidence și nu poate fi marcat PASS pentru flow-ul business. |
+| `SHOP-API-REAL-02` | P0 | 🔎 activ | Assertion-urile trebuie să compare datele reale din exchange: produsul configurat exact, `product_id`, `name`, `quantity`, `cart_items`, `payment_method` și `message = Payment was successful`; `status/content-type/parseable JSON` rămân contracte necesare, dar nu suficiente. |
+| `SHOP-API-REAL-03` | P0 | 🔎 activ | Raportul trebuie să păstreze URL-ul real, provenance `LIVE_HTTP`, request/response JSON, headers, status, signature, sequence și phase; dacă transportul nu este live, testul trebuie să eșueze închis sau să fie SKIP explicit, niciodată PASS ambiguu. |
+| `SHOP-API-REAL-04` | P1 | 🔎 activ | Se separă clar testele component cu fixture deterministic de testul live de business: mock-ul rămâne permis pentru variante, erori și contracte izolate, dar nu pentru raportul folosit ca dovadă a journey-ului extern. |
+
+### Dovezi și gap-ul actual
+
+- `PracticeShopApiAssertions` are deja comparații business reale pentru catalog,
+  cart și payment: JSON path exact, număr exact și mesaj exact;
+- `PracticeShopApiReportPublisher` publică acum numai contractul generic
+  `2xx / request JSON / content-type / response JSON` pentru lista de execuții;
+- `PracticeShopStandaloneApiReportTest` verifică body non-empty pentru POST/PUT
+  și response non-empty, apoi publică raportul prin fixture-ul acceptance;
+- YAML-ul modulelului declară `api.mode: live`, dar acest lucru nu transformă
+  un client creat explicit cu fixture mock într-o execuție live;
+- artifactul vechi cu `Combination Pliers` trebuie tratat ca evidence istorică
+  de componentă, nu ca dovadă pentru produsul configurat curent `Pliers`.
+
+### Criteriul de închidere
+
+```text
+YAML api.mode=live
+        ↓
+LIVE_HTTP client + external endpoint
+        ↓
+login → exact product → detail → cart create/add/read
+        ↓
+postcode → payment
+        ↓
+business assertions exacte + contract assertions
+        ↓
+Extent report cu provenance LIVE_HTTP
+```
+
+ToDo-ul nu se închide prin rerularea aceluiași `ComponentFixture` și nici prin
+schimbarea etichetei din raport. Închiderea cere un artifact fresh generat cu
+`LIVE_HTTP`, explorat în MCP Tab, în care assertions-urile business sunt
+vizibile și corespund request/response-urilor reale. Până atunci, raportul
+standalone curent este valid doar ca evidence de contract/component, nu ca
+validare reală a flow-ului business.
+
+## Remediere chirurgicală a raportului business live — 2026-10-20 17:28
+
+Aceasta este reauditarea după implementarea ToDo-urilor `SHOP-API-REAL-*`.
+Secțiunea de mai jos este sursa curentă de adevăr pentru aceste ToDo-uri și
+suprascrie descrierile istorice de mai sus care se refereau la publisher-ul
+mock-only; acelea rămân păstrate doar pentru trasabilitate.
+Build-ul și execuția au fost făcute în staging extern, nu în checkout-ul live și
+fără oprirea rulărilor existente. Artifactul rezultat a fost copiat în
+`artifacts/reports/` și deschis în MCP Tab/Chromium headless; nu s-a folosit
+browser Windows.
+
+### Ce a fost implementat
+
+| Zonă | Remediere | Dovadă |
+|---|---|---|
+| raport business | `PracticeShopStandaloneApiReportTest` este acum în pachetul `integration` și folosește `PracticeShopApiClient.live(...)`; raportul component a fost redenumit `PracticeShopApiContractReportComponentTest` | `LIVE_HTTP` apare în raport, iar fixture-ul acceptance nu mai este sursa raportului business |
+| verdict | `PracticeShopApiReportPublisher.publishLiveStandalone(...)` agregă statusul fiecărui exchange, provenance-ul și validările business; orice mock/unknown eșuează fail-closed | scenariul/`TEST BODY` nu mai este PASS necondiționat |
+| business assertions | login, catalog, cart și checkout sunt publicate ca validări separate; catalogul compară acum și status + JSON, nu mai are `true` hardcodat pentru precondiție | `PracticeShopApiAssertions` + `PracticeShopApiReportValidation` |
+| trace | fiecare exchange publicat păstrează request signature, sequence și phase, pe lângă URL, route template, status, headers și provenance | în MCP `Request details` se vede `REQUEST SIGNATURE`; `Response details` arată `CAPTURE SEQUENCE` și `CAPTURE PHASE` |
+| runtime live | clientul live folosește `UrlConnectionTransport` prin catalogul live; fallback-ul este necesar deoarece JDK `HttpClient` nu putea crea loopback-ul intern `WEPoll` în mediul de execuție | rerun-ul a trecut de inițializarea JVM și a ajuns la endpointul extern |
+| raportare la failure | dacă login-ul live eșuează, testul publică totuși request/response/execution evidence live și apoi eșuează JUnit; nu continuă cu cart/payment inventate și nu convertește failure-ul în mock | raportul fresh arată `POST /users/login`, `LIVE / HTTP`, status `401` și `Fails` cu cauza HTTP |
+
+### Gate-uri executate
+
+| Gate | Rezultat | Interpretare |
+|---|---:|---|
+| component assertions/report/validation | ✅ **6 / 0 / 0** | precondiția catalogului `401` e verificată fail-closed; validarea agregată și raportul component trec |
+| Practice Shop full module suite | ✅ **90 / 0 / 0 / 5** | toate testele component/API/E2E guest trec; integration/authenticated live sunt skip fără flag explicit |
+| component API report | ✅ | request/response JSON, headers, provenance acceptance și trace contract sunt prezente; rămâne evidence deterministic, nu business evidence |
+| live transport bootstrap | ✅ | s-a eliminat eroarea JVM `Unable to establish loopback connection`; requestul a ajuns la `https://api.practicesoftwaretesting.com/users/login` |
+| live business login | ❌ **401 Unauthorized** | credentialele din account fixture nu au fost acceptate de endpoint; acesta este failure extern/configurabil real, nu defect ascuns prin mock |
+| fresh live artifact MCP | ✅ verificat | `Tests → TEST BODY → POST /users/login` expandat manual; `Request details`, request JSON redacted, response trace, `Execution evidence`, `Contract validation`, `LIVE_HTTP provenance` și business validation sunt vizibile |
+| Fails | ✅ verificat | tab-ul arată cauza `HTTP status expected 2xx, actual 401 Unauthorized` și deep-link către testul exact |
+| Overview | ✅ verificat | `0 passed / 1 failed`, tag-urile `api`, `integration`, `live`, `practice-shop` și statusul real sunt afișate |
+| randare | ✅ verificat vizual | `REQUEST SIGNATURE` se încadrează pe mai multe linii fără a pierde conținut; request JSON este redacted și vizibil; raportul rămâne navigabil în MCP |
+
+### Status real al ToDo-urilor
+
+| ID | Status după remediere | Decizie |
+|---|---:|---|
+| `SHOP-API-REAL-01` | 🟡 implementat, blocat de precondiția externă | ruta de producere este live și fail-closed, dar nu se poate declara business PASS cât timp login-ul real răspunde `401` |
+| `SHOP-API-REAL-02` | 🟡 implementat în cod, neverificat end-to-end | comparațiile exacte pentru product/cart/payment sunt conectate, dar nu pot fi executate corect până când login-ul live este valid |
+| `SHOP-API-REAL-03` | ✅ pe exchange-ul observat; gate business activ | URL real, JSON request, response headers, status `401`, `LIVE_HTTP`, signature, sequence și phase sunt evidențiate; lipsa response body este păstrată ca lipsă reală |
+| `SHOP-API-REAL-04` | ✅ închis | component deterministic și integration live au clase, metadata și rapoarte distincte; nu există ambiguitate mock = business |
+| `SHOP-NET-02` | 🔎 activ | rămâne separat de autentificarea API; warning-urile externe ale E2E UI nu sunt amestecate cu failure-ul login-ului API |
+| `SHOP-CONFIG-01` | 🟡 parțial | configurația `api.mode`, precondiția și report directory sunt consumate; parity-ul generic rămâne owner reporting |
+| `SHOP-CONSOLE-02` | 🔎 activ cross-module | nu se rezolvă local în consumer prin adapter duplicat |
+| `SHOP-REPORT-FAILURE-01` | 🔎 activ cross-module | fresh `Fails` confirmă cauza HTTP pentru raportul live; proiecția generică reporting rămâne de întărit separat |
+
+### Criteriul de închidere rămas
+
+```text
+account fixture valid
+        ↓
+LIVE_HTTP login = 200 + token
+        ↓
+catalog exact product + detail
+        ↓
+cart create/add/read exact product_id + quantity
+        ↓
+payment exact method + success message
+        ↓
+business report PASS + MCP verification of Tests/Fails/Overview
+```
+
+Concluzia nu este „ToDo-urile sunt toate închise”. Implementarea și raportarea
+fail-closed sunt în codul live, iar raportul fresh demonstrează corect `401`.
+Pentru PASS business real mai lipsește o singură condiție externă: un account
+fixture acceptat de endpointul Practice Shop. Până atunci, orice PASS produs de
+`PracticeShopApiComponentFixture` rămâne corect doar în component scope.
+
+## Remediere finală a failure projection pentru Practice Shop — 2026-10-20 17:56
+
+Gap-ul `SHOP-REPORT-FAILURE-01` a fost rezolvat în owner-ul corect,
+`atf-reporting`, nu printr-un assertion artificial în Practice Shop. Runtime-ul
+recunoaște cardul explicit `Failure evidence`, îl păstrează separat de
+validările semantice și îi dă prioritate în `Fails`. Dacă există și o validare
+verde precum `Page route`, aceasta nu mai poate deveni cauza proiectată a
+failure-ului.
+
+| Zonă | Remediere | Dovadă |
+|---|---|---|
+| detection | `failureEvidenceCandidate(card)` identifică action/assertion evidence cu status `fail` | contractul runtime verifică funcția și colecția `runtimeFailures` |
+| projection | `failureContextFromState` prioritizează runtime failure; `failureContextFor` păstrează `STEP = Failure evidence` | Fails fresh nu mai afișează `Page route → / → /` |
+| component gate | `ExtentReportRuntimeScriptTest`, `ExtentReportFailureProjectionContractTest`, `ExtentReportUiFailureEvidenceTest` | **14 / 0 / 0** |
+| failure-flow E2E | `FailureEvidenceFlowTest` executat cu input report explicit | **1 / 0 / 0**, artifact fresh produs |
+| Practice Shop regression | suită completă după schimbarea reporting | **90 / 0 / 0 / 5**, `BUILD SUCCESS` |
+| MCP audit | `Fails` deschis manual în Chromium headless | `STEP Failure evidence`, `VALIDATION Failure evidence`, assertion/cause concrete și `Open in Tests` vizibile |
+| artifact | raport copiat în `artifacts/reports/ui` | [`ui-atf-extent-report_failure-flow_2026-10-20_17-56-20-851.html`](../../artifacts/reports/ui/ui-atf-extent-report_failure-flow_2026-10-20_17-56-20-851.html) |
+
+### Status actual al gap-urilor
+
+| ID | Status | Decizie |
+|---|---:|---|
+| `SHOP-REPORT-FAILURE-01` | ✅ închis | failure runtime real → evidence/cause concret în `Fails`; nu mai este mascat de primul assertion verde |
+| `SHOP-API-REAL-01` | 🟡 blocat extern | transportul live este implementat, dar fixture-ul curent primește `401` la login |
+| `SHOP-API-REAL-02` | 🟡 neverificat end-to-end | comparațiile business sunt conectate, dar catalog/cart/payment nu pot rula fără login live valid |
+| `SHOP-API-REAL-03` | ✅ pe exchange-ul observat | URL real, JSON request, headers, status, provenance, signature, sequence și phase sunt vizibile |
+| `SHOP-API-REAL-04` | ✅ închis | component mock și integration live sunt separate fără ambiguitate |
+| `SHOP-NET-02` | 🔎 activ extern | necesită mediu curat sau aprobare explicită a warning-ului cu source/route/status/message |
+| `SHOP-CONFIG-01` | 🟡 parțial cross-module | seam-ul local este închis; parity-ul generic aparține `atf-reporting` |
+| `SHOP-CONSOLE-02` | 🔎 activ cross-module | porturile console core/reporting trebuie reconciliate arhitectural |
+
+Acesta este ultimul status verificat pe cod și artifact; nu declară PASS pentru
+flow-ul business live cât timp autentificarea externă răspunde `401`.
+
+## Reconciliere completă Practice Shop + request traceability — 2026-10-20 18:05
+
+Aceasta este sursa autoritativă după implementarea metadata de trace în
+`atf-reporting` și după sincronizarea codului live. Snapshot-urile istorice de
+mai sus rămân pentru audit, dar nu mai reprezintă ToDo-uri active dacă acest tabel
+le marchează închise.
+
+| Zonă | Status | Dovadă / limită exactă |
+|---|---:|---|
+| `TRACE-REQ-01..10` | ✅ închis pe contract | `ReportTraceMetadata`, `ReportRequestSignature`, `PracticeShopApiNetworkJournal.Exchange`, publisher-ul de `unique signatures` și testele de contract acoperă identity, order, role, phase, body digest, retry și projection. |
+| `SHOP-API-SCREEN-06..10` | ✅ închis | API request/response/execution evidence este publicat distinct; assertions business nu sunt înlocuite de body display. |
+| `SHOP-FLOW-01` | ✅ închis | cart stateful component flow verifică create → add → read → update → read → remove → read. |
+| `SHOP-REPORT-FAILURE-01` | ✅ închis | `Fails` prioritizează `Failure evidence` și cauza reală. |
+| `SHOP-API-REAL-03/04` | ✅ închis pe implementare | provenance, URL, headers, body, signature, sequence și phase sunt păstrate; component și live integration sunt separate. |
+| `SHOP-CONFIG-01` | ✅ închis pe seam-ul consumer | `api.mode`, directoarele de raport și politica de evidence sunt consumate typed; parity generic rămâne în ownerul reporting. |
+| `SHOP-API-REAL-01/02` | 🟡 blocat extern | flow-ul live este fail-closed, dar login-ul real curent răspunde `401`; fără cont valid nu se poate afirma catalog/cart/payment PASS. |
+| `SHOP-NET-02` | 🔎 activ extern | warning-urile de bootstrap anonim cer mediu curat sau aprobare explicită de policy. |
+| `SHOP-CONSOLE-02` | 🔎 cross-module | reconcilierea porturilor console core/reporting aparține arhitecturii ATF, nu unui adapter duplicat Practice Shop. |
+
+### Gates pentru implementarea curentă
+
+- `ReportRequestSignatureTest`: **4/0/0**;
+- `ReportTraceMetadataRenderingTest`: **1/0/0**;
+- `ExtentReportRuntimeScriptTest`: **8/0/0**;
+- compilare reporting + Practice Shop în staging extern: **BUILD SUCCESS**;
+- full suite Practice Shop nu a putut porni complet în această iterație deoarece
+  JVM-ul nu a primit native memory suficientă în prezența rulărilor active; nu a
+  fost oprit niciun proces și nu se transformă în PASS documentar.
+
+Regula finală rămâne: `component` poate demonstra contractul deterministic,
+însă numai `LIVE_HTTP` cu login acceptat poate închide business journey-ul.
+Niciun mock nu este folosit pentru a închide `SHOP-API-REAL-01/02`.

@@ -29,11 +29,11 @@ specificitate pe măsură ce coborâm în pagină.
 
 ```mermaid
 flowchart LR
-    Docs[docs index] --> Architecture[architecture]
-    Architecture --> Guides[guides + contracts]
-    Guides --> Safety[build safety]
-    Safety --> Practices[best practices]
-    Practices --> Feedback[feedback + owner docs]
+    Docs[docs index] -->|orientează spre| Architecture[architecture]
+    Architecture -->|leagă| Guides[guides + contracts]
+    Guides -->|include| Safety[build safety]
+    Safety -->|constrânge| Practices[best practices]
+    Practices -->|alimentează| Feedback[feedback + owner docs]
 ```
 
 <details>
@@ -128,10 +128,13 @@ Practice Shop și configurația sa sunt în `atf-test-practice-shop/src/test`; u
 consumator poate folosi `atf-reporting` dintr-un jar fără să importe
 `atf-reporting-tests`.
 
-Regula de promovare este strictă: când un ToDo devine parte din soluție, contractul
-stabil, ownership-ul și modul de folosire se mută în README-ul ownerului. Feedback-ul
-păstrează doar limita rămasă, criteriul de închidere și dovada necesară; nu este
-sursa normativă pentru o capabilitate deja livrată.
+### Regula de promovare
+
+- **când:** un ToDo devine parte din soluție;
+- **în README-ul ownerului:** contractul stabil, ownership-ul și modul de folosire;
+- **în feedback:** limita rămasă, criteriul de închidere și dovada necesară;
+- **interdicție:** feedback-ul nu este sursa normativă pentru o capabilitate deja
+  livrată.
 
 ## Reguli de documentație
 

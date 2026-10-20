@@ -69,7 +69,7 @@ final class PracticeShopCatalogPurchaseStage {
                         configuration.productName()),
                 List.of(
                         check("Product name", configuration.productName(), productName,
-                                productName.contains(configuration.productName())),
+                                productName.equalsIgnoreCase(configuration.productName())),
                         check("Configured product route", configuration.productPathExpectation(),
                                 selectedProductPath,
                                 configuredProductPathFound && configuration.matchesProductPath(selectedProductPath)),

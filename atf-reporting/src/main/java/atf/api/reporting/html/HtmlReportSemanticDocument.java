@@ -47,30 +47,7 @@ public final class HtmlReportSemanticDocument {
     }
 
     ReportExecutionModel snapshot() {
-        return new ReportExecutionModel(scenarios.stream().map(scenario ->
-                new ReportExecutionModel.Scenario(scenario.id, scenario.testClass,
-                        scenario.packageName,
-                        scenario.scenario, scenario.tags,
-                        scenario.phases.stream().map(phase ->
-                                new ReportExecutionModel.Phase(phase.name,
-                                        phase.details.stream().toList(),
-                                        phase.children.stream().map(HtmlReportSemanticDocument::snapshotNode).toList(),
-                                        phase.status)).toList(), scenario.status)).toList());
-    }
-
-    private static ReportExecutionModel.Node snapshotNode(NodeModel node) {
-        if (node instanceof RequestModel request) {
-            return new ReportExecutionModel.Request(request.title, request.method, request.path,
-                    request.details.stream().toList(),
-                    request.json.stream().toList(),
-                    request.execution, request.children.stream()
-                            .map(HtmlReportSemanticDocument::snapshotNode).toList(), request.status,
-                    request.uiActionCount, request.screenshotCount);
-        }
-        ValidationModel validation = (ValidationModel) node;
-        return new ReportExecutionModel.Validation(validation.title,
-                validation.assertions, validation.status,
-                validation.uiActionCount, validation.screenshotCount);
+        return HtmlReportSemanticSnapshotMapper.map(scenarios);
     }
 
     interface NodeModel {

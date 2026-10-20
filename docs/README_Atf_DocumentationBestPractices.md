@@ -26,6 +26,23 @@ Regula de economie:
 - un document nou apare numai dacă deține un boundary sau un proces real;
 - informația stabilă se mută în documentul ownerului, nu rămâne în feedback.
 
+## Stilul intern ATF — uniformitate fără fonturi locale
+
+Uniformitatea README-urilor se obține prin Markdown semantic, nu prin CSS sau
+fonturi injectate în fiecare document:
+
+- fontul, dimensiunea și culoarea aparțin rendererului Markdown;
+- README-urile folosesc un singur `#`, secțiuni `##`, subsections progresive și
+  bullets `-` pentru scanare rapidă;
+- fiecare bloc de cod sau schemă are fence tipizat: `mermaid`, `text`, `java`,
+  `xml`, `yaml` sau limbajul real al exemplului;
+- sunt interzise `<font>`, `<h1>`/`<h2>` HTML, `style="..."` și CSS inline;
+- stilul vizual este exprimat prin titluri, bullets, tabele minimale, diagrame și
+  `<details>`, nu prin markup de prezentare dependent de un singur viewer;
+- `DocumentationStyleGovernanceTest` protejează această regulă pentru toate
+  README-urile și documentele normative Markdown desemnate, precum
+  `docs/ATF_Architecture.md`; explică dinamic fișierul, linia, regula și remedierea.
+
 ## Ownership și promovarea feedback-ului
 
 Documentația stabilă și feedback-ul au ritmuri diferite. README-ul ownerului
@@ -252,6 +269,20 @@ primul ecran ca să evităm un link.
       altfel rendererul Markdown poate uni conținutul într-un singur rând;
 - [ ] textul lung nu este pus într-o celulă care provoacă overflow;
 - [ ] claims importante urmează relația `claim → owner → test/guard`.
+
+`DocumentationProseGovernanceTest` verifică această regulă în toate README-urile
+de owner: un paragraf parcurs rapid are implicit cel mult trei propoziții, iar o
+secțiune nu înșiră mai mult de două paragrafe dense consecutive. Pragurile sunt
+constante explicite în test, nu o euristică ascunsă; dacă regula se schimbă, se
+calibrează acolo și se păstrează același diagnostic dinamic.
+
+Pentru o verificare punctuală, fără duplicarea regulilor în fiecare modul:
+
+- `@DocumentationTarget("module/README.md")` selectează documentul;
+- `DocumentationTargetGovernanceTest` apelează toate validatoarele de documentație;
+- calea este relativă la root-ul proiectului și poate fi schimbată fără modificarea
+  validatoarelor;
+- diagnosticul păstrează fișierul, linia, regula și remedierea minimă.
 
 O legendă bună explică nodurile, săgețile, limitele și tabelul colapsat al
 aceleiași diagrame. Nu repetă mecanic textul vizibil și nu devine al doilea

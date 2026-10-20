@@ -25,10 +25,10 @@ duplicată aici; aparține README-ului acelui consumer.
 
 ```mermaid
 flowchart LR
-    Consumer[consumer] --> Contract[public contract]
-    Contract --> Model[semantic model]
-    Model --> Renderer[renderer]
-    Renderer --> Artifact[Extent / HTML]
+    Consumer[consumer] -->|consumă| Contract[public contract]
+    Contract -->|expune| Model[semantic model]
+    Model -->|alimentează| Renderer[renderer]
+    Renderer -->|publică| Artifact[Extent / HTML]
     Vendor[external libraries] -. runtime .-> Renderer
 ```
 
@@ -85,10 +85,10 @@ flowchart LR
     Serialize[builders + assets]
     Audit[contract audit]
     Publish[publication adapters]
-    Vocabulary --> Serialize
-    Runtime --> Serialize
-    Serialize --> Audit
-    Audit --> Publish
+    Vocabulary -->|definește| Serialize
+    Runtime -->|alimentează| Serialize
+    Serialize -->|trece prin| Audit
+    Audit -->|publică prin| Publish
 ```
 
 <details>
@@ -138,14 +138,17 @@ Extent și fallback-ul să împartă aceeași structură internă:
 | `AtfReportSemanticSnapshot` | populația lifecycle-ului Extent: class → scenario → phase → node |
 | `ReportExecutionModel` | arborele fallback: scenario → phase → request/validation și proiecțiile `Overview`, `Categories`, `Failures` |
 
-`AtfReportSemanticSnapshot.from(ReportExecutionModel)` este adaptorul comun.
-Fallback-ul îl folosește pentru `semanticSnapshot()`, iar sesiunea eșuează
-înainte de render dacă snapshot-ul derivat din arbore nu este egal cu recorderul
-lifecycle. Proiecția păstrează package-ul, request/response JSON metadata,
-validations și numărul de acțiuni/screenshot-uri; testul semantic compară
-Extent și fallback pe arborele `class → scenario → phase → request → validation`.
-Modelele rămân separate pentru că proiecțiile Overview/Categories/Fails sunt
-specifice fallback-ului, iar snapshot-ul este contractul comun renderer-neutral.
+`AtfReportSemanticSnapshot.from(ReportExecutionModel)` este adaptorul comun:
+
+- fallback-ul îl folosește pentru `semanticSnapshot()`;
+- sesiunea eșuează înainte de render dacă snapshot-ul derivat din arbore diferă
+  de recorderul lifecycle;
+- proiecția păstrează package-ul, metadata request/response JSON, validations și
+  numărul de acțiuni/screenshot-uri;
+- testul semantic compară Extent și fallback pe arborele
+  `class → scenario → phase → request → validation`;
+- modelele rămân separate: `Overview/Categories/Fails` sunt specifice fallback-ului,
+  iar snapshot-ul este contractul comun renderer-neutral.
 
 ## Contractul raportului
 
@@ -280,8 +283,9 @@ failure evidence UI, iar al treilea măsoară valorile reale și publică lăți
 coloane deterministe. Nu se amestecă layout-ul cu semantica evidence și nu se
 introduce un al doilea owner al aceleiași funcții.
 
-La nivelul markup-ului Java, `ReportEvidenceMarkup` este shell-ul comun pentru
-disclosure-uri, `AtfReportMarkup.tableHtml` este builder-ul canonical pentru
+La nivelul markup-ului Java, `ReportEvidenceDisclosure` este modelul typed al
+unei zone colapsabile, iar `ReportEvidenceMarkup` este shell-ul comun pentru
+disclosure-uri și badge-ul de status. `AtfReportMarkup.tableHtml` este builder-ul canonical pentru
 tabelele key/value, iar `ReportEvidenceJsonFormatter` deține politica comună
 label → redaction → pretty print → display-limit. Renderer-ul Extent și
 fallback-ul HTML primesc aceeași listă typed de `ReportField` și același JSON
@@ -427,10 +431,10 @@ output directory, numele fișierului, timestamp policy și politica typed de cap
 
 ```mermaid
 flowchart LR
-    Input[typed input] --> Model[semantic model]
-    Model --> Render[renderer]
-    Render --> Assets[CSS + JavaScript]
-    Assets --> Output[configured artifact]
+    Input[typed input] -->|alimentează| Model[semantic model]
+    Model -->|intră în| Render[renderer]
+    Render -->|folosește| Assets[CSS + JavaScript]
+    Assets -->|formează| Output[configured artifact]
 ```
 
 <details>
@@ -470,28 +474,25 @@ publication policy, validarea target-ului și proiecția în artifact.
 | `final-and-failure` | final, failure | starea de succes și dovada de regresie sunt păstrate |
 | `none` | niciunul | flow fără screenshot, păstrând acțiunile și assertions |
 
-`UiExtentReportSession` expune overload-ul cu `ReportScreenshotPolicy`, iar
-`UiPhase` expune overload-ul cu `ReportScreenshotPolicy.CapturePoint.FINAL`.
-`UiEvidencePublisher` verifică target-ul numai când payload-ul va fi publicat;
-un target lipsă nu poate produce un screenshot orfan. Contractul este verificat
-în `atf-reporting-tests` prin teste unitare și integration pe HTML local, fără
-browser și fără Practice Shop.
-
-Pentru consumatorii care configurează mai mult decât politica de captură, seam-ul
-typed este `ReportEvidenceProfile` din `evidence.profile`. El compune
-`ReportEvidenceFlowMode`, `ReportScreenshotPolicy` și
-`ReportEvidenceCaptureSource`; se poate construi prin builder sau prin
-`ReportEvidenceProfile.fromConfig(...)` și se pasează prin overload-ul
-`UiExtentReportSession.openConfigured(..., profile)`. Profilul descrie policy și
-proveniență, nu execută browserul: mock-ul și Playwright rămân în consumer/test
-scope.
-
-Pentru compoziția completă a unei sesiuni UI, entry point-ul preferat este
-`UiExtentReportOptions.builder(outputDirectory)`. Builder-ul grupează explicit
-`fileName`, `AtfConsoleSink`, `ReportEvidenceProfile` și `timestampEnabled`;
-overload-urile istorice rămân doar delegări de compatibilitate. Configurația
-este încărcată o singură dată pe traseul canonic, iar `openConfiguredResolved`
-poate dezactiva timestamp-ul fără să reconstruiască o a doua configurație.
+- `UiExtentReportSession` expune overload-ul cu `ReportScreenshotPolicy`;
+- `UiPhase` expune overload-ul cu `ReportScreenshotPolicy.CapturePoint.FINAL`;
+- `UiEvidencePublisher` verifică target-ul numai când payload-ul va fi publicat;
+- un target lipsă nu poate produce un screenshot orfan;
+- contractul este verificat în `atf-reporting-tests` prin teste unitare și
+  integration pe HTML local, fără browser și fără Practice Shop;
+- seam-ul typed pentru configurare extinsă este `ReportEvidenceProfile`;
+- profilul compune `ReportEvidenceFlowMode`, `ReportScreenshotPolicy` și
+  `ReportEvidenceCaptureSource`;
+- profilul se construiește prin builder sau `fromConfig(...)` și se pasează în
+  `UiExtentReportSession.openConfigured(..., profile)`;
+- profilul descrie policy și proveniență, nu execută browserul; mock-ul și
+  Playwright rămân în consumer/test scope;
+- entry point-ul preferat pentru sesiunea UI este
+  `UiExtentReportOptions.builder(outputDirectory)`;
+- builder-ul grupează `fileName`, `AtfConsoleSink`, `ReportEvidenceProfile` și
+  `timestampEnabled`, iar overload-urile istorice rămân delegări de compatibilitate;
+- configurația se încarcă o singură dată, iar `openConfiguredResolved` poate
+  dezactiva timestamp-ul fără a reconstrui o a doua configurație.
 
 ### Evidence JSON și renderer-ele UI
 
@@ -502,16 +503,19 @@ determinist, iar limita `bodyMaxDisplayCharacters` se aplică numai după
 formatare. Obiectele, array-urile, scalarul și `null` sunt păstrate; payload-ul
 invalid rămâne neschimbat pentru diagnostic și nu este transformat artificial.
 
-`ExtentUiEvidenceRenderer` este orchestration-only. Markup-ul este împărțit în
-`ExtentUiActionRenderer`, `ExtentUiObservationRenderer` și
-`ExtentUiAssertionRenderer`, iar escaping/status/publication sunt primitive
-comune în `ExtentUiEvidenceMarkup`. Astfel fiecare fragment poate fi testat
-componentar, în timp ce testele de session verifică în continuare compoziția
-reală și screenshot-ul inline. Shell-ul semantic pentru disclosure-uri este
-reutilizat de Extent și fallback HTML prin `ReportEvidenceMarkup`; începutul,
-titlul accesibil, glyph-ul și închiderea nu se mai copiază în fiecare renderer.
-Body-ul rămâne responsabilitatea renderer-ului concret, astfel încât Extent să
-poată publica markup vendor-specific, iar fallback-ul să păstreze `<pre>`.
+`ExtentUiEvidenceRenderer` este orchestration-only:
+
+- markup-ul este împărțit în `ExtentUiActionRenderer`,
+  `ExtentUiObservationRenderer` și `ExtentUiAssertionRenderer`;
+- escaping/status/publication sunt primitive comune în `ExtentUiEvidenceMarkup`;
+- fiecare fragment poate fi testat componentar, iar testele de session verifică
+  compoziția reală și screenshot-ul inline;
+- shell-ul semantic pentru disclosure-uri este reutilizat de Extent și fallback
+  HTML prin `ReportEvidenceMarkup`;
+- începutul, titlul accesibil, glyph-ul și închiderea nu se copiază în fiecare
+  renderer;
+- body-ul rămâne responsabilitatea renderer-ului concret: Extent poate publica
+  markup vendor-specific, iar fallback-ul păstrează `<pre>`.
 
 ## Publicare și output
 
@@ -520,14 +524,18 @@ Output-ul este configurabil prin `reporting.extent.outputDirectory` și
 Documentația descrie numai politica și pattern-ul de output, nu nume concrete de
 rapoarte generate.
 
-`ReportPublicationCoordinator` protejează publication path, lock-ul și
-concurența. Identitatea/hash-ul intern poate fi folosit pentru ownership și
-deduplicare, dar nu este afișat în HTML ca înlocuitor pentru evidence-ul uman.
-La publicarea pe filesystem-uri care pot păstra temporar fișierul deschis,
-coordonatorul aplică un retry bounded după tentativa atomică; fallback-ul
-non-atomic este permis numai pentru `AtomicMoveNotSupportedException`, iar o
-eroare persistentă este propagată după ultima încercare. Retry-ul rămâne în
-production publication boundary, nu în test-kit și nu în browser.
+`ReportPublicationCoordinator` are următoarele responsabilități:
+
+- protejează publication path, lock-ul și concurența;
+- poate folosi identitatea/hash-ul intern pentru ownership și deduplicare, fără
+  să-l afișeze în HTML ca înlocuitor pentru evidence-ul uman;
+- aplică retry bounded după tentativa atomică pe filesystem-uri care pot păstra
+  temporar fișierul deschis;
+- permite fallback non-atomic numai pentru
+  `AtomicMoveNotSupportedException`;
+- propagă eroarea persistentă după ultima încercare;
+- păstrează retry-ul în production publication boundary, nu în test-kit și nu în
+  browser.
 
 ## Gate de contribuție
 
@@ -603,6 +611,11 @@ pentru review, depanare și teste component. `ReportAssetLoader.load(...)` și
 și expresiile JS/CSS și nu modifică fișierele native. Astfel HTML-ul Extent nu
 primește enter-uri de indentare inutile, iar sursa rămâne ușor de întreținut și
 de testat separat.
+
+`ReportAssetSizeInventory` măsoară separat bytes pentru fiecare sursă nativă și
+copia publicată, agregat pe format și owner. El este un instrument de diagnostic
+și contract test, nu un prag fix legat de un HTML generat; astfel o optimizare
+poate fi verificată fără să transforme numele sau hash-ul artifactului în API.
 
 Facade-urile Java (`AtfFallbackTheme`, `AtfReportOverviewCss`, facades-urile CSS
 theme/evidence,

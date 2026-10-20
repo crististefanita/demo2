@@ -62,10 +62,10 @@ public final class ScreenValidationSectionExtractor {
         int observations = locators.screenValidationObservations(card).count();
         int assertions = locators.screenValidationAssertionTables(card).count();
         List<String> violations = new ArrayList<>();
-        for (Locator assertionTable : locators.screenValidationAssertionTables(card).all()) {
-            ValidationTableLayoutInspector.Result layout = validationTableLayout.inspect(assertionTable);
+        for (Locator evidenceTable : locators.screenValidationEvidenceTables(card).all()) {
+            ValidationTableLayoutInspector.Result layout = validationTableLayout.inspect(evidenceTable);
             if (!layout.valid()) {
-                violations.add("Assertion table does not allocate the longest flexible value column dynamically: "
+                violations.add("Evidence table does not allocate the longest flexible value column dynamically: "
                         + layout.evidence());
             }
         }

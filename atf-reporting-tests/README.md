@@ -12,7 +12,7 @@ jar-ul `atf-reporting`; `atf-tests` rămâne governance-only.
 ```mermaid
 flowchart LR
     Composition[composition root] -->|public API| Reporting[reporting jar]
-    Reporting --> Reports[API / UI artifacts]
+    Reporting -->|produce| Reports[API / UI artifacts]
     Composition -. test scope .-> Support[test support]
     ShopTests[Practice Shop] -. consumes .-> Reporting
     AppTests[governance] -. guards .-> Reporting
@@ -135,12 +135,12 @@ consumer și nu cere Practice Shop pentru testarea suportului.
 
 ```mermaid
 flowchart LR
-    Fixture[PNG mock + typed input] --> Policy[policy + cardinality]
-    Policy --> Session[reporting session]
-    Session --> Html[HTML local]
-    Html --> Contract[component assertions]
-    Contract --> Integration[integration gate]
-    Browser[optional static browser] -.-> Html
+    Fixture[PNG mock + typed input] -->|configurează| Policy[policy + cardinality]
+    Policy -->|deschide| Session[reporting session]
+    Session -->|publică| Html[HTML local]
+    Html -->|verifică| Contract[component assertions]
+    Contract -->|găzduiește| Integration[integration gate]
+    Browser[optional static browser] -. auditează .-> Html
 ```
 
 <details>
@@ -175,6 +175,12 @@ Fiecare clasă declară layer-ul prin adnotare; package-ul exprimă domeniul și
 boundary-ul, nu nivelul de testare. Setup-ul, mock-ul și validatorii comuni
 rămân în `support`, ca o clasă nouă să compună scenariul fără copiere.
 
+`ReportingCoverageMatrixTest` păstrează această hartă executabilă: verifică
+prin reflecție că fiecare seam reprezentativ are o dovadă cu adnotarea corectă
+(`unit`, `component`, `integration` sau `e2e`). Adăugarea unui seam public fără
+un test lower-level identificabil devine astfel o regresie de guvernanță, nu doar
+o observație în documentație.
+
 ## Boundary-ul aplicațiilor consumatoare
 
 `atf-reporting-tests` nu deține adaptere de aplicație. Practice Shop este izolat
@@ -201,3 +207,11 @@ Nu se copiază fixture-uri în `atf-reporting-tests`; acesta rămâne strict
 composition root pentru contractul librăriei reporting.
 
 Rapoartele sunt output de run, nu fixtures păstrate în documentație.
+
+Pentru dovada browser a librăriei există un singur seam generic,
+`StaticHtmlScreenshotAdapter`: primește un HTML local generat de reporting și
+produce un PNG headless prin Playwright. Testul său de integrare verifică doar
+semnătura PNG și viewport-ul; nu pornește un endpoint, nu cunoaște Practice
+Shop și nu intră în production JAR. Contractele DOM/CSS rămân verificabile prin
+validatorii component/ATF Debug, iar această captură este doar dovada că
+artefactul static poate fi rasterizat real.

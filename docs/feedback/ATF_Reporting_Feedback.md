@@ -129,10 +129,10 @@ Regula de boundary este strictă:
 | compoziție asset-uri | 96 | asset-urile native sunt guvernate acum de un manifest complet, ordonat și validat; rămân doar reduceri viitoare ale suprafeței facade-ului | `ReportAssetManifest`, `ReportAssetComposer`, `ReportAssetContractTest` |
 | renderere evidence | 90 | renderer-ele sunt separate pe transport/UI, dar `ExtentUiEvidenceRenderer` și `HtmlReportEvidenceView` încă amestecă tabel, status, disclosure și serializare | `evidence`, `html/evidence` |
 | audit static | 96 | validatorii pe secțiuni și projection-urile sunt bine delimitate; trebuie o matrice explicită contract → validator → test | `ui/audit`, `ui/contract`, `artifact/contract` |
-| unit/component coverage | 89 | consumerul are 99 unit, 35 component și 9 integration annotations, dar `atf-reporting/src/test` are numai 5 teste native; matricea seam → test nu este încă gate-uită | `atf-reporting/src/test`, `atf-reporting-tests/src/test` |
-| integration coverage | 93 | există API/report artifact/replay; trebuie stabilizat contractul de input și manifest fără browser | `api/reporting` și `ui/tests/extent` |
+| unit/component coverage | 89 | inventarul live are 108 clase cu `@AtfUnitTest`, 31 cu `@AtfComponentTest`, 11 cu `@AtfIntegrationTest` și 8 cu `@AtfE2eTest`; `atf-reporting/src/test` are numai 5 teste native, iar matricea seam → test nu este încă gate-uită | `atf-reporting/src/test`, `atf-reporting-tests/src/test` |
+| integration coverage | 93 | API/report artifact/replay are acum coverage deterministă cu mock; rămân matricea seam → test, manifestul de input și adapterul opțional PNG fără browser extern | `api/reporting` și `ui/tests/extent` |
 | E2E discipline | 96 | suite-ul existent acoperă navigare, failure, disclosure și secțiuni; orice E2E nou ar masca un gap de component sau integration | `ui/tests/extent/e2e` |
-| test readability | 88 | `ExtentReportSessionContractTest`, `ReportUiLocators` și câțiva inspectori rămân facades mari; testele funcționează, dar costă prea mult la mentenanță | clasele de support/test cu responsabilități multiple |
+| test readability | 88 | `ExtentReportSessionContractTest`, `ReportUiLocators` și câțiva inspectori rămân facades mari; `ReportUiLocators` are live 432 linii și aproximativ 265 metode, deși noile boundary-uri folosesc suprafețe typed | clasele de support/test cu responsabilități multiple |
 | build/test isolation | 96 | standalone discovery este acum allowlist-uit pe testele native; un consumer stale rămas în `target/test-classes` nu mai intră în Surefire, iar staging-ul extern rămâne reproducibil | `atf-reporting/pom.xml`, standalone build cu stale class injectată |
 
 **Scorul recalibrat pentru această reevaluare este 91/100.** Funcționalitatea
@@ -156,19 +156,24 @@ un verdict de release și nu închide singur niciun ToDo.
 | `REP-EVID-03` | `UiScreenshotPolicyIntegrationTest` | ✅ session → semantic Extent → HTML este verificat pentru toate cele cinci politici, cu cardinalitatea exactă a linkurilor Base64 și fără endpoint/browser extern |
 | `REP-EVID-06` | `ReportEvidenceFlowMode`, `ReportEvidenceCaptureSource`, `ReportEvidenceProfile`, `ReportEvidenceProfileTest`, `ReportEvidenceProfileIntegrationTest` și contractul transversal | ✅ cele trei axe sunt typed și independente; mapping-ul YAML/builder este browser-neutral, iar profilul traversează `UiExtentReportSession` până la HTML fără renderer duplicat; package-cohesion gate rămâne verde |
 | `REP-JSON-01` | `ReportJsonBodyFormatter`, `ReportJsonBodyFormatterTest`, `HtmlReportViewsTest` și `ExtentReportUiEvidencePublishingTest` | ✅ body-urile JSON sunt formatate determinist, renderer-neutral, după redaction și înainte de display-limit; obiectele/array-urile, scalarul și `null` sunt păstrate, payload-ul invalid rămâne diagnostic; Extent și fallback HTML au parity verificat |
+| `REP-EVID-05` | `MockApiReportIntegrationTest`, `ApiReportArtifactAuditTest`, `ApiReportJsonEvidenceAuditorTest` și `ApiManualReplayTest` | ✅ evidence API are acum traseu fixture → mock → reporting → HTML audit: request/response body, headers, status, assertions, JSON tree, redaction și replay sunt verificate cu input determinist, fără E2E nou |
+| `REP-MODEL-01A` | `HtmlReportSemanticSnapshotMapper`, `HtmlReportSemanticDocumentTest`, `HtmlReportSemanticSnapshotMapperTest` și `HtmlReportViewsTest` | ✅ conversia din documentul mutabil în `ReportExecutionModel` este izolată într-un mapper fără cunoaștere HTML/CSS; modelul/snapshot-ul sunt verificate separat de renderer. Rămâne de redus doar nesting-ul lifecycle-ului, nu se mai amestecă cu projection-ul. |
+| `REP-RENDER-09A` | `ReportEvidenceTable`, `AtfReportMarkup`, `ExtentTransportEvidenceRenderer`, `HtmlReportEvidenceView`, `ReportEvidenceTableTest` și testele de parity existente | ✅ tabelele de evidence, redarea celulelor, formatarea duratelor și opțiunea explicită de row-header sunt primitive typed comune; Extent și fallback folosesc aceeași construcție fără a schimba contractul vizual existent |
+| `REP-FORMAT-01` | `ReportAssetCompactorTest`, `ReportAssetContractTest` și `ReportAssetComposer` | ✅ sursele CSS/JS native sunt formatate lizibil și păstrate pentru review/component tests; numai copia publicată în HTML este compactată lexical, fără atingerea textelor, valorilor quoted, JSON-ului sau evidence-ului |
 | `REP-FACADE-01` | `UiExtentReportOptions`, `UiExtentReportSessionCompositionTest` și testele de lifecycle UI | ✅ output-ul, numele, console sink-ul, profilul typed și timestamp-ul sunt compuse într-un singur options builder; `UiExtentReportSession` încarcă configurația o singură dată pe traseu și toate overload-urile legacy delegă în aceeași cale canonicală |
 | `REP-OVERVIEW-01` | `ExtentReportOverviewMarkup` și `ExtentReportMarkupContractTest` | ✅ publication-ul overview este idempotent și se ancorează pe containerul semantic `category-container`; variațiile de whitespace/ordine a claselor sunt acceptate, iar metadata nu se dublează la reinjectare |
 | `REP-RENDER-08` | `ExtentUiActionRenderer`, `ExtentUiObservationRenderer`, `ExtentUiAssertionRenderer`, `ExtentUiEvidenceMarkup` și contractele UI evidence | ✅ facade-ul UI nu mai conține markup pentru toate cele trei responsabilități; action/observation/assertion au renderere independente, escaping/status/publication sunt comune, iar testele existente păstrează parity-ul screenshot/action/observation/assertion |
+| `REP-EVID-04` | `StaticHtmlScreenshotAdapter`, `StaticHtmlScreenshotAdapterTest` | ✅ adapter Playwright exclusiv în test scope: generează PNG real dintr-un HTML local generat de reporting, verifică semnătura PNG și viewport-ul, fără Practice Shop, endpoint extern sau dependență în production |
 
 Dovada de rulare a acestei revizii: gate-ul reporting + consumer în staging extern
-`452/0/0/3` (teste/failures/errors/skips), inclusiv testele de arhitectură pentru
+`621/0/0/3` (teste/failures/errors/skips), inclusiv testele de arhitectură pentru
 boundary-ul locatorilor, limita de opt clase pe pachet și compactorul lexical,
 plus artefacte API/UI fresh din
 un staging extern, verificate în ATF Debug/Chromium.
 În raportul API s-au verificat navigarea, statusurile, request/response JSON
 pentru POST și PUT, validările contractuale și semnele `＋` inline; în raportul
 UI s-au verificat cele 7 scenarii PASS, `SETUP → TEST BODY → THEN`,
-`Screen validation`, tabela cu 9 acțiuni Playwright, cele 4 observații, cele 3
+`Screen validation`, tabela cu 9 acțiuni Playwright, cele 6 observații, cele 7
 assertions și screenshot-ul inline. Nu există `<hr>` sau overflow vizibil în
 renderarea verificată; contractele browser/E2E ale suitei au rămas verzi.
 Observație de audit: căutarea lexicală găsește un text `onclick` în sursa
@@ -182,9 +187,10 @@ arhitectură paralel din `atf-test-kit` este modificat incomplet.
 | Observație | Stare verificată | Interpretare constructivă |
 |---|---|---|
 | boundary production | `atf-reporting/pom.xml` este parentless, iar scanarea `src/main` nu găsește importuri din alte module ATF | fundația standalone este solidă și trebuie protejată |
-| suprafață production | 236 clase Java și 51 resurse în reporting | modulul este substanțial; refactorizarea trebuie făcută pe seam-uri, nu prin clase utilitare aruncate |
+| suprafață production | 251 clase Java și 51 resurse în reporting | modulul este substanțial; refactorizarea trebuie făcută pe seam-uri, nu prin clase utilitare aruncate |
 | testare nativă | `ReportingStandaloneContractTest` + `ReportingStandaloneDependencyTest`: 5 teste filtrate, toate PASS | compilarea standalone este demonstrată; comportamentul complet rămâne testat în consumer |
-| composition suite | 99 unit, 35 component, 9 integration și 8 E2E pe adnotări în `atf-reporting-tests` | piramida există; nu se adaugă E2E, ci se mută gap-urile spre component/integration |
+| composition suite | 108 unit, 31 component, 11 integration și 8 E2E pe adnotări în `atf-reporting-tests` | piramida există; nu se adaugă E2E, ci se mută gap-urile spre component/integration |
+| inventory live | 296 clase Java: 153 clase `*Test` și 143 clase support; 103 pachete de test, maximum 8 clase într-un pachet | inventarul este calculat din source tree, fără `target`/artefacte generate; limita de 8 este aplicată de `AtfPackageCohesionGovernanceTest` |
 | distribuția reporting-only | în package-ul `atf.api.reporting` apar 93 unit, 1 component și 3 integration annotations | componentele UI există în alte package-uri, dar owner-ul testului trebuie să fie urmărit explicit prin matrice |
 | build incremental | live poate păstra clase stale în `target/test-classes`, dar `atf-reporting/pom.xml` include explicit numai testele native; staging-ul cu o clasă consumer injectată a trecut fără discovery contaminat | gate-ul este fail-closed la nivel de Surefire; staging-ul extern rămâne obligatoriu pentru build-ul complet |
 | targeted lower-level evidence | asset/vocabulary/runtime gates plus `ReportModelAdaptersTest`: toate trecute în staging | manifestul automat guvernează inventarul asset-urilor, iar adapterele invalid/legacy sunt verificate separat; selecția nu înlocuiește gate-ul complet |
@@ -229,13 +235,13 @@ politica de măsurare pe segmente, conservarea semanticii și matricea de teste.
 |---|---:|---|---|
 | standalone production boundary | 99 | `atf-reporting/pom.xml` este parentless, iar `src/main` nu importă module ATF | consola are însă un port duplicat față de `atf-core`; independența Maven nu rezolvă singură interoperabilitatea |
 | model semantic și lifecycle | 91 | există modele immutable, recorder și snapshot parity | `HtmlReportSemanticDocument`, recorder-ul și lifecycle scopes păstrează încă mutation, snapshot și projection în seam-uri care se suprapun |
-| public API ergonomics | 82 | overload-urile păstrează compatibilitatea | `UiExtentReportSession` are 282 linii și 37 metode, cu multe overload-uri și tipuri nested; utilizatorul nu vede un singur traseu canonic de compoziție |
-| evidence/rendering cohesion | 84 | UI și transport au renderere numite separat | `ExtentTransportEvidenceRenderer` (310 linii), `ExtentUiEvidenceRenderer` (316) și `HtmlReportEvidenceView` (223) repetă disclosure, tabel, status, escaping și serializare în pipeline-uri paralele |
+| public API ergonomics | 82 | overload-urile păstrează compatibilitatea | `UiExtentReportSession` are live 302 linii și multe overload-uri/tipuri nested; utilizatorul nu vede încă un singur traseu canonic de compoziție |
+| evidence/rendering cohesion | 84 | UI și transport au renderere numite separat | `ExtentTransportEvidenceRenderer` (262 linii), `ExtentUiEvidenceRenderer` (54) și `HtmlReportEvidenceView` (190) repetă încă disclosure, tabel, status, escaping și serializare în pipeline-uri paralele |
 | vendor adaptation / overview | 80 | publication pipeline este centralizat | `replace`/`replaceFirst`, markeri dependenți de whitespace și markup raw fac integrarea fragilă; overview-ul secundar poate deveni o a doua sursă de adevăr |
 | vocabulary discipline | 88 | enum-urile și facade-urile există | `NavigationView`, `OverviewMarkup`, fallback views și contract checks încă emit tag/class/id/string-uri în afara unui builder semantic unic |
-| test pyramid depth | 92 | 102 unit, 35 component, 11 integration și 8 E2E sunt detectabile în consumer | 136 clase de support/fixture nu declară strat; acoperirea există, dar ownership-ul și ruta de execuție sunt greu de auditat |
+| test pyramid depth | 92 | 108 unit, 31 component, 11 integration și 8 E2E sunt detectabile în consumer | 143 clase de support/fixture nu declară strat; acoperirea există, dar ownership-ul și ruta de execuție sunt greu de auditat |
 | suite isolation | 82 | POM-ul ține dependențele la test scope | `atf-reporting-tests` depinde simultan de reporting, core, mock, validation, console, ui, debug-ui și test-kit și include `atf.api.execution` plus API/UI/E2E; „reporting tests” nu mai este o unitate conceptuală suficient de precisă |
-| locator/test readability | 78 | locatorii sunt împărțiți intern pe domenii și folosesc contracte typed | `ReportUiLocators` are 411 linii și 263 metode de delegare; facade-ul public rămâne un punct de cuplare masiv și descurajează teste focused |
+| locator/test readability | 78 | locatorii sunt împărțiți intern pe domenii și folosesc contracte typed; `ReportPageLocators` deține acum body-urile zonale pentru Overview și proiecția package-ului | `ReportUiLocators` are 432 linii și aproximativ 265 metode de delegare; facade-ul public rămâne un punct de cuplare masiv și descurajează teste focused |
 | E2E economy | 96 | cele 8 clase E2E trebuie păstrate ca proof browser | următoarea investiție trebuie să fie în component/integration și în profile de rulare, nu în noi scenarii browser |
 
 **Verdict:** `atf-reporting` este o bază funcțională serioasă, dar codul nu este
@@ -246,9 +252,9 @@ consumer tests.
 
 ### Dovezi concrete care au generat recalibrarea
 
-- `atf-reporting/src/main/java` conține 242 clase Java și 51 resurse; refactorizarea trebuie făcută pe boundary-uri observabile, nu prin mutări cosmetice de pachete;
+- `atf-reporting/src/main/java` conține 251 clase Java și 51 resurse; refactorizarea trebuie făcută pe boundary-uri observabile, nu prin mutări cosmetice de pachete;
 - `atf-reporting/src/test/java` conține 2 clase native cu 5 teste filtrate de gate-ul standalone; verificarea completă este externalizată în consumer și trebuie urmărită prin matrice, nu presupusă;
-- `atf-reporting-tests/src/test/java` conține 292 clase: 102 unit, 35 component, 11 integration, 8 E2E și 136 support neadnotat;
+- `atf-reporting-tests/src/test/java` conține 296 clase: 108 unit, 31 component, 11 integration, 8 E2E și 143 support neadnotat;
 - `UiExtentReportSession` reîncarcă configurația în unele căi de deschidere (`openConfigured(AtfConsoleSink)` și `openConfiguredResolved`), deși configurația este documentată ca snapshot immutable;
 - `AtfConsoleEvent` și `AtfConsoleSink` există atât în `atf.api.reporting.console`, cât și în portul `atf.api.core.reporting.console`; testele trebuie să facă explicit diferența între no-op, disabled și reporter configurat;
 - `ExtentReportOverviewMarkup` și `ExtentReportNavigationView` construiesc fragmente HTML cu string-uri raw și modifică HTML vendor prin înlocuiri textuale;
@@ -448,7 +454,7 @@ Acoperirea lower-level este în `ExtentReportRuntimeScriptTest`,
 `ReportAssetContractTest` și `OverviewSecondaryContractValidatorTest`. Verificarea
 browser reală a fost făcută pe raportul fresh prin ATF Debug + Playwright MCP:
 
-`http://127.0.0.1:<port>/<configured-report-file>`
+`http://<configured-report-host>/<configured-ui-report>.html#dashboard-view`
 
 Baseline-ul observat înainte de extensia de expand/collapse pe E2E-ul existent:
 `Tests run = 6`, `Failures = 0`,
@@ -470,7 +476,7 @@ al doilea flux de browser.
 |---|---|
 | propoziție Gherkin concisă, orientată pe rezultat | `ExtentSectionGherkin.overviewSecondaryExpansionProposition()` produce `ATF metadata sections expand from their collapsed default with visible content`; nu repetă `GIVEN/WHEN/THEN` în titlul testului |
 | locator stabil pentru ambele zone | `ReportPageLocators.overviewSecondaryZoneBody(...)` inspectează conținutul direct al `<details>` după `<summary>` și alege body-ul typed al zonei (`[class~='atf-secondary-body']` / `[class~='atf-tag-audit-body']`); validatorul nu compune selectori Playwright |
-| comportament verificat în același E2E | `OverviewSecondaryContractValidator.validateExpansion(...)` verifică `2 found / 0 open`, expandează ambele zone, verifică `2 expanded / 2 visible bodies`, apoi le închide și verifică `0 open` |
+| comportament verificat în același E2E | `OverviewSecondaryContractValidator.validateExpansion(...)` verifică `2 found / 0 open / 0 visible closed bodies`, expandează ambele zone, verifică `2 expanded / 2 visible bodies`, apoi le închide și verifică `0 open / 0 visible closed bodies` |
 | protecție lower-level | `OverviewSecondaryContractValidatorTest`, `ReportUiLocatorsTest` și `ExtentSectionGherkinTest` acoperă regulile pure, boundary-ul locatorului și textul Gherkin |
 
 Prima execuție a evidențiat o eroare reală de boundary: markup-ul nu are un
@@ -480,14 +486,72 @@ relaxarea aserțiunii. Execuția finală a trecut cu:
 
 ```text
 Tests run = 7, Failures = 0, Errors = 0, Skipped = 0
-ATF zones initial state  = 2 found / 0 open
+ATF zones initial state  = 2 found / 0 open / 0 visible closed bodies
 ATF zones expansion      = 2 expanded / 2 visible bodies
-ATF zones restored state = 0 open
+ATF zones restored state = 0 open / 0 visible closed bodies
 Test packages            = atf.ui.tests.extent.e2e.section (7 / 100%)
 ```
 
-Raportul final verificat prin ATF Debug + Playwright MCP este artifactul
-configurat pentru rularea curentă: `<configured-report-file>`.
+Raportul final verificat prin ATF Debug + Playwright MCP este:
+
+`${ATF_ARTIFACT_ROOT}/reports/ui/<configured-ui-report>.html`
+
+Deep-link-ul verificat pentru pasul E2E auditabil este:
+
+`http://<configured-report-host>/<configured-ui-report>.html#test-id=<scenario>&expand=screen-validation`
+
+El deschide exact scenariul `ATF metadata sections expansion` din testul
+existent `SelectedApiTestsReportUiTest` și traseul `TEST BODY → THEN ATF
+metadata sections expansion → Screen validation`. Sunt deschise explicit
+`Playwright action sequence (9 entries)`, `Audit observations · 6 checkpoints`
+și `Assertions · 7`; toate rândurile de acțiuni, observații și aserțiuni au
+rezultat verde.
+
+Validarea nu este un simplu număr de disclosures. Cele 7 aserțiuni din raport
+verifică în mod explicit:
+
+1. cele două zone există, sunt închise inițial și nu pictează corpuri ascunse;
+2. toate cele șase etichete ale metricilor de execuție există;
+3. toate cele șase valori ale metricilor sunt populate, inclusiv valorile zero;
+4. există exact tabelele `atf-audit-scenarios`, `atf-audit-packages` și
+   `atf-audit-tags`;
+5. fiecare tabel are headere, rânduri și celule populate;
+6. ambele disclosures se expandează și afișează corpul vizibil;
+7. după validare, ambele revin la starea colapsată fără corp vizibil.
+
+Observațiile corespondente expun și datele observate: lista metricilor și
+valorile `[4, 7, 3, 3, 0, 1]`, plus cardinalitatea fiecărui tabel (`7/4/16`
+rânduri). În viewport-ul MCP, tabelul de assertions este aliniat pe cele patru
+coloane și toate cele șapte rânduri sunt verzi.
+
+### Corecție de randare confirmată — corpuri Overview închise
+
+Auditul vizual a identificat o regresie reală: un `details` putea avea
+`open=false`, dar corpul secundar rămânea pictat de unele reguli de layout.
+Contractul este acum explicit în `overview-layout.css`:
+
+```css
+.atf-secondary-overview:not([open]) > :not(summary) { display: none !important; }
+.atf-secondary-overview[open] > :not(summary) { display: block !important; }
+```
+
+Validatorul nu mai verifică doar atributul `open`: numără și corpurile vizibile
+ale disclosure-urilor închise. `OverviewSecondaryContractValidatorTest`
+protejează cazurile pure (`0` corpuri vizibile la închis și `2` corpuri vizibile
+la expandat), iar `AtfReportOverviewCssTest` protejează selectorii publicați.
+Rularea proaspătă confirmă `open=false` și `display:none` inițial, `display:block`
+și body vizibil după click, apoi `0 open / 0 visible closed bodies` după
+închidere.
+
+La viewport-ul MCP de `1440x900`, randarea expandată a fost inspectată vizual:
+cele trei tabele ale tag audit sunt aliniate, valorile lungi fac wrap,
+`scrollWidth - clientWidth = 0`, iar deep-link-ul afișează acțiunile,
+observațiile și tabelul de assertions fără overflow orizontal. Capturile de
+audit folosite sunt:
+
+- `${ATF_ARTIFACT_ROOT}/reports/ui/<configured-audit-capture-deep-link>.png`
+- `${ATF_ARTIFACT_ROOT}/reports/ui/<configured-audit-capture-assertions>.png`
+- `${ATF_ARTIFACT_ROOT}/reports/ui/<configured-audit-capture-overview>.png`
 
 În raport, noul scenariu este al șaptelea copil al testului existent, nu un test
 E2E separat. Zonele rămân colapsate în raportul inițial, iar conținutul devine
@@ -498,21 +562,62 @@ la final.
 
 | ID | Prioritate | Owner | ToDo | Criteriu de închidere |
 |---|---:|---|---|---|
-| `REP-EVID-04` | P1 | `atf-reporting-tests` | adaugă un adapter Playwright minimal pe HTML static numai pentru a verifica generarea reală de PNG | integration opțional; nu accesează Practice Shop, nu accesează endpoint extern și nu devine precondiție pentru component tests |
-| `REP-EVID-05` | P1 | `atf-reporting` + `atf-reporting-tests` | aplică aceeași strategie fixture → component → integration pentru evidence API | request/response, headers, body, assertions, status și replay sunt testate cu mock; HTML-ul este validat direct, fără E2E nou |
 | `REP-REVIEW-01` | P1 | `atf-reporting` + `atf-reporting-tests` | păstrează această analiză sincronizată cu production și consumer tests, fără a edita README-urile ownerilor | fiecare claim are clasă/test/guard identificabil și fiecare item este închis sau redeschis numai prin feedback |
-| `REP-MODEL-01` | P1 | `atf-reporting` | separă lifecycle mutation, semantic snapshot și HTML projection în modele/servicii coezive | unit tests verifică modelul și snapshot-ul fără renderer; component tests verifică projection-ul |
+| `REP-MODEL-01` | P1 | `atf-reporting` | continuă separarea lifecycle mutation de modelele nested și păstrează snapshot mapper-ul ca boundary unic înainte de HTML projection | scopes/lifecycle au responsabilitate explicită, unit tests verifică modelul și snapshot-ul fără renderer, component tests verifică projection-ul |
 | `REP-VOCAB-01` | P1 | `atf-reporting` | reduce suprafața `AtfReportHtmlVocabulary` și închide scăpările de markup raw din views/contract checks | facade compatibil, enum-uri pe domenii, allowlist explicit pentru vendor literals, zero literals noi nejustificate și teste unitare pe fiecare grup |
-| `REP-FORMAT-01` | P1 | `atf-reporting` + `atf-reporting-tests` | ✅ sursele CSS/JS native sunt formatate lizibil și păstrate pentru review/component tests; numai copia publicată în HTML este compactată lexical, fără atingerea textelor, valorilor quoted, JSON-ului sau evidence-ului | `ReportAssetCompactorTest` verifică string safety, selectorii CSS, `calc(...)`, comentarii și operatorii JS; `ReportAssetContractTest` verifică newline-uri în sursă și payload fără newline la publication; `ReportAssetComposer` folosește exclusiv API-ul `loadForPublication`/`renderForPublication` |
 | `REP-SIZE-01` | P1 | `atf-reporting` + `atf-reporting-tests` | măsoară dimensiunea pe segmente — structural HTML, native CSS/JS, vendor assets și evidence — și reduce numai duplicarea/whitespace-ul sigur | component/integration verifică baseline configurabil, duplicate data-uri, matricea statusurilor și conservarea textului, JSON-ului, screenshot-ului și structurii DOM |
+
 | `REP-AUDIT-08` | P2 | `atf-reporting` | normalizează `ReportAuditSnapshot` în modele de secțiune și reguli pure | component tests acoperă Overview, Tests, Categories, Fails, JSON și visual evidence fără browser |
 | `REP-TEST-08` | P1 | `atf-reporting-tests` | sparge testele mari după contract și păstrează fixture-urile reutilizabile | clasele de test au un singur motiv; support-ul nu devine executabil și coverage-ul lower-level crește |
 | `REP-COVERAGE-08` | P1 | `atf-reporting-tests` | construiește matrice contract → production seam → test unit/component/integration | fiecare seam public are dovadă lower-level; excepțiile sunt listate explicit |
+
 | `REP-E2E-08` | P2 | `atf-reporting-tests` | îngheață numărul de E2E și reutilizează suite-ul existent pentru proof browser | orice E2E nou necesită justificare de imposibilitate component/integration și aprobare prin feedback |
-| `REP-RENDER-09` | P1 | `atf-reporting` | unifică primitivele pentru disclosure, tabel, status, escaping și serialization între `ExtentTransportEvidenceRenderer`, `ExtentUiEvidenceRenderer` și `HtmlReportEvidenceView` | rândurile și secțiunile sunt modele typed; fiecare renderer compune aceleași primitive fără copiere de markup; parity component tests verifică request/response/UI evidence în Extent și fallback HTML |
+| `REP-RENDER-09` | P1 | `atf-reporting` | extinde primitivele typed comune de la tabele la disclosure, status, escaping și serialization între `ExtentTransportEvidenceRenderer`, `ExtentUiEvidenceRenderer` și `HtmlReportEvidenceView` | fiecare renderer compune aceleași primitive fără copiere de markup; parity component tests verifică request/response/UI evidence în Extent și fallback HTML |
 | `REP-CONSOLE-01` | P1 | `atf-core` + `atf-console` + `atf-reporting` + `atf-reporting-tests` | reconciliază `AtfConsoleEvent/Sink` duplicate și elimină ambiguitatea dintre `noOp`, disabled și reporter configurat | port comun sau adapter owner-uit explicit, fără dependență reporting → core; in-memory sink verifică `scenario → phase → request/UI action → complete(status)` pentru `PASS/FAIL/WARNING/SKIP`; testul standalone rămâne compilabil |
 | `REP-SUITE-01` | P1 | `atf-reporting-tests` | face explicită delimitarea dintre reporting contract tests, API fixture/execution, UI audit support și E2E; nu șterge support valid și nu multiplică teste | profile/launcher sau boundary test reproducibil pentru rularea reporting-only fără execution/browser; fiecare clasă executabilă are owner și layer; cele 8 E2E rămân plafon, iar helper-ele rămân neexecutabile |
-| `REP-LOCATOR-01` | P2 | `atf-reporting-tests` | reduce dependența de `ReportUiLocators` ca god-facade; domeniile page/tree/evidence/screen/category/failure trebuie consumate prin surface-uri clare | testele noi nu adaugă delegări în facade-ul legacy; surface-urile typed sunt testate separat, locatorii rămân `element[attribute=value]`, iar API-ul de compatibilitate este măsurat și documentat |
+| `REP-LOCATOR-01` | P2 | `atf-reporting-tests` | reduce în continuare dependența de `ReportUiLocators` ca god-facade; `ReportPageLocators` este seam-ul typed pentru page/tree/Overview, iar domeniile evidence/screen/category/failure trebuie migrate incremental | testele noi nu adaugă delegări în facade-ul legacy; surface-urile typed sunt testate separat, locatorii rămân `element[attribute=value]`, iar cei 432/265 din facade scad fără a rupe compatibilitatea |
+
+Progress asset size: `ReportAssetSizeInventory` oferă inventar determinist pe
+asset, format și owner, cu bytes pentru sursa nativă versus copia de publicație.
+`ReportAssetSizeInventoryTest` verifică faptul că sursele `.js/.css` rămân
+formatate, publicațiile nu conțin newline și compaction-ul nu mărește asset-ul.
+Rămâne de adăugat doar baseline-ul configurabil pentru bundle HTML/evidence;
+nu se introduc praguri fixe care ar lega testele de un raport generat concret.
+
+Progress coverage: `ReportingCoverageMatrixTest` fixează acum, prin reflecție și
+adnotări, dovezi pentru snapshot semantic, markup/evidence, asset publication,
+UI component artifact, section component seam, mock API integration și static UI
+browser proof. Matricea rămâne intenționat extensibilă: nu declară „coverage
+completă” doar pentru că există clase de test, ci cere ca fiecare seam public
+nou să fie adăugat cu layer-ul potrivit și cu o clasă executabilă identificabilă.
+
+Progress E2E: `E2eSuiteBudgetArchitectureTest` fixează bugetul actual la 8
+clase annotate `@AtfE2eTest`, verifică ownership-ul sub `e2e/` și respinge
+fixture/support executabil. O creștere trebuie să schimbe explicit feedback-ul
+și criteriul de budget; nu este permisă multiplicarea tacită a browser proof-ului.
+
+Progress vocabular: clasele finite ale proiecțiilor fallback (`tag-list`, `tag`,
+`summary`, `metric`, `contract`, `fail-list`, `empty`) sunt acum definite în
+`AtfReportHtmlVocabulary` și folosite de `Category`, `Overview` și `Fails`, cu
+test de serializare. Nu am mutat în enum-uri textele de business, selectorii
+vendor sau markup-ul care aparține unui renderer; acestea rămân în ownerul lor
+explicit.
+
+Progress render/evidence: `ReportEvidenceDisclosure` este acum input-ul typed
+comun pentru shell-ul `<details>` și metadata `data-atf-evidence-*`, iar
+`ReportEvidenceMarkup.statusBadge(...)` este primitive-ul comun pentru badge-ul
+fallback. `ExtentTransportEvidenceRenderer` nu mai reconstruiește manual
+summary/glyph/title/body pentru Setup evidence; request/response/execution și
+fallback-ul folosesc aceeași compoziție. Testele verifică escaping, metadata,
+status `INFO` implicit și status `FAIL`; serialization-ul JSON și tabelele rămân
+în primitivele lor dedicate. Rămâne de aliniat doar orice evidence nou care
+apare în afara acestor două renderere.
+
+Progress browser proof: `StaticHtmlScreenshotAdapter` este un seam opțional de
+testare, nu o dependență a librăriei. `StaticHtmlScreenshotAdapterTest` compune
+un raport fallback local, îl deschide headless prin Playwright și verifică un
+PNG real la viewport configurat. Nu se păstrează raportul generat și nu se
+accesează Practice Shop sau endpoint-uri externe.
 
 ## Reaudit API request title și parity între renderere — 2026-10-20
 
@@ -544,7 +649,7 @@ reportingul este owner-ul renderării și păstrării evidence. Pentru Practice 
 
 | ID | Status | Dovadă |
 |---|---:|---|
-| `REP-API-TITLE-05` | ✅ | Full `atf-reporting-tests` reactor: **452 teste, 0 failures, 0 errors, 3 skipped**; component, integration și E2E au trecut, iar cele 3 skip-uri sunt explicite în suita existentă. |
+| `REP-API-TITLE-05` | ✅ | Full `atf-reporting-tests` reactor: **621 teste, 0 failures, 0 errors, 3 skipped**; component, integration și E2E au trecut, iar cele 3 skip-uri sunt explicite în suita existentă. |
 | `REP-API-TITLE-06` | ✅ | `atf-tests/AtfPackageCohesionGovernanceTest` include excepția revizuită pentru `atf.api.core.http.response`, introdusă de descriptorul typed, fără waiver global. |
 | `REP-DOC-RELOC-01` | ✅ | `atf-tests/DynamicPathDocumentationArchitectureTest` trece după înlocuirea căilor locale absolute din feedback cu descrierea relocatabilă a staging-ului extern. |
 
@@ -564,7 +669,7 @@ transport method + relative path + evidence semantică furnizată de consumer.
 ## Gate final autoritativ al regresiei — 2026-10-20 16:08
 
 Full `atf-reporting-tests` a fost rerulat din staging extern, în afara
-proiectului și fără oprirea rulărilor curente: **452 teste, 0 failures, 0 errors, 3 skipped**, cu toate
+proiectului și fără oprirea rulărilor curente: **621 teste, 0 failures, 0 errors, 3 skipped**, cu toate
 modulele reactorului în `BUILD SUCCESS`. Sunt confirmate inclusiv contractele
 de asset compaction, JSON pretty, sections, architecture boundaries, locator
 boundaries și E2E browser.
@@ -578,11 +683,454 @@ se consideră suficientă numai existența fișierului HTML.
 |---|---:|
 | API report: request/response JSON POST și PUT, plus validări contractuale vizibile | ✅ |
 | API report: body-urile JSON sunt afișate pretty și păstrează Content-Type `application/json` | ✅ |
-| UI report: acțiuni Playwright, 4 audit observations, 3 assertions și screenshot inline | ✅ |
+| UI report: acțiuni Playwright, 6 audit observations, 7 assertions și screenshot inline | ✅ |
 | Capture alias `QUERY` publicat doar ca metadata `observed method=QUERY` | ✅ |
 | `<hr>` decorativ în artifactul UI final | 0 |
 | Rapoarte finale lăsate deschise în MCP | ✅ |
 
 Artifactele concrete nu sunt păstrate în feedback; tabelul de mai sus reține
 doar rezultatul verificării și criteriul observabil.
+
+## Audit final — expandare ATF și aserțiuni semantice — 2026-10-20 17:13
+
+Aceasta este dovada autoritativă pentru ultima modificare, după sincronizarea
+în codul live și rerularea codului exact curent. Nu s-a adăugat o clasă E2E:
+scenariul `ATF metadata sections expansion` rămâne al șaptelea copil din
+`SelectedApiTestsReportUiTest`.
+
+| Verificare | Rezultat observat |
+|---|---:|
+| E2E live | **7 teste, 0 failures, 0 errors, 0 skipped** |
+| Component validator | **5 teste, 0 failures, 0 errors, 0 skipped** |
+| Overview implicit | `#atf-execution-metadata` și `#atf-tag-audit`: `open=false`, `display:none`, `0` corpuri închise vizibile |
+| Expandare | `2 expanded / 2 visible bodies`, cu click-uri Playwright în același flow |
+| Conținut metrici | 6 etichete obligatorii + 6 valori nenule: `[4, 7, 3, 3, 0, 1]` |
+| Conținut tag audit | exact 3 tabele; rânduri `7 / 4 / 16`, toate cu headere și celule populate |
+| Observații | `Audit observations · 6 checkpoints`, toate verzi |
+| Assertions | `Assertions · 7`, toate verzi și aliniate pe `ASSERTION / EXPECTED / ACTUAL / RESULT` |
+| Restaurare | `0 open / 0 visible closed bodies` |
+| Browser MCP | `scrollWidth - clientWidth = 0`, consolă: 0 errors / 0 warnings |
+
+Raportul proaspăt verificat prin ATF Debug + Playwright MCP:
+
+`${ATF_REPORT_OUTPUT_DIR}/<generated-ui-report.html>`
+
+Deep-link-ul auditabil este:
+
+`<browser-report-url>#<stable-screen-validation-fragment>`
+
+Capturile vizuale inspectate și copiate lângă artifact sunt:
+
+- `${ATF_REPORT_OUTPUT_DIR}/<deep-link-proof.png>`
+- `${ATF_REPORT_OUTPUT_DIR}/<assertions-proof.png>`
+- `${ATF_REPORT_OUTPUT_DIR}/<overview-expanded-proof.png>`
+
+### Dovadă vizuală explicită pentru Overview expandat
+
+Captura de mai sus a fost completată cu o captură full-page făcută direct în
+tab-ul Playwright MCP pe `#dashboard-view`. Aceasta arată simultan, în raport,
+ambele secțiuni ATF deschise și conținutul lor real: cele șase metrici din
+`ATF execution metadata` și cele trei tabele din `ATF tag audit`.
+
+- `${ATF_REPORT_OUTPUT_DIR}/<overview-expanded-proof.png>`
+
+Captura nu este doar o aserțiune de stare: a fost inspectată vizual după
+captură și confirmă că ambele disclosure-uri sunt vizibile, tabelele sunt
+randate, iar layout-ul nu produce overflow orizontal.
+
+Implementarea este fail-closed: un rând fără celule nu este considerat
+„populat”. Regulile pure sunt în
+`OverviewSecondaryContractValidatorTest`, locatorii typed în
+`ReportPageLocators`/`ReportUiLocators`, iar validatorul E2E expune valorile
+observate în tabelul de audit, nu doar un boolean agregat.
+
+## Corecție finală — ordinea acțiuni → captură → aserțiuni — 2026-10-20 17:21
+
+Auditul vizual a găsit cauza pentru poza care părea colapsată: validatorul
+înregistra click-urile de închidere după expandare, iar `capture(...)` era apelat
+după acele click-uri. Astfel, aserțiunile erau corecte, dar captura reprezenta
+starea restaurată, nu starea verificată.
+
+Corecția este acum în live și în staging:
+
+```text
+Navigate / Wait / Overview / Expand ATF metadata / Expand ATF tag audit
+        ↓
+Screenshot capturat cu ambele disclosure-uri open și corpurile vizibile
+        ↓
+Assertions pentru metrici, tabele, conținut și revenire la closed
+```
+
+Cleanup-ul de revenire la `closed` se execută direct în browser și este
+verificat prin `ATF zones restored state`; nu mai apare ca acțiune Playwright
+după captură și nu mai falsifică povestea flow-ului.
+
+| Verificare nouă | Rezultat |
+|---|---:|
+| Playwright action sequence | `7 entries`, fără click-uri de cleanup după captură |
+| Screenshot observation | ultimul checkpoint după acțiunile de expandare; ambele zone vizibile |
+| Assertions | `7`, toate verzi |
+| Component validator | `5/0/0/0` |
+| E2E | `7/0/0/0` |
+
+Raportul fresh este:
+
+`${ATF_REPORT_OUTPUT_DIR}/<generated-ui-report.html>`
+
+Dovada vizuală extrasă din screenshot-ul Base64 publicat efectiv în raport:
+
+`${ATF_REPORT_OUTPUT_DIR}/<embedded-expanded-proof.png>`
+
+Captura full-page verificată direct în tab-ul MCP:
+
+`${ATF_REPORT_OUTPUT_DIR}/<overview-expanded-proof.png>`
+
+Capturile MCP ale ordinii efective din `Screen validation` sunt:
+
+- `${ATF_REPORT_OUTPUT_DIR}/<action-order-proof.png>`
+  — cele 7 acțiuni Playwright se termină cu expandarea celor două zone, urmate
+  de observații și rândul `Screenshot`.
+- `${ATF_REPORT_OUTPUT_DIR}/<assertions-order-proof.png>`
+  — `Screenshot` este ultimul checkpoint înainte de tabelul `Assertions · 7`;
+  toate aserțiunile sunt verzi și includ conținutul semantic observat.
+
+## Resize dinamic al tabelelor de evidență — 2026-10-20 17:34
+
+### Observația din raport
+
+În tabelul `Audit observations`, valorile din `EXPECTED` și `OBSERVED` pot fi
+mult mai lungi decât `ACTION` și `TARGET`. Distribuirea CSS fixă făcea coloanele
+aproape egale și împingea conținutul în prea multe rânduri. Aceeași problemă
+putea apărea în tabelul de acțiuni, în tabelul de aserțiuni și în setup evidence.
+
+### Implementarea chirurgicală
+
+Rendererul `atf-reporting` publică acum o singură politică runtime,
+`normalizeEvidenceTableColumns()`, pentru:
+
+- `.atf-ui-action-table`;
+- `.atf-ui-observation-table`;
+- `.helm-validation-table`;
+- `.atf-setup-evidence-table`.
+
+Politica măsoară lățimea intrinsecă maximă a textului din fiecare coloană, cu
+fontul efectiv al celulei, și alocă proporțional spațiul disponibil. Limitele
+min/max și reechilibrarea iterativă permit diagnosticelor lungi să primească
+spațiu fără să monopolizeze tabelul.
+`RESULT`, `STATUS`, `OUTCOME`, `TIME`, `DURATION` și `ATTEMPTS` au lățimi
+rezervate; coloanele de conținut au limite min/max și rămân `table-layout: fixed`
+cu `overflow-wrap:anywhere`. CSS-ul static rămâne fallback, iar runtime-ul
+suprascrie celulele cu procente calculate.
+
+Recalcularea se face la încărcare, la `resize` și când disclosure-urile adaugă
+sau schimbă conținut, prin `MutationObserver`. DOM-ul publică și dovada tehnică:
+`data-atf-content-layout="dynamic-longest-value"` și
+`data-atf-content-column-widths` și
+`data-atf-content-column-max-px`.
+
+```text
+maximum intrinsic text width per column
+        ↓
+reserved status/time columns
+        ↓
+bounded min/max allocation with rebalancing
+        ↓
+inline widths on header + body cells
+        ↓
+same table, no horizontal overflow
+```
+
+### Verificare componentă și render real
+
+Componenta `ValidationTableLayoutComponentTest` verifică assetul JS pentru
+toate cele patru tipuri de tabel, politica de coloane rezervate, alocarea
+weighted, markerii DOM, `resize` și `MutationObserver`. În browser,
+`ValidationTableLayoutInspector` este aceeași abstracție OOP reutilizată de
+`ScreenValidationSectionExtractor` pentru action, observation, assertion și
+setup evidence; nu există o regulă duplicată pentru assertion table. Rerun-ul staging a
+trecut:
+
+| Verificare | Rezultat |
+|---|---:|
+| Component layout | **2/0/0/0** |
+| E2E `SelectedApiTestsReportUiTest` | **7/0/0/0** |
+| Reactor selectat | **9/0/0/0**, build success |
+| Viewport MCP 1440×900 | toate tabelele vizibile fără overflow |
+| Viewport MCP 1280×900 | action/observation/assertions fără overflow |
+| document/body overflow | `false / false` |
+| consolă MCP | `0 errors / 0 warnings` |
+
+În raportul fresh verificat efectiv, tabelul de audit a fost recalibrat la:
+
+```text
+ACTION 20.75% | TARGET 19.99% | EXPECTED 24.45% |
+OBSERVED 25.81% | RESULT 9.00%
+```
+
+Astfel `OBSERVED` și `EXPECTED` primesc spațiul suplimentar cerut de conținut,
+iar `RESULT` rămâne compact și aliniat. Aserțiunile au fost verificate separat
+cu aceeași regulă; tabelul final rămâne complet vizibil și verde.
+
+Raportul final sincronizat în live:
+
+`${ATF_REPORT_OUTPUT_DIR}/<generated-ui-report.html>`
+
+Deep-link MCP:
+
+`<browser-report-url>#<stable-screen-validation-fragment>`
+
+Capturi verificate vizual și copiate lângă artifact:
+
+- `${ATF_REPORT_OUTPUT_DIR}/<audit-table-proof.png>`
+  — tabelul `Audit observations`, cu `OBSERVED` dominant și `RESULT` compact;
+- `${ATF_REPORT_OUTPUT_DIR}/<assertions-table-proof.png>`
+  — tabelul `Assertions`, cu `EXPECTED/ACTUAL` recalibrate și rezultate aliniate.
+
+Sursele verificate rămân sincronizate între staging-ul extern
+`${ATF_STAGING_ROOT}/<staging-run>` și codul live; nu
+au fost oprite sau resetate rulări paralele.
+
+## Refinare finală — lățime intrinsecă maximă per coloană — 2026-10-20 17:43
+
+### Observația confirmată în raportul MCP
+
+Distribuirea anterioară, bazată doar pe lungimea textuală ponderată, nu păstra
+explicit lățimea maximă observată pe coloană. Pentru rândurile de audit din
+captura de referință, `EXPECTED` și `OBSERVED` conțin diagnostice mult mai lungi
+decât `ACTION` și `TARGET`; raportul trebuia să rețină această diferență și să o
+reflecte în layout.
+
+### Ajustarea implementată
+
+`extent-evidence-table-layout.js` măsoară acum, pentru fiecare celulă, lățimea
+intrinsecă a textului cu fontul efectiv al celulei prin
+`CanvasRenderingContext2D.measureText`, cu fallback determinist când canvas-ul
+nu este disponibil. Pentru fiecare coloană se păstrează maximul măsurat, iar
+allocatorul:
+
+1. rezervă coloanele semantice `RESULT`, `STATUS`, `OUTCOME`, `TIME`,
+   `DURATION` și `ATTEMPTS`;
+2. pornește de la maximele intrinseci, nu de la un scor uniform;
+3. aplică limite min/max coloanelor de conținut și reechilibrează iterativ;
+4. publică atât procentele finale, cât și maximul memorat în pixeli:
+   `data-atf-content-column-widths` și
+   `data-atf-content-column-max-px`.
+
+Aceeași politică rămâne reutilizată pentru action, observation, assertion și
+setup evidence, cu `MutationObserver` pentru disclosure-uri care apar ulterior.
+
+```text
+max intrinsic px per column
+          ↓
+reserved semantic columns
+          ↓
+min/max rebalance
+          ↓
+inline percentage widths + DOM diagnostics
+          ↓
+long diagnostics get space, result stays compact
+```
+
+### Dovadă MCP pe raportul final
+
+Raportul generat în staging și sincronizat în live este:
+
+`${ATF_REPORT_OUTPUT_DIR}/<generated-ui-report.html>`
+
+Deep-link-ul verificat în ATF Debug/MCP este:
+
+`<browser-report-url>#<stable-screen-validation-fragment>`
+
+La `1440×900`, tabelul vizibil `Audit observations` a raportat:
+
+```text
+max px: ACTION 170 | TARGET 148 | EXPECTED 452 | OBSERVED 560 | RESULT 51
+widths: 11.65% | 10.12% | 30.93% | 38.31% | 9.00%
+```
+
+La `1280×900`, tabelele vizibile au păstrat aceleași proporții calculate,
+`scrollWidth === clientWidth`, iar documentul și body-ul nu au overflow. În
+ambele rezoluții layout-ul este fără overflow; consola MCP a raportat `0 errors /
+0 warnings`.
+
+Captura vizuală verificată în MCP și copiată lângă raport este:
+
+`${ATF_REPORT_OUTPUT_DIR}/<audit-table-proof.png>`
+
+Captura confirmă vizual că `EXPECTED` și `OBSERVED` sunt coloanele dominante,
+valorile se împachetează controlat, iar `RESULT` rămâne compact și aliniat.
+
+Verificarea vizuală la viewport îngust este păstrată separat:
+
+`${ATF_REPORT_OUTPUT_DIR}/<audit-table-narrow-viewport-proof.png>`
+
+La `1280×900`, textul se împachetează în celule fără tăiere sau scroll
+orizontal; proporțiile rămân cele calculate de maxima intrinsecă, nu o
+împărțire uniformă.
+
+### Verificări executate
+
+| Verificare | Rezultat |
+|---|---:|
+| `node --check` pe assetul JS | **PASS** |
+| `ValidationTableLayoutComponentTest` | **2/0/0/0** |
+| `SelectedApiTestsReportUiTest` | **7/0/0/0** |
+| reactor staging selectat | **9/0/0/0 — BUILD SUCCESS** |
+| MCP 1440×900 | **fără overflow** |
+| MCP 1280×900 | **fără overflow** |
+| MCP console | **0 errors / 0 warnings** |
+
+Codul modificat, testul component și documentația au fost sincronizate din
+staging extern în zona live fără resetarea sau oprirea rulărilor paralele.
+
+## Uniformizare componentă și E2E pentru toate tabelele — 2026-10-20 17:52
+
+### Acoperirea adăugată
+
+`ValidationTableLayoutComponentTest` verifică explicit contractul comun pentru
+toate selector-ele runtime:
+
+- `table.atf-ui-action-table`;
+- `table.atf-ui-observation-table`;
+- `table.helm-validation-table`;
+- `table.atf-setup-evidence-table`.
+
+În plus, `ValidationTableLayoutInspector` este adapterul OOP comun folosit de
+`ScreenValidationSectionExtractor`. Inspectorul citește aceleași atribute
+publice pentru orice tabel, compară `data-atf-content-column-max-px` cu cea mai
+lată coloană flexibilă, verifică suma procentelor și verifică lipsa overflow-
+ului. Nu mai există o verificare specială doar pentru assertion table.
+
+Traseul este acum unul singur:
+
+```text
+ExtentReportRuntimeEvidenceTableLayout
+          ↓ publică un singur asset JS
+normalizeEvidenceTableColumns()
+          ↓ aplică aceeași politică pe 4 familii de tabel
+ValidationTableLayoutInspector
+          ↓ verifică DOM-ul real în browser
+ScreenValidationSectionExtractor → E2E report audit
+```
+
+### Validare finală după întărire
+
+Raportul fresh este:
+
+`${ATF_REPORT_OUTPUT_DIR}/<generated-ui-report.html>`
+
+Deep-link MCP:
+
+`<browser-report-url>#<stable-screen-validation-fragment>`
+
+Rezultatul este `ValidationTableLayoutComponentTest 2/0/0/0`,
+`SelectedApiTestsReportUiTest 7/0/0/0`, reactor `9/0/0/0 — BUILD SUCCESS`.
+În MCP, la `1280×900`, action și observation au lățimi calculate, suma este
+100%, `scrollWidth === clientWidth`, iar documentul și body-ul nu au overflow.
+Consola MCP are `0 errors / 0 warnings`.
+
+Captura finală verificată vizual:
+
+`${ATF_REPORT_OUTPUT_DIR}/<uniform-layout-audit-table-proof.png>`
+
+Codul, testele și feedback-ul au fost reconciliate între staging-ul extern și
+live; rulările paralele au rămas active.
+
+## Optimizare de randare — minime semantice fără linii artificiale — 2026-10-20 18:01
+
+### Problema confirmată în raportul anterior
+
+Politica bazată numai pe maxima intrinsecă favoriza corect `EXPECTED` și
+`OBSERVED`, dar putea coborî `ACTION` și `TARGET` la aproximativ 10–12% din
+container. La `1280×900`, texte precum `ATF execution metadata` ajungeau pe trei
+linii, deși existau suficient de multe informații pentru o distribuire mai
+echilibrată.
+
+### Corecția chirurgicală
+
+Allocatorul din `extent-evidence-table-layout.js` folosește acum alocare
+proporțională bounded cu două faze:
+
+1. rezervă coloanele tehnice (`RESULT`, `TIME`, `STATUS` etc.);
+2. aplică minime semantice pe rol: `ACTION` 18%, `TARGET` 15% pentru tabelele
+   cu cel puțin cinci coloane, `ASSERTION/CHECK` 18%, iar
+   `EXPECTED/ACTUAL/OBSERVED` 13%;
+3. distribuie numai spațiul rămas după maxima intrinsecă măsurată;
+4. aplică maximele și reechilibrează, fără ca o coloană de diagnostic să
+   monopolizeze tabelul.
+
+Astfel, regula nu mărește tabelul și nu adaugă pași; reduce wrap-ul inutil în
+coloanele de identificare și păstrează mai mult spațiu pentru conținutul
+diagnostic relevant.
+
+### Verificare vizuală MCP
+
+Raportul fresh sincronizat este:
+
+`C:\work\ex\java\atf\artifacts\reports\ui\ui-atf-extent-report_selected-api-tests-report-ui-test_2026-10-20_17-56-45-613.html`
+
+Deep-link:
+
+`http://127.0.0.1:55381/ui-atf-extent-report_selected-api-tests-report-ui-test_2026-10-20_17-56-45-613.html#test-id=48&scenario-index=6&expand=screen-validation`
+
+La `1440×900`, tabelul `Audit observations` are:
+
+```text
+ACTION 18.00% | TARGET 15.00% | EXPECTED 25.91% |
+OBSERVED 32.09% | RESULT 9.00%
+```
+
+La `1280×900`, aceleași proporții rămân în container, fără overflow. În captura
+verificată, `ATF disclosure content` și `ATF execution metadata` nu mai sunt
+fragmentate în trei linii; textul este împărțit controlat pe două linii, iar
+`EXPECTED/OBSERVED` păstrează prioritatea de spațiu.
+
+Captura finală:
+
+`C:\work\ex\java\atf\artifacts\reports\ui\atf-final-optimized-layout-18-00-audit-table-1280.png`
+
+Verificări: `ValidationTableLayoutComponentTest 2/0/0/0`,
+`SelectedApiTestsReportUiTest 7/0/0/0`, total `9/0/0/0`, MCP console `0 errors /
+0 warnings`, document/body overflow `false / false`.
+
+## Acoperire unificată UI + API pentru evidence tables — 2026-10-20
+
+### Gap găsit la reverificarea contractului
+
+Politica de resize era aplicată explicit pe acțiuni Playwright, audit
+observations, `helm-validation-table` și setup. Tabela clasică de assertion
+(`table.assertions`) și familiile API care folosesc clasa comună
+`helm-evidence-table` — request/response, execution, retry history și
+technical trace — nu erau selectate de runtime. Asta însemna că raportul putea
+avea două comportamente diferite în funcție de modul UI/API.
+
+### Corecție chirurgicală
+
+`ATF_EVIDENCE_TABLE_SELECTOR` este acum selectorul unic al politicii de
+layout și include:
+
+```text
+UI:  atf-ui-action-table, atf-ui-observation-table,
+     assertions, atf-setup-evidence-table
+API: helm-evidence-table (+ helm-validation-table și subtipurile lui)
+     request, response/trace, execution, retry history
+```
+
+`helm-validation-table` rămâne listat explicit ca parte a contractului pentru
+claritate, chiar dacă renderer-ul API îl publică de regulă și cu
+`helm-evidence-table`. Selectorul comun înseamnă că măsurarea intrinsecă,
+minimele semantice, coloanele rezervate, procentajele auditate și recalcularea
+la resize/DOM mutation sunt aceleași pentru UI și API.
+
+`atf-tag-table` din Overview nu este inclus intenționat: este tabel agregat de
+dashboard, cu coloane numerice fixe și sticky header, nu evidence table. Are
+contract CSS separat și ar fi o regresie să-i aplicăm politica de diagnostic.
+
+### Verificare obligatorie
+
+Component contract-ul `ValidationTableLayoutComponentTest` verifică acum și
+selectorul comun, `table.assertions` și `table.helm-evidence-table`, pe lângă
+familiile UI existente. Orice tabel nou de evidence trebuie să primească
+`helm-evidence-table` sau unul dintre selectorii contractuali; altfel nu este
+considerat acoperit și trebuie adăugat explicit împreună cu testul component.
 

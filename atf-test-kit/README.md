@@ -7,8 +7,8 @@ modulele ATF. Nu conține renderer, mock transport, browser sau cod de producți
 
 ```mermaid
 flowchart LR
-    ModuleTests[teste module] --> Kit[atf-test-kit]
-    Kit --> Levels[test layers]
+    ModuleTests[teste module] -->|declară| Kit[atf-test-kit]
+    Kit -->|clasifică| Levels[test layers]
     Kit -. nu intră .-> Production[production classpath]
 ```
 
@@ -38,23 +38,27 @@ Fiecare clasă executabilă declară exact un nivel:
 @AtfE2eTest         → @Tag("e2e")
 ```
 
-`AtfTestLayerArchitectureTest` inspectează toate directoarele
-`*/src/test/java` din proiect și verifică annotarea, package-ul, importurile
-interzise și faptul că `support` nu devine strat executabil. Regula este
-fail-closed: o clasă nouă fără nivel sau cu mai multe niveluri oprește build-ul.
+### Ce verifică guvernanța
 
-Gate-ul `AtfModuleTest`/`AtfModuleTestCondition` pentru composition roots care
-cer module configurate rămâne specific suitei `atf-reporting-tests`, în
-`atf.api.reporting.test`; nu este copiat artificial în kitul transversal.
-Gate-ul poate inhiba un test cu `SKIPPED` când modulul lipsește; nu există o
-booleană UI paralelă.
+- `AtfTestLayerArchitectureTest` inspectează toate directoarele `*/src/test/java`;
+- verifică adnotarea, package-ul, importurile interzise și izolarea `support`;
+- regula este fail-closed: o clasă fără nivel sau cu mai multe niveluri oprește
+  build-ul.
 
-Contractul generic pentru flow mode, screenshot policy și capture source este
-documentat separat în
-[`docs/ATF_Evidence_Capture_Contract.md`](../docs/ATF_Evidence_Capture_Contract.md).
-`atf-test-kit` poate deveni owner-ul mapping-ului transversal numai după un
-contract typed și un gate lower-level; în prezent nu preia politica publisherului
-și nu o confundă cu un flow Practice Shop.
+### Gate-uri de compoziție
+
+- `AtfModuleTest`/`AtfModuleTestCondition` rămân specifice suitei
+  `atf-reporting-tests`, în `atf.api.reporting.test`;
+- un modul lipsă poate produce `SKIPPED` prin gate-ul dedicat;
+- kit-ul nu introduce o booleană UI paralelă.
+
+### Boundary pentru extensii viitoare
+
+- contractul generic pentru flow mode, screenshot policy și capture source este în
+  [`docs/ATF_Evidence_Capture_Contract.md`](../docs/ATF_Evidence_Capture_Contract.md);
+- `atf-test-kit` poate deține mapping-ul transversal numai după un contract typed
+  și un gate lower-level;
+- politica publisherului și flow-urile Practice Shop rămân în ownerii lor.
 
 ## Boundary
 

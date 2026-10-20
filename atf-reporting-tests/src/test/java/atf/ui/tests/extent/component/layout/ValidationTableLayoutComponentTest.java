@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Component contract for content-aware assertion-table sizing. */
+/** Component contract for content-aware sizing of all UI/API evidence tables. */
 @AtfComponentTest
 class ValidationTableLayoutComponentTest {
     @Test
@@ -18,10 +18,29 @@ class ValidationTableLayoutComponentTest {
 
         assertAll(
                 () -> assertTrue(script.contains("validationCellLength")),
+                () -> assertTrue(script.contains("normalizeEvidenceTableColumns")),
+                () -> assertTrue(script.contains("evidenceTableIntrinsicWidth")),
+                () -> assertTrue(script.contains("measureText")),
+                () -> assertTrue(script.contains("evidenceTableContentMinimumWidth")),
+                () -> assertTrue(script.contains("minimums")),
+                () -> assertTrue(script.contains("activeIndexes")),
+                () -> assertTrue(script.contains("ATF_EVIDENCE_TABLE_SELECTOR")),
+                () -> assertTrue(script.contains("data-atf-content-column-max-px")),
+                () -> assertTrue(script.contains("table.atf-ui-action-table")),
+                () -> assertTrue(script.contains("table.atf-ui-observation-table")),
+                () -> assertTrue(script.contains("table.assertions")),
+                () -> assertTrue(script.contains("table.atf-setup-evidence-table")),
+                () -> assertTrue(script.contains("table.helm-evidence-table")),
+                () -> assertTrue(script.contains("table.helm-validation-table")),
+                () -> assertTrue(script.contains("evidenceTableIsReservedColumn")),
+                () -> assertTrue(script.contains("evidenceTableAllocateWidths")),
                 () -> assertTrue(script.contains("longest[index]")),
+                () -> assertTrue(script.contains("data-atf-content-layout")),
+                () -> assertTrue(script.contains("data-atf-content-column-widths")),
                 () -> assertTrue(script.contains("data-atf-validation-layout")),
                 () -> assertTrue(script.contains("data-atf-validation-column-widths")),
                 () -> assertTrue(script.contains("window.addEventListener('resize'")),
+                () -> assertTrue(script.contains("MutationObserver")),
                 () -> assertTrue(script.contains("normalizeValidationTableColumns()")));
     }
 

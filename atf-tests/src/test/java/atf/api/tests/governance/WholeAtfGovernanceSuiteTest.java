@@ -1,6 +1,12 @@
 package atf.api.tests.governance;
 
 import atf.api.testkit.AtfIntegrationTest;
+import atf.api.tests.governance.documentation.DocumentationDiagramGovernanceTest;
+import atf.api.tests.governance.documentation.DocumentationProseGovernanceTest;
+import atf.api.tests.governance.documentation.DocumentationReadmeStructureGovernanceTest;
+import atf.api.tests.governance.documentation.DocumentationStyleGovernanceTest;
+import atf.api.tests.governance.documentation.DocumentationTargetGovernanceTest;
+import atf.api.tests.governance.documentation.DynamicPathDocumentationArchitectureTest;
 import org.junit.platform.suite.api.SelectClasses;
 import org.junit.platform.suite.api.Suite;
 
@@ -14,7 +20,11 @@ import org.junit.platform.suite.api.Suite;
         AtfSourceReadabilityGovernanceTest.class,
         ConstantsOwnershipGovernanceTest.class,
         DynamicPathDocumentationArchitectureTest.class,
-        DocumentationDiagramGovernanceTest.class
+        DocumentationDiagramGovernanceTest.class,
+        DocumentationProseGovernanceTest.class,
+        DocumentationReadmeStructureGovernanceTest.class,
+        DocumentationStyleGovernanceTest.class,
+        DocumentationTargetGovernanceTest.class
 })
-class WholeAtfGovernanceSuiteTest {
+public class WholeAtfGovernanceSuiteTest {
 }

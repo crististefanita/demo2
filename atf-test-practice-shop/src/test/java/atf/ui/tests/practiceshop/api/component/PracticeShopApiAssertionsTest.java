@@ -33,6 +33,20 @@ class PracticeShopApiAssertionsTest {
         assertFalse(assertions.stream().anyMatch(a -> a.name().contains("product identity") && a.passed()));
     }
 
+    @Test
+    void unauthorizedCatalogSearchFailsThePreconditionInsteadOfPassingByShape() {
+        var search = exchange(PracticeShopApiOperation.SEARCH.wireValue(), PracticeShopApiRoutes.PRODUCT_SEARCH,
+                PracticeShopApiHttpStatus.UNAUTHORIZED,
+                "", "{\"message\":\"Unauthorized\"}");
+        var detail = exchange(HttpMethod.GET.value(), PracticeShopApiRoutes.product("p-1"),
+                PracticeShopApiHttpStatus.OK, "", "{\"id\":\"p-1\",\"name\":\"Pliers\"}");
+
+        var assertions = PracticeShopApiAssertions.product(search, detail, "Pliers", "p-1");
+
+        assertFalse(assertions.stream().anyMatch(a ->
+                a.name().equals("API precondition · catalog search") && a.passed()));
+    }
+
     private static PracticeShopApiNetworkJournal.Exchange exchange(String method, String path,
                                                                      PracticeShopApiHttpStatus status,
                                                                      String requestBody, String responseBody) {

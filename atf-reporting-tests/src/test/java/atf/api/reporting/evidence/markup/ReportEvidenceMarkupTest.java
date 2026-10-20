@@ -1,6 +1,7 @@
 package atf.api.reporting.evidence.markup;
 
 import atf.api.testkit.AtfUnitTest;
+import atf.api.reporting.contract.AtfReportStatus;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -31,5 +32,26 @@ class ReportEvidenceMarkupTest {
                 ReportEvidenceMarkup.disclosureStart("request-evidence", "Request details")
                         + "payload"
                         + ReportEvidenceMarkup.disclosureEnd());
+    }
+
+    @Test
+    void typedDisclosureOwnsEvidenceMetadataWithoutDuplicatingTheShell() {
+        String markup = ReportEvidenceMarkup.disclosure(
+                ReportEvidenceDisclosure.withEvidenceStatus(
+                        "setup-evidence atf-setup-evidence", "Setup evidence · 1 checks",
+                        "body", "report-setup", AtfReportStatus.PASS));
+
+        assertTrue(markup.startsWith("<details class=\"step-detail setup-evidence atf-setup-evidence\""));
+        assertTrue(markup.contains("data-atf-evidence-type=\"report-setup\""));
+        assertTrue(markup.contains("data-atf-evidence-status=\"pass\""));
+        assertTrue(markup.endsWith("</div></details>"));
+    }
+
+    @Test
+    void statusBadgeNormalizesNullAndUsesTheCanonicalVocabulary() {
+        assertEquals("<span class=\"status status-info\">Info</span>",
+                ReportEvidenceMarkup.statusBadge(null));
+        assertEquals("<span class=\"status status-fail\">Fail</span>",
+                ReportEvidenceMarkup.statusBadge(AtfReportStatus.FAIL));
     }
 }

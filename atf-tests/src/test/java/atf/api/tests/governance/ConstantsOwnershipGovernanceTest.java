@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Prevents canonical protocol identities from leaking back into audited tests. */
 @AtfComponentTest
-class ConstantsOwnershipGovernanceTest {
+public class ConstantsOwnershipGovernanceTest {
     private static final List<String> REVIEWED_SOURCES = List.of(
             "atf-mock/src/main/java/atf/api/mock/AtfMockConfiguration.java",
             "atf-validation/src/main/java/atf/api/validation/contract/ContractValidators.java",

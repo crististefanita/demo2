@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Shared filesystem and Maven assertions for the whole-ATF governance suite. */
-final class AtfGovernanceTestSupport {
+public final class AtfGovernanceTestSupport {
     private static final String JAVA_SUFFIX = ".java";
     static final int PACKAGE_COHESION_LIMIT = 8;
     static final List<String> PRODUCTION_MODULES = AtfModuleIds.SOURCE_GOVERNED_MODULES;
@@ -26,15 +26,15 @@ final class AtfGovernanceTestSupport {
             "atf.api.reporting.runtime.core",
             "runtime core fragments share the single generated-script publication boundary",
             "atf.api.reporting.runtime.section",
-            "Extent runtime section facades and their typed JS fragments share one publication boundary");
+            "Extent runtime section facades and their typed JS fragments share one publication boundary",
+            "atf.api.reporting.evidence",
+            "typed evidence table normalization and HTML evidence rendering share one stable reporting boundary");
     /** The whole-reactor suite is intentionally kept together as one readable gate. */
-    static final Map<String, String> REVIEWED_TEST_COHESION_EXCEPTIONS = Map.of(
-            "atf-tests:atf.api.tests.governance",
-            "one explicit whole-ATF gate keeps the governance checks discoverable and runnable together");
+    static final Map<String, String> REVIEWED_TEST_COHESION_EXCEPTIONS = Map.of();
     private AtfGovernanceTestSupport() {
     }
 
-    static Path locateProjectRoot() {
+    public static Path locateProjectRoot() {
         Path current = Path.of(System.getProperty("user.dir", "."))
                 .toAbsolutePath().normalize();
         while (current != null) {

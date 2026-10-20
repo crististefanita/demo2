@@ -1,6 +1,7 @@
-window.atfOpenTest = function (id, scenarioIndex) {
+window.atfOpenTest = function (id, scenarioIndex, expansion) {
   var hash = 'test-id=' + id;
   if (scenarioIndex !== undefined) hash += '&scenario-index=' + scenarioIndex;
+  if (expansion) hash += '&expand=' + expansion;
   window.location.hash = hash;
   atfActivate('test-view');
   var item = document.querySelector('.test-item[test-id="' + id + '"]');
@@ -16,6 +17,7 @@ window.atfOpenTest = function (id, scenarioIndex) {
           card = detailCards[index];
         if (card) {
           openScenarioCard(card);
+          if (expansion === 'screen-validation') openScenarioAuditPath(card);
         }
       }, 120);
     }
@@ -101,12 +103,15 @@ function activateFromHash() {
   else if (view.indexOf('test-id=') === 0) {
     var parts = hash.split('&'),
       id = decodeURIComponent(view.substring(8)),
-      scenario;
+      scenario,
+      expansion;
     parts.forEach(function (part) {
       if (part.indexOf('scenario-index=') === 0)
         scenario = decodeURIComponent(part.substring(15));
+      if (part.indexOf('expand=') === 0)
+        expansion = decodeURIComponent(part.substring(7));
     });
-    atfOpenTest(id, scenario);
+    atfOpenTest(id, scenario, expansion);
   }
 }
 window.addEventListener('hashchange', activateFromHash);

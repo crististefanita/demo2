@@ -14,7 +14,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ExtentReportRuntimeNavigationComponentTest {
     private static final List<String> FUNCTIONS = List.of(
             "normalizeCodeBlocks", "normalizeDisclosureState", "captureDomContract",
-            "openScenarioCard", "collapseDirectScenarioCards", "collapseScenarioCards",
+            "openScenarioCard", "openDeepLinkCard", "openScenarioAuditPath",
+            "collapseDirectScenarioCards", "collapseScenarioCards",
             "toggleScenario", "initializeScenarioCard", "bindScenarioCollapse",
             "watchScenarioCards", "phaseDirectBody", "applyPhaseBodyState",
             "bindPhaseCollapse", "nodePanel", "bindNodeCollapse", "activateFromHash",
@@ -48,6 +49,8 @@ class ExtentReportRuntimeNavigationComponentTest {
                 () -> assertTrue(disclosure.contains("function nodePanel(")),
                 () -> assertTrue(controller.contains("window.atfOpenTest=function")),
                 () -> assertTrue(controller.contains("function activateFromHash(")),
+                () -> assertTrue(controller.contains("screen-validation")),
+                () -> assertTrue(disclosure.contains("function openScenarioAuditPath(")),
                 () -> assertTrue(controller.contains("function normalizeNavigationLinks(")),
                 () -> assertFalse(dom.contains("window.atfActivate=function")),
                 () -> assertFalse(disclosure.contains("window.atfActivate=function")));

@@ -56,12 +56,13 @@ public final class SectionAuditDynamicEngine {
         return DynamicTest.dynamicTest(ExtentSectionGherkin.overviewSecondaryExpansionProposition(),
                 () -> fixture.audit().auditResult("ATF metadata sections expansion", audit -> {
                     Page overview = fixture.audit().openTab(ReportUiContract.Tab.OVERVIEW.hash());
-                    var result = new OverviewSecondaryContractValidator()
-                            .validateExpansion(overview, fixture.audit().actions());
+                    var expansion = new OverviewSecondaryContractValidator()
+                            .validateExpansionWithEvidence(overview, fixture.audit().actions(),
+                                    () -> fixture.audit().capture(overview,
+                                            "ATF metadata sections expanded"));
                     audit.screen("ATF metadata sections expansion", "Overview / secondary metadata",
-                            fixture.audit().capture(overview, "ATF metadata sections expansion"),
-                            result.assertions(), status(result.valid()));
-                    assertTrue(result.valid(), result::failureSummary);
+                            expansion.expandedEvidence(), expansion.assertions(), status(expansion.valid()));
+                    assertTrue(expansion.valid(), expansion::failureSummary);
                     return null;
                 }));
     }

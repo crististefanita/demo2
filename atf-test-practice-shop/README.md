@@ -11,9 +11,9 @@
 
 ```mermaid
 flowchart LR
-    Config["config"] --> Runtime["consumer runtime"]
-    Runtime --> Pyramid["test layers"]
-    Pyramid --> Evidence["report + console"]
+    Config["config"] -->|încarcă| Runtime["consumer runtime"]
+    Runtime -->|organizează| Pyramid["test layers"]
+    Pyramid -->|publică| Evidence["report + console"]
 ```
 
 <details>
@@ -40,11 +40,11 @@ Surse de aprofundare:
 
 ```mermaid
 flowchart LR
-    Config["config"] --> Routes["routes + locators"]
-    Routes --> Pages["page objects"]
-    Pages --> Flows["semantic flows"]
-    Flows --> Roots["test composition roots"]
-    Roots --> Evidence["report + console"]
+    Config["config"] -->|furnizează| Routes["routes + locators"]
+    Routes -->|alimentează| Pages["page objects"]
+    Pages -->|compun| Flows["semantic flows"]
+    Flows -->|dețin| Roots["test composition roots"]
+    Roots -->|publică| Evidence["report + console"]
 ```
 
 <details>
@@ -87,9 +87,9 @@ Packaging-ul este intenționat:
 
 ```mermaid
 flowchart LR
-    Component["component"] --> ApiIntegration["API integration"]
-    ApiIntegration --> E2e["selected E2E"]
-    E2e --> Artifact["auditable evidence"]
+    Component["component"] -->|acoperă| ApiIntegration["API integration"]
+    ApiIntegration -->|selectează| E2e["selected E2E"]
+    E2e -->|produce| Artifact["auditable evidence"]
 ```
 
 <details>
@@ -167,11 +167,11 @@ a schimba mediul.
 
 ```mermaid
 flowchart LR
-    Yaml["atf-practice-shop.yaml"] --> Loader["configuration loader"]
-    Loader --> Snapshot["immutable configuration"]
-    Snapshot --> Policy["validation + API precondition"]
-    Snapshot --> Paths["relative routes + report paths"]
-    Policy --> Roots["test composition roots"]
+    Yaml["atf-practice-shop.yaml"] -->|încarcă| Loader["configuration loader"]
+    Loader -->|creează| Snapshot["immutable configuration"]
+    Snapshot -->|configurează| Policy["validation + API precondition"]
+    Snapshot -->|rezolvă| Paths["relative routes + report paths"]
+    Policy -->|ghidează| Roots["test composition roots"]
 ```
 
 <details>
@@ -251,10 +251,10 @@ Reguli de configurare:
 
 ```mermaid
 flowchart LR
-    Contract["page contract"] --> Validator["screen validator"]
-    Validator --> Locators["semantic locators"]
-    Locators --> Assertions["typed assertions"]
-    Assertions --> Checkpoint["checkpoint evidence"]
+    Contract["page contract"] -->|ghidează| Validator["screen validator"]
+    Validator -->|folosește| Locators["semantic locators"]
+    Locators -->|produce| Assertions["typed assertions"]
+    Assertions -->|publică| Checkpoint["checkpoint evidence"]
 ```
 
 <details>
@@ -288,6 +288,10 @@ Reguli pentru selectors:
 
 - `PracticeShopLocators` este singurul owner al selectorilor;
 - se preferă locatorii semantici și forma stabilă `element[attribute=value]`;
+- pentru un produs configurat se folosește `PracticeShopProductSelector`, cu
+  `a[data-test^='product-']:has([data-test='product-name']:text-is(...))`;
+  potrivirea exactă este obligatorie pentru a nu selecta accidental un produs
+  cu nume parțial, indisponibil sau cu alt contract de cumpărare;
 - clasele CSS generate, textul parțial și XPath-ul ambiguu nu sunt fallback-uri;
 - valorile dinamice inserate în CSS trec prin `PracticeShopCssEscaper`;
 - `PracticeShopArchitectureTest` apără boundary-ul și scanează și package-ul `component`.
@@ -308,10 +312,10 @@ Purchase-ul guest păstrează un număr mic de teste și mai multe dovezi locale
 
 ```mermaid
 flowchart LR
-    Routes["route vocabulary"] --> Factory["request factory"]
-    Factory --> ScreenFlow["screen API flow"]
-    ScreenFlow --> Journal["network journal"]
-    Journal --> Evidence["request · response · execution"]
+    Routes["route vocabulary"] -->|alimentează| Factory["request factory"]
+    Factory -->|construiește| ScreenFlow["screen API flow"]
+    ScreenFlow -->|înregistrează| Journal["network journal"]
+    Journal -->|publică| Evidence["request · response · execution"]
 ```
 
 <details>
@@ -344,13 +348,45 @@ Variațiile de status, body și query rămân în component tests. Nu se introdu
 catalog mock sau dependency `atf-mock` în acest consumer. Integration folosește
 API-ul live numai prin opt-in explicit.
 
+Regula de evidență este strictă: fixture-ul deterministic este permis pentru
+contracte component, variante și erori izolate; un raport prezentat ca dovadă
+a flow-ului business trebuie să publice provenance `LIVE_HTTP` și să compare
+datele reale ale produsului, cart-ului și payment-ului. Un artifact cu
+`ACCEPTANCE_MOCK` nu este verdict business, chiar dacă assertions-urile
+structurale sunt verzi.
+
+Separarea raporturilor este obligatorie:
+
+| Scop | Owner | Transport | Verdict |
+|---|---|---|---|
+| contract/variante | `api/component/PracticeShopApiContractReportComponentTest` | fixture deterministic local | contract component; niciodată dovadă business |
+| flow business | `api/integration/PracticeShopStandaloneApiReportTest` | `PracticeShopApiClient.live(...)` | numai `LIVE_HTTP`, cu assertions exacte pe login/catalog/cart/payment |
+
+Raportul live este fail-closed: provenance `ACCEPTANCE_MOCK` sau `UNKNOWN`,
+un status non-2xx, o validare business eșuată ori un exchange lipsă propagă
+failure-ul în `TEST BODY` și în tab-ul `Fails`. Dacă login-ul live nu trece,
+se publică numai evidence-ul exchange-ului real și testul se oprește; nu se
+continuă cu cart/payment simulate. Rularea explicită este:
+
+```text
+mvn -pl atf-test-practice-shop -am test -Dtest=atf.ui.tests.practiceshop.api.integration.PracticeShopStandaloneApiReportTest -Datf.practice.authenticated-e2e=true -Datf.practice.api-mode=live
+```
+
+Raportul live trebuie explorat în MCP/Chromium headless pe `Tests`, `Fails`
+și `Overview`; un run cu `401` este evidence de precondiție externă eșuată,
+nu un PASS degradat și nu un motiv pentru a activa mock-ul.
+În cazul unui failure UI real, `atf-reporting` proiectează în `Fails` cardul
+`Failure evidence` și cauza concretă înaintea unei validări semantice verzi;
+Practice Shop nu adaugă assertions artificiale pentru a influența această
+proiecție.
+
 ### API evidence în UI
 
 ```mermaid
 flowchart LR
-    Checkpoint["UI checkpoint"] --> Payload["assertions + evidence"]
-    Payload --> Capture["screenshot policy"]
-    Capture --> Extent["Extent step"]
+    Checkpoint["UI checkpoint"] -->|conține| Payload["assertions + evidence"]
+    Payload -->|selectează| Capture["screenshot policy"]
+    Capture -->|creează| Extent["Extent step"]
 ```
 
 <details>
@@ -374,13 +410,38 @@ flowchart LR
 
 </details>
 
+### Traceability contract pentru API în UI
+
+Fiecare exchange publicat în checkpoint păstrează metadata causală comună cu
+publisher-ul API: `EVENT ID`, `SEQUENCE`, `PHASE`, `ROLE`, `STEP ID`,
+`INITIATOR`, `CORRELATION`, `REQUEST SIGNATURE`, body digests, source,
+`EXPECTED` și `OBSERVED`. Signature-ul este calculat din method + safe target +
+digestul body-ului JSON canonicalizat; obiectele JSON sunt sortate, array-urile
+își păstrează ordinea, iar body absent este diferit de `{}`.
+
+`API diagnostics — unique request signatures` este numai proiecția compactă:
+arată separat `observations` și `unique signatures` cu count. Trace-ul ordonat și
+metadata fiecărui exchange rămân în disclosure-ul `Execution evidence`, astfel
+un request repetat nu este confundat cu un retry și un body diferit nu este
+grupat cu primul request doar pentru că ruta este aceeași.
+
+Regula de citire este:
+
+```text
+SETUP/precondition → UI action → 0..n API exchanges → business assertion → read-back/cleanup
+```
+
+Body-ul sau headers-ul afișate nu sunt assertions. `PracticeShopApiAssertions`
+publică separat status, JSON path, identity, quantity, payment message și trace;
+un `PASS` business nu poate fi produs doar prin faptul că body-ul este vizibil.
+
 ## Consolă diagnostică
 
 ```mermaid
 flowchart LR
-    Flow["UI / API flow"] --> Observe["observations"]
-    Observe --> Projection["console + reporting"]
-    Projection --> Outputs["diagnostic + HTML"]
+    Flow["UI / API flow"] -->|emite| Observe["observations"]
+    Observe -->|proiectează în| Projection["console + reporting"]
+    Projection -->|produce| Outputs["diagnostic + HTML"]
 ```
 
 <details>
@@ -432,9 +493,6 @@ se pot schimba dinamic.
 <details>
 <summary><strong>ToDo-uri active după ultima reconciliere live</strong></summary>
 
-- `SHOP-CONFIG-01` — parțial doar cross-module: seam-ul local PASS/FAIL este
-  închis și testat; compatibilitatea UI-only și parity-ul generic se auditează
-  în ownerul reporting;
 - `SHOP-CONSOLE-02` — cross-module: porturile console core/reporting au nevoie
   de decizie ATF, nu de mapping duplicat în Practice Shop;
 - `SHOP-NET-02` — mediu extern: warning-urile de bootstrap anonim rămân vizibile

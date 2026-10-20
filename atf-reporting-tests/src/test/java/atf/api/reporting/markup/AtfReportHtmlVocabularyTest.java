@@ -85,4 +85,18 @@ class AtfReportHtmlVocabularyTest {
         assertEquals("id=\"&lt;report&gt;\"",
                 AtfReportHtmlVocabulary.idAttribute("<report>"));
     }
+
+    @Test
+    void keepsFallbackProjectionClassesInTheTypedVocabulary() {
+        assertAll(
+                () -> assertEquals("class=\"tag-list\"",
+                        AtfReportHtmlVocabulary.classAttribute(
+                                AtfReportHtmlVocabulary.CssClass.TAG_LIST)),
+                () -> assertEquals("class=\"metric\"",
+                        AtfReportHtmlVocabulary.classAttribute(
+                                AtfReportHtmlVocabulary.CssClass.METRIC)),
+                () -> assertEquals("class=\"fail-list\"",
+                        AtfReportHtmlVocabulary.classAttribute(
+                                AtfReportHtmlVocabulary.CssClass.FAIL_LIST)));
+    }
 }

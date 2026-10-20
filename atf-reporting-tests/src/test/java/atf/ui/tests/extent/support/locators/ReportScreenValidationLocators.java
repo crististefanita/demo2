@@ -15,6 +15,9 @@ final class ReportScreenValidationLocators {
     private static final String OBSERVATION_ZONE = "details[class~='atf-ui-observations']";
     private static final String ASSERTION_ZONE = "details[class~='assertion-evidence']";
     private static final String SCREEN_VALIDATION_ZONE = ACTION_ZONE + "," + OBSERVATION_ZONE + "," + ASSERTION_ZONE;
+    private static final String EVIDENCE_TABLES =
+            "table.atf-ui-action-table,table.atf-ui-observation-table,"
+                    + "table.helm-validation-table,table.atf-setup-evidence-table";
     private static final String SETUP_EVIDENCE = "[class~='atf-setup-evidence'][data-atf-evidence-type='report-setup']";
 
     private final ReportPageLocators pages;
@@ -98,6 +101,9 @@ final class ReportScreenValidationLocators {
     Locator screenValidationObservations(Locator card) { return card.locator(OBSERVATION_ZONE); }
     Locator screenValidationAssertionTables(Locator card) {
         return card.locator("table[class~='helm-validation-table']");
+    }
+    Locator screenValidationEvidenceTables(Locator card) {
+        return card.locator(EVIDENCE_TABLES);
     }
     Locator setupEvidence(Locator scope) { return scope.locator(SETUP_EVIDENCE); }
     Locator setupEvidenceRows(Locator evidenceLocator) {

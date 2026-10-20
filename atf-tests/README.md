@@ -2,20 +2,21 @@
 
 ## Overall
 
-`atf-tests` este modulul de control al proiectului ATF. Conține doar teste de
-guvernanță pentru reactor, boundary-uri Maven/source și gates de arhitectură.
-Nu este owner pentru teste de produs și nu conține locatori, page objects sau
-flow-uri Practice Shop. În live mai există un adaptor UI de compatibilitate în
-`src/test/java/atf/ui/tests/support/reporting`; acesta nu este test executabil,
-dar rămâne reziduu de structură și este urmărit prin
-[`REP-BOUNDARY-01`](../docs/feedback/README.md) și `TEST-ARCH-07`.
+- `atf-tests` este modulul de control al proiectului ATF;
+- verifică reactorul, boundary-urile Maven/source și gate-urile de arhitectură;
+- nu este owner pentru teste de produs;
+- nu conține locatori, page objects sau flow-uri Practice Shop;
+- adaptorul UI de compatibilitate din
+  `src/test/java/atf/ui/tests/support/reporting` nu este test executabil;
+- reziduul este urmărit prin [`REP-BOUNDARY-01`](../docs/feedback/README.md) și
+  `TEST-ARCH-07`.
 
 ```mermaid
 flowchart LR
-    Root["root POM"] --> Governance["governance"]
-    Governance --> Checks["architecture + runtime guards"]
-    Governance -. guards .-> Consumers["consumer modules"]
-    Consumers --> Libraries["ATF libraries"]
+    Root["root POM"] -->|alimentează| Governance["governance"]
+    Governance -->|verifică| Checks["architecture + runtime guards"]
+    Governance -.->|protejează| Consumers["consumer modules"]
+    Consumers -->|folosesc| Libraries["ATF libraries"]
 ```
 
 <details>
@@ -34,7 +35,7 @@ flowchart LR
 |---|---|---|
 | reactor, POM și dependency direction | `atf-tests` | nu modifică production code |
 | source/package ownership și module placement | `ArchitectureModuleBoundaryTest`, `ArchitectureOwnershipBoundaryTest` | nu deține selectorii unei aplicații |
-| documentație relocabilă și surse coerente | `DynamicPathDocumentationArchitectureTest`, `AtfSourceReadabilityGovernanceTest` | nu validează conținutul unui singur consumer |
+| documentație relocabilă și surse coerente | `governance.documentation.*`, `AtfSourceReadabilityGovernanceTest` | nu validează conținutul unui singur consumer |
 | ownership de constante și coeziune de package | `ConstantsOwnershipGovernanceTest`, `AtfPackageCohesionGovernanceTest` | excepțiile trebuie să fie explicite |
 | Practice Shop purchase journey | `atf-test-practice-shop` | nu se copiază aici |
 | reporting contract/API/UI composition | `atf-reporting-tests` | nu se mută în governance |
@@ -50,8 +51,15 @@ src/test/java/atf/api/tests/governance/
 ├── AtfGovernanceTestSupport.java
 ├── AtfSourceReadabilityGovernanceTest.java
 ├── ConstantsOwnershipGovernanceTest.java
-├── DocumentationDiagramGovernanceTest.java
-├── DynamicPathDocumentationArchitectureTest.java
+├── documentation/
+│   ├── DocumentationDiagramGovernanceTest.java
+│   ├── DocumentationProseGovernanceTest.java
+│   ├── DocumentationReadmeStructureGovernanceTest.java
+│   ├── DocumentationStyleGovernanceTest.java
+│   ├── DocumentationTarget.java
+│   ├── DocumentationTargetGovernanceTest.java
+│   ├── DocumentationGovernanceSupport.java
+│   └── DynamicPathDocumentationArchitectureTest.java
 └── WholeAtfGovernanceSuiteTest.java
 ```
 
@@ -70,10 +78,43 @@ testelor de reporting în acest modul:
   fully-qualified care ascund intenția testului;
 - `ConstantsOwnershipGovernanceTest` — vocabularul de protocol, rute și
   boundary-ul reporting standalone;
-- `DynamicPathDocumentationArchitectureTest` — documentație relocabilă, fără
-  căi de mașină sau nume de artifact generate concret.
-- `DocumentationDiagramGovernanceTest` — orientare `LR`, legendă imediată,
-  fence-uri echilibrate și relații etichetate în README-urile non-root.
+- `governance.documentation.DynamicPathDocumentationArchitectureTest` — documentație
+  relocabilă, fără căi de mașină sau nume de artifact generate concret;
+- `governance.documentation.DocumentationReadmeStructureGovernanceTest` — un titlu,
+  orientare `Overall`, `<details>` echilibrate și linkuri locale rezolvabile în
+  toate README-urile și în `docs/ATF_Architecture.md`;
+- `governance.documentation.DocumentationStyleGovernanceTest` — stil semantic ATF:
+  fence-uri tipizate, headings fără salturi, bullets `-` și fără font/CSS/HTML
+  prezentational în README-uri și în documentul arhitectural canonic;
+- `governance.documentation.DocumentationProseGovernanceTest` — limitează proza
+  rapid scan la cel mult trei propoziții pe paragraf și două paragrafe dense
+  consecutive; responsabilitățile, limitele și relațiile dense trebuie mutate în
+  bullets, tabele, diagrame sau `<details>`;
+- `governance.documentation.DocumentationTargetGovernanceTest` — exemplu
+  plug-and-play cu `@DocumentationTarget("atf-test-practice-shop/README.md")`; aceeași clasă
+  poate valida orice README prin toate modulele de documentație;
+- `governance.documentation.DocumentationDiagramGovernanceTest` — orientare `LR`,
+  legendă imediată, fence-uri echilibrate și relații etichetate în README-urile
+  non-root;
+- `governance.documentation.DocumentationGovernanceSupport` — vocabular comun pentru
+  diagnostice: cod, fișier, linie, regulă și remediere. Nu ascunde excepții și nu
+  transformă un feedback în „pass”.
+
+Fiecare abatere de documentație trebuie să indice dinamic: ce fișier și linie au
+fost găsite, ce regulă este încălcată și ce modificare minimă o poate remedia.
+Un README poate rămâne intenționat roșu în timpul reconcilierii; suita trebuie să
+facă gap-ul reproductibil, nu să-l îngroape într-o excepție.
+
+Pentru o verificare punctuală, se schimbă doar valoarea adnotării:
+
+```java
+@DocumentationTarget("atf-reporting/README.md")
+class ReportingReadmeGovernanceTest {
+}
+```
+
+Testul țintit apelează aceleași validatoare ca suita whole-ATF: structură,
+stil, proză, diagrame, relocatabilitate și nume de artifacte.
 
 Astfel, `atf-reporting-tests` nu mai deține verificări care inspectează întregul
 repository; păstrează doar boundary-ul API/UI propriu compoziției reporting.

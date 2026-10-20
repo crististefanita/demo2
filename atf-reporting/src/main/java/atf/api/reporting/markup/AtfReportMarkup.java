@@ -1,9 +1,12 @@
 package atf.api.reporting.markup;
 import atf.api.reporting.evidence.EvidenceTableFormatter;
+import atf.api.reporting.evidence.ReportEvidenceTable;
 import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
 import atf.api.reporting.theme.tokens.AtfReportCssProperty;
 
 import com.aventstack.extentreports.markuputils.Markup;
+
+import java.util.List;
 
 /** Builds the semantic evidence tables consumed by the shared report theme. */
 public final class AtfReportMarkup {
@@ -14,7 +17,18 @@ public final class AtfReportMarkup {
         return () -> tableHtml(cssClass, rows);
     }
 
+    public static Markup table(String cssClass, ReportEvidenceTable table) {
+        return () -> tableHtml(cssClass, table);
+    }
+
     public static String tableHtml(String cssClass, String[][] rows) {
+        return tableHtml(cssClass, ReportEvidenceTable.from(rows));
+    }
+
+    public static String tableHtml(String cssClass, ReportEvidenceTable table) {
+        ReportEvidenceTable safeTable = table == null
+                ? ReportEvidenceTable.from(null)
+                : table;
         var html = new StringBuilder();
         if (isTraceTable(cssClass)) {
             html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.DIV,
@@ -30,7 +44,7 @@ public final class AtfReportMarkup {
         }
         html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TABLE,
                 AtfReportHtmlVocabulary.classAttribute(cssClass)));
-        if (isKeyValueEvidenceTable(cssClass) && rows != null && rows.length > 0) {
+        if (isKeyValueEvidenceTable(cssClass) && !safeTable.headers().isEmpty()) {
             html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.COLGROUP))
                     .append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.COL,
                             AtfReportHtmlVocabulary.classAttribute(
@@ -45,14 +59,14 @@ public final class AtfReportMarkup {
         }
         html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.THEAD))
                 .append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TR));
-        if (rows == null || rows.length == 0) {
+        if (safeTable.headers().isEmpty()) {
             return html.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TR))
                     .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.THEAD))
                     .append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TBODY))
                     .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TBODY))
                     .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TABLE)).toString();
         }
-        for (String value : rows[0]) {
+        for (String value : safeTable.headers()) {
                     html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TH))
                     .append(AtfReportHtmlVocabulary.escapeHtml(value))
                     .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TH));
@@ -60,16 +74,19 @@ public final class AtfReportMarkup {
         html.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TR))
                 .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.THEAD))
                 .append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TBODY));
-        for (int rowIndex = 1; rowIndex < rows.length; rowIndex++) {
+        for (List<String> row : safeTable.rows()) {
             html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TR));
-            for (int columnIndex = 0; columnIndex < rows[rowIndex].length; columnIndex++) {
-                String value = rows[rowIndex][columnIndex];
-                if (isKeyValueEvidenceTable(cssClass) && columnIndex == 1) {
-                    value = EvidenceTableFormatter.displayValue(rows[rowIndex][0], value);
+            for (int columnIndex = 0; columnIndex < row.size(); columnIndex++) {
+                String value = row.get(columnIndex);
+                if (isKeyValueEvidenceTable(cssClass) && columnIndex == 1 && !row.isEmpty()) {
+                    value = EvidenceTableFormatter.displayValue(row.get(0), value);
                 }
-                html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TD))
+                var cellTag = table.firstColumnHeader() && columnIndex == 0
+                        ? AtfReportHtmlVocabulary.Tag.TH
+                        : AtfReportHtmlVocabulary.Tag.TD;
+                html.append(AtfReportHtmlVocabulary.openTag(cellTag))
                         .append(AtfReportHtmlVocabulary.escapeHtml(value))
-                        .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TD));
+                        .append(AtfReportHtmlVocabulary.closeTag(cellTag));
             }
             html.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TR));
         }

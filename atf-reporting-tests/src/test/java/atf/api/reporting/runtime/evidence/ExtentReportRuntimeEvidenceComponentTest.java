@@ -5,6 +5,7 @@ import atf.api.testkit.AtfUnitTest;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -45,7 +46,21 @@ class ExtentReportRuntimeEvidenceComponentTest {
             assertTrue(names.add(name), () -> "Duplicate evidence function: " + name);
         }
 
-        assertEquals(17, names.size());
+        Set<String> ownerNames = new HashSet<>();
+        for (String ownerScript : List.of(
+                ExtentReportRuntimeEvidenceRoles.script(),
+                ExtentReportRuntimeEvidenceDisclosure.script(),
+                ExtentReportRuntimeEvidenceFailures.script(),
+                ExtentReportRuntimeEvidenceTableLayout.script())) {
+            Matcher ownerMatcher = FUNCTION.matcher(ownerScript);
+            while (ownerMatcher.find()) {
+                String owner = ownerMatcher.group(1);
+                assertTrue(ownerNames.add(owner),
+                        () -> "Evidence function has multiple owners: " + owner);
+            }
+        }
+        assertEquals(ownerNames, names,
+                "the facade must publish exactly the functions owned by its typed fragments");
         assertNotEquals(-1, script.indexOf("var atfLegacyNormalizeEvidenceDisclosures="));
         assertFalse(ExtentReportRuntimeEvidenceRoles.script().contains("appendUiFailureEvidence"));
         assertFalse(ExtentReportRuntimeEvidenceDisclosure.script().contains("uiFailureSource"));

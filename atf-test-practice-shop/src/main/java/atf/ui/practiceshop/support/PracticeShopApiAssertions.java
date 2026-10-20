@@ -37,11 +37,14 @@ public final class PracticeShopApiAssertions {
     public static List<AtfAssertion> product(PracticeShopApiNetworkJournal.Exchange search,
                                       PracticeShopApiNetworkJournal.Exchange detail,
                                       String productName, String productId) {
+        boolean searchSucceeded = search != null
+                && SUCCESS_STATUS.matches(search.status())
+                && search.isJsonResponse();
         return List.of(
                 check("API precondition · catalog search",
                         PracticeShopApiOperation.SEARCH.wireValue() + " "
                                 + PracticeShopApiRoutes.PRODUCT_SEARCH + " · " + SUCCESS_STATUS.wireValue(),
-                        search.reportSummary(), true),
+                        search == null ? "missing" : search.reportSummary(), searchSucceeded),
                 check("API request query · catalog search",
                         PracticeShopApiQueryParameter.SEARCH.wireValue() + "=" + productName,
                         search.requestBody().isBlank()

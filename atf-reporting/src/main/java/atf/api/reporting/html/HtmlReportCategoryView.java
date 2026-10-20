@@ -14,8 +14,14 @@ public final class HtmlReportCategoryView {
                 .append(' ')
                 .append(AtfReportHtmlVocabulary.classAttribute(
                         AtfReportHtmlVocabulary.CssClass.TAB_PANEL))
-                .append("><h2>Category</h2><div class=\"tag-list\">");
-        snapshot.categories().tags().forEach(tag -> html.append("<span class=\"tag\">")
+                .append("><h2>Category</h2><div ")
+                .append(AtfReportHtmlVocabulary.classAttribute(
+                        AtfReportHtmlVocabulary.CssClass.TAG_LIST))
+                .append(">");
+        snapshot.categories().tags().forEach(tag -> html.append("<span ")
+                .append(AtfReportHtmlVocabulary.classAttribute(
+                        AtfReportHtmlVocabulary.CssClass.TAG))
+                .append(">")
                 .append(escape(tag)).append("</span>"));
         return html.append("</div></section>").toString();
     }

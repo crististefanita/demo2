@@ -30,6 +30,9 @@ final class ReportPageLocators {
     private static final String IMAGES = "img";
     private static final String SECONDARY_BODY = "[class~='atf-secondary-body']";
     private static final String TAG_AUDIT_BODY = "[class~='atf-tag-audit-body']";
+    private static final String VISIBLE_CLOSED_SECONDARY_BODIES =
+            "details:not([open]) > " + SECONDARY_BODY + ":visible,details:not([open]) > "
+                    + TAG_AUDIT_BODY + ":visible";
 
     Locator exactText(Locator scope, String text) {
         return scope.getByText(text, new Locator.GetByTextOptions().setExact(true));
@@ -100,6 +103,12 @@ final class ReportPageLocators {
         return overview.locator(ReportUiContract.OVERVIEW_EXECUTION_METADATA_GRID
                 + " " + ReportUiContract.OVERVIEW_SECONDARY_METRIC);
     }
+    Locator overviewTagAuditTables(Locator overview) {
+        return overviewSecondaryZoneBody(overview, ReportUiContract.OverviewSection.TAG_AUDIT)
+                .locator(ReportLocatorSupport.classSelector("table", "atf-tag-table"));
+    }
+    Locator tableHeaders(Locator table) { return table.locator("thead th"); }
+    Locator tableRows(Locator table) { return table.locator("tbody tr"); }
     Locator overviewExecutionMetadata(Locator overview) { return overview.locator(EXECUTION_METADATA); }
     Locator overviewSecondaryZones(Locator overview) { return overview.locator(SECONDARY_OVERVIEW_ZONES); }
     Locator overviewSecondaryZone(Locator overview, ReportUiContract.OverviewSection zone) {
@@ -111,6 +120,9 @@ final class ReportPageLocators {
     }
     Locator overviewOpenSecondaryZones(Locator overview) {
         return overview.locator(SECONDARY_OVERVIEW_ZONES.replace("details", "details[open]"));
+    }
+    Locator overviewVisibleClosedSecondaryBodies(Locator overview) {
+        return overview.locator(VISIBLE_CLOSED_SECONDARY_BODIES);
     }
     Locator overviewPackageRows(Locator overview) {
         return overview.locator(ReportUiContract.OverviewSection.PACKAGE_AUDIT.selector()

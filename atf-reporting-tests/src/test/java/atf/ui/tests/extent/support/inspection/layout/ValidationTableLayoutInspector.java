@@ -4,7 +4,7 @@ import com.microsoft.playwright.Locator;
 
 import java.util.Objects;
 
-/** Browser adapter that audits the runtime-generated assertion column layout. */
+/** Browser adapter that audits the shared runtime-generated evidence-table layout. */
 public final class ValidationTableLayoutInspector {
     public Result inspect(Locator table) {
         Objects.requireNonNull(table, "table");
@@ -12,25 +12,29 @@ public final class ValidationTableLayoutInspector {
                 element => {
                   const rows = Array.from(element.rows || []);
                   const count = rows.length ? rows[0].cells.length : 0;
-                  const longest = [];
-                  for (const row of rows) {
-                    Array.from(row.cells || []).forEach((cell, index) => {
-                      const value = String(cell.textContent || '').replace(/\\s+/g, ' ').trim();
-                      longest[index] = Math.max(longest[index] || 0, value.length);
-                    });
-                  }
-                  const widths = String(element.getAttribute('data-atf-validation-column-widths') || '')
+                  const maxPx = String(element.getAttribute('data-atf-content-column-max-px') || '')
                     .split('|').filter(Boolean).map(value => Number.parseFloat(value));
-                  const flexible = longest.slice(0, Math.max(0, count - 1));
-                  const longestIndex = flexible.length
-                    ? flexible.indexOf(Math.max(...flexible)) : -1;
-                  const widestIndex = widths.length > 1
-                    ? widths.slice(0, -1).indexOf(Math.max(...widths.slice(0, -1))) : -1;
+                  const headers = rows.length && rows[0].cells
+                    ? Array.from(rows[0].cells).map(cell => String(cell.textContent || '').trim().toLowerCase())
+                    : [];
+                  const contentIndexes = Array.from({length: count}, (_, index) => index)
+                    .filter(index => !/(^|\\b)(result|status|outcome|time|duration|attempt|attempts)(\\b|$)/.test(headers[index] || ''));
+                  const widths = String(element.getAttribute('data-atf-content-column-widths')
+                    || element.getAttribute('data-atf-validation-column-widths') || '')
+                    .split('|').filter(Boolean).map(value => Number.parseFloat(value));
+                  const longestIndex = contentIndexes.length
+                    ? contentIndexes.reduce((best, index) => maxPx[index] > maxPx[best] ? index : best,
+                        contentIndexes[0]) : -1;
+                  const widestIndex = contentIndexes.length
+                    ? contentIndexes.reduce((best, index) => widths[index] > widths[best] ? index : best,
+                        contentIndexes[0]) : -1;
                   return [
-                    element.getAttribute('data-atf-validation-layout') || '',
+                    element.getAttribute('data-atf-content-layout')
+                      || element.getAttribute('data-atf-validation-layout') || '',
                     count,
                     widths.join(','),
                     widths.reduce((sum, value) => sum + value, 0),
+                    maxPx.join(','),
                     longestIndex,
                     widestIndex,
                     element.scrollWidth,
@@ -39,17 +43,19 @@ public final class ValidationTableLayoutInspector {
                 }
                 """).toString();
         String[] parts = evidence.split("\\|", -1);
-        if (parts.length != 8) return new Result(false, evidence);
+        if (parts.length != 9) return new Result(false, evidence);
         try {
             int columns = Integer.parseInt(parts[1]);
             double widthSum = Double.parseDouble(parts[3]);
-            int longestIndex = Integer.parseInt(parts[4]);
-            int widestIndex = Integer.parseInt(parts[5]);
-            double scrollWidth = Double.parseDouble(parts[6]);
-            double clientWidth = Double.parseDouble(parts[7]);
+            int maxWidthColumns = parts[4].split(",", -1).length;
+            int longestIndex = Integer.parseInt(parts[5]);
+            int widestIndex = Integer.parseInt(parts[6]);
+            double scrollWidth = Double.parseDouble(parts[7]);
+            double clientWidth = Double.parseDouble(parts[8]);
             boolean valid = "dynamic-longest-value".equals(parts[0])
                     && columns >= 2
                     && parts[2].split(",", -1).length == columns
+                    && maxWidthColumns == columns
                     && widthSum >= 99.0 && widthSum <= 101.0
                     && longestIndex >= 0 && longestIndex == widestIndex
                     && scrollWidth <= clientWidth + 1.0;

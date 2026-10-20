@@ -85,6 +85,13 @@
 .atf-secondary-overview > summary:hover {
   background: var(--atf-secondary-heading-bg-hover) !important;
 }
+.atf-secondary-overview:not([open]) > :not(summary),
+.atf-secondary-overview[open] > :not(summary) {
+  display: none !important;
+}
+.atf-secondary-overview[open] > :not(summary) {
+  display: block !important;
+}
 .atf-secondary-overview-title {
   min-width: 0 !important;
   overflow-wrap: anywhere !important;

@@ -16,11 +16,11 @@ produce un `ApiResponse` reproductibil pentru fiecare request configurat.
 
 ```mermaid
 flowchart LR
-    Source["YAML catalog sau defaults"] --> Loader["typed loader"]
-    Loader --> Catalog["route catalog"]
-    Catalog --> Transport["AtfMockTransport"]
-    Transport --> Port["ApiTransport"]
-    Port --> Response["deterministic ApiResponse"]
+    Source["YAML catalog sau defaults"] -->|încarcă| Loader["typed loader"]
+    Loader -->|creează| Catalog["route catalog"]
+    Catalog -->|alimentează| Transport["AtfMockTransport"]
+    Transport -->|implementează| Port["ApiTransport"]
+    Port -->|produce| Response["deterministic ApiResponse"]
 ```
 
 <details>
@@ -51,10 +51,10 @@ transport, dar nu devine o responsabilitate a acestui modul.
 
 ```mermaid
 flowchart LR
-    Consumer["consumer"] --> Mock["mock transport"]
-    Mock --> Core["core port"]
-    Core --> Evidence["request + response"]
-    Evidence --> Adapter["consumer adapter"]
+    Consumer["consumer"] -->|injectează| Mock["mock transport"]
+    Mock -->|implementează| Core["core port"]
+    Core -->|produce| Evidence["request + response"]
+    Evidence -->|adaptează| Adapter["consumer adapter"]
 ```
 
 <details>
@@ -125,10 +125,10 @@ mock:
 
 ```mermaid
 flowchart LR
-    Request["ApiRequest"] --> Dimensions["match dimensions"]
-    Dimensions --> Candidate["matching routes"]
-    Candidate --> Specific["best route"]
-    Specific --> Response["response"]
+    Request["ApiRequest"] -->|expune| Dimensions["match dimensions"]
+    Dimensions -->|filtrează| Candidate["matching routes"]
+    Candidate -->|alege| Specific["best route"]
+    Specific -->|produce| Response["response"]
     Candidate -->|"none"| Fallback["fallback"]
 ```
 

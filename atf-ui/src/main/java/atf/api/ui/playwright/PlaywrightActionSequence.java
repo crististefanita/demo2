@@ -5,6 +5,7 @@ import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.List;
 
 /**
@@ -14,6 +15,7 @@ import java.util.List;
  * keeps only the public sequence vocabulary and recorder lifecycle.</p>
  */
 public final class PlaywrightActionSequence {
+    private static final Duration DEFAULT_STATE_TIMEOUT = Duration.ofSeconds(10);
     private final UiActionRecorder recorder;
     private final PlaywrightLocatorActions locatorActions;
     private final PlaywrightBrowserActions browserActions;
@@ -23,9 +25,13 @@ public final class PlaywrightActionSequence {
     }
 
     public PlaywrightActionSequence(UiActionTrace trace) {
+        this(trace, DEFAULT_STATE_TIMEOUT);
+    }
+
+    PlaywrightActionSequence(UiActionTrace trace, Duration stateTimeout) {
         recorder = new UiActionRecorder(trace);
         locatorActions = new PlaywrightLocatorActions(recorder);
-        browserActions = new PlaywrightBrowserActions(recorder);
+        browserActions = new PlaywrightBrowserActions(recorder, stateTimeout);
     }
 
     public void navigate(Page page, URI uri) {

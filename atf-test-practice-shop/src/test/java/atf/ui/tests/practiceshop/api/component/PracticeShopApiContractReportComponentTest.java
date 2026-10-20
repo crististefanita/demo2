@@ -32,7 +32,7 @@ import static atf.ui.tests.practiceshop.api.support.PracticeShopApiScenarioFixtu
 
 /** Publishes the same request/response/execution evidence without opening a browser. */
 @AtfComponentTest
-class PracticeShopStandaloneApiReportTest {
+class PracticeShopApiContractReportComponentTest {
     @Test
     @DisplayName("Practice Shop API screen flow publishes standalone Extent evidence")
     void publishesStandaloneApiEvidence() throws Exception {
@@ -56,10 +56,10 @@ class PracticeShopStandaloneApiReportTest {
                         .replace(":", "-") + ".html");
         AtfConsoleSink console = AtfConsoleReporter.configuredStdout();
         Path report = PracticeShopApiReportPublisher.publishStandalone(reportPath,
-                PracticeShopApiReportMetadataFixture.TEST_CLASS,
-                PracticeShopApiReportMetadataFixture.TEST_PACKAGE,
-                PracticeShopApiReportMetadataFixture.SCENARIO,
-                PracticeShopApiReportMetadataFixture.TAGS,
+                PracticeShopApiReportMetadataFixture.COMPONENT_TEST_CLASS,
+                PracticeShopApiReportMetadataFixture.COMPONENT_TEST_PACKAGE,
+                PracticeShopApiReportMetadataFixture.COMPONENT_SCENARIO,
+                PracticeShopApiReportMetadataFixture.COMPONENT_TAGS,
                 executions, console);
 
         String html = Files.readString(report);

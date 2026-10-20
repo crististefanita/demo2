@@ -31,6 +31,20 @@ public final class EvidenceTableFormatter {
         return rows.toArray(String[][]::new);
     }
 
+    /** Canonical typed table model shared by Extent and fallback HTML. */
+    public static ReportEvidenceTable toTable(List<ReportField> details) {
+        var rows = new ArrayList<List<String>>(details == null ? 1 : details.size() + 1);
+        rows.add(List.of(AtfReportLabels.FIELD, AtfReportLabels.VALUE));
+        if (details != null) {
+            for (ReportField detail : details) {
+                if (detail != null) {
+                    rows.add(List.of(displayName(detail.name()), displayValue(detail.name(), detail.value())));
+                }
+            }
+        }
+        return ReportEvidenceTable.of(rows.remove(0), rows);
+    }
+
     /** Canonical typed serializer for Extent evidence tables. */
     public static List<ReportField> technicalTraceFields(List<ReportField> details) {
         if (details == null || details.isEmpty()) return List.of();

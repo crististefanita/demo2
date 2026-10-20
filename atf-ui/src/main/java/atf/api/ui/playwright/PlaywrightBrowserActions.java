@@ -8,14 +8,21 @@ import com.microsoft.playwright.options.WaitForSelectorState;
 import java.util.Objects;
 
 import java.net.URI;
+import java.time.Duration;
 
 /** Executes and records page navigation, keyboard and stabilization actions. */
 final class PlaywrightBrowserActions {
     private static final int STATE_TIMEOUT_MS = 10_000;
     private final UiActionRecorder recorder;
+    private final Duration stateTimeout;
 
     PlaywrightBrowserActions(UiActionRecorder recorder) {
+        this(recorder, Duration.ofMillis(STATE_TIMEOUT_MS));
+    }
+
+    PlaywrightBrowserActions(UiActionRecorder recorder, Duration stateTimeout) {
         this.recorder = Objects.requireNonNull(recorder, "recorder");
+        this.stateTimeout = requirePositive(stateTimeout, "stateTimeout");
     }
 
     void navigate(Page page, URI uri, String expected) {
@@ -108,14 +115,22 @@ final class PlaywrightBrowserActions {
         });
     }
 
-    private static void waitUntil(Page page, java.util.function.BooleanSupplier condition,
-                                  String description) {
+    private void waitUntil(Page page, java.util.function.BooleanSupplier condition,
+                           String description) {
         try {
             page.waitForCondition(condition,
-                    new Page.WaitForConditionOptions().setTimeout(STATE_TIMEOUT_MS));
+                    new Page.WaitForConditionOptions().setTimeout(stateTimeout.toMillis()));
         } catch (RuntimeException error) {
             throw new IllegalStateException("Timed out waiting for " + description, error);
         }
+    }
+
+    private static Duration requirePositive(Duration timeout, String name) {
+        Objects.requireNonNull(timeout, name);
+        if (timeout.isZero() || timeout.isNegative()) {
+            throw new IllegalArgumentException(name + " must be positive");
+        }
+        return timeout;
     }
 
     private static void requireExactlyOne(AtfLocator element, String operation) {

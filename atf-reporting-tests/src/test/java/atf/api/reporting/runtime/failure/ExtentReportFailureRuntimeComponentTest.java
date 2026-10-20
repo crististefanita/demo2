@@ -44,7 +44,12 @@ class ExtentReportFailureRuntimeComponentTest {
                     () -> "Duplicate failure runtime function: " + matcher.group(1));
         }
 
-        assertEquals(20, names.size());
+        Set<String> ownerNames = new HashSet<>();
+        ownerNames.addAll(functionNames(ExtentReportFailureDetection.script()));
+        ownerNames.addAll(functionNames(ExtentReportFailureContext.script()));
+        ownerNames.addAll(functionNames(ExtentReportFailureProjection.script()));
+        assertEquals(ownerNames, names,
+                "runtime function inventory must be derived from its typed fragments");
         assertTrue(ExtentReportFailureDetection.script().contains("function failedUiEvidence("));
         assertTrue(ExtentReportFailureContext.script().contains("function failureContextFromState("));
         assertTrue(ExtentReportFailureProjection.script().contains("function selectFailure("));
@@ -52,5 +57,12 @@ class ExtentReportFailureRuntimeComponentTest {
         assertFalse(ExtentReportFailureContext.script().contains("function failureIndexMarkup("));
         assertFalse(ExtentReportFailureProjection.script().contains("function failureContext("));
         assertTrue(ExtentReportFailureRuntime.causeChainScript().contains("function failureCauseChain("));
+    }
+
+    private static Set<String> functionNames(String script) {
+        Matcher matcher = FUNCTION.matcher(script);
+        Set<String> names = new HashSet<>();
+        while (matcher.find()) names.add(matcher.group(1));
+        return names;
     }
 }

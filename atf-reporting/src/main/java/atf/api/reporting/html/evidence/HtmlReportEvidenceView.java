@@ -7,6 +7,7 @@ import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.duration.AtfDurationFormatter;
 import atf.api.reporting.security.SensitiveDataRedactor;
 import atf.api.reporting.evidence.EvidenceTableFormatter;
+import atf.api.reporting.evidence.ReportEvidenceTable;
 import atf.api.reporting.evidence.markup.ReportEvidenceMarkup;
 import atf.api.reporting.markup.AtfReportLabels;
 import atf.api.reporting.markup.AtfReportMarkup;
@@ -90,11 +91,11 @@ public final class HtmlReportEvidenceView {
 
     private void renderTable(StringBuilder html, String cssClass, List<ReportField> details) {
         if (details.isEmpty()) return;
-        html.append(AtfReportMarkup.tableHtml(cssClass, EvidenceTableFormatter.toExtentRowsModel(
+        html.append(AtfReportMarkup.tableHtml(cssClass, EvidenceTableFormatter.toTable(
                 details.stream()
                         .map(detail -> new ReportField(detail.name(),
                                 redactor.redactField(detail.name(), detail.value())))
-                        .toList())));
+                .toList())));
     }
 
     private void renderJsonBodies(StringBuilder html, List<ReportJsonBody> json,
@@ -117,36 +118,34 @@ public final class HtmlReportEvidenceView {
         if (execution == null) return;
         html.append(ReportEvidenceMarkup.disclosureStart(
                         EXECUTION_EVIDENCE.value(), AtfReportLabels.executionEvidence(execution.attempts())))
-                .append(openTag(TABLE, classAttribute(HELM_EVIDENCE_TABLE, EXECUTION_TABLE)))
-                .append(openTag(THEAD)).append(openTag(TR))
-                .append(openTag(TH)).append(AtfReportLabels.FIELD).append(closeTag(TH))
-                .append(openTag(TH)).append(AtfReportLabels.VALUE).append(closeTag(TH))
-                .append(closeTag(TR)).append(closeTag(THEAD)).append(openTag(TBODY));
-        row(html, AtfReportLabels.RESPONSE_STATUS, String.valueOf(execution.response().status()));
-        row(html, AtfReportLabels.RESPONSE_URL, redactor.redactText(execution.response().url()));
-        row(html, AtfReportLabels.RESPONSE_DURATION_MS,
-                AtfDurationFormatter.format(execution.response().duration()));
-        row(html, AtfReportLabels.ATTEMPTS, String.valueOf(execution.attempts()));
-        row(html, AtfReportLabels.RETRY_EVENTS, String.valueOf(execution.retryEvents().size()));
-        html.append(closeTag(TBODY)).append(closeTag(TABLE));
+                .append(AtfReportMarkup.tableHtml(
+                        AtfReportHtmlVocabulary.classList(HELM_EVIDENCE_TABLE, EXECUTION_TABLE),
+                        ReportEvidenceTable.of(List.of(AtfReportLabels.FIELD, AtfReportLabels.VALUE), List.of(
+                                List.of(AtfReportLabels.RESPONSE_STATUS, String.valueOf(execution.response().status())),
+                                List.of(AtfReportLabels.RESPONSE_URL, redactor.redactText(execution.response().url())),
+                                List.of(AtfReportLabels.RESPONSE_DURATION_MS,
+                                        AtfDurationFormatter.format(execution.response().duration())),
+                                List.of(AtfReportLabels.ATTEMPTS, String.valueOf(execution.attempts())),
+                                List.of(AtfReportLabels.RETRY_EVENTS, String.valueOf(execution.retryEvents().size()))
+                        )).withFirstColumnHeaders()));
         if (!execution.attemptHistory().isEmpty()) {
-            html.append(openTag(TABLE, classAttribute(HELM_EVIDENCE_TABLE, RETRY_HISTORY_TABLE)))
-                    .append(openTag(THEAD)).append(openTag(TR))
-                    .append(openTag(TH)).append(AtfReportLabels.ATTEMPT).append(closeTag(TH))
-                    .append(openTag(TH)).append(AtfReportLabels.STATUS).append(closeTag(TH))
-                    .append(openTag(TH)).append(AtfReportLabels.DURATION).append(closeTag(TH))
-                    .append(openTag(TH)).append(AtfReportLabels.OUTCOME).append(closeTag(TH))
-                    .append(openTag(TH)).append(AtfReportLabels.REASON).append(closeTag(TH))
-                    .append(closeTag(TR)).append(closeTag(THEAD)).append(openTag(TBODY));
-            for (ReportAttemptRecord attempt : execution.attemptHistory()) {
-                html.append(openTag(TR)).append(openTag(TD)).append(attempt.number()).append(closeTag(TD))
-                        .append(openTag(TD)).append(attempt.statusCode()).append(closeTag(TD))
-                        .append(openTag(TD)).append(AtfDurationFormatter.format(attempt.duration())).append(closeTag(TD))
-                        .append(openTag(TD)).append(escape(attempt.outcome())).append(closeTag(TD))
-                        .append(openTag(TD)).append(escape(redactor.redactText(attempt.reason())))
-                        .append(closeTag(TD)).append(closeTag(TR));
-            }
-            html.append(closeTag(TBODY)).append(closeTag(TABLE));
+            var rows = execution.attemptHistory().stream().map(attempt -> List.of(
+                    String.valueOf(attempt.number()),
+                    String.valueOf(attempt.statusCode()),
+                    AtfDurationFormatter.format(attempt.duration()),
+                    attempt.outcome(),
+                    redactor.redactText(attempt.reason()))).toList();
+            html.append(AtfReportMarkup.tableHtml(
+                    AtfReportHtmlVocabulary.classList(HELM_EVIDENCE_TABLE, RETRY_HISTORY_TABLE),
+                    ReportEvidenceTable.of(List.of(AtfReportLabels.ATTEMPT, AtfReportLabels.STATUS,
+                            AtfReportLabels.DURATION, AtfReportLabels.OUTCOME, AtfReportLabels.REASON), rows)));
+        }
+        if (execution.trace().present()) {
+            html.append(AtfReportMarkup.tableHtml(
+                    AtfReportHtmlVocabulary.classList(HELM_EVIDENCE_TABLE, AtfReportHtmlVocabulary.CssClass.HELM_TRACE_TABLE),
+                    ReportEvidenceTable.of(List.of(AtfReportLabels.FIELD, AtfReportLabels.VALUE),
+                            execution.trace().fields().entrySet().stream()
+                                    .map(entry -> List.of(entry.getKey(), entry.getValue())).toList())));
         }
         html.append(ReportEvidenceMarkup.disclosureEnd());
     }
@@ -156,19 +155,12 @@ public final class HtmlReportEvidenceView {
         renderExecution(html, ReportModelAdapters.execution(execution));
     }
 
-    private static void row(StringBuilder html, String field, String value) {
-        html.append(openTag(TR)).append(openTag(TH)).append(escape(field)).append(closeTag(TH))
-                .append(openTag(TD)).append(escape(value == null ? "" : value)).append(closeTag(TD))
-                .append(closeTag(TR));
-    }
-
     public void renderValidation(StringBuilder html, ReportExecutionModel.Validation validation) {
         html.append(openTag(DIV, classAttribute(VALIDATION), attribute(NODE_ROLE, "validation")))
                 .append(openTag(DIV, classAttribute(NODE_TITLE)))
                 .append(openTag(SPAN)).append(escape(validation.title())).append(closeTag(SPAN))
-                .append(openTag(SPAN, classAttribute(AtfReportHtmlVocabulary.statusClasses(validation.status()))))
-                .append(AtfReportHtmlVocabulary.statusLabel(validation.status()))
-                .append(closeTag(SPAN)).append(closeTag(DIV))
+                .append(ReportEvidenceMarkup.statusBadge(validation.status()))
+                .append(closeTag(DIV))
                 .append(openTag(TABLE, classAttribute(ASSERTIONS)))
                 .append(openTag(THEAD)).append(openTag(TR))
                 .append(openTag(TH)).append(AtfReportLabels.ASSERTION).append(closeTag(TH))
@@ -182,8 +174,8 @@ public final class HtmlReportEvidenceView {
                     .append(escape(redactor.redactField(row.name(), row.expected()))).append(closeTag(TD))
                     .append(openTag(TD)).append(escape(redactor.redactField(row.name(), row.actual())))
                     .append(closeTag(TD)).append(openTag(TD))
-                    .append(openTag(SPAN, classAttribute(AtfReportHtmlVocabulary.statusClasses(row.resultStatus()))))
-                    .append(row.resultStatus()).append(closeTag(SPAN)).append(closeTag(TD)).append(closeTag(TR));
+                    .append(ReportEvidenceMarkup.statusBadge(row.resultStatus()))
+                    .append(closeTag(TD)).append(closeTag(TR));
         }
         html.append(closeTag(TBODY)).append(closeTag(TABLE)).append(closeTag(DIV));
     }
