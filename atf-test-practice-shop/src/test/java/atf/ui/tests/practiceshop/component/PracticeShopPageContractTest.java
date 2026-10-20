@@ -14,10 +14,12 @@ import atf.ui.practiceshop.pages.PracticeShopPaymentPage;
 import atf.ui.practiceshop.pages.PracticeShopProductPage;
 import atf.ui.practiceshop.support.PracticeShopPageContract;
 import atf.ui.practiceshop.support.PracticeShopPageValidationResult;
+import atf.ui.practiceshop.routes.PracticeShopUiRoutes;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -26,15 +28,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PracticeShopPageContractTest {
     @Test
     void purchasePagesDeclareStableRoutesAndSemanticControls() {
-        assertContract(PracticeShopHomePage.class, PracticeShopScreen.HOME, "/", 16);
-        assertContract(PracticeShopProductPage.class, PracticeShopScreen.PRODUCT, "/product/*", 5);
-        assertContract(PracticeShopCartPage.class, PracticeShopScreen.CART, "/checkout", 3);
-        assertContract(PracticeShopGuestCheckoutPage.class, PracticeShopScreen.GUEST_CHECKOUT, "/checkout", 4);
-        assertContract(PracticeShopBillingPage.class, PracticeShopScreen.BILLING, "/checkout", 7);
-        assertContract(PracticeShopPaymentPage.class, PracticeShopScreen.PAYMENT, "/checkout", 2);
-        assertContract(PracticeShopConfirmationPage.class, PracticeShopScreen.CONFIRMATION, "/checkout", 1);
-        assertContract(PracticeShopLoginPage.class, PracticeShopScreen.LOGIN, "/auth/login", 3);
-        assertContract(PracticeShopAccountPage.class, PracticeShopScreen.ACCOUNT, "/account", 1);
+        assertContract(PracticeShopHomePage.class, PracticeShopScreen.HOME, PracticeShopUiRoutes.HOME, 16);
+        assertContract(PracticeShopProductPage.class, PracticeShopScreen.PRODUCT,
+                PracticeShopUiRoutes.PRODUCT_PATTERN, 5);
+        assertContract(PracticeShopCartPage.class, PracticeShopScreen.CART, PracticeShopUiRoutes.CHECKOUT, 3);
+        assertContract(PracticeShopGuestCheckoutPage.class, PracticeShopScreen.GUEST_CHECKOUT,
+                PracticeShopUiRoutes.CHECKOUT, 4);
+        assertContract(PracticeShopBillingPage.class, PracticeShopScreen.BILLING,
+                PracticeShopUiRoutes.CHECKOUT, 7);
+        assertContract(PracticeShopPaymentPage.class, PracticeShopScreen.PAYMENT,
+                PracticeShopUiRoutes.CHECKOUT, 2);
+        assertContract(PracticeShopConfirmationPage.class, PracticeShopScreen.CONFIRMATION,
+                PracticeShopUiRoutes.CHECKOUT, 1);
+        assertContract(PracticeShopLoginPage.class, PracticeShopScreen.LOGIN,
+                PracticeShopUiRoutes.AUTH_LOGIN, 3);
+        assertContract(PracticeShopAccountPage.class, PracticeShopScreen.ACCOUNT,
+                PracticeShopUiRoutes.ACCOUNT, 1);
     }
 
     @Test
@@ -60,17 +69,13 @@ class PracticeShopPageContractTest {
     @Test
     void immutableValidationResultAggregatesAllFailures() {
         var result = new PracticeShopPageValidationResult(PracticeShopScreen.PRODUCT, List.of(
-                new atf.api.reporting.contract.AtfAssertion("route", "/product/*", "/cart", false),
+                new atf.api.reporting.contract.AtfAssertion("route", PracticeShopUiRoutes.PRODUCT_PATTERN,
+                        "/cart", false),
                 new atf.api.reporting.contract.AtfAssertion("name", "Pliers", "Pliers", true)));
 
         assertFalse(result.passed());
         assertEquals("1/2 validations passed for PRODUCT", result.summary());
-        try {
-            result.assertions().clear();
-            throw new AssertionError("validation assertions must be immutable");
-        } catch (UnsupportedOperationException expected) {
-            // expected
-        }
+        assertThrows(UnsupportedOperationException.class, () -> result.assertions().clear());
     }
 
     private static void assertContract(Class<?> pageType, PracticeShopScreen screen,

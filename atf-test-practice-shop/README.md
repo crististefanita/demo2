@@ -2,7 +2,7 @@
 
 ## Overall
 
-Acest modul este suita izolată pentru `https://practicesoftwaretesting.com`.
+Acest modul este suita izolată pentru aplicația Practice Software Testing.
 Este un consumer de test al infrastructurii ATF, nu parte din reporting și nu
 parte din governance-ul whole-reactor.
 
@@ -11,11 +11,10 @@ flowchart LR
     Yaml[atf-practice-shop.yaml] --> Config[typed configuration]
     Config --> Runtime[src/main reusable runtime]
     Runtime --> Locators[locators]
-    Runtime --> Pages[page objects]
-    Runtime --> Flows[semantic UI/API flows]
-    Flows --> Component[src/test component]
-    Flows --> Integration[src/test integration]
-    Flows --> E2E[src/test E2E]
+    Locators --> Pages[page objects]
+    Pages --> Flows[semantic UI/API flows]
+    Flows --> TestLevels[test levels<br/>component · integration · e2e]
+    TestLevels --> E2E[e2e boundary]
     E2E --> Ui[ATF Playwright session]
     Ui --> Report[Extent UI report]
 ```
@@ -24,7 +23,8 @@ flowchart LR
 <summary><strong>Legendă — compoziția consumerului</strong></summary>
 
 - YAML-ul furnizează valori dinamice, iar `src/main` expune runtime-ul reutilizabil;
-- `component`, `integration` și `e2e` sunt niveluri de test distincte;
+- `TestLevels` grupează nivelurile `component`, `integration` și `e2e`; numai
+  boundary-ul E2E continuă spre Playwright;
 - Playwright și reporting-ul sunt consumate la boundary, nu ascunse în page objects;
 - acest modul verifică aplicația Practice Shop, nu implementarea rendererului Extent.
 
@@ -39,10 +39,10 @@ observabili în timpul rulării:
 
 ```mermaid
 flowchart LR
-    Flow[Practice Shop flow] --> Ui[atf-ui<br/>actions + observations]
-    Flow --> Report[atf-reporting<br/>Extent artifact]
-    Ui --> Console[atf-console<br/>diagnostic projection]
-    Console --> Stdout[stdout/stderr]
+    Flow["Practice Shop flow"] --> Evidence["ATF actions + observations"]
+    Evidence --> Console["atf-console<br/>diagnostic projection"]
+    Evidence --> Report["atf-reporting<br/>Extent artifact"]
+    Console --> Stdout["stdout / stderr"]
 ```
 
 <details>
@@ -55,18 +55,25 @@ flowchart LR
   `navigate`, cu statusul lifecycle-ului;
 - `reporting.console.enabled` controlează activarea, iar `detailsEnabled`
   controlează numai detaliile;
+- publisher-ul API standalone publică în același sink secvența
+  `REQUEST → details(auth/transport) → VALIDATION → COMPLETE(status,duration)`;
 - consola nu decide verdictul și nu înlocuiește assertions, evidence sau HTML-ul;
 - erorile browserului din `PracticeShopRuntimeDiagnostics` rămân diagnostic
   runtime și se reconciliază cu statusul semantic al raportului.
 
 </details>
 
-**Stare live:** contractul este stabilit, însă wiring-ul consumerului nu este încă
-închis. `PracticeShopE2eContext` folosește momentan sink-uri `noOp`, iar cele două
-contracte duplicate `AtfConsoleEvent/Sink` trebuie reconciliate înainte ca aceeași
-instanță configurată să deservească UI-ul și lifecycle-ul reporting. Gap-ul este
-urmărit în [`SHOP-CONSOLE-01/02`](../docs/feedback/ATF_Practice_Shop_API_Screen_Pyramid_Feedback.md)
-și în registrul [feedback](../docs/feedback/README.md).
+**Stare live:** wiring-ul UI este activ. `PracticeShopE2eContext` injectează
+`AtfConsoleReporter.configuredStdout()` în sesiunea Playwright, deci toate E2E-urile
+care folosesc contextul proiectează acțiunile UI în consola configurată prin
+`reporting.console`; flow-urile nu dețin `PrintStream` și nu folosesc `println`.
+`PracticeShopStandaloneApiReportTest` injectează același sink în
+`PracticeShopApiReportPublisher`, astfel încât și request-urile API sunt
+observabile dinamic în consolă, în timp ce JSON-urile complete rămân în raportul
+Extent.
+`atf-reporting` rămâne standalone și are portul său de consolă independent de
+`atf-core`; reconcilierea acestor două porturi este o decizie cross-module,
+urmărită numai în [`SHOP-CONSOLE-02`](../docs/feedback/ATF_Practice_Shop_API_Screen_Pyramid_Feedback.md).
 
 ## Boundary și OOP
 
@@ -80,7 +87,8 @@ src/main/java/atf/ui/practiceshop/
   support/  → lifecycle browser, API evidence, capture/select seams și publisher API reusable
 src/test/java/atf/ui/tests/practiceshop/
   component/       → contracte rapide fără browser sau network
-  api/component/   → variații pozitive/negative pe transport fake
+  api/component/   → variații pozitive/negative pe transport local determinist,
+                      strict test-scope
   api/integration/ → verificări live opt-in cu precondiție de login
   e2e/             → dovada minimă a journey-ului complet
     checkpoint → Gherkin + assertions + actions + screenshot per page
@@ -100,7 +108,7 @@ method), astfel încât flow-ul nu ascunde valori de business în cod.
 
 Publisher-ul `PracticeShopApiReportPublisher` este runtime support și rămâne în
 `src/main`; `PracticeShopStandaloneApiReportTest` păstrează doar orchestration-ul
-testului, transportul fake și verificările artifactului. În `src/test` nu se
+testului, transportul local determinist și verificările artifactului. În `src/test` nu se
 mută logică reusable doar pentru a scurta un test.
 
 `PracticeShopApiNetworkJournal` coordonează numai sesiunea și verdictul API.
@@ -213,8 +221,61 @@ login și execută un purchase complet. `PracticeShopAccountAndCatalogE2eTest`
 rămâne un smoke slice opt-in pentru account/catalog, iar
 `PracticeShopPurchaseE2eTest` rămâne journey-ul guest-safe. Nu se adaugă câte un
 E2E pentru registration, login, fiecare API sau fiecare componentă; componentele
-rapide și fake API variation matrix acoperă variațiile, iar E2E-urile dovedesc
+rapide și local API variation matrix acoperă variațiile, iar E2E-urile dovedesc
 orchestrarea reală.
+
+### Revalidare live a contului reutilizabil — 2026-10-20
+
+Contul din `practice-software-testing-account.properties` a fost recreat în
+aplicația reală după ce credentialul anterior a devenit invalid și a fost
+verificat separat prin browser MCP/ATF Debug:
+
+```mermaid
+sequenceDiagram
+    participant B as Browser MCP
+    participant A as Practice Shop API
+    participant R as account.properties
+    B->>A: POST /users/register · address[] JSON
+    A-->>B: 201 Created
+    B->>A: POST /users/login · JSON credentials
+    A-->>B: 200 · token response
+    B->>A: GET /users/me · bearer
+    A-->>B: 200 · authenticated identity
+    R-->>B: reusable email/identity fixture
+```
+
+Rezultatul confirmat este `register=201`, `login=200` și `users/me=200`.
+Fișierul rămâne singura sursă module-owned pentru account setup; parola nu este
+afișată în loguri, assertions, actions sau HTML. Dacă fixture-ul expiră, se
+repetă numai registration → login → `users/me`, apoi se schimbă strict liniile
+de identitate din properties. Nu se transformă un login invalid în warning și
+nu se introduc credentiale în YAML sau în testele de business.
+
+Această revalidare confirmă setup-ul live, dar nu închide automat ToDo-urile de
+component API pentru registration, auth negative paths, invoice și cleanup;
+acestea sunt urmărite separat în feedback și trebuie implementate pe clientul
+real, fără catalog mock.
+
+### De ce există două journey-uri și cum este tratat bootstrap-ul extern
+
+`PracticeShopPurchaseE2eTest` este intenționat guest-safe și nu folosește fixture-ul
+de cont. `PracticeShopAuthenticatedPurchaseE2eTest` este journey-ul separat care
+încarcă `practice-software-testing-account.properties` în SETUP, verifică login-ul
+real și apoi reutilizează sesiunea pentru purchase. Dacă fixture-ul vechi este
+respins cu `401`, acesta trebuie recreat și reverificat prin `register → login →
+users/me`; nu se schimbă assertions sau timeout-uri ca să ascundă problema.
+
+Site-ul extern poate emite asincron, în bootstrap-ul anonim, `GET /users/me → 401`
+și `cart_items` null chiar dacă login-ul ulterior, `/users/me` și checkout-ul
+reușesc. `PracticeShopRuntimeDiagnostics` le clasifică strict ca semnale cunoscute
+și `Scenario` le publică drept `WARNING` cu mesajul complet. Un diagnostic care nu
+se potrivește exact rămâne `FAIL`, iar warning-ul nu poate transforma un login
+invalid în succes.
+
+Ultima revalidare a contului a trecut `register=201`, `login=200`, `users/me=200`;
+purchase E2E a trecut **1/1**, iar gate-ul component focalizat a trecut **8/8**.
+Raportul proaspăt este în `artifacts/reports/ui/`, cu login/API evidence și
+warning-ul extern vizibil în pașii raportului.
 
 Contractele active acoperă toate ecranele declarate ale journey-ului, inclusiv
 ecranele reutilizabile de login și account:
@@ -336,7 +397,7 @@ sequenceDiagram
     participant P as Product API
     participant K as Cart API
     participant Pay as Payment API
-    UI->>C: QUERY /products/search {q}
+    UI->>C: GET /products/search {q}
     C-->>UI: 200 JSON cu product id
     UI->>P: GET /products/{productId}
     P-->>UI: 200 JSON product detail
@@ -362,16 +423,19 @@ integrare sunt:
 
 | Boundary | Observație live | Invariant de testat |
 |---|---|---|
-| catalog → product | `QUERY /products/search` întoarce ID-ul curent pentru produsul configurat; detaliul este `GET /products/{id}` | ID-ul din search este același cu ID-ul din detail și cu cel trimis în cart |
+| catalog → product | `GET /products/search` întoarce ID-ul curent pentru produsul configurat; detaliul este `GET /products/{id}` | ID-ul din search este același cu ID-ul din detail și cu cel trimis în cart |
 | product → cart | `POST /carts` întoarce un `cartId`, apoi `POST /carts/{cartId}` primește JSON cu `product_id` și `quantity` | cart-ul citit ulterior conține produsul și cantitatea cerută |
 | cart → checkout | `GET /carts/{cartId}` expune `cart_items`, inclusiv produsul și cantitatea | UI-ul nu confirmă checkout înainte de cart read consistent |
 | checkout → payment | `POST /payment/check` primește JSON și răspunde JSON `Payment was successful` | metoda selectată și mesajul răspunsului sunt mapate în checkpoint-ul UI final |
 | guest identity | `/users/me` răspunde `401 {message: Unauthorized}` de mai multe ori pentru guest | 401 este ramura guest așteptată, nu fail de business; erorile runtime neașteptate rămân fail |
 | postcode lookup | lookup-ul răspunde 200, dar adresa demo returnată diferă de valorile introduse | trebuie decis explicit dacă lookup-ul este advisory sau autoritativ; nu se asertează egalitatea implicit |
 
-`QUERY` este verbul observat de aplicație pentru catalog și trebuie păstrat ca
-fapt al sistemului până când contractul este confirmat; testele nu îl
-normalizează arbitrar la POST. În schimb, request-urile POST observate au
+`SEARCH` rămâne intenția de business a catalogului, dar transportul real este
+`GET /products/search`; raportul nu inventează un pseudo-verb `QUERY`. Titlul
+semantic publicat este `GET /products/search — find configured product`, iar
+`PracticeShopApiOperation` păstrează separat intenția stabilă, metoda HTTP și
+template-ul de rută. ID-urile de produs/cart rămân valori dinamice în flow și
+nu sunt mutate în enum. În schimb, request-urile POST observate au
 `Content-Type: application/json` și body JSON, iar răspunsurile lor sunt JSON;
 acest lucru trebuie verificat în testele de integrare cu aceeași evidență
 request/response folosită în raportul API.
@@ -395,6 +459,76 @@ pentru `productName` și validează obligatoriu ruta `/product/*`.
 
 
 </details>
+
+## Explorare live actualizată: account → purchase → cleanup
+
+Revalidarea manuală a contului și explorarea checkout-ului au confirmat și
+boundary-urile de finalizare care nu trebuie amestecate cu un test guest:
+
+```mermaid
+flowchart LR
+    R["POST /users/register<br/>201 · address[] JSON"] --> L["POST /users/login<br/>200 · token JSON"]
+    L --> M["GET /users/me<br/>200 · bearer identity"]
+    M --> C["Catalog → product → cart"]
+    C --> A["GET /postcode-lookup<br/>200 · advisory"]
+    A --> P["POST /payment/check<br/>200 · payment JSON"]
+    P --> I["POST /invoices<br/>201 · invoice JSON"]
+    I --> D["DELETE /carts/{cartId}<br/>204 · cleanup"]
+```
+
+Observațiile sunt live, nu fixture-uri copiate în repository:
+
+| Boundary | Ce s-a confirmat | Cum intră în piramidă |
+|---|---|---|
+| registration | body JSON cu `address[]`, răspuns `201` | component request/response + caz negativ pentru shape greșit și email duplicat |
+| login/session | login `200`, token response, apoi `/users/me` `200`; guest `/users/me` rămâne `401` | component auth matrix și setup API reutilizabil |
+| postcode | query lookup `200`, dar datele demo pot diferi de input | assertion `ADVISORY`, fără egalitate forțată în billing |
+| payment | `POST /payment/check` primește JSON și răspunde JSON cu confirmarea plății | component matrix pe metodele suportate de UI |
+| invoice | `POST /invoices` primește billing/payment/cart JSON și răspunde `201` cu id, user, total și date | component contract + integrare după cart/payment |
+| cleanup | `DELETE /carts/{cartId}` răspunde `204` | teardown explicit, fără a ascunde eșecul purchase |
+
+Pentru un raport UI/API, fiecare exchange trebuie legat de checkpoint-ul în
+care s-a produs: request metadata, request JSON, response metadata, response
+JSON și execution evidence. Tokenul și parola se redacționează; statusurile,
+metodele, ruta, content type, auth profile și body-urile non-secrete rămân
+vizibile. Retry-urile și apelurile repetate `/users/me` se păstrează distinct,
+nu se selectează arbitrar doar ultimul request.
+
+## Audit observabil în fiecare checkpoint
+
+Fiecare checkpoint existent publică acum o zonă distinctă `Audit observations`;
+nu se creează un test suplimentar și nu se repetă assertion table-ul. Observația
+este construită dinamic în `PracticeShopAuditObservations` și este atașată
+aceleiași secvențe de acțiuni. Calea de compatibilitate pentru testele
+account/catalog (`PracticeShopE2eContext.Scenario.pass`) folosește aceeași
+proiecție de audit; nu există un al doilea model de evidence pentru scenariile
+care încă publică o singură validare de ecran:
+
+```mermaid
+flowchart LR
+    Checkpoint[screen checkpoint] --> Screen[screen contract\nstatus + assertion count + URL]
+    Checkpoint --> Visual[screenshot evidence\nvalid PNG / not captured]
+    Checkpoint --> Api[API exchanges\nroute + status + auth + transport + attempts]
+    Screen --> Audit[Audit observations]
+    Visual --> Audit
+    Api --> Audit
+    Audit --> Extent[Extent step\nAssertions + Actions + Audit + API evidence]
+```
+
+Regulile sunt deliberate:
+
+- assertions decid verdictul; audit observations explică de ce există evidence-ul;
+- fiecare exchange din checkpoint are o observație proprie, cu route/status și
+  metadata safe, fără request/response body duplicat și fără token/parolă;
+- evidence invalidă sau incompletă nu este inventată: exchange-ul este omis din
+  observațiile API, iar assertion/evidence contractul rămâne responsabil de fail;
+- URL-ul, cardinalitatea assertion-urilor și starea screenshot-ului sunt preluate
+  din execuția curentă, nu din YAML static;
+- component test-ul verifică cardinalitatea, sursa `OBSERVE`, statusul API,
+  label-ul de transport și calea account/catalog; E2E-ul doar dovedește wiring-ul real.
+
+Astfel raportul rămâne lizibil: `Playwright action sequence`, `Audit observations`
+și `Assertions` sunt zone diferite, în aceeași ordine și pe același checkpoint.
 
 ## Piramida configurabilă UI + API
 
@@ -438,7 +572,8 @@ Astfel component tests verifică rapid profilul, JSON parsing, invariants și
 redaction; guest purchase și authenticated purchase sunt cele două E2E
 intenționate pentru orchestration-ul real, iar variațiile API rămân în
 component/integration tests. Account/catalog rămâne opt-in și condiționat de
-fixture-ul de cont. Dacă un API precondiționat lipsește, flow-ul eșuează explicit și checkpoint-ul rămâne
+`authenticatedE2eEnabled: true` plus fixture-ul de cont. Dacă un API
+precondiționat lipsește, flow-ul eșuează explicit și checkpoint-ul rămâne
 auditabil, în loc să continue cu o stare UI presupusă.
 
 ## API evidence în checkpoint-urile UI și standalone
@@ -453,14 +588,15 @@ flowchart LR
     Journal[API network journal<br/>same Playwright page]
       --> Evidence[ReportExecutionEvidence]
     Evidence --> Checkpoint[UI checkpoint<br/>Gherkin + screenshot + assertions]
-    Checkpoint --> Request[Request details<br/>method · path · URL · query · headers · auth]
-    Checkpoint --> Response[Response details<br/>status · content-type · headers]
-    Checkpoint --> Execution[Execution evidence<br/>attempts · retries · duration · outcome]
+    Checkpoint --> Disclosures[API evidence disclosures<br/>request · response · execution]
 ```
 
 <details>
 <summary><strong>Legendă — evidence atașată checkpoint-ului</strong></summary>
+
 - un checkpoint UI poate avea zero, unul sau mai multe schimburi API;
+- `Disclosures` este doar o grupare vizuală pentru a păstra ramificațiile locale;
+  nu introduce un layer runtime sau un nou nod în raport;
 - request, response și execution rămân disclosure-uri surori, închise implicit;
 - jurnalul observă aceeași pagină Playwright; nu creează un test API artificial.
 </details>
@@ -495,7 +631,7 @@ auditul de randare.
 
 Pentru variații rapide și pentru auditul reporting fără browser există și
 `PracticeShopStandaloneApiReportTest`. Acesta rulează același
-`PracticeShopApiScreenFlow` pe transport fake și scrie un artifact API în
+`PracticeShopApiScreenFlow` pe transport local determinist și scrie un artifact API în
 `artifacts/reports/`, configurat de `atf.yaml`. Fiecare request publică separat
 method/path/query/auth, `Request details`, `REQUEST JSON` când există body,
 `Response details`, `RESPONSE JSON`, status și `Execution evidence`. În disclosure-ul
@@ -526,34 +662,149 @@ DELETE /carts/{id}/product/{id}  → remove contract
 ```
 
 Rutele sunt centralizate în `PracticeShopApiRoutes`, query-ul este typed prin
-`PracticeShopProductQuery`, iar request factory-ul este singurul owner al
-serializării. Component matrix-ul folosește fake transport și nu execută
-modificări live.
+`PracticeShopProductQuery`, operațiile raportabile sunt descrise de
+`PracticeShopApiOperation`, iar request factory-ul este singurul owner al
+serializării. Metodele HTTP, media types, auth profiles și vocabularul de
+evidence auth sunt enums/core constants; testele nu repetă
+literaluri pentru `POST`, `PUT`, `application/json`, `none` sau `bearer`.
+
+Component tests folosesc un singur boundary determinist,
+`PracticeShopApiComponentFixture`, iar valorile de scenariu sunt în
+`PracticeShopApiScenarioFixture`: credentials, IDs, query values și payload-uri
+expected. Astfel testele descriu intenția (`login → catalog → cart → checkout`),
+nu reimplementează transportul. Fixture-ul este strict test-scope și nu schimbă
+API-ul live; integration/E2E folosesc aplicația/API-ul Practice Shop real. Nu
+există un catalog mock sau o dependență `atf-mock` în acest consumer.
+
+Regulă de mentenanță:
+
+```text
+PracticeShopApiRoutes       → path-uri și template-uri
+PracticeShopApiRequestFactory → request + serializare JSON
+PracticeShopApiScenarioFixture → date/expected-uri ale scenariului
+PracticeShopApiComponentFixture → transport determinist al componentelor
+PracticeShopApiScreenFlow   → ordinea semantică a ecranelor API
+PracticeShopApiOperation    → intenție, HTTP method, route template și titlu reportabil
+```
+
+Un nou endpoint se adaugă întâi în `PracticeShopApiRoutes` și request factory,
+apoi în fixture-ul component numai dacă este necesar pentru un test browser-free;
+nu se adaugă path-uri hardcodate în testele de business.
+
+Pentru raportare, fiecare execution publică aceeași formă lizibilă:
+`HTTP_METHOD relativePath — very-short intent`. Publisher-ul adaugă în
+`Response details` și `Execution evidence` câmpurile `OPERATION KIND` și
+`ROUTE TEMPLATE`, astfel încât un cititor poate lega request-ul runtime de
+contractul stabil fără să confunde ID-urile dinamice cu definiția operației.
+
+Pentru vocabularul stabil al contractului API folosim enum-uri locale, cu owner
+semantic și fără a muta date dinamice în enum-uri globale:
+
+```text
+PracticeShopApiHttpStatus      → coduri HTTP așteptate în contracte
+PracticeShopApiJsonField       → chei JSON request/response
+PracticeShopApiQueryParameter  → chei query și lookup
+PracticeShopApiAuthProfile     → profilul de autentificare al requestului
+PracticeShopApiAuthType        → mecanismul observat în evidence
+PracticeShopApiReportMetadataFixture → nume/tag-uri stabile ale standalone report
+```
+
+`PracticeShopApiScenarioFixture` păstrează în continuare ID-uri, credentials și
+payload-uri de scenariu; acestea sunt date configurabile ale fixture-ului, nu
+enum-uri. Astfel factory-ul, assertions și transportul component folosesc aceeași
+ortografie wire, iar testele verifică intenția prin `PracticeShopApiHttpStatus.OK`
+și `PracticeShopApiJsonField.PRODUCT_ID`, nu prin numere sau chei repetate.
+Enum-urile sunt strict module-local; nu se adaugă un vocabular Practice Shop în
+`atf-core` doar pentru a evita un literal al aplicației.
+
+`PracticeShopApiClient.live(...)` propagă provenance `LIVE_HTTP`, iar
+`forTransport(...)` rămâne `ACCEPTANCE_MOCK` implicit; testul de contract verifică
+această separare, astfel încât raportul să nu prezinte un transport local ca trafic
+real sau invers.
+
+### Regula de citire pentru testele API
+
+Testele Practice Shop păstrează intenția în variabile cu nume semantic și nu
+repetă lanțuri care ascund ce se validează. Un rezultat se capturează o singură
+dată înaintea assertions-urilor:
+
+```java
+var filteredResponse = filtered.response();
+var updatedRequest = updated.request();
+
+assertTrue(PracticeShopApiHttpStatus.OK.matches(filteredResponse.status()));
+assertEquals(HttpMethod.PUT.value(), updatedRequest.method());
+```
+
+`PracticeShopApiHttpStatus` este owner-ul comportamentului HTTP: `matches(int)`
+pentru comparația semantică, `wireValue()` pentru expected-ul publicat și
+`isSuccess(int)` pentru regula generică 2xx. `.code()` rămâne numai la boundary-ul
+care construiește un model core ce cere un `int`, nu este repetat în fiecare test.
+Aceeași regulă se aplică publisher-ului: request-ul, response-ul, body-ul și
+content type-ul sunt alias-uri locale, astfel încât request JSON, response JSON și
+assertion-ul raportului descriu aceeași execuție.
+
+Importurile statice sunt explicite și nominale: assertions JUnit, DSL-ul stabil
+`check(...)` și constantele de scenariu dintr-un singur fixture pot fi importate
+static când numele rămâne neambiguu (`PRODUCT_NAME`, `QUANTITY`, `COUNTRY`). Nu
+se folosesc wildcard imports și nu se importă static valori dinamice, metode de
+flow sau enum-uri din domenii diferite. Astfel codul testului citește intenția,
+iar owner-ul rămâne vizibil în numele fixture-ului și în README. Datele dinamice
+rămân în fixture/config; enum-urile păstrează numai contracte stabile (`status`,
+chei JSON, query și auth).
+
+Pentru body-uri JSON, regula este semantică: testul parsează request-ul sau
+response-ul o singură dată prin `PracticeShopJsonEvidence`, păstrează rezultatul
+într-un alias local (`updateRequestBody`, `updateResponseBody`) și verifică
+field-urile prin `PracticeShopApiJsonField`. Nu se folosesc substring-uri pentru
+a demonstra un contract JSON; substring-ul rămâne permis numai pentru smoke
+checks de HTML sau pentru text diagnostic. Astfel un test nu poate trece deoarece
+un fragment apare accidental în alt câmp sau într-o valoare formatată diferit.
+
+Pentru mutation tests, `PUT update` și `DELETE remove` sunt contracte distincte
+atât timp cât fixture-ul nu modelează stare și read-back. Dacă este necesară o
+tranzacție reală, se adaugă un flow separat `add → update → read → remove → read`
+cu mock stateful sau API live explicit; nu se lasă un test de component să pară
+stateful doar prin ordinea a două apeluri independente.
+
+Lifecycle-ul nu se orchestrează cu `try/catch/finally` în test. `Scenario.execute`
+publică failure-ul și închide scena, iar `PracticeShopApiReportPublisher` deține
+închiderea phase/scenario/session pentru raportul standalone. Testul rămâne o
+succesiune de setup → acțiune → assertion → verdict; resource management-ul și
+preservarea primary failure-ului sunt responsabilitatea helper-ului owner-uit.
 
 `postcode-lookup` are politică explicită `ADVISORY` în
 `PracticeShopCheckoutApi.CheckoutScreen`: valorile introduse de test rămân
 sursa de adevăr pentru billing chiar dacă lookup-ul răspunde cu altă adresă.
 
 Ramura guest este de asemenea explicită: `401 /users/me` este un rezultat API
-așteptat, nu un fail de business. `PracticeShopRuntimeDiagnostics` ascultă
-console errors și page errors din aceeași sesiune Playwright; combinația exactă
-`401/Unauthorized` + `Cannot read properties of null (reading 'cart_items')`
-este publicată ca WARNING auditabil în pașii raportului, iar orice altă eroare
-runtime face fail al purchase E2E.
+așteptat, nu un fail de business, numai când este observat structurat pe
+`GET /users/me` cu status `401`. `PracticeShopRuntimeDiagnostics` ascultă
+console errors și page errors din aceeași sesiune Playwright; un
+`TypeError: Cannot read properties of null (reading 'cart_items')` este FAIL,
+nu WARNING și nu poate fi mascat de 401-ul guest.
 
 ## Configurare
 
-Sursa este `src/test/resources/atf-practice-shop.yaml`. Exemplul minim:
+Sursa este `src/test/resources/atf-practice-shop.yaml`. `practiceShop.baseUrl`
+este singurul owner al hostului UI. Testele și page objects nu repetă URL-uri
+complete: folosesc rutele relative din `PracticeShopUiRoutes`, apoi
+`PracticeShopConfiguration.uri(...)` le rezolvă la baza configurată. Exemplul minim:
 
 ```yaml
 practiceShop:
+  # external UI base URL; all UI route values remain relative in Java
   baseUrl: https://practicesoftwaretesting.com
   zoomPercent: 70
   api:
     endpoint: https://api.practicesoftwaretesting.com
-    mode: acceptance
+    mode: live
     precondition: authenticated
     timeout: PT20S
+  reports:
+    ui: artifacts/reports/ui
+    api: artifacts/reports
+  authenticatedE2eEnabled: false
   validation:
     profile: ui-api
   productName: Pliers
@@ -588,16 +839,23 @@ apoi se rulează component gate și singurul E2E de purchase.
 ## Teste și gates
 
 ```text
-mvn -pl atf-test-practice-shop -am -Dtest=PracticeShopArchitectureTest,PracticeShopConfigurationTest,PracticeShopCheckoutConfigurationTest,PracticeShopApiRequestFactoryTest,PracticeShopApiContractVariantTest,PracticeShopApiScreenFlowTest,PracticeShopApiCatalogCartVariantTest,PracticeShopStandaloneApiReportTest,PracticeShopGuestResilienceTest test
+mvn -pl atf-test-practice-shop -am "-Dtest=PracticeShopArchitectureTest,PracticeShopConfigurationTest,PracticeShopCheckoutConfigurationTest,PracticeShopApiRoutesTest,PracticeShopApiRequestFactoryTest,PracticeShopApiExchangeSelectorTest,PracticeShopApiLoginAssertionsTest,PracticeShopApiScreenFlowTest,PracticeShopApiCatalogCartVariantTest,PracticeShopApiContractVariantTest,PracticeShopStandaloneApiReportTest,PracticeShopGuestResilienceTest,PracticeShopJsonEvidenceTest,PracticeShopApiAssertionsTest,PracticeShopApiClientContractTest,PracticeShopPageContractTest,PracticeShopPurchaseCheckpointTest,PracticeShopValidationProfileTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 mvn -pl atf-test-practice-shop -am -Dtest=PracticeShopPurchaseE2eTest test
 ```
 
 Component tests verifică configurația, locator boundary și invariants fără
-network; API component tests verifică request factory, autentificare, status
-401/404/2xx, JSON, variații de payment și catalog/cart fără browser. Testul
+browser; testele API prin `PracticeShopApiComponentFixture` verifică request
+factory, autentificare, status 401/404/2xx, JSON, variații de payment și
+catalog/cart fără să pornească un server sau să copieze transportul în fiecare
+test. Testul
 `PracticeShopStandaloneApiReportTest` verifică și artifactul API configurat.
+`PracticeShopApiClientContractTest` verifică separat provenance-ul: fixture-ul
+local este `ACCEPTANCE_MOCK`, iar un transport configurat `LIVE` este publicat ca
+`LIVE_HTTP`.
 Integration test-ul live este opt-in, reutilizează login API ca precondiție și nu
-rulează implicit fără account file. `PracticeShopPurchaseE2eTest` verifică
+rulează implicit fără `api.mode=live` și `authenticatedE2eEnabled: true`; existența
+fixture-ului singură nu îl activează. Testele authenticated cer aceeași politică.
+`PracticeShopPurchaseE2eTest` verifică
 journey-ul guest complet, `PracticeShopAccountAndCatalogE2eTest` verifică login
 și catalog, iar `PracticeShopAuthenticatedPurchaseE2eTest` verifică purchase-ul
 complet după login. Toate publică report Extent în directorul UI configurat de

@@ -156,6 +156,14 @@ Preferința de stil:
   rămâne valabil până la o cerință explicită de schimbare;
 - `sequenceDiagram` când ordinea interacțiunilor este mai importantă decât
   gruparea modulelor;
+- pentru un flow de date sau evidence, evităm schema radială cu un singur nod
+  central și multe săgeți lungi: construim întâi o coloană principală
+  stânga → dreapta și ramificăm doar detaliile locale;
+- dacă un nod are mai mult de două ramificații vizibile, introducem o grupare
+  semantică locală sau separăm întrebarea în două diagrame; nu lăsăm săgețile
+  să traverseze întreaga schemă;
+- stilul de referință este o schemă `LR` compactă, cu noduri etichetate scurt,
+  legături puține și o legendă imediată care explică ramificațiile;
 - orientarea se alege după întrebarea diagramei și costul vizual, nu după o
   regulă absolută de sintaxă;
 - o schemă orizontală nu trebuie lățită artificial cu noduri secundare;
@@ -179,14 +187,15 @@ adevărate:
 ### Pattern de referință: Harta modulelor
 
 `Harta modulelor` este exemplul pozitiv pentru ATF deoarece combină orientarea
-vizibilă cu detaliul controlat:
+orizontală cu detaliul controlat:
 
 - grupuri semantice, nu inventar Maven brut;
 - puține muchii principale și ownership explicit;
-- două niveluri semantice distincte, cu modulele fiecărui grup dispuse compact
-  pe lățime;
-- `TB` este justificat la nivelul grupurilor, deoarece o conversie mecanică la
-  `LR` ar fragmenta relațiile și ar produce o schemă mai greu de urmărit;
+- o coloană principală pentru consumers → library, cu platforma reutilizabilă
+  agregată într-un singur nod vizual;
+- relațiile secundare sunt punctate și locale, nu o rețea radială de module;
+- `LR` face ownership-ul și direcția de citire vizibile fără a transforma
+  schema într-un inventar Maven;
 - diagramă compactă, urmată imediat de o singură legendă;
 - tabelul de ownership este în legenda aceleiași unități vizuale;
 - modulele care nu sunt producție — consumers și governance — sunt delimitate;

@@ -4,13 +4,32 @@ import java.util.Locale;
 
 /** Renderer-neutral status vocabulary owned by the standalone reporting module. */
 public enum AtfReportStatus {
-    INFO(0), PASS(1), WARNING(2), SKIP(3), FAIL(4);
+    INFO(0, "ℹ️"),
+    PASS(1, "✅"),
+    WARNING(2, "⚠️"),
+    SKIP(3, "⏭️"),
+    FAIL(4, "❌");
 
     private final int severity;
+    private final String marker;
 
-    AtfReportStatus(int severity) { this.severity = severity; }
+    AtfReportStatus(int severity, String marker) {
+        this.severity = severity;
+        this.marker = marker;
+    }
 
     public int severity() { return severity; }
+
+    /** Stable inline marker used by Extent evidence rows and UI assertions. */
+    public String marker() { return marker; }
+
+    /** Canonical compact result used in evidence cells. */
+    public String resultMarker() { return marker + " " + name(); }
+
+    /** Null-safe boundary for legacy adapters that may omit a status. */
+    public static AtfReportStatus orInfo(AtfReportStatus status) {
+        return status == null ? INFO : status;
+    }
 
     public String displayValue() { return name().toLowerCase(Locale.ROOT); }
 

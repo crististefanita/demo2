@@ -6,10 +6,11 @@ import atf.ui.practiceshop.config.PracticeShopScreen;
 import atf.ui.practiceshop.locators.PracticeShopControl;
 import atf.ui.practiceshop.locators.PracticeShopLocators;
 import atf.ui.practiceshop.support.PracticeShopPageContract;
+import atf.ui.practiceshop.routes.PracticeShopUiRoutes;
 import com.microsoft.playwright.Page;
 
 /** Cart page object: product identity and quantity are checked before checkout. */
-@PracticeShopPageContract(screen = PracticeShopScreen.CART, route = "/checkout",
+@PracticeShopPageContract(screen = PracticeShopScreen.CART, route = PracticeShopUiRoutes.CHECKOUT,
         requiredControls = {PracticeShopControl.CART_PRODUCT_TITLE,
                 PracticeShopControl.CART_PRODUCT_QUANTITY, PracticeShopControl.CART_PROCEED})
 public final class PracticeShopCartPage {
@@ -25,7 +26,7 @@ public final class PracticeShopCartPage {
     }
 
     public void open(PracticeShopConfiguration configuration) {
-        actions.navigate(page, configuration.uri("/checkout"), "cart page is loaded");
+        actions.navigate(page, configuration.uri(PracticeShopUiRoutes.CHECKOUT), "cart page is loaded");
         actions.waitForText(page, locators.pageBody(page), "CART", "cart step is displayed");
     }
 

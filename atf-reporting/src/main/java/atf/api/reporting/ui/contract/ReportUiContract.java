@@ -1,6 +1,7 @@
 package atf.api.reporting.ui.contract;
 
 import atf.api.reporting.theme.tokens.AtfReportCssSelectors;
+import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
 
 import java.util.List;
 
@@ -22,7 +23,8 @@ public final class ReportUiContract {
     public static final String OVERVIEW_SCENARIO_AUDIT = "#atf-audit-scenarios";
     public static final String BODY_SELECTOR = AtfReportCssSelectors.Surface.BODY.selector();
     public static final String TAG_FILTER_MENU = "#tag-toggle";
-    public static final String VALIDATION_TABLE_SELECTOR = "table[class~='helm-validation-table']";
+    public static final String VALIDATION_TABLE_SELECTOR = "table[class~='"
+            + AtfReportHtmlVocabulary.CssClass.HELM_VALIDATION_TABLE.value() + "']";
     public static final String ACTION_SEQUENCE_SELECTOR = "details[class~='atf-ui-action-sequence']";
     public static final String ACTION_NUMBER_SELECTOR = "[class~='atf-ui-action-number']";
     public static final String SCREENSHOT_LINK_SELECTOR = "a[class~='atf-ui-action-screenshot-link']";

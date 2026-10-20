@@ -105,6 +105,7 @@ public final class AtfReportHtmlVocabulary {
         HELM_API_CLASSIFICATION_LABEL("helm-api-classification-label"),
         HELM_EVIDENCE_TABLE("helm-evidence-table"),
         HELM_REQUEST_TABLE("helm-request-table"),
+        HELM_VALIDATION_TABLE("helm-validation-table"),
         HELM_REQUEST_DETAILS("helm-request-details"),
         HELM_RESPONSE_DETAILS("helm-response-details"),
         HELM_TRACE_TABLE("helm-trace-table"),

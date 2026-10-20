@@ -27,12 +27,17 @@ public final class PracticeShopApiClient {
 
     private PracticeShopApiClient(URI endpoint, ApiTransport transport,
                                   PracticeShopApiRequestFactory requests,
-                                  java.time.Duration timeout) {
+                                  java.time.Duration timeout,
+                                  ApiTransportMode transportMode) {
         this.endpoint = Objects.requireNonNull(endpoint, "endpoint");
         this.transport = Objects.requireNonNull(transport, "transport");
         this.requests = Objects.requireNonNull(requests, "requests");
-        var settings = new atf.api.core.config.ApiSettings(endpoint, "none", timeout, java.util.Set.of(), 1);
-        this.executor = new ApiExecutor(transport, settings.snapshot(), ApiTransportMode.LIVE);
+        var settings = new atf.api.core.config.ApiSettings(endpoint, PracticeShopApiAuthProfile.NONE.wireValue(),
+                timeout, java.util.Set.of(), 1);
+        // The factory is intentionally transport-agnostic; the explicit mode keeps
+        // report provenance aligned with the transport selected by the composition root.
+        this.executor = new ApiExecutor(transport, settings.snapshot(),
+                Objects.requireNonNull(transportMode, "transportMode"));
     }
 
     public static PracticeShopApiClient live(PracticeShopApiConfiguration configuration) {
@@ -42,17 +47,27 @@ public final class PracticeShopApiClient {
         }
         HttpClient http = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build();
         ApiLiveTransportCatalog catalog = ApiLiveTransportCatalog.single("practice-shop",
-                configuration.endpoint(), "none", configuration.timeout(), http);
+                configuration.endpoint(), PracticeShopApiAuthProfile.NONE.wireValue(), configuration.timeout(), http);
         ApiTransport transport = catalog.open("practice-shop",
                 atf.api.core.config.ApiTransportPolicy.explicitLive(),
                 new ConfiguredApiAuthenticator(Map.of()));
         return new PracticeShopApiClient(configuration.endpoint(), transport,
-                new PracticeShopApiRequestFactory(), configuration.timeout());
+                new PracticeShopApiRequestFactory(), configuration.timeout(), ApiTransportMode.LIVE);
     }
 
     public static PracticeShopApiClient forTransport(URI endpoint, ApiTransport transport) {
+        return forTransport(endpoint, transport, ApiTransportMode.ACCEPTANCE);
+    }
+
+    /**
+     * Exposes provenance selection for deterministic contract tests and custom transports.
+     * The normal production entry points remain {@link #live(PracticeShopApiConfiguration)}
+     * and {@link #forTransport(URI, ApiTransport)}.
+     */
+    public static PracticeShopApiClient forTransport(URI endpoint, ApiTransport transport,
+                                                     ApiTransportMode transportMode) {
         return new PracticeShopApiClient(endpoint, transport, new PracticeShopApiRequestFactory(),
-                java.time.Duration.ofSeconds(10));
+                java.time.Duration.ofSeconds(10), transportMode);
     }
 
     public ApiExecutionResult execute(atf.api.core.http.request.ApiRequest request) {
@@ -61,8 +76,9 @@ public final class PracticeShopApiClient {
 
     public PracticeShopApiSession login(PracticeShopCredentials credentials) {
         ApiExecutionResult result = execute(requests.login(credentials));
-        String token = result.response().status() >= 200 && result.response().status() < 300
-                ? token(result.response().body()) : "";
+        var response = result.response();
+        String token = PracticeShopApiHttpStatus.isSuccess(response.status())
+                ? token(response.body()) : "";
         bearerToken = token;
         return new PracticeShopApiSession(token, result);
     }
@@ -75,13 +91,19 @@ public final class PracticeShopApiClient {
     private static String token(String body) {
         try {
             JsonNode root = JSON.readTree(body == null ? "" : body);
-            for (String field : new String[]{"access_token", "accessToken", "token"}) {
-                String value = root.path(field).asText("");
+            if (root == null || !root.isObject()) {
+                throw new IllegalStateException("Practice Shop login response is not a JSON object");
+            }
+            for (PracticeShopApiJsonField field : new PracticeShopApiJsonField[]{
+                    PracticeShopApiJsonField.ACCESS_TOKEN,
+                    PracticeShopApiJsonField.ACCESS_TOKEN_CAMEL,
+                    PracticeShopApiJsonField.TOKEN}) {
+                String value = root.path(field.wireValue()).asText("");
                 if (!value.isBlank()) return value;
             }
-            return "";
-        } catch (Exception ignored) {
-            return "";
+            throw new IllegalStateException("Practice Shop login response does not contain an access token");
+        } catch (com.fasterxml.jackson.core.JsonProcessingException error) {
+            throw new IllegalStateException("Practice Shop login response is malformed JSON", error);
         }
     }
 }

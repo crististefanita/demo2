@@ -6,10 +6,11 @@ import atf.ui.practiceshop.config.PracticeShopScreen;
 import atf.ui.practiceshop.locators.PracticeShopControl;
 import atf.ui.practiceshop.locators.PracticeShopLocators;
 import atf.ui.practiceshop.support.PracticeShopPageContract;
+import atf.ui.practiceshop.routes.PracticeShopUiRoutes;
 import com.microsoft.playwright.Page;
 
 /** Billing address page object with no raw selectors outside the locator owner. */
-@PracticeShopPageContract(screen = PracticeShopScreen.BILLING, route = "/checkout",
+@PracticeShopPageContract(screen = PracticeShopScreen.BILLING, route = PracticeShopUiRoutes.CHECKOUT,
         requiredControls = {PracticeShopControl.COUNTRY, PracticeShopControl.POSTAL_CODE,
                 PracticeShopControl.HOUSE_NUMBER, PracticeShopControl.STREET, PracticeShopControl.CITY,
                 PracticeShopControl.STATE, PracticeShopControl.BILLING_PROCEED})

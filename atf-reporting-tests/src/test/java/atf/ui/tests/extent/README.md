@@ -20,8 +20,7 @@ flowchart LR
     Root[atf.ui.tests.extent]
     Root --> Component[component<br/>contracte + guard-uri]
     Root --> E2E[e2e<br/>Playwright + artifact UI]
-    Root --> Support[support<br/>fixtures + flows + locators + validators]
-    E2E --> Support
+    E2E --> Support[support<br/>fixtures + flows + locators + validators]
     Component -. read-only contracts .-> Support
 ```
 

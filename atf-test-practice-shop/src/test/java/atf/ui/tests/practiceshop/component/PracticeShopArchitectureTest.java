@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -17,26 +19,16 @@ class PracticeShopArchitectureTest {
     @Test
     void pageObjectsFlowsAndTestsDoNotBypassTheLocatorBoundary() throws IOException {
         Path root = locateModuleRoot();
-        try (Stream<Path> files = sourceRoots(root).flatMap(this::walkSafely)) {
-            files.filter(Files::isRegularFile)
-                    .filter(path -> !path.toString().contains("component"))
-                    .filter(path -> !path.toString().contains("locators"))
-                    .filter(path -> path.toString().endsWith(".java"))
-                    .forEach(path -> {
-                        try {
-                            String source = Files.readString(path);
-                            assertFalse(source.contains("page.locator("),
-                                    "raw page locator escaped boundary: " + path);
-                            assertFalse(source.contains("getByText("),
-                                    "text selector escaped boundary: " + path);
-                            assertFalse(source.contains("getByRole("),
-                                    "role selector escaped boundary: " + path);
-                            assertFalse(source.matches("(?s).*pressKey\\(page,\\s*\"[^\"]+\",\\s*\"[^\"]+\".*"),
-                                    "keyboard action must receive its target from the locator facade: " + path);
-                        } catch (IOException error) {
-                            throw new IllegalStateException(error);
-                        }
-                    });
+        for (Path path : sourceFiles(root)) {
+            String source = Files.readString(path);
+            assertFalse(source.contains("page.locator("),
+                    "raw page locator escaped boundary: " + path);
+            assertFalse(source.contains("getByText("),
+                    "text selector escaped boundary: " + path);
+            assertFalse(source.contains("getByRole("),
+                    "role selector escaped boundary: " + path);
+            assertFalse(source.matches("(?s).*pressKey\\(page,\\s*\"[^\"]+\",\\s*\"[^\"]+\".*"),
+                    "keyboard action must receive its target from the locator facade: " + path);
         }
     }
 
@@ -77,7 +69,7 @@ class PracticeShopArchitectureTest {
     @Test
     void reusableSupportDependenciesAreAvailableToMainSources() throws IOException {
         String pom = Files.readString(locateModuleRoot().resolve("pom.xml"));
-        for (String artifact : new String[]{"atf-core", "atf-test-kit", "atf-reporting", "atf-ui"}) {
+        for (String artifact : new String[]{"atf-core", "atf-console", "atf-test-kit", "atf-reporting", "atf-ui"}) {
             int dependencyStart = pom.indexOf("<artifactId>" + artifact + "</artifactId>");
             assertTrue(dependencyStart >= 0, "missing module dependency: " + artifact);
             int dependencyEnd = pom.indexOf("</dependency>", dependencyStart);
@@ -88,17 +80,21 @@ class PracticeShopArchitectureTest {
         }
     }
 
-    private Stream<Path> sourceRoots(Path moduleRoot) {
-        return Stream.of(moduleRoot.resolve("src/main/java/atf/ui/practiceshop"),
+    private List<Path> sourceFiles(Path moduleRoot) throws IOException {
+        List<Path> files = new ArrayList<>();
+        List<Path> roots = List.of(
+                moduleRoot.resolve("src/main/java/atf/ui/practiceshop"),
                 moduleRoot.resolve("src/test/java/atf/ui/tests/practiceshop"));
-    }
-
-    private Stream<Path> walkSafely(Path root) {
-        try {
-            return Files.walk(root);
-        } catch (IOException error) {
-            throw new IllegalStateException("Cannot scan source root: " + root, error);
+        for (Path root : roots) {
+            try (Stream<Path> walked = Files.walk(root)) {
+                walked.filter(Files::isRegularFile)
+                        .filter(path -> !path.toString().contains("component"))
+                        .filter(path -> !path.toString().contains("locators"))
+                        .filter(path -> path.toString().endsWith(".java"))
+                        .forEach(files::add);
+            }
         }
+        return files;
     }
 
     private static Path locateModuleRoot() {

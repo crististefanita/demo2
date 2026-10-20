@@ -30,15 +30,17 @@ specificitate pe măsură ce coborâm în pagină.
 ```mermaid
 flowchart LR
     Docs[docs index] --> Architecture[architecture + module boundaries]
-    Docs --> Guides[API/UI guides + contracts]
-    Docs --> Safety[build and execution safety]
-    Docs --> Practices[best practices]
-    Docs --> Feedback[feedback register + active owner docs]
+    Architecture --> Guides[API/UI guides + contracts]
+    Guides --> Safety[build and execution safety]
+    Safety --> Practices[best practices]
+    Practices --> Feedback[feedback register + active owner docs]
 ```
 
 <details>
 <summary><strong>Legendă — cum citești harta documentației</strong></summary>
 
+- săgeata solidă arată traseul de orientare în documentație, nu o dependență
+  între module;
 - `Architecture` fixează modulele, boundaries și direcția dependențelor;
 - `Guides` și contractele descriu folosirea stabilă a framework-ului;
 - `Safety` descrie staging-ul, sync-ul și gate-urile de execuție;

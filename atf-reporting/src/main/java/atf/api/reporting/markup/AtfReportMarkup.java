@@ -1,6 +1,7 @@
 package atf.api.reporting.markup;
 import atf.api.reporting.evidence.EvidenceTableFormatter;
 import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
+import atf.api.reporting.theme.tokens.AtfReportCssProperty;
 
 import com.aventstack.extentreports.markuputils.Markup;
 
@@ -35,7 +36,8 @@ public final class AtfReportMarkup {
                             AtfReportHtmlVocabulary.classAttribute(
                                     AtfReportHtmlVocabulary.CssClass.EVIDENCE_KEY_COLUMN),
                             AtfReportHtmlVocabulary.attribute(AtfReportHtmlVocabulary.Attribute.STYLE,
-                                    "width:var(--atf-evidence-key-column-width)")))
+                                    AtfReportCssProperty.WIDTH.value()
+                                            + ":var(--atf-evidence-key-column-width)")))
                     .append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.COL,
                             AtfReportHtmlVocabulary.classAttribute(
                                     AtfReportHtmlVocabulary.CssClass.EVIDENCE_VALUE_COLUMN)))
@@ -51,8 +53,8 @@ public final class AtfReportMarkup {
                     .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TABLE)).toString();
         }
         for (String value : rows[0]) {
-            html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TH))
-                    .append(escape(value))
+                    html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TH))
+                    .append(AtfReportHtmlVocabulary.escapeHtml(value))
                     .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TH));
         }
         html.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TR))
@@ -66,7 +68,7 @@ public final class AtfReportMarkup {
                     value = EvidenceTableFormatter.displayValue(rows[rowIndex][0], value);
                 }
                 html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TD))
-                        .append(escape(value))
+                        .append(AtfReportHtmlVocabulary.escapeHtml(value))
                         .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TD));
             }
             html.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TR));
@@ -87,8 +89,4 @@ public final class AtfReportMarkup {
                 || cssClass.contains(AtfReportHtmlVocabulary.CssClass.EXECUTION_TABLE.value()));
     }
 
-    private static String escape(String value) {
-        return value == null ? "" : value.replace("&", "&amp;").replace("<", "&lt;")
-                .replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;");
-    }
 }

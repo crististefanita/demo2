@@ -1,8 +1,14 @@
 package atf.ui.practiceshop.support;
 
 import atf.api.reporting.contract.AtfAssertion;
+import atf.api.core.http.request.HttpMethod;
+import atf.api.core.http.request.MediaTypes;
+import atf.ui.practiceshop.api.PracticeShopApiOperation;
+import atf.ui.practiceshop.api.PracticeShopApiHttpStatus;
+import atf.ui.practiceshop.api.PracticeShopApiJsonField;
+import atf.ui.practiceshop.api.PracticeShopApiQueryParameter;
+import atf.ui.practiceshop.api.PracticeShopApiRoutes;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.List;
 
@@ -10,21 +16,19 @@ import static atf.api.reporting.audit.ReportAuditChecks.check;
 
 /** Pure API contract projection used by the UI/API pyramid. */
 public final class PracticeShopApiAssertions {
-    private static final ObjectMapper JSON = new ObjectMapper();
+    private static final PracticeShopApiHttpStatus SUCCESS_STATUS = PracticeShopApiHttpStatus.OK;
 
     private PracticeShopApiAssertions() { }
 
     static String productId(String responseBody, String productName) {
-        try {
-            JsonNode data = JSON.readTree(responseBody).path("data");
-            for (JsonNode product : data) {
-                if (productName.equalsIgnoreCase(product.path("name").asText())) {
-                    String id = product.path("id").asText();
-                    if (!id.isBlank()) return id;
-                }
+        JsonNode root = requiredJson(responseBody, "Catalog response");
+        JsonNode data = root.path(PracticeShopApiJsonField.DATA.wireValue());
+        if (!data.isArray()) throw new IllegalStateException("Catalog response data is not an array");
+        for (JsonNode product : data) {
+            if (productName.equalsIgnoreCase(product.path("name").asText())) {
+                String id = product.path("id").asText();
+                if (!id.isBlank()) return id;
             }
-        } catch (Exception error) {
-            throw new IllegalStateException("Catalog response is not usable JSON", error);
         }
         throw new IllegalStateException("Catalog search did not return product: " + productName);
     }
@@ -33,82 +37,172 @@ public final class PracticeShopApiAssertions {
                                       PracticeShopApiNetworkJournal.Exchange detail,
                                       String productName, String productId) {
         return List.of(
-                check("API precondition · catalog search", "QUERY /products/search · 200",
+                check("API precondition · catalog search",
+                        PracticeShopApiOperation.SEARCH.wireValue() + " "
+                                + PracticeShopApiRoutes.PRODUCT_SEARCH + " · " + SUCCESS_STATUS.wireValue(),
                         search.summary(), true),
-                check("API request JSON · catalog search", "valid JSON containing q",
-                        search.requestBody(), isJson(search.requestBody()) && search.requestBody().contains(productName)),
+                check("API request query · catalog search",
+                        PracticeShopApiQueryParameter.SEARCH.wireValue() + "=" + productName,
+                        search.requestBody().isBlank()
+                                ? query(search.url(), PracticeShopApiQueryParameter.SEARCH.wireValue())
+                                : search.requestBody(),
+                        exactText(search.requestBody(), PracticeShopApiQueryParameter.SEARCH.wireValue(), productName)
+                                || productName.equals(query(search.url(), PracticeShopApiQueryParameter.SEARCH.wireValue()))),
                 check("API response JSON · product identity", productName + " / " + productId,
                         "id=" + productId + ", name=" + productName + ", response="
                                 + compact(detail.responseBody(), 280),
-                        isJson(detail.responseBody()) && detail.responseBody().contains(productId)
-                                && detail.responseBody().contains(productName)),
-                check("API response headers · product detail", "application/json",
+                        exactText(detail.responseBody(), PracticeShopApiJsonField.ID.wireValue(), productId)
+                                && exactText(detail.responseBody(), PracticeShopApiJsonField.NAME.wireValue(),
+                                productNameForId(search.responseBody(), productId))),
+                check("API response headers · product detail", MediaTypes.APPLICATION_JSON,
                         detail.contentType(), detail.isJsonResponse()));
     }
 
     public static List<AtfAssertion> login(PracticeShopApiNetworkJournal.Exchange login,
                                     PracticeShopApiNetworkJournal.Exchange currentUser,
                                     String displayName) {
-        boolean readableTokenJson = isJson(login.responseBody())
-                && login.responseBody().contains("<redacted>");
-        boolean validJsonTransport = login.status() == 200
+        String loginResponseBody = login.responseBody();
+        JsonNode loginJson = PracticeShopJsonEvidence.parse(loginResponseBody);
+        boolean readableTokenJson = loginJson != null && hasTextField(loginJson,
+                PracticeShopApiJsonField.ACCESS_TOKEN.wireValue(),
+                PracticeShopApiJsonField.ACCESS_TOKEN_CAMEL.wireValue(),
+                PracticeShopApiJsonField.TOKEN.wireValue());
+        boolean validJsonTransport = SUCCESS_STATUS.matches(login.status())
                 && login.isJsonResponse()
                 && (readableTokenJson || positiveContentLength(login));
+        String currentUserBody = currentUser == null ? "" : currentUser.responseBody();
+        boolean currentUserMatches = currentUser != null
+                && SUCCESS_STATUS.matches(currentUser.status())
+                && currentUserBody.contains(displayName.split(" ", 2)[0]);
         return List.of(
-                check("API login status", "200", Integer.toString(login.status()), login.status() == 200),
+                check("API login status", SUCCESS_STATUS.wireValue(), Integer.toString(login.status()),
+                        SUCCESS_STATUS.matches(login.status())),
                 check("API login request JSON", "email and password fields are sent",
-                        login.requestBody(), isJson(login.requestBody())
-                                && login.requestBody().contains("email")
-                                && login.requestBody().contains("<redacted>")),
+                login.requestBody(), isJson(login.requestBody())
+                                && field(login.requestBody(), PracticeShopApiJsonField.EMAIL.wireValue()) != null
+                                && field(login.requestBody(), PracticeShopApiJsonField.PASSWORD.wireValue()) != null),
                 check("API login response JSON", "authenticated token response or non-empty JSON transport",
-                        readableTokenJson ? compact(login.responseBody(), 260)
+                        readableTokenJson ? compact(loginResponseBody, 260)
                                 : "body unavailable to Playwright transport; content-type=" + login.contentType()
                                 + ", content-length=" + header(login, "content-length"),
                         validJsonTransport),
                 currentUser == null
                         ? check("API session establishment", "login token establishes the UI session",
-                        "POST /users/login returned 200; users/me was not emitted by this UI revision", true)
-                        : check("API current-user response", displayName, compact(currentUser.responseBody(), 220),
-                        currentUser.status() == 200
-                                && currentUser.responseBody().contains(displayName.split(" ", 2)[0])));
+                        HttpMethod.POST.value() + " " + PracticeShopApiRoutes.LOGIN
+                                + " returned " + SUCCESS_STATUS.wireValue() + "; "
+                                + PracticeShopApiRoutes.CURRENT_USER + " was not emitted by this UI revision", true)
+                        : check("API current-user response", displayName, compact(currentUserBody, 220),
+                        currentUserMatches));
     }
 
     public static List<AtfAssertion> cart(PracticeShopApiNetworkJournal.Exchange add,
                                    PracticeShopApiNetworkJournal.Exchange read,
                                    String productId, int quantity) {
-        String expectedQuantity = "\"quantity\":" + quantity;
+        String addRequestBody = add.requestBody();
+        String readResponseBody = read.responseBody();
+        JsonNode addJson = PracticeShopJsonEvidence.parse(addRequestBody);
+        JsonNode readJson = PracticeShopJsonEvidence.parse(readResponseBody);
         return List.of(
                 check("API request JSON · cart add", "product_id=" + productId + ", quantity=" + quantity,
-                        add.requestBody(), isJson(add.requestBody()) && add.requestBody().contains(productId)
-                                && add.requestBody().contains(expectedQuantity)),
-                check("API response · cart add", "200 application/json", add.summary(),
-                        add.status() == 200 && add.isJsonResponse()),
+                        addRequestBody, exactText(addJson, PracticeShopApiJsonField.PRODUCT_ID.wireValue(), productId)
+                                && exactInt(addJson, PracticeShopApiJsonField.QUANTITY.wireValue(), quantity)),
+                check("API response · cart add",
+                        SUCCESS_STATUS.wireValue() + " application/json", add.summary(),
+                        SUCCESS_STATUS.matches(add.status()) && add.isJsonResponse()),
                 check("API response JSON · cart read", "cart_items contains " + productId
                                 + " with quantity " + quantity,
                         "product_id=" + productId + ", quantity=" + quantity + ", response="
-                                + compact(read.responseBody(), 280),
-                        isJson(read.responseBody()) && read.responseBody().contains(productId)
-                                && read.responseBody().contains(expectedQuantity)));
+                                + compact(readResponseBody, 280),
+                        cartItemMatches(readJson, productId, quantity)));
     }
 
     public static List<AtfAssertion> payment(PracticeShopApiNetworkJournal.Exchange payment,
                                       String paymentMethod) {
         String expectedMethod = paymentMethod.toLowerCase().replace(' ', '-');
+        String requestBody = payment.requestBody();
+        String responseBody = payment.responseBody();
+        JsonNode request = PracticeShopJsonEvidence.parse(requestBody);
+        JsonNode response = PracticeShopJsonEvidence.parse(responseBody);
         return List.of(
                 check("API request JSON · payment", "payment_method=" + expectedMethod,
-                        payment.requestBody(), isJson(payment.requestBody())
-                                && payment.requestBody().contains(expectedMethod)),
+                        requestBody, exactText(request, PracticeShopApiJsonField.PAYMENT_METHOD.wireValue(),
+                                expectedMethod)),
                 check("API response JSON · payment", "Payment was successful",
-                        payment.responseBody(), isJson(payment.responseBody())
-                                && payment.responseBody().contains("Payment was successful")),
-                check("API response headers · payment", "application/json", payment.contentType(),
+                        responseBody, exactText(response, PracticeShopApiJsonField.MESSAGE.wireValue(),
+                                "Payment was successful")),
+                check("API response headers · payment", MediaTypes.APPLICATION_JSON, payment.contentType(),
                         payment.isJsonResponse()));
     }
 
-    private static boolean isJson(String body) {
-        if (body == null || body.isBlank()) return false;
-        try { JSON.readTree(body); return true; }
-        catch (Exception ignored) { return false; }
+    private static boolean isJson(String body) { return PracticeShopJsonEvidence.isJson(body); }
+
+    private static JsonNode requiredJson(String body, String label) {
+        JsonNode node = PracticeShopJsonEvidence.parse(body);
+        if (node == null) throw new IllegalStateException(label + " is not usable JSON");
+        return node;
+    }
+
+    private static JsonNode field(String body, String name) {
+        JsonNode root = PracticeShopJsonEvidence.parse(body);
+        return root == null ? null : root.get(name);
+    }
+
+    private static boolean hasTextField(JsonNode root, String... names) {
+        for (String name : names) {
+            JsonNode value = root.get(name);
+            if (value != null && value.isTextual() && !value.asText().isBlank()) return true;
+        }
+        return false;
+    }
+
+    private static boolean exactText(String body, String path, String expected) {
+        return exactText(PracticeShopJsonEvidence.parse(body), path, expected);
+    }
+
+    private static boolean exactText(JsonNode root, String path, String expected) {
+        JsonNode value = root == null ? null : root.at("/" + path.replace(".", "/"));
+        return value != null && value.isTextual() && expected.equals(value.asText());
+    }
+
+    private static boolean exactInt(JsonNode root, String path, int expected) {
+        JsonNode value = root == null ? null : root.at("/" + path.replace(".", "/"));
+        return value != null && value.isIntegralNumber() && expected == value.intValue();
+    }
+
+    private static boolean cartItemMatches(JsonNode root, String productId, int quantity) {
+        if (root == null || !root.path(PracticeShopApiJsonField.CART_ITEMS.wireValue()).isArray()) return false;
+        for (JsonNode item : root.path(PracticeShopApiJsonField.CART_ITEMS.wireValue())) {
+            if (exactText(item, PracticeShopApiJsonField.PRODUCT_ID.wireValue(), productId)
+                    && exactInt(item, PracticeShopApiJsonField.QUANTITY.wireValue(), quantity)) return true;
+        }
+        return false;
+    }
+
+    private static String productNameForId(String body, String productId) {
+        JsonNode root = PracticeShopJsonEvidence.parse(body);
+        JsonNode data = root == null ? null
+                : root.path(PracticeShopApiJsonField.DATA.wireValue());
+        if (data != null && data.isArray()) {
+            for (JsonNode product : data) {
+                if (productId.equals(product.path(PracticeShopApiJsonField.ID.wireValue()).asText())) {
+                    return product.path(PracticeShopApiJsonField.NAME.wireValue()).asText("");
+                }
+            }
+        }
+        return "";
+    }
+
+    private static String query(String url, String name) {
+        String raw = java.net.URI.create(url).getRawQuery();
+        if (raw == null) return "";
+        for (String pair : raw.split("&")) {
+            String[] values = pair.split("=", 2);
+            if (name.equals(java.net.URLDecoder.decode(values[0], java.nio.charset.StandardCharsets.UTF_8))) {
+                return values.length == 1 ? ""
+                        : java.net.URLDecoder.decode(values[1], java.nio.charset.StandardCharsets.UTF_8);
+            }
+        }
+        return "";
     }
 
     private static boolean positiveContentLength(PracticeShopApiNetworkJournal.Exchange exchange) {

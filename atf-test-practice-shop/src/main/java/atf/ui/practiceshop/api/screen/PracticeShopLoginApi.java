@@ -15,8 +15,10 @@ public final class PracticeShopLoginApi {
     public PracticeShopApiSession establish(PracticeShopCredentials credentials) {
         PracticeShopApiSession session = client.login(credentials);
         if (!session.authenticated()) {
+            var loginResult = session.loginResult();
+            var loginResponse = loginResult.response();
             throw new IllegalStateException("Practice Shop login did not return a bearer token; status="
-                    + session.loginResult().response().status());
+                    + loginResponse.status());
         }
         return session;
     }

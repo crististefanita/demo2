@@ -23,11 +23,27 @@ public final class PracticeShopApiExchangeSelector {
         for (int index = exchanges.size() - 1; index >= 0; index--) {
             PracticeShopApiNetworkJournal.Exchange exchange = exchanges.get(index);
             if (method.equalsIgnoreCase(exchange.method())
-                    && exchange.path().contains(path) && extra.test(exchange)) {
+                    && matchesRoute(exchange.path(), path) && extra.test(exchange)) {
                 return exchange;
             }
         }
         return null;
+    }
+
+    private static boolean matchesRoute(String actual, String expected) {
+        String normalizedActual = normalize(actual);
+        String normalizedExpected = normalize(expected);
+        if (normalizedExpected.endsWith("/")) return normalizedActual.startsWith(normalizedExpected);
+        return normalizedExpected.equals(normalizedActual);
+    }
+
+    static String normalize(String path) {
+        if (path == null) return "";
+        int query = path.indexOf('?');
+        int fragment = path.indexOf('#');
+        int end = query < 0 ? path.length() : query;
+        if (fragment >= 0) end = Math.min(end, fragment);
+        return path.substring(0, end);
     }
 
     public static String productIdFromPath(String selectedProductPath) {

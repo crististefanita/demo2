@@ -1,85 +1,97 @@
 package atf.ui.tests.practiceshop.api.component;
 
-import atf.api.core.http.response.ApiResponse;
-import atf.api.core.http.transport.ApiTransport;
+import atf.api.core.http.request.HttpMethod;
 import atf.api.testkit.AtfComponentTest;
 import atf.ui.practiceshop.api.PracticeShopApiClient;
+import atf.ui.practiceshop.api.PracticeShopApiHttpStatus;
+import atf.ui.practiceshop.api.PracticeShopApiJsonField;
 import atf.ui.practiceshop.api.PracticeShopApiRequestFactory;
 import atf.ui.practiceshop.api.PracticeShopApiRoutes;
 import atf.ui.practiceshop.api.PracticeShopProductQuery;
 import atf.ui.practiceshop.api.PracticeShopProductSort;
+import atf.ui.practiceshop.support.PracticeShopJsonEvidence;
+import atf.ui.tests.practiceshop.api.support.PracticeShopApiScenarioFixture;
+import atf.ui.tests.practiceshop.api.support.PracticeShopApiComponentFixture;
 import org.junit.jupiter.api.Test;
-
-import java.net.URI;
-import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Component matrix for catalog variation and cart mutation boundaries. */
 @AtfComponentTest
 class PracticeShopApiCatalogCartVariantTest {
-    private final PracticeShopApiRequestFactory requests = new PracticeShopApiRequestFactory();
-
     @Test
-    void categorySortAndOutOfStockRemainObservableWithoutASecondE2e() throws Exception {
-        PracticeShopApiClient client = PracticeShopApiClient.forTransport(
-                URI.create("https://api.practicesoftwaretesting.com"), transport());
+    void categorySortAndOutOfStockRemainObservableWithoutASecondE2e() {
+        PracticeShopApiClient client = PracticeShopApiComponentFixture.client();
+        PracticeShopApiRequestFactory requests = client.requests();
 
-        var filtered = client.execute(client.requests().products(
-                new PracticeShopProductQuery(null, "category-1", false, null,
-                        PracticeShopProductSort.PRICE_ASC, 1)));
-        var categories = client.execute(client.requests().categories());
-        var outOfStock = client.execute(client.requests().product("out-of-stock", ""));
+        String categoryId = PracticeShopApiScenarioFixture.CATEGORY_ID;
+        String outOfStockProductId = PracticeShopApiScenarioFixture.OUT_OF_STOCK_PRODUCT_ID;
+        boolean rentalOnly = PracticeShopApiScenarioFixture.FILTER_RENTAL;
+        int page = PracticeShopApiScenarioFixture.FIRST_PAGE;
 
-        assertEquals(200, filtered.response().status());
-        assertTrue(filtered.response().body().contains("category-1"));
-        assertEquals(200, categories.response().status());
-        assertTrue(categories.response().body().contains("category-1"));
-        assertEquals(200, outOfStock.response().status());
-        assertFalse(com.fasterxml.jackson.databind.json.JsonMapper.builder().build()
-                .readTree(outOfStock.response().body()).path("in_stock").asBoolean(true));
+        var filteredExecution = client.execute(requests.products(
+                new PracticeShopProductQuery(null, categoryId, rentalOnly, null,
+                        PracticeShopProductSort.PRICE_ASC, page)));
+        var categoriesExecution = client.execute(requests.categories());
+        var outOfStockExecution = client.execute(requests.product(outOfStockProductId, ""));
+
+        var filteredResponse = filteredExecution.response();
+        var categoriesResponse = categoriesExecution.response();
+        var outOfStockResponse = outOfStockExecution.response();
+        var filteredBody = PracticeShopJsonEvidence.parse(filteredResponse.body());
+        var categoriesBody = PracticeShopJsonEvidence.parse(categoriesResponse.body());
+        var outOfStockBody = PracticeShopJsonEvidence.parse(outOfStockResponse.body());
+
+        assertTrue(PracticeShopApiHttpStatus.OK.matches(filteredResponse.status()));
+        assertNotNull(filteredBody);
+        assertEquals(categoryId, filteredBody.path(PracticeShopApiJsonField.CATEGORY.wireValue()).asText());
+        assertTrue(filteredBody.path(PracticeShopApiJsonField.DATA.wireValue()).isArray());
+        assertTrue(PracticeShopApiHttpStatus.OK.matches(categoriesResponse.status()));
+        assertNotNull(categoriesBody);
+        assertTrue(categoriesBody.findValuesAsText(PracticeShopApiJsonField.ID.wireValue()).contains(categoryId));
+        assertTrue(PracticeShopApiHttpStatus.OK.matches(outOfStockResponse.status()));
+        assertNotNull(outOfStockBody);
+        assertFalse(outOfStockBody.path(PracticeShopApiJsonField.IN_STOCK.wireValue()).asBoolean(true));
     }
 
     @Test
-    void cartQuantityUpdateAndProductRemovalPreserveMutationContracts() {
-        PracticeShopApiClient client = PracticeShopApiClient.forTransport(
-                URI.create("https://api.practicesoftwaretesting.com"), transport());
+    void cartUpdateAndRemovalExposeDistinctApiContracts() {
+        PracticeShopApiClient client = PracticeShopApiComponentFixture.client();
+        PracticeShopApiRequestFactory requests = client.requests();
 
-        var updated = client.execute(requests.updateCartQuantity("cart-1", "product-1", 3));
-        var removed = client.execute(requests.removeFromCart("cart-1", "product-1"));
+        String cartId = PracticeShopApiScenarioFixture.MUTATION_CART_ID;
+        String productId = PracticeShopApiScenarioFixture.MUTATION_PRODUCT_ID;
+        int expectedQuantity = PracticeShopApiScenarioFixture.UPDATED_QUANTITY;
 
-        assertEquals(200, updated.response().status());
-        assertEquals("PUT", updated.request().method());
-        assertTrue(updated.request().bodyText().contains("\"quantity\":3"));
-        assertEquals(204, removed.response().status());
-        assertEquals("DELETE", removed.request().method());
-    }
+        var updateExecution = client.execute(
+                requests.updateCartQuantity(cartId, productId, expectedQuantity));
+        var removeExecution = client.execute(requests.removeFromCart(cartId, productId));
 
-    private static ApiTransport transport() {
-        return (request, url, auth) -> {
-            int status = 200;
-            String body;
-            if (request.path().equals(PracticeShopApiRoutes.PRODUCT_COLLECTION)) {
-                body = "{\"data\":[{\"id\":\"oos\",\"name\":\"Out of stock\",\"in_stock\":false}],\"category\":\"category-1\"}";
-            } else if (request.path().equals(PracticeShopApiRoutes.CATEGORIES)) {
-                body = "[{\"id\":\"category-1\",\"name\":\"Hand Tools\"}]";
-            } else if (request.path().equals(PracticeShopApiRoutes.product("out-of-stock"))) {
-                body = "{\"id\":\"out-of-stock\",\"name\":\"Out of stock\",\"in_stock\":false}";
-            } else if (request.method().equals("PUT") && request.path().endsWith("/product/quantity")) {
-                body = "{\"result\":\"item updated\"}";
-            } else if (request.method().equals("DELETE") && request.path().contains("/product/")) {
-                status = 204;
-                body = "";
-            } else {
-                status = 500;
-                body = "{\"message\":\"unexpected route\"}";
-            }
-            return CompletableFuture.completedFuture(new ApiResponse(status, body,
-                    Map.of("content-type", "application/json"), Duration.ZERO, url));
-        };
+        var updateResponse = updateExecution.response();
+        var updateRequest = updateExecution.request();
+        var removeResponse = removeExecution.response();
+        var removeRequest = removeExecution.request();
+        var updateRequestBody = PracticeShopJsonEvidence.parse(updateRequest.bodyText());
+        var updateResponseBody = PracticeShopJsonEvidence.parse(updateResponse.body());
+
+        assertTrue(PracticeShopApiHttpStatus.OK.matches(updateResponse.status()));
+        assertEquals(HttpMethod.PUT.value(), updateRequest.method());
+        assertEquals(PracticeShopApiRoutes.updateCartQuantity(cartId), updateRequest.path());
+        assertNotNull(updateRequestBody);
+        assertEquals(productId,
+                updateRequestBody.path(PracticeShopApiJsonField.PRODUCT_ID.wireValue()).asText());
+        assertEquals(expectedQuantity,
+                updateRequestBody.path(PracticeShopApiJsonField.QUANTITY.wireValue()).asInt());
+        assertNotNull(updateResponseBody);
+        assertEquals(PracticeShopApiScenarioFixture.CART_UPDATE_RESULT,
+                updateResponseBody.path(PracticeShopApiJsonField.RESULT.wireValue()).asText());
+
+        assertTrue(PracticeShopApiHttpStatus.NO_CONTENT.matches(removeResponse.status()));
+        assertEquals(HttpMethod.DELETE.value(), removeRequest.method());
+        assertEquals(PracticeShopApiRoutes.removeCartProduct(cartId, productId), removeRequest.path());
+        assertEquals("", removeRequest.bodyText());
     }
 }

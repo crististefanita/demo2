@@ -24,7 +24,7 @@ flowchart LR
     Core[atf-core<br/>modele + porturi] --> Validation[atf-validation<br/>contracte + evaluator]
     ReportingTests[atf-reporting-tests<br/>test composition] --> Validation
     Validation --> Decision[ValidationDecision<br/>status + assertions]
-    Validation --> Sink[ValidationSink<br/>port îngust de publicare]
+    Decision --> Sink[ValidationSink<br/>port îngust de publicare]
     Sink --> Adapter[consumer adapter<br/>renderer-neutral mapping]
     Adapter --> Reporting[atf-reporting<br/>Extent + HTML]
 ```

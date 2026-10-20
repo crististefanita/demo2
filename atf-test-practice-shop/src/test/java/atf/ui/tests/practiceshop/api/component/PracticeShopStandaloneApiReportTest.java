@@ -1,28 +1,34 @@
 package atf.ui.tests.practiceshop.api.component;
 
-import atf.api.core.http.response.ApiResponse;
-import atf.api.core.http.transport.ApiTransport;
-import atf.api.reporting.contract.AtfReportPorts;
-import atf.api.reporting.contract.AtfReportStatus;
-import atf.api.reporting.extent.session.ExtentReportSession;
+import atf.api.console.AtfConsoleReporter;
+import atf.api.core.reporting.console.AtfConsoleSink;
+import atf.api.core.http.request.HttpMethod;
+import atf.api.core.http.response.ApiExecutionResult;
 import atf.api.testkit.AtfComponentTest;
 import atf.ui.practiceshop.api.PracticeShopApiClient;
-import atf.ui.practiceshop.api.PracticeShopApiScreenFlow;
 import atf.ui.practiceshop.api.PracticeShopApiRoutes;
+import atf.ui.practiceshop.api.PracticeShopApiScreenFlow;
 import atf.ui.practiceshop.api.PracticeShopPaymentMethod;
-import atf.ui.practiceshop.config.PracticeShopCredentials;
+import atf.ui.practiceshop.config.PracticeShopConfigurationLoader;
 import atf.ui.practiceshop.support.PracticeShopApiReportPublisher;
+import atf.ui.tests.practiceshop.api.support.PracticeShopApiReportMetadataFixture;
+import atf.ui.tests.practiceshop.api.support.PracticeShopApiScenarioFixture;
+import atf.ui.tests.practiceshop.api.support.PracticeShopApiComponentFixture;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.net.URI;
 import java.nio.file.Files;
-import java.time.Duration;
+import java.nio.file.Path;
+import java.time.Instant;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static atf.ui.tests.practiceshop.api.support.PracticeShopApiScenarioFixture.COUNTRY;
+import static atf.ui.tests.practiceshop.api.support.PracticeShopApiScenarioFixture.HOUSE_NUMBER;
+import static atf.ui.tests.practiceshop.api.support.PracticeShopApiScenarioFixture.POSTCODE;
+import static atf.ui.tests.practiceshop.api.support.PracticeShopApiScenarioFixture.PRODUCT_NAME;
+import static atf.ui.tests.practiceshop.api.support.PracticeShopApiScenarioFixture.QUANTITY;
 
 /** Publishes the same request/response/execution evidence without opening a browser. */
 @AtfComponentTest
@@ -30,37 +36,31 @@ class PracticeShopStandaloneApiReportTest {
     @Test
     @DisplayName("Practice Shop API screen flow publishes standalone Extent evidence")
     void publishesStandaloneApiEvidence() throws Exception {
-        PracticeShopApiClient client = PracticeShopApiClient.forTransport(
-                URI.create("https://api.practicesoftwaretesting.com"), transport());
+        PracticeShopApiClient client = PracticeShopApiComponentFixture.client();
         PracticeShopApiScreenFlow flow = new PracticeShopApiScreenFlow(client);
-        var login = flow.login().establish(new PracticeShopCredentials(
-                "atf@example.test", "secret", "ATF", "Practice"));
-        var catalog = flow.catalog().openProduct("Combination Pliers");
-        var cart = flow.cart().prepare(catalog.productId(), 2);
-        var checkout = flow.checkout().confirm("RO", "010101", "10",
+        var login = flow.login().establish(PracticeShopApiScenarioFixture.validCredentials());
+        var catalog = flow.catalog().openProduct(PRODUCT_NAME);
+        var cart = flow.cart().prepare(catalog.productId(), QUANTITY);
+        var checkout = flow.checkout().confirm(COUNTRY, POSTCODE, HOUSE_NUMBER,
                 PracticeShopPaymentMethod.CASH_ON_DELIVERY);
 
-        List<atf.api.core.http.response.ApiExecutionResult> executions = List.of(
+        List<ApiExecutionResult> executions = List.of(
                 login.loginResult(), catalog.search(), catalog.detail(), cart.create(), cart.add(), cart.read(),
                 checkout.addressLookup(), checkout.payment());
         assertWriteRequestsHaveJson(executions);
         assertResponsesHaveJson(executions);
-        java.nio.file.Path report;
-        try (ExtentReportSession session = ExtentReportSession.openConfigured()) {
-            report = session.reportPath();
-            AtfReportPorts.Scenario scenario = session.startScenario(
-                    "PracticeShopStandaloneApiReportTest", "atf.ui.tests.practiceshop.api.component",
-                    "Practice Shop API screen flow", List.of("api", "component", "practice-shop"));
-            AtfReportPorts.Phase phase = scenario.startPhase("TEST BODY");
-            try {
-                for (var execution : executions) PracticeShopApiReportPublisher.publish(phase, execution);
-                phase.complete(AtfReportStatus.PASS);
-                scenario.complete(AtfReportStatus.PASS);
-            } finally {
-                phase.close();
-                scenario.close();
-            }
-        }
+
+        var configuration = PracticeShopConfigurationLoader.load();
+        Path reportPath = configuration.apiReportDirectory().resolve(
+                "api-atf-practice-shop-standalone_" + Instant.now().toString()
+                        .replace(":", "-") + ".html");
+        AtfConsoleSink console = AtfConsoleReporter.configuredStdout();
+        Path report = PracticeShopApiReportPublisher.publishStandalone(reportPath,
+                PracticeShopApiReportMetadataFixture.TEST_CLASS,
+                PracticeShopApiReportMetadataFixture.TEST_PACKAGE,
+                PracticeShopApiReportMetadataFixture.SCENARIO,
+                PracticeShopApiReportMetadataFixture.TAGS,
+                executions, console);
 
         String html = Files.readString(report);
         assertTrue(Files.isRegularFile(report));
@@ -69,47 +69,44 @@ class PracticeShopStandaloneApiReportTest {
         assertTrue(html.contains("Execution evidence"));
         assertTrue(html.contains(PracticeShopApiRoutes.PRODUCT_SEARCH));
         assertTrue(html.contains(PracticeShopApiRoutes.PAYMENT_CHECK));
+        assertTrue(html.contains("POST /users/login — establish API session"));
+        assertTrue(html.contains("GET /products/search — find configured product"));
+        assertTrue(html.contains("GET /products/01product — read selected product"));
+        assertTrue(html.contains("POST /carts/01cart — add product to cart"));
+        assertTrue(html.contains("GET /carts/01cart — verify cart contents"));
+        assertTrue(html.contains("GET /postcode-lookup — resolve checkout address"));
+        assertTrue(html.contains("POST /payment/check — validate payment selection"));
+        assertFalse(html.contains("QUERY /products/search"));
+        assertTrue(html.contains("<td>OPERATION KIND</td>"));
+        assertTrue(html.contains("<td>ROUTE TEMPLATE</td>"));
         assertTrue(html.contains("AUTH TYPE"));
         assertTrue(html.contains("REQUEST HEADERS"));
         assertTrue(html.contains("CONTENT TYPE"));
         assertTrue(html.contains("RESPONSE HEADERS"));
-        assertTrue(!html.contains("atf@example.test"));
-        assertTrue(!html.contains("token-1"));
-        assertTrue(!html.contains("\"secret\""));
+        assertFalse(html.contains("atf@example.test"));
+        assertFalse(html.contains("token-1"));
+        assertFalse(html.contains("\"secret\""));
     }
 
-    private static void assertWriteRequestsHaveJson(
-            List<atf.api.core.http.response.ApiExecutionResult> executions) {
-        executions.stream()
-                .filter(execution -> "POST".equalsIgnoreCase(execution.request().method())
-                        || "PUT".equalsIgnoreCase(execution.request().method()))
-                .forEach(execution -> assertTrue(!execution.request().bodyText().isBlank(),
-                        "POST/PUT must carry a JSON request body: " + execution.request().path()));
-    }
-
-    private static void assertResponsesHaveJson(
-            List<atf.api.core.http.response.ApiExecutionResult> executions) {
-        executions.forEach(execution -> assertTrue(!execution.response().body().isBlank(),
-                "API response body must be present for report evidence: " + execution.request().path()));
-    }
-
-    private static ApiTransport transport() {
-        return (request, url, auth) -> {
-            String body;
-            switch (request.path()) {
-                case PracticeShopApiRoutes.LOGIN -> body = "{\"access_token\":\"token-1\"}";
-                case PracticeShopApiRoutes.PRODUCT_SEARCH -> body = "{\"data\":[{\"id\":\"01product\",\"name\":\"Combination Pliers\"}]}";
-                case PracticeShopApiRoutes.PRODUCTS + "01product" -> body = "{\"id\":\"01product\",\"name\":\"Combination Pliers\"}";
-                case PracticeShopApiRoutes.CARTS -> body = "{\"id\":\"01cart\"}";
-                case PracticeShopApiRoutes.CARTS + "/01cart" -> body = request.method().equals("GET")
-                        ? "{\"cart_items\":[{\"product_id\":\"01product\",\"quantity\":2}]}"
-                        : "{\"result\":\"item added or updated\"}";
-                case PracticeShopApiRoutes.POSTCODE_LOOKUP -> body = "{\"country\":\"RO\",\"postcode\":\"010101\"}";
-                case PracticeShopApiRoutes.PAYMENT_CHECK -> body = "{\"message\":\"Payment was successful\"}";
-                default -> body = "{\"message\":\"unexpected route\"}";
+    private static void assertWriteRequestsHaveJson(List<ApiExecutionResult> executions) {
+        for (ApiExecutionResult execution : executions) {
+            var request = execution.request();
+            String method = request.method();
+            boolean writeRequest = HttpMethod.POST.value().equalsIgnoreCase(method)
+                    || HttpMethod.PUT.value().equalsIgnoreCase(method);
+            if (writeRequest) {
+                assertFalse(request.bodyText().isBlank(),
+                        "POST/PUT must carry a JSON request body: " + request.path());
             }
-            return CompletableFuture.completedFuture(new ApiResponse(200, body,
-                    Map.of("content-type", "application/json"), Duration.ZERO, url));
-        };
+        }
+    }
+
+    private static void assertResponsesHaveJson(List<ApiExecutionResult> executions) {
+        for (ApiExecutionResult execution : executions) {
+            var request = execution.request();
+            var response = execution.response();
+            assertFalse(response.body().isBlank(),
+                    "API response body must be present for report evidence: " + request.path());
+        }
     }
 }

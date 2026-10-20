@@ -24,9 +24,12 @@ public final class PracticeShopConfigurationLoader {
         Path account = Path.of(System.getProperty("user.dir", "."))
                 .resolve("target/practice-software-testing-account.properties");
         try (var stream = openConfiguration()) {
-            if (stream == null) return override(PracticeShopConfiguration.defaults(account));
+            if (stream == null) {
+                throw new IllegalStateException("Missing " + RESOURCE
+                        + "; practiceShop.baseUrl must be supplied by the module YAML");
+            }
             JsonNode root = YAML.readTree(stream).path("practiceShop");
-            URI base = URI.create(text(root, "baseUrl", "https://practicesoftwaretesting.com"));
+            URI base = URI.create(requiredText(root, "baseUrl"));
             Path configuredAccount = resolvePath(text(root, "accountFile", account.toString()));
             String product = text(root, "productName", "Pliers");
             String path = text(root, "productPath", PracticeShopConfiguration.DYNAMIC_PRODUCT_PATH);
@@ -55,6 +58,10 @@ public final class PracticeShopConfigurationLoader {
                                     text(billing, "city", "Bucharest"),
                                     text(billing, "state", "Bucharest")),
                             text(checkout, "paymentMethod", "Cash on Delivery"));
+            JsonNode reports = root.path("reports");
+            Path uiReports = resolveDirectory(text(reports, "ui", "artifacts/reports/ui"));
+            Path apiReports = resolveDirectory(text(reports, "api", "artifacts/reports"));
+            boolean authenticatedE2e = bool(root, "authenticatedE2eEnabled", false);
             return override(new PracticeShopConfiguration(base, configuredAccount, product, path,
                     checkoutConfiguration,
                     new UiBrowserConfiguration(base, text(root, "browser", "chromium"),
@@ -64,7 +71,7 @@ public final class PracticeShopConfigurationLoader {
                             integer(root.path("viewport"), "height", 1000),
                             integer(root, "zoomPercent", 100),
                             bool(root, "screenshotOnFailure", true)), validationProfile,
-                    apiConfiguration));
+                    apiConfiguration, uiReports, apiReports, authenticatedE2e));
         } catch (IOException | RuntimeException error) {
             throw new IllegalStateException("Cannot load " + RESOURCE, error);
         }
@@ -101,6 +108,12 @@ public final class PracticeShopConfigurationLoader {
         String apiMode = System.getProperty("atf.practice.api-mode", base.api().mode().name());
         String apiPrecondition = System.getProperty("atf.practice.api-precondition",
                 base.api().precondition().name());
+        String uiReports = System.getProperty("atf.practice.ui-report-directory",
+                base.uiReportDirectory().toString());
+        String apiReports = System.getProperty("atf.practice.api-report-directory",
+                base.apiReportDirectory().toString());
+        boolean authenticatedE2e = Boolean.parseBoolean(System.getProperty(
+                "atf.practice.authenticated-e2e", Boolean.toString(base.authenticatedE2eEnabled())));
         URI uri = URI.create(baseUrl);
         UiBrowserConfiguration browser = new UiBrowserConfiguration(uri, base.browser().browser(),
                 base.browser().headless(), base.browser().timeout(), base.browser().navigationTimeout(),
@@ -109,12 +122,22 @@ public final class PracticeShopConfigurationLoader {
         return new PracticeShopConfiguration(uri, accountFile, product, productPath,
                 base.checkout(), browser, PracticeShopValidationProfile.from(profile),
                 new PracticeShopApiConfiguration(URI.create(apiEndpoint), ApiTransportMode.parse(apiMode),
-                        PracticeShopApiPrecondition.from(apiPrecondition), base.api().timeout()));
+                        PracticeShopApiPrecondition.from(apiPrecondition), base.api().timeout()),
+                resolveDirectory(uiReports), resolveDirectory(apiReports), authenticatedE2e);
     }
 
     private static String text(JsonNode parent, String key, String fallback) {
         JsonNode value = parent.path(key);
         return value.isTextual() && !value.asText().isBlank() ? value.asText().trim() : fallback;
+    }
+
+    private static String requiredText(JsonNode parent, String key) {
+        JsonNode value = parent.path(key);
+        if (!value.isTextual() || value.asText().isBlank()) {
+            throw new IllegalArgumentException("Configuration key practiceShop." + key
+                    + " must be a non-blank YAML value");
+        }
+        return value.asText().trim();
     }
 
     private static Path resolvePath(String configured) {
@@ -124,6 +147,20 @@ public final class PracticeShopConfigurationLoader {
         while (current != null) {
             Path candidate = current.resolve(path).normalize();
             if (Files.isRegularFile(candidate)) return candidate;
+            current = current.getParent();
+        }
+        return Path.of(System.getProperty("user.dir", ".")).toAbsolutePath().normalize()
+                .resolve(path).normalize();
+    }
+
+    private static Path resolveDirectory(String configured) {
+        Path path = Path.of(configured);
+        if (path.isAbsolute()) return path.normalize();
+        Path current = Path.of(System.getProperty("user.dir", ".")).toAbsolutePath().normalize();
+        while (current != null) {
+            if (Files.isRegularFile(current.resolve("atf-reporting/pom.xml"))) {
+                return current.resolve(path).normalize();
+            }
             current = current.getParent();
         }
         return Path.of(System.getProperty("user.dir", ".")).toAbsolutePath().normalize()
@@ -141,8 +178,18 @@ public final class PracticeShopConfigurationLoader {
     }
 
     private static Duration duration(JsonNode parent, String key, Duration fallback) {
-        try { return Duration.parse(text(parent, key, fallback.toString())); }
-        catch (RuntimeException ignored) { return fallback; }
+        JsonNode value = parent.path(key);
+        if (value.isMissingNode() || value.isNull()) return fallback;
+        if (!value.isTextual() || value.asText().isBlank()) {
+            throw new IllegalArgumentException("Configuration key " + key
+                    + " must be an ISO-8601 duration; value=" + value);
+        }
+        try {
+            return Duration.parse(value.asText().trim());
+        } catch (java.time.format.DateTimeParseException error) {
+            throw new IllegalArgumentException("Configuration key " + key
+                    + " has malformed duration: " + value.asText(), error);
+        }
     }
 }
 

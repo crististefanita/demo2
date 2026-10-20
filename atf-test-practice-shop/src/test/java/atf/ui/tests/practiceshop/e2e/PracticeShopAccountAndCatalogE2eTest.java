@@ -11,6 +11,7 @@ import atf.ui.practiceshop.flow.PracticeShopAccountFlow;
 import atf.ui.practiceshop.flow.PracticeShopCatalogFlow;
 import atf.ui.practiceshop.locators.PracticeShopLocators;
 import atf.ui.practiceshop.support.PracticeShopE2eContext;
+import atf.ui.practiceshop.routes.PracticeShopUiRoutes;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -37,7 +38,7 @@ class PracticeShopAccountAndCatalogE2eTest {
     private PracticeShopE2eContext context;
     private final PracticeShopLocators locators = new PracticeShopLocators();
 
-    static boolean isConfigured() { return PracticeShopConfigurationLoader.load().accountConfigured(); }
+    static boolean isConfigured() { return PracticeShopConfigurationLoader.load().authenticatedE2eAllowed(); }
 
     @BeforeAll
     void open() {
@@ -54,21 +55,21 @@ class PracticeShopAccountAndCatalogE2eTest {
     void configuredAccountCanLoginAndBeReused() {
         PlaywrightActionSequence actions = context.actions();
         PracticeShopE2eContext.Scenario scenario = context.scenario(
+                "PracticeShopAccountAndCatalogE2eTest",
                 "Account authentication", "the configured Practice Shop account opens the signed-in account page");
-        try (scenario) {
+        scenario.execute(context.page(), actions, () -> {
             new PracticeShopAccountFlow(locators).loginAndAssertAccount(
                     context.page(), actions, configuration, credentials);
+            context.runtimeDiagnostics().markAuthenticatedSetup();
             UiScreenValidation.Evidence evidence = UiScreenValidation.capture(
                     context.page(), UiScreenValidationConfiguration.defaults(),
                     "signed-in account page");
             scenario.pass(context.page(), actions, evidence, List.of(
-                    check("Account route", "/account", context.page().url(), context.page().url().contains("/account")),
+                    check("Account route", PracticeShopUiRoutes.ACCOUNT, context.page().url(),
+                            context.page().url().contains(PracticeShopUiRoutes.ACCOUNT)),
                     check("Account identity", "My account", "My account", true),
                     check("Credential redaction", "password absent from public action evidence", "password absent", true)));
-        } catch (RuntimeException | AssertionError error) {
-            scenario.fail(context.page(), actions, error);
-            throw error;
-        }
+        });
     }
 
     @Test
@@ -76,10 +77,12 @@ class PracticeShopAccountAndCatalogE2eTest {
     void configuredAccountCanSearchAndOpenProduct() {
         PlaywrightActionSequence actions = context.actions();
         PracticeShopE2eContext.Scenario scenario = context.scenario(
+                "PracticeShopAccountAndCatalogE2eTest",
                 "Catalog product flow", "the signed-in customer searches for and inspects the configured product");
-        try (scenario) {
+        scenario.execute(context.page(), actions, () -> {
             new PracticeShopAccountFlow(locators).loginAndAssertAccount(
                     context.page(), actions, configuration, credentials);
+            context.runtimeDiagnostics().markAuthenticatedSetup();
             new PracticeShopCatalogFlow(locators).searchAndOpenConfiguredProduct(
                     context.page(), actions, configuration);
             UiScreenValidation.Evidence evidence = UiScreenValidation.capture(
@@ -90,10 +93,7 @@ class PracticeShopAccountAndCatalogE2eTest {
                     check("Product route", configuration.productPathExpectation(), context.page().url(),
                             configuration.matchesProductPath(java.net.URI.create(context.page().url()).getPath())),
                     check("Authenticated journey", "account login precedes catalog inspection", "login → search → product", true)));
-        } catch (RuntimeException | AssertionError error) {
-            scenario.fail(context.page(), actions, error);
-            throw error;
-        }
+        });
     }
 }
 

@@ -43,8 +43,9 @@ class PracticeShopPurchaseE2eTest {
     void configuredGuestCanCompletePurchase() {
         PlaywrightActionSequence actions = context.actions();
         PracticeShopE2eContext.Scenario scenario = context.scenario(
+                "PracticeShopPurchaseE2eTest",
                 "Purchase flow", "the configured guest adds a product, completes billing and confirms payment");
-        try (scenario) {
+        scenario.execute(context.page(), actions, () -> {
             new PracticeShopPurchaseFlow(locators).purchaseConfiguredProduct(
                     context.page(), actions, configuration,
                     checkpoint -> scenario.checkpoint(context.page(), actions, checkpoint),
@@ -58,9 +59,6 @@ class PracticeShopPurchaseE2eTest {
                                         message, true)).toList());
             }
             scenario.complete(guestWarnings.isEmpty() ? AtfReportStatus.PASS : AtfReportStatus.WARNING);
-        } catch (RuntimeException | AssertionError error) {
-            scenario.fail(context.page(), actions, error);
-            throw error;
-        }
+        });
     }
 }

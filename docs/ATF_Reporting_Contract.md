@@ -31,19 +31,19 @@ suprafață are un rol:
 ```mermaid
 flowchart LR
     Scenario[Scenariu<br/>status + durată + tag-uri] --> Setup[SETUP]
-    Scenario --> Body[TEST BODY]
-    Scenario --> Teardown[TEARDOWN]
-    Setup --> SetupEvidence[Request sau setup evidence]
-    Body --> Request[Request]
-    Body --> Validation[Validation sibling]
-    Teardown --> Cleanup[Request sau cleanup]
-    Validation --> Assertions[Un tabel de assertions]
+    Setup --> Body[TEST BODY]
+    Body --> Teardown[TEARDOWN]
+    Setup -. local evidence .-> SetupEvidence[Request sau setup evidence]
+    Body -. local evidence .-> BodyEvidence[Request + validation<br/>aggregate assertions]
+    Teardown -. local evidence .-> Cleanup[Request sau cleanup]
 ```
 
 <details>
 <summary><strong>Legendă — ierarhia vizuală a unui test</strong></summary>
 
-- fazele sunt copii ai scenariului și apar numai când au conținut real;
+- coloana solidă arată lifecycle-ul; fazele sunt create numai când au conținut
+  real;
+- ramificațiile punctate grupează local evidence-ul și nu introduc pași noi;
 - `SETUP` poate publica setup evidence, iar `TEST BODY` publică request și
   validation când există contract;
 - request-ul și validation-ul sunt surori în aceeași fază;
@@ -121,21 +121,25 @@ copia schimbul fără ca raportul să inventeze un endpoint sau să publice secr
 ```mermaid
 flowchart LR
     Request[HTTP request] --> RequestDetails[Request details · N fields]
-    Request --> Details[Response details · N fields]
-    Details --> Trace[TECHNICAL TRACE · response context]
-    Details --> ResponseBody[RESPONSE JSON or null]
+    RequestDetails --> ResponseDetails[Response details · N fields]
     RequestDetails --> RequestBody[REQUEST JSON or null]
-    Request --> Execution[Execution evidence · N attempts]
-    Execution --> Retry[Retry history]
-    Request --> Provenance[TRANSPORT PROVENANCE]
-    Request --> Replay[MANUAL REPLAY · safe]
-    Request --> Assertions[Assertions · N]
+    ResponseDetails --> ResponseEvidence[response payload +<br/>technical trace]
+    ResponseDetails --> Execution[Execution evidence · N attempts]
+    ResponseEvidence --> ResponseBody[RESPONSE JSON or null]
+    ResponseEvidence --> Trace[TECHNICAL TRACE · response context]
+    Execution --> ExecutionContext[retry · provenance ·<br/>manual replay · assertions]
 ```
 
 <details>
 <summary><strong>Legendă — provenance și evidence</strong></summary>
 
-- `Request details`, `Response details` și `Execution evidence` sunt disclosure-uri surori;
+- coloana principală citește `HTTP request → request details → response details`;
+- `ResponseEvidence` și `ExecutionContext` sunt grupări vizuale locale pentru a
+  evita săgețile lungi și nu introduc disclosure-uri noi;
+- JSON-ul și trace-ul sunt detalii locale ale request/response, iar retry,
+  provenance, replay și assertions sunt detalii locale ale execuției;
+- `Request details`, `Response details` și `Execution evidence` sunt
+  disclosure-uri separate în artifact; schema le leagă printr-un spine compact;
 - `TECHNICAL TRACE` descrie response context, nu înlocuiește response-ul;
 - provenance și replay-ul explică transportul, fără să pretindă că mock-ul a făcut trafic real;
 - assertions rămân legate de request-ul și validation-ul care le-au produs.

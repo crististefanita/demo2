@@ -6,10 +6,11 @@ import atf.ui.practiceshop.config.PracticeShopScreen;
 import atf.ui.practiceshop.locators.PracticeShopControl;
 import atf.ui.practiceshop.locators.PracticeShopLocators;
 import atf.ui.practiceshop.support.PracticeShopPageContract;
+import atf.ui.practiceshop.routes.PracticeShopUiRoutes;
 import com.microsoft.playwright.Page;
 
 /** Account page object with semantic identity validation. */
-@PracticeShopPageContract(screen = PracticeShopScreen.ACCOUNT, route = "/account",
+@PracticeShopPageContract(screen = PracticeShopScreen.ACCOUNT, route = PracticeShopUiRoutes.ACCOUNT,
         requiredControls = {PracticeShopControl.ACCOUNT_MARKER}, bodyMarker = "My account")
 public final class PracticeShopAccountPage {
     private final Page page;
@@ -22,10 +23,10 @@ public final class PracticeShopAccountPage {
     }
 
     public void assertLoaded(PracticeShopCredentials credentials) {
-        actions.waitForVisible(locators.accountBody(page));
-        actions.waitForText(page, locators.accountBody(page), "My account",
-                "signed-in account page is displayed");
-        actions.expectText(locators.accountBody(page), "My account");
+        actions.waitForVisible(locators.accountHeading(page));
+        actions.waitForText(page, locators.accountHeading(page), "My account",
+                "signed-in account heading is displayed");
+        actions.expectText(locators.accountHeading(page), "My account");
     }
 }
 

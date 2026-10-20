@@ -12,12 +12,9 @@ dar rămâne reziduu de structură și este urmărit prin
 
 ```mermaid
 flowchart LR
-    Root[root POM + module graph] --> Gates[atf-tests]
-    Gates --> Architecture[architecture boundaries]
-    Gates --> Dependencies[Maven direction + scopes]
-    Gates --> Runtime[process output + mutable state]
-    Shop[atf-test-practice-shop] -. consumer module .-> Core[ATF libraries]
-    Reporting[atf-reporting-tests] -. reporting composition .-> ReportingLib[atf-reporting]
+    Root[root POM + module graph] --> Gates[atf-tests<br/>governance]
+    Gates --> Checks[architecture boundaries<br/>dependency scopes<br/>runtime safety]
+    Consumers[consumer modules<br/>Practice Shop + reporting-tests] -. consume .-> Libraries[ATF libraries]
 ```
 
 <details>
@@ -26,7 +23,8 @@ flowchart LR
 - root POM și graph-ul de module intră în gate-ul whole-reactor;
 - atf-tests verifică limitele, nu implementează flow-uri de aplicație;
 - Practice Shop și reporting composition rămân consumatori separați;
-- muchiile punctate arată relații de consum, nu ownership transferat către governance.
+- `Checks` grupează verificările de arhitectură, scope și siguranță runtime;
+- muchia punctată arată consumul bibliotecilor, nu ownership transferat către governance.
 </details>
 
 | Responsabilitate | Owner | Excludere explicită |

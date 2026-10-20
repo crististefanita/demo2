@@ -1,5 +1,6 @@
 package atf.api.reporting.evidence;
 import atf.api.reporting.duration.AtfDurationFormatter;
+import atf.api.reporting.markup.AtfReportLabels;
 import atf.api.reporting.model.ReportField;
 
 
@@ -14,7 +15,7 @@ public final class EvidenceTableFormatter {
 
     public static String[][] toExtentRows(List<String[]> details) {
         var rows = new ArrayList<String[]>(details.size() + 1);
-        rows.add(new String[]{"FIELD", "VALUE"});
+        rows.add(new String[]{AtfReportLabels.FIELD, AtfReportLabels.VALUE});
         for (String[] detail : details) {
             rows.add(new String[]{displayName(detail[0]), displayValue(detail[0], detail[1])});
         }
@@ -23,7 +24,7 @@ public final class EvidenceTableFormatter {
 
     public static String[][] toExtentRowsModel(List<ReportField> details) {
         var rows = new ArrayList<String[]>(details.size() + 1);
-        rows.add(new String[]{"FIELD", "VALUE"});
+        rows.add(new String[]{AtfReportLabels.FIELD, AtfReportLabels.VALUE});
         for (ReportField detail : details) {
             rows.add(new String[]{displayName(detail.name()), displayValue(detail.name(), detail.value())});
         }

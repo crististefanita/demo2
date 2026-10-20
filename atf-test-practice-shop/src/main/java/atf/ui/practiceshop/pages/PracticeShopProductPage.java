@@ -6,10 +6,11 @@ import atf.ui.practiceshop.config.PracticeShopScreen;
 import atf.ui.practiceshop.locators.PracticeShopControl;
 import atf.ui.practiceshop.locators.PracticeShopLocators;
 import atf.ui.practiceshop.support.PracticeShopPageContract;
+import atf.ui.practiceshop.routes.PracticeShopUiRoutes;
 import com.microsoft.playwright.Page;
 
 /** Product detail page object. */
-@PracticeShopPageContract(screen = PracticeShopScreen.PRODUCT, route = "/product/*",
+@PracticeShopPageContract(screen = PracticeShopScreen.PRODUCT, route = PracticeShopUiRoutes.PRODUCT_PATTERN,
         requiredControls = {PracticeShopControl.PRODUCT_NAME, PracticeShopControl.PRODUCT_PRICE,
                 PracticeShopControl.PRODUCT_DESCRIPTION, PracticeShopControl.PRODUCT_QUANTITY,
                 PracticeShopControl.ADD_TO_CART})

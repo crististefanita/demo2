@@ -3,6 +3,7 @@ package atf.api.reporting.html;
 import atf.api.reporting.configuration.ReportingSettings;
 import atf.api.reporting.security.SensitiveDataRedactor;
 import atf.api.reporting.html.evidence.HtmlReportEvidenceView;
+import atf.api.reporting.markup.ExtentReportNodeSupport;
 import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
 import atf.api.reporting.model.ReportField;
 import atf.api.reporting.model.ReportExecutionModel;
@@ -121,7 +122,8 @@ public final class HtmlReportTestsView {
                         AtfReportHtmlVocabulary.Attribute.NODE_ROLE, "request"))
                 .append("><div ").append(AtfReportHtmlVocabulary.classAttribute(
                         AtfReportHtmlVocabulary.CssClass.NODE_TITLE)).append("><span>")
-                .append(escape(request.method() + " " + request.path() + " — " + request.title()))
+                .append(escape(ExtentReportNodeSupport.renderRequestTitle(
+                        request.title(), request.method(), request.path())))
                 .append("</span><span ").append(AtfReportHtmlVocabulary.classAttribute(
                         AtfReportHtmlVocabulary.statusClasses(request.status())))
                 .append(">").append(request.status()).append("</span></div>");

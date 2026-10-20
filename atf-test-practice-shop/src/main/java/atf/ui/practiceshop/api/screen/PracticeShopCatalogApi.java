@@ -15,7 +15,8 @@ public final class PracticeShopCatalogApi {
 
     public CatalogScreen openProduct(String productName) {
         ApiExecutionResult search = client.execute(client.requests().search(productName));
-        String productId = productId(search.response().body(), productName);
+        var searchResponse = search.response();
+        String productId = productId(searchResponse.body(), productName);
         ApiExecutionResult detail = client.execute(client.requests().product(productId, client.bearerToken()));
         return new CatalogScreen(productName, productId, search, detail);
     }

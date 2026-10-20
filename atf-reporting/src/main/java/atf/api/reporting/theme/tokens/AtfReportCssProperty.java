@@ -6,6 +6,7 @@ public enum AtfReportCssProperty {
     ALIGN_ITEMS("align-items"),
     JUSTIFY_CONTENT("justify-content"),
     HEIGHT("height"),
+    WIDTH("width"),
     MIN_HEIGHT("min-height"),
     MARGIN("margin"),
     PADDING("padding"),

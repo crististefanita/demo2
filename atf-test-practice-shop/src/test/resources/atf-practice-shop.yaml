@@ -1,4 +1,6 @@
 practiceShop:
+  # The only owner of the external UI host. Tests and page objects use relative
+  # paths from PracticeShopUiRoutes and resolve them through typed configuration.
   baseUrl: https://practicesoftwaretesting.com
   browser: chromium
   headless: true
@@ -12,9 +14,15 @@ practiceShop:
     profile: ui-api
   api:
     endpoint: https://api.practicesoftwaretesting.com
-    mode: acceptance
+    # The Practice Shop module does not own or consume an ATF mock catalog.
+    # Live API integration is explicit at the test/integration boundary.
+    mode: live
     precondition: authenticated
     timeout: PT20S
+  reports:
+    ui: artifacts/reports/ui
+    api: artifacts/reports
+  authenticatedE2eEnabled: false
   screenshotOnFailure: true
   # The external catalog rotates product ids; use auto for a stable name-based fixture.
   # Set an exact /product/<id> route when a deterministic fixture is required.

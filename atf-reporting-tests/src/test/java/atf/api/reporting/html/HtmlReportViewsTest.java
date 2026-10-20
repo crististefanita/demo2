@@ -73,6 +73,26 @@ class HtmlReportViewsTest {
     }
 
     @Test
+    void fallbackUsesTheCanonicalEvidenceTableMarkupForRequestAndResponseDetails() {
+        var document = new HtmlReportSemanticDocument();
+        var scenario = document.startScenario("EvidenceTests", "shared evidence table", List.of("api"));
+        var request = scenario.addPhase("TEST BODY")
+                .addRequest("create", "POST", "/users");
+        request.addDetail("URL", "/users");
+        request.addDetail("Content-Type", "application/json");
+        request.complete(AtfReportStatus.PASS);
+
+        String html = new HtmlReportTestsView().render(document.snapshot());
+
+        assertAll(
+                () -> assertTrue(html.contains("class=\"atf-evidence-key-column\"")),
+                () -> assertTrue(html.contains("class=\"atf-evidence-value-column\"")),
+                () -> assertTrue(html.contains("class=\"helm-api-classification technical\"")),
+                () -> assertTrue(html.contains("<th>FIELD</th><th>VALUE</th>")),
+                () -> assertTrue(html.contains("<td>URL</td><td>/users</td>")));
+    }
+
+    @Test
     void executionEvidenceUsesTheSameRedactionBoundaryAsTheOtherRequestEvidence() {
         var document = new HtmlReportSemanticDocument();
         var scenario = document.startScenario("RetryTests", "retry evidence", List.of("api"));

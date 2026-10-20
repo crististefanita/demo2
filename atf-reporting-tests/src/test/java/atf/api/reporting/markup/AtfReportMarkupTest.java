@@ -64,6 +64,16 @@ class AtfReportMarkupTest {
     }
 
     @Test
+    void evidenceTablesReuseTheCanonicalHtmlEscaper() {
+        String html = AtfReportMarkup.tableHtml("helm-validation-table", new String[][]{
+                {"FIELD", "VALUE"}, {"<name>", "&\"expected\""}
+        });
+
+        assertTrue(html.contains("&lt;name&gt;"));
+        assertTrue(html.contains("&amp;&quot;expected&quot;"));
+    }
+
+    @Test
     void traceMarkupUsesTheTestsTabLabelContract() {
         String html = AtfReportMarkup.tableHtml("helm-trace-table", new String[][]{
                 {"FIELD", "VALUE"}, {"RESPONSE STATUS", "200"}

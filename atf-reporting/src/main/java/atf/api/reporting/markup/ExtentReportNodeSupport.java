@@ -12,7 +12,13 @@ public final class ExtentReportNodeSupport {
         String route = ((method == null ? "" : method.trim()) + " "
                 + (path == null ? "" : path.trim())).trim();
         String normalizedTitle = title == null ? "" : title.trim();
-        return !route.isBlank() ? route : normalizedTitle.isBlank() ? "API request" : normalizedTitle;
+        if (route.isBlank()) return normalizedTitle.isBlank() ? "API request" : normalizedTitle;
+        if (normalizedTitle.isBlank() || normalizedTitle.equals(route)) return route;
+        if (normalizedTitle.startsWith(route + " — ")
+                || normalizedTitle.startsWith(route + " · ")) {
+            return normalizedTitle;
+        }
+        return route + " — " + normalizedTitle;
     }
 
     public static String normalizeDetailName(String name) {

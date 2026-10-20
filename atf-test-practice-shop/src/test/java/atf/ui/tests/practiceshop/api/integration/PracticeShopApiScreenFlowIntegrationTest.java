@@ -2,6 +2,7 @@ package atf.ui.tests.practiceshop.api.integration;
 
 import atf.ui.practiceshop.api.PracticeShopApiClient;
 import atf.ui.practiceshop.api.PracticeShopApiScreenFlow;
+import atf.ui.practiceshop.api.PracticeShopApiHttpStatus;
 import atf.ui.practiceshop.api.PracticeShopPaymentMethod;
 import atf.api.testkit.AtfIntegrationTest;
 import atf.ui.practiceshop.config.PracticeShopConfiguration;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** One opt-in live API journey; component tests carry the variation matrix. */
 @Tag("api")
@@ -28,8 +30,8 @@ class PracticeShopApiScreenFlowIntegrationTest {
 
     static boolean isLiveConfigured() {
         PracticeShopConfiguration value = PracticeShopConfigurationLoader.load();
-        return value.api().mode() == atf.api.core.config.ApiTransportMode.LIVE
-                && value.accountConfigured();
+        return value.authenticatedE2eAllowed()
+                && value.api().mode() == atf.api.core.config.ApiTransportMode.LIVE;
     }
 
     @AfterEach
@@ -44,13 +46,18 @@ class PracticeShopApiScreenFlowIntegrationTest {
         var catalog = flow.catalog().openProduct(configuration.productName());
         var cart = flow.cart().prepare(catalog.productId(), configuration.checkout().quantity());
         var checkout = flow.checkout().confirm(
-                "RO", configuration.checkout().billing().postalCode(),
+                configuration.checkout().billing().country(),
+                configuration.checkout().billing().postalCode(),
                 configuration.checkout().billing().houseNumber(),
                 PracticeShopPaymentMethod.from(configuration.checkout().paymentMethod()));
 
-        assertEquals(true, session.authenticated());
-        assertEquals(200, catalog.detail().response().status());
-        assertEquals(200, cart.read().response().status());
-        assertEquals(200, checkout.payment().response().status());
+        var detailResponse = catalog.detail().response();
+        var cartResponse = cart.read().response();
+        var paymentResponse = checkout.payment().response();
+
+        assertTrue(session.authenticated());
+        assertTrue(PracticeShopApiHttpStatus.OK.matches(detailResponse.status()));
+        assertTrue(PracticeShopApiHttpStatus.OK.matches(cartResponse.status()));
+        assertTrue(PracticeShopApiHttpStatus.OK.matches(paymentResponse.status()));
     }
 }

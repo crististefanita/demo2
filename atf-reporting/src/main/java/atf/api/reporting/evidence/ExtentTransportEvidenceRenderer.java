@@ -6,12 +6,12 @@ import atf.api.reporting.markup.AtfReportEvidenceKeys;
 import atf.api.reporting.markup.AtfReportLabels;
 import atf.api.reporting.markup.AtfReportMarkup;
 import atf.api.reporting.markup.ExtentReportAssets;
-import atf.api.reporting.markup.ExtentReportNodeSupport;
 import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
 import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.evidence.markup.ReportEvidenceMarkup;
+import atf.api.reporting.evidence.markup.ReportEvidenceJsonFormatter;
 import atf.api.reporting.model.ReportField;
 import atf.api.reporting.model.ReportJsonBody;
-import atf.api.reporting.model.ReportJsonBodyFormatter;
 import atf.api.reporting.model.ReportCheck;
 import atf.api.reporting.model.ReportScreenshot;
 
@@ -47,7 +47,7 @@ public final class ExtentTransportEvidenceRenderer {
         List<ReportField> requestDetails = EvidenceTableFormatter.requestFields(details);
         List<ReportJsonBody> requestJson = json.stream().filter(item -> isRequestJson(item.label())).toList();
         if (requestDetails.isEmpty() && requestJson.isEmpty()) return;
-        node.info(disclosureMarkup(
+        node.info(ReportEvidenceMarkup.disclosure(
                 AtfReportHtmlVocabulary.CssClass.REQUEST_EVIDENCE.value(),
                 AtfReportLabels.requestDetails(requestDetails.size()),
                 requestEvidenceMarkup(requestDetails, requestJson)));
@@ -58,7 +58,7 @@ public final class ExtentTransportEvidenceRenderer {
         List<ReportField> responseDetails = EvidenceTableFormatter.technicalTraceFields(details);
         List<ReportJsonBody> responseJson = json.stream().filter(item -> !isRequestJson(item.label())).toList();
         if (responseDetails.isEmpty() && responseJson.isEmpty()) return;
-        node.info(disclosureMarkup(
+        node.info(ReportEvidenceMarkup.disclosure(
                 AtfReportHtmlVocabulary.CssClass.RESPONSE_EVIDENCE.value(),
                 AtfReportLabels.responseDetails(responseDetails.size()),
                 responseEvidenceMarkup(responseDetails, responseJson)));
@@ -77,7 +77,7 @@ public final class ExtentTransportEvidenceRenderer {
         for (int index = 0; index < checks.size(); index++) {
             ReportCheck check = checks.get(index);
             rows[index + 1] = new String[]{check.check(), check.expected(), check.actual(),
-                    resultMarker(check.status())};
+                    AtfReportStatus.orInfo(check.status()).resultMarker()};
         }
         boolean failed = checks.stream().anyMatch(check -> check.status() == AtfReportStatus.FAIL);
         String label = AtfReportLabels.setupEvidence(checks.size());
@@ -142,16 +142,6 @@ public final class ExtentTransportEvidenceRenderer {
         return AtfReportStatus.fromDisplayName(value);
     }
 
-    private String resultMarker(AtfReportStatus status) {
-        return switch (status == null ? AtfReportStatus.INFO : status) {
-            case PASS -> "✅ PASS";
-            case FAIL -> "❌ FAIL";
-            case WARNING -> "⚠️ WARNING";
-            case SKIP -> "⏭️ SKIP";
-            default -> "ℹ️ INFO";
-        };
-    }
-
     private String requestEvidenceMarkup(List<ReportField> details, List<ReportJsonBody> json) {
         return evidenceMarkup(AtfReportHtmlVocabulary.CssClass.HELM_REQUEST_DETAILS.value(), "",
                 AtfReportHtmlVocabulary.CssClass.REQUEST_JSON_BODY.value(), details, json);
@@ -196,13 +186,13 @@ public final class ExtentTransportEvidenceRenderer {
                     .append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.DIV,
                             AtfReportHtmlVocabulary.classAttribute(
                                     AtfReportHtmlVocabulary.CssClass.HELM_SCROLL_BLOCK_TITLE)))
-                    .append(item.label().isBlank() ? AtfReportLabels.JSON_BODY : item.label())
+                    .append(ReportEvidenceJsonFormatter.label(item))
                     .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DIV))
                     .append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.DIV,
                             AtfReportHtmlVocabulary.classAttribute(
                                     AtfReportHtmlVocabulary.CssClass.HELM_SCROLL_BLOCK_BODY)))
-                    .append(MarkupHelper.createCodeBlock(ExtentReportNodeSupport.displayBody(
-                             ReportJsonBodyFormatter.format(redactor.redactJson(item.body())), settings)).getMarkup())
+                    .append(MarkupHelper.createCodeBlock(ReportEvidenceJsonFormatter.displayBody(
+                            item, redactor, settings)).getMarkup())
                     .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DIV))
                     .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DIV));
         }
@@ -236,44 +226,10 @@ public final class ExtentTransportEvidenceRenderer {
                             AtfReportHtmlVocabulary.CssClass.RETRY_HISTORY_TABLE),
                     attemptRows(execution.attemptHistory())).getMarkup());
         }
-        node.info(disclosureMarkup(
+        node.info(ReportEvidenceMarkup.disclosure(
                 AtfReportHtmlVocabulary.CssClass.EXECUTION_EVIDENCE.value(),
                 AtfReportLabels.executionEvidence(execution.attempts()),
                 body.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DIV)).toString()));
-    }
-
-    private static String disclosureMarkup(String kind, String title, String body) {
-        String safeTitle = escapeHtml(title);
-        return AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.DETAILS,
-                AtfReportHtmlVocabulary.classAttribute(
-                        AtfReportHtmlVocabulary.CssClass.STEP_DETAIL.value(), kind))
-                + AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.SUMMARY,
-                AtfReportHtmlVocabulary.attribute(
-                        AtfReportHtmlVocabulary.Attribute.ARIA_EXPANDED,
-                        AtfReportHtmlVocabulary.AttributeValue.FALSE))
-                + AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.SPAN,
-                AtfReportHtmlVocabulary.classAttribute(
-                        AtfReportHtmlVocabulary.CssClass.DISCLOSURE_GLYPH),
-                AtfReportHtmlVocabulary.attribute(
-                        AtfReportHtmlVocabulary.Attribute.ARIA_HIDDEN,
-                        AtfReportHtmlVocabulary.AttributeValue.TRUE))
-                + AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.SPAN)
-                + AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.SPAN,
-                AtfReportHtmlVocabulary.classAttribute(
-                        AtfReportHtmlVocabulary.CssClass.SE_TITLE),
-                AtfReportHtmlVocabulary.attribute(
-                        AtfReportHtmlVocabulary.Attribute.TITLE, safeTitle),
-                AtfReportHtmlVocabulary.attribute(
-                        AtfReportHtmlVocabulary.Attribute.ARIA_LABEL, safeTitle))
-                + safeTitle
-                + AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.SPAN)
-                + AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.SUMMARY)
-                + AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.DIV,
-                AtfReportHtmlVocabulary.classAttribute(
-                        AtfReportHtmlVocabulary.CssClass.BODY))
-                + body
-                + AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DIV)
-                + AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DETAILS);
     }
 
     void renderScreenshots(ExtentTest node, List<ReportScreenshot> screenshots) {
@@ -286,11 +242,6 @@ public final class ExtentTransportEvidenceRenderer {
                              AtfReportHtmlVocabulary.CssClass.ATF_UI_ACTION_SCREENSHOT_LINK.value(), title, screenshot.base64Png())
                     + AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DIV));
         }
-    }
-
-    private static String escapeHtml(String value) {
-        return value.replace("&", "&amp;").replace("<", "&lt;")
-                .replace(">", "&gt;").replace("\"", "&quot;");
     }
 
     private String[][] attemptRows(List<ReportAttemptRecord> attempts) {

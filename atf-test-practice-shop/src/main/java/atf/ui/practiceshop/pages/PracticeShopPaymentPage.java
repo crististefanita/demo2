@@ -5,10 +5,11 @@ import atf.ui.practiceshop.config.PracticeShopScreen;
 import atf.ui.practiceshop.locators.PracticeShopControl;
 import atf.ui.practiceshop.locators.PracticeShopLocators;
 import atf.ui.practiceshop.support.PracticeShopPageContract;
+import atf.ui.practiceshop.routes.PracticeShopUiRoutes;
 import com.microsoft.playwright.Page;
 
 /** Payment page object; the demo payment method is configuration, not a test literal. */
-@PracticeShopPageContract(screen = PracticeShopScreen.PAYMENT, route = "/checkout",
+@PracticeShopPageContract(screen = PracticeShopScreen.PAYMENT, route = PracticeShopUiRoutes.CHECKOUT,
         requiredControls = {PracticeShopControl.PAYMENT_METHOD, PracticeShopControl.FINISH})
 public final class PracticeShopPaymentPage {
     private final Page page;

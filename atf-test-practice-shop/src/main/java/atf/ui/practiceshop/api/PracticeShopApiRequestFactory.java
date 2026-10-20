@@ -1,6 +1,9 @@
 package atf.ui.practiceshop.api;
 
 import atf.api.core.http.request.ApiRequest;
+import atf.api.core.http.request.HttpHeader;
+import atf.api.core.http.request.HttpMethod;
+import atf.api.core.http.request.MediaTypes;
 import atf.ui.practiceshop.config.PracticeShopCredentials;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,13 +15,18 @@ import java.util.Map;
 /** Pure request factory; screen APIs own the order in which requests run. */
 public final class PracticeShopApiRequestFactory {
     private static final ObjectMapper JSON = new ObjectMapper();
+    private static final String NO_AUTH = PracticeShopApiAuthProfile.NONE.wireValue();
+    private static final String BEARER_AUTH = PracticeShopApiAuthProfile.BEARER.wireValue();
+    private static final String BEARER_PREFIX = "Bearer ";
     private static final Map<String, String> JSON_HEADERS = Map.of(
-            "Accept", "application/json",
-            "Content-Type", "application/json");
+            HttpHeader.ACCEPT.value(), MediaTypes.APPLICATION_JSON,
+            HttpHeader.CONTENT_TYPE.value(), MediaTypes.APPLICATION_JSON);
 
     public ApiRequest login(PracticeShopCredentials credentials) {
-        return json("POST", PracticeShopApiRoutes.LOGIN, Map.of(
-                "email", credentials.email(), "password", credentials.password()), "none");
+        return json(HttpMethod.POST.value(), PracticeShopApiRoutes.LOGIN, Map.of(
+                PracticeShopApiJsonField.EMAIL.wireValue(), credentials.email(),
+                PracticeShopApiJsonField.PASSWORD.wireValue(), credentials.password()),
+                NO_AUTH);
     }
 
     public ApiRequest currentUser(String bearerToken) {
@@ -26,13 +34,15 @@ public final class PracticeShopApiRequestFactory {
     }
 
     public ApiRequest search(String productName) {
-        return query("QUERY", PracticeShopApiRoutes.PRODUCT_SEARCH,
-                Map.of("q", required(productName, "product name")), "none");
+        return query(HttpMethod.GET.value(), PracticeShopApiRoutes.PRODUCT_SEARCH,
+                Map.of(PracticeShopApiQueryParameter.SEARCH.wireValue(), required(productName, "product name")),
+                NO_AUTH);
     }
 
     public ApiRequest products(PracticeShopProductQuery filters) {
-        return query("GET", PracticeShopApiRoutes.PRODUCT_COLLECTION,
-                filters == null ? Map.of() : filters.asQuery(), "none");
+        return query(HttpMethod.GET.value(), PracticeShopApiRoutes.PRODUCT_COLLECTION,
+                filters == null ? Map.of() : filters.asQuery(),
+                NO_AUTH);
     }
 
     public ApiRequest categories() {
@@ -44,25 +54,30 @@ public final class PracticeShopApiRequestFactory {
     }
 
     public ApiRequest createCart() {
-        return json("POST", PracticeShopApiRoutes.CARTS, Map.of(), "none");
+        return json(HttpMethod.POST.value(), PracticeShopApiRoutes.CARTS, Map.of(),
+                NO_AUTH);
     }
 
     public ApiRequest addToCart(String cartId, String productId, int quantity) {
         if (quantity <= 0) throw new IllegalArgumentException("cart quantity must be positive");
-        return json("POST", PracticeShopApiRoutes.cart(cartId), Map.of(
-                "product_id", required(productId, "product id"), "quantity", quantity), "none");
+        return json(HttpMethod.POST.value(), PracticeShopApiRoutes.cart(cartId), Map.of(
+                PracticeShopApiJsonField.PRODUCT_ID.wireValue(), required(productId, "product id"),
+                PracticeShopApiJsonField.QUANTITY.wireValue(), quantity),
+                NO_AUTH);
     }
 
     public ApiRequest updateCartQuantity(String cartId, String productId, int quantity) {
         if (quantity <= 0) throw new IllegalArgumentException("cart quantity must be positive");
-        return json("PUT", PracticeShopApiRoutes.updateCartQuantity(cartId), Map.of(
-                "product_id", required(productId, "product id"), "quantity", quantity), "none");
+        return json(HttpMethod.PUT.value(), PracticeShopApiRoutes.updateCartQuantity(cartId), Map.of(
+                PracticeShopApiJsonField.PRODUCT_ID.wireValue(), required(productId, "product id"),
+                PracticeShopApiJsonField.QUANTITY.wireValue(), quantity),
+                NO_AUTH);
     }
 
     public ApiRequest removeFromCart(String cartId, String productId) {
-        return new ApiRequest(HttpRequest.BodyPublishers.noBody(), "DELETE",
+        return new ApiRequest(HttpRequest.BodyPublishers.noBody(), HttpMethod.DELETE.value(),
                 PracticeShopApiRoutes.removeCartProduct(cartId, productId), Map.of(), Map.of(),
-                "none", null, "");
+                NO_AUTH, null, "");
     }
 
     public ApiRequest readCart(String cartId) {
@@ -71,22 +86,26 @@ public final class PracticeShopApiRequestFactory {
 
     public ApiRequest postcodeLookup(String country, String postcode, String houseNumber) {
         Map<String, String> query = new LinkedHashMap<>();
-        query.put("country", required(country, "country"));
-        query.put("postcode", required(postcode, "postcode"));
-        query.put("house_number", required(houseNumber, "house number"));
-        return query("GET", PracticeShopApiRoutes.POSTCODE_LOOKUP, query, "none");
+        query.put(PracticeShopApiQueryParameter.COUNTRY.wireValue(), required(country, "country"));
+        query.put(PracticeShopApiQueryParameter.POSTCODE.wireValue(), required(postcode, "postcode"));
+        query.put(PracticeShopApiQueryParameter.HOUSE_NUMBER.wireValue(), required(houseNumber, "house number"));
+        return query(HttpMethod.GET.value(), PracticeShopApiRoutes.POSTCODE_LOOKUP, query,
+                NO_AUTH);
     }
 
     public ApiRequest payment(PracticeShopPaymentMethod method) {
-        return json("POST", PracticeShopApiRoutes.PAYMENT_CHECK, Map.of(
-                "payment_method", method.wireValue(), "payment_details", Map.of()), "none");
+        return json(HttpMethod.POST.value(), PracticeShopApiRoutes.PAYMENT_CHECK, Map.of(
+                PracticeShopApiJsonField.PAYMENT_METHOD.wireValue(), method.wireValue(),
+                PracticeShopApiJsonField.PAYMENT_DETAILS.wireValue(), Map.of()),
+                NO_AUTH);
     }
 
     private static ApiRequest get(String path, String bearerToken) {
         Map<String, String> headers = bearerToken == null || bearerToken.isBlank()
-                ? Map.of() : Map.of("Authorization", "Bearer " + bearerToken);
-        return new ApiRequest(HttpRequest.BodyPublishers.noBody(), "GET", path, Map.of(), headers,
-                bearerToken == null || bearerToken.isBlank() ? "none" : "bearer", null, "");
+                ? Map.of() : Map.of(HttpHeader.AUTHORIZATION.value(), BEARER_PREFIX + bearerToken);
+        return new ApiRequest(HttpRequest.BodyPublishers.noBody(), HttpMethod.GET.value(), path, Map.of(), headers,
+                bearerToken == null || bearerToken.isBlank()
+                        ? NO_AUTH : BEARER_AUTH, null, "");
     }
 
     private static ApiRequest query(String method, String path, Map<String, String> query,

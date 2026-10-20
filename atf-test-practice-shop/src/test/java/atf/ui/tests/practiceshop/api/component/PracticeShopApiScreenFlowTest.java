@@ -1,21 +1,19 @@
 package atf.ui.tests.practiceshop.api.component;
 
-import atf.api.core.http.response.ApiResponse;
-import atf.api.core.http.transport.ApiTransport;
 import atf.api.testkit.AtfComponentTest;
 import atf.ui.practiceshop.api.PracticeShopApiClient;
+import atf.ui.practiceshop.api.PracticeShopApiHttpStatus;
+import atf.ui.practiceshop.api.PracticeShopApiJsonField;
 import atf.ui.practiceshop.api.PracticeShopApiScreenFlow;
-import atf.ui.practiceshop.api.PracticeShopApiRoutes;
 import atf.ui.practiceshop.api.PracticeShopPaymentMethod;
-import atf.ui.practiceshop.config.PracticeShopCredentials;
+import atf.ui.practiceshop.api.screen.PracticeShopCheckoutApi.AddressLookupPolicy;
+import atf.ui.practiceshop.support.PracticeShopJsonEvidence;
+import atf.ui.tests.practiceshop.api.support.PracticeShopApiScenarioFixture;
+import atf.ui.tests.practiceshop.api.support.PracticeShopApiComponentFixture;
 import org.junit.jupiter.api.Test;
 
-import java.net.URI;
-import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Verifies one reusable precondition and four screen boundaries without a browser. */
@@ -23,46 +21,33 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PracticeShopApiScreenFlowTest {
     @Test
     void loginPreconditionFeedsCatalogCartAndCheckoutScreens() {
-        PracticeShopApiClient client = PracticeShopApiClient.forTransport(
-                URI.create("https://api.practicesoftwaretesting.com"), transport());
+        PracticeShopApiClient client = PracticeShopApiComponentFixture.client();
         PracticeShopApiScreenFlow flow = new PracticeShopApiScreenFlow(client);
+        String productName = PracticeShopApiScenarioFixture.PRODUCT_NAME;
+        String postcode = PracticeShopApiScenarioFixture.POSTCODE;
+        String country = PracticeShopApiScenarioFixture.COUNTRY;
+        String houseNumber = PracticeShopApiScenarioFixture.HOUSE_NUMBER;
+        int quantity = PracticeShopApiScenarioFixture.QUANTITY;
 
-        var session = flow.login().establish(new PracticeShopCredentials(
-                "atf@example.test", "secret", "ATF", "Practice"));
-        var catalog = flow.catalog().openProduct("Combination Pliers");
-        var cart = flow.cart().prepare(catalog.productId(), 2);
-        var checkout = flow.checkout().confirm("RO", "010101", "10",
+        var session = flow.login().establish(PracticeShopApiScenarioFixture.validCredentials());
+        var catalog = flow.catalog().openProduct(productName);
+        var cart = flow.cart().prepare(catalog.productId(), quantity);
+        var checkout = flow.checkout().confirm(country, postcode, houseNumber,
                 PracticeShopPaymentMethod.CASH_ON_DELIVERY);
 
         assertTrue(session.authenticated());
-        assertEquals("01product", catalog.productId());
-        assertEquals("01cart", cart.cartId());
-        assertEquals(200, cart.read().response().status());
-        assertEquals(200, checkout.payment().response().status());
-        assertEquals(atf.ui.practiceshop.api.screen.PracticeShopCheckoutApi.AddressLookupPolicy.ADVISORY,
-                checkout.addressLookupPolicy());
-        assertEquals("010101", checkout.requestedAddress().postcode());
-        assertTrue(checkout.addressLookup().response().body().contains("010101"));
-    }
+        assertEquals(PracticeShopApiScenarioFixture.PRODUCT_ID, catalog.productId());
+        assertEquals(PracticeShopApiScenarioFixture.CART_ID, cart.cartId());
+        var cartResponse = cart.read().response();
+        var paymentResponse = checkout.payment().response();
+        var addressResponse = checkout.addressLookup().response();
+        var addressBody = PracticeShopJsonEvidence.parse(addressResponse.body());
 
-    private static ApiTransport transport() {
-        return (request, url, auth) -> {
-            String body;
-            int status = 200;
-            switch (request.path()) {
-                case PracticeShopApiRoutes.LOGIN -> body = "{\"access_token\":\"token-1\"}";
-                case PracticeShopApiRoutes.PRODUCT_SEARCH -> body = "{\"data\":[{\"id\":\"01product\",\"name\":\"Combination Pliers\"}]}";
-                case PracticeShopApiRoutes.PRODUCTS + "01product" -> body = "{\"id\":\"01product\",\"name\":\"Combination Pliers\"}";
-                case PracticeShopApiRoutes.CARTS -> body = "{\"id\":\"01cart\"}";
-                case PracticeShopApiRoutes.CARTS + "/01cart" -> body = request.method().equals("GET")
-                        ? "{\"cart_items\":[{\"product_id\":\"01product\",\"quantity\":2}]}"
-                        : "{\"result\":\"item added or updated\"}";
-                case PracticeShopApiRoutes.POSTCODE_LOOKUP -> body = "{\"country\":\"RO\",\"postcode\":\"010101\"}";
-                case PracticeShopApiRoutes.PAYMENT_CHECK -> body = "{\"message\":\"Payment was successful\"}";
-                default -> { status = 500; body = "{\"message\":\"unexpected route\"}"; }
-            }
-            return CompletableFuture.completedFuture(new ApiResponse(status, body,
-                    Map.of("content-type", "application/json"), Duration.ZERO, url));
-        };
+        assertTrue(PracticeShopApiHttpStatus.OK.matches(cartResponse.status()));
+        assertTrue(PracticeShopApiHttpStatus.OK.matches(paymentResponse.status()));
+        assertEquals(AddressLookupPolicy.ADVISORY, checkout.addressLookupPolicy());
+        assertEquals(postcode, checkout.requestedAddress().postcode());
+        assertNotNull(addressBody);
+        assertEquals(postcode, addressBody.path(PracticeShopApiJsonField.POSTCODE.wireValue()).asText());
     }
 }

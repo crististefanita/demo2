@@ -9,10 +9,11 @@ final class PracticeShopApiTrafficCapture {
     private static final String API_HOST = "api.practicesoftwaretesting.com";
 
     Optional<PracticeShopApiNetworkJournal.Exchange> capture(Response response) {
-        if (response == null || !isPracticeShopApi(response.request().url())) {
+        if (response == null) return Optional.empty();
+        var request = response.request();
+        if (request == null || !isPracticeShopApi(request.url())) {
             return Optional.empty();
         }
-        var request = response.request();
         String responseBody;
         try {
             responseBody = PracticeShopApiEvidenceMapper.redactJson(new String(response.body()));
@@ -23,7 +24,8 @@ final class PracticeShopApiTrafficCapture {
         return Optional.of(new PracticeShopApiNetworkJournal.Exchange(
                 request.method(), path(request.url()), request.url(), response.status(),
                 PracticeShopApiEvidenceMapper.redactJson(request.postData()), responseBody,
-                request.headers(), response.headers()));
+                PracticeShopJsonEvidence.redactHeaders(request.headers()),
+                PracticeShopJsonEvidence.redactHeaders(response.headers())));
     }
 
     private static boolean isPracticeShopApi(String url) {

@@ -35,12 +35,12 @@ public record PracticeShopProductQuery(
     /** Wire representation matches the public Practice Shop API contract. */
     public Map<String, String> asQuery() {
         Map<String, String> values = new LinkedHashMap<>();
-        if (brandId != null) values.put("by_brand", brandId);
-        if (categoryId != null) values.put("by_category", categoryId);
-        if (rental != null) values.put("is_rental", rental.toString());
-        if (priceRange != null) values.put("between", priceRange);
-        if (sort != null) values.put("sort", sort.wireValue());
-        if (page != null) values.put("page", Integer.toString(page));
+        if (brandId != null) values.put(PracticeShopApiQueryParameter.BRAND.wireValue(), brandId);
+        if (categoryId != null) values.put(PracticeShopApiQueryParameter.CATEGORY.wireValue(), categoryId);
+        if (rental != null) values.put(PracticeShopApiQueryParameter.RENTAL.wireValue(), rental.toString());
+        if (priceRange != null) values.put(PracticeShopApiQueryParameter.PRICE_RANGE.wireValue(), priceRange);
+        if (sort != null) values.put(PracticeShopApiQueryParameter.SORT.wireValue(), sort.wireValue());
+        if (page != null) values.put(PracticeShopApiQueryParameter.PAGE.wireValue(), Integer.toString(page));
         return Map.copyOf(values);
     }
 

@@ -6,10 +6,11 @@ import atf.ui.practiceshop.config.PracticeShopScreen;
 import atf.ui.practiceshop.locators.PracticeShopControl;
 import atf.ui.practiceshop.locators.PracticeShopLocators;
 import atf.ui.practiceshop.support.PracticeShopPageContract;
+import atf.ui.practiceshop.routes.PracticeShopUiRoutes;
 import com.microsoft.playwright.Page;
 
 /** Guest identity page object; entered values are intentionally redacted by the action facade. */
-@PracticeShopPageContract(screen = PracticeShopScreen.GUEST_CHECKOUT, route = "/checkout",
+@PracticeShopPageContract(screen = PracticeShopScreen.GUEST_CHECKOUT, route = PracticeShopUiRoutes.CHECKOUT,
         requiredControls = {PracticeShopControl.GUEST_EMAIL, PracticeShopControl.GUEST_FIRST_NAME,
                 PracticeShopControl.GUEST_LAST_NAME, PracticeShopControl.GUEST_SUBMIT})
 public final class PracticeShopGuestCheckoutPage {

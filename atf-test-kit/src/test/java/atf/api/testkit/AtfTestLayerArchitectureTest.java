@@ -131,6 +131,7 @@ class AtfTestLayerArchitectureTest {
         if ("@AtfComponentTest".equals(layer)) {
             String relative = projectRoot.relativize(file).toString().replace('\\', '/');
             boolean browserOwner = relative.startsWith("atf-ui/")
+                    || relative.startsWith("atf-test-practice-shop/")
                     || relative.contains("/atf/ui/tests/extent/");
             if (!browserOwner) {
                 assertFalse(source.lines().anyMatch(line -> line.matches(

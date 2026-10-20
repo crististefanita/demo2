@@ -14,9 +14,10 @@ public final class PracticeShopCartApi {
 
     public CartScreen prepare(String productId, int quantity) {
         ApiExecutionResult create = client.execute(client.requests().createCart());
+        var createResponse = create.response();
         String cartId;
         try {
-            cartId = JSON.readTree(create.response().body()).path("id").asText("");
+            cartId = JSON.readTree(createResponse.body()).path("id").asText("");
         } catch (com.fasterxml.jackson.core.JsonProcessingException error) {
             throw new IllegalStateException("Cart create response is not usable JSON", error);
         }

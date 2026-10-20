@@ -23,9 +23,10 @@ public final class PracticeShopApiEvidenceMapper {
 
     static ReportExecutionEvidence toExecution(PracticeShopApiNetworkJournal.Exchange exchange) {
         ReportRequest request = new ReportRequest(exchange.method(), exchange.path(),
-                query(exchange.url()), exchange.requestHeaders(), exchange.authType(), exchange.requestBody());
-        ReportResponse response = new ReportResponse(exchange.status(), exchange.responseBody(),
-                exchange.responseHeaders(), Duration.ZERO, exchange.url());
+                query(exchange.url()), PracticeShopJsonEvidence.redactHeaders(exchange.requestHeaders()),
+                exchange.authType(), redactJson(exchange.requestBody()));
+        ReportResponse response = new ReportResponse(exchange.status(), redactJson(exchange.responseBody()),
+                PracticeShopJsonEvidence.redactHeaders(exchange.responseHeaders()), Duration.ZERO, exchange.url());
         var attempt = new ReportAttemptRecord(1, exchange.status(), Duration.ZERO,
                 exchange.status() >= 200 && exchange.status() < 400 ? "SUCCESS" : "FAILURE",
                 "final response");
@@ -35,15 +36,19 @@ public final class PracticeShopApiEvidenceMapper {
 
     /** Maps a direct screen-flow execution for the standalone API artifact. */
     public static ReportExecutionEvidence toExecution(ApiExecutionResult execution) {
-        if (execution == null || execution.request() == null || execution.response() == null) {
+        if (execution == null) {
             throw new IllegalArgumentException("API execution must contain request and response");
         }
         var request = execution.request();
         var response = execution.response();
+        if (request == null || response == null) {
+            throw new IllegalArgumentException("API execution must contain request and response");
+        }
         ReportRequest reportRequest = new ReportRequest(request.method(), request.path(), request.query(),
-                redactHeaders(request.headers()), request.authProfile(), redactJson(request.bodyText()));
+                PracticeShopJsonEvidence.redactHeaders(request.headers()), request.authProfile(),
+                redactJson(request.bodyText()));
         ReportResponse reportResponse = new ReportResponse(response.status(), redactJson(response.body()),
-                redactHeaders(response.headers()), response.duration(), response.url());
+                PracticeShopJsonEvidence.redactHeaders(response.headers()), response.duration(), response.url());
         List<ReportAttemptRecord> attempts = execution.attemptHistory().stream()
                 .map(PracticeShopApiEvidenceMapper::attempt)
                 .toList();
@@ -74,19 +79,11 @@ public final class PracticeShopApiEvidenceMapper {
     }
 
     static Map<String, String> redactHeaders(Map<String, String> headers) {
-        Map<String, String> result = new LinkedHashMap<>();
-        (headers == null ? Map.<String, String>of() : headers).forEach((name, value) -> {
-            String lower = name.toLowerCase(java.util.Locale.ROOT);
-            result.put(name, lower.equals("authorization") || lower.equals("cookie")
-                    ? "<redacted>" : value);
-        });
-        return Map.copyOf(result);
+        return PracticeShopJsonEvidence.redactHeaders(headers);
     }
 
     public static String redactJson(String value) {
-        return value == null ? "" : value.replaceAll(
-                "(?i)(\\\"(?:email|password|token|access_token|accessToken|refresh_token|authorization|cookie)\\\"\\s*:\\s*\\\")[^\\\"]*(\\\")",
-                "$1<redacted>$2");
+        return PracticeShopJsonEvidence.redact(value);
     }
 
     private static Map<String, String> query(String url) {

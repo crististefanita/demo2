@@ -88,47 +88,30 @@ modulele reale și relațiile lor; contractele interne continuă în README-ul
 fiecărui modul.
 
 ```mermaid
-flowchart TB
-    subgraph Platform[ATF platform boundaries]
-        Kit[atf-test-kit]
-        Core[atf-core]
-        Mock[atf-mock]
-        Validation[atf-validation]
-        Console[atf-console]
-        Reporting[atf-reporting]
-        Ui[atf-ui]
-        Debug[atf-debug-ui]
-    end
+flowchart LR
+    Shared[ATF platform<br/>test-kit · core · mock · validation · console · ui · debug-ui]
+    Reporting[atf-reporting<br/>standalone artifact library]
+    ReportingTests[atf-reporting-tests<br/>API/UI/E2E composition]
+    PracticeShop[atf-test-practice-shop<br/>application consumer]
+    Governance[atf-tests<br/>whole-ATF governance]
 
-    subgraph Consumers[composition roots and governance]
-        ReportingTests[atf-reporting-tests]
-        PracticeShop[atf-test-practice-shop]
-        Governance[atf-tests]
-    end
-
-    ReportingTests --> Reporting
-    ReportingTests -. test scope .-> Kit
-    ReportingTests -. test scope .-> Core
-    ReportingTests -. test scope .-> Mock
-    ReportingTests -. test scope .-> Validation
-    ReportingTests -. test scope .-> Console
-    ReportingTests -. browser audit .-> Ui
-    ReportingTests -. read-only serve .-> Debug
-    PracticeShop --> Reporting
-    PracticeShop -. test scope .-> Kit
-    PracticeShop -. generic runtime .-> Core
-    PracticeShop -. browser policy .-> Ui
-    Governance -. architecture guards .-> Platform
+    ReportingTests -->|library| Reporting
+    ReportingTests -. test scope .-> Shared
+    PracticeShop -->|library| Reporting
+    PracticeShop -. runtime + test scope .-> Shared
+    Governance -. architecture guards .-> Shared
+    Governance -. architecture guards .-> Reporting
 ```
 
 <details>
 <summary><strong>Legendă — module, ownership și relații</strong></summary>
 
 - săgeata solidă = consum de bibliotecă/runtime în composition root;
-- săgeata punctată = dependență de test, browser policy, read-only serving sau
-  guvernanță;
-- `atf-reporting-tests` folosește `core`, `mock`, `validation`, `console`,
-  `test-kit`, `ui` și `debug-ui` numai în test scope;
+- săgeata punctată = dependență de test, runtime generic, browser policy,
+  read-only serving sau guvernanță;
+- nodul `ATF platform` grupează modulele reutilizabile; tabelul de mai jos
+  păstrează ownership-ul fiecărui modul fără a încărca schema principală;
+- `atf-reporting-tests` folosește modulele platformei numai în test scope;
 - `atf-test-practice-shop` este consumer de aplicație și nu mută pages, flows
   sau fixture-uri în reporting;
 - `atf-tests` verifică reactorul și boundary-urile, nu devine composition root

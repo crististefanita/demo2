@@ -16,8 +16,7 @@ ExtentReports și nu calculează verdicturi.
 
 ```mermaid
 flowchart LR
-    Core[atf-core<br/>AtfConsoleEvent + sink] --> Console[atf-console<br/>formatter + lifecycle]
-    CoreEvents[atf-core<br/>optional events] --> Console
+    Core[atf-core<br/>events + sink<br/>optional lifecycle events] --> Console[atf-console<br/>formatter + lifecycle]
     Config[reporting.console<br/>YAML settings] --> Console
     Console --> Output[stdout/stderr diagnostic projection]
     Console -. nu deține .-> Reporting[atf-reporting HTML artifact]

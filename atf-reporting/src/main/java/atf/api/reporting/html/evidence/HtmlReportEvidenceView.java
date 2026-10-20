@@ -7,13 +7,14 @@ import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.duration.AtfDurationFormatter;
 import atf.api.reporting.security.SensitiveDataRedactor;
 import atf.api.reporting.evidence.EvidenceTableFormatter;
+import atf.api.reporting.evidence.markup.ReportEvidenceMarkup;
 import atf.api.reporting.markup.AtfReportLabels;
-import atf.api.reporting.markup.ExtentReportNodeSupport;
+import atf.api.reporting.markup.AtfReportMarkup;
+import atf.api.reporting.evidence.markup.ReportEvidenceJsonFormatter;
 import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
 import atf.api.reporting.model.ReportExecutionModel;
 import atf.api.reporting.model.ReportField;
 import atf.api.reporting.model.ReportJsonBody;
-import atf.api.reporting.model.ReportJsonBodyFormatter;
 import atf.api.reporting.api.ReportModelAdapters;
 
 import java.util.List;
@@ -25,17 +26,10 @@ import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.attrib
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.classAttribute;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.closeTag;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.openTag;
-import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.Attribute.ARIA_EXPANDED;
-import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.Attribute.ARIA_HIDDEN;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.Attribute.NODE_ROLE;
-import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.AttributeValue.FALSE;
-import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.AttributeValue.TRUE;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.ASSERTIONS;
-import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.DISCLOSURE_GLYPH;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.EXECUTION_EVIDENCE;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.EXECUTION_TABLE;
-import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.HELM_API_CLASSIFICATION;
-import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.HELM_API_CLASSIFICATION_LABEL;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.HELM_EVIDENCE_TABLE;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.HELM_REQUEST_TABLE;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.HELM_SCROLL_BLOCK_TITLE;
@@ -49,15 +43,10 @@ import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssCla
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.RESPONSE_DETAILS_CONTENT;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.RESPONSE_JSON_BODY;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.RETRY_HISTORY_TABLE;
-import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.SE_TITLE;
-import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.STEP_DETAIL;
-import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.TECHNICAL;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.VALIDATION;
-import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.Tag.DETAILS;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.Tag.DIV;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.Tag.PRE;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.Tag.SPAN;
-import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.Tag.SUMMARY;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.Tag.TABLE;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.Tag.TBODY;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.Tag.TD;
@@ -79,52 +68,33 @@ public final class HtmlReportEvidenceView {
         var details = EvidenceTableFormatter.requestFields(request.details());
         var json = request.json().stream().filter(item -> isRequestJson(item.label())).toList();
         if (details.isEmpty() && json.isEmpty()) return;
-        html.append(openTag(DETAILS, classAttribute(STEP_DETAIL, REQUEST_EVIDENCE)))
-                .append(openTag(SUMMARY, attribute(ARIA_EXPANDED, FALSE)))
-                .append(openTag(SPAN, classAttribute(DISCLOSURE_GLYPH), attribute(ARIA_HIDDEN, TRUE)))
-                .append(closeTag(SPAN))
-                .append(openTag(SPAN, classAttribute(SE_TITLE)))
-                .append(escape(AtfReportLabels.requestDetails(details.size())))
-                .append(closeTag(SPAN)).append(closeTag(SUMMARY))
+        html.append(ReportEvidenceMarkup.disclosureStart(
+                        REQUEST_EVIDENCE.value(), AtfReportLabels.requestDetails(details.size())))
                 .append(openTag(DIV, classAttribute(REQUEST_DETAILS_CONTENT)));
-        renderTable(html, classAttribute(HELM_EVIDENCE_TABLE, HELM_REQUEST_TABLE), details);
+        renderTable(html, AtfReportHtmlVocabulary.classList(HELM_EVIDENCE_TABLE, HELM_REQUEST_TABLE), details);
         renderJsonBodies(html, json, REQUEST_JSON_BODY);
-        html.append(closeTag(DIV)).append(closeTag(DETAILS));
+        html.append(closeTag(DIV)).append(ReportEvidenceMarkup.disclosureEnd());
     }
 
     public void renderResponseDetails(StringBuilder html, ReportExecutionModel.Request request) {
         var details = EvidenceTableFormatter.technicalTraceFields(request.details());
         var json = request.json().stream().filter(item -> !isRequestJson(item.label())).toList();
         if (details.isEmpty() && json.isEmpty()) return;
-        html.append(openTag(DETAILS, classAttribute(STEP_DETAIL, RESPONSE_EVIDENCE)))
-                .append(openTag(SUMMARY, attribute(ARIA_EXPANDED, FALSE)))
-                .append(openTag(SPAN, classAttribute(DISCLOSURE_GLYPH), attribute(ARIA_HIDDEN, TRUE)))
-                .append(closeTag(SPAN))
-                .append(openTag(SPAN, classAttribute(SE_TITLE)))
-                .append(escape(AtfReportLabels.responseDetails(details.size())))
-                .append(closeTag(SPAN)).append(closeTag(SUMMARY))
-                .append(openTag(DIV, classAttribute(RESPONSE_DETAILS_CONTENT)))
-                .append(openTag(DIV, classAttribute(HELM_API_CLASSIFICATION, TECHNICAL)))
-                .append(openTag(SPAN, classAttribute(HELM_API_CLASSIFICATION_LABEL)))
-                .append(AtfReportLabels.TECHNICAL_TRACE).append(closeTag(SPAN)).append(closeTag(DIV));
-        renderTable(html, classAttribute(HELM_EVIDENCE_TABLE, HELM_TRACE_TABLE), details);
+        html.append(ReportEvidenceMarkup.disclosureStart(
+                        RESPONSE_EVIDENCE.value(), AtfReportLabels.responseDetails(details.size())))
+                .append(openTag(DIV, classAttribute(RESPONSE_DETAILS_CONTENT)));
+        renderTable(html, AtfReportHtmlVocabulary.classList(HELM_EVIDENCE_TABLE, HELM_TRACE_TABLE), details);
         renderJsonBodies(html, json, RESPONSE_JSON_BODY);
-        html.append(closeTag(DIV)).append(closeTag(DETAILS));
+        html.append(closeTag(DIV)).append(ReportEvidenceMarkup.disclosureEnd());
     }
 
     private void renderTable(StringBuilder html, String cssClass, List<ReportField> details) {
         if (details.isEmpty()) return;
-        html.append(openTag(TABLE, cssClass))
-                .append(openTag(THEAD)).append(openTag(TR))
-                .append(openTag(TH)).append(AtfReportLabels.FIELD).append(closeTag(TH))
-                .append(openTag(TH)).append(AtfReportLabels.VALUE).append(closeTag(TH))
-                .append(closeTag(TR)).append(closeTag(THEAD)).append(openTag(TBODY));
-        for (ReportField detail : details) {
-            html.append(openTag(TR)).append(openTag(TD)).append(escape(detail.name())).append(closeTag(TD))
-                    .append(openTag(TD)).append(escape(redactor.redactField(detail.name(), detail.value())))
-                    .append(closeTag(TD)).append(closeTag(TR));
-        }
-        html.append(closeTag(TBODY)).append(closeTag(TABLE));
+        html.append(AtfReportMarkup.tableHtml(cssClass, EvidenceTableFormatter.toExtentRowsModel(
+                details.stream()
+                        .map(detail -> new ReportField(detail.name(),
+                                redactor.redactField(detail.name(), detail.value())))
+                        .toList())));
     }
 
     private void renderJsonBodies(StringBuilder html, List<ReportJsonBody> json,
@@ -132,10 +102,9 @@ public final class HtmlReportEvidenceView {
         for (ReportJsonBody item : json) {
             html.append(openTag(DIV, classAttribute(cssClass)))
                     .append(openTag(DIV, classAttribute(HELM_SCROLL_BLOCK_TITLE)))
-                    .append(escape(item.label().isBlank() ? AtfReportLabels.JSON_BODY : item.label()))
+                    .append(escape(ReportEvidenceJsonFormatter.label(item)))
                     .append(closeTag(DIV)).append(openTag(PRE, classAttribute(JSON_CODE)))
-                    .append(escape(ExtentReportNodeSupport.displayBody(
-                            ReportJsonBodyFormatter.format(redactor.redactJson(item.body())), settings)))
+                    .append(escape(ReportEvidenceJsonFormatter.displayBody(item, redactor, settings)))
                     .append(closeTag(PRE)).append(closeTag(DIV));
         }
     }
@@ -146,12 +115,8 @@ public final class HtmlReportEvidenceView {
 
     public void renderExecution(StringBuilder html, ReportExecutionEvidence execution) {
         if (execution == null) return;
-        html.append(openTag(DETAILS, classAttribute(STEP_DETAIL, EXECUTION_EVIDENCE)))
-                .append(openTag(SUMMARY, attribute(ARIA_EXPANDED, FALSE)))
-                .append(openTag(SPAN, classAttribute(DISCLOSURE_GLYPH), attribute(ARIA_HIDDEN, TRUE)))
-                .append(closeTag(SPAN)).append(openTag(SPAN, classAttribute(SE_TITLE)))
-                .append(escape(AtfReportLabels.executionEvidence(execution.attempts())))
-                .append(closeTag(SPAN)).append(closeTag(SUMMARY))
+        html.append(ReportEvidenceMarkup.disclosureStart(
+                        EXECUTION_EVIDENCE.value(), AtfReportLabels.executionEvidence(execution.attempts())))
                 .append(openTag(TABLE, classAttribute(HELM_EVIDENCE_TABLE, EXECUTION_TABLE)))
                 .append(openTag(THEAD)).append(openTag(TR))
                 .append(openTag(TH)).append(AtfReportLabels.FIELD).append(closeTag(TH))
@@ -183,7 +148,7 @@ public final class HtmlReportEvidenceView {
             }
             html.append(closeTag(TBODY)).append(closeTag(TABLE));
         }
-        html.append(closeTag(DETAILS));
+        html.append(ReportEvidenceMarkup.disclosureEnd());
     }
 
     /** Test/composition seam for legacy execution snapshots; typed production callers stay unchanged. */

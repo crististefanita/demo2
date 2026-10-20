@@ -5,10 +5,11 @@ import atf.ui.practiceshop.config.PracticeShopScreen;
 import atf.ui.practiceshop.locators.PracticeShopControl;
 import atf.ui.practiceshop.locators.PracticeShopLocators;
 import atf.ui.practiceshop.support.PracticeShopPageContract;
+import atf.ui.practiceshop.routes.PracticeShopUiRoutes;
 import com.microsoft.playwright.Page;
 
 /** Final payment confirmation boundary, kept separate from payment input. */
-@PracticeShopPageContract(screen = PracticeShopScreen.CONFIRMATION, route = "/checkout",
+@PracticeShopPageContract(screen = PracticeShopScreen.CONFIRMATION, route = PracticeShopUiRoutes.CHECKOUT,
         requiredControls = {PracticeShopControl.PAYMENT_SUCCESS}, bodyMarker = "Payment was successful")
 public final class PracticeShopConfirmationPage {
     private final Page page;

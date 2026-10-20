@@ -40,7 +40,9 @@ public final class ExtentUiAssertionRenderer {
         }
         boolean failed = assertions.stream().anyMatch(row -> row != null
                 && ExtentUiEvidenceMarkup.isFailure(row.resultStatus()));
-        String markup = AtfReportMarkup.table("helm-evidence-table helm-validation-table", table).getMarkup();
+        String markup = AtfReportMarkup.table(AtfReportHtmlVocabulary.classList(
+                AtfReportHtmlVocabulary.CssClass.HELM_EVIDENCE_TABLE,
+                AtfReportHtmlVocabulary.CssClass.HELM_VALIDATION_TABLE), table).getMarkup();
         publish(node, open(AtfReportHtmlVocabulary.Tag.DIV,
                         AtfReportHtmlVocabulary.classAttribute(
                                 AtfReportHtmlVocabulary.CssClass.ATF_UI_ASSERTIONS),

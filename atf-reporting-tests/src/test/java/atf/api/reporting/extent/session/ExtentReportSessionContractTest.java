@@ -103,7 +103,7 @@ class ExtentReportSessionContractTest {
         int requestIndex = html.indexOf(GET_USER_ONE);
         int validationIndex = html.indexOf("Validate user contract");
         assertTrue(requestIndex >= 0 && validationIndex > requestIndex);
-        assertFalse(html.contains(GET_USER_ONE + " — item contract"));
+        assertTrue(html.contains(GET_USER_ONE + " — item contract"));
         assertTrue(divDepthAt(html, validationIndex) > divDepthAt(html, requestIndex),
                 "validation must be nested inside the Gherkin request step");
         assertAll(

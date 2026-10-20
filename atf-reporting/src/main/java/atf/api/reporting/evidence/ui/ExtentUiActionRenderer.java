@@ -3,6 +3,7 @@ package atf.api.reporting.evidence.ui;
 import atf.api.reporting.configuration.ReportingSettings;
 import atf.api.reporting.markup.ExtentReportAssets;
 import atf.api.reporting.markup.ExtentReportNodeSupport;
+import atf.api.reporting.markup.AtfReportLabels;
 import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
 import atf.api.reporting.model.ReportScreenshot;
 import atf.api.reporting.ui.AtfUiActionRecord;
@@ -79,7 +80,9 @@ public final class ExtentUiActionRenderer {
                 .append(open(AtfReportHtmlVocabulary.Tag.TABLE,
                         AtfReportHtmlVocabulary.classAttribute(
                                 AtfReportHtmlVocabulary.CssClass.ATF_UI_ACTION_TABLE)))
-                .append(tableHeader("ACTION", "TARGET", "EXPECTED", "OBSERVED", "TIME", "RESULT"))
+                .append(tableHeader(AtfReportLabels.ACTION, AtfReportLabels.TARGET,
+                        AtfReportLabels.EXPECTED, AtfReportLabels.OBSERVED,
+                        AtfReportLabels.TIME, AtfReportLabels.RESULT))
                 .append(open(AtfReportHtmlVocabulary.Tag.TBODY));
         for (AtfUiActionRecord action : actions) {
             html.append(actionRowStart()).append(escape(action.operation()))

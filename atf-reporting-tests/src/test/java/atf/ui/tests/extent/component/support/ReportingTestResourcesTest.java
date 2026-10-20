@@ -9,6 +9,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Keeps reporting tests independent from the project-root fixture discovery policy. */
@@ -25,9 +27,9 @@ class ReportingTestResourcesTest {
 
         var configuration = ReportingTestResources.mockConfiguration();
         assertFalse(configuration.routes().isEmpty());
-        assertTrue(configuration.routes().stream()
+        configuration.routes().stream()
                 .filter(ReportingTestResourcesTest::isJsonWrite)
-                .allMatch(ReportingTestResourcesTest::isJsonContract));
+                .forEach(ReportingTestResourcesTest::assertJsonContract);
     }
 
     private static boolean isJsonWrite(MockRoute route) {
@@ -35,13 +37,11 @@ class ReportingTestResourcesTest {
                 || HttpMethod.PUT.value().equals(route.method());
     }
 
-    private static boolean isJsonContract(MockRoute route) {
-        try {
+    private static void assertJsonContract(MockRoute route) {
+        assertDoesNotThrow(() -> {
             MockRequestBodyMode.from(route.requestBodyMode());
-            return route.requestBodyMode() != null
-                    && JSON.readTree(route.body()) != null;
-        } catch (Exception error) {
-            return false;
-        }
+            assertNotNull(route.requestBodyMode());
+            assertNotNull(JSON.readTree(route.body()));
+        }, () -> "Invalid JSON contract for " + route.method() + " " + route.path());
     }
 }

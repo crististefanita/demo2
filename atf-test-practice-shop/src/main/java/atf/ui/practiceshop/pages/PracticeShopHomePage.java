@@ -6,10 +6,11 @@ import atf.ui.practiceshop.config.PracticeShopScreen;
 import atf.ui.practiceshop.locators.PracticeShopControl;
 import atf.ui.practiceshop.locators.PracticeShopLocators;
 import atf.ui.practiceshop.support.PracticeShopPageContract;
+import atf.ui.practiceshop.routes.PracticeShopUiRoutes;
 import com.microsoft.playwright.Page;
 
 /** Catalog landing page object. */
-@PracticeShopPageContract(screen = PracticeShopScreen.HOME, route = "/",
+@PracticeShopPageContract(screen = PracticeShopScreen.HOME, route = PracticeShopUiRoutes.HOME,
         requiredControls = {PracticeShopControl.HOME_NAVIGATION, PracticeShopControl.HOME_BRAND,
                 PracticeShopControl.HOME_BANNER, PracticeShopControl.HOME_SORT,
                 PracticeShopControl.HOME_PRICE_RANGE, PracticeShopControl.SEARCH_QUERY,
@@ -29,7 +30,7 @@ public final class PracticeShopHomePage {
     }
 
     public void open(PracticeShopConfiguration configuration) {
-        actions.navigate(page, configuration.uri("/"), "catalog home is loaded");
+        actions.navigate(page, configuration.uri(PracticeShopUiRoutes.HOME), "catalog home is loaded");
         actions.waitForVisible(locators.searchQuery(page));
         actions.waitForVisible(locators.homeProductGridFirst(page));
     }

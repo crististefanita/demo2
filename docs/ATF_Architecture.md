@@ -26,45 +26,30 @@ riscuri reproductibile care mai pot schimba codul sau packaging-ul.
 
 ```mermaid
 flowchart LR
-    subgraph Consumers[Consumers și composition roots]
-        ReportingTests[atf-reporting-tests<br/>reporting API/UI/E2E]
-        Shop[atf-test-practice-shop<br/>Practice Shop]
-        Tests[atf-tests<br/>whole-ATF governance]
-    end
-    subgraph Platform[Platformă reutilizabilă]
-        Core[atf-core<br/>transport și politici]
-        Mock[atf-mock<br/>fake configurabil]
-        Validation[atf-validation<br/>contracte și verdicturi]
-        Reporting[atf-reporting<br/>standalone artifact]
-        Console[atf-console<br/>proiecție diagnostică]
-        Ui[atf-ui<br/>adaptor Playwright]
-        DebugUi[atf-debug-ui<br/>loopback read-only]
-        TestKit[atf-test-kit<br/>test-only layer contract]
-    end
-    Mock --> Core
-    Validation --> Core
-    Console --> Core
-    Ui --> Core
-    DebugUi --> Console
-    ReportingTests --> Core
-    ReportingTests --> Mock
-    ReportingTests --> Validation
-    ReportingTests --> Console
-    ReportingTests --> Reporting
-    ReportingTests --> Ui
-    ReportingTests --> DebugUi
-    ReportingTests --> TestKit
-    Shop --> Reporting
-    Shop -. uses .-> Ui
-    Tests --> Reporting
+    Platform[Platformă reutilizabilă<br/>core · mock · validation · console · debug-ui · test-kit]
+    Ui[atf-ui<br/>adaptor Playwright]
+    Reporting[atf-reporting<br/>standalone artifact]
+    ReportingTests[atf-reporting-tests<br/>reporting API/UI/E2E]
+    Shop[atf-test-practice-shop<br/>Practice Shop]
+    Tests[atf-tests<br/>whole-ATF governance]
+
+    ReportingTests -->|public library| Reporting
+    ReportingTests -. test scope .-> Platform
+    ReportingTests -. browser audit .-> Ui
+    Shop -->|public library| Reporting
+    Shop -. browser adapter .-> Ui
+    Tests -. architecture guards .-> Platform
+    Tests -. architecture guards .-> Reporting
 ```
 
 <details>
 <summary><strong>Legendă — hartă module și direcția dependency</strong></summary>
 
-- săgeata solidă înseamnă dependență directă a modulului din stânga;
-- săgeata punctată marchează o relație de consum, nu ownership transferat;
-- `Consumers` arată composition roots, iar `Platform` arată modulele reutilizabile;
+- săgeata solidă înseamnă consum de bibliotecă în composition root;
+- săgeata punctată marchează test scope, browser policy sau guvernanță, nu
+  ownership transferat;
+- `Platform` grupează modulele reutilizabile; relațiile interne sunt explicate în
+  textul de sub diagramă și în README-ul root;
 - `atf-reporting` rămâne standalone în producție;
 - `atf-reporting-tests` este composition root-ul care leagă fixture-uri, mock,
   UI și reporting în test scope.
@@ -102,12 +87,11 @@ validarea unui artifact UI static:
 
 ```mermaid
 flowchart LR
-    Annotation[atf-core<br/>@ApiScenarioSetup + selection] --> Catalog[atf-reporting-tests<br/>reporting contract catalog + setup]
-    Catalog --> ApiArtifact[API Extent artifact]
-    Browser[atf-reporting-tests<br/>Page/Locator inspector] --> UiContract[atf-reporting<br/>UI contract + snapshot validator]
-    ApiArtifact --> Browser
-    Browser --> UiContract
-    UiContract --> UiArtifact[UI Extent audit artifact]
+    Core["atf-core<br/>API selection contract"] --> Catalog["atf-reporting-tests<br/>contract catalog + setup"]
+    Catalog --> ApiArtifact["API Extent artifact"]
+    ApiArtifact --> Browser["atf-reporting-tests<br/>read-only browser inspector"]
+    Browser --> Reporting["atf-reporting<br/>UI contract + snapshot validator"]
+    Reporting --> UiArtifact["UI Extent audit artifact"]
 ```
 
 <details>
@@ -154,9 +138,6 @@ raportului aparține în `atf-reporting-tests/src/test/java`; comportamentul une
 aplicații reale aparține în modulul consumer, de exemplu `atf-test-practice-shop`.
 Un serviciu real este testat doar printr-un scenariu
 explicit opt-in; nu este implicit în niciunul dintre aceste niveluri.
-
-<details>
-<summary><strong>Aprofundare — boundary-uri, fluxuri și proof</strong></summary>
 
 ## Boundary-ul testelor API și al auditului UI
 
@@ -511,13 +492,10 @@ flowchart LR
     Env[explicit env/property override] --> Loader
     Loader --> Config[ApiBootstrapConfiguration validată]
     Config --> Snapshot[immutable API settings + transport policy]
-    Snapshot --> Core[atf-core generic execution]
-    Snapshot --> Validation[atf-validation]
-    Snapshot --> Reporting[atf-reporting]
+    Snapshot --> Runtime[typed runtime consumers<br/>atf-core · atf-validation · atf-reporting]
     MockLoader --> MockSnapshot[AtfMockConfiguration]
     MockSnapshot --> MockTransport[AtfMockTransport]
     MockTransport --> ReportingFixtures[reporting-tests API fixtures]
-    Core --> ReportingFixtures
 ```
 
 <details>
@@ -525,6 +503,8 @@ flowchart LR
 
 - YAML-ul și override-urile sunt citite la composition root;
 - snapshot-ul immutable intră în core, fără ca acesta să recitească mediul;
+- `Runtime` este o grupare vizuală pentru consumatorii snapshot-ului, nu un
+  modul nou;
 - mock-ul produce fixture-ul, iar reporting-tests îl consumă în test scope;
 - output-ul și căile rămân configurabile, nu devin valori de documentație.
 
@@ -564,20 +544,20 @@ setările API și validation în același bootstrap folosind modelele din core.
 ```mermaid
 flowchart LR
     Scenario[Scenariu] --> Setup[SETUP]
-    Scenario --> Body[TEST BODY]
-    Scenario --> Teardown[TEARDOWN]
-    Setup --> SR[Request]
-    Setup --> SV[Validation sibling]
-    Body --> BR[Request]
-    Body --> BV[Validation sibling]
+    Setup --> Body[TEST BODY]
+    Body --> Teardown[TEARDOWN]
     Teardown --> Cleanup[Cleanup în ordine inversă]
+    Setup -. local evidence .-> SetupEvidence[Request + validation<br/>sibling evidence]
+    Body -. local evidence .-> BodyEvidence[Request + validation<br/>sibling evidence]
 ```
 
 <details>
 <summary><strong>Legendă — lifecycle și ownership</strong></summary>
 
-- fazele apar numai când au conținut real;
-- request-ul și validation-ul sunt ramuri surori;
+- săgeata solidă = progresul lifecycle-ului; fazele apar numai când au
+  conținut real;
+- săgeata punctată = grupare vizuală a evidence-ului local, nu o fază nouă;
+- request-ul și validation-ul rămân surori în fiecare grup de evidence;
 - cleanup-ul închide resursele create în ordine inversă;
 - precedence-ul verdictului rămâne responsabilitatea lifecycle-ului, nu a rendererului.
 
@@ -633,6 +613,4 @@ Fiecare schimbare de raportare care afectează structură, collapse, tab-uri,
 font, culoare, scroll sau overflow are nevoie de test de cod și verificare a
 artifactului. Un string găsit în HTML nu dovedește că elementul se comportă
 corect la click.
-
-</details>
 

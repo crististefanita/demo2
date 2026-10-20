@@ -1,37 +1,69 @@
 package atf.ui.tests.practiceshop.api.component;
 
+import atf.api.core.http.request.HttpMethod;
 import atf.api.testkit.AtfComponentTest;
 import atf.ui.practiceshop.api.PracticeShopApiRoutes;
+import atf.ui.practiceshop.api.PracticeShopApiHttpStatus;
 import atf.ui.practiceshop.support.PracticeShopApiExchangeSelector;
 import atf.ui.practiceshop.support.PracticeShopApiNetworkJournal;
+import atf.ui.tests.practiceshop.api.support.PracticeShopApiScenarioFixture;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @AtfComponentTest
 class PracticeShopApiExchangeSelectorTest {
     @Test
     void latestSelectsTheMostRecentMatchingExchangeWithoutChangingCaptureOrder() {
-        var first = exchange("GET", PracticeShopApiRoutes.cart("cart-1"), 200, "first");
-        var second = exchange("GET", PracticeShopApiRoutes.cart("cart-1"), 200, "second");
+        String cartPath = PracticeShopApiRoutes.cart(PracticeShopApiScenarioFixture.MUTATION_CART_ID);
+        var first = exchange(HttpMethod.GET.value(), cartPath, PracticeShopApiHttpStatus.OK, "first");
+        var second = exchange(HttpMethod.GET.value(), cartPath, PracticeShopApiHttpStatus.OK, "second");
 
         assertEquals(second, PracticeShopApiExchangeSelector.latest(
-                List.of(first, second), "GET", PracticeShopApiRoutes.cart("cart-1"), item -> item.status() == 200));
+                List.of(first, second), HttpMethod.GET.value(), cartPath,
+                item -> PracticeShopApiHttpStatus.OK.matches(item.status())));
     }
 
     @Test
     void optionalSelectionDoesNotInventAnExchangeWhenThePredicateDoesNotMatch() {
-        var exchange = exchange("GET", PracticeShopApiRoutes.CURRENT_USER, 401, "unauthorized");
+        var exchange = exchange(HttpMethod.GET.value(), PracticeShopApiRoutes.CURRENT_USER,
+                PracticeShopApiHttpStatus.UNAUTHORIZED, "unauthorized");
 
         assertNull(PracticeShopApiExchangeSelector.latestOptional(
-                List.of(exchange), "GET", PracticeShopApiRoutes.CURRENT_USER, item -> item.status() == 200));
+                List.of(exchange), HttpMethod.GET.value(), PracticeShopApiRoutes.CURRENT_USER,
+                item -> PracticeShopApiHttpStatus.OK.matches(item.status())));
         assertThrows(IllegalStateException.class, () -> PracticeShopApiExchangeSelector.latest(
-                List.of(exchange), "GET", PracticeShopApiRoutes.CURRENT_USER, item -> item.status() == 200));
+                List.of(exchange), HttpMethod.GET.value(), PracticeShopApiRoutes.CURRENT_USER,
+                item -> PracticeShopApiHttpStatus.OK.matches(item.status())));
+    }
+
+    @Test
+    void selectionUsesTheNormalizedRouteInsteadOfAContainsMatch() {
+        var misleading = exchange(HttpMethod.GET.value(), PracticeShopApiRoutes.product(
+                PracticeShopApiScenarioFixture.PRODUCT_ID) + "-archive", PracticeShopApiHttpStatus.OK, "wrong");
+        assertThrows(IllegalStateException.class, () -> PracticeShopApiExchangeSelector.latest(
+                List.of(misleading), HttpMethod.GET.value(),
+                PracticeShopApiRoutes.product(PracticeShopApiScenarioFixture.PRODUCT_ID), item -> true));
+    }
+
+    @Test
+    void tracedExchangesKeepSequencePhaseSignatureAndDigest() {
+        var traced = exchange(HttpMethod.POST.value(), PracticeShopApiRoutes.PAYMENT_CHECK,
+                PracticeShopApiHttpStatus.OK, "payment")
+                .withTrace(7, Instant.parse("2026-10-20T10:00:00Z"), "checkout");
+
+        assertEquals(7, traced.sequence());
+        assertEquals("checkout", traced.phase());
+        assertFalse(traced.signature().isBlank());
+        assertEquals(64, traced.digest().length());
     }
 
     @Test
@@ -43,9 +75,9 @@ class PracticeShopApiExchangeSelectorTest {
     }
 
     private static PracticeShopApiNetworkJournal.Exchange exchange(
-            String method, String path, int status, String body) {
+            String method, String path, PracticeShopApiHttpStatus status, String body) {
         return new PracticeShopApiNetworkJournal.Exchange(
-                method, path, "https://api.practicesoftwaretesting.com" + path, status,
+                method, path, PracticeShopApiScenarioFixture.API_ENDPOINT + path, status.code(),
                 body, body, Map.of(), Map.of("content-type", "application/json"));
     }
 }

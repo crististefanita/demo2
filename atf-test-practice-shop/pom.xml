@@ -19,6 +19,11 @@
         </dependency>
         <dependency>
             <groupId>atf.api</groupId>
+            <artifactId>atf-console</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>atf.api</groupId>
             <artifactId>atf-test-kit</artifactId>
             <version>${project.version}</version>
         </dependency>

@@ -7,10 +7,11 @@ import atf.ui.practiceshop.config.PracticeShopScreen;
 import atf.ui.practiceshop.locators.PracticeShopControl;
 import atf.ui.practiceshop.locators.PracticeShopLocators;
 import atf.ui.practiceshop.support.PracticeShopPageContract;
+import atf.ui.practiceshop.routes.PracticeShopUiRoutes;
 import com.microsoft.playwright.Page;
 
 /** Registration page object; account creation is explicit and never implicit in a purchase test. */
-@PracticeShopPageContract(screen = PracticeShopScreen.REGISTRATION, route = "/auth/register",
+@PracticeShopPageContract(screen = PracticeShopScreen.REGISTRATION, route = PracticeShopUiRoutes.AUTH_REGISTER,
         requiredControls = {PracticeShopControl.REGISTER_FIRST_NAME, PracticeShopControl.REGISTER_LAST_NAME,
                 PracticeShopControl.REGISTER_DOB, PracticeShopControl.REGISTER_COUNTRY,
                 PracticeShopControl.REGISTER_POSTAL_CODE, PracticeShopControl.REGISTER_HOUSE_NUMBER,
@@ -31,7 +32,7 @@ public final class PracticeShopRegistrationPage {
     }
 
     public void open(PracticeShopConfiguration configuration) {
-        actions.navigate(page, configuration.uri("/auth/register"), "registration page is loaded");
+        actions.navigate(page, configuration.uri(PracticeShopUiRoutes.AUTH_REGISTER), "registration page is loaded");
         actions.waitForText(page, locators.pageBody(page), "Customer registration",
                 "registration form is displayed");
     }

@@ -1,5 +1,6 @@
 package atf.ui.practiceshop.support;
 
+import atf.api.console.AtfConsoleReporter;
 import atf.api.core.reporting.console.AtfConsoleSink;
 import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.api.reporting.contract.AtfAssertion;
@@ -40,11 +41,11 @@ public final class PracticeShopE2eContext implements AutoCloseable {
                 + STAMP.withZone(Clock.systemDefaultZone().getZone()).format(Clock.systemDefaultZone().instant())
                 + ".html";
         UiExtentReportSession report = UiExtentReportSession.openConfiguredResolved(
-                projectRoot().resolve("artifacts/reports/ui"),
+                configuration.uiReportDirectory(),
                 file, event -> { });
         try {
-            PlaywrightUiSession browser = PlaywrightUiSession.open(configuration.browser(),
-                    AtfConsoleSink.noOp());
+            AtfConsoleSink console = AtfConsoleReporter.configuredStdout();
+            PlaywrightUiSession browser = PlaywrightUiSession.open(configuration.browser(), console);
             PracticeShopApiNetworkJournal apiNetwork =
                     new PracticeShopApiNetworkJournal(configuration.validationProfile());
             apiNetwork.attach(browser.page());
@@ -83,12 +84,23 @@ public final class PracticeShopE2eContext implements AutoCloseable {
                 reportClass, "atf.ui.tests.practiceshop",
                 overview, List.of("ui", "e2e", "external", "practice-shop"));
         var setup = scenario.startPhase("SETUP");
+        boolean authenticated = configuration.authenticatedE2eAllowed();
         setup.setup(AtfGherkinKeyword.GIVEN,
-                "the typed guest checkout configuration is ready",
-                "YAML checkout inputs",
-                List.of(new AtfAssertion("Guest checkout", "valid and account-independent",
-                        configuration.accountConfigured() ? "optional account available" : "guest flow without account",
+                authenticated
+                        ? "the pre-registered Practice Shop account fixture is loaded"
+                        : "the typed guest checkout configuration is ready",
+                authenticated ? "practice-software-testing-account.properties" : "YAML checkout inputs",
+                List.of(new AtfAssertion(authenticated ? "Authenticated checkout" : "Guest checkout",
+                        authenticated ? "reusable account is required" : "valid and account-independent",
+                        authenticated
+                                ? "authenticated fixture is required by this journey"
+                                : configuration.accountConfigured()
+                                ? "optional account available" : "guest flow without account",
                         true),
+                        new AtfAssertion("Account setup",
+                                authenticated ? "pre-registered account loaded before UI flow" : "not required",
+                                authenticated ? "fixture loaded; credentials redacted" : "guest journey",
+                                true),
                         new AtfAssertion("API evidence profile", "ui-api or ui-only",
                                 configuration.validationProfile().name().toLowerCase(), true),
                         new AtfAssertion("API evidence disclosures", "request, response and execution details are attached per checkpoint",
@@ -100,7 +112,24 @@ public final class PracticeShopE2eContext implements AutoCloseable {
         return new Scenario(scenario, title);
     }
 
-    @Override public void close() { browser.close(); report.close(); }
+    @Override public void close() {
+        Throwable failure = null;
+        try {
+            browser.close();
+        } catch (Throwable error) {
+            failure = error;
+        } finally {
+            try {
+                report.close();
+            } catch (Throwable error) {
+                if (failure == null) failure = error;
+                else failure.addSuppressed(error);
+            }
+        }
+        if (failure instanceof RuntimeException runtime) throw runtime;
+        if (failure instanceof Error error) throw error;
+        if (failure != null) throw new IllegalStateException("Practice Shop E2E teardown failed", failure);
+    }
 
     public final class Scenario implements AutoCloseable {
         private final UiExtentReportSession.UiScenario scenario;
@@ -114,10 +143,29 @@ public final class PracticeShopE2eContext implements AutoCloseable {
             this.title = title == null || title.isBlank() ? "completed Practice Shop scenario" : title;
         }
 
+        /**
+         * Keeps failure publication and scenario closing out of the test body.
+         * Tests remain a readable business narrative; this boundary owns the
+         * exceptional lifecycle and preserves the original failure.
+         */
+        public void execute(Page page, PlaywrightActionSequence actions, Runnable testBody) {
+            try {
+                testBody.run();
+            } catch (RuntimeException | AssertionError failure) {
+                fail(page, actions, failure);
+                throw failure;
+            } finally {
+                close();
+            }
+        }
+
         public void checkpoint(Page page, PlaywrightActionSequence actions,
                                PracticeShopPurchaseCheckpoint checkpoint) {
-            UiScreenValidation.Evidence evidence = UiScreenValidation.capture(
-                    page, UiScreenValidationConfiguration.defaults(), checkpoint.title());
+            UiScreenValidation.Evidence evidence = checkpoint.passed()
+                    && !configuration.browser().screenshotOnFailure()
+                    ? new UiScreenValidation.Evidence(checkpoint.title(), "", false)
+                    : UiScreenValidation.capture(page, UiScreenValidationConfiguration.defaults(), checkpoint.title());
+            PracticeShopAuditObservations.recordCheckpoint(actions, page, checkpoint, evidence);
             body.step(checkpoint.keyword(), checkpoint.title(), page.url(), evidence.base64Png(),
                     checkpoint.assertions(), PracticeShopReportUiActionAdapters.from(actions.drain()),
                     checkpoint.apiEvidence(),
@@ -128,6 +176,8 @@ public final class PracticeShopE2eContext implements AutoCloseable {
         public void pass(Page page, PlaywrightActionSequence actions,
                          UiScreenValidation.Evidence evidence,
                          Collection<AtfAssertion> assertions) {
+            PracticeShopAuditObservations.recordScreenContract(actions, page, title,
+                    assertions, evidence, true);
             body.screenValidation(title, page.url(), evidence.base64Png(),
                     assertions, PracticeShopReportUiActionAdapters.from(actions.drain()),
                     AtfReportStatus.PASS);

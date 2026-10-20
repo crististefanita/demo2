@@ -11,24 +11,18 @@ jar-ul `atf-reporting`; `atf-tests` rămâne governance-only.
 
 ```mermaid
 flowchart LR
-    Composition[atf-reporting-tests<br/>reporting-only composition] --> Reporting[atf-reporting<br/>standalone jar]
-    Composition --> Core[atf-core<br/>generic execution]
-    Composition --> Fixtures[concrete API fixtures in test scope]
-    Fixtures --> Core
-    Composition --> Mock[atf-mock]
-    Composition --> Validation[atf-validation]
-    Composition --> Ui[atf-ui + debug-ui]
-    Composition --> Reports[API/UI Extent artifacts]
-    ShopTests[atf-test-practice-shop<br/>external application consumer] --> Reporting
-    AppTests[atf-tests<br/>whole-ATF governance] --> Reporting
-    AppTests -. uses .-> Ui
+    Composition[atf-reporting-tests<br/>composition root] -->|public API| Reporting[atf-reporting<br/>standalone jar]
+    Reporting --> Reports[API/UI Extent artifacts]
+    Composition -. test scope .-> Support[test-scope support<br/>core · mock · validation · ui · debug-ui]
+    ShopTests[atf-test-practice-shop<br/>external application consumer] -. consumes .-> Reporting
+    AppTests[atf-tests<br/>whole-ATF governance] -. guards .-> Reporting
 ```
 
 <details>
 <summary><strong>Legendă — composition root pentru reporting</strong></summary>
 
 - atf-reporting este biblioteca verificată, nu un test fixture;
-- mock-ul, validarea, UI-ul și fixture-urile sunt dependențe de test scope;
+- suportul grupat în diagramă reprezintă dependențele de test scope;
 - artifactele API/UI sunt rezultate ale compoziției, nu fișiere normative;
 - atf-test-practice-shop și atf-tests sunt consumatori cu responsabilități separate, nu extensii ascunse ale librăriei.
 </details>
@@ -65,6 +59,37 @@ de directoarele locale ale repository-ului.
 permisi numai în ownerul locatorului atunci când markup-ul raportului nu oferă
 o identitate mai bună; testele, flow-urile și auditorii nu compun
 `page.locator(...)` direct.
+
+## Contractul de titlu pentru request-uri API
+
+Orice request publicat de un consumer trebuie să fie recognoscibil fără
+deschiderea imediată a disclosure-ului:
+
+```text
+HTTP_METHOD relativePath — very-short business intent
+```
+
+`relativePath` este ruta observată în execution; valorile dinamice rămân în
+path-ul runtime, nu în enum-uri. Un consumer poate folosi un descriptor typed
+precum `ApiOperationDescriptor` pentru intenție, method și route template, dar
+`atf-reporting` nu depinde de acel descriptor și nu derivă semantica prin
+parsarea titlului. Astfel biblioteca rămâne împachetabilă ca JAR independent,
+iar consumerul rămâne owner-ul vocabularului aplicației.
+
+`PracticeShopApiOperation` este exemplul consumerului: `SEARCH` descrie intenția
+de catalog, dar wire method este `GET`, iar raportul afișează
+`GET /products/search — find configured product`; pseudo-verbul `QUERY` nu mai
+este permis în request evidence. Pentru fiecare execution Practice Shop,
+publisher-ul adaugă separat `OPERATION KIND` și `ROUTE TEMPLATE` în evidence,
+deci un auditor poate reconcilia ruta dinamică cu contractul stabil.
+
+Contractul este verificat pe două seam-uri:
+
+| Seam | Verificare |
+|---|---|
+| core vocabulary | `ApiOperationDescriptorContractTest` validează formatul și input-ul invalid |
+| reporting fallback/Extent | `HtmlReportComponentContractTest` și `ExtentReportSessionContractTest` validează titlul publicat în artifact |
+| consumer Practice Shop | `PracticeShopApiOperationTest` și `PracticeShopStandaloneApiReportTest` validează method/path/intent, absența `QUERY`, operation kind și route template |
 
 ## Ordinea testelor
 

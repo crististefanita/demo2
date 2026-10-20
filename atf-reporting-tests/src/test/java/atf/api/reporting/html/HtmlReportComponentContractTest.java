@@ -24,13 +24,15 @@ class HtmlReportComponentContractTest {
     @Test
     void auditsThePublishedHtmlThroughRendererIndependentArtifactChecks() throws Exception {
         Path report = Files.createTempDirectory("atf-html-component-").resolve("report.html");
+        String userPath = MockRoutePaths.userById("1");
+        String requestTitle = ApiOperationLabel.format(HttpMethod.GET, userPath,
+                "read user profile");
         try (var session = new HtmlReportSession(report)) {
             var scenario = session.startScenario("ComponentReportTests",
                     "API evidence component contract", List.of("api", "component"));
             var phase = scenario.startPhase("TEST BODY");
             var request = phase.startRequest(
-                    ApiOperationLabel.format(HttpMethod.GET, MockRoutePaths.userById("1"), null),
-                    HttpMethod.GET.value(), MockRoutePaths.userById("1"));
+                    requestTitle, HttpMethod.GET.value(), userPath);
             request.detail("HTTP STATUS", "200");
             request.json("REQUEST JSON", "null");
             request.json("RESPONSE JSON", "{\"id\":1,\"name\":\"ATF User\"}");
@@ -45,6 +47,7 @@ class HtmlReportComponentContractTest {
         var evaluation = HtmlReportStaticContract.evaluate(Files.readString(report));
 
         assertTrue(Files.isRegularFile(report));
+        assertTrue(Files.readString(report).contains(requestTitle));
         assertTrue(evaluation.isCompliant(), () -> "Component violations: " + evaluation.violations());
         assertTrue(evaluation.satisfies("request validation roles"));
         assertTrue(evaluation.satisfies("json evidence channels"));

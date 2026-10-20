@@ -280,6 +280,15 @@ failure evidence UI, iar al treilea măsoară valorile reale și publică lăți
 coloane deterministe. Nu se amestecă layout-ul cu semantica evidence și nu se
 introduce un al doilea owner al aceleiași funcții.
 
+La nivelul markup-ului Java, `ReportEvidenceMarkup` este shell-ul comun pentru
+disclosure-uri, `AtfReportMarkup.tableHtml` este builder-ul canonical pentru
+tabelele key/value, iar `ReportEvidenceJsonFormatter` deține politica comună
+label → redaction → pretty print → display-limit. Renderer-ul Extent și
+fallback-ul HTML primesc aceeași listă typed de `ReportField` și același JSON
+display policy; diferența rămasă este numai adaptorul de publicare (Markup
+Extent versus document HTML). Paritatea este protejată prin teste component/unit,
+nu printr-un E2E suplimentar.
+
 Și proiecția `Fails` este acum separată pe responsabilități native: detection,
 context, cause-chain și projection au câte un asset JS și o fațadă Java proprie.
 `ExtentReportFailureRuntime` compune ordinea stabilă, fără să dețină corpuri de
@@ -494,7 +503,11 @@ invalid rămâne neschimbat pentru diagnostic și nu este transformat artificial
 `ExtentUiAssertionRenderer`, iar escaping/status/publication sunt primitive
 comune în `ExtentUiEvidenceMarkup`. Astfel fiecare fragment poate fi testat
 componentar, în timp ce testele de session verifică în continuare compoziția
-reală și screenshot-ul inline.
+reală și screenshot-ul inline. Shell-ul semantic pentru disclosure-uri este
+reutilizat de Extent și fallback HTML prin `ReportEvidenceMarkup`; începutul,
+titlul accesibil, glyph-ul și închiderea nu se mai copiază în fiecare renderer.
+Body-ul rămâne responsabilitatea renderer-ului concret, astfel încât Extent să
+poată publica markup vendor-specific, iar fallback-ul să păstreze `<pre>`.
 
 ## Publicare și output
 

@@ -1,10 +1,10 @@
 package atf.ui.practiceshop.config;
 
 import atf.api.ui.config.UiBrowserConfiguration;
+import atf.ui.practiceshop.routes.PracticeShopUiRoutes;
 
 import java.net.URI;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.Objects;
 
 /** Immutable external-system policy for the Practice Software Testing suite. */
@@ -16,7 +16,10 @@ public record PracticeShopConfiguration(
         PracticeShopCheckoutConfiguration checkout,
         UiBrowserConfiguration browser,
         PracticeShopValidationProfile validationProfile,
-        PracticeShopApiConfiguration api) {
+        PracticeShopApiConfiguration api,
+        Path uiReportDirectory,
+        Path apiReportDirectory,
+        boolean authenticatedE2eEnabled) {
     public static final String DYNAMIC_PRODUCT_PATH = "auto";
 
     public PracticeShopConfiguration {
@@ -28,6 +31,10 @@ public record PracticeShopConfiguration(
         browser = Objects.requireNonNull(browser, "browser");
         validationProfile = Objects.requireNonNull(validationProfile, "validationProfile");
         api = Objects.requireNonNull(api, "api");
+        uiReportDirectory = Objects.requireNonNull(uiReportDirectory, "uiReportDirectory")
+                .toAbsolutePath().normalize();
+        apiReportDirectory = Objects.requireNonNull(apiReportDirectory, "apiReportDirectory")
+                .toAbsolutePath().normalize();
     }
 
     /** Compatibility constructor for UI-only callers. */
@@ -36,11 +43,16 @@ public record PracticeShopConfiguration(
                                      UiBrowserConfiguration browser,
                                      PracticeShopValidationProfile validationProfile) {
         this(baseUrl, accountFile, productName, productPath, checkout, browser,
-                validationProfile, PracticeShopApiConfiguration.defaults());
+                validationProfile, PracticeShopApiConfiguration.defaults(),
+                Path.of("artifacts", "reports", "ui"), Path.of("artifacts", "reports"), false);
     }
 
     public boolean accountConfigured() {
         return java.nio.file.Files.isRegularFile(accountFile);
+    }
+
+    public boolean authenticatedE2eAllowed() {
+        return authenticatedE2eEnabled && accountConfigured();
     }
 
     public URI uri(String path) {
@@ -55,11 +67,15 @@ public record PracticeShopConfiguration(
     }
 
     public String productPathExpectation() {
-        return usesDynamicProductPath() ? "/product/* (dynamic fixture)" : productPath;
+        return usesDynamicProductPath()
+                ? PracticeShopUiRoutes.PRODUCT_PATTERN + " (dynamic fixture)"
+                : productPath;
     }
 
     public boolean matchesProductPath(String selectedPath) {
-        if (selectedPath == null || !selectedPath.startsWith("/product/")) return false;
+        if (selectedPath == null || !selectedPath.startsWith(PracticeShopUiRoutes.PRODUCT_PREFIX)) {
+            return false;
+        }
         return usesDynamicProductPath() || productPath.equals(selectedPath);
     }
 
@@ -69,15 +85,6 @@ public record PracticeShopConfiguration(
         return normalized;
     }
 
-    static PracticeShopConfiguration defaults(Path accountFile) {
-        URI base = URI.create("https://practicesoftwaretesting.com");
-        return new PracticeShopConfiguration(base, accountFile, "Pliers",
-                DYNAMIC_PRODUCT_PATH, PracticeShopCheckoutConfiguration.defaults(),
-                new UiBrowserConfiguration(base, "chromium", true,
-                        Duration.ofSeconds(20), Duration.ofSeconds(45),
-                        1440, 1000, 70, true), PracticeShopValidationProfile.UI_API,
-                PracticeShopApiConfiguration.defaults());
-    }
 }
 
 

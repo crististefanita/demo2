@@ -38,19 +38,19 @@
 flowchart LR
     Test[Test API] --> Plan[Scenario plan]
     Plan --> Setup[SETUP opțional]
-    Setup --> SetupRequest[Setup request]
-    Plan --> Body[TEST BODY]
-    Body --> BodyRequest[Request]
-    BodyRequest --> Trace[Trace + response evidence]
-    Body --> BodyValidation[Validation sibling]
-    BodyValidation --> Assertions[Aggregate assertion table]
-    Plan --> Teardown[TEARDOWN]
+    Setup --> Body[TEST BODY]
+    Body --> Teardown[TEARDOWN]
     Teardown --> Cleanup[Cleanup/read-back]
+    Setup -. local evidence .-> SetupRequest[Setup request]
+    Body -. local evidence .-> BodyRequest[Request + trace<br/>response evidence]
+    Body -. local evidence .-> BodyValidation[Validation + aggregate<br/>assertion table]
 ```
 
 <details>
 <summary><strong>Legendă — scenariul API minim</strong></summary>
 
+- linia solidă arată `TEST API → plan → SETUP → TEST BODY → TEARDOWN`;
+- ramificațiile punctate arată numai evidence-ul local al fazei;
 - `SETUP` pregătește numai precondițiile care există în scenariu;
 - `TEST BODY` păstrează request-ul și validation-ul ca responsabilități surori;
 - `TEARDOWN` apare doar când există cleanup sau read-back real;

@@ -9,6 +9,7 @@ public final class PracticeShopApiRoutes {
     public static final String PRODUCT_COLLECTION = "/products";
     public static final String CARTS = "/carts";
     public static final String CART_RESOURCE_PREFIX = CARTS + "/";
+    public static final String CART_PRODUCT_PREFIX = "/product/";
     public static final String CART_PRODUCT_QUANTITY = "/product/quantity";
     public static final String CATEGORIES = "/categories";
     public static final String POSTCODE_LOOKUP = "/postcode-lookup";
@@ -29,7 +30,7 @@ public final class PracticeShopApiRoutes {
     }
 
     public static String removeCartProduct(String cartId, String productId) {
-        return cart(cartId) + "/product/" + required(productId, "product id");
+        return cart(cartId) + CART_PRODUCT_PREFIX + required(productId, "product id");
     }
 
     private static String required(String value, String name) {

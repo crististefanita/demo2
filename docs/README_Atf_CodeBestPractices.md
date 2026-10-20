@@ -115,6 +115,22 @@ Valorile stabile ale contractului nu se repetă ca string-uri brute.
 - [ ] Un literal rămâne local numai când este un edge-case nereutilizabil și are
       nume semantic.
 
+### Importuri statice
+
+Importurile statice sunt o scurtătură de citire, nu o scurtătură de ownership:
+
+- assertions JUnit și DSL-uri de assertion stabile (`check`) sunt permise;
+- constantele nominale dintr-un singur fixture semantic sunt permise când nu
+  există ambiguitate (`PRODUCT_NAME`, `QUANTITY`, `COUNTRY`);
+- wildcard imports, metode de business și valori dinamice nu se importă static;
+- enum-urile și owner-ul unui contract rămân explicite când numele ar putea
+  ascunde domeniul sau ar amesteca două vocabularuri.
+
+```java
+import static atf.ui.tests.practiceshop.api.support.PracticeShopApiScenarioFixture.PRODUCT_NAME;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+```
+
 ## Reporting: HTML, CSS și JavaScript
 
 ```mermaid
@@ -196,6 +212,71 @@ structurate și evidence, nu mesaje de diagnostic direct în renderer. Un pas
 observabil conține acțiune, țintă, rezultat și cauza clară la fail. Verdictul
 aparține zonei care a eșuat efectiv: action, audit, assertion sau setup.
 
+<details>
+<summary><strong>Regula `try/catch`: support/runtime versus teste</strong></summary>
+
+### Comportamentul dorit
+
+Regula ATF este separată pe boundary:
+
+- **support/runtime** — folosește `try-with-resources` pentru orice sesiune,
+  raport sau resource `AutoCloseable`;
+- **support/parser/config** — acceptă numai `catch` cu tip îngust, context și
+  cauză; eroarea se propagă sau devine `Result`/evidence explicit;
+- **teste** — nu conțin niciodată `try/catch` sau `try/finally` ad-hoc;
+  testul exprimă intenția, acțiunea și expected-ul;
+- **teardown/retry** — aparțin unui lifecycle helper, runner sau extension, nu
+  corpului testului;
+- **failure** — nu este convertit în `false`, `0`, listă goală sau fallback.
+
+Anti-pattern-uri interzise:
+
+```java
+try {
+    action();
+} catch (Exception ignored) {
+    // false-green: failure-ul a dispărut
+}
+```
+
+```java
+try {
+    return parse(body);
+} catch (RuntimeException error) {
+    return false; // malformed input devine „nu există”
+}
+```
+
+Forma preferată în clasele de support este:
+
+```java
+try (ExtentReportSession session = ExtentReportSession.openConfigured()) {
+    publish(session);
+}
+```
+
+Un parser poate converti o eroare într-un `Optional`/`Result` numai dacă absența
+este parte din contract. Dacă inputul este malformed, caller-ul trebuie să poată
+produce un failure distinct. Un validator UI poate păstra o linie `AtfAssertion`
+cu status FAIL pentru o indisponibilitate, dar nu are voie să ocolească statusul,
+să piardă cauza sau să lase scenariul PASS.
+
+Checklist obligatoriu pentru un modul de test:
+
+- [ ] Testele noi nu conțin `try/catch` sau `try/finally` în corpul testului.
+- [ ] Nu există `catch` gol, `ignored`, `return false/0/empty` sau fallback
+      implicit pentru o excepție de execuție/configurație.
+- [ ] Orice catch din support păstrează contextul semantic, cauza și verdictul
+      observabil; tipul excepției este cât mai îngust.
+- [ ] Resource/session/report lifecycle folosește `try-with-resources` sau un
+      helper comun; close failure nu maschează primary failure.
+- [ ] Testele componente acoperă input malformed, selector indisponibil și
+      eroare de teardown unde boundary-ul o poate întâlni.
+- [ ] `assertThrows` este folosit pentru excepții așteptate; nu se scrie
+      `try/catch` manual doar pentru a valida că o mutație este respinsă.
+
+</details>
+
 ## Protocol de schimbare
 
 - [ ] Recitește codul live și identifică owner-ul.
@@ -205,6 +286,8 @@ aparține zonei care a eșuat efectiv: action, audit, assertion sau setup.
 - [ ] Rulează în ordinea unit → component → integration → e2e relevant.
 - [ ] Dacă se schimbă randarea, generează artifact fresh și verifică DOM,
       computed style, disclosure, overflow și console errors.
+- [ ] Auditează fiecare `try/catch/finally` din diff; justifică resource
+      management-ul și demonstrează că failure-ul nu este înghițit.
 - [ ] Sincronizează selectiv în live; conflictul oprește fișierul afectat.
 - [ ] Mută regula stabilă în README-ul ownerului și păstrează în feedback doar
       gap-ul rămas.
@@ -216,6 +299,8 @@ aparține zonei care a eșuat efectiv: action, audit, assertion sau setup.
 - [ ] Constantele și enum-urile au ownership semantic.
 - [ ] CSS/JavaScript au asset-uri și teste separate după responsabilitate.
 - [ ] Testul de nivel inferior protejează schimbarea; E2E rămâne minim.
+- [ ] Nu există `try` ad-hoc în corpul testului și nicio excepție nu este
+      convertită în false-green; lifecycle-ul este centralizat și fail-safe.
 - [ ] Raportul spune precis ce a eșuat.
 - [ ] Documentația nu conține date de rulare, timestamp-uri, numărări de run,
       căi locale, linkuri `file:///` sau artifacte generate.

@@ -66,6 +66,7 @@ public final class PracticeShopLocators {
     private static final String BILLING_PROCEED = "button[data-test='proceed-3']";
     private static final String PAYMENT_METHOD = "select[data-test='payment-method']";
     private static final String FINISH = "button[data-test='finish']";
+    private static final String ACCOUNT_HEADING = "h1";
     private static final String PAYMENT_SUCCESS =
             "xpath=//*[contains(normalize-space(text()), 'Payment was successful')]";
 
@@ -117,6 +118,7 @@ public final class PracticeShopLocators {
         return css(page, "a[href='" + cssText(productPath) + "']");
     }
     public AtfLocator accountBody(Page page) { return pageBody(page); }
+    public AtfLocator accountHeading(Page page) { return css(page, ACCOUNT_HEADING); }
     public AtfLocator pageBody(Page page) { return css(page, "body"); }
     public AtfLocator productName(Page page) { return css(page, PRODUCT_NAME); }
     public AtfLocator productPrice(Page page) { return css(page, PRODUCT_PRICE); }
@@ -206,7 +208,7 @@ public final class PracticeShopLocators {
             case PAYMENT_METHOD -> paymentMethod(page);
             case FINISH -> finish(page);
             case PAYMENT_SUCCESS -> paymentSuccess(page);
-            case ACCOUNT_MARKER -> accountBody(page);
+            case ACCOUNT_MARKER -> accountHeading(page);
         };
     }
     public AtfLocator searchSubmit(Page page) {
@@ -218,7 +220,19 @@ public final class PracticeShopLocators {
     }
 
     private static String cssText(String value) {
-        return value.replace("'", "\\'");
+        Objects.requireNonNull(value, "value");
+        StringBuilder escaped = new StringBuilder(value.length());
+        for (int index = 0; index < value.length(); index++) {
+            char character = value.charAt(index);
+            if (character == '\\') escaped.append("\\\\");
+            else if (character == '\'') escaped.append("\\'");
+            else if (character == '\r') escaped.append("\\d ");
+            else if (character == '\n') escaped.append("\\a ");
+            else if (Character.isISOControl(character)) {
+                escaped.append('\\').append(Integer.toHexString(character)).append(' ');
+            } else escaped.append(character);
+        }
+        return escaped.toString();
     }
 }
 
