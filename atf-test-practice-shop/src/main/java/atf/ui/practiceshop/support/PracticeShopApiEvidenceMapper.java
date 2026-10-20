@@ -73,7 +73,7 @@ public final class PracticeShopApiEvidenceMapper {
         };
     }
 
-    private static Map<String, String> redactHeaders(Map<String, String> headers) {
+    static Map<String, String> redactHeaders(Map<String, String> headers) {
         Map<String, String> result = new LinkedHashMap<>();
         (headers == null ? Map.<String, String>of() : headers).forEach((name, value) -> {
             String lower = name.toLowerCase(java.util.Locale.ROOT);

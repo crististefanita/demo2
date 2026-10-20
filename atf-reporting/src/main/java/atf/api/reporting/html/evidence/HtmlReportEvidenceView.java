@@ -13,6 +13,7 @@ import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
 import atf.api.reporting.model.ReportExecutionModel;
 import atf.api.reporting.model.ReportField;
 import atf.api.reporting.model.ReportJsonBody;
+import atf.api.reporting.model.ReportJsonBodyFormatter;
 import atf.api.reporting.api.ReportModelAdapters;
 
 import java.util.List;
@@ -134,7 +135,7 @@ public final class HtmlReportEvidenceView {
                     .append(escape(item.label().isBlank() ? AtfReportLabels.JSON_BODY : item.label()))
                     .append(closeTag(DIV)).append(openTag(PRE, classAttribute(JSON_CODE)))
                     .append(escape(ExtentReportNodeSupport.displayBody(
-                            redactor.redactJson(item.body()), settings)))
+                            ReportJsonBodyFormatter.format(redactor.redactJson(item.body())), settings)))
                     .append(closeTag(PRE)).append(closeTag(DIV));
         }
     }

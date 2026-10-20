@@ -451,6 +451,11 @@ care stare este finală. Când un screenshot este acceptat de policy, target-ul
 este obligatoriu, iar acțiunile și assertions rămân publicate chiar dacă policy
 dezactivează imaginea.
 
+Pentru configurarea transversală a evidence-ului, composition root-ul poate mapa
+`flowMode`, `screenshotPolicy` și `captureSource` în
+`atf.api.reporting.evidence.profile.ReportEvidenceProfile`, prin `fromConfig(...)`
+sau builder. Acest profil nu execută Playwright și nu mută mock-ul în reporting.
+
 Acest contract descrie numai politica de publicare și efectul în artifact. Separarea
 generică dintre flow mode, capture source și composition root este în
 [`ATF_Evidence_Capture_Contract.md`](ATF_Evidence_Capture_Contract.md); nu este

@@ -2,21 +2,23 @@ package atf.api.reporting.markup;
 
 import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /** Builds the secondary, collapsed-by-default overview audit tables. */
 public final class ExtentReportOverviewMarkup {
+    private static final Pattern CATEGORY_CONTAINER = Pattern.compile(
+            "<div\\b(?=[^>]*\\bclass\\s*=\\s*\"[^\"]*\\bcategory-container\\b)[^>]*>");
+
     private ExtentReportOverviewMarkup() {
     }
 
     public static String inject(String html) {
-        // Extent Spark emits two valid overview shapes across versions: in
-        // one the category card starts a fresh row, in another it follows the
-        // preceding card directly. Anchor to the semantic category container,
-        // not to incidental row whitespace, so the ATF overview contract stays
-        // stable when the vendor changes its grid markup.
-        String rowMarker = "<div class=\"row\">\n<div class=\"col-lg-6 col-md-12 category-container\">";
-        String marker = html.contains(rowMarker)
-                ? rowMarker
-                : "<div class=\"col-lg-6 col-md-12 category-container\">";
+        if (html == null || html.isBlank()) return html;
+        String metadataId = AtfReportHtmlVocabulary.idAttribute(
+                AtfReportHtmlVocabulary.ElementId.EXECUTION_METADATA);
+        if (html.contains(metadataId)) return html;
+
         String metadata = "<details " + AtfReportHtmlVocabulary.idAttribute(
                 AtfReportHtmlVocabulary.ElementId.EXECUTION_METADATA) + " "
                 + AtfReportHtmlVocabulary.classAttribute(
@@ -53,9 +55,9 @@ public final class ExtentReportOverviewMarkup {
                 + auditPanel("Test packages", "atf-audit-packages", "NAME|COUNT|SHARE")
                 + auditPanel("Other annotations / tags", "atf-audit-tags", "NAME|COUNT")
                 + "</div></div></details>";
-        int markerIndex = html.indexOf(marker);
-        if (markerIndex < 0) return html;
-        return html.substring(0, markerIndex) + metadata + html.substring(markerIndex);
+        Matcher marker = CATEGORY_CONTAINER.matcher(html);
+        if (!marker.find()) return html;
+        return html.substring(0, marker.start()) + metadata + html.substring(marker.start());
     }
 
     private static String auditPanel(String title, String id, String headers) {

@@ -5,6 +5,7 @@ import atf.api.core.http.transport.ApiTransport;
 import atf.api.testkit.AtfComponentTest;
 import atf.ui.practiceshop.api.PracticeShopApiClient;
 import atf.ui.practiceshop.api.PracticeShopApiScreenFlow;
+import atf.ui.practiceshop.api.PracticeShopApiRoutes;
 import atf.ui.practiceshop.api.PracticeShopPaymentMethod;
 import atf.ui.practiceshop.config.PracticeShopCredentials;
 import org.junit.jupiter.api.Test;
@@ -49,15 +50,15 @@ class PracticeShopApiScreenFlowTest {
             String body;
             int status = 200;
             switch (request.path()) {
-                case "/users/login" -> body = "{\"access_token\":\"token-1\"}";
-                case "/products/search" -> body = "{\"data\":[{\"id\":\"01product\",\"name\":\"Combination Pliers\"}]}";
-                case "/products/01product" -> body = "{\"id\":\"01product\",\"name\":\"Combination Pliers\"}";
-                case "/carts" -> body = "{\"id\":\"01cart\"}";
-                case "/carts/01cart" -> body = request.method().equals("GET")
+                case PracticeShopApiRoutes.LOGIN -> body = "{\"access_token\":\"token-1\"}";
+                case PracticeShopApiRoutes.PRODUCT_SEARCH -> body = "{\"data\":[{\"id\":\"01product\",\"name\":\"Combination Pliers\"}]}";
+                case PracticeShopApiRoutes.PRODUCTS + "01product" -> body = "{\"id\":\"01product\",\"name\":\"Combination Pliers\"}";
+                case PracticeShopApiRoutes.CARTS -> body = "{\"id\":\"01cart\"}";
+                case PracticeShopApiRoutes.CARTS + "/01cart" -> body = request.method().equals("GET")
                         ? "{\"cart_items\":[{\"product_id\":\"01product\",\"quantity\":2}]}"
                         : "{\"result\":\"item added or updated\"}";
-                case "/postcode-lookup" -> body = "{\"country\":\"RO\",\"postcode\":\"010101\"}";
-                case "/payment/check" -> body = "{\"message\":\"Payment was successful\"}";
+                case PracticeShopApiRoutes.POSTCODE_LOOKUP -> body = "{\"country\":\"RO\",\"postcode\":\"010101\"}";
+                case PracticeShopApiRoutes.PAYMENT_CHECK -> body = "{\"message\":\"Payment was successful\"}";
                 default -> { status = 500; body = "{\"message\":\"unexpected route\"}"; }
             }
             return CompletableFuture.completedFuture(new ApiResponse(status, body,

@@ -159,8 +159,8 @@ class ExtentReportUiEvidencePublishingTest {
         Path report;
         var request = new ReportRequest("POST", "/checkout", Map.of("step", "payment"),
                 Map.of("Authorization", "Bearer secret", "Content-Type", "application/json"),
-                "bearer", "{\"payment_method\":\"cash-on-delivery\"}");
-        var response = new ReportResponse(200, "{\"message\":\"Payment was successful\"}",
+                "bearer", "{\"payment\":{\"method\":\"cash-on-delivery\"},\"items\":[1,2]}");
+        var response = new ReportResponse(200, "{\"message\":\"Payment was successful\",\"meta\":{\"retryable\":false}}",
                 Map.of("Content-Type", "application/json"), Duration.ofMillis(12),
                 "https://api.practicesoftwaretesting.com/payment/check");
         var execution = new ReportExecutionEvidence(response, 1, Duration.ofMillis(12), List.of(),
@@ -191,6 +191,9 @@ class ExtentReportUiEvidencePublishingTest {
                 () -> assertTrue(html.contains("REQUEST API 1 HEADERS")),
                 () -> assertTrue(html.contains("RESPONSE API 1 HEADERS")),
                 () -> assertTrue(html.contains("response.status")),
+                () -> assertTrue(html.contains("\"payment\" : {") || html.contains("&quot;payment&quot; : {")),
+                () -> assertTrue(html.contains("\"retryable\" : false")
+                        || html.contains("&quot;retryable&quot; : false")),
                 () -> assertTrue(html.contains("Bearer ***REDACTED***")),
                 () -> assertFalse(html.contains("<details open")));
     }

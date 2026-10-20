@@ -4,6 +4,9 @@ import atf.api.reporting.ui.UiEvidencePublisher;
 import atf.api.reporting.ui.UiExtentReportSession;
 import atf.api.reporting.ui.UiPhaseLifecycle;
 import atf.api.reporting.ui.UiScenarioLifecycle;
+import atf.api.reporting.console.AtfConsoleSink;
+import atf.api.reporting.evidence.ReportScreenshotPolicy;
+import atf.api.reporting.evidence.profile.ReportEvidenceProfile;
 
 import org.junit.jupiter.api.Test;
 
@@ -12,6 +15,7 @@ import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Guards the lifecycle composition boundary without changing the public facade. */
@@ -26,7 +30,26 @@ class UiExtentReportSessionCompositionTest {
                 () -> assertTrue(source.contains("UiPhaseLifecycle")),
                 () -> assertFalse(source.contains("new UiEvidencePublisher")),
                 () -> assertFalse(source.contains("delegateScenario.startPhase")),
-                () -> assertTrue(source.contains("lifecycle.screenValidationAsMedia")));
+                () -> assertTrue(source.contains("lifecycle.screenValidationAsMedia")),
+                () -> assertTrue(source.contains("openConfigured(UiExtentReportOptions options)")),
+                () -> assertTrue(source.contains("return open(configuration, options)")));
+    }
+
+    @Test
+    void typedOptionsKeepCompositionValuesTogether() {
+        var profile = ReportEvidenceProfile.forScreenshotPolicy(ReportScreenshotPolicy.FINAL_ONLY);
+        var options = UiExtentReportOptions.builder(Path.of("target/reports"))
+                .fileName("ui.html")
+                .console(AtfConsoleSink.noOp())
+                .evidenceProfile(profile)
+                .timestampEnabled(false)
+                .build();
+
+        assertAll(
+                () -> assertEquals(Path.of("target/reports"), options.outputDirectory()),
+                () -> assertEquals("ui.html", options.fileName()),
+                () -> assertEquals(profile, options.evidenceProfile()),
+                () -> assertFalse(options.timestampEnabled()));
     }
 
     @Test

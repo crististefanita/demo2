@@ -8,6 +8,7 @@ public final class PracticeShopApiRoutes {
     public static final String PRODUCTS = "/products/";
     public static final String PRODUCT_COLLECTION = "/products";
     public static final String CARTS = "/carts";
+    public static final String CART_RESOURCE_PREFIX = CARTS + "/";
     public static final String CART_PRODUCT_QUANTITY = "/product/quantity";
     public static final String CATEGORIES = "/categories";
     public static final String POSTCODE_LOOKUP = "/postcode-lookup";

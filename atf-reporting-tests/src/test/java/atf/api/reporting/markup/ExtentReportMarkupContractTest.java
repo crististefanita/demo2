@@ -50,4 +50,20 @@ class ExtentReportMarkupContractTest {
                 () -> assertTrue(result.contains("category-container")),
                 () -> assertTrue(result.endsWith("suffix")));
     }
+
+    @Test
+    void overviewInjectionUsesSemanticAnchorAndIsIdempotent() {
+        String vendorVariant = "prefix<div class=\"row\">\n  <div class=\"col-md-12 col-lg-6 category-container\">suffix";
+
+        String result = ExtentReportOverviewMarkup.inject(vendorVariant);
+        String reinjected = ExtentReportOverviewMarkup.inject(result);
+
+        assertAll(
+                () -> assertTrue(result.contains("id=\"atf-execution-metadata\"")),
+                () -> assertTrue(result.indexOf("id=\"atf-execution-metadata\"")
+                        < result.indexOf("category-container")),
+                () -> assertTrue(result.contains("collapsed by default")),
+                () -> assertTrue(reinjected.equals(result),
+                        "overview metadata must not be duplicated on a second publication pass"));
+    }
 }

@@ -8,6 +8,7 @@ import atf.api.reporting.extent.session.ExtentReportSession;
 import atf.api.testkit.AtfComponentTest;
 import atf.ui.practiceshop.api.PracticeShopApiClient;
 import atf.ui.practiceshop.api.PracticeShopApiScreenFlow;
+import atf.ui.practiceshop.api.PracticeShopApiRoutes;
 import atf.ui.practiceshop.api.PracticeShopPaymentMethod;
 import atf.ui.practiceshop.config.PracticeShopCredentials;
 import atf.ui.practiceshop.support.PracticeShopApiReportPublisher;
@@ -42,6 +43,8 @@ class PracticeShopStandaloneApiReportTest {
         List<atf.api.core.http.response.ApiExecutionResult> executions = List.of(
                 login.loginResult(), catalog.search(), catalog.detail(), cart.create(), cart.add(), cart.read(),
                 checkout.addressLookup(), checkout.payment());
+        assertWriteRequestsHaveJson(executions);
+        assertResponsesHaveJson(executions);
         java.nio.file.Path report;
         try (ExtentReportSession session = ExtentReportSession.openConfigured()) {
             report = session.reportPath();
@@ -64,26 +67,45 @@ class PracticeShopStandaloneApiReportTest {
         assertTrue(html.contains("REQUEST JSON"));
         assertTrue(html.contains("RESPONSE JSON"));
         assertTrue(html.contains("Execution evidence"));
-        assertTrue(html.contains("/products/search"));
-        assertTrue(html.contains("/payment/check"));
+        assertTrue(html.contains(PracticeShopApiRoutes.PRODUCT_SEARCH));
+        assertTrue(html.contains(PracticeShopApiRoutes.PAYMENT_CHECK));
+        assertTrue(html.contains("AUTH TYPE"));
+        assertTrue(html.contains("REQUEST HEADERS"));
+        assertTrue(html.contains("CONTENT TYPE"));
+        assertTrue(html.contains("RESPONSE HEADERS"));
         assertTrue(!html.contains("atf@example.test"));
         assertTrue(!html.contains("token-1"));
         assertTrue(!html.contains("\"secret\""));
+    }
+
+    private static void assertWriteRequestsHaveJson(
+            List<atf.api.core.http.response.ApiExecutionResult> executions) {
+        executions.stream()
+                .filter(execution -> "POST".equalsIgnoreCase(execution.request().method())
+                        || "PUT".equalsIgnoreCase(execution.request().method()))
+                .forEach(execution -> assertTrue(!execution.request().bodyText().isBlank(),
+                        "POST/PUT must carry a JSON request body: " + execution.request().path()));
+    }
+
+    private static void assertResponsesHaveJson(
+            List<atf.api.core.http.response.ApiExecutionResult> executions) {
+        executions.forEach(execution -> assertTrue(!execution.response().body().isBlank(),
+                "API response body must be present for report evidence: " + execution.request().path()));
     }
 
     private static ApiTransport transport() {
         return (request, url, auth) -> {
             String body;
             switch (request.path()) {
-                case "/users/login" -> body = "{\"access_token\":\"token-1\"}";
-                case "/products/search" -> body = "{\"data\":[{\"id\":\"01product\",\"name\":\"Combination Pliers\"}]}";
-                case "/products/01product" -> body = "{\"id\":\"01product\",\"name\":\"Combination Pliers\"}";
-                case "/carts" -> body = "{\"id\":\"01cart\"}";
-                case "/carts/01cart" -> body = request.method().equals("GET")
+                case PracticeShopApiRoutes.LOGIN -> body = "{\"access_token\":\"token-1\"}";
+                case PracticeShopApiRoutes.PRODUCT_SEARCH -> body = "{\"data\":[{\"id\":\"01product\",\"name\":\"Combination Pliers\"}]}";
+                case PracticeShopApiRoutes.PRODUCTS + "01product" -> body = "{\"id\":\"01product\",\"name\":\"Combination Pliers\"}";
+                case PracticeShopApiRoutes.CARTS -> body = "{\"id\":\"01cart\"}";
+                case PracticeShopApiRoutes.CARTS + "/01cart" -> body = request.method().equals("GET")
                         ? "{\"cart_items\":[{\"product_id\":\"01product\",\"quantity\":2}]}"
                         : "{\"result\":\"item added or updated\"}";
-                case "/postcode-lookup" -> body = "{\"country\":\"RO\",\"postcode\":\"010101\"}";
-                case "/payment/check" -> body = "{\"message\":\"Payment was successful\"}";
+                case PracticeShopApiRoutes.POSTCODE_LOOKUP -> body = "{\"country\":\"RO\",\"postcode\":\"010101\"}";
+                case PracticeShopApiRoutes.PAYMENT_CHECK -> body = "{\"message\":\"Payment was successful\"}";
                 default -> body = "{\"message\":\"unexpected route\"}";
             }
             return CompletableFuture.completedFuture(new ApiResponse(200, body,

@@ -51,6 +51,28 @@ class HtmlReportViewsTest {
     }
 
     @Test
+    void fallbackUsesTheSharedPrettyJsonProjectionForRequestAndResponseBodies() {
+        var document = new HtmlReportSemanticDocument();
+        var scenario = document.startScenario("JsonTests", "pretty JSON evidence", List.of("api"));
+        var phase = scenario.addPhase("TEST BODY");
+        var request = phase.addRequest("create", "POST", "/users");
+        request.addJson("REQUEST JSON", "{\"user\":{\"name\":\"Ada\",\"roles\":[\"admin\"]}}");
+        request.addJson("RESPONSE JSON", "{\"created\":true,\"meta\":{\"attempt\":1}}");
+        request.complete(AtfReportStatus.PASS);
+        phase.complete(AtfReportStatus.PASS);
+        scenario.complete(AtfReportStatus.PASS);
+
+        String html = new HtmlReportTestsView().render(document.snapshot());
+
+        assertAll(
+                () -> assertTrue(html.contains("&quot;user&quot; : {")),
+                () -> assertTrue(html.contains("\n    &quot;name&quot; : &quot;Ada&quot;")),
+                () -> assertTrue(html.contains("&quot;roles&quot; : [\n")),
+                () -> assertTrue(html.contains("&quot;meta&quot; : {")),
+                () -> assertTrue(html.contains("\n    &quot;attempt&quot; : 1")));
+    }
+
+    @Test
     void executionEvidenceUsesTheSameRedactionBoundaryAsTheOtherRequestEvidence() {
         var document = new HtmlReportSemanticDocument();
         var scenario = document.startScenario("RetryTests", "retry evidence", List.of("api"));

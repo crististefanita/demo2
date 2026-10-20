@@ -16,11 +16,20 @@ public final class PracticeShopApiReportPublisher {
         AtfReportPorts.Request node = phase.startRequest(
                 request.method() + " " + request.path(), request.method(), request.path());
         try {
-            node.detail("auth", request.authProfile());
-            node.detail("query", request.query().toString());
+            node.detail("url", execution.response().url());
+            node.detail("auth.type", request.authProfile());
+            node.detail("query.params", request.query().toString());
+            node.detail("request.headers", PracticeShopApiEvidenceMapper.redactHeaders(request.headers()).toString());
+            if (requiresJsonRequest(request.method()) && request.bodyText().isBlank()) {
+                throw new IllegalStateException("Practice Shop write request has no JSON body: "
+                        + request.method() + " " + request.path());
+            }
             if (!request.bodyText().isBlank()) {
                 node.json("REQUEST JSON", PracticeShopApiEvidenceMapper.redactJson(request.bodyText()));
             }
+            node.detail("response.content.type", execution.response().header("content-type"));
+            node.detail("response.headers", PracticeShopApiEvidenceMapper.redactHeaders(
+                    execution.response().headers()).toString());
             node.json("RESPONSE JSON", PracticeShopApiEvidenceMapper.redactJson(execution.response().body()));
             node.execution(PracticeShopApiEvidenceMapper.toExecution(execution));
             AtfReportPorts.Validation validation = node.startValidation("Contract validation");
@@ -39,5 +48,9 @@ public final class PracticeShopApiReportPublisher {
         } finally {
             node.close();
         }
+    }
+
+    private static boolean requiresJsonRequest(String method) {
+        return "POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method);
     }
 }

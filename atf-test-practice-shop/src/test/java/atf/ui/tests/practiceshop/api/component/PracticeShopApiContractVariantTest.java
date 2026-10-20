@@ -5,6 +5,7 @@ import atf.api.core.http.transport.ApiTransport;
 import atf.api.testkit.AtfComponentTest;
 import atf.ui.practiceshop.api.PracticeShopApiClient;
 import atf.ui.practiceshop.api.PracticeShopApiRequestFactory;
+import atf.ui.practiceshop.api.PracticeShopApiRoutes;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -55,13 +56,13 @@ class PracticeShopApiContractVariantTest {
         return (request, url, auth) -> {
             int status;
             String body;
-            if (request.path().equals("/users/login")) {
+            if (request.path().equals(PracticeShopApiRoutes.LOGIN)) {
                 status = 401; body = "{\"message\":\"Unauthorized\"}";
-            } else if (request.path().equals("/users/me")) {
+            } else if (request.path().equals(PracticeShopApiRoutes.CURRENT_USER)) {
                 status = 401; body = "{\"message\":\"Unauthorized\"}";
-            } else if (request.path().equals("/products/missing-product")) {
+            } else if (request.path().equals(PracticeShopApiRoutes.product("missing-product"))) {
                 status = 404; body = "{\"message\":\"Not found\"}";
-            } else if (request.path().equals("/payment/check")) {
+            } else if (request.path().equals(PracticeShopApiRoutes.PAYMENT_CHECK)) {
                 status = 200; body = "{\"message\":\"Payment was successful\"}";
             } else {
                 status = 500; body = "{\"message\":\"unexpected route\"}";

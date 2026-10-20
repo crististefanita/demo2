@@ -30,6 +30,44 @@ flowchart LR
 
 </details>
 
+## Consola diagnostică ATF
+
+Politica Practice Shop este să folosească
+[`atf-console`](../atf-console/README.md) ca proiecție diagnostică a execuției UI/API;
+raportul Extent rămâne artifactul HTML, iar consola rămâne canalul pentru pași
+observabili în timpul rulării:
+
+```mermaid
+flowchart LR
+    Flow[Practice Shop flow] --> Ui[atf-ui<br/>actions + observations]
+    Flow --> Report[atf-reporting<br/>Extent artifact]
+    Ui --> Console[atf-console<br/>diagnostic projection]
+    Console --> Stdout[stdout/stderr]
+```
+
+<details>
+<summary><strong>Legendă — separarea raportului de consolă</strong></summary>
+
+- `atf-console` este singurul owner al `stdout`/`stderr`;
+- composition root-ul Practice Shop injectează sink-ul configurat, nu folosește
+  `println` și nu deține `PrintStream`;
+- acțiunile UI trebuie să fie observabile ca pași `click`, `fill`, `wait` sau
+  `navigate`, cu statusul lifecycle-ului;
+- `reporting.console.enabled` controlează activarea, iar `detailsEnabled`
+  controlează numai detaliile;
+- consola nu decide verdictul și nu înlocuiește assertions, evidence sau HTML-ul;
+- erorile browserului din `PracticeShopRuntimeDiagnostics` rămân diagnostic
+  runtime și se reconciliază cu statusul semantic al raportului.
+
+</details>
+
+**Stare live:** contractul este stabilit, însă wiring-ul consumerului nu este încă
+închis. `PracticeShopE2eContext` folosește momentan sink-uri `noOp`, iar cele două
+contracte duplicate `AtfConsoleEvent/Sink` trebuie reconciliate înainte ca aceeași
+instanță configurată să deservească UI-ul și lifecycle-ul reporting. Gap-ul este
+urmărit în [`SHOP-CONSOLE-01/02`](../docs/feedback/ATF_Practice_Shop_API_Screen_Pyramid_Feedback.md)
+și în registrul [feedback](../docs/feedback/README.md).
+
 ## Boundary și OOP
 
 ```text
@@ -38,8 +76,8 @@ src/main/java/atf/ui/practiceshop/
   api/      → request factory, client și screen API flows
   locators/ → singurul owner al CSS/data-test selectorilor
   pages/    → interacțiuni semantice pe o pagină
-  flow/     → înlănțuire de business reutilizabilă
-  support/  → lifecycle browser, evidence adapters și publisher API reusable
+  flow/     → facade public + stage-uri business reutilizabile
+  support/  → lifecycle browser, API evidence, capture/select seams și publisher API reusable
 src/test/java/atf/ui/tests/practiceshop/
   component/       → contracte rapide fără browser sau network
   api/component/   → variații pozitive/negative pe transport fake
@@ -64,6 +102,19 @@ Publisher-ul `PracticeShopApiReportPublisher` este runtime support și rămâne 
 `src/main`; `PracticeShopStandaloneApiReportTest` păstrează doar orchestration-ul
 testului, transportul fake și verificările artifactului. În `src/test` nu se
 mută logică reusable doar pentru a scurta un test.
+
+`PracticeShopApiNetworkJournal` coordonează numai sesiunea și verdictul API.
+`PracticeShopApiTrafficCapture` deține filtrarea hostului și sanitizarea
+exchange-ului, iar `PracticeShopApiExchangeSelector` deține selecția pură a
+precondițiilor/read-back-urilor. Astfel capture-ul și selecția pot fi testate
+fără browser. Purchase-ul are acum două seam-uri business explicite:
+`PracticeShopCatalogPurchaseStage` pregătește home → product → add-to-cart,
+iar `PracticeShopCheckoutPurchaseStage` execută cart → identity → billing →
+payment → confirmation. `PracticeShopPurchaseJourneyContext` transportă
+configurația, validators, journal-ul și observer-ul de evidence; facade-ul
+`PracticeShopPurchaseFlow` păstrează exact API-ul public existent și doar
+compune stage-urile. Nu se multiplică E2E, iar fiecare stage poate fi evoluat
+și verificat separat fără a muta responsabilități în `src/test`.
 
 Deoarece `src/main/java/atf/ui/practiceshop` este support reutilizabil, dependențele
 ATF consumate de el (`atf-core`, `atf-test-kit`, `atf-reporting`, `atf-ui`) sunt
@@ -447,7 +498,12 @@ Pentru variații rapide și pentru auditul reporting fără browser există și
 `PracticeShopApiScreenFlow` pe transport fake și scrie un artifact API în
 `artifacts/reports/`, configurat de `atf.yaml`. Fiecare request publică separat
 method/path/query/auth, `Request details`, `REQUEST JSON` când există body,
-`Response details`, `RESPONSE JSON`, headers, status și `Execution evidence`.
+`Response details`, `RESPONSE JSON`, status și `Execution evidence`. În disclosure-ul
+de request, metadata este explicită (`URL`, `AUTH TYPE`, `QUERY PARAMS`,
+`REQUEST HEADERS`); în disclosure-ul de response este explicită (`CONTENT TYPE`,
+`RESPONSE HEADERS`). Publisher-ul fail-fast respinge orice POST/PUT fără body
+JSON și orice execuție fără response body, iar testul standalone verifică aceste
+invariante înainte de a publica artifactul.
 Credentialele sunt redacted înainte de HTML. Astfel API screen flow-ul poate fi
 testat și inspectat independent de browser, fără să crească numărul de E2E.
 

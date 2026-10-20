@@ -11,6 +11,7 @@ import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.model.ReportField;
 import atf.api.reporting.model.ReportJsonBody;
+import atf.api.reporting.model.ReportJsonBodyFormatter;
 import atf.api.reporting.model.ReportCheck;
 import atf.api.reporting.model.ReportScreenshot;
 
@@ -201,7 +202,7 @@ public final class ExtentTransportEvidenceRenderer {
                             AtfReportHtmlVocabulary.classAttribute(
                                     AtfReportHtmlVocabulary.CssClass.HELM_SCROLL_BLOCK_BODY)))
                     .append(MarkupHelper.createCodeBlock(ExtentReportNodeSupport.displayBody(
-                             redactor.redactJson(item.body()), settings)).getMarkup())
+                             ReportJsonBodyFormatter.format(redactor.redactJson(item.body())), settings)).getMarkup())
                     .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DIV))
                     .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DIV));
         }

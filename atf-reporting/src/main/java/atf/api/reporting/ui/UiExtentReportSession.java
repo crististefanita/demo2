@@ -5,6 +5,7 @@ import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.model.ReportExecutionEvidence;
+import atf.api.reporting.evidence.profile.ReportEvidenceProfile;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.security.SensitiveDataRedactor;
 import atf.api.reporting.configuration.AtfReportConfigurationLoader;
@@ -30,12 +31,14 @@ public final class UiExtentReportSession implements AutoCloseable {
     public static final String DEFAULT_FILE_NAME = "ui-atf-extent-report.html";
 
     private final ExtentReportSession delegate;
+    private final ReportEvidenceProfile evidenceProfile;
     private final ReportScreenshotPolicy screenshotPolicy;
 
     private UiExtentReportSession(ExtentReportSession delegate,
-                                  ReportScreenshotPolicy screenshotPolicy) {
+                                  ReportEvidenceProfile evidenceProfile) {
         this.delegate = delegate;
-        this.screenshotPolicy = Objects.requireNonNull(screenshotPolicy, "screenshotPolicy");
+        this.evidenceProfile = Objects.requireNonNull(evidenceProfile, "evidenceProfile");
+        this.screenshotPolicy = evidenceProfile.screenshotPolicy();
     }
 
     public static UiExtentReportSession openConfigured() {
@@ -44,23 +47,31 @@ public final class UiExtentReportSession implements AutoCloseable {
 
     public static UiExtentReportSession openConfigured(AtfConsoleSink console) {
         var configuration = AtfReportConfigurationLoader.load();
-        return openConfigured(configuration.outputDirectory(), DEFAULT_FILE_NAME, console,
-                configuration.screenshotPolicy());
+        return open(configuration, UiExtentReportOptions.builder(configuration.outputDirectory())
+                .fileName(DEFAULT_FILE_NAME)
+                .console(console)
+                .evidenceProfile(ReportEvidenceProfile.forScreenshotPolicy(
+                        configuration.screenshotPolicy()))
+                .build());
     }
 
     /** Opens the UI artifact in the directory selected by the UI YAML section. */
     public static UiExtentReportSession openConfigured(Path outputDirectory,
                                                        AtfConsoleSink console) {
-        return openConfigured(outputDirectory, DEFAULT_FILE_NAME, console,
-                ReportScreenshotPolicy.EACH_CHECKPOINT);
+        return openConfigured(UiExtentReportOptions.builder(outputDirectory)
+                .fileName(DEFAULT_FILE_NAME)
+                .console(console)
+                .build());
     }
 
     /** Opens a separately named UI audit artifact without changing API input. */
     public static UiExtentReportSession openConfigured(Path outputDirectory,
                                                        String fileName,
                                                        AtfConsoleSink console) {
-        return openConfigured(outputDirectory, fileName, console,
-                ReportScreenshotPolicy.EACH_CHECKPOINT);
+        return openConfigured(UiExtentReportOptions.builder(outputDirectory)
+                .fileName(fileName)
+                .console(console)
+                .build());
     }
 
     /** Opens a UI report with an explicit, browser-neutral screenshot policy. */
@@ -68,7 +79,29 @@ public final class UiExtentReportSession implements AutoCloseable {
                                                        String fileName,
                                                        AtfConsoleSink console,
                                                        ReportScreenshotPolicy screenshotPolicy) {
-        return openConfigured(outputDirectory, fileName, console, true, screenshotPolicy);
+        return openConfigured(UiExtentReportOptions.builder(outputDirectory)
+                .fileName(fileName)
+                .console(console)
+                .evidenceProfile(ReportEvidenceProfile.forScreenshotPolicy(screenshotPolicy))
+                .build());
+    }
+
+    /** Opens a UI report with all evidence axes supplied as one typed profile. */
+    public static UiExtentReportSession openConfigured(Path outputDirectory,
+                                                       String fileName,
+                                                       AtfConsoleSink console,
+                                                       ReportEvidenceProfile evidenceProfile) {
+        return openConfigured(UiExtentReportOptions.builder(outputDirectory)
+                .fileName(fileName)
+                .console(console)
+                .evidenceProfile(evidenceProfile)
+                .build());
+    }
+
+    /** Canonical typed entry point; all legacy overloads delegate here. */
+    public static UiExtentReportSession openConfigured(UiExtentReportOptions options) {
+        var configuration = AtfReportConfigurationLoader.load();
+        return open(configuration, options);
     }
 
     /** Opens a report whose collision-resistant name was already resolved. */
@@ -76,32 +109,36 @@ public final class UiExtentReportSession implements AutoCloseable {
                                                                 String resolvedFileName,
                                                                 AtfConsoleSink console) {
         var configuration = AtfReportConfigurationLoader.load();
-        return openConfigured(outputDirectory, resolvedFileName, console, false,
-                configuration.screenshotPolicy());
+        return open(configuration, UiExtentReportOptions.builder(outputDirectory)
+                .fileName(resolvedFileName)
+                .console(console)
+                .evidenceProfile(ReportEvidenceProfile.forScreenshotPolicy(
+                        configuration.screenshotPolicy()))
+                .timestampEnabled(false)
+                .build());
     }
 
-    private static UiExtentReportSession openConfigured(Path outputDirectory,
-                                                        String fileName,
-                                                        AtfConsoleSink console,
-                                                        boolean timestampEnabled,
-                                                        ReportScreenshotPolicy screenshotPolicy) {
-        var apiConfiguration = AtfReportConfigurationLoader.load();
+    private static UiExtentReportSession open(ExtentReportConfiguration configuration,
+                                              UiExtentReportOptions options) {
         var uiConfiguration = new ExtentReportConfiguration(
-                Objects.requireNonNull(outputDirectory, "outputDirectory"),
-                Objects.requireNonNull(fileName, "fileName"),
-                timestampEnabled && apiConfiguration.timestampEnabled(),
-                apiConfiguration.timestampPattern(),
-                apiConfiguration.timestampZone(),
-                apiConfiguration.reportingSettings(),
-                apiConfiguration.enabled(), screenshotPolicy);
+                options.outputDirectory(), options.fileName(),
+                options.timestampEnabled() && configuration.timestampEnabled(),
+                configuration.timestampPattern(), configuration.timestampZone(),
+                configuration.reportingSettings(), configuration.enabled(),
+                options.evidenceProfile().screenshotPolicy());
         Path report = uiConfiguration.resolveReportPath(Clock.systemDefaultZone());
         return new UiExtentReportSession(new ExtentReportSession(report,
-                uiConfiguration.reportingSettings(),
-                new SensitiveDataRedactor(), console), screenshotPolicy);
+                uiConfiguration.reportingSettings(), new SensitiveDataRedactor(), options.console()),
+                options.evidenceProfile());
     }
 
     public Path reportPath() {
         return delegate.reportPath();
+    }
+
+    /** Returns the immutable evidence contract selected by the consumer. */
+    public ReportEvidenceProfile evidenceProfile() {
+        return evidenceProfile;
     }
 
     public UiScenario startScenario(String testClass, String testPackage,

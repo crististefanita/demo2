@@ -9,9 +9,10 @@
 - verifică suportul mai întâi prin teste unitare, component și integration;
 - folosește E2E doar pentru efectul observabil în browser.
 
-Acest document fixează contractul transversal. Nu mută automat clasele existente și nu
-declară implementată o capabilitate care încă este doar în feedback. Practice Shop este
-un consumer de referință; nu este owner-ul soluției.
+Acest document fixează contractul transversal. Profilul typed este implementat în
+`atf-reporting`; adapterul concret de browser/mock rămâne responsabilitatea
+consumerului și nu este ascuns în renderer. Practice Shop este un consumer de
+referință; nu este owner-ul soluției.
 
 ## Diagramă de bază
 
@@ -62,9 +63,11 @@ poate păstra `EACH_CHECKPOINT` fără să schimbe rendererul.
 - **existent**: `atf-ui` poate furniza captură PNG Base64 și acțiuni neutre;
 - **existent**: `atf-reporting-tests` are fixture-uri PNG deterministe și verifică
   policy-ul fără browser;
+- **existent**: `ReportEvidenceProfile` compune typed `ReportEvidenceFlowMode`,
+  `ReportScreenshotPolicy` și `ReportEvidenceCaptureSource`; mapping-ul se poate
+  face prin `fromConfig(...)` sau builder și poate traversa `UiExtentReportSession`;
 - **distincție**: setările `reporting.extent` rămân configurarea publisherului;
   `evidence.flowMode` și mapping-ul unui flow nu se ascund în acel loader;
-- **nefinalizat**: un profil generic care compune `flow mode` cu `screenshot policy`;
 - **nefinalizat**: un contract transversal de provider/adapter care poate fi folosit
   de mai mulți consumatori;
 - **regulă**: Practice Shop doar mapează YAML-ul propriu la acest contract și nu
@@ -147,14 +150,17 @@ implementarea aprobată, fără a lega soluția de Practice Shop:
 evidence:
   flowMode: unified-flow
   screenshotPolicy: final-only
+  captureSource: mock
   finalTarget: <consumer-defined-key>
 ```
 
 - `flowMode` alege reprezentarea flow-ului;
 - `screenshotPolicy` alege momentele de captură;
+- `captureSource` descrie proveniența payload-ului (`browser`, `mock`, `provider`);
 - `finalTarget` este o cheie semantică opacă, nu un locator hardcodat în reporting;
 - pentru `none`, flow-ul rămâne auditabil prin acțiuni și assertions;
-- mapping-ul YAML → obiect typed aparține composition root-ului;
+- mapping-ul YAML → `ReportEvidenceProfile` aparține composition root-ului și
+  folosește enum-urile sau builder-ul typed, fără string-uri propagate în renderer;
 - configurarea publisherului (`reporting.extent`) rămâne separată de profilul evidence.
 
 ## Reutilizare API și UI

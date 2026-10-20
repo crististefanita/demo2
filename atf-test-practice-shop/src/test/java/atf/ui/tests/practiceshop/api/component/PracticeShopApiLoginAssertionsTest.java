@@ -2,6 +2,7 @@ package atf.ui.tests.practiceshop.api.component;
 
 import atf.ui.practiceshop.support.PracticeShopApiAssertions;
 import atf.ui.practiceshop.support.PracticeShopApiNetworkJournal;
+import atf.ui.practiceshop.api.PracticeShopApiRoutes;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -13,7 +14,8 @@ class PracticeShopApiLoginAssertionsTest {
     @Test
     void acceptsJsonTransportWhenPlaywrightCannotExposeCompressedBody() {
         var login = new PracticeShopApiNetworkJournal.Exchange(
-                "POST", "/users/login", "https://api.practicesoftwaretesting.com/users/login", 200,
+                "POST", PracticeShopApiRoutes.LOGIN,
+                "https://api.practicesoftwaretesting.com" + PracticeShopApiRoutes.LOGIN, 200,
                 "{\"email\":\"<redacted>\",\"password\":\"<redacted>\"}", "",
                 Map.of("content-type", "application/json"), Map.of(
                 "content-type", "application/json", "content-length", "384"));

@@ -5,6 +5,7 @@ import atf.api.core.http.transport.ApiTransport;
 import atf.api.testkit.AtfComponentTest;
 import atf.ui.practiceshop.api.PracticeShopApiClient;
 import atf.ui.practiceshop.api.PracticeShopApiRequestFactory;
+import atf.ui.practiceshop.api.PracticeShopApiRoutes;
 import atf.ui.practiceshop.api.PracticeShopProductQuery;
 import atf.ui.practiceshop.api.PracticeShopProductSort;
 import org.junit.jupiter.api.Test;
@@ -62,11 +63,11 @@ class PracticeShopApiCatalogCartVariantTest {
         return (request, url, auth) -> {
             int status = 200;
             String body;
-            if (request.path().equals("/products")) {
+            if (request.path().equals(PracticeShopApiRoutes.PRODUCT_COLLECTION)) {
                 body = "{\"data\":[{\"id\":\"oos\",\"name\":\"Out of stock\",\"in_stock\":false}],\"category\":\"category-1\"}";
-            } else if (request.path().equals("/categories")) {
+            } else if (request.path().equals(PracticeShopApiRoutes.CATEGORIES)) {
                 body = "[{\"id\":\"category-1\",\"name\":\"Hand Tools\"}]";
-            } else if (request.path().equals("/products/out-of-stock")) {
+            } else if (request.path().equals(PracticeShopApiRoutes.product("out-of-stock"))) {
                 body = "{\"id\":\"out-of-stock\",\"name\":\"Out of stock\",\"in_stock\":false}";
             } else if (request.method().equals("PUT") && request.path().endsWith("/product/quantity")) {
                 body = "{\"result\":\"item updated\"}";

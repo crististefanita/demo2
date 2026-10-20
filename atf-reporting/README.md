@@ -464,6 +464,38 @@ un target lipsă nu poate produce un screenshot orfan. Contractul este verificat
 în `atf-reporting-tests` prin teste unitare și integration pe HTML local, fără
 browser și fără Practice Shop.
 
+Pentru consumatorii care configurează mai mult decât politica de captură, seam-ul
+typed este `ReportEvidenceProfile` din `evidence.profile`. El compune
+`ReportEvidenceFlowMode`, `ReportScreenshotPolicy` și
+`ReportEvidenceCaptureSource`; se poate construi prin builder sau prin
+`ReportEvidenceProfile.fromConfig(...)` și se pasează prin overload-ul
+`UiExtentReportSession.openConfigured(..., profile)`. Profilul descrie policy și
+proveniență, nu execută browserul: mock-ul și Playwright rămân în consumer/test
+scope.
+
+Pentru compoziția completă a unei sesiuni UI, entry point-ul preferat este
+`UiExtentReportOptions.builder(outputDirectory)`. Builder-ul grupează explicit
+`fileName`, `AtfConsoleSink`, `ReportEvidenceProfile` și `timestampEnabled`;
+overload-urile istorice rămân doar delegări de compatibilitate. Configurația
+este încărcată o singură dată pe traseul canonic, iar `openConfiguredResolved`
+poate dezactiva timestamp-ul fără să reconstruiască o a doua configurație.
+
+### Evidence JSON și renderer-ele UI
+
+`ReportJsonBody` păstrează body-ul semantic așa cum a fost primit. Pentru
+afișare, atât Extent cât și fallback HTML folosesc
+`ReportJsonBodyFormatter`: redaction-ul se aplică primul, pretty-print-ul este
+determinist, iar limita `bodyMaxDisplayCharacters` se aplică numai după
+formatare. Obiectele, array-urile, scalarul și `null` sunt păstrate; payload-ul
+invalid rămâne neschimbat pentru diagnostic și nu este transformat artificial.
+
+`ExtentUiEvidenceRenderer` este orchestration-only. Markup-ul este împărțit în
+`ExtentUiActionRenderer`, `ExtentUiObservationRenderer` și
+`ExtentUiAssertionRenderer`, iar escaping/status/publication sunt primitive
+comune în `ExtentUiEvidenceMarkup`. Astfel fiecare fragment poate fi testat
+componentar, în timp ce testele de session verifică în continuare compoziția
+reală și screenshot-ul inline.
+
 ## Publicare și output
 
 Output-ul este configurabil prin `reporting.extent.outputDirectory` și

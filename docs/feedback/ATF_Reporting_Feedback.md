@@ -135,13 +135,13 @@ Regula de boundary este strictă:
 | test readability | 88 | `ExtentReportSessionContractTest`, `ReportUiLocators` și câțiva inspectori rămân facades mari; testele funcționează, dar costă prea mult la mentenanță | clasele de support/test cu responsabilități multiple |
 | build/test isolation | 96 | standalone discovery este acum allowlist-uit pe testele native; un consumer stale rămas în `target/test-classes` nu mai intră în Surefire, iar staging-ul extern rămâne reproducibil | `atf-reporting/pom.xml`, standalone build cu stale class injectată |
 
-**Scor curent de maturitate pentru `atf-reporting`: 97/100.** Creșterea față de
-revizia anterioară este intenționată: auditul live a găsit o problemă reală de
-izolare a output-ului de build și adaptoare reflection-based cu fallback-uri
-silențioase. Ambele limite sunt acum fail-closed: Surefire are discovery
-standalone explicit, iar adapterele produc erori diagnosticabile. Markup-ul,
-modelul semantic și politica de formatare rămân ToDo-uri reale; scorul nu este
-contract și nu închide singur un ToDo.
+**Scorul recalibrat pentru această reevaluare este 91/100.** Funcționalitatea
+demonstrată rămâne puternică — aproximativ 97/100 — dar modularitatea și
+mentenabilitatea nu susțin încă acel scor global: façadele sunt prea late,
+rendererele repetă responsabilități, iar `atf-reporting-tests` este mai degrabă
+un reactor de compoziție decât o suită clar delimitată pentru reporting. Scorul
+anterior de 97/100 a fost prea generos pentru codul live analizat acum. Nu este
+un verdict de release și nu închide singur niciun ToDo.
 
 ## Închise în această revizie
 
@@ -154,11 +154,18 @@ contract și nu închide singur un ToDo.
 | `REP-EVID-01` | `ReportScreenshotPolicy`, `UiExtentReportSession` și `UiEvidencePublisher` | ✅ politica este typed și browser-neutral (`each-checkpoint`, `final-only`, `failure-only`, `final-and-failure`, `none`); punctul de captură este explicit, iar un screenshot publicat fără target eșuează diagnostic |
 | `REP-EVID-02` | `ReportScreenshotPolicyTest`, `UiScreenshotPolicyIntegrationTest`, `ReportScreenshotTest` și contractele UI existente cu fixture-uri PNG deterministe | ✅ capturile mock sunt verificate fără browser pentru payload, target, zero/una/multe, duplicate, failure/final și statusurile deja acoperite de consumer; nu se introduce provider Playwright în production |
 | `REP-EVID-03` | `UiScreenshotPolicyIntegrationTest` | ✅ session → semantic Extent → HTML este verificat pentru toate cele cinci politici, cu cardinalitatea exactă a linkurilor Base64 și fără endpoint/browser extern |
+| `REP-EVID-06` | `ReportEvidenceFlowMode`, `ReportEvidenceCaptureSource`, `ReportEvidenceProfile`, `ReportEvidenceProfileTest`, `ReportEvidenceProfileIntegrationTest` și contractul transversal | ✅ cele trei axe sunt typed și independente; mapping-ul YAML/builder este browser-neutral, iar profilul traversează `UiExtentReportSession` până la HTML fără renderer duplicat; package-cohesion gate rămâne verde |
+| `REP-JSON-01` | `ReportJsonBodyFormatter`, `ReportJsonBodyFormatterTest`, `HtmlReportViewsTest` și `ExtentReportUiEvidencePublishingTest` | ✅ body-urile JSON sunt formatate determinist, renderer-neutral, după redaction și înainte de display-limit; obiectele/array-urile, scalarul și `null` sunt păstrate, payload-ul invalid rămâne diagnostic; Extent și fallback HTML au parity verificat |
+| `REP-FACADE-01` | `UiExtentReportOptions`, `UiExtentReportSessionCompositionTest` și testele de lifecycle UI | ✅ output-ul, numele, console sink-ul, profilul typed și timestamp-ul sunt compuse într-un singur options builder; `UiExtentReportSession` încarcă configurația o singură dată pe traseu și toate overload-urile legacy delegă în aceeași cale canonicală |
+| `REP-OVERVIEW-01` | `ExtentReportOverviewMarkup` și `ExtentReportMarkupContractTest` | ✅ publication-ul overview este idempotent și se ancorează pe containerul semantic `category-container`; variațiile de whitespace/ordine a claselor sunt acceptate, iar metadata nu se dublează la reinjectare |
+| `REP-RENDER-08` | `ExtentUiActionRenderer`, `ExtentUiObservationRenderer`, `ExtentUiAssertionRenderer`, `ExtentUiEvidenceMarkup` și contractele UI evidence | ✅ facade-ul UI nu mai conține markup pentru toate cele trei responsabilități; action/observation/assertion au renderere independente, escaping/status/publication sunt comune, iar testele existente păstrează parity-ul screenshot/action/observation/assertion |
 
-Dovada de rulare a acestei revizii: full reactor în staging extern `635/0/0/6`
-(teste/failures/errors/skips), rerun-ul UI condiționat `6/0/0/0`, plus raportul
-API/UI fresh verificat în ATF Debug/Chromium fără overflow, `<hr>`, handlers inline
-sau erori de consolă.
+Dovada de rulare a acestei revizii: suitea reporting în staging extern
+`425/0/0/3` (teste/failures/errors/skips), inclusiv testul de arhitectură pentru
+limita de opt clase pe pachet, plus raportul API/UI fresh verificat în
+ATF Debug/Chromium fără overflow, `<hr>`, handlers inline sau erori de consolă.
+Reactorul root nu este folosit ca dovadă pentru acest scope când un test de
+arhitectură paralel din `atf-test-kit` este modificat incomplet.
 
 ## Reaudit live — dovezi și limite observate
 
@@ -205,6 +212,37 @@ Rapoartele curente demonstrează randarea și două stări reale, dar nu constit
 Valorile de mai sus sunt evidence de audit pentru această revizie, nu exemple normative
 de raport și nu trebuie copiate în README-urile ownerilor. Contractul permanent este
 politica de măsurare pe segmente, conservarea semanticii și matricea de teste.
+
+## Reaudit agresiv constructiv — producție și consumer tests
+
+| Axă | Notă | Ce este solid | Ce este încă prea scump sau ambiguu |
+|---|---:|---|---|
+| standalone production boundary | 99 | `atf-reporting/pom.xml` este parentless, iar `src/main` nu importă module ATF | consola are însă un port duplicat față de `atf-core`; independența Maven nu rezolvă singură interoperabilitatea |
+| model semantic și lifecycle | 91 | există modele immutable, recorder și snapshot parity | `HtmlReportSemanticDocument`, recorder-ul și lifecycle scopes păstrează încă mutation, snapshot și projection în seam-uri care se suprapun |
+| public API ergonomics | 82 | overload-urile păstrează compatibilitatea | `UiExtentReportSession` are 282 linii și 37 metode, cu multe overload-uri și tipuri nested; utilizatorul nu vede un singur traseu canonic de compoziție |
+| evidence/rendering cohesion | 84 | UI și transport au renderere numite separat | `ExtentTransportEvidenceRenderer` (310 linii), `ExtentUiEvidenceRenderer` (316) și `HtmlReportEvidenceView` (223) repetă disclosure, tabel, status, escaping și serializare în pipeline-uri paralele |
+| vendor adaptation / overview | 80 | publication pipeline este centralizat | `replace`/`replaceFirst`, markeri dependenți de whitespace și markup raw fac integrarea fragilă; overview-ul secundar poate deveni o a doua sursă de adevăr |
+| vocabulary discipline | 88 | enum-urile și facade-urile există | `NavigationView`, `OverviewMarkup`, fallback views și contract checks încă emit tag/class/id/string-uri în afara unui builder semantic unic |
+| test pyramid depth | 92 | 102 unit, 35 component, 11 integration și 8 E2E sunt detectabile în consumer | 136 clase de support/fixture nu declară strat; acoperirea există, dar ownership-ul și ruta de execuție sunt greu de auditat |
+| suite isolation | 82 | POM-ul ține dependențele la test scope | `atf-reporting-tests` depinde simultan de reporting, core, mock, validation, console, ui, debug-ui și test-kit și include `atf.api.execution` plus API/UI/E2E; „reporting tests” nu mai este o unitate conceptuală suficient de precisă |
+| locator/test readability | 78 | locatorii sunt împărțiți intern pe domenii și folosesc contracte typed | `ReportUiLocators` are 411 linii și 263 metode de delegare; facade-ul public rămâne un punct de cuplare masiv și descurajează teste focused |
+| E2E economy | 96 | cele 8 clase E2E trebuie păstrate ca proof browser | următoarea investiție trebuie să fie în component/integration și în profile de rulare, nu în noi scenarii browser |
+
+**Verdict:** `atf-reporting` este o bază funcțională serioasă, dar codul nu este
+încă „aerisit” în sensul cerut. Extinderea enum-urilor sau încă un helper nu
+rezolvă problema. Următorul pas corect este reducerea suprafeței publice,
+unificarea seam-urilor de markup/evidence și delimitarea explicită a suitei de
+consumer tests.
+
+### Dovezi concrete care au generat recalibrarea
+
+- `atf-reporting/src/main/java` conține 242 clase Java și 51 resurse; refactorizarea trebuie făcută pe boundary-uri observabile, nu prin mutări cosmetice de pachete;
+- `atf-reporting/src/test/java` conține 2 clase native cu 5 teste filtrate de gate-ul standalone; verificarea completă este externalizată în consumer și trebuie urmărită prin matrice, nu presupusă;
+- `atf-reporting-tests/src/test/java` conține 292 clase: 102 unit, 35 component, 11 integration, 8 E2E și 136 support neadnotat;
+- `UiExtentReportSession` reîncarcă configurația în unele căi de deschidere (`openConfigured(AtfConsoleSink)` și `openConfiguredResolved`), deși configurația este documentată ca snapshot immutable;
+- `AtfConsoleEvent` și `AtfConsoleSink` există atât în `atf.api.reporting.console`, cât și în portul `atf.api.core.reporting.console`; testele trebuie să facă explicit diferența între no-op, disabled și reporter configurat;
+- `ExtentReportOverviewMarkup` și `ExtentReportNavigationView` construiesc fragmente HTML cu string-uri raw și modifică HTML vendor prin înlocuiri textuale;
+- `ReportUiLocators` păstrează o fațadă de compatibilitate foarte largă peste șase proprietari interni; testele noi nu trebuie să mai adauge metode aici fără justificare de API.
 
 ### Concluzie agresivă
 
@@ -387,7 +425,6 @@ pornească browserul. E2E-ul nu este fallback pentru o matrice de coverage lips�
 
 | ID | Prioritate | Owner | ToDo | Criteriu de închidere |
 |---|---:|---|---|---|
-| `REP-EVID-06` | P1 | `atf-core` / `atf-test-kit` + `atf-reporting` + `atf-reporting-tests` | extrage contractul generic pentru `flow mode`, `screenshot policy`, `capture source` și mapping YAML/builder; soluția nu trebuie să fie Practice Shop-specifică și nu trebuie îngropată în renderer | contract typed stabil, provider mock și browser-neutral, component/integration coverage pentru `0/1/N`, `PASS/FAIL/WARNING/SKIP`, final/failure/none și un consumer subțire care demonstrează mapping-ul |
 | `REP-EVID-04` | P1 | `atf-reporting-tests` | adaugă un adapter Playwright minimal pe HTML static numai pentru a verifica generarea reală de PNG | integration opțional; nu accesează Practice Shop, nu accesează endpoint extern și nu devine precondiție pentru component tests |
 | `REP-EVID-05` | P1 | `atf-reporting` + `atf-reporting-tests` | aplică aceeași strategie fixture → component → integration pentru evidence API | request/response, headers, body, assertions, status și replay sunt testate cu mock; HTML-ul este validat direct, fără E2E nou |
 | `REP-REVIEW-01` | P1 | `atf-reporting` + `atf-reporting-tests` | păstrează această analiză sincronizată cu production și consumer tests, fără a edita README-urile ownerilor | fiecare claim are clasă/test/guard identificabil și fiecare item este închis sau redeschis numai prin feedback |
@@ -395,11 +432,14 @@ pornească browserul. E2E-ul nu este fallback pentru o matrice de coverage lips�
 | `REP-VOCAB-01` | P1 | `atf-reporting` | reduce suprafața `AtfReportHtmlVocabulary` și închide scăpările de markup raw din views/contract checks | facade compatibil, enum-uri pe domenii, allowlist explicit pentru vendor literals, zero literals noi nejustificate și teste unitare pe fiecare grup |
 | `REP-FORMAT-01` | P1 | `atf-reporting` + `atf-reporting-tests` | separă sursa CSS/JS lizibilă de HTML-ul Extent compact și elegant: fără spații/enter-uri inutile, dar fără minificare semantic riscantă | component tests verifică token safety, whitespace policy și semantic equivalence; integration verifică payload-ul compact/asset fără a cere E2E nou |
 | `REP-SIZE-01` | P1 | `atf-reporting` + `atf-reporting-tests` | măsoară dimensiunea pe segmente — structural HTML, native CSS/JS, vendor assets și evidence — și reduce numai duplicarea/whitespace-ul sigur | component/integration verifică baseline configurabil, duplicate data-uri, matricea statusurilor și conservarea textului, JSON-ului, screenshot-ului și structurii DOM |
-| `REP-RENDER-08` | P1 | `atf-reporting` | sparge `ExtentUiEvidenceRenderer` pe action/observation/assertion și păstrează escaping-ul unic | component tests verifică fiecare fragment și un integration test verifică compoziția finală |
 | `REP-AUDIT-08` | P2 | `atf-reporting` | normalizează `ReportAuditSnapshot` în modele de secțiune și reguli pure | component tests acoperă Overview, Tests, Categories, Fails, JSON și visual evidence fără browser |
 | `REP-TEST-08` | P1 | `atf-reporting-tests` | sparge testele mari după contract și păstrează fixture-urile reutilizabile | clasele de test au un singur motiv; support-ul nu devine executabil și coverage-ul lower-level crește |
 | `REP-COVERAGE-08` | P1 | `atf-reporting-tests` | construiește matrice contract → production seam → test unit/component/integration | fiecare seam public are dovadă lower-level; excepțiile sunt listate explicit |
 | `REP-E2E-08` | P2 | `atf-reporting-tests` | îngheață numărul de E2E și reutilizează suite-ul existent pentru proof browser | orice E2E nou necesită justificare de imposibilitate component/integration și aprobare prin feedback |
+| `REP-RENDER-09` | P1 | `atf-reporting` | unifică primitivele pentru disclosure, tabel, status, escaping și serialization între `ExtentTransportEvidenceRenderer`, `ExtentUiEvidenceRenderer` și `HtmlReportEvidenceView` | rândurile și secțiunile sunt modele typed; fiecare renderer compune aceleași primitive fără copiere de markup; parity component tests verifică request/response/UI evidence în Extent și fallback HTML |
+| `REP-CONSOLE-01` | P1 | `atf-core` + `atf-console` + `atf-reporting` + `atf-reporting-tests` | reconciliază `AtfConsoleEvent/Sink` duplicate și elimină ambiguitatea dintre `noOp`, disabled și reporter configurat | port comun sau adapter owner-uit explicit, fără dependență reporting → core; in-memory sink verifică `scenario → phase → request/UI action → complete(status)` pentru `PASS/FAIL/WARNING/SKIP`; testul standalone rămâne compilabil |
+| `REP-SUITE-01` | P1 | `atf-reporting-tests` | face explicită delimitarea dintre reporting contract tests, API fixture/execution, UI audit support și E2E; nu șterge support valid și nu multiplică teste | profile/launcher sau boundary test reproducibil pentru rularea reporting-only fără execution/browser; fiecare clasă executabilă are owner și layer; cele 8 E2E rămân plafon, iar helper-ele rămân neexecutabile |
+| `REP-LOCATOR-01` | P2 | `atf-reporting-tests` | reduce dependența de `ReportUiLocators` ca god-facade; domeniile page/tree/evidence/screen/category/failure trebuie consumate prin surface-uri clare | testele noi nu adaugă delegări în facade-ul legacy; surface-urile typed sunt testate separat, locatorii rămân `element[attribute=value]`, iar API-ul de compatibilitate este măsurat și documentat |
 
 ## Regula de închidere
 
