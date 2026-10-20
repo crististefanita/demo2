@@ -26,20 +26,9 @@ riscuri reproductibile care mai pot schimba codul sau packaging-ul.
 
 ```mermaid
 flowchart LR
-    Platform[Platformă reutilizabilă<br/>core · mock · validation · console · debug-ui · test-kit]
-    Ui[atf-ui<br/>adaptor Playwright]
-    Reporting[atf-reporting<br/>standalone artifact]
-    ReportingTests[atf-reporting-tests<br/>reporting API/UI/E2E]
-    Shop[atf-test-practice-shop<br/>Practice Shop]
-    Tests[atf-tests<br/>whole-ATF governance]
-
-    ReportingTests -->|public library| Reporting
-    ReportingTests -. test scope .-> Platform
-    ReportingTests -. browser audit .-> Ui
-    Shop -->|public library| Reporting
-    Shop -. browser adapter .-> Ui
-    Tests -. architecture guards .-> Platform
-    Tests -. architecture guards .-> Reporting
+    Governance["atf-tests<br/>architecture guards"] -.-> Roots["composition roots<br/>reporting-tests · practice-shop"]
+    Roots --> Reporting["atf-reporting<br/>standalone artifact"]
+    Roots -.-> Surface["test surfaces<br/>atf-ui · core · mock · validation<br/>console · debug-ui · test-kit"]
 ```
 
 <details>
@@ -48,8 +37,10 @@ flowchart LR
 - săgeata solidă înseamnă consum de bibliotecă în composition root;
 - săgeata punctată marchează test scope, browser policy sau guvernanță, nu
   ownership transferat;
-- `Platform` grupează modulele reutilizabile; relațiile interne sunt explicate în
-  textul de sub diagramă și în README-ul root;
+- `Roots` grupează `atf-reporting-tests` și `atf-test-practice-shop`, fără să le
+  transforme într-un modul comun;
+- `Surface` grupează adaptoarele și suportul de test; relațiile interne sunt
+  explicate în textul de sub diagramă și în README-urile ownerilor;
 - `atf-reporting` rămâne standalone în producție;
 - `atf-reporting-tests` este composition root-ul care leagă fixture-uri, mock,
   UI și reporting în test scope.
@@ -446,42 +437,45 @@ forțarea aceleiași structuri interne.
 
 ### Evoluție controlată și redeschidere
 
-Contractele consolidate sunt stabile: inspectorii DOM/browser produc snapshot-uri
-neutre, acestea sunt consumate de mai multe fluxuri, iar validatorii puri sunt
-apărați de `ExtractionValidationConvergenceTest`. Protecția sync-ului
-live↔staging este acum executabilă prin `AtfPromotionManifest` și
-`AtfPromotionGuard`, iar adaptorul live explicit este
-`ApiLiveTransportCatalog`. Nu se face split cosmetic și nu se redeschid
-layout-uri închise fără defect reproductibil.
+```mermaid
+flowchart LR
+    Closed["contract închis<br/>boundary documentat"] --> Guarded["guarduri active<br/>teste + sync"]
+    Guarded --> Trigger["semnal valid<br/>regresie / consumator nou"]
+    Trigger --> Scope["schimbare țintită<br/>snapshot / golden"]
+    Scope --> Recheck["revalidare<br/>owner README"]
+```
+
+<details>
+<summary><strong>Legendă — când se redeschide un contract</strong></summary>
+
+- **Închis**: boundary-ul este documentat, iar implementarea are consumatori și teste.
+- **Protejat**: snapshot-urile neutre sunt validate de `ExtractionValidationConvergenceTest`;
+  sync-ul live↔staging este apărat de `AtfPromotionManifest` și `AtfPromotionGuard`;
+  transportul live explicit este `ApiLiveTransportCatalog`.
+- **Redeschidere justificată**: defect reproductibil, al doilea consumator sau schimbare publică de contract.
+- **Schimbare țintită**: se adaugă numai coverage-ul necesar, de exemplu snapshot/golden; nu se face split cosmetic.
+- **Închidere**: se revalidează codul și testele, apoi decizia se consolidează în README-ul ownerului.
+- **Feedback**: păstrează doar regresiile viitoare; nu dublează deciziile deja închise.
 
 `AtfReportTheme` și `UiExtentReportSession` au boundary-uri documentate și
-colaboratori semantici suficienți pentru codul live. Nu sunt backlog-uri active:
-se redeschid numai dacă apare un defect concret sau un al doilea consumator care
-justifică snapshot/golden coverage.
+colaboratori semantici suficienți pentru codul live. `ExtentReportRuntimeBehaviour`
+compune `Core`, `Tests`, `Overview`, `Evidence`, `Navigation`, `Duration` și
+`Failure`, iar `ExtentReportRuntimeScriptTest` apără compoziția. Aceste decizii
+rămân în README-ul reporting și nu se copiază în registrul de feedback.
 
-`ExtentReportRuntimeBehaviour` are aceeași decizie închisă: compune
-`Core`, `Tests`, `Overview`, `Evidence`, `Navigation`, `Duration` și `Failure`,
-iar `ExtentReportRuntimeScriptTest` apără compoziția. Această decizie rămâne în
-README-ul reporting și nu se copiază în registrul de feedback.
+Fallback-ul HTML păstrează aceeași separare: `HtmlReportSession` este composition
+root pentru document/lifecycle, iar comportamentul tab-urilor este un asset
+injectabil prin `HtmlReportScript`, implementat de `HtmlReportNavigationScript`.
+Markup-ul semantic, lifecycle-ul și JavaScript-ul au seam-uri independente fără
+browser sau DOM în modelul de raportare.
 
-Fallback-ul HTML respectă aceeași direcție: `HtmlReportSession` este
-composition root pentru document/lifecycle, iar comportamentul de tab-uri este
-un asset injectabil prin `HtmlReportScript`, implementat de
-`HtmlReportNavigationScript`. Astfel markup-ul semantic, lifecycle-ul și
-JavaScript-ul au seam-uri independente fără a introduce browser sau DOM în
-modelul de raportare.
+În `atf.api.reporting.html.scope`, `HtmlReportScenarioScope`,
+`HtmlReportPhaseScope`, `HtmlReportRequestScope` și `HtmlReportValidationScope`
+implementează porturile `AtfReportPorts`. Sesiunea creează scope-urile, modelul
+semantic oferă numai mutații controlate, iar renderer-ul nu primește câmpuri
+interne și nu devine dependent de lifecycle.
 
-În interiorul acestui boundary, lifecycle-ul este împărțit în
-`atf.api.reporting.html.scope`: `HtmlReportScenarioScope`,
-`HtmlReportPhaseScope`, `HtmlReportRequestScope` și
-`HtmlReportValidationScope` implementează porturile `AtfReportPorts`. Sesiunea
-creează scope-urile, iar modelul semantic oferă numai mutații controlate;
-renderer-ul nu primește câmpuri interne și nu devine dependent de lifecycle.
-
-Acesta este rezumatul normativ al boundary-urilor verificate. Feedback-ul
-păstrează numai regresii viitoare; implementările închise, inclusiv guard-ul de
-promovare, catalogul live explicit și split-ul contractelor Extent, sunt
-consolidate în README-urile ownerilor și apărate de teste.
+</details>
 
 ```mermaid
 flowchart LR

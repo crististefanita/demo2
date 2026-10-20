@@ -1,5 +1,7 @@
 package atf.ui.practiceshop.support;
 
+import atf.ui.practiceshop.api.PracticeShopApiOperation;
+
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -17,6 +19,17 @@ public final class PracticeShopApiExchangeSelector {
                 .map(PracticeShopApiNetworkJournal.Exchange::summary).toList());
     }
 
+    public static PracticeShopApiNetworkJournal.Exchange latest(
+            List<PracticeShopApiNetworkJournal.Exchange> exchanges,
+            PracticeShopApiOperation operation,
+            Predicate<PracticeShopApiNetworkJournal.Exchange> extra) {
+        PracticeShopApiNetworkJournal.Exchange exchange = latestOptional(exchanges, operation, extra);
+        if (exchange != null) return exchange;
+        throw new IllegalStateException("Missing API operation: " + operation.name()
+                + "; captured=" + exchanges.stream()
+                .map(PracticeShopApiNetworkJournal.Exchange::summary).toList());
+    }
+
     public static PracticeShopApiNetworkJournal.Exchange latestOptional(
             List<PracticeShopApiNetworkJournal.Exchange> exchanges,
             String method, String path, Predicate<PracticeShopApiNetworkJournal.Exchange> extra) {
@@ -24,6 +37,19 @@ public final class PracticeShopApiExchangeSelector {
             PracticeShopApiNetworkJournal.Exchange exchange = exchanges.get(index);
             if (method.equalsIgnoreCase(exchange.method())
                     && matchesRoute(exchange.path(), path) && extra.test(exchange)) {
+                return exchange;
+            }
+        }
+        return null;
+    }
+
+    public static PracticeShopApiNetworkJournal.Exchange latestOptional(
+            List<PracticeShopApiNetworkJournal.Exchange> exchanges,
+            PracticeShopApiOperation operation,
+            Predicate<PracticeShopApiNetworkJournal.Exchange> extra) {
+        for (int index = exchanges.size() - 1; index >= 0; index--) {
+            PracticeShopApiNetworkJournal.Exchange exchange = exchanges.get(index);
+            if (operation.matches(exchange.method(), exchange.path()) && extra.test(exchange)) {
                 return exchange;
             }
         }

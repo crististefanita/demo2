@@ -44,6 +44,16 @@ flowchart LR
 
 ## Rezolvarea sigură a configurației
 
+```mermaid
+flowchart LR
+    Yaml["atf.yaml<br/>captured once"] --> Base["startDirectory + YAML directory"]
+    Base --> Validate["validate boundaries<br/>reject .. escape"]
+    Validate --> Output["reporting.extent.outputDirectory"]
+```
+
+<details>
+<summary><strong>Legendă — configurație capturată la composition root</strong></summary>
+
 Configurația de raportare este capturată o singură dată, la composition root.
 O cale YAML relativă se rezolvă față de `startDirectory`-ul capturat, iar
 `reporting.extent.outputDirectory` se rezolvă față de directorul YAML. Căile
@@ -51,51 +61,70 @@ care ies prin `..` din acel director sunt respinse înainte de publicare. Astfel
 două rulări IntelliJ cu rădăcini diferite nu pot ajunge accidental la același
 output printr-un `user.dir` schimbat sau printr-un path relativ ambiguu.
 
-## Protocol obligatoriu pentru refactorizare
+</details>
 
-Pentru fiecare increment, traseul obligatoriu este:
+## Regula de lucru pentru orice schimbare
 
-`live → inspectare → staging → build/test → artifact nou → TAB MCP → sync selectiv → feedback/owner README`
+```mermaid
+flowchart LR
+    Live["cod live<br/>README + feedback"] --> Baseline["baseline<br/>inspect + capture"]
+    Baseline --> Stage["staging izolat<br/>surse aprobate"]
+    Stage --> Change["increment delimitat<br/>test nominal + failure"]
+    Change --> Verify["build + teste<br/>artifact nou"]
+    Verify --> Audit["TAB MCP<br/>UI + negative path"]
+    Audit --> Reconcile["re-sync live<br/>drift check"]
+    Reconcile --> Close["feedback + owner README<br/>dovadă observabilă"]
+```
 
 <details>
-<summary><strong>Pașii executabili ai protocolului</strong></summary>
+<summary><strong>Legendă — protocolul obligatoriu al unui increment</strong></summary>
+
+- **Live**: recitește codul, testele, README-urile, feedback-ul și artifactul relevant.
+- **Baseline**: păstrează failure-urile; nu șterge, relaxa sau rescrie teste pentru false-green.
+- **Staging**: folosește un director unic; copiază doar sursele și documentele, fără output-uri generate.
+- **Change**: limitează responsabilitatea și definește test nominal + failure-path; nu face overwrite sau reset la conflict.
+- **Verify**: rulează testele unitare, componentă și artifact relevante, apoi suita afectată.
+- **Audit**: verifică artifactul nou în TAB MCP, inclusiv suprafața schimbată și un scenariu negativ.
+- **Reconcile**: compară din nou staging-ul cu live-ul; sincronizează numai fișiere aprobate.
+- **Close**: actualizează owner README-ul; în feedback închide doar ce are dovadă observabilă.
+
+<details>
+<summary><strong>Detalii operaționale — staging, artifact și publicare</strong></summary>
 
 Codul live și testele existente sunt contextul curent; staging-ul este doar
-locul sigur de lucru și nu devine automat o nouă sursă de adevăr.
+locul sigur de lucru și nu devine automat o nouă sursă de adevăr. Nu opri
+procesele existente și nu reutiliza directorul altui proces.
 
-1. **Sincronizează contextul live.** Recitește sursele, testele, README-urile,
-   statusul checkout-ului și artifactul relevant înainte de a formula soluția.
-   Nu porni de la o copie veche și nu presupune că un ToDo a rămas neschimbat.
-2. **Capturează baseline-ul.** Rulează numai verificările necesare pentru zona
-   atinsă în staging și păstrează failure-urile ca semnale de implementare;
-   testele nu se șterg, nu se relaxează și nu se rescriu ca să ascundă o
-   regresie.
-3. **Creează staging unic.** Copiază numai sursele și documentele revizuite,
-   cu `target`, `artifacts`, cache-uri, log-uri și output-uri generate excluse.
-   Nu opri procesele existente și nu reutiliza un director al altui proces.
-4. **Aplică un increment delimitat.** Schimbarea trebuie să aibă o
-   responsabilitate clară, un test nominal și un failure-path. Dacă apare un
-   conflict cu live-ul, oprește doar editarea acelui fișier, recitește-l și
-   reconciliază explicit; nu face overwrite sau reset.
-5. **Construiește și verifică.** Rulează testele unitare, de componentă și de
-   artifact relevante, apoi suita afectată. Build-ul verde singur nu închide
-   incrementul.
-6. **Generează un artifact nou.** Raportul trebuie să fie timestamped și să
-   rămână în staging; nu suprascrie raportul deschis sau output-ul unei rulări.
-7. **Verifică în TAB MCP.** Deschide artifactul exact generat și execută click-
-   uri pe suprafața schimbată: tab-uri, filtre, disclosure-uri, deep-link-uri,
-   request/validation, Fails și Overview după caz. Verifică și un scenariu
-   nominal, și unul negativ.
-8. **Re-sincronizează înainte de publicare.** Compară staging-ul cu live-ul
-   actual, păstrează doar sursele/documentele aprobate și nu propaga output-uri.
-   După sincronizare, recitește fișierele atinse și verifică linkurile.
-9. **Închide doar ce este demonstrat.** Actualizează README-urile cu contractul
-   stabil. În feedback păstrează numai ToDo-urile încă deschise, fiecare cu
-   testul cerut și criteriul observabil de acceptare.
+Raportul trebuie să fie nou, timestamped și păstrat în staging; nu se
+suprascrie raportul deschis sau output-ul unei rulări. În TAB MCP se verifică
+tab-uri, filtre, disclosure-uri, deep-link-uri, request/validation, Fails și
+Overview după caz.
+
+Înainte de publicare, staging-ul se compară cu live-ul actual. Se păstrează
+numai sursele și documentele aprobate; `target`, `artifacts`, cache-urile,
+log-urile și output-urile generate nu se propagă. După sincronizare se recitesc
+fișierele atinse și se verifică linkurile.
+
+</details>
 
 </details>
 
 ### Guard software pentru sync live↔staging
+
+```mermaid
+flowchart LR
+    Manifest["live baseline"] --> Build["staging gate"]
+    Build --> Guard["drift guard"]
+    Guard --> Promote["selective sync"]
+```
+
+<details>
+<summary><strong>Detalii — manifest, drift și promovare</strong></summary>
+
+- **Baseline**: manifestul conține numai fișiere aprobate și căi relative.
+- **Staging**: build-ul și testele rulează separat de checkout-ul live.
+- **Guard**: orice drift concurent oprește promovarea înainte de primul fișier.
+- **Sync**: se copiază atomic numai sursele aprobate; nu există overwrite, reset sau ștergere implicită.
 
 Protocolul de mai sus are și un mecanism executabil, nu doar o convenție
 operațională. Înainte de editare, composition root-ul capturează fișierele
@@ -133,7 +162,24 @@ report folosește `-Datf.report.config=<stage>\atf.yaml`; astfel raportul de
 verificat este determinist sub `<stage>\artifacts\reports`, indiferent de
 working directory-ul IDE/Maven.
 
+</details>
+
 ### Reactorul este obligatoriu pentru contracte între module
+
+```mermaid
+flowchart LR
+    Changed["ATF change"] --> Reactor["reactor gate"]
+    Reactor --> SameSources["same-stage proof"]
+    Standalone["reporting only"] --> Isolated["standalone gate"]
+    Isolated --> IsolatedProof["isolated proof"]
+```
+
+<details>
+<summary><strong>Legendă — două gate-uri independente</strong></summary>
+
+- **Reactor gate**: `mvn -pl <consumer> -am test`; recompilă modulul schimbat împreună cu consumatorii din același stage.
+- **Standalone gate**: `mvn -f atf-reporting/pom.xml test`; verifică reporting-ul izolat, fără consumatori.
+- **Proof**: rezultatul trebuie să provină din sursele stage-ului, nu dintr-un JAR local vechi.
 
 Când un modul de test consumă API-uri schimbate în `atf-core`, `atf-ui` sau
 alte module ale reactorului, verificarea se rulează cu `-am` (de exemplu
@@ -145,7 +191,20 @@ izolat este acceptabil numai după un reactor build verde sau dacă dependențel
 folosite sunt explicit construite din același stage; altfel nu este dovadă
 pentru codul live.
 
+</details>
+
 ### Bucla periodică de sync pentru feedback și build
+
+```mermaid
+flowchart LR
+    Live["live checkout"] --> Recreate["recreate staging"]
+    Recreate --> Verify["build + artifact + TAB MCP"]
+    Verify --> Feedback["feedback / owner README"]
+    Feedback --> Promote["selective sync"]
+```
+
+<details>
+<summary><strong>Detalii — reluarea unui ToDo și izolarea output-ului</strong></summary>
 
 La fiecare reluare a unui ToDo se pornește de la checkout-ul live, se recreează
 staging-ul și se copiază numai sursele; `target`, rapoartele HTML, capturile și
@@ -181,6 +240,8 @@ observabilă în test și în diagnostic.
 se verifică înainte ca sincronizarea să nu le suprascrie. Orice proiect extern
 care rulează în paralel își redirecționează output-ul în propriile directoare
 de staging; build-ul ATF Java folosește separat `target` și artifactele sale.
+
+</details>
 
 ## Ce se sincronizează și ce nu
 

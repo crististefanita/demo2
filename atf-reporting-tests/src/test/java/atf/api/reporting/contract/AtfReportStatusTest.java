@@ -1,6 +1,7 @@
 package atf.api.reporting.contract;
 
 import atf.api.testkit.AtfUnitTest;
+import atf.api.reporting.markup.ExtentReportNodeSupport;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -17,6 +18,9 @@ class AtfReportStatusTest {
                 () -> assertEquals("⚠️ WARNING", AtfReportStatus.WARNING.resultMarker()),
                 () -> assertEquals("⏭️ SKIP", AtfReportStatus.SKIP.resultMarker()),
                 () -> assertEquals("❌ FAIL", AtfReportStatus.FAIL.resultMarker()),
+                () -> assertEquals("Pass", AtfReportStatus.PASS.displayLabel()),
+                () -> assertEquals("❌", ExtentReportNodeSupport.resultMarker(AtfReportStatus.FAIL)),
+                () -> assertEquals("ℹ️", ExtentReportNodeSupport.resultMarker(null)),
                 () -> assertEquals(AtfReportStatus.INFO, AtfReportStatus.orInfo(null)));
     }
 }

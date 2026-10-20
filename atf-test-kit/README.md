@@ -8,7 +8,7 @@ modulele ATF. Nu conține renderer, mock transport, browser sau cod de producți
 ```mermaid
 flowchart LR
     ModuleTests[teste module] --> Kit[atf-test-kit]
-    Kit --> Levels[unit · component · integration · e2e]
+    Kit --> Levels[test layers]
     Kit -. nu intră .-> Production[production classpath]
 ```
 

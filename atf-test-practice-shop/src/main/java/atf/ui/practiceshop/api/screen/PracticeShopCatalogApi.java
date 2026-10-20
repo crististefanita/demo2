@@ -3,6 +3,7 @@ package atf.ui.practiceshop.api.screen;
 import atf.api.core.http.response.ApiExecutionResult;
 import atf.ui.practiceshop.api.PracticeShopApiClient;
 import atf.ui.practiceshop.api.PracticeShopProductQuery;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -38,7 +39,7 @@ public final class PracticeShopCatalogApi {
                     if (!id.isBlank()) return id;
                 }
             }
-        } catch (Exception error) {
+        } catch (JsonProcessingException error) {
             throw new IllegalStateException("Catalog search response is not usable JSON", error);
         }
         throw new IllegalStateException("Catalog search did not return product: " + productName);

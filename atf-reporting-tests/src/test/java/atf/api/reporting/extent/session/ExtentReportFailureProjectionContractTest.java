@@ -54,7 +54,8 @@ class ExtentReportFailureProjectionContractTest {
                 () -> assertTrue(html.contains("data-atf-failure-phase")),
                 () -> assertTrue(html.contains("class=\"atf-failure-open\"")
                                 && html.contains("atfOpenTest(id,scenarioIndex)")
-                                && html.contains("onclick=\"if(typeof atfOpenTest===")
+                                 && (html.contains("onclick=\"if(typeof atfOpenTest===")
+                                 || html.contains("onclick=\\\"if(typeof atfOpenTest==="))
                                 && html.contains("href=\"#test-id="),
                         "Fails must expose an executable deep-link and a native hash fallback")
         );

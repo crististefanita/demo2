@@ -207,8 +207,8 @@ class ExtentReportInteractionContractTest {
                                 && html.contains("border-left:1px solid var(--atf-border)!important;border-radius:6px!important")
                                 && html.contains("background:var(--atf-panel-2)!important;box-shadow:none!important"),
                         "request and validation substeps must follow the restrained .NET card treatment"),
-                () -> assertTrue(html.contains("data-atf-node-role='request']>.card-header{background:#7AA2FF0B!important}")
-                                && html.contains("data-atf-node-role='validation']>.card-header{background:#FFFFFF06!important}"),
+                () -> assertTrue(html.contains("data-atf-node-role=\"request\"]>.card-header{background:#7AA2FF0B!important}")
+                                && html.contains("data-atf-node-role=\"validation\"]>.card-header{background:#FFFFFF06!important}"),
                         "request and validation substeps must remain visually distinct without overpowering the phase"),
                 () -> assertTrue(html.contains("function bindNodeCollapse()")
                                 && html.contains("data-atf-node-open")

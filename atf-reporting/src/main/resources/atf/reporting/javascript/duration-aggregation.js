@@ -1,1 +1,128 @@
-function directActionDuration(card){var total=0,count=0;q('.atf-ui-action-table tbody tr',card).forEach(function(row){var owner=row.closest('.card[data-atf-node-role],.card[data-atf-scenario-id]');if(owner!==card)return;var time=row.querySelector('.atf-ui-action-time'),value=atfDurationValue(text(time,''));if(value!==null){total+=value;count++;}});return {value:total,present:count>0};}function directTransportEvidence(card){var panel=card&&card.children?Array.prototype.slice.call(card.children).find(function(child){return child.classList&&child.classList.contains('collapse');}):null;return !!(panel&&panel.querySelector('.execution-table,.helm-trace-table,.helm-request-details-content,.helm-response-details-content'));}function setNodeDuration(card,value,source){if(value===null)return;var children=directStructuralChildren(card),actions=directActionDuration(card),container=children.length>0||actions.present,formatted=atfFormatDuration(value),badge=durationBadge(card);if((container||source==='measured')&&badge){if(text(badge,'')!==formatted)badge.textContent=formatted;if(badge.getAttribute('data-duration-ms')!==String(value))badge.setAttribute('data-duration-ms',String(value));if(badge.getAttribute('data-duration-source')!==source)badge.setAttribute('data-duration-source',source);}if(card.getAttribute('data-duration-ms')!==String(value))card.setAttribute('data-duration-ms',String(value));if(card.getAttribute('data-duration-source')!==source)card.setAttribute('data-duration-source',source);if(badge&&source==='measured'&&badge.getAttribute('data-atf-measured-duration-ms')!==String(value))badge.setAttribute('data-atf-measured-duration-ms',String(value));}function aggregateChildDurations(card){var summary={total:0,count:0};directStructuralChildren(card).forEach(function(child){var value=aggregateNodeDuration(child);if(value!==null){summary.total+=value;summary.count++;}});return summary;}function durationDecision(card,children){var actions=directActionDuration(card),measured=measuredNodeDuration(card),value=null,source='measured',ownAction=actions.present?actions.value:(directTransportEvidence(card)&&measured!==null?measured:0);if(children.count>0){value=Math.max(children.total,ownAction);source='aggregated';}else if(actions.present){value=actions.value;source='aggregated';}else if(measured!==null){value=measured;}return {value:value,source:source};}function aggregateNodeDuration(card){var children=aggregateChildDurations(card),decision=durationDecision(card,children);setNodeDuration(card,decision.value,decision.source);return decision.value;}function allScenarioCards(){var result=[],seen=[];function add(card){if(card&&seen.indexOf(card)<0){seen.push(card);result.push(card);}}classItems().forEach(function(root){directScenarioCards(root).forEach(add);});q('#test-view .test-content-detail .test-contents > .mt-4 > .accordion > .card').forEach(add);return result;}function aggregateVisibleNodeDurations(){q('#test-view .test-content-detail .card').filter(function(card){return card.getAttribute('data-atf-node-role')==='phase';}).forEach(function(card){aggregateNodeDuration(card);});}function aggregateNodeDurations(){testItems();rememberMeasuredDurations();allScenarioCards().forEach(function(card){aggregateNodeDuration(card);});aggregateVisibleNodeDurations();}
+function directActionDuration(card) {
+  var total = 0,
+    count = 0;
+  q('.atf-ui-action-table tbody tr', card).forEach(function (row) {
+    var owner = row.closest(
+      '.card[data-atf-node-role],.card[data-atf-scenario-id]'
+    );
+    if (owner !== card) return;
+    var time = row.querySelector('.atf-ui-action-time'),
+      value = atfDurationValue(text(time, ''));
+    if (value !== null) {
+      total += value;
+      count++;
+    }
+  });
+  return { value: total, present: count > 0 };
+}
+function directTransportEvidence(card) {
+  var panel =
+    card && card.children
+      ? Array.prototype.slice.call(card.children).find(function (child) {
+          return child.classList && child.classList.contains('collapse');
+        })
+      : null;
+  return !!(
+    panel &&
+    panel.querySelector(
+      '.execution-table,.helm-trace-table,.helm-request-details-content,.helm-response-details-content'
+    )
+  );
+}
+function setNodeDuration(card, value, source) {
+  if (value === null) return;
+  var children = directStructuralChildren(card),
+    actions = directActionDuration(card),
+    container = children.length > 0 || actions.present,
+    formatted = atfFormatDuration(value),
+    badge = durationBadge(card);
+  if ((container || source === 'measured') && badge) {
+    if (text(badge, '') !== formatted) badge.textContent = formatted;
+    if (badge.getAttribute('data-duration-ms') !== String(value))
+      badge.setAttribute('data-duration-ms', String(value));
+    if (badge.getAttribute('data-duration-source') !== source)
+      badge.setAttribute('data-duration-source', source);
+  }
+  if (card.getAttribute('data-duration-ms') !== String(value))
+    card.setAttribute('data-duration-ms', String(value));
+  if (card.getAttribute('data-duration-source') !== source)
+    card.setAttribute('data-duration-source', source);
+  if (
+    badge &&
+    source === 'measured' &&
+    badge.getAttribute('data-atf-measured-duration-ms') !== String(value)
+  )
+    badge.setAttribute('data-atf-measured-duration-ms', String(value));
+}
+function aggregateChildDurations(card) {
+  var summary = { total: 0, count: 0 };
+  directStructuralChildren(card).forEach(function (child) {
+    var value = aggregateNodeDuration(child);
+    if (value !== null) {
+      summary.total += value;
+      summary.count++;
+    }
+  });
+  return summary;
+}
+function durationDecision(card, children) {
+  var actions = directActionDuration(card),
+    measured = measuredNodeDuration(card),
+    value = null,
+    source = 'measured',
+    ownAction = actions.present
+      ? actions.value
+      : directTransportEvidence(card) && measured !== null
+        ? measured
+        : 0;
+  if (children.count > 0) {
+    value = Math.max(children.total, ownAction);
+    source = 'aggregated';
+  } else if (actions.present) {
+    value = actions.value;
+    source = 'aggregated';
+  } else if (measured !== null) {
+    value = measured;
+  }
+  return { value: value, source: source };
+}
+function aggregateNodeDuration(card) {
+  var children = aggregateChildDurations(card),
+    decision = durationDecision(card, children);
+  setNodeDuration(card, decision.value, decision.source);
+  return decision.value;
+}
+function allScenarioCards() {
+  var result = [],
+    seen = [];
+  function add(card) {
+    if (card && seen.indexOf(card) < 0) {
+      seen.push(card);
+      result.push(card);
+    }
+  }
+  classItems().forEach(function (root) {
+    directScenarioCards(root).forEach(add);
+  });
+  q(
+    '#test-view .test-content-detail .test-contents > .mt-4 > .accordion > .card'
+  ).forEach(add);
+  return result;
+}
+function aggregateVisibleNodeDurations() {
+  q('#test-view .test-content-detail .card')
+    .filter(function (card) {
+      return card.getAttribute('data-atf-node-role') === 'phase';
+    })
+    .forEach(function (card) {
+      aggregateNodeDuration(card);
+    });
+}
+function aggregateNodeDurations() {
+  testItems();
+  rememberMeasuredDurations();
+  allScenarioCards().forEach(function (card) {
+    aggregateNodeDuration(card);
+  });
+  aggregateVisibleNodeDurations();
+}

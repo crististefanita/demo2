@@ -94,4 +94,42 @@ class PracticeShopApiCatalogCartVariantTest {
         assertEquals(PracticeShopApiRoutes.removeCartProduct(cartId, productId), removeRequest.path());
         assertEquals("", removeRequest.bodyText());
     }
+
+    @Test
+    void statefulCartLifecycleKeepsReadBackContractAcrossMutations() {
+        PracticeShopApiClient client = PracticeShopApiComponentFixture.statefulCartClient();
+        PracticeShopApiRequestFactory requests = client.requests();
+        String cartId = PracticeShopApiScenarioFixture.MUTATION_CART_ID;
+        String productId = PracticeShopApiScenarioFixture.MUTATION_PRODUCT_ID;
+
+        var created = client.execute(requests.createCart());
+        var added = client.execute(requests.addToCart(cartId, productId,
+                PracticeShopApiScenarioFixture.QUANTITY));
+        var afterAdd = client.execute(requests.readCart(cartId));
+        var updated = client.execute(requests.updateCartQuantity(cartId, productId,
+                PracticeShopApiScenarioFixture.UPDATED_QUANTITY));
+        var afterUpdate = client.execute(requests.readCart(cartId));
+        var removed = client.execute(requests.removeFromCart(cartId, productId));
+        var afterRemove = client.execute(requests.readCart(cartId));
+
+        assertEquals(PracticeShopApiHttpStatus.OK.code(), created.response().status());
+        assertEquals(PracticeShopApiHttpStatus.OK.code(), added.response().status());
+        assertEquals(PracticeShopApiHttpStatus.OK.code(), afterAdd.response().status());
+        assertEquals(PracticeShopApiScenarioFixture.QUANTITY,
+                quantity(afterAdd.response().body()));
+        assertEquals(PracticeShopApiHttpStatus.OK.code(), updated.response().status());
+        assertEquals(PracticeShopApiHttpStatus.OK.code(), afterUpdate.response().status());
+        assertEquals(PracticeShopApiScenarioFixture.UPDATED_QUANTITY,
+                quantity(afterUpdate.response().body()));
+        assertEquals(PracticeShopApiHttpStatus.NO_CONTENT.code(), removed.response().status());
+        assertEquals(PracticeShopApiHttpStatus.OK.code(), afterRemove.response().status());
+        assertTrue(PracticeShopJsonEvidence.parse(afterRemove.response().body())
+                .path(PracticeShopApiJsonField.CART_ITEMS.wireValue()).isEmpty());
+    }
+
+    private static int quantity(String body) {
+        var root = PracticeShopJsonEvidence.parse(body);
+        return root.path(PracticeShopApiJsonField.CART_ITEMS.wireValue()).get(0)
+                .path(PracticeShopApiJsonField.QUANTITY.wireValue()).asInt();
+    }
 }

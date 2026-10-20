@@ -11,11 +11,11 @@ jar-ul `atf-reporting`; `atf-tests` rămâne governance-only.
 
 ```mermaid
 flowchart LR
-    Composition[atf-reporting-tests<br/>composition root] -->|public API| Reporting[atf-reporting<br/>standalone jar]
-    Reporting --> Reports[API/UI Extent artifacts]
-    Composition -. test scope .-> Support[test-scope support<br/>core · mock · validation · ui · debug-ui]
-    ShopTests[atf-test-practice-shop<br/>external application consumer] -. consumes .-> Reporting
-    AppTests[atf-tests<br/>whole-ATF governance] -. guards .-> Reporting
+    Composition[composition root] -->|public API| Reporting[reporting jar]
+    Reporting --> Reports[API / UI artifacts]
+    Composition -. test scope .-> Support[test support]
+    ShopTests[Practice Shop] -. consumes .-> Reporting
+    AppTests[governance] -. guards .-> Reporting
 ```
 
 <details>
@@ -77,9 +77,11 @@ parsarea titlului. Astfel biblioteca rămâne împachetabilă ca JAR independent
 iar consumerul rămâne owner-ul vocabularului aplicației.
 
 `PracticeShopApiOperation` este exemplul consumerului: `SEARCH` descrie intenția
-de catalog, dar wire method este `GET`, iar raportul afișează
-`GET /products/search — find configured product`; pseudo-verbul `QUERY` nu mai
-este permis în request evidence. Pentru fiecare execution Practice Shop,
+de catalog, wire method este `GET`, iar raportul afișează
+`GET /products/search — find configured product`. Dacă browserul expune aliasul
+legacy `QUERY` la capture boundary, consumerul îl poate recunoaște doar pentru
+selecția search și îl publică separat ca metodă observată; `QUERY` nu devine
+niciodată metoda/titlul request-ului. Pentru fiecare execution Practice Shop,
 publisher-ul adaugă separat `OPERATION KIND` și `ROUTE TEMPLATE` în evidence,
 deci un auditor poate reconcilia ruta dinamică cu contractul stabil.
 

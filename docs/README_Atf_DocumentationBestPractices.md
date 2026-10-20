@@ -46,12 +46,12 @@ dovezi, se închid TODO-uri sau se modifică limita rămasă.
 
 ```mermaid
 flowchart LR
-    Live[Cod + POM + teste live]
-    Classify[Clasificare<br/>contract / gap / evidence]
-    Owner[README owner<br/>contract stabil]
+    Live[Cod + POM + teste]
+    Classify[Clasificare]
+    Owner[README owner]
     Gate[Test sau guard]
-    Feedback[Feedback activ<br/>registru dinamic]
-    Reconcile[Reconciliere<br/>cu live-ul]
+    Feedback[Feedback activ]
+    Reconcile[Reconciliere]
     Live --> Classify
     Classify --> Owner
     Owner --> Gate
@@ -162,6 +162,10 @@ Preferința de stil:
 - dacă un nod are mai mult de două ramificații vizibile, introducem o grupare
   semantică locală sau separăm întrebarea în două diagrame; nu lăsăm săgețile
   să traverseze întreaga schemă;
+- nodul poartă numai conceptul necesar relației; modulele, clasele, tehnologiile
+  și listele lungi se mută în legendă sau în tabelul colapsat;
+- evităm chenarele mari obținute din etichete cu multe rânduri: scurtăm nodul,
+  păstrăm o singură idee pe muchie și explicăm vocabularul imediat după schemă;
 - stilul de referință este o schemă `LR` compactă, cu noduri etichetate scurt,
   legături puține și o legendă imediată care explică ramificațiile;
 - orientarea se alege după întrebarea diagramei și costul vizual, nu după o

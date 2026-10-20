@@ -16,9 +16,16 @@ final class PracticeShopApiTrafficCapture {
         }
         String responseBody;
         try {
+            // Response callbacks can arrive before Chromium has released the
+            // compressed CORS payload. Wait for the response lifecycle to settle
+            // before reading the body; otherwise a valid JSON response can be
+            // reported as transport-unavailable evidence.
+            response.finished();
             responseBody = PracticeShopApiEvidenceMapper.redactJson(new String(response.body()));
         } catch (RuntimeException unavailable) {
-            // Chromium may release a compressed CORS payload before CDP can read it.
+            // Keep the limitation explicit when the browser still cannot expose
+            // the payload after the lifecycle wait; assertions must not treat it
+            // as an empty or successful JSON body.
             responseBody = "<body unavailable: Chromium released response payload>";
         }
         return Optional.of(new PracticeShopApiNetworkJournal.Exchange(

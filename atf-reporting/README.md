@@ -25,20 +25,20 @@ duplicată aici; aparține README-ului acelui consumer.
 
 ```mermaid
 flowchart LR
-    Consumer[atf-reporting-tests<br/>consumator canonic]
-    subgraph Library[atf-reporting — standalone]
-        Contract[public typed contract] --> Model[semantic model]
-        Model --> Renderer[renderer + native assets]
-        Renderer --> Artifact[Extent/HTML artifact]
-    end
-    Consumer -->|records + ports| Contract
-    Vendor[Jackson + ExtentReports] -. runtime .-> Contract
+    Consumer[consumer] --> Contract[public contract]
+    Contract --> Model[semantic model]
+    Model --> Renderer[renderer]
+    Renderer --> Artifact[Extent / HTML]
+    Vendor[external libraries] -. runtime .-> Renderer
 ```
 
 <details>
 <summary><strong>Legendă — boundary-ul standalone</strong></summary>
 
 - `atf-reporting` primește input typed și publică artifactul; nu orchestrează teste;
+- traseul `Contract → Model → Renderer → Artifact` este interiorul bibliotecii;
+- `consumer` este în mod canonic `atf-reporting-tests`, dar poate fi înlocuit de
+  orice aplicație care folosește API-ul public;
 - `atf-reporting-tests` este singurul consumator canonic pentru compoziția ATF;
 - Jackson și ExtentReports sunt dependențe externe declarate în POM-ul standalone;
 - mock-ul, browserul, JUnit orchestration și fixture-urile nu intră în producția librăriei.
@@ -80,11 +80,11 @@ Regula permanentă este:
 
 ```mermaid
 flowchart LR
-    Vocabulary[enum / constant<br/>tag • class • attribute • status • view • token]
-    Runtime[POJO / record immutable<br/>scenario • phase • request • JSON • evidence • check]
-    Serialize[builders / renderers<br/>HTML • CSS • JavaScript]
-    Audit[pure contract validators]
-    Publish[Extent/JUnit adapters]
+    Vocabulary[vocabulary]
+    Runtime[typed model]
+    Serialize[builders + assets]
+    Audit[contract audit]
+    Publish[publication adapters]
     Vocabulary --> Serialize
     Runtime --> Serialize
     Serialize --> Audit
@@ -289,6 +289,10 @@ display policy; diferența rămasă este numai adaptorul de publicare (Markup
 Extent versus document HTML). Paritatea este protejată prin teste component/unit,
 nu printr-un E2E suplimentar.
 
+`AtfReportStatus` este și owner-ul unic pentru markerul inline, label-ul uman și
+rezultatul compact; rendererele nu își definesc switch-uri locale pentru emoji sau
+text de status, iar fallback-ul HTML folosește aceeași prezentare typed ca evidence-ul UI.
+
 Și proiecția `Fails` este acum separată pe responsabilități native: detection,
 context, cause-chain și projection au câte un asset JS și o fațadă Java proprie.
 `ExtentReportFailureRuntime` compune ordinea stabilă, fără să dețină corpuri de
@@ -423,9 +427,9 @@ output directory, numele fișierului, timestamp policy și politica typed de cap
 
 ```mermaid
 flowchart LR
-    Input[typed input + reporting settings] --> Model[semantic model]
-    Model --> Render[Extent/HTML renderer]
-    Render --> Assets[CSS + JavaScript assets]
+    Input[typed input] --> Model[semantic model]
+    Model --> Render[renderer]
+    Render --> Assets[CSS + JavaScript]
     Assets --> Output[configured artifact]
 ```
 
@@ -589,6 +593,16 @@ compoziție rămâne explicită în facade-urile runtime. Aceeași graniță est
 `duration-*.js` și de cele trei asset-uri `runtime-core-*.js`; fragmentele
 JavaScript păstrează ownership-ul semantic, iar facade-urile Java păstrează doar
 ordinea de compoziție.
+
+Sursele native `.css` și `.js` rămân formatate pe mai multe linii în classpath,
+pentru review, depanare și teste component. `ReportAssetLoader.load(...)` și
+`render(...)` expun această sursă lizibilă; `loadForPublication(...)` și
+`renderForPublication(...)` trec numai copia destinată HTML-ului prin
+`ReportAssetCompactor`. Compactorul elimină whitespace-ul și comentariile sigure
+în afara valorilor quoted, păstrează spațiile semnificative din text, selectorii
+și expresiile JS/CSS și nu modifică fișierele native. Astfel HTML-ul Extent nu
+primește enter-uri de indentare inutile, iar sursa rămâne ușor de întreținut și
+de testat separat.
 
 Facade-urile Java (`AtfFallbackTheme`, `AtfReportOverviewCss`, facades-urile CSS
 theme/evidence,

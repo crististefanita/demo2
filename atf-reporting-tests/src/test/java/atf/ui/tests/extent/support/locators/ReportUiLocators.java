@@ -61,6 +61,18 @@ public final class ReportUiLocators {
     public Locator overviewExecutionMetadata(Locator overview) {
         return pages.overviewExecutionMetadata(overview);
     }
+    public Locator overviewSecondaryZones(Locator overview) {
+        return pages.overviewSecondaryZones(overview);
+    }
+    public Locator overviewOpenSecondaryZones(Locator overview) {
+        return pages.overviewOpenSecondaryZones(overview);
+    }
+    public Locator overviewPackageRows(Locator overview) {
+        return pages.overviewPackageRows(overview);
+    }
+    public Locator testPackageNodes(Page page) {
+        return pages.testPackageNodes(page);
+    }
     public AtfLocator overviewExecutionMetadataAction(Page page) {
         return pages.overviewExecutionMetadataAction(page);
     }

@@ -1,1 +1,55 @@
-function failureCauseChain(item){var causes=[];q('.card[data-atf-node-role="phase"]',item).forEach(function(card){if(statusOf(card)!=='fail')return;q('.helm-trace-table tbody tr',card).forEach(function(row){var cells=Array.prototype.slice.call(row.cells||[]),label=String(text(cells[0],'')).trim().toUpperCase();if(label==='FAILURE CAUSE')causes.push(text(cells[1],''));});});return causes.map(function(cause,index){return (index===0?'PRIMARY: ':'SECONDARY: ')+cause;}).join(' | ');}function scopeFailureContextToPhase(item,context){var phase=q('.card[data-atf-node-role="phase"]',item).find(function(card){return statusOf(card)==='fail';});if(!phase)return context;var requests=q('[data-atf-node-role="request"]',phase),validations=q('[data-atf-node-role="validation"]',phase);if(!context.ui&&requests.length){var request=requests[requests.length-1];context.request=text(request,'.card-title a.node');var durationRow=q('.helm-trace-table tbody tr,.execution-table tbody tr',request).find(function(row){var label=String(text(row.cells&&row.cells[0],'')).trim().toUpperCase();return label==='RESPONSE DURATION'||label==='RESPONSE DURATION (MS)'||label==='RESPONSE.DURATION.MS';});if(durationRow){var rawDuration=text(durationRow.cells[1],'');var durationMs=atfDurationValue(rawDuration);context.duration=durationMs===null?rawDuration:atfFormatDuration(durationMs);}}if(validations.length)context.validation=text(validations[validations.length-1],'.card-title a.node');return context;}
+function failureCauseChain(item) {
+  var causes = [];
+  q('.card[data-atf-node-role="phase"]', item).forEach(function (card) {
+    if (statusOf(card) !== 'fail') return;
+    q('.helm-trace-table tbody tr', card).forEach(function (row) {
+      var cells = Array.prototype.slice.call(row.cells || []),
+        label = String(text(cells[0], '')).trim().toUpperCase();
+      if (label === 'FAILURE CAUSE') causes.push(text(cells[1], ''));
+    });
+  });
+  return causes
+    .map(function (cause, index) {
+      return (index === 0 ? 'PRIMARY: ' : 'SECONDARY: ') + cause;
+    })
+    .join(' | ');
+}
+function scopeFailureContextToPhase(item, context) {
+  var phase = q('.card[data-atf-node-role="phase"]', item).find(
+    function (card) {
+      return statusOf(card) === 'fail';
+    }
+  );
+  if (!phase) return context;
+  var requests = q('[data-atf-node-role="request"]', phase),
+    validations = q('[data-atf-node-role="validation"]', phase);
+  if (!context.ui && requests.length) {
+    var request = requests[requests.length - 1];
+    context.request = text(request, '.card-title a.node');
+    var durationRow = q(
+      '.helm-trace-table tbody tr,.execution-table tbody tr',
+      request
+    ).find(function (row) {
+      var label = String(text(row.cells && row.cells[0], ''))
+        .trim()
+        .toUpperCase();
+      return (
+        label === 'RESPONSE DURATION' ||
+        label === 'RESPONSE DURATION (MS)' ||
+        label === 'RESPONSE.DURATION.MS'
+      );
+    });
+    if (durationRow) {
+      var rawDuration = text(durationRow.cells[1], '');
+      var durationMs = atfDurationValue(rawDuration);
+      context.duration =
+        durationMs === null ? rawDuration : atfFormatDuration(durationMs);
+    }
+  }
+  if (validations.length)
+    context.validation = text(
+      validations[validations.length - 1],
+      '.card-title a.node'
+    );
+  return context;
+}

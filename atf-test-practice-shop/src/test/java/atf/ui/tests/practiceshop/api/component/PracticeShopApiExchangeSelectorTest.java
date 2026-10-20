@@ -2,6 +2,7 @@ package atf.ui.tests.practiceshop.api.component;
 
 import atf.api.core.http.request.HttpMethod;
 import atf.api.testkit.AtfComponentTest;
+import atf.ui.practiceshop.api.PracticeShopApiOperation;
 import atf.ui.practiceshop.api.PracticeShopApiRoutes;
 import atf.ui.practiceshop.api.PracticeShopApiHttpStatus;
 import atf.ui.practiceshop.support.PracticeShopApiExchangeSelector;
@@ -46,6 +47,17 @@ class PracticeShopApiExchangeSelectorTest {
     }
 
     @Test
+    void operationSelectionAcceptsObservedQueryAliasForCatalogSearch() {
+        var observed = exchange("QUERY", PracticeShopApiRoutes.PRODUCT_SEARCH,
+                PracticeShopApiHttpStatus.OK, "search-result");
+
+        assertEquals(observed, PracticeShopApiExchangeSelector.latest(
+                List.of(observed), PracticeShopApiOperation.SEARCH, item -> true));
+        assertEquals("GET /products/search → 200 application/json (observed method=QUERY)",
+                observed.reportSummary());
+    }
+
+    @Test
     void selectionUsesTheNormalizedRouteInsteadOfAContainsMatch() {
         var misleading = exchange(HttpMethod.GET.value(), PracticeShopApiRoutes.product(
                 PracticeShopApiScenarioFixture.PRODUCT_ID) + "-archive", PracticeShopApiHttpStatus.OK, "wrong");
@@ -64,6 +76,23 @@ class PracticeShopApiExchangeSelectorTest {
         assertEquals("checkout", traced.phase());
         assertFalse(traced.signature().isBlank());
         assertEquals(64, traced.digest().length());
+    }
+
+    @Test
+    void requestSignatureIsStableForRetriesButChangesWithTheRequestBody() {
+        var first = exchange(HttpMethod.POST.value(), PracticeShopApiRoutes.PAYMENT_CHECK,
+                PracticeShopApiHttpStatus.OK, "{\"payment_method\":\"cash-on-delivery\"}")
+                .withTrace(1, Instant.parse("2026-10-20T10:00:00Z"), "checkout");
+        var retry = exchange(HttpMethod.POST.value(), PracticeShopApiRoutes.PAYMENT_CHECK,
+                PracticeShopApiHttpStatus.OK, "{\"payment_method\":\"cash-on-delivery\"}")
+                .withTrace(2, Instant.parse("2026-10-20T10:00:01Z"), "checkout");
+        var differentBody = exchange(HttpMethod.POST.value(), PracticeShopApiRoutes.PAYMENT_CHECK,
+                PracticeShopApiHttpStatus.OK, "{\"payment_method\":\"bank-transfer\"}")
+                .withTrace(3, Instant.parse("2026-10-20T10:00:02Z"), "checkout");
+
+        assertEquals(first.signature(), retry.signature());
+        assertFalse(first.signature().isBlank());
+        assertFalse(first.signature().equals(differentBody.signature()));
     }
 
     @Test

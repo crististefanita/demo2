@@ -1,5 +1,22 @@
-@media only screen and (max-width:${NARROW_VIEWPORT}){
-.test-wrapper,.test-view{left:var(--atf-narrow-nav-inset)!important;width:calc(100% - var(--atf-narrow-nav-inset))!important;max-width:calc(100% - var(--atf-narrow-nav-inset))!important;box-sizing:border-box!important}
-.test-wrapper .test-list,.test-view .test-list{width:100%!important;max-width:100%!important;box-sizing:border-box!important}
-.test-wrapper .test-content,.test-view .test-content{left:var(--atf-narrow-nav-inset)!important;width:calc(100% - var(--atf-narrow-nav-inset))!important;max-width:calc(100% - var(--atf-narrow-nav-inset))!important;box-sizing:border-box!important}
+@media only screen and (max-width: ${NARROW_VIEWPORT}) {
+  .test-wrapper,
+  .test-view {
+    left: var(--atf-narrow-nav-inset) !important;
+    width: calc(100% - var(--atf-narrow-nav-inset)) !important;
+    max-width: calc(100% - var(--atf-narrow-nav-inset)) !important;
+    box-sizing: border-box !important;
+  }
+  .test-wrapper .test-list,
+  .test-view .test-list {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .test-wrapper .test-content,
+  .test-view .test-content {
+    left: var(--atf-narrow-nav-inset) !important;
+    width: calc(100% - var(--atf-narrow-nav-inset)) !important;
+    max-width: calc(100% - var(--atf-narrow-nav-inset)) !important;
+    box-sizing: border-box !important;
+  }
 }

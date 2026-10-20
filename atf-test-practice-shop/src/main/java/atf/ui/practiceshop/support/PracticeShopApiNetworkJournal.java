@@ -5,12 +5,19 @@ import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.core.http.request.HttpMethod;
 import atf.ui.practiceshop.api.PracticeShopApiOperation;
 import atf.ui.practiceshop.api.PracticeShopApiAuthType;
+import atf.ui.practiceshop.api.PracticeShopApiRequestFactory;
 import atf.ui.practiceshop.api.PracticeShopApiRoutes;
+import atf.ui.practiceshop.config.PracticeShopApiConfiguration;
+import atf.ui.practiceshop.config.PracticeShopCredentials;
 import atf.ui.practiceshop.config.PracticeShopValidationProfile;
 import com.microsoft.playwright.Page;
 
 import java.util.ArrayList;
 import java.time.Instant;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URI;
 import java.security.MessageDigest;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -52,10 +59,23 @@ public final class PracticeShopApiNetworkJournal {
 
     /** API confirmation for the login setup that precedes an authenticated UI flow. */
     public List<AtfAssertion> loginConfirmed(String displayName) {
+        return loginConfirmed(displayName, null, null);
+    }
+
+    /**
+     * Confirms the browser login and keeps deterministic JSON in the report when
+     * Chromium releases the compressed CORS login payload before it can be read.
+     * Recovery is limited to the idempotent login exchange; the browser exchange
+     * remains the canonical trace and no cart/payment request is replayed.
+     */
+    public List<AtfAssertion> loginConfirmed(String displayName,
+                                             PracticeShopApiConfiguration apiConfiguration,
+                                             PracticeShopCredentials credentials) {
         if (!profile.apiEvidenceRequired()) return List.of();
         Exchange login = PracticeShopApiExchangeSelector.latest(
                 exchanges, HttpMethod.POST.value(), PracticeShopApiRoutes.LOGIN,
                 exchange -> exchange.status() == 200);
+        login = recoverLoginBody(login, apiConfiguration, credentials);
         Exchange currentUser = PracticeShopApiExchangeSelector.latestOptional(
                 exchanges, HttpMethod.GET.value(), PracticeShopApiRoutes.CURRENT_USER,
                 exchange -> exchange.status() == 200);
@@ -66,6 +86,55 @@ public final class PracticeShopApiNetworkJournal {
         return PracticeShopApiAssertions.login(login, currentUser, displayName);
     }
 
+    private static Exchange recoverLoginBody(Exchange login,
+                                             PracticeShopApiConfiguration apiConfiguration,
+                                             PracticeShopCredentials credentials) {
+        if (login == null || !bodyUnavailable(login.responseBody())
+                || apiConfiguration == null || credentials == null
+                || apiConfiguration.mode() != atf.api.core.config.ApiTransportMode.LIVE) {
+            return login;
+        }
+        try {
+            String recoveredBody = recoverLoginBody(apiConfiguration, credentials);
+            return recoveredBody.isBlank() ? login : login.withResponseBody(recoveredBody);
+        } catch (RuntimeException ignored) {
+            // Browser evidence remains authoritative when optional recovery fails.
+            return login;
+        }
+    }
+
+    private static String recoverLoginBody(PracticeShopApiConfiguration configuration,
+                                           PracticeShopCredentials credentials) {
+        try {
+            var request = new PracticeShopApiRequestFactory().login(credentials);
+            URI uri = configuration.endpoint().resolve(PracticeShopApiRoutes.LOGIN.substring(1));
+            HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
+            connection.setConnectTimeout((int) configuration.timeout().toMillis());
+            connection.setReadTimeout((int) configuration.timeout().toMillis());
+            connection.setRequestMethod(HttpMethod.POST.value());
+            connection.setDoOutput(true);
+            connection.setRequestProperty("Accept", "application/json");
+            connection.setRequestProperty("Content-Type", "application/json");
+            byte[] body = request.bodyText().getBytes(StandardCharsets.UTF_8);
+            try (var output = connection.getOutputStream()) {
+                output.write(body);
+            }
+            int status = connection.getResponseCode();
+            if (status < 200 || status >= 300) return "";
+            try (InputStream input = connection.getInputStream()) {
+                return new String(input.readAllBytes(), StandardCharsets.UTF_8);
+            } finally {
+                connection.disconnect();
+            }
+        } catch (IOException | RuntimeException ignored) {
+            return "";
+        }
+    }
+
+    private static boolean bodyUnavailable(String body) {
+        return body != null && body.startsWith("<body unavailable:");
+    }
+
     /**
      * API precondition for the product selected by the UI. The route is the
      * source of truth when the external catalog rotates IDs or contains
@@ -74,7 +143,7 @@ public final class PracticeShopApiNetworkJournal {
     public List<AtfAssertion> productReady(String productName, String selectedProductPath) {
         if (!profile.apiEvidenceRequired()) return List.of();
         Exchange search = PracticeShopApiExchangeSelector.latest(
-                exchanges, PracticeShopApiOperation.SEARCH.wireValue(), PracticeShopApiRoutes.PRODUCT_SEARCH,
+                exchanges, PracticeShopApiOperation.SEARCH,
                 exchange -> exchange.status() == 200);
         productId = PracticeShopApiExchangeSelector.productIdFromPath(selectedProductPath);
         if (productId == null) {
@@ -156,15 +225,22 @@ public final class PracticeShopApiNetworkJournal {
             responseBody = PracticeShopApiEvidenceMapper.redactJson(responseBody);
             capturedAt = capturedAt == null ? Instant.EPOCH : capturedAt;
             phase = phase == null || phase.isBlank() ? "unknown" : phase;
-            signature = signature == null ? "" : signature;
+            signature = signature == null || signature.isBlank()
+                    ? requestSignature(method, path, requestBody) : signature;
             digest = digest == null ? "" : digest;
         }
 
         public Exchange withTrace(long sequence, Instant capturedAt, String phase) {
             String digest = digest(method, path, status, requestBody, responseBody);
-            String signature = method + " " + path + "#" + sequence + "@" + capturedAt.toEpochMilli();
+            String signature = requestSignature(method, path, requestBody);
             return new Exchange(method, path, url, status, requestBody, responseBody,
                     requestHeaders, responseHeaders, sequence, capturedAt, phase, signature, digest);
+        }
+
+        public Exchange withResponseBody(String body) {
+            return new Exchange(method, path, url, status, requestBody, body,
+                    requestHeaders, responseHeaders, sequence, capturedAt, phase, signature,
+                    digest(method, path, status, requestBody, body));
         }
 
         public String contentType() {
@@ -198,6 +274,21 @@ public final class PracticeShopApiNetworkJournal {
         }
         public String summary() { return method + " " + path + " → " + status + " " + contentType(); }
 
+        /**
+         * Human-facing summary for assertions and report evidence. A browser
+         * capture alias is never allowed to obscure the real HTTP operation;
+         * when one is observed it remains explicit metadata in the suffix.
+         */
+        public String reportSummary() {
+            PracticeShopApiOperation operation = PracticeShopApiOperation.resolve(method, path);
+            String reportMethod = operation == PracticeShopApiOperation.UNKNOWN
+                    ? method : operation.reportMethod();
+            String summary = reportMethod + " " + path + " → " + status + " " + contentType();
+            return operation != PracticeShopApiOperation.UNKNOWN
+                    && !reportMethod.equalsIgnoreCase(method)
+                    ? summary + " (observed method=" + method + ")" : summary;
+        }
+
         private static String digest(String method, String path, int status,
                                      String requestBody, String responseBody) {
             try {
@@ -206,6 +297,25 @@ public final class PracticeShopApiNetworkJournal {
                 byte[] hash = MessageDigest.getInstance("SHA-256").digest(bytes);
                 StringBuilder result = new StringBuilder(hash.length * 2);
                 for (byte value : hash) result.append(String.format("%02x", value));
+                return result.toString();
+            } catch (java.security.NoSuchAlgorithmException error) {
+                throw new IllegalStateException("SHA-256 is unavailable", error);
+            }
+        }
+
+        /** Stable request identity: retries share it, but different JSON bodies do not. */
+        private static String requestSignature(String method, String path, String requestBody) {
+            return (method == null ? "" : method.toUpperCase()) + " "
+                    + PracticeShopApiExchangeSelector.normalize(path)
+                    + "#body=" + sha256(requestBody == null ? "" : requestBody);
+        }
+
+        private static String sha256(String value) {
+            try {
+                byte[] hash = MessageDigest.getInstance("SHA-256")
+                        .digest(value.getBytes(StandardCharsets.UTF_8));
+                StringBuilder result = new StringBuilder(hash.length * 2);
+                for (byte item : hash) result.append(String.format("%02x", item));
                 return result.toString();
             } catch (java.security.NoSuchAlgorithmException error) {
                 throw new IllegalStateException("SHA-256 is unavailable", error);

@@ -2,6 +2,8 @@ package atf.ui.tests.practiceshop.component;
 
 import atf.api.testkit.AtfComponentTest;
 import atf.ui.practiceshop.config.PracticeShopConfigurationLoader;
+import atf.ui.practiceshop.config.PracticeShopApiConfiguration;
+import atf.ui.practiceshop.config.PracticeShopApiPrecondition;
 import atf.ui.practiceshop.config.PracticeShopValidationProfile;
 import atf.ui.practiceshop.routes.PracticeShopUiRoutes;
 import org.junit.jupiter.api.Test;
@@ -9,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @AtfComponentTest
 class PracticeShopConfigurationTest {
@@ -26,7 +29,9 @@ class PracticeShopConfigurationTest {
         assertEquals("Cash on Delivery", configuration.checkout().paymentMethod());
         assertEquals("Romania", configuration.checkout().billing().country());
         assertEquals(70, configuration.browser().zoomPercent());
+        assertTrue(configuration.browser().screenshotOnFailure());
         assertEquals(PracticeShopValidationProfile.UI_API, configuration.validationProfile());
+        assertTrue(configuration.api().authenticatedPrecondition());
         assertTrue(configuration.uiReportDirectory().toString().endsWith("artifacts\\reports\\ui"));
         assertTrue(configuration.apiReportDirectory().toString().endsWith("artifacts\\reports"));
         assertFalse(configuration.authenticatedE2eAllowed());
@@ -42,6 +47,22 @@ class PracticeShopConfigurationTest {
                 configuration.uri(PracticeShopUiRoutes.product("1")));
         assertEquals(configuration.baseUrl().resolve("checkout"),
                 configuration.uri(PracticeShopUiRoutes.CHECKOUT));
+    }
+
+    @Test
+    void authenticatedRunCannotDeclareAnAnonymousApiPrecondition() {
+        assertThrows(IllegalArgumentException.class, () -> new atf.ui.practiceshop.config.PracticeShopConfiguration(
+                configuration().baseUrl(), configuration().accountFile(), configuration().productName(),
+                configuration().productPath(), configuration().checkout(), configuration().browser(),
+                configuration().validationProfile(),
+                new PracticeShopApiConfiguration(configuration().api().endpoint(),
+                        configuration().api().mode(), PracticeShopApiPrecondition.ANONYMOUS,
+                        configuration().api().timeout()),
+                configuration().uiReportDirectory(), configuration().apiReportDirectory(), true));
+    }
+
+    private static atf.ui.practiceshop.config.PracticeShopConfiguration configuration() {
+        return PracticeShopConfigurationLoader.load();
     }
 }
 

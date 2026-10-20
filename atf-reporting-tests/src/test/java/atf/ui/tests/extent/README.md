@@ -17,10 +17,10 @@ read-only în browser.
 
 ```mermaid
 flowchart LR
-    Root[atf.ui.tests.extent]
-    Root --> Component[component<br/>contracte + guard-uri]
-    Root --> E2E[e2e<br/>Playwright + artifact UI]
-    E2E --> Support[support<br/>fixtures + flows + locators + validators]
+    Root[Extent test kit]
+    Root --> Component[component]
+    Root --> E2E[e2e]
+    E2E --> Support[support]
     Component -. read-only contracts .-> Support
 ```
 

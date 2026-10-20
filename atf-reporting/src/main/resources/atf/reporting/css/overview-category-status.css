@@ -1,8 +1,56 @@
 /* Category-tab status badges. */
-.category-view .test-list .test-detail .meta .badge.log,.category-view .test-contents .info .badge.log,.category-view .test-contents td .badge.log{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:0!important;width:auto!important;height:var(--atf-badge-height)!important;box-sizing:border-box!important;padding:var(--atf-badge-padding)!important;border:0!important;border-radius:var(--atf-badge-radius)!important;font-family:var(--atf-font-sans)!important;font-size:var(--atf-badge-font-size)!important;line-height:var(--atf-badge-line-height)!important;font-weight:400!important;white-space:nowrap!important}
-.category-view .test-list .test-detail .meta .badge.log.pass-bg,.category-view .test-contents .info .badge.log.pass-bg,.category-view .test-contents td .badge.log.pass-bg{background:var(--atf-pass)!important;color:var(--atf-pass-text)!important}
-.category-view .test-list .test-detail .meta .badge.log.badge-danger,.category-view .test-contents .info .badge.log.badge-danger,.category-view .test-contents td .badge.log.badge-danger{background:var(--atf-fail)!important;color:var(--atf-fail-text)!important}
-.category-view .test-list .test-detail .meta .badge.log.fail-bg,.category-view .test-contents .info .badge.log.fail-bg,.category-view .test-contents td .badge.log.fail-bg{background:var(--atf-fail)!important;color:var(--atf-fail-text)!important}
-.category-view .test-list .test-detail .meta .badge.log.badge-skip,.category-view .test-contents .info .badge.log.badge-skip,.category-view .test-contents td .badge.log.badge-skip{background:var(--atf-skip)!important;color:var(--atf-skip-text)!important}
-.category-view .test-list .test-detail .meta .badge.log.badge-warning,.category-view .test-contents .info .badge.log.badge-warning,.category-view .test-contents td .badge.log.badge-warning{background:var(--atf-skip)!important;color:#fff!important}
-.category-view .test-list .test-detail .meta .badge.log.warning-bg,.category-view .test-contents .info .badge.log.warning-bg,.category-view .test-contents td .badge.log.warning-bg{background:var(--atf-skip)!important;color:#fff!important}
+.category-view .test-list .test-detail .meta .badge.log,
+.category-view .test-contents .info .badge.log,
+.category-view .test-contents td .badge.log {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 0 !important;
+  width: auto !important;
+  height: var(--atf-badge-height) !important;
+  box-sizing: border-box !important;
+  padding: var(--atf-badge-padding) !important;
+  border: 0 !important;
+  border-radius: var(--atf-badge-radius) !important;
+  font-family: var(--atf-font-sans) !important;
+  font-size: var(--atf-badge-font-size) !important;
+  line-height: var(--atf-badge-line-height) !important;
+  font-weight: 400 !important;
+  white-space: nowrap !important;
+}
+.category-view .test-list .test-detail .meta .badge.log.pass-bg,
+.category-view .test-contents .info .badge.log.pass-bg,
+.category-view .test-contents td .badge.log.pass-bg {
+  background: var(--atf-pass) !important;
+  color: var(--atf-pass-text) !important;
+}
+.category-view .test-list .test-detail .meta .badge.log.badge-danger,
+.category-view .test-contents .info .badge.log.badge-danger,
+.category-view .test-contents td .badge.log.badge-danger {
+  background: var(--atf-fail) !important;
+  color: var(--atf-fail-text) !important;
+}
+.category-view .test-list .test-detail .meta .badge.log.fail-bg,
+.category-view .test-contents .info .badge.log.fail-bg,
+.category-view .test-contents td .badge.log.fail-bg {
+  background: var(--atf-fail) !important;
+  color: var(--atf-fail-text) !important;
+}
+.category-view .test-list .test-detail .meta .badge.log.badge-skip,
+.category-view .test-contents .info .badge.log.badge-skip,
+.category-view .test-contents td .badge.log.badge-skip {
+  background: var(--atf-skip) !important;
+  color: var(--atf-skip-text) !important;
+}
+.category-view .test-list .test-detail .meta .badge.log.badge-warning,
+.category-view .test-contents .info .badge.log.badge-warning,
+.category-view .test-contents td .badge.log.badge-warning {
+  background: var(--atf-skip) !important;
+  color: #fff !important;
+}
+.category-view .test-list .test-detail .meta .badge.log.warning-bg,
+.category-view .test-contents .info .badge.log.warning-bg,
+.category-view .test-contents td .badge.log.warning-bg {
+  background: var(--atf-skip) !important;
+  color: #fff !important;
+}

@@ -161,8 +161,8 @@ public final class PracticeShopE2eContext implements AutoCloseable {
 
         public void checkpoint(Page page, PlaywrightActionSequence actions,
                                PracticeShopPurchaseCheckpoint checkpoint) {
-            UiScreenValidation.Evidence evidence = checkpoint.passed()
-                    && !configuration.browser().screenshotOnFailure()
+            UiScreenValidation.Evidence evidence = !PracticeShopScreenshotPolicy.shouldCapture(
+                    checkpoint.passed(), configuration.browser().screenshotOnFailure())
                     ? new UiScreenValidation.Evidence(checkpoint.title(), "", false)
                     : UiScreenValidation.capture(page, UiScreenValidationConfiguration.defaults(), checkpoint.title());
             PracticeShopAuditObservations.recordCheckpoint(actions, page, checkpoint, evidence);

@@ -58,7 +58,8 @@ class PracticeShopAuthenticatedPurchaseE2eTest {
         scenario.execute(context.page(), actions, () -> {
             new PracticeShopAccountFlow(locators).loginAndAssertAccount(
                     context.page(), actions, configuration, credentials);
-            var loginAssertions = context.apiNetwork().loginConfirmed(credentials.displayName());
+            var loginAssertions = context.apiNetwork().loginConfirmed(credentials.displayName(),
+                    configuration.api(), credentials);
             context.runtimeDiagnostics().markAuthenticatedSetup();
             scenario.checkpoint(context.page(), actions,
                     new PracticeShopPurchaseCheckpoint(AtfGherkinKeyword.GIVEN,

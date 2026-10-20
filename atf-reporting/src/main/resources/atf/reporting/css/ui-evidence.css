@@ -1,7 +1,48 @@
-${SECTION_SELECTOR}{margin-top:24px;padding:18px;border:1px solid ${UI_EVIDENCE_BORDER};border-radius:5px;background:${UI_EVIDENCE_SURFACE};color:${UI_EVIDENCE_TEXT}}
-${SECTION_SELECTOR} h2{margin:0 0 12px;font-size:16px;font-weight:400}
-${SECTION_SELECTOR} details{margin:10px 0;border:1px solid ${UI_EVIDENCE_BORDER};border-radius:4px;padding:10px;background:${UI_EVIDENCE_DETAIL_SURFACE}}
-${SECTION_SELECTOR} summary{cursor:pointer;color:${UI_EVIDENCE_SUMMARY}}
-${SECTION_SELECTOR} ol{margin:12px 0;color:${UI_EVIDENCE_MUTED};font-size:12px}
-${SECTION_SELECTOR} .${LINK_CLASS}{display:inline-flex;align-items:center;align-self:center;justify-content:center;gap:4px;height:18px;min-height:18px;padding:0;line-height:18px;vertical-align:middle;margin:8px 0 0;transform:translateY(2px);text-decoration:none}
-${SECTION_SELECTOR} .${LINK_CLASS}:hover{background:${UI_EVIDENCE_HOVER};text-decoration:underline}
+${SECTION_SELECTOR} {
+  margin-top: 24px;
+  padding: 18px;
+  border: 1px solid ${UI_EVIDENCE_BORDER};
+  border-radius: 5px;
+  background: ${UI_EVIDENCE_SURFACE};
+  color: ${UI_EVIDENCE_TEXT};
+}
+${SECTION_SELECTOR} h2 {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 400;
+}
+${SECTION_SELECTOR} details {
+  margin: 10px 0;
+  border: 1px solid ${UI_EVIDENCE_BORDER};
+  border-radius: 4px;
+  padding: 10px;
+  background: ${UI_EVIDENCE_DETAIL_SURFACE};
+}
+${SECTION_SELECTOR} summary {
+  cursor: pointer;
+  color: ${UI_EVIDENCE_SUMMARY};
+}
+${SECTION_SELECTOR} ol {
+  margin: 12px 0;
+  color: ${UI_EVIDENCE_MUTED};
+  font-size: 12px;
+}
+${SECTION_SELECTOR} ${LINK_CLASS} {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  justify-content: center;
+  gap: 4px;
+  height: 18px;
+  min-height: 18px;
+  padding: 0;
+  line-height: 18px;
+  vertical-align: middle;
+  margin: 8px 0 0;
+  transform: translateY(2px);
+  text-decoration: none;
+}
+${SECTION_SELECTOR} ${LINK_CLASS}:hover {
+  background: ${UI_EVIDENCE_HOVER};
+  text-decoration: underline;
+}

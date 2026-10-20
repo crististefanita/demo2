@@ -15,9 +15,7 @@ cum este randat un raport.
 
 ```mermaid
 flowchart LR
-    Validation[atf-validation] --> Core[atf-core]
-    ReportingTests[atf-reporting-tests test fixtures] --> Core
-    Tests[atf-reporting-tests composition] --> Core
+    Consumers[validation · mock · UI · tests] --> Core[atf-core]
 ```
 
 <details>

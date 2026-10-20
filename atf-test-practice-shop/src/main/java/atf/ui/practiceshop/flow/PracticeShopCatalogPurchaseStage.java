@@ -47,10 +47,15 @@ final class PracticeShopCatalogPurchaseStage {
                 : locators.productLinkByPath(page, configuration.productPath());
         boolean configuredProductPathFound = configuration.usesDynamicProductPath()
                 || productLink.locator().count() > 0;
-        if (!configuration.usesDynamicProductPath() && productLink.locator().count() == 0) {
-            productLink = locators.productLinkFirst(page, configuration.productName());
+        if (!configuredProductPathFound) {
+            throw new IllegalStateException("Configured Practice Shop product route was not found: "
+                    + configuration.productPath() + "; productName=" + configuration.productName());
         }
         String selectedProductPath = productLink.locator().getAttribute("href");
+        if (selectedProductPath == null || selectedProductPath.isBlank()) {
+            throw new IllegalStateException("Selected Practice Shop product has no href: "
+                    + productLink.selector());
+        }
         actions.waitForVisible(productLink);
         actions.click(productLink, "matching product opens from search results");
 

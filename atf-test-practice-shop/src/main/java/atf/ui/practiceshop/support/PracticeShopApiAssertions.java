@@ -10,6 +10,7 @@ import atf.ui.practiceshop.api.PracticeShopApiQueryParameter;
 import atf.ui.practiceshop.api.PracticeShopApiRoutes;
 import com.fasterxml.jackson.databind.JsonNode;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static atf.api.reporting.audit.ReportAuditChecks.check;
@@ -40,7 +41,7 @@ public final class PracticeShopApiAssertions {
                 check("API precondition · catalog search",
                         PracticeShopApiOperation.SEARCH.wireValue() + " "
                                 + PracticeShopApiRoutes.PRODUCT_SEARCH + " · " + SUCCESS_STATUS.wireValue(),
-                        search.summary(), true),
+                        search.reportSummary(), true),
                 check("API request query · catalog search",
                         PracticeShopApiQueryParameter.SEARCH.wireValue() + "=" + productName,
                         search.requestBody().isBlank()
@@ -55,7 +56,9 @@ public final class PracticeShopApiAssertions {
                                 && exactText(detail.responseBody(), PracticeShopApiJsonField.NAME.wireValue(),
                                 productNameForId(search.responseBody(), productId))),
                 check("API response headers · product detail", MediaTypes.APPLICATION_JSON,
-                        detail.contentType(), detail.isJsonResponse()));
+                        detail.contentType(), detail.isJsonResponse()),
+                trace("catalog search", search),
+                trace("product detail", detail));
     }
 
     public static List<AtfAssertion> login(PracticeShopApiNetworkJournal.Exchange login,
@@ -74,7 +77,7 @@ public final class PracticeShopApiAssertions {
         boolean currentUserMatches = currentUser != null
                 && SUCCESS_STATUS.matches(currentUser.status())
                 && currentUserBody.contains(displayName.split(" ", 2)[0]);
-        return List.of(
+        List<AtfAssertion> assertions = new ArrayList<>(List.of(
                 check("API login status", SUCCESS_STATUS.wireValue(), Integer.toString(login.status()),
                         SUCCESS_STATUS.matches(login.status())),
                 check("API login request JSON", "email and password fields are sent",
@@ -92,7 +95,10 @@ public final class PracticeShopApiAssertions {
                                 + " returned " + SUCCESS_STATUS.wireValue() + "; "
                                 + PracticeShopApiRoutes.CURRENT_USER + " was not emitted by this UI revision", true)
                         : check("API current-user response", displayName, compact(currentUserBody, 220),
-                        currentUserMatches));
+                        currentUserMatches)));
+        assertions.add(trace("login", login));
+        if (currentUser != null) assertions.add(trace("current user", currentUser));
+        return List.copyOf(assertions);
     }
 
     public static List<AtfAssertion> cart(PracticeShopApiNetworkJournal.Exchange add,
@@ -113,7 +119,9 @@ public final class PracticeShopApiAssertions {
                                 + " with quantity " + quantity,
                         "product_id=" + productId + ", quantity=" + quantity + ", response="
                                 + compact(readResponseBody, 280),
-                        cartItemMatches(readJson, productId, quantity)));
+                        cartItemMatches(readJson, productId, quantity)),
+                trace("cart add", add),
+                trace("cart read", read));
     }
 
     public static List<AtfAssertion> payment(PracticeShopApiNetworkJournal.Exchange payment,
@@ -131,7 +139,18 @@ public final class PracticeShopApiAssertions {
                         responseBody, exactText(response, PracticeShopApiJsonField.MESSAGE.wireValue(),
                                 "Payment was successful")),
                 check("API response headers · payment", MediaTypes.APPLICATION_JSON, payment.contentType(),
-                        payment.isJsonResponse()));
+                        payment.isJsonResponse()),
+                trace("payment", payment));
+    }
+
+    private static AtfAssertion trace(String label, PracticeShopApiNetworkJournal.Exchange exchange) {
+        boolean present = exchange != null && !exchange.signature().isBlank();
+        String observed = exchange == null ? "missing" : "sequence="
+                + (exchange.sequence() > 0 ? exchange.sequence() : "n/a")
+                + "; phase=" + exchange.phase()
+                + "; signature=" + exchange.signature();
+        return check("API trace · " + label,
+                "request signature + phase + capture order", observed, present);
     }
 
     private static boolean isJson(String body) { return PracticeShopJsonEvidence.isJson(body); }

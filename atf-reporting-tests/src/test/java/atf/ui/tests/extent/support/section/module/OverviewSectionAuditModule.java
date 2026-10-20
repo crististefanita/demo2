@@ -10,6 +10,7 @@ import atf.api.reporting.ui.audit.plan.ExtentSection;
 import atf.api.reporting.ui.audit.plan.ExtentSectionCheck;
 import atf.api.reporting.ui.audit.plan.SectionAuditSpec;
 import atf.ui.tests.extent.support.section.runtime.SectionAuditFixture;
+import atf.ui.tests.extent.support.audit.screen.OverviewSecondaryContractValidator;
 import atf.api.reporting.ui.audit.result.SectionAuditResult;
 import atf.api.reporting.ui.audit.section.OverviewSectionValidator;
 import java.util.List;
@@ -21,6 +22,8 @@ import static atf.api.reporting.audit.ReportAuditChecks.check;
 public final class OverviewSectionAuditModule implements ExtentSectionAuditModule {
     private final OverviewSectionValidator validator = new OverviewSectionValidator();
     private final SectionAuditCheckExecutor checkExecutor = new SectionAuditCheckExecutor();
+    private final OverviewSecondaryContractValidator secondaryValidator =
+            new OverviewSecondaryContractValidator();
 
     @Override public ExtentSection section() { return ExtentSection.OVERVIEW; }
 
@@ -44,6 +47,7 @@ public final class OverviewSectionAuditModule implements ExtentSectionAuditModul
                             "selected API scenarios", tests.scenarioCount() + " scenarios",
                             projection.matches(tests)))));
         }
+        result = result.merge(secondaryValidator.validate(testsPage, overview));
         SectionAuditCheckExecutor.Execution execution = checkExecutor.execute(section(), spec, result);
         return new SectionAuditResult(section(), spec.checks(), execution.executedChecks(),
                 spec.journey(), execution.validation(), List.of("Overview totals", "Tests projection"));

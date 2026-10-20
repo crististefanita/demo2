@@ -29,11 +29,11 @@ specificitate pe măsură ce coborâm în pagină.
 
 ```mermaid
 flowchart LR
-    Docs[docs index] --> Architecture[architecture + module boundaries]
-    Architecture --> Guides[API/UI guides + contracts]
-    Guides --> Safety[build and execution safety]
+    Docs[docs index] --> Architecture[architecture]
+    Architecture --> Guides[guides + contracts]
+    Guides --> Safety[build safety]
     Safety --> Practices[best practices]
-    Practices --> Feedback[feedback register + active owner docs]
+    Practices --> Feedback[feedback + owner docs]
 ```
 
 <details>

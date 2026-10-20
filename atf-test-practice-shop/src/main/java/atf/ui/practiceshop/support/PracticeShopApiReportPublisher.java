@@ -77,6 +77,8 @@ public final class PracticeShopApiReportPublisher {
         PracticeShopApiOperation operation = PracticeShopApiOperation.resolve(
                 request.method(), request.path());
         String requestName = PracticeShopApiOperation.reportTitle(request.method(), request.path());
+        String reportMethod = operation == PracticeShopApiOperation.UNKNOWN
+                ? request.method() : operation.reportMethod();
         long requestStartedAt = System.nanoTime();
         consolePublish(console, AtfConsoleEvent.started(AtfConsoleEvent.Scope.REQUEST, requestName));
         consolePublish(console, AtfConsoleEvent.detail(AtfConsoleEvent.Scope.REQUEST,
@@ -84,12 +86,15 @@ public final class PracticeShopApiReportPublisher {
         consolePublish(console, AtfConsoleEvent.detail(AtfConsoleEvent.Scope.REQUEST,
                 "transport", execution.provenance().reportLabel()));
         AtfReportPorts.Request node = phase.startRequest(
-                requestName, request.method(), request.path());
+                requestName, reportMethod, request.path());
         AtfReportStatus requestStatus = AtfReportStatus.FAIL;
         boolean validationStarted = false;
         boolean validationCompleted = false;
         try {
             node.detail("operation.kind", operation.name());
+            if (!reportMethod.equalsIgnoreCase(request.method())) {
+                node.detail("observed.method", request.method());
+            }
             if (!operation.routeTemplate().isBlank()) {
                 node.detail("route.template", operation.routeTemplate());
             }

@@ -10,6 +10,15 @@ import java.util.Objects;
 public final class ReportAssetLoader {
     private static final String TEMPLATE_PREFIX = "${";
     private static final String TEMPLATE_SUFFIX = "}";
+    private final ReportAssetCompactor compactor;
+
+    public ReportAssetLoader() {
+        this(new ReportAssetCompactor());
+    }
+
+    ReportAssetLoader(ReportAssetCompactor compactor) {
+        this.compactor = Objects.requireNonNull(compactor, "compactor");
+    }
 
     public String load(ReportAsset asset) {
         ReportAsset.require(asset);
@@ -34,6 +43,16 @@ public final class ReportAssetLoader {
             throw new IllegalStateException("Unresolved reporting asset template in " + asset.resourcePath());
         }
         return source;
+    }
+
+    /** Loads readable source and compacts only the publication copy. */
+    public String loadForPublication(ReportAsset asset) {
+        return compactor.compact(asset, load(asset));
+    }
+
+    /** Renders variables into readable source, then compacts the publication copy. */
+    public String renderForPublication(ReportAsset asset, Map<String, String> variables) {
+        return compactor.compact(asset, render(asset, variables));
     }
 }
 

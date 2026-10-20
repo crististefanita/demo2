@@ -12,13 +12,16 @@ import atf.ui.practiceshop.api.PracticeShopApiJsonField;
 import atf.ui.practiceshop.api.PracticeShopApiOperation;
 import atf.ui.practiceshop.api.PracticeShopApiRoutes;
 import atf.ui.practiceshop.support.PracticeShopJsonEvidence;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /** Deterministic component boundary; live integration remains a separate test level. */
 public final class PracticeShopApiComponentFixture {
+    private static final ObjectMapper JSON = new ObjectMapper();
     private static final Map<String, String> JSON_HEADERS =
             Map.of(HttpHeader.CONTENT_TYPE.value(), MediaTypes.APPLICATION_JSON);
 
@@ -27,6 +30,16 @@ public final class PracticeShopApiComponentFixture {
     public static PracticeShopApiClient client() {
         return PracticeShopApiClient.forTransport(
                 PracticeShopApiScenarioFixture.API_ENDPOINT, transport());
+    }
+
+    /**
+     * Returns a deterministic stateful cart boundary for read-back contract tests.
+     * The ordinary fixture remains stateless so isolated request-variant tests do
+     * not accidentally depend on execution order.
+     */
+    public static PracticeShopApiClient statefulCartClient() {
+        return PracticeShopApiClient.forTransport(
+                PracticeShopApiScenarioFixture.API_ENDPOINT, new StatefulCartTransport());
     }
 
     public static ApiTransport transport() {
@@ -120,5 +133,85 @@ public final class PracticeShopApiComponentFixture {
     private static ApiResponse response(PracticeShopApiHttpStatus status, String body,
                                         Map<String, String> headers, String url) {
         return new ApiResponse(status.code(), body, headers, Duration.ZERO, url);
+    }
+
+    private static final class StatefulCartTransport implements ApiTransport {
+        private final Map<String, CartLine> carts = new HashMap<>();
+
+        @Override
+        public CompletableFuture<ApiResponse> send(ApiRequest request, String url, String auth) {
+            return CompletableFuture.completedFuture(response(request, url));
+        }
+
+        private ApiResponse response(ApiRequest request, String url) {
+            if (is(request, HttpMethod.POST, PracticeShopApiRoutes.CARTS)) {
+                String cartId = PracticeShopApiScenarioFixture.MUTATION_CART_ID;
+                carts.remove(cartId);
+                return json(PracticeShopApiHttpStatus.OK,
+                        "{\"id\":\"" + cartId + "\"}", url);
+            }
+
+            String cartId = cartId(request.path());
+            if (cartId == null) {
+                return json(PracticeShopApiHttpStatus.INTERNAL_SERVER_ERROR,
+                        PracticeShopApiScenarioFixture.UNEXPECTED_ROUTE_BODY, url);
+            }
+
+            if (request.method().equals(HttpMethod.POST.value())) {
+                CartLine line = line(request);
+                carts.put(cartId, line);
+                return json(PracticeShopApiHttpStatus.OK, mutation("item added or updated"), url);
+            }
+            if (request.method().equals(HttpMethod.PUT.value())) {
+                CartLine line = line(request);
+                carts.put(cartId, line);
+                return json(PracticeShopApiHttpStatus.OK, mutation("item updated"), url);
+            }
+            if (request.method().equals(HttpMethod.DELETE.value())) {
+                carts.remove(cartId);
+                return PracticeShopApiComponentFixture.response(
+                        PracticeShopApiHttpStatus.NO_CONTENT, "", Map.<String, String>of(), url);
+            }
+            if (request.method().equals(HttpMethod.GET.value())) {
+                return json(PracticeShopApiHttpStatus.OK, cartBody(carts.get(cartId)), url);
+            }
+            return json(PracticeShopApiHttpStatus.INTERNAL_SERVER_ERROR,
+                    PracticeShopApiScenarioFixture.UNEXPECTED_ROUTE_BODY, url);
+        }
+
+        private static String cartId(String path) {
+            String prefix = PracticeShopApiRoutes.CARTS + "/";
+            if (!path.startsWith(prefix)) return null;
+            String remainder = path.substring(prefix.length());
+            int slash = remainder.indexOf('/');
+            return slash < 0 ? remainder : remainder.substring(0, slash);
+        }
+
+        private static CartLine line(ApiRequest request) {
+            var body = PracticeShopJsonEvidence.parse(request.bodyText());
+            return new CartLine(body.path(PracticeShopApiJsonField.PRODUCT_ID.wireValue()).asText(),
+                    body.path(PracticeShopApiJsonField.QUANTITY.wireValue()).asInt());
+        }
+
+        private static String cartBody(CartLine line) {
+            try {
+                var root = JSON.createObjectNode();
+                var items = root.putArray(PracticeShopApiJsonField.CART_ITEMS.wireValue());
+                if (line != null) {
+                    var item = items.addObject();
+                    item.put(PracticeShopApiJsonField.PRODUCT_ID.wireValue(), line.productId());
+                    item.put(PracticeShopApiJsonField.QUANTITY.wireValue(), line.quantity());
+                }
+                return JSON.writeValueAsString(root);
+            } catch (Exception error) {
+                throw new IllegalStateException("Cannot serialize stateful cart fixture", error);
+            }
+        }
+
+        private static String mutation(String result) {
+            return "{\"result\":\"" + result + "\"}";
+        }
+
+        private record CartLine(String productId, int quantity) { }
     }
 }

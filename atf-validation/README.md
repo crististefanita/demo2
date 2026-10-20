@@ -21,12 +21,12 @@ rădăcină și în `docs/ATF_Architecture.md`.
 
 ```mermaid
 flowchart LR
-    Core[atf-core<br/>modele + porturi] --> Validation[atf-validation<br/>contracte + evaluator]
-    ReportingTests[atf-reporting-tests<br/>test composition] --> Validation
-    Validation --> Decision[ValidationDecision<br/>status + assertions]
-    Decision --> Sink[ValidationSink<br/>port îngust de publicare]
-    Sink --> Adapter[consumer adapter<br/>renderer-neutral mapping]
-    Adapter --> Reporting[atf-reporting<br/>Extent + HTML]
+    Core[core models] --> Validation[validation]
+    Tests[reporting tests] -. fixtures .-> Validation
+    Validation --> Decision[typed decision]
+    Decision --> Sink[validation sink]
+    Sink --> Adapter[consumer adapter]
+    Adapter --> Reporting[reporting]
 ```
 
 <details>

@@ -1,7 +1,41 @@
-${CATEGORY_STATUS_SELECTOR}{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:0!important;width:auto!important;height:var(--atf-badge-height)!important;box-sizing:border-box!important;padding:var(--atf-badge-padding)!important;border:0!important;border-radius:var(--atf-badge-radius)!important;font-family:var(--atf-font-sans)!important;font-size:var(--atf-badge-font-size)!important;line-height:var(--atf-badge-line-height)!important;font-weight:400!important;white-space:nowrap!important}
-${CATEGORY_STATUS_SELECTOR}.pass-bg{background:var(--atf-pass)!important;color:var(--atf-pass-text)!important}
-${CATEGORY_STATUS_SELECTOR}.badge-danger{background:var(--atf-fail)!important;color:var(--atf-fail-text)!important}
-${CATEGORY_STATUS_SELECTOR}.fail-bg{background:var(--atf-fail)!important;color:var(--atf-fail-text)!important}
-${CATEGORY_STATUS_SELECTOR}.badge-skip{background:var(--atf-skip)!important;color:var(--atf-skip-text)!important}
-${CATEGORY_STATUS_SELECTOR}.badge-warning{background:var(--atf-skip)!important;color:#fff!important}
-${CATEGORY_STATUS_SELECTOR}.warning-bg{background:var(--atf-skip)!important;color:#fff!important}
+${CATEGORY_STATUS_SELECTOR} {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 0 !important;
+  width: auto !important;
+  height: var(--atf-badge-height) !important;
+  box-sizing: border-box !important;
+  padding: var(--atf-badge-padding) !important;
+  border: 0 !important;
+  border-radius: var(--atf-badge-radius) !important;
+  font-family: var(--atf-font-sans) !important;
+  font-size: var(--atf-badge-font-size) !important;
+  line-height: var(--atf-badge-line-height) !important;
+  font-weight: 400 !important;
+  white-space: nowrap !important;
+}
+${CATEGORY_STATUS_SELECTOR}.pass-bg {
+  background: var(--atf-pass) !important;
+  color: var(--atf-pass-text) !important;
+}
+${CATEGORY_STATUS_SELECTOR}.badge-danger {
+  background: var(--atf-fail) !important;
+  color: var(--atf-fail-text) !important;
+}
+${CATEGORY_STATUS_SELECTOR}.fail-bg {
+  background: var(--atf-fail) !important;
+  color: var(--atf-fail-text) !important;
+}
+${CATEGORY_STATUS_SELECTOR}.badge-skip {
+  background: var(--atf-skip) !important;
+  color: var(--atf-skip-text) !important;
+}
+${CATEGORY_STATUS_SELECTOR}.badge-warning {
+  background: var(--atf-skip) !important;
+  color: #fff !important;
+}
+${CATEGORY_STATUS_SELECTOR}.warning-bg {
+  background: var(--atf-skip) !important;
+  color: #fff !important;
+}

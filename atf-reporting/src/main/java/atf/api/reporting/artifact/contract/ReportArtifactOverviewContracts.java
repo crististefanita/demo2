@@ -34,25 +34,30 @@ final class ReportArtifactOverviewContracts {
                 && html.contains(".dashboard-view{padding:21px!important}")
                 && html.contains(".dashboard-view .card-body h3{margin-bottom:7px!important}")
                 && badgeTypography
-                && html.contains(".dashboard-view .card:has(> .card-body #timeline)>.card-header>p")
+                && html.contains(".dashboard-view .card:has(>.card-body #timeline)>.card-header>p")
                 && html.contains(".atf-secondary-overview-title{")
                 && html.contains("font-size:15.4px!important")
                 && html.contains("line-height:21.56px!important")
                 && html.contains("font-weight:400!important")
-                && html.contains(".atf-secondary-overview>summary:before{content:'＋'!important")
-                && html.contains(".atf-secondary-overview[open]>summary:before{content:'−'!important"));
+                && containsGlyphRule(html, ".atf-secondary-overview>summary:before", "＋")
+                && containsGlyphRule(html, ".atf-secondary-overview[open]>summary:before", "−"));
         checks.put("overview excludes log events chart", html.contains("function removeUnsupportedOverviewCards()")
                 && html.contains("#events-analysis")
                 && html.contains("closest('.col-md-3')")
                 && html.contains("==='log events'")
                 && html.contains("(column||card||canvas).remove()"));
         checks.put("reference overview shape", html.contains("#grandchild-analysis")
-                && html.contains(".card:has(> .card-body #grandchild-analysis)"));
+                && html.contains(".card:has(>.card-body #grandchild-analysis)"));
         int timeline = html.indexOf("<p>Timeline</p>");
         int metadata = html.indexOf("ATF execution metadata (secondary)");
         int tagAudit = html.indexOf("ATF tag audit (secondary navigation metadata)");
         int nativeTags = html.indexOf("<p>Tags</p>");
         checks.put("overview order", timeline >= 0 && metadata > timeline
                 && tagAudit > metadata && nativeTags > tagAudit);
+    }
+
+    private static boolean containsGlyphRule(String html, String selector, String glyph) {
+        return html.contains(selector + "{content:'" + glyph + "'!important")
+                || html.contains(selector + "{content:\"" + glyph + "\"!important");
     }
 }

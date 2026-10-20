@@ -47,12 +47,6 @@ public final class ExtentReportNodeSupport {
     }
 
     public static String resultMarker(AtfReportStatus status) {
-        return switch (status) {
-            case PASS -> "✅";
-            case WARNING -> "⚠️";
-            case FAIL -> "❌";
-            case SKIP -> "⏭️";
-            case INFO -> "ℹ️";
-        };
+        return AtfReportStatus.orInfo(status).marker();
     }
 }

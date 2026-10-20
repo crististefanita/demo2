@@ -21,7 +21,7 @@ public final class ExtentSectionGherkin {
     public static String proposition(ExtentSection section) {
         Objects.requireNonNull(section, "section");
         return switch (section) {
-            case OVERVIEW -> "Overview shows reconciled totals and the expected API projection";
+            case OVERVIEW -> "Overview shows reconciled totals, package projections and collapsed ATF metadata";
             case TESTS -> "Tests show owners, scenarios, phases and request evidence";
             case CATEGORIES -> "Categories show counts and working filters";
             case FAILS -> "Fails show failure rows, causes and actionable links";
@@ -34,7 +34,7 @@ public final class ExtentSectionGherkin {
     public static String thenStatement(ExtentSection section) {
         Objects.requireNonNull(section, "section");
         return switch (section) {
-            case OVERVIEW -> "the Overview section shows reconciled totals and the expected API projection";
+            case OVERVIEW -> "the Overview section shows reconciled totals, package projections and collapsed ATF metadata";
             case TESTS -> "the Tests section shows owners, scenarios, phases and request evidence";
             case CATEGORIES -> "the Categories section shows counts and working filters";
             case FAILS -> "the Fails section shows failure rows, causes and actionable links";

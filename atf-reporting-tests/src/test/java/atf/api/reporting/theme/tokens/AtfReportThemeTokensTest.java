@@ -3,6 +3,7 @@ import atf.api.testkit.AtfUnitTest;
 import atf.api.reporting.theme.AtfReportTheme;
 import atf.api.reporting.theme.tokens.AtfReportThemeTokens;
 import atf.api.reporting.theme.tokens.AtfReportTypography;
+import atf.api.reporting.support.CssContractSupport;
 
 import org.junit.jupiter.api.Test;
 
@@ -76,7 +77,7 @@ class AtfReportThemeTokensTest {
 
     @Test
     void executionThemeUsesReferenceCardAndTypographyContract() {
-        String css = AtfReportTheme.css();
+        CssContractSupport css = CssContractSupport.of(AtfReportTheme.css());
 
         assertAll(
                 () -> assertTrue(css.contains(".test-contents>.mt-4>.accordion>.card{background:transparent")),
@@ -162,7 +163,7 @@ class AtfReportThemeTokensTest {
 
     @Test
     void fallbackThemeReusesTheSamePaletteAndBoundedEvidenceRules() {
-        String css = AtfReportTheme.fallbackCss();
+        CssContractSupport css = CssContractSupport.of(AtfReportTheme.fallbackCss());
 
         assertAll(
                 () -> assertTrue(css.contains("--atf-panel:#101723")),

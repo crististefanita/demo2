@@ -77,4 +77,17 @@ class ReportUiLocatorsTest {
         }
     }
 
+    @Test
+    void packageProjectionUsesTheRenderedTestsTabOwnerBoundary() throws IOException {
+        Path source = TEST_SOURCE_ROOT.resolve(
+                "atf/ui/tests/extent/support/locators/ReportPageLocators.java");
+        String locatorSource = Files.readString(source);
+
+        assertTrue(locatorSource.contains("TEST_LIST_ITEMS + \" > \""),
+                "package extraction must start at the rendered test-list-item boundary");
+        assertTrue(locatorSource.contains("atf-test-package")
+                        && locatorSource.contains(".p-v-10 > .m-t-10"),
+                "package extraction must support the normalized node and its source fallback");
+    }
+
 }

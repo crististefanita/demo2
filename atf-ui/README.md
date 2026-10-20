@@ -17,11 +17,11 @@ publisherul Extent sau page objects de produs.
 
 ```mermaid
 flowchart LR
-    Tests[atf-reporting-tests composition] --> Config[UiBrowserConfiguration<br/>screen validation policy]
-    Config --> Session[PlaywrightUiSession]
-    Session --> Browser[browser / context / page]
-    Browser --> Evidence[action recorder + screenshot payload]
-    Evidence --> Reporting[atf-reporting<br/>HTML artifact]
+    Tests[consumer tests] --> Config[browser policy]
+    Config --> Session[Playwright session]
+    Session --> Browser[browser / page]
+    Browser --> Evidence[action + screenshot]
+    Evidence --> Reporting[reporting]
 ```
 
 <details>

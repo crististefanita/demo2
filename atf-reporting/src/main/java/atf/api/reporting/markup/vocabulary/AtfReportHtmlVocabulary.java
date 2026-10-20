@@ -360,6 +360,11 @@ public final class AtfReportHtmlVocabulary {
         return Objects.requireNonNull(status, "status").displayValue();
     }
 
+    /** Canonical human-readable status text shared by fallback HTML views. */
+    public static String statusLabel(AtfReportStatus status) {
+        return AtfReportStatus.orInfo(status).displayLabel();
+    }
+
     public static String statusKey(boolean failed) {
         return failed ? "status-fail" : "status-pass";
     }

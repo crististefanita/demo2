@@ -31,6 +31,10 @@ public record PracticeShopConfiguration(
         browser = Objects.requireNonNull(browser, "browser");
         validationProfile = Objects.requireNonNull(validationProfile, "validationProfile");
         api = Objects.requireNonNull(api, "api");
+        if (authenticatedE2eEnabled && !api.authenticatedPrecondition()) {
+            throw new IllegalArgumentException(
+                    "authenticatedE2eEnabled requires api.precondition=authenticated");
+        }
         uiReportDirectory = Objects.requireNonNull(uiReportDirectory, "uiReportDirectory")
                 .toAbsolutePath().normalize();
         apiReportDirectory = Objects.requireNonNull(apiReportDirectory, "apiReportDirectory")

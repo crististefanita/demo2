@@ -71,6 +71,20 @@ class ReportAssetContractTest {
     }
 
     @Test
+    void keepsNativeSourcesReadableAndPublicationCopiesCompact() {
+        for (ReportAsset asset : ReportAssetManifest.production().assets()) {
+            String source = loader.load(asset);
+            String publication = loader.loadForPublication(asset);
+            assertAll(asset.name(),
+                    () -> assertTrue(source.contains("\n"), "native source should stay formatted"),
+                    () -> assertFalse(publication.contains("\n"),
+                            "publication copy must not carry source newlines"),
+                    () -> assertFalse(publication.contains("\r"),
+                            "publication copy must not carry source carriage returns"));
+        }
+    }
+
+    @Test
     void productionManifestIsTypedCompleteAndDeterministic() {
         ReportAssetManifest manifest = ReportAssetComposer.manifest();
 
@@ -153,7 +167,9 @@ class ReportAssetContractTest {
                 () -> assertTrue(disclosureCss.contains(".atf-disclosure-glyph:before")),
                 () -> assertTrue(disclosureCss.contains("details.failure-evidence")),
                 () -> assertTrue(stackCss.contains("--atf-evidence-status-column-width")),
-                () -> assertTrue(stackCss.contains("data-atf-evidence-last=\"true\"")),
+                () -> assertTrue(stackCss.contains("data-atf-evidence-last='true'")
+                        || stackCss.contains("data-atf-evidence-last=\"true\""),
+                        "the evidence-last marker must remain present regardless of quote style"),
                 () -> assertTrue(stackCss.contains("@media (max-width:700px)")),
                 () -> assertFalse(uiEvidenceCss.contains("${")),
                 () -> assertTrue(uiEvidenceCss.contains("#atf-ui-exploratory-evidence")),
@@ -264,6 +280,46 @@ class ReportAssetContractTest {
                 () -> assertFalse(dom.contains("${")),
                 () -> assertFalse(scenarios.contains("${")),
                 () -> assertFalse(metadata.contains("${")));
+    }
+
+    @Test
+    void liveExtentEvidenceRowsKeepTheStatusLaneFreeOfHorizontalSeparators() {
+        String css = ReportAssetComposer.evidenceStackCss();
+
+        assertAll(
+                () -> assertTrue(css.contains(".test-view .test-contents"),
+                        "the active Extent detail container must be covered"),
+                () -> assertTrue(css.contains("details.step-detail"),
+                        "API/setup/execution evidence rows must be covered"),
+                () -> assertTrue(css.contains("details.atf-ui-action-sequence"),
+                        "Playwright action rows must be covered"),
+                () -> assertTrue(css.contains("details.atf-ui-observations"),
+                        "audit observation rows must be covered"),
+                () -> assertTrue(css.contains("details.setup-evidence"),
+                        "setup evidence must retain its own boundary"),
+                () -> assertTrue(css.contains("details.assertion-evidence"),
+                        "assertion evidence must retain its own boundary"),
+                () -> assertTrue(css.contains(">.collapse>.card-body"),
+                        "active Extent card boundaries must use explicit DOM combinators"),
+                () -> assertTrue(css.contains("table.helm-validation-table"),
+                        "assertion rows must be covered"),
+                () -> assertTrue(css.contains("border:1px solid var(--atf-border)!important"),
+                        "setup and assertion disclosures must keep their visible border"),
+                () -> assertTrue(css.contains("border-top:0!important"),
+                        "the row boundary must not double-render"),
+                () -> assertTrue(css.contains("border-bottom:0!important"),
+                        "the horizontal separator must be removed"),
+                () -> assertTrue(css.contains("details.request-evidence[data-atf-evidence-last=\"true\"]"),
+                        "a standalone request disclosure must close its own frame"),
+                () -> assertTrue(css.contains("details.step-detail[data-atf-evidence-last=\"true\"]"),
+                        "the final semantic evidence disclosure must close its frame regardless of evidence type"),
+                () -> assertTrue(css.contains(":not(:has(~ tr.event-row details.step-detail))")
+                                || css.contains(":not(:has(~tr.event-row details.step-detail))"),
+                        "a missing evidence marker must still resolve the final disclosure structurally"),
+                () -> assertTrue(css.contains("border-radius:0 0 var(--atf-evidence-radius) var(--atf-evidence-radius)!important"),
+                        "the final request disclosure must have a visible bottom edge"),
+                () -> assertFalse(css.matches("(?s).*\\.test-view \\.test-contents.*border:0!important.*"),
+                        "the fix must preserve vertical table separators"));
     }
 }
 

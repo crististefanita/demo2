@@ -18,8 +18,13 @@ final class ReportPageLocators {
     private static final String FAILS_VIEW = ReportLocatorSupport.idSelector(
             AtfReportCssSelectors.Surface.FAILS_VIEW);
     private static final String TEST_LIST = AtfReportCssSelectors.Component.TEST_LIST.attributeSelector();
+    private static final String TEST_LIST_ITEMS =
+            AtfReportCssSelectors.Component.TEST_LIST_ITEM.attributeSelector();
     private static final String VISIBLE_TEST_DETAIL = ReportLocatorSupport.VISIBLE_TEST_DETAIL;
     private static final String EXECUTION_METADATA = ReportLocatorSupport.idSelector("atf-execution-metadata");
+    private static final String SECONDARY_OVERVIEW_ZONES =
+            "details" + ReportLocatorSupport.idSelector("atf-execution-metadata") + ",details"
+                    + ReportLocatorSupport.idSelector("atf-tag-audit");
     private static final String OPEN_DISCLOSURES = "details[open], [class~='collapse'][class~='show']";
     private static final String DECORATIVE_SEPARATORS = "hr, [class~='atf-ui-zone-separator']";
     private static final String IMAGES = "img";
@@ -94,6 +99,19 @@ final class ReportPageLocators {
                 + " " + ReportUiContract.OVERVIEW_SECONDARY_METRIC);
     }
     Locator overviewExecutionMetadata(Locator overview) { return overview.locator(EXECUTION_METADATA); }
+    Locator overviewSecondaryZones(Locator overview) { return overview.locator(SECONDARY_OVERVIEW_ZONES); }
+    Locator overviewOpenSecondaryZones(Locator overview) {
+        return overview.locator(SECONDARY_OVERVIEW_ZONES.replace("details", "details[open]"));
+    }
+    Locator overviewPackageRows(Locator overview) {
+        return overview.locator(ReportUiContract.OverviewSection.PACKAGE_AUDIT.selector()
+                + " tbody tr");
+    }
+    Locator testPackageNodes(Page page) {
+        return testsView(page).locator(TEST_LIST_ITEMS + " > "
+                + AtfReportCssSelectors.Component.TEST_ITEM.attributeSelector()
+                + " .test-contents .detail-head :is([class~='atf-test-package'], .p-v-10 > .m-t-10)");
+    }
     AtfLocator overviewExecutionMetadataAction(Page page) {
         return new AtfLocator(overviewExecutionMetadata(overviewView(page)).locator("summary"),
                 OVERVIEW_VIEW + " " + EXECUTION_METADATA + " > summary");

@@ -44,7 +44,7 @@ public final class PracticeShopComponentAssertions {
                     "count >= 1 and area > 0", "count=" + count + "; area=" + area, valid);
         } catch (RuntimeException error) {
             return check("Rendered component · " + control.label(),
-                    "count >= 1 and area > 0", "unavailable: " + error.getClass().getSimpleName(), false);
+                    "count >= 1 and area > 0", PracticeShopValidationDiagnostics.unavailable(error), false);
         }
     }
 
@@ -64,7 +64,7 @@ public final class PracticeShopComponentAssertions {
                     "enabled", count == 0 ? "not present" : Boolean.toString(enabled), enabled);
         } catch (RuntimeException error) {
             return check("Interactive component · " + control.label(),
-                    "enabled", "unavailable: " + error.getClass().getSimpleName(), false);
+                    "enabled", PracticeShopValidationDiagnostics.unavailable(error), false);
         }
     }
 }

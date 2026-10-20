@@ -8,6 +8,7 @@ import atf.api.reporting.api.ReportTransportProvenance;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.core.http.response.ApiExecutionResult;
 import atf.api.core.http.response.ApiAttemptRecord;
+import atf.ui.practiceshop.api.PracticeShopApiOperation;
 
 import java.net.URI;
 import java.net.URLDecoder;
@@ -22,7 +23,11 @@ public final class PracticeShopApiEvidenceMapper {
     private PracticeShopApiEvidenceMapper() { }
 
     static ReportExecutionEvidence toExecution(PracticeShopApiNetworkJournal.Exchange exchange) {
-        ReportRequest request = new ReportRequest(exchange.method(), exchange.path(),
+        PracticeShopApiOperation operation = PracticeShopApiOperation.resolve(
+                exchange.method(), exchange.path());
+        String reportMethod = operation == PracticeShopApiOperation.UNKNOWN
+                ? exchange.method() : operation.reportMethod();
+        ReportRequest request = new ReportRequest(reportMethod, exchange.path(),
                 query(exchange.url()), PracticeShopJsonEvidence.redactHeaders(exchange.requestHeaders()),
                 exchange.authType(), redactJson(exchange.requestBody()));
         ReportResponse response = new ReportResponse(exchange.status(), redactJson(exchange.responseBody()),

@@ -136,11 +136,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 ```mermaid
 flowchart LR
     JavaFacade[typed facade] --> Semantic[semantic model]
-    Semantic --> Css[CSS assets]
-    Semantic --> Js[JavaScript assets]
+    Semantic --> Css[CSS]
+    Semantic --> Js[JavaScript]
     Css --> Html[HTML artifact]
     Js --> Html
-    Html --> Contract[component + browser contract]
+    Html --> Contract[component + browser proof]
 ```
 
 <details>

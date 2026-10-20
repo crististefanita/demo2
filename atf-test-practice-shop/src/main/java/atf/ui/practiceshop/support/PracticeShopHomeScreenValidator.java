@@ -99,7 +99,7 @@ public final class PracticeShopHomeScreenValidator {
                     expected, actual, expected.equals(actual));
         } catch (RuntimeException error) {
             return check("Style · " + control.label() + " · " + property,
-                    expected, "unavailable: " + error.getClass().getSimpleName(), false);
+                    expected, PracticeShopValidationDiagnostics.unavailable(error), false);
         }
     }
 
@@ -111,7 +111,7 @@ public final class PracticeShopHomeScreenValidator {
             return check(control.label() + " render area", "> 0 x > 0", actual, valid);
         } catch (RuntimeException error) {
             return check(control.label() + " render area", "> 0 x > 0",
-                    "unavailable: " + error.getClass().getSimpleName(), false);
+                    PracticeShopValidationDiagnostics.unavailable(error), false);
         }
     }
 }

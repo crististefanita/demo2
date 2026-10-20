@@ -107,7 +107,7 @@ public final class PracticeShopLocators {
     public AtfLocator homePagination(Page page) { return css(page, HOME_PAGINATION); }
     public AtfLocator homeFooter(Page page) { return css(page, HOME_FOOTER); }
     public AtfLocator productLink(Page page, String name) {
-        return css(page, PRODUCT_LINK + ":has-text('" + cssText(name) + "')");
+        return css(page, PRODUCT_LINK + ":has-text('" + PracticeShopCssEscaper.quoted(name) + "')");
     }
     /** First matching card is the deterministic interaction target; the collection remains available for diagnostics. */
     public AtfLocator productLinkFirst(Page page, String name) {
@@ -115,7 +115,7 @@ public final class PracticeShopLocators {
         return new AtfLocator(matchingProducts.locator().first(), matchingProducts.selector());
     }
     public AtfLocator productLinkByPath(Page page, String productPath) {
-        return css(page, "a[href='" + cssText(productPath) + "']");
+        return css(page, "a[href='" + PracticeShopCssEscaper.quoted(productPath) + "']");
     }
     public AtfLocator accountBody(Page page) { return pageBody(page); }
     public AtfLocator accountHeading(Page page) { return css(page, ACCOUNT_HEADING); }
@@ -219,21 +219,6 @@ public final class PracticeShopLocators {
         return new AtfLocator(page.locator(selector), selector);
     }
 
-    private static String cssText(String value) {
-        Objects.requireNonNull(value, "value");
-        StringBuilder escaped = new StringBuilder(value.length());
-        for (int index = 0; index < value.length(); index++) {
-            char character = value.charAt(index);
-            if (character == '\\') escaped.append("\\\\");
-            else if (character == '\'') escaped.append("\\'");
-            else if (character == '\r') escaped.append("\\d ");
-            else if (character == '\n') escaped.append("\\a ");
-            else if (Character.isISOControl(character)) {
-                escaped.append('\\').append(Integer.toHexString(character)).append(' ');
-            } else escaped.append(character);
-        }
-        return escaped.toString();
-    }
 }
 
 

@@ -31,4 +31,12 @@ class PracticeShopApiOperationTest {
 
         assertEquals("POST /payment/check — validate payment selection", title);
     }
+
+    @Test
+    void treatsObservedQueryAsLegacySearchAliasButReportsCanonicalGet() {
+        assertEquals(PracticeShopApiOperation.SEARCH,
+                PracticeShopApiOperation.resolve("QUERY", PracticeShopApiRoutes.PRODUCT_SEARCH));
+        assertEquals("GET /products/search — find configured product",
+                PracticeShopApiOperation.reportTitle("QUERY", PracticeShopApiRoutes.PRODUCT_SEARCH));
+    }
 }

@@ -26,7 +26,8 @@ class AtfTestLayerArchitectureTest {
             "(?m)^\\s*@(Test|ParameterizedTest|TestFactory|TestTemplate|RepeatedTest|Suite|SelectPackages)\\b");
     private static final String STANDALONE_REPORTING_LAYER = "standalone-independent";
     private static final Set<String> STANDALONE_REPORTING_TEST_NAMES = Set.of(
-            "ReportingStandaloneContractTest.java", "ReportingStandaloneDependencyTest.java");
+            "ReportingStandaloneContractTest.java", "ReportingStandaloneDependencyTest.java",
+            "ReportingStandaloneEvidenceLayoutTest.java");
 
     @Test
     void everyConcreteExecutableTestDeclaresExactlyOneLayer() throws Exception {

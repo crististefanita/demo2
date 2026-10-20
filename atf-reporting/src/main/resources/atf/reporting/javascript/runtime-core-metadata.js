@@ -1,1 +1,112 @@
-function statusOf(item){var attr=item.getAttribute('status');if(attr)return attr;var badge=item.querySelector('.card-toolbar .badge');var cls=badge?String(badge.className||''):'';if(cls.indexOf('danger')>=0)return 'fail';if(cls.indexOf('warning')>=0)return 'warning';if(cls.indexOf('pass')>=0)return 'pass';var value=String(badge&&badge.textContent||'').toLowerCase();return value.indexOf('fail')>=0?'fail':value.indexOf('warn')>=0?'warning':value.indexOf('skip')>=0?'skip':'pass';}function testClass(item){var host=item.closest('.test-item');return text(host,'.test-detail .name')||text(host,'.detail-head .test-status')||'API tests';}function testPackage(item){var host=item.closest('.test-item'),value=host&&String(host.getAttribute('data-atf-test-package')||host.getAttribute('author')||'').trim();if(!value&&host)value=text(host,':scope > .m-t-10');return value||'Unspecified';}function testName(item){return text(item,'.test-detail .name')||text(item,'.card-title .node')||'Scenario';}function readTagValues(container){return q('.node-attr .badge-pill',container).map(function(e){return String(e.textContent||'').replace(/^\s*[^a-zA-Z0-9_-]\s*/,'').trim().toLowerCase();}).filter(Boolean).filter(function(v,i,a){return a.indexOf(v)===i;});}function testTags(item){var stored=item.getAttribute('data-atf-scenario-tags'),values=stored?stored.split(/\s+/).map(function(v){return String(v).trim().toLowerCase();}):readTagValues(item);if(!values.length){var owner=item.closest('.test-item'),tag=owner&&owner.getAttribute('tag');if(tag)values=tag.split(/\s+/).map(function(v){return String(v).trim().toLowerCase();});}return values.filter(function(v,i,a){return a.indexOf(v)===i;});}function normalizeTestPackageMetadata(){q('.test-list-item > .test-item[test-id]').forEach(function(item){var packageName=String(item.getAttribute('data-atf-test-package')||item.getAttribute('author')||'').trim();var info=item.querySelector('.test-contents .detail-head .info');if(!packageName&&info)packageName=text(info,':scope > .m-t-10');if(!packageName||!info)return;var packageNode=info.querySelector(':scope > .atf-test-package')||info.querySelector(':scope > .m-t-10');if(!packageNode){packageNode=document.createElement('div');packageNode.className='atf-test-package';var title=info.querySelector(':scope > .test-status');if(title)title.insertAdjacentElement('afterend',packageNode);else info.insertBefore(packageNode,info.firstChild);}packageNode.classList.add('atf-test-package');packageNode.setAttribute('data-atf-test-package',packageName);packageNode.textContent=packageName;});}
+function statusOf(item) {
+  var attr = item.getAttribute('status');
+  if (attr) return attr;
+  var badge = item.querySelector('.card-toolbar .badge');
+  var cls = badge ? String(badge.className || '') : '';
+  if (cls.indexOf('danger') >= 0) return 'fail';
+  if (cls.indexOf('warning') >= 0) return 'warning';
+  if (cls.indexOf('pass') >= 0) return 'pass';
+  var value = String((badge && badge.textContent) || '').toLowerCase();
+  return value.indexOf('fail') >= 0
+    ? 'fail'
+    : value.indexOf('warn') >= 0
+      ? 'warning'
+      : value.indexOf('skip') >= 0
+        ? 'skip'
+        : 'pass';
+}
+function testClass(item) {
+  var host = item.closest('.test-item');
+  return (
+    text(host, '.test-detail .name') ||
+    text(host, '.detail-head .test-status') ||
+    'API tests'
+  );
+}
+function testPackageNode(host) {
+  if (!host) return null;
+  return (
+    host.querySelector('.test-contents .detail-head .atf-test-package') ||
+    host.querySelector('.test-contents .detail-head .p-v-10 > .m-t-10') ||
+    host.querySelector('.test-contents .detail-head > .m-t-10')
+  );
+}
+function testPackage(item) {
+  var host = item.closest('.test-item'),
+    value =
+      host &&
+      String(
+        host.getAttribute('data-atf-test-package') ||
+          host.getAttribute('author') ||
+          ''
+      ).trim();
+  if (!value && host) {
+    var packageNode = testPackageNode(host);
+    value = packageNode ? String(packageNode.textContent || '').trim() : '';
+  }
+  return value || 'Unspecified';
+}
+function testName(item) {
+  return (
+    text(item, '.test-detail .name') ||
+    text(item, '.card-title .node') ||
+    'Scenario'
+  );
+}
+function readTagValues(container) {
+  return q('.node-attr .badge-pill', container)
+    .map(function (e) {
+      return String(e.textContent || '')
+        .replace(/^\s*[^a-zA-Z0-9_-]\s*/, '')
+        .trim()
+        .toLowerCase();
+    })
+    .filter(Boolean)
+    .filter(function (v, i, a) {
+      return a.indexOf(v) === i;
+    });
+}
+function testTags(item) {
+  var stored = item.getAttribute('data-atf-scenario-tags'),
+    values = stored
+      ? stored.split(/\s+/).map(function (v) {
+          return String(v).trim().toLowerCase();
+        })
+      : readTagValues(item);
+  if (!values.length) {
+    var owner = item.closest('.test-item'),
+      tag = owner && owner.getAttribute('tag');
+    if (tag)
+      values = tag.split(/\s+/).map(function (v) {
+        return String(v).trim().toLowerCase();
+      });
+  }
+  return values.filter(function (v, i, a) {
+    return a.indexOf(v) === i;
+  });
+}
+function normalizeTestPackageMetadata() {
+  q('.test-list-item > .test-item[test-id]').forEach(function (item) {
+    var packageName = String(
+      item.getAttribute('data-atf-test-package') ||
+        item.getAttribute('author') ||
+        ''
+    ).trim();
+    var info = item.querySelector('.test-contents .detail-head .info');
+    var packageNode = testPackageNode(item);
+    if (!packageName && packageNode)
+      packageName = String(packageNode.textContent || '').trim();
+    if (!packageName || !info) return;
+    if (!packageNode) {
+      packageNode = document.createElement('div');
+      packageNode.className = 'atf-test-package';
+      var title = info.querySelector(':scope > .test-status');
+      if (title) title.insertAdjacentElement('afterend', packageNode);
+      else info.insertBefore(packageNode, info.firstChild);
+    }
+    packageNode.classList.add('atf-test-package');
+    packageNode.setAttribute('data-atf-test-package', packageName);
+    packageNode.textContent = packageName;
+    item.setAttribute('data-atf-test-package', packageName);
+  });
+}

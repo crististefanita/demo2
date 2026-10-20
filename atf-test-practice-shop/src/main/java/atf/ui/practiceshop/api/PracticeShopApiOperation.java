@@ -26,6 +26,8 @@ public enum PracticeShopApiOperation {
             "validate payment selection", PracticeShopApiRoutes.PAYMENT_CHECK),
     UNKNOWN(null, "", "API request", "");
 
+    private static final String OBSERVED_QUERY_METHOD = "QUERY";
+
     private final HttpMethod method;
     private final String routePrefix;
     private final String description;
@@ -44,6 +46,11 @@ public enum PracticeShopApiOperation {
         return method == null ? "" : method.value();
     }
 
+    /** Canonical method used by the report when a legacy UI alias was observed. */
+    public String reportMethod() {
+        return wireValue();
+    }
+
     public String description() {
         return description;
     }
@@ -54,7 +61,10 @@ public enum PracticeShopApiOperation {
 
     public boolean matches(String actualMethod, String actualPath) {
         if (method == null || actualMethod == null || actualPath == null) return false;
-        if (!method.value().equalsIgnoreCase(actualMethod)) return false;
+        if (!method.value().equalsIgnoreCase(actualMethod)
+                && !(this == SEARCH && OBSERVED_QUERY_METHOD.equalsIgnoreCase(actualMethod))) {
+            return false;
+        }
         return switch (this) {
             case LOGIN, SEARCH, CART_CREATE, POSTCODE_LOOKUP, PAYMENT_CHECK ->
                     actualPath.equals(routePrefix) || actualPath.startsWith(routePrefix + "?");
@@ -76,6 +86,7 @@ public enum PracticeShopApiOperation {
 
     public static String reportTitle(String method, String path) {
         PracticeShopApiOperation operation = resolve(method, path);
-        return ApiOperationLabel.format(method, path, operation.description());
+        String reportMethod = operation == UNKNOWN ? method : operation.reportMethod();
+        return ApiOperationLabel.format(reportMethod, path, operation.description());
     }
 }

@@ -37,7 +37,7 @@ final class ReportArtifactEvidenceContracts {
                 && html.contains("ACTUAL") && html.contains("RESULT"));
         checks.put("request-validation roles", html.contains("data-atf-node-role=\"request\"")
                 && html.contains("data-atf-node-role=\"validation\""));
-        checks.put("scenario-only tags", html.contains("data-atf-node-role=\"phase\"] > .card-header .node-attr")
+        checks.put("scenario-only tags", html.contains("data-atf-node-role=\"phase\"]>.card-header .node-attr")
                 && html.contains("data-atf-node-role=\"request\"")
                 && html.contains("data-atf-node-role=\"validation\""));
         checks.put("numeric duration normalization", html.contains("function normalizeDurations()")

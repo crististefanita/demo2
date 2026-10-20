@@ -6,6 +6,7 @@ import atf.api.reporting.theme.evidence.AtfReportEvidenceDisclosureCss;
 import atf.api.reporting.theme.evidence.AtfReportEvidenceInteractionCss;
 import atf.api.reporting.theme.evidence.AtfReportEvidenceTableCss;
 import atf.api.reporting.theme.css.AtfReportThemeBaseCss;
+import atf.api.reporting.support.CssContractSupport;
 
 import org.junit.jupiter.api.Test;
 
@@ -28,8 +29,8 @@ class AtfReportEvidenceCssTest {
                 () -> assertTrue(css.contains("width:var(--atf-evidence-key-column-width)!important")),
                 () -> assertTrue(css.contains(".step-detail>summary")),
                 () -> assertTrue(css.contains(".atf-disclosure-glyph:before")),
-                () -> assertTrue(AtfReportThemeBaseCss.css().contains(".helm-scroll-block-body>.row{width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;box-sizing:border-box!important}")),
-                () -> assertTrue(AtfReportThemeBaseCss.css().contains(".helm-scroll-block-body>.row>[class*='col-']{width:100%!important;max-width:100%!important;min-width:0!important;padding-left:0!important;padding-right:0!important;box-sizing:border-box!important}")),
+                 () -> assertTrue(CssContractSupport.contains(AtfReportThemeBaseCss.css(), ".helm-scroll-block-body>.row{width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;box-sizing:border-box!important}")),
+                 () -> assertTrue(CssContractSupport.contains(AtfReportThemeBaseCss.css(), ".helm-scroll-block-body>.row>[class*='col-']{width:100%!important;max-width:100%!important;min-width:0!important;padding-left:0!important;padding-right:0!important;box-sizing:border-box!important}")),
                 () -> assertFalse(css.contains("<style")));
     }
 
@@ -47,20 +48,20 @@ class AtfReportEvidenceCssTest {
     @Test
     void evidenceResponsibilitiesRemainSeparatedByProvider() {
         assertAll(
-                () -> assertTrue(AtfReportEvidenceTableCss.css().contains(".helm-evidence-table")),
-                () -> assertTrue(AtfReportEvidenceTableCss.css().contains("table.helm-validation-table{width:100%!important;max-width:100%!important;min-width:0!important;table-layout:fixed!important}")),
-                () -> assertFalse(AtfReportEvidenceTableCss.css().contains("width:72px!important;min-width:72px!important;max-width:72px!important")),
-                () -> assertFalse(AtfReportEvidenceTableCss.css().contains("width:62px!important;min-width:62px!important;max-width:62px!important")),
-                () -> assertTrue(AtfReportEvidenceInteractionCss.css().contains(".atf-ui-action-table")),
-                () -> assertTrue(AtfReportEvidenceInteractionCss.css().contains(".atf-ui-action-screenshot-link")),
-                () -> assertTrue(AtfReportEvidenceDisclosureCss.css().contains("details.step-detail.request-evidence")),
-                () -> assertTrue(AtfReportEvidenceDisclosureCss.css().contains("details.failure-evidence")));
+                 () -> assertTrue(CssContractSupport.contains(AtfReportEvidenceTableCss.css(), ".helm-evidence-table")),
+                 () -> assertTrue(CssContractSupport.contains(AtfReportEvidenceTableCss.css(), "table.helm-validation-table{width:100%!important;max-width:100%!important;min-width:0!important;table-layout:fixed!important}")),
+                 () -> assertFalse(CssContractSupport.contains(AtfReportEvidenceTableCss.css(), "width:72px!important;min-width:72px!important;max-width:72px!important")),
+                 () -> assertFalse(CssContractSupport.contains(AtfReportEvidenceTableCss.css(), "width:62px!important;min-width:62px!important;max-width:62px!important")),
+                 () -> assertTrue(CssContractSupport.contains(AtfReportEvidenceInteractionCss.css(), ".atf-ui-action-table")),
+                 () -> assertTrue(CssContractSupport.contains(AtfReportEvidenceInteractionCss.css(), ".atf-ui-action-screenshot-link")),
+                 () -> assertTrue(CssContractSupport.contains(AtfReportEvidenceDisclosureCss.css(), "details.step-detail.request-evidence")),
+                 () -> assertTrue(CssContractSupport.contains(AtfReportEvidenceDisclosureCss.css(), "details.failure-evidence")));
     }
 
     @Test
     void actionTableUsesResponsiveAuditColumnsWithoutForcedHorizontalScroll() {
-        String css = AtfReportEvidenceCss.css();
-        String interactionCss = AtfReportEvidenceInteractionCss.css();
+        CssContractSupport css = CssContractSupport.of(AtfReportEvidenceCss.css());
+        CssContractSupport interactionCss = CssContractSupport.of(AtfReportEvidenceInteractionCss.css());
 
         assertAll(
                 () -> assertTrue(css.contains(".atf-ui-action-table{width:100%!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;table-layout:fixed!important")),

@@ -45,6 +45,7 @@ class HtmlReportViewsTest {
 
         assertAll(
                 () -> assertTrue(tests.indexOf("class=\"request\"") < tests.indexOf("class=\"validation\"")),
+                () -> assertTrue(tests.contains("status-fail\">Fail</span>")),
                 () -> assertTrue(category.contains("class=\"tag\">api</span>")),
                 () -> assertTrue(fails.contains("HTTP status") && fails.contains("200 OK")),
                 () -> assertTrue(overview.contains("<strong>1</strong>")));

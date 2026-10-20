@@ -67,7 +67,7 @@ final class ReportArtifactThemeContracts {
                 && html.contains("data-atf-phase-name=\"teardown\"]{border-left-color:var(--atf-good)"));
         checks.put("tests navigator contract", html.contains("test-view .test-list .test-item .test-detail .text-sm>span:first-child{display:none!important}")
                 && html.contains("timestamp-col")
-                && html.contains("data-atf-node-role=\"request\"] > .card-header .node-attr"));
+                && html.contains("data-atf-node-role=\"request\"]>.card-header .node-attr"));
         checks.put("category status palette", html.contains(".category-view .test-list .test-detail .meta .badge.log")
                 && html.contains(".category-view .test-contents td .badge.log")
                 && html.contains("height:var(--atf-badge-height)!important")

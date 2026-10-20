@@ -1,2 +1,37 @@
-function normalizeChartPalettes(){if(typeof Chart==='undefined')return;var root=getComputedStyle(document.documentElement),tokens=['--atf-pass','--atf-fail','--atf-skip','--atf-skip','--atf-info'],fallback=['#9ccc65','#e57373','#ff9900','#ff9900','#46BFBD'],palette=tokens.map(function(token,index){return root.getPropertyValue(token).trim()||fallback[index];});var registry=Chart.instances||{},charts=Array.isArray(registry)?registry:Object.keys(registry).map(function(key){return registry[key];});charts.forEach(function(chart){if(!chart||!chart.data||!chart.data.datasets)return;chart.data.datasets.forEach(function(dataset){var length=dataset.data&&dataset.data.length||0;dataset.backgroundColor=palette.slice(0,length);dataset.borderColor='transparent';});if(typeof chart.update==='function')chart.update();});}
-function normalizePercentages(){q('.dashboard-view table td').forEach(function(td){var v=String(td.textContent||'').trim(),m=v.match(/^(-?\d+(?:\.\d+)?)%$/);if(m)td.textContent=String(Math.round(Number(m[1])))+'%';});}
+function normalizeChartPalettes() {
+  if (typeof Chart === 'undefined') return;
+  var root = getComputedStyle(document.documentElement),
+    tokens = [
+      '--atf-pass',
+      '--atf-fail',
+      '--atf-skip',
+      '--atf-skip',
+      '--atf-info'
+    ],
+    fallback = ['#9ccc65', '#e57373', '#ff9900', '#ff9900', '#46BFBD'],
+    palette = tokens.map(function (token, index) {
+      return root.getPropertyValue(token).trim() || fallback[index];
+    });
+  var registry = Chart.instances || {},
+    charts = Array.isArray(registry)
+      ? registry
+      : Object.keys(registry).map(function (key) {
+          return registry[key];
+        });
+  charts.forEach(function (chart) {
+    if (!chart || !chart.data || !chart.data.datasets) return;
+    chart.data.datasets.forEach(function (dataset) {
+      var length = (dataset.data && dataset.data.length) || 0;
+      dataset.backgroundColor = palette.slice(0, length);
+      dataset.borderColor = 'transparent';
+    });
+    if (typeof chart.update === 'function') chart.update();
+  });
+}
+function normalizePercentages() {
+  q('.dashboard-view table td').forEach(function (td) {
+    var v = String(td.textContent || '').trim(),
+      m = v.match(/^(-?\d+(?:\.\d+)?)%$/);
+    if (m) td.textContent = String(Math.round(Number(m[1]))) + '%';
+  });
+}

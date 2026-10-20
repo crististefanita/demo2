@@ -19,8 +19,8 @@ public record AtfUiActionRecord(int sequence, String operation, String target, S
         status = Objects.requireNonNull(status, "status"); source = Objects.requireNonNull(source, "source");
     }
     public String durationText() { return durationMillis + " ms"; }
-    public String resultLabel() { return switch (status) { case PASS -> "Pass"; case WARNING -> "Warning"; case FAIL -> "Fail"; case SKIP -> "Skip"; case INFO -> "Info"; }; }
-    public String resultEmoji() { return switch (status) { case PASS -> "✅"; case WARNING -> "⚠️"; case FAIL -> "❌"; case SKIP -> "⏭️"; case INFO -> "ℹ️"; }; }
+    public String resultLabel() { return status.displayLabel(); }
+    public String resultEmoji() { return status.marker(); }
     private static String required(String value, String name) { String v=normalize(value); if(v.isBlank()) throw new IllegalArgumentException(name+" must not be blank"); return v; }
     private static String normalize(String value) { return value == null ? "" : value.trim(); }
 }

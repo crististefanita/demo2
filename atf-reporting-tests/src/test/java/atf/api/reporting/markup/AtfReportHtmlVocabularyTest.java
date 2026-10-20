@@ -40,6 +40,7 @@ class AtfReportHtmlVocabularyTest {
                 () -> assertEquals("status-warning", AtfReportHtmlVocabulary.statusClass(AtfReportStatus.WARNING)),
                 () -> assertEquals("status-fail", AtfReportHtmlVocabulary.statusClass(AtfReportStatus.FAIL)),
                 () -> assertEquals("status-skip", AtfReportHtmlVocabulary.statusClass(AtfReportStatus.SKIP)),
+                () -> assertEquals("Warning", AtfReportHtmlVocabulary.statusLabel(AtfReportStatus.WARNING)),
                 () -> assertEquals("phase-fail",
                         AtfReportHtmlVocabulary.stateClass("phase-", AtfReportStatus.FAIL)));
     }

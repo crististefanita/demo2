@@ -17,6 +17,8 @@ final class ArchitectureTestSupport {
     static final List<String> PRODUCTION_MODULES = AtfModuleIds.SOURCE_GOVERNED_MODULES;
     /** Reviewed exceptions are explicit seams, never a blanket package-size waiver. */
     static final Map<String, String> REVIEWED_COHESION_EXCEPTIONS = Map.of(
+            "atf.api.core.http.response",
+            "core HTTP response vocabulary and typed operation descriptors share one response boundary",
             "atf.api.reporting.api",
             "standalone reporting contracts, evidence adapters and JSON policy share the public reporting boundary",
             "atf.api.reporting.runtime.core",

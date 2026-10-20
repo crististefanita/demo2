@@ -21,14 +21,14 @@ nu enumerate ca un inventar Maven:
 
 ```mermaid
 flowchart LR
-    Consumers[Consumers<br/>reporting-tests + Practice Shop]
-    Contract[Test contract<br/>atf-test-kit]
-    Runtime[Generic runtime<br/>atf-core + atf-mock]
-    Verdict[Verdict + diagnostics<br/>atf-validation + atf-console]
-    Reporting[Standalone reporting<br/>atf-reporting]
-    Artifact[Extent artifact<br/>HTML + CSS + JavaScript]
-    Audit[Browser audit<br/>atf-ui + atf-debug-ui]
-    Governance[Governance<br/>atf-tests]
+    Consumers[Consumers]
+    Contract[Test contract]
+    Runtime[Generic runtime]
+    Verdict[Verdict + diagnostics]
+    Reporting[Standalone reporting]
+    Artifact[Extent artifact]
+    Audit[Browser audit]
+    Governance[Governance]
 
     Consumers --> Contract
     Contract --> Runtime
@@ -89,11 +89,11 @@ fiecărui modul.
 
 ```mermaid
 flowchart LR
-    Shared[ATF platform<br/>test-kit · core · mock · validation · console · ui · debug-ui]
-    Reporting[atf-reporting<br/>standalone artifact library]
-    ReportingTests[atf-reporting-tests<br/>API/UI/E2E composition]
-    PracticeShop[atf-test-practice-shop<br/>application consumer]
-    Governance[atf-tests<br/>whole-ATF governance]
+    Shared[Platform]
+    Reporting[Reporting library]
+    ReportingTests[Reporting consumer]
+    PracticeShop[Application consumer]
+    Governance[Governance]
 
     ReportingTests -->|library| Reporting
     ReportingTests -. test scope .-> Shared
@@ -109,7 +109,7 @@ flowchart LR
 - săgeata solidă = consum de bibliotecă/runtime în composition root;
 - săgeata punctată = dependență de test, runtime generic, browser policy,
   read-only serving sau guvernanță;
-- nodul `ATF platform` grupează modulele reutilizabile; tabelul de mai jos
+- nodul `Platform` grupează modulele reutilizabile; tabelul de mai jos
   păstrează ownership-ul fiecărui modul fără a încărca schema principală;
 - `atf-reporting-tests` folosește modulele platformei numai în test scope;
 - `atf-test-practice-shop` este consumer de aplicație și nu mută pages, flows
@@ -189,12 +189,12 @@ poată fi urmărită de la contractul observat până la dovada produsă:
 
 ```mermaid
 flowchart LR
-    Need[Cerință concretă]
-    Inspect[Inspectare live<br/>cod + POM + teste]
-    Layer[Alegerea celui mai mic<br/>strat demonstrabil]
-    Change[Schimbare minimă<br/>în ownerul corect]
-    Verify[Test țintit +<br/>artifact verificabil]
-    Harden[Contract stabilizat<br/>și reutilizabil]
+    Need[Cerință]
+    Inspect[Inspectare live]
+    Layer[Strat minim]
+    Change[Schimbare locală]
+    Verify[Test + evidence]
+    Harden[Contract stabil]
 
     Need --> Inspect --> Layer --> Change --> Verify
     Verify -->|gap real| Change
@@ -270,12 +270,12 @@ noi, se închid TODO-uri sau se schimbă limita rămasă.
 ```mermaid
 flowchart LR
     Request[Cerință explicită]
-    Baseline[Baseline live<br/>cod + POM + teste + docs]
-    Owner[Owner și boundary]
-    Gate[Gate existent<br/>architecture / contract / layer]
-    Evidence[Dovadă nouă<br/>test + artifact]
-    Review[Review și aprobare]
-    Sync[README + feedback<br/>sincronizate]
+    Baseline[Baseline live]
+    Owner[Owner + boundary]
+    Gate[Gate existent]
+    Evidence[Test + evidence]
+    Review[Review + aprobare]
+    Sync[README + feedback]
     Feedback[Feedback activ]
 
     Request --> Baseline --> Owner --> Gate --> Evidence --> Review --> Sync

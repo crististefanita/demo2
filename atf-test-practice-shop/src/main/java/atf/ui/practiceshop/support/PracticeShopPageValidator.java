@@ -94,7 +94,8 @@ public final class PracticeShopPageValidator {
             String actual = count == 0 ? "not present" : (visible ? "visible" : "not visible");
             return assertion(control.label(), "visible", actual, visible);
         } catch (RuntimeException error) {
-            return assertion(control.label(), "visible", "unavailable: " + error.getClass().getSimpleName(), false);
+            return assertion(control.label(), "visible",
+                    PracticeShopValidationDiagnostics.unavailable(error), false);
         }
     }
 
@@ -103,7 +104,8 @@ public final class PracticeShopPageValidator {
             String actual = locators.control(page, control).locator().innerText();
             return assertion(name, expected, compact(actual), actual.contains(expected));
         } catch (RuntimeException error) {
-            return assertion(name, expected, "unavailable: " + error.getClass().getSimpleName(), false);
+            return assertion(name, expected,
+                    PracticeShopValidationDiagnostics.unavailable(error), false);
         }
     }
 
@@ -113,7 +115,7 @@ public final class PracticeShopPageValidator {
             return assertion(control.label(), expected, actual, expected.equals(actual));
         } catch (RuntimeException error) {
             return assertion(control.label(), expected,
-                    "unavailable: " + error.getClass().getSimpleName(), false);
+                    PracticeShopValidationDiagnostics.unavailable(error), false);
         }
     }
 

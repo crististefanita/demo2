@@ -1,1 +1,54 @@
-function markDuration(element,value,source){if(!element)return;if(element.getAttribute('data-duration-ms')!==String(value))element.setAttribute('data-duration-ms',String(value));if(element.getAttribute('data-duration-source')!==source)element.setAttribute('data-duration-source',source);} function publishDuration(element,value,source){if(!element)return;var formatted=atfFormatDuration(value);if(text(element,'')!==formatted)element.textContent=formatted;markDuration(element,value,source);}function classDurationSummary(root){var summary={total:0,count:0},cards=isClassRoot(root)?directScenarioCards(root).filter(durationChildVisible):[];cards.forEach(function(card){var duration=durationBadge(card),value=atfDurationValue(text(duration,''));if(value!==null){summary.total+=value;summary.count++;markDuration(duration,value,'aggregated');markDuration(card,value,'aggregated');}});return summary;}function publishClassDuration(root,total){var labels=q('.test-detail .text-sm > span',root).filter(function(e){return !e.classList.contains('badge');});if(labels.length>1)publishDuration(labels[labels.length-1],total,'aggregated');var detail=root.querySelector('.detail-head .info > .badge-default:not(.uri-anchor):not(.pointer)');publishDuration(detail,total,'aggregated');markDuration(root,total,'aggregated');}function aggregateClassDurations(){testItems();aggregateNodeDurations();classItems().forEach(function(root){var summary=classDurationSummary(root);if(summary.count)publishClassDuration(root,summary.total);});normalizeProjectedDurations();normalizeHeaderMetadata();var tests=document.getElementById('test-view');if(tests)tests.setAttribute('data-atf-duration-ready','true');}
+function markDuration(element, value, source) {
+  if (!element) return;
+  if (element.getAttribute('data-duration-ms') !== String(value))
+    element.setAttribute('data-duration-ms', String(value));
+  if (element.getAttribute('data-duration-source') !== source)
+    element.setAttribute('data-duration-source', source);
+}
+function publishDuration(element, value, source) {
+  if (!element) return;
+  var formatted = atfFormatDuration(value);
+  if (text(element, '') !== formatted) element.textContent = formatted;
+  markDuration(element, value, source);
+}
+function classDurationSummary(root) {
+  var summary = { total: 0, count: 0 },
+    cards = isClassRoot(root)
+      ? directScenarioCards(root).filter(durationChildVisible)
+      : [];
+  cards.forEach(function (card) {
+    var duration = durationBadge(card),
+      value = atfDurationValue(text(duration, ''));
+    if (value !== null) {
+      summary.total += value;
+      summary.count++;
+      markDuration(duration, value, 'aggregated');
+      markDuration(card, value, 'aggregated');
+    }
+  });
+  return summary;
+}
+function publishClassDuration(root, total) {
+  var labels = q('.test-detail .text-sm > span', root).filter(function (e) {
+    return !e.classList.contains('badge');
+  });
+  if (labels.length > 1)
+    publishDuration(labels[labels.length - 1], total, 'aggregated');
+  var detail = root.querySelector(
+    '.detail-head .info > .badge-default:not(.uri-anchor):not(.pointer)'
+  );
+  publishDuration(detail, total, 'aggregated');
+  markDuration(root, total, 'aggregated');
+}
+function aggregateClassDurations() {
+  testItems();
+  aggregateNodeDurations();
+  classItems().forEach(function (root) {
+    var summary = classDurationSummary(root);
+    if (summary.count) publishClassDuration(root, summary.total);
+  });
+  normalizeProjectedDurations();
+  normalizeHeaderMetadata();
+  var tests = document.getElementById('test-view');
+  if (tests) tests.setAttribute('data-atf-duration-ready', 'true');
+}

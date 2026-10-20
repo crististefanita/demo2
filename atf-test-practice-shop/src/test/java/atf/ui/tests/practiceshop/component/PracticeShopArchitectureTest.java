@@ -88,8 +88,9 @@ class PracticeShopArchitectureTest {
         for (Path root : roots) {
             try (Stream<Path> walked = Files.walk(root)) {
                 walked.filter(Files::isRegularFile)
-                        .filter(path -> !path.toString().contains("component"))
-                        .filter(path -> !path.toString().contains("locators"))
+                        .filter(path -> !path.getFileName().toString().equals("PracticeShopArchitectureTest.java"))
+                        .filter(path -> !path.toString().replace('\\', '/')
+                                .contains("/src/main/java/atf/ui/practiceshop/locators/"))
                         .filter(path -> path.toString().endsWith(".java"))
                         .forEach(files::add);
             }

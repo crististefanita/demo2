@@ -9,15 +9,25 @@
 
 ## Ordinea suprafețelor
 
-Ordinea aprobată a tab-urilor este:
+Ordinea aprobată și rolul fiecărei suprafețe sunt vizibile într-un singur flux:
 
-```text
-Tests → Category → Fails → Overview
+```mermaid
+flowchart LR
+    Tests["Tests<br/>sursa detaliilor"] --> Category["Category<br/>distribuții"]
+    Category --> Fails["Fails<br/>failure-uri navigabile"]
+    Fails --> Overview["Overview<br/>sinteză agregată"]
 ```
 
-Overview este suprafața de sinteză și se deschide implicit la încărcarea sau
-refresh-ul raportului. Nu se mută în față doar pentru că este sumarul. Fiecare
-suprafață are un rol:
+<details>
+<summary><strong>Legendă — suprafețe și reguli de navigare</strong></summary>
+
+- `Tests` este sursa autoritativă pentru clase, scenarii, status, durată și
+  evidence selectabilă;
+- `Category` și `Overview` sunt proiecții, nu verdicturi alternative;
+- `Fails` păstrează fiecare failure individual și oferă legătura către `Tests`;
+- `Overview` se deschide implicit la load/refresh, dar nu se mută înaintea lui
+  `Tests` în ordinea semantică;
+- hash-urile și click-urile trebuie să ajungă la aceeași suprafață.
 
 | Suprafață | Conținut |
 |---|---|
@@ -25,6 +35,8 @@ suprafață are un rol:
 | Category | distribuții și legături către scenariile relevante |
 | Fails | toate failure-urile, fără grupare care ascunde testele individuale |
 | Overview | totaluri și metadate agregate, fără a crea verdicturi alternative |
+
+</details>
 
 ## Arborele unui test
 
@@ -94,29 +106,22 @@ rendererul fallback:
 | transport execution | `Execution evidence · N attempts` |
 | assertions | `Assertions · N` |
 
-`TECHNICAL TRACE` nu este titlul disclosure-ului. El descrie conținutul din
-`Response details`; `N` este numărul real de rânduri ale tabelului trace.
-`Request details` descrie contextul cererii înainte de transport: method, URL/path,
-headers, params, auth și request body. `REQUEST JSON` este întotdeauna prezent
-pentru request-urile API raportate prin publisher-ul standard: conține payload-ul
-real sau JSON `null` când HTTP request-ul nu are body. `RESPONSE JSON` este la
-fel întotdeauna prezent și conține body-ul din `ApiResponse`, respectiv `null`
-pentru un response fără body. Astfel lipsa body-ului este o stare explicită,
-nu o zonă de evidence dispărută. Response JSON este inclus în aceeași zonă
-colapsabilă cu `Response details`.
+<details>
+<summary><strong>Detalii — payload, provenance și replay</strong></summary>
 
-`TRANSPORT PROVENANCE` este un fapt al composition root-ului și nu se deduce din
-hostname: `ACCEPTANCE / MOCK — network was not executed` înseamnă că URL-ul este
-doar ruta construită pentru mock; `LIVE / HTTP — network was executed` înseamnă
-că transportul live a contactat endpointul; `UNKNOWN` nu este suficient pentru a
-pretinde că s-a făcut un apel. Un URL real configurat în acceptance nu schimbă
-această regulă.
+- `TECHNICAL TRACE` descrie conținutul din `Response details`; `N` este numărul
+  real de rânduri ale tabelului trace;
+- `Request details` conține method, URL/path, headers, params, auth și request
+  body înainte de transport;
+- `REQUEST JSON` și `RESPONSE JSON` există și pentru body absent, caz în care
+  valoarea explicită este `null`;
+- `TRANSPORT PROVENANCE` vine din composition root: `ACCEPTANCE / MOCK` nu a
+  executat rețea, `LIVE / HTTP` a contactat endpointul, iar `UNKNOWN` nu dovedește
+  un apel;
+- `MANUAL REPLAY` este safe: acceptance este `NOT EXECUTABLE`, live publică un
+  cURL redacted, iar operatorul completează credentialele din profil.
 
-`MANUAL REPLAY` este o instrucțiune safe, nu o promisiune de acces. În acceptance
-este `NOT EXECUTABLE`, iar în live conține un cURL cu method, URL, headers și
-body. Header-ele sensibile și credențialele auth sunt redacted; operatorul le
-completează din profilul configurat înainte de execuție. Astfel un cititor poate
-copia schimbul fără ca raportul să inventeze un endpoint sau să publice secrete.
+</details>
 
 ```mermaid
 flowchart LR
@@ -145,6 +150,9 @@ flowchart LR
 - assertions rămân legate de request-ul și validation-ul care le-au produs.
 
 </details>
+
+<details>
+<summary><strong>Detalii — execution evidence, durată și redacție</strong></summary>
 
 Evidence-ul de execuție este renderer-neutral. Înregistrează statusul response-
 ului, URL-ul redacted, durata măsurată, numărul de attempt-uri și istoricul de
@@ -206,6 +214,8 @@ cheia și parametrii query neconfidențiali rămân vizibili, iar valorile secre
 sunt înlocuite cu markerul de redacție. Niciun renderer nu poate publica direct
 input-ul primit de la transport sau de la validator.
 
+</details>
+
 ## Tabelul agregat de assertions
 
 Toate verificările pentru același response apar într-o singură structură:
@@ -228,7 +238,26 @@ FAIL > SKIP > WARNING > PASS
 Această regulă se aplică la rând, tabel, validation, phase și scenario. Dacă
 runnerul are o regulă mai strictă, raportul o reflectă și nu o suprascrie.
 
+```mermaid
+flowchart LR
+    Rows["rânduri assertion"] --> Aggregate["tabel agregat unic"]
+    Aggregate --> Precedence["FAIL > SKIP > WARNING > PASS"]
+    Precedence --> Verdict["validation / phase / scenario"]
+```
+
+<details>
+<summary><strong>Legendă — agregare și precedence</strong></summary>
+
+- toate rândurile evaluate rămân în același tabel;
+- precedence-ul se propagă în sus, fără a crea un verdict paralel;
+- `TEST BODY` nu repetă assertion table-ul deja publicat în validation.
+
+</details>
+
 ### Layout adaptiv pentru assertions
+
+<details>
+<summary><strong>Detalii — layout adaptiv și payload-uri lungi</strong></summary>
 
 Tabelul își păstrează cele patru coloane în ordinea `ASSERTION`, `EXPECTED`,
 `ACTUAL`, `RESULT`, însă lățimile nu sunt contractate prin pixeli fixați.
@@ -239,39 +268,35 @@ body-urile, listele și mesajele lungi rămân lizibile fără overflow orizonta
 iar verificarea browser confirmă atât suma lățimilor, cât și faptul că acea
 coloană dominantă primește lățimea dominantă.
 
+</details>
+
 ## Fails și legături
 
-Tab-ul Fails arată fiecare failure ca intrare distinctă. Nu grupează doar după
-clasă, deoarece astfel se pierd scenariile individuale. Fiecare intrare trebuie
-să expună schematic:
+```mermaid
+flowchart LR
+    Tests["Tests<br/>evidence tree"] --> Fails["Fails index<br/>one entry / failure"]
+    Fails --> Detail["Detail pane<br/>index-only"]
+    Detail --> Open["Open in Tests<br/>original evidence"]
+```
 
-- status;
-- numele testului/scenariului;
-- faza și request-ul implicat, dacă există;
-- assertion-ul sau excepția relevantă;
-- durata;
-- link către testul original din tab-ul Tests.
+<details>
+<summary><strong>Legendă — Fails este index, Tests este sursa</strong></summary>
 
-Link-ul este stabil și intern raportului. Nu depinde de un path de Windows sau
-de un nume de artifact care se schimbă între rulări.
-
-După selectarea unei intrări, detail pane-ul Fails este o proiecție index-only:
-expune phase, request, validation/assertion, actual, cause și durata, fără să
-cloneze `test-contents` și fără să creeze un al doilea arbore de evidence.
-Evidence-ul complet — request/response JSON, trace, response details și tabelul
-de assertions — rămâne în arborele Tests. `Open in Tests` este legătura
-autoritativă către nodul original și nu schimbă verdictul sau ownership-ul
-evidence-ului.
+- **Fails**: o intrare pentru fiecare failure, nu o grupare care pierde scenarii.
+- **Conținut minim**: status, test/scenario, phase/request, assertion/cause și durată.
+- **Link**: anchor intern stabil, independent de path-ul Windows sau de numele artifactului.
+- **Detail pane**: proiecție index-only; nu clonează `test-contents` și nu creează alt evidence tree.
+- **Open in Tests**: navighează la nodul original, fără să schimbe verdictul sau ownership-ul evidence-ului.
+- **Evidence complet**: request/response JSON, trace, response details și assertions rămân în `Tests`.
 
 ### Failure semantics pentru lifecycle API
 
-Un raport API poate fi `Fail` în mod intenționat atunci când fixture-ul negativ
-verifică faptul că un contract respins ajunge vizibil în report. Acest verdict
-nu trebuie confundat cu un failure al testului UI care inspectează raportul:
-raportul sursă rămâne roșu, iar auditul UI trebuie să fie verde dacă redarea este
-corectă.
+Un raport API poate fi `Fail` intenționat atunci când fixture-ul negativ verifică
+vizibilitatea unui contract respins. Acest verdict nu se confundă cu un failure
+al testului UI care inspectează raportul: raportul sursă rămâne roșu, iar auditul
+UI este verde dacă redarea este corectă.
 
-Pentru un failure de contract, faza expune un rezumat compact și semantic:
+Rezumatul semantic al unui failure de contract este:
 
 ```text
 FAILURE CAUSE | Contract assertion failed: HTTP status
@@ -291,37 +316,68 @@ timestamp. Dacă failure-ul nu are response măsurat, indexul afișează explici
 `No response duration recorded`; timpul de execuție rămâne disponibil în
 evidence-ul requestului și în tab-ul Tests.
 
-Navigarea trebuie să funcționeze atât prin click pe tab, cât și prin încărcarea
-directă a hash-ului (`#atf-fails-view`, `#test-view`, `#category-view` sau
-`#dashboard-view`). Runtime-ul trebuie să sincronizeze hash-ul inițial și
-evenimentele `hashchange`; altfel un artifact offline poate afișa un view gol
-deși datele există în document.
+Navigarea funcționează prin click pe tab și prin hash direct:
+
+- `#atf-fails-view`;
+- `#test-view`;
+- `#category-view`;
+- `#dashboard-view`.
+
+Runtime-ul sincronizează hash-ul inițial și evenimentele `hashchange`; altfel un
+artifact offline poate afișa un view gol deși datele există în document.
+
+</details>
 
 ## Overview și agregări
 
-Overview-ul agregă aceleași scenarii care apar în Tests. Nu numără proiectele
-unitare ca teste API și nu introduce un total paralel. Category și tag-urile
-sunt proiecții de navigare; nu schimbă verdictul și nu clonează noduri. Fails
-folosește numai copia controlată descrisă mai sus pentru a păstra dovada
-concretă în contextul failure-ului.
+```mermaid
+flowchart LR
+    Tests["Tests<br/>scenario set"] --> Overview["Overview<br/>same scenarios"]
+    Overview --> Counts["counts + status"]
+    Overview --> Navigation["Category + tags<br/>navigation only"]
+    Tests --> Fails["Fails<br/>failure index"]
+```
 
-Tag-urile utile apar în header-ul scenariului și în Overview. Lista claselor din
-stânga rămâne scanabilă: nume, status și durată, fără pills sau metadate care
-îngreunează trierea.
+<details>
+<summary><strong>Legendă — agregare fără duplicare</strong></summary>
 
-În cardul scenariului, titlul este aliniat la stânga în zona proprie a titlului,
-iar rândul de adnotări rămâne imediat sub el, pe aceeași axă stângă. Grupul
-titlu+adnotări este centrat vertical în header. Indicatorul de expandare și
-toolbar-ul cu durată/status rămân în coloanele lor separate și sunt centrate
-vertical pe același header; această aliniere nu mută și nu combină zonele.
-Regula se aplică și atunci când numele este lung, când există mai multe tag-uri
-sau când durata este afișată cu unitatea `ms`: alinierea la stânga este
-orizontală, iar centrarea este numai verticală.
+- **Overview**: agregă exact scenariile publicate în `Tests`.
+- **Counts + status**: un singur total semantic; proiectele unitare nu devin teste API.
+- **Category + tags**: navigare și filtrare; nu schimbă verdictul și nu clonează noduri.
+- **Fails**: index controlat către evidence-ul concret din `Tests`.
+- **Scanare**: lista afișează nume, status și durată; evită pills și metadate decorative.
+
+Regulile de randare pentru cardul scenariului sunt:
+
+- titlul și adnotările rămân pe aceeași axă stângă;
+- grupul titlu + adnotări este centrat numai vertical în header;
+- expandarea și toolbar-ul durată/status rămân în coloane separate;
+- regula rămâne valabilă pentru nume lungi, tag-uri multiple și durata în `ms`.
+
+</details>
 
 ## Vizual și autonom
 
 AtfReportTheme este sursa unică pentru fonturi, suprafețe, linii, statusuri,
 tabele și blocuri JSON. Extent și fallback-ul nu își definesc palete separate.
+
+```mermaid
+flowchart LR
+    Theme["AtfReportTheme<br/>semantic tokens"] --> Contract["shared visual contract"]
+    Contract --> Tests[Tests]
+    Tests --> Category[Category]
+    Category --> Fails[Fails]
+    Fails --> Overview[Overview]
+```
+
+<details>
+<summary><strong>Detalii — tokens, badge-uri și geometrie</strong></summary>
+
+Linia după `shared visual contract` este o ordine de citire a suprafețelor, nu
+o dependență de runtime între tab-uri. Toate suprafețele consumă aceleași
+token-uri; `Tests → Category → Fails → Overview` este doar traseul de navigare
+documentat.
+
 Badge-urile `Pass`, `Warning` și `Fail` au aceeași geometrie în `Tests`,
 `Category`, `Fails`, `Overview` și în detail projections:
 
@@ -341,7 +397,12 @@ Paleta semantică este comună: Pass `#9ccc65`, Warning `#ffc107`, Fail
 Selectorii de tab sau container nu pot introduce altă geometrie ori altă
 culoare semantică.
 
+</details>
+
 ### Header metadata: durată, deep-link și controale
+
+<details>
+<summary><strong>Detalii — metadata și controale</strong></summary>
 
 În `detail-head .info` există trei tipuri diferite de elemente și nu trebuie
 tratate printr-un selector generic de `badge-default`:
@@ -372,6 +433,8 @@ Artifactul final trebuie să fie un singur HTML autonom:
 - Overview deschis implicit;
 - fără linii verticale decorative care rup interiorul test body-ului;
 - contraste și fonturi consistente între tabelele de Overview și detaliile testului.
+
+</details>
 
 ## Dovezi obligatorii pentru schimbări
 
@@ -420,8 +483,27 @@ flowchart LR
 
 ## Numele raportului și diferențierea rulărilor
 
-Numele fișierului este parte din configurația raportării, nu o convenție
-ascunsă în test. Configurația minimală este:
+```mermaid
+flowchart LR
+    Config["Configurație raport<br/>nume + policy"] --> Session["Sesiune deschisă<br/>timestamp unic"]
+    Session --> Path["Cale raport<br/>destinație distinctă"]
+    Path --> Artifact["Artifact Extent<br/>fără overwrite"]
+```
+
+<details>
+<summary><strong>Legendă — nume determinist și rulări distincte</strong></summary>
+
+- **Config**: numele și politica de captură aparțin configurației, nu testului.
+- **Session**: timestamp-ul se rezolvă o singură dată, la deschiderea sesiunii.
+- **Path**: fiecare rulare publicată primește o destinație distinctă.
+- **Artifact**: raportul deschis nu este suprascris.
+
+</details>
+
+<details>
+<summary><strong>Detalii — configurație și reguli de publicare</strong></summary>
+
+Configurația minimală este:
 
 ```yaml
 reporting:
@@ -435,40 +517,40 @@ reporting:
     screenshotPolicy: each-checkpoint
 ```
 
-Cu `timestampEnabled: true`, runtime-ul compune numele din baza configurată și
-timestamp-ul inserat înainte de extensie; valoarea concretă nu este documentată
-și nu este păstrată ca artifact normativ. Timestamp-ul este rezolvat exact o
-dată, la deschiderea sesiunii. Acest lucru diferențiază rulările, păstrează linkul raportului stabil
-în timpul execuției și evită suprascrierea accidentală a unei rulări deschise.
+Regulile runtime sunt:
 
-`timestampPattern` folosește sintaxa Java `DateTimeFormatter`, iar
-`timestampZone` acceptă `system` sau un identificator IANA. Pentru verificări
-deterministe, testele folosesc un `Clock` fix prin `resolveReportPath(Clock)`;
-codul de execuție folosește ceasul zonei configurate. Pattern-urile care ar
-produce caractere nesigure pentru un nume de fișier sunt respinse.
+- `timestampEnabled: true` inserează timestamp-ul înainte de extensie;
+- `timestampPattern` folosește sintaxa Java `DateTimeFormatter`;
+- `timestampZone` acceptă `system` sau un identificator IANA;
+- pattern-urile cu caractere nesigure pentru nume de fișier sunt respinse;
+- testele deterministe pot folosi un `Clock` fix prin `resolveReportPath(Clock)`;
+- `timestampEnabled: false` este rezervat testelor interne cu destinație stabilă;
+- rulările ATF publicate folosesc nume timestamped, inclusiv fără YAML explicit.
 
-`screenshotPolicy` este o valoare typed, nu un boolean duplicat în testele UI:
-`each-checkpoint`, `final-only`, `failure-only`, `final-and-failure` sau `none`.
-Un flow care folosește `final-only` marchează explicit checkpoint-ul final prin
-`ReportScreenshotPolicy.CapturePoint.FINAL`; reporting nu încearcă să ghicească
-care stare este finală. Când un screenshot este acceptat de policy, target-ul
-este obligatoriu, iar acțiunile și assertions rămân publicate chiar dacă policy
-dezactivează imaginea.
+Politica de screenshot este typed, nu un boolean duplicat în testele UI:
 
-Pentru configurarea transversală a evidence-ului, composition root-ul poate mapa
-`flowMode`, `screenshotPolicy` și `captureSource` în
-`atf.api.reporting.evidence.profile.ReportEvidenceProfile`, prin `fromConfig(...)`
-sau builder. Acest profil nu execută Playwright și nu mută mock-ul în reporting.
+- `each-checkpoint`;
+- `final-only`;
+- `failure-only`;
+- `final-and-failure`;
+- `none`.
 
-Acest contract descrie numai politica de publicare și efectul în artifact. Separarea
+Un flow `final-only` marchează explicit checkpoint-ul prin
+`ReportScreenshotPolicy.CapturePoint.FINAL`; reporting nu ghicește starea finală.
+Când policy-ul acceptă screenshot-ul, target-ul este obligatoriu, iar acțiunile
+și assertions rămân publicate chiar dacă imaginea este dezactivată.
+
+Pentru evidence, composition root-ul poate mapa `flowMode`, `screenshotPolicy`
+și `captureSource` în `ReportEvidenceProfile`, prin `fromConfig(...)` sau builder.
+Profilul nu execută Playwright și nu mută mock-ul în reporting.
+
+Acest contract descrie politica de publicare și efectul în artifact. Separarea
 generică dintre flow mode, capture source și composition root este în
 [`ATF_Evidence_Capture_Contract.md`](ATF_Evidence_Capture_Contract.md); nu este
 specifică Practice Shop și nu se deduce din `reporting.extent`.
 
-Cu `timestampEnabled: false`, `reportPath()` rămâne exact
-`outputDirectory/fileName`, dar această variantă este rezervată testelor
-interne care cer explicit o destinație stabilă. Rulările ATF publicate folosesc
-numai nume timestamped; dacă nu există configurație YAML, timestamp-ul este
-activ implicit. Schimbarea timestamp-ului nu modifică arborele Extent,
-statusurile, agregările sau randarea HTML.
+Schimbarea timestamp-ului nu modifică arborele Extent, statusurile, agregările
+sau randarea HTML.
+
+</details>
 
