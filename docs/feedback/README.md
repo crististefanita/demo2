@@ -100,21 +100,24 @@ declarați explicit; nu există motiv pentru shaded JAR în acest moment.
 
 | Prioritate | Owner | ToDo | Criteriu de închidere |
 |---|---|---|---|
-| ~~P0~~ | `atf-ui` + `atf-reporting` | `TRACE-REQ-01..04` ✅ închis | `ReportTraceMetadata` + `ReportRequestSignature` oferă EventId, sequence, phase, role, correlation și body digest; body-uri diferite nu se unesc. |
-| ~~P1~~ | `atf-ui` + consumerii UI | `TRACE-REQ-05..08` ✅ închis pe Practice Shop/reporting | checkpoint-ul păstrează output/read-back, exchange-ul poartă trace explicit, retry-ul nu falsifică signature count, iar assertions sunt distincte de body display. |
 | P1 | `atf-core` + `atf-console` + `atf-reporting` | `SHOP-CONSOLE-02`: reconcilierea typed a celor două perechi `AtfConsoleEvent/Sink` | există un port comun sau un adapter owner-uit explicit; Practice Shop nu face mapping duplicat; component/integration tests verifică aceeași secvență și nu rup independența reportingului |
-| ~~P1~~ | `atf-reporting` | `SHOP-REPORT-FAILURE-01` ✅ închis | `Fails` prioritizează `Failure evidence`/cauza concretă; component + failure-flow E2E au fost verificate în MCP. |
 | P1 | `atf-reporting` | `REP-RENDER-09`: rendererele transport/UI/fallback folosesc acum disclosure, tabel key/value, escaping, politica JSON și vocabularul typed de marker/label status; rămâne doar parity-ul vendor-specific al badge-urilor Extent | primitive typed comune și parity component tests pentru Extent + fallback HTML, fără copiere de disclosure/tabel/JSON |
 | P1 | `atf-core` + `atf-console` + `atf-reporting` + `atf-reporting-tests` | `REP-CONSOLE-01`: există perechi duplicate `AtfConsoleEvent/Sink`, iar no-op-ul poate ascunde wiring-ul | port comun sau adapter clar, standalone păstrat, in-memory sink și matrice `PASS/FAIL/WARNING/SKIP` verificată component/integration |
 | P2 | `atf-test-practice-shop` + mediu extern | `SHOP-NET-02`: E2E-ul autentificat primește diagnosticuri de bootstrap anonim (`401`, `Unauthorized`, `/users/me` și `TypeError` pe `cart_items`) clasificate acum ca warning | mediul extern este curățat sau excepția este aprobată explicit; evidence păstrează source/route/status/message, guest și authenticated rămân distincte, iar diagnosticul necunoscut continuă să eșueze E2E-ul |
-| ~~P2~~ | `atf-reporting` (consumer seam închis) | `SHOP-CONFIG-01` ✅ închis pe consumer | `api.mode`, directoarele de raport și evidence policy sunt consumate typed; parity-ul generic este contractul reporting, nu ToDo Practice Shop. |
-| P1 | `atf-test-practice-shop` | `SHOP-FLOW-01` ✅ închis pe component scope: fixture-ul stateful acoperă create → add → read → update → read → remove → read | testul verifică status, quantity și lista goală după remove; fără E2E nou |
 | P1 | `atf-reporting-tests` | `REP-SUITE-01`: consumerul are 295 clase, 135 support neadnotat și dependențe către opt module; reporting-only, API fixture și UI/E2E nu sunt suficient de separabile la rulare | profile/launcher și boundary guard pentru reporting-only; fiecare executabil are owner/layer; numărul E2E rămâne plafonat |
 | P2 | `atf-reporting-tests` | `REP-LOCATOR-01`: `ReportUiLocators` are 400 linii și 256 delegări, devenind god-facade pentru testele UI | surface-uri typed pe domenii, fără delegări noi legacy, locator boundary testat și API compatibil măsurat |
-| P2 | `atf-reporting-tests` | `TRACE-REQ-09..10`: projection compactă și manual replay al raportului | component/integration/E2E verifică disclosure-urile, artifact manifest, overflow și fluxul SETUP → UI → API → validation → CLEANUP prin ATF Debug/Chromium MCP |
-| ~~P2~~ | `atf-reporting` | `REP-ASSET-07` ✅ închis | auditul asset-urilor și seam-urilor Java are teste component; nu se reintroduc corpuri JS/CSS monolitice în facade-uri. |
 | P1 | `atf-tests` + ownerii README | `DOC-DIAG-05`: guard-ul whole-ATF identifică flowchart-uri non-root cu relații multiple fără verb scurt pe muchie | fiecare flowchart non-root trece `DocumentationDiagramGovernanceTest`; relațiile sunt etichetate semantic, legenda rămâne imediată, iar `WholeAtfGovernanceSuiteTest` revine verde |
 | P3 | structura testelor | `TEST-ARCH-07`: gruparea semantică a support-ului fără ștergeri speculative | fiecare mutare are owner, motiv observabil, test de boundary și zero ștergeri speculative; detaliile sunt în [`ATF_Test_Architecture_Feedback.md`](ATF_Test_Architecture_Feedback.md) |
+
+Închise și scoase din registrul activ după reconcilierea cod–test–artifact:
+
+| ID | Status | Dovadă |
+|---|---:|---|
+| `TRACE-REQ-01..10` | ✅ | `ReportTraceMetadata`, `ReportRequestSignature`, publisher-ul de unique signatures și testele `ReportRequestSignatureTest`/`ReportTraceMetadataRenderingTest`. |
+| `SHOP-REPORT-FAILURE-01` | ✅ | failure-flow E2E și verificare MCP a cauzei concrete în `Fails`. |
+| `SHOP-CONFIG-01` | ✅ pe consumer | configurația și evidence policy sunt consumate typed; parity-ul generic rămâne în ownerul reporting. |
+| `SHOP-FLOW-01` | ✅ component scope | cart lifecycle stateful verificat create → add → read → update → read → remove → read. |
+| `REP-ASSET-07` | ✅ | asset/component gates pentru CSS/JS și facades. |
 
 <details>
 <summary><strong>Închideri și explorări istorice — dovadă tehnică</strong></summary>

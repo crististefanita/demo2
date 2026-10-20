@@ -3,6 +3,7 @@ target/
 artifacts/
 _mmdc-config.json
 _render_*.mmd
+_render_*.png
 hs_err_pid*.log
 
 # IDE-uri și fișiere locale.
