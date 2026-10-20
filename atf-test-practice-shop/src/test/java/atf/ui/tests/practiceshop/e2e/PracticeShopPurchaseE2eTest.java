@@ -54,7 +54,7 @@ class PracticeShopPurchaseE2eTest {
             context.runtimeDiagnostics().assertClean();
             if (!guestWarnings.isEmpty()) {
                 scenario.warning("known guest API/runtime branch is visible as a warning",
-                        context.page().url(), guestWarnings.stream()
+                        context.runtimeDiagnostics().expectedGuestWarningTarget(), guestWarnings.stream()
                                 .map(message -> new AtfAssertion("Guest runtime signal", "expected guest branch",
                                         message, true)).toList());
             }

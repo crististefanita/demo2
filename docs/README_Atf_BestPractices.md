@@ -25,9 +25,9 @@ verificabilă.
 
 ```mermaid
 flowchart LR
-    Live[Cod + POM + teste live] --> Contract[Contract stabil]
-    Contract --> Gate[Test sau guard]
-    Gate --> Owner[README owner]
+    Live[Cod + POM + teste live] -->|stabilește| Contract[Contract stabil]
+    Contract -->|alimentează| Gate[Test sau guard]
+    Gate -->|documentează| Owner[README owner]
     Gate -. gap reproductibil .-> Feedback[Feedback activ]
     Feedback -. dovadă nouă .-> Live
 ```

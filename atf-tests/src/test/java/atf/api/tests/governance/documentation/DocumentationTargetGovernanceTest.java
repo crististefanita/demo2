@@ -12,30 +12,62 @@ import static atf.api.tests.governance.AtfGovernanceTestSupport.locateProjectRoo
 
 /** Runs every documentation validator against the document selected by the annotation. */
 @AtfComponentTest
+@DocumentationTarget("README.md")
+@DocumentationTarget("atf-console/README.md")
+@DocumentationTarget("atf-core/README.md")
+@DocumentationTarget("atf-debug-ui/README.md")
+@DocumentationTarget("atf-mock/README.md")
+@DocumentationTarget("atf-reporting-tests/README.md")
+@DocumentationTarget("atf-reporting-tests/src/test/java/atf/ui/tests/extent/README.md")
+@DocumentationTarget("atf-reporting/README.md")
+@DocumentationTarget("atf-test-kit/README.md")
+@DocumentationTarget("docs/ATF_Api_Test_Guide.md")
+@DocumentationTarget("docs/ATF_Architecture.md")
+@DocumentationTarget("docs/ATF_Build_And_Execution_Safety.md")
+@DocumentationTarget("docs/ATF_Evidence_Capture_Contract.md")
+@DocumentationTarget("docs/ATF_Reporting_Contract.md")
+@DocumentationTarget("docs/README_Atf_BestPractices.md")
+@DocumentationTarget("docs/README_Atf_CodeBestPractices.md")
+@DocumentationTarget("docs/README_Atf_DocumentationBestPractices.md")
+@DocumentationTarget("docs/README.md")
+@DocumentationTarget("docs/feedback/ATF_Practice_Shop_API_Screen_Pyramid_Feedback.md")
+@DocumentationTarget("docs/feedback/ATF_Reporting_Feedback.md")
+@DocumentationTarget("docs/feedback/ATF_Request_Traceability_Feedback.md")
+@DocumentationTarget("docs/feedback/ATF_Test_Architecture_Feedback.md")
+@DocumentationTarget("docs/feedback/README.md")
+@DocumentationTarget("atf-tests/README.md")
 @DocumentationTarget("atf-test-practice-shop/README.md")
+@DocumentationTarget("atf-ui/README.md")
+@DocumentationTarget("atf-validation/README.md")
 public class DocumentationTargetGovernanceTest {
     @Test
-    void annotatedDocumentPassesAllDocumentationGovernanceModules() throws Exception {
+    void annotatedDocumentsPassAllDocumentationGovernanceModules() throws Exception {
         Path root = locateProjectRoot();
-        String configuredPath = getClass().getAnnotation(DocumentationTarget.class).value();
-        Path target = root.resolve(configuredPath).normalize();
         List<DocumentationGovernanceSupport.Violation> violations = new ArrayList<>();
 
-        if (!target.startsWith(root) || !Files.isRegularFile(target)) {
-            violations.add(DocumentationGovernanceSupport.violation(
-                    "DOC-TARGET-PATH", root, target, 1,
-                    "configured documentation target does not resolve to a file: " + configuredPath,
-                    "DocumentationTarget values are project-relative and must point to a governed document",
-                    "set @DocumentationTarget to an existing README.md or governed Markdown path"));
-        } else if (!DocumentationGovernanceSupport.isGovernedMarkdown(root, target)) {
-            violations.add(DocumentationGovernanceSupport.violation(
-                    "DOC-TARGET-SCOPE", root, target, 1,
-                    "configured target is outside the governed documentation scope",
-                    "the target smoke test must exercise the same document population as the whole-ATF suite",
-                    "target an owner README or a designated normative Markdown document"));
-        } else {
+        for (DocumentationTarget annotation : getClass().getAnnotationsByType(DocumentationTarget.class)) {
+            String configuredPath = annotation.value();
+            Path target = root.resolve(configuredPath).normalize();
+            if (!target.startsWith(root) || !Files.isRegularFile(target)) {
+                violations.add(DocumentationGovernanceSupport.violation(
+                        "DOC-TARGET-PATH", root, target, 1,
+                        "configured documentation target does not resolve to a file: " + configuredPath,
+                        "DocumentationTarget values are project-relative and must point to a governed document",
+                        "set @DocumentationTarget to an existing README.md or governed Markdown path"));
+                continue;
+            }
+            if (!DocumentationGovernanceSupport.isGovernedMarkdown(root, target)) {
+                violations.add(DocumentationGovernanceSupport.violation(
+                        "DOC-TARGET-SCOPE", root, target, 1,
+                        "configured target is outside the governed documentation scope",
+                        "the target smoke test must exercise the same document population as the whole-ATF suite",
+                        "target an owner README or a designated normative Markdown document"));
+                continue;
+            }
             DocumentationDiagramGovernanceTest.validate(target, root, violations);
-            DocumentationReadmeStructureGovernanceTest.validate(target, root, violations);
+            if (DocumentationGovernanceSupport.isReadme(target)) {
+                DocumentationReadmeStructureGovernanceTest.validate(target, root, violations);
+            }
             DocumentationStyleGovernanceTest.validate(target, root, violations);
             DocumentationProseGovernanceTest.validate(target, root, violations);
             DynamicPathDocumentationArchitectureTest.validatePaths(target, root, violations);
@@ -44,6 +76,6 @@ public class DocumentationTargetGovernanceTest {
         }
 
         DocumentationGovernanceSupport.assertNoViolations(
-                "targeted documentation governance [" + configuredPath + "]", violations);
+                "targeted documentation governance [all @DocumentationTarget paths]", violations);
     }
 }

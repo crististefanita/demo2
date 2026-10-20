@@ -4,6 +4,7 @@ import atf.api.reporting.markup.ExtentReportAssets;
 import atf.api.reporting.markup.ExtentReportCategoryMarkup;
 import atf.api.reporting.markup.ExtentReportNavigationView;
 import atf.api.reporting.markup.ExtentReportOverviewMarkup;
+import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
 import atf.api.reporting.runtime.core.ExtentReportRuntimeBehaviour;
 import atf.api.reporting.theme.AtfReportTheme;
 
@@ -13,6 +14,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Converts the vendor Spark output into the self-contained ATF report contract.
@@ -20,6 +23,31 @@ import java.util.Objects;
  * deterministic publication concerns such as assets, navigation and defaults.
  */
 public final class ExtentReportPublicationPipeline {
+    private static final String VENDOR_BODY_OPEN = AtfReportHtmlVocabulary.openTag(
+            AtfReportHtmlVocabulary.Tag.BODY,
+            AtfReportHtmlVocabulary.classAttribute(
+                    AtfReportHtmlVocabulary.CssClass.SPA,
+                    AtfReportHtmlVocabulary.CssClass.REPORT,
+                    AtfReportHtmlVocabulary.CssClass.DARK));
+    private static final String ATF_BODY_OPEN = AtfReportHtmlVocabulary.openTag(
+            AtfReportHtmlVocabulary.Tag.BODY,
+            AtfReportHtmlVocabulary.classAttribute(
+                    AtfReportHtmlVocabulary.CssClass.SPA,
+                    AtfReportHtmlVocabulary.CssClass.REPORT,
+                    AtfReportHtmlVocabulary.CssClass.DARK,
+                    AtfReportHtmlVocabulary.CssClass.ATF_OVERVIEW_DEFAULT));
+    private static final String VENDOR_TEST_VIEW = AtfReportHtmlVocabulary.classAttribute(
+            AtfReportHtmlVocabulary.CssClass.TEST_WRAPPER,
+            AtfReportHtmlVocabulary.CssClass.ROW,
+            AtfReportHtmlVocabulary.CssClass.VIEW,
+            AtfReportHtmlVocabulary.CssClass.TEST_VIEW);
+    private static final String VENDOR_CATEGORY_VIEW = AtfReportHtmlVocabulary.classAttribute(
+            AtfReportHtmlVocabulary.CssClass.TEST_WRAPPER,
+            AtfReportHtmlVocabulary.CssClass.ROW,
+            AtfReportHtmlVocabulary.CssClass.VIEW,
+            AtfReportHtmlVocabulary.CssClass.CATEGORY_VIEW,
+            AtfReportHtmlVocabulary.CssClass.ATTRIBUTES_VIEW);
+
     private ExtentReportPublicationPipeline() {
     }
 
@@ -47,8 +75,12 @@ public final class ExtentReportPublicationPipeline {
 
     private static String injectAtfTheme(String html) {
         String css = AtfReportTheme.css();
-        html = html.replace("</head>", "<style id=\"atf-report-theme\">" + css + "</style></head>");
-        return html.replace("<body class=\"spa -report dark\">", "<body class=\"spa -report dark atf-overview-default\">");
+        String style = AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.STYLE, css,
+                AtfReportHtmlVocabulary.idAttribute(
+                        AtfReportHtmlVocabulary.ElementId.THEME_STYLE));
+        String headClose = AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.HEAD);
+        return html.replace(headClose, style + headClose)
+                .replace(VENDOR_BODY_OPEN, ATF_BODY_OPEN);
     }
 
     /** Fails keeps only its diagnostic index; the full tree remains in Tests. */
@@ -61,10 +93,26 @@ public final class ExtentReportPublicationPipeline {
     }
 
     private static String ensureViewIdentifiersAndOverviewDefault(String html) {
-        html = html.replaceFirst("class=\"test-wrapper row view test-view\"",
-                "id=\"test-view\" class=\"test-wrapper row view test-view hide\"");
-        html = html.replaceFirst("class=\"test-wrapper row view category-view attributes-view\"",
-                "id=\"category-view\" class=\"test-wrapper row view category-view attributes-view hide\"");
+        String testView = AtfReportHtmlVocabulary.idAttribute(
+                AtfReportHtmlVocabulary.ViewId.TESTS) + " "
+                + AtfReportHtmlVocabulary.classAttribute(
+                AtfReportHtmlVocabulary.CssClass.TEST_WRAPPER,
+                AtfReportHtmlVocabulary.CssClass.ROW,
+                AtfReportHtmlVocabulary.CssClass.VIEW,
+                AtfReportHtmlVocabulary.CssClass.TEST_VIEW,
+                AtfReportHtmlVocabulary.CssClass.HIDE);
+        String categoryView = AtfReportHtmlVocabulary.idAttribute(
+                AtfReportHtmlVocabulary.ViewId.CATEGORIES) + " "
+                + AtfReportHtmlVocabulary.classAttribute(
+                AtfReportHtmlVocabulary.CssClass.TEST_WRAPPER,
+                AtfReportHtmlVocabulary.CssClass.ROW,
+                AtfReportHtmlVocabulary.CssClass.VIEW,
+                AtfReportHtmlVocabulary.CssClass.CATEGORY_VIEW,
+                AtfReportHtmlVocabulary.CssClass.ATTRIBUTES_VIEW,
+                AtfReportHtmlVocabulary.CssClass.HIDE);
+        html = html.replaceFirst(Pattern.quote(VENDOR_TEST_VIEW), Matcher.quoteReplacement(testView));
+        html = html.replaceFirst(Pattern.quote(VENDOR_CATEGORY_VIEW),
+                Matcher.quoteReplacement(categoryView));
         return html;
     }
 

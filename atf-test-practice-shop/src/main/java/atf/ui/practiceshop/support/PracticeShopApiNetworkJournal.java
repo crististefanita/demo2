@@ -185,6 +185,12 @@ public final class PracticeShopApiNetworkJournal {
     }
 
     public List<Exchange> exchanges() { return List.copyOf(exchanges); }
+    /** Returns the complete ordered browser network trace for the journey-level inspector. */
+    public List<ReportExecutionEvidence> allEvidence() {
+        return exchanges.stream()
+                .map(PracticeShopApiEvidenceMapper::toExecution)
+                .toList();
+    }
     public List<ReportExecutionEvidence> productEvidence() { return lastProductEvidence; }
     public List<ReportExecutionEvidence> loginEvidence() { return lastLoginEvidence; }
     public List<ReportExecutionEvidence> cartEvidence() { return lastCartEvidence; }

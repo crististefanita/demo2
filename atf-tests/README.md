@@ -105,6 +105,11 @@ fost găsite, ce regulă este încălcată și ce modificare minimă o poate rem
 Un README poate rămâne intenționat roșu în timpul reconcilierii; suita trebuie să
 facă gap-ul reproductibil, nu să-l îngroape într-o excepție.
 
+Testele de guvernanță sunt contract protejat: nu se modifică, dezactivează sau
+relaxează pentru a transforma un README roșu în pass. Se schimbă numai pe baza
+unui feedback direct care modifică regula, ownerul, criteriul sau dovada cerută;
+în caz contrar se repară documentul țintă.
+
 Pentru o verificare punctuală, se schimbă doar valoarea adnotării:
 
 ```java

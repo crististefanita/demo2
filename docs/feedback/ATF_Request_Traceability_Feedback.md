@@ -1,445 +1,145 @@
-# ATF — Request traceability și intercalarea UI/API
+# ATF — feedback live pentru request traceability și intercalarea UI/API
 
-## Overall
+## Verdict curent
 
-Acest feedback extrage un contract de proiectare din raportul de referință
-`RegressionExtent.html` și îl traduce pentru ATF Java. Scopul nu este copierea
-raportului extern, ci definirea unei proiecții care permite unui cititor să
-înțeleagă, în ordine:
+- traceability-ul local este suficient pentru contractul typed și pentru auditul
+  artifactului;
+- `SETUP → UI step → API exchange → assertion → cleanup` este modelul de
+  cauzalitate urmărit;
+- `atf-reporting` publică structura generică, iar Practice Shop furnizează
+  operațiile și corelația consumerului;
+- replay-ul și MCP/Chromium verifică prezentarea, dar nu înlocuiesc testele
+  unit/component/integration;
+- guest product → cart → payment este deja dovedit prin `LIVE_HTTP` în aceeași
+  sesiune UI; singura limită de business rămasă este dovada authenticated cu
+  fixture extern acceptat, nu modelul local de trace.
 
-1. ce precondiție din API a construit starea testului;
-2. ce acțiune Playwright a fost executată în UI;
-3. ce request-uri API au fost cauzate de acea acțiune;
-4. ce răspunsuri și validări au justificat continuarea;
-5. ce read-back sau cleanup a închis fluxul.
+## Traseul canonical
 
-Scorul orientativ al contractului ATF actual era **76/100** la explorarea inițială.
-După implementarea ledgerului renderer-neutral și a proiecției de semnătură,
-scorul verificat pe codul Java este **94/100**; diferența rămasă este gate-ul
-E2E consumer după eliberarea resurselor de execuție, nu o lipsă a contractului
-de date.
+```mermaid
+flowchart LR
+    Setup["SETUP / precondition"] -->|pregătește| Ui["UI step"]
+    Ui -->|declanșează| Exchange["0..n API exchanges"]
+    Exchange -->|alimentează| Assertion["UI + API validation"]
+    Assertion -->|închide| Cleanup["read-back / cleanup"]
+    Exchange -->|înregistrează| Ledger["typed trace ledger"]
+    Ledger -->|ordonează| Artifact["ordered evidence"]
+```
 
-| Dimensiune | Scor | Observație |
+<details>
+<summary><strong>Legendă — cauzalitate și limite</strong></summary>
+
+- `0..n` este intenționat: un pas UI poate produce zero, unul sau mai multe
+  request-uri;
+- ledger-ul păstrează `eventId`, `sequence`, `phase`, `role` și `correlation`;
+- `unique request signature` este agregare, nu înlocuiește trace-ul ordonat;
+- `SETUP` descrie precondiția, `UI step` descrie acțiunea, `CLEANUP` descrie
+  read-back-ul sau închiderea controlată;
+- artifactul primește evidence deja semantică; renderer-ul nu reconstruiește
+  business meaning din text liber.
+
+</details>
+
+## Scor pe axe
+
+| Axă | Notă | Limită actuală |
 |---|---:|---|
-| rezumat auth/transport | 88 | `AuthObservationHtmlFormatter` are deja summary, counters și semnături de transport |
-| schimburi API complete | 84 | `BrowserApiExchange` și `UiActionEvidenceFormatter` păstrează request/response JSON |
-| intercalare API sub pasul UI | 82 | HTTP exchange-ul poate fi copilul acțiunii Playwright, dar cauza nu este un model typed stabil |
-| semnătură request business | 66 | proiecția auth grupează fără body, operation, phase sau correlation |
-| precondiții dinamice | 68 | există setup/read-back în titluri și workflow-uri, nu o secțiune semantică uniformă |
-| replay și trace ordonat | 70 | există liste globale/pe pas și artifact JSON, dar legătura event → pas UI nu este completă |
-| contract vizual | 84 | disclosure-uri, cards și payload previews sunt deja apropiate de referință |
+| identitate și sequence | 96 | orice schimbare de cardinalitate trebuie prinsă de component audit |
+| request/response evidence | 95 | JSON, headers, status și redaction sunt typed; body-ul extern poate fi unavailable |
+| UI → API cauzalitate | 94 | exchange-ul poate fi copilul pasului UI și păstrează corelația |
+| network inspector de journey | 82 | fiecare checkpoint are evidence bogată, dar lipsește încă o proiecție agregată, ordonată, a tuturor exchange-urilor din flow |
+| precondiții și cleanup | 92 | contractul este stabil; business live rămâne dependent de mediu |
+| unique signatures | 95 | agregă fără a șterge trace-ul complet |
+| proiecție Extent/HTML | 94 | disclosure-urile canonical sunt collapsed și normalizarea este idempotentă |
+| **scor global** | **94** | contractul local este matur; dovada externă nu se simulează |
 
-Scorul nu închide niciun ToDo; este numai o hartă de risc pentru implementare.
+## Închideri promovate
 
-## Status curent — reconciliere cu codul live la 2026-10-20
-
-Contractul stabil este documentat în
-[`atf-test-practice-shop/README.md`](../../atf-test-practice-shop/README.md) și în
-[`docs/ATF_Reporting_Contract.md`](../ATF_Reporting_Contract.md). Acest feedback
-păstrează numai statusul și limita de redeschidere:
-
-| Zonă | Status | Dovadă / limită |
+| ID | Dovadă live | Verdict |
 |---|---|---|
-| `TRACE-REQ-01..10` | ✅ închis pe contract/local | metadata typed, request signature, role/phase, event correlation, JSON/visual parity și component audit sunt verificate fără a confunda mock-ul cu business live |
-| trace în artifact | ✅ închis | request/response JSON, execution trace și ordered evidence rămân în disclosure-uri canonice; normalizarea este idempotentă |
-| `SHOP-API-REAL-01/02` | 🟡 blocat extern | contractul de trace nu poate declara catalog/cart/payment PASS fără login `LIVE_HTTP` acceptat și comparații business reale |
-| replay/MCP | 🔁 verificare de prezentare | MCP/Chromium confirmă randarea și navigarea; nu înlocuiește testele typed și nu devine sursă normativă |
+| `TRACE-REQ-01..10` | `ReportTraceMetadata`, `ReportRequestSignature`, publisher și teste de trace | event identity, role, phase, sequence și correlation sunt păstrate |
+| trace în artifact | disclosure component/browser proof | request JSON, response JSON și execution trace rămân în aceeași proiecție |
+| `SHOP-MIX-01..03` | `PracticeShopApiNetworkJournal` și evidence mapper | precondiția API și exchange-urile cauzate de UI sunt atașate checkpoint-ului existent |
+| guest live chain | `PracticeShopPurchaseE2eTest` + MCP artifact | catalog → product → cart → checkout → payment păstrează request/response/execution evidence, assertions business și `LIVE_HTTP` provenance |
+| cart network proof | fresh guest E2E + MCP | `POST /carts/{id}` și `GET /carts/{id}` sunt vizibile în același checkpoint; JSON-urile sunt pretty, iar trace-ul păstrează `sequence=17`, `phase=cart`, `correlation`, signature, digest-uri și `UI_BROWSER` |
+| JSON semantic | `PracticeShopJsonEvidence` + typed fields | body-urile sunt parse-uite ca structură, nu căutate prin substring |
+| replay local | mock-backed integration | replay-ul verifică transportul și contractul local, fără să pretindă business live |
 
-Orice regresie a event id/sequence/phase/role/correlation sau a cardinalității
-`observations` versus `unique signatures` redeschide itemul corespunzător; o
-captură nouă, un timestamp sau un artifact local nu îl redeschide singur.
+## Limite care pot redeschide feedback-ul
 
-## Ce am extras din raportul de referință
+| Situație | Status | Criteriu de redeschidere |
+|---|---|---|
+| event id/sequence/phase/role/correlation pierdut | activabil | component audit arată diferența față de ledger |
+| cardinalitate `observations` versus `unique signatures` schimbată | activabil | aceeași operație apare agregată sau duplicată incorect |
+| request/response JSON separat de execution trace | activabil | disclosure normalization sau publisher-ul rupe aceeași cauzalitate |
+| authenticated login/catalog/cart/payment fără sesiune validă | blocat extern | fixture non-placeholder + `authenticatedE2eEnabled=true`, testele nu mai sunt skip, login/current-user `200` și comparații business reale pe `LIVE_HTTP` |
+| replay/MCP | verificare de prezentare | nu redeschide singur contractul typed |
+| agregare network inspector | ToDo P1 | se redeschide până când raportul are o disclosure compactă, collapsed-by-default, care ordonează `UI step → 0..n exchange-uri → assertions` și trimite la evidence-ul detaliat fără body duplicat |
 
-Raportul extern este util prin structură, nu prin numele testelor sau timestamp-
-urile sale. Pentru fiecare scenariu, informația este stratificată astfel:
+## Contractul de date păstrat de owneri
 
-```mermaid
-flowchart LR
-    Summary[Authentication summary] --> Diagnostics[Technical diagnostics]
-    Diagnostics --> Correlation[Scenario correlation]
-    Diagnostics --> Artifacts[Diagnostic artifacts]
-    Diagnostics --> Counters[Transport counters]
-    Diagnostics --> Signatures[Unique request signatures]
-    Signatures --> Ordered[ordered trace in JSON artifact]
-    Scenario[SETUP / dynamic preconditions] --> UiStep[Gherkin UI step]
-    UiStep --> Action[Playwright action sequence]
-    Action --> Exchange[0..n API exchanges]
-    Exchange --> Assertion[UI and API validation]
-    Assertion --> Cleanup[CLEANUP / control read-back]
-```
+| Element | Cerință |
+|---|---|
+| operation | intenție semantică, nu doar method/path |
+| route | path relativ și template stabil; URL-ul complet nu devine contract |
+| phase | `SETUP`, `TEST BODY`, `THEN`, `CLEANUP` sau rolul typed echivalent |
+| role | precondition, action, validation, cleanup |
+| correlation | leagă UI step-ul de exchange-urile cauzate |
+| request | method, route, headers/auth redacted, query și body JSON |
+| response | status, headers, duration și body JSON sau indisponibilitate explicită |
+| execution | attempt, transport, provenance și verdict semantic |
+| signature | agregare deterministă pentru citire rapidă |
+
+`atf-reporting` nu ghicește operation, phase sau business route din textul unui
+test. Consumerul furnizează inputul typed, iar librăria păstrează și publică
+ceea ce a primit.
+
+## ToDo — snapshot configurabil de execuție
+
+`RegressionExtent.html` arată de ce o secțiune System/Environment utilă nu se
+poate limita la `Environment`, runtime și o frază generică despre client. Pentru
+un consumer UI/API, snapshot-ul typed trebuie să poată publica, redacted și
+fără căi temporare:
+
+- host UI și endpoint API normalizate;
+- browser, headless, viewport, zoom și timeout-uri;
+- transport, API mode și precondition;
+- validation profile, screenshot policy și report destinations ca roluri, nu
+  ca nume timestampate;
+- suite/lane, test selection, expected/discovered/deferred counts;
+- fixture mode, product/flow inputs non-sensitive și authenticated flag;
+- provenance pentru `LIVE_HTTP`, mock/fixture sau unavailable.
+
+Nu se publică password, token, account-file secret, absolute temp path sau
+identitatea unui artifact generat. `ReportEnvironment.defaults()` rămâne fallback
+generic; consumerul trebuie să poată adăuga metadata typed fără să mute
+business logic în renderer.
+
+## Protocol de revalidare
 
 <details>
-<summary><strong>Legendă — cauzalitate UI/API urmărită în feedback</strong></summary>
+<summary><strong>Când se schimbă traceability-ul</strong></summary>
 
-- ramura de sus compactează diagnosticul global și semnăturile request-urilor;
-- ramura de jos păstrează cauzalitatea `SETUP → UI step → exchange → assertion`;
-- `0..n` este intenționat: un pas UI poate produce zero, unul sau mai multe schimburi;
-- feedback-ul descrie gap-ul de trasabilitate până când codul și testele îl închid.
+1. verifică modelul ledger-ului prin unit tests;
+2. verifică mapper-ul și disclosure-ul prin component tests;
+3. verifică fixture → mock → report prin integration tests;
+4. folosește browser proof numai pentru click, expand/collapse, navigare și
+   layout;
+5. dacă mediul extern este implicat, separă explicit verdictul transportului
+   de verdictul business;
+6. actualizează statusul curent și criteriul, nu adăuga o secțiune datată sau un
+   nume de artifact generat.
 
 </details>
 
-### Elemente care trebuie păstrate în proiecția ATF
-
-| Element de referință | Informația utilă | Regula ATF propusă |
-|---|---|---|
-| `Authentication summary` | environment, rezultat, transport și auth pe scurt | rămâne rezumat; nu pretinde validarea tokenului dacă doar header-ul a fost observat |
-| `Technical diagnostics` | context operațional și probleme de captură | rămâne collapsed implicit și nu concurează cu business steps |
-| `Scenario correlation` | fixture, submission, review, quote, document și run identity | fiecare exchange important trebuie să poată indica aceeași corelație |
-| `Diagnostic artifacts` | artifact JSON, artifact reutilizabil și PDF | linkurile trebuie să fie raportabile fără a publica path-uri de mașină ca contract |
-| `Transport counters` | setup, seed, submit, polling, read-back | separă numărul de observații de numărul de schimburi logice |
-| `Unique request signatures` | method, URL, status-uri, count, service, auth, source | este o proiecție compactă, nu înlocuiește trace-ul complet |
-| `API exchange — ...` | operation, endpoint, auth, status, request body, response body | apare în `SETUP` sau sub pasul UI care l-a cauzat |
-| `UI prerequisite` / `PRECONDITION` | ce stare este necesară înainte de interacțiune | devine un rol semantic, nu doar un prefix în titlu |
-| `Playwright action sequence` | acțiuni în ordinea reală și rezultatul observat | rămâne singura sursă pentru pașii UI executați |
-| `CLEANUP` | read-back și lipsa mutațiilor neașteptate | este separat de verdictul business, dar face parte din audit |
-
-## Modelul de cauzalitate dorit
-
-```mermaid
-sequenceDiagram
-    participant S as Scenario
-    participant P as Precondition/API
-    participant B as Browser/UI
-    participant A as API
-    participant V as Validation
-    S->>P: create/read fixture and dynamic state
-    P-->>S: typed precondition output + exchange refs
-    S->>B: navigate / click / fill / select
-    B->>A: browser requests
-    A-->>B: responses
-    B-->>S: rendered state
-    S->>V: UI assertion + API contract assertion
-    V-->>S: expected / observed / verdict
-    S->>P: control read-back / cleanup
-```
-
-<details>
-<summary><strong>Legendă — secvența cauzală propusă</strong></summary>
-
-- precondiția produce stare typed și referințe de exchange;
-- browserul produce acțiunea observabilă, iar API-ul produce schimburile cauzate;
-- validation-ul primește separat evidence UI și API;
-- cleanup/read-back închide controlat scenariul, fără să piardă corelația.
-
-</details>
-
-Un pas UI poate produce zero, unul sau mai multe request-uri. Un request poate
-fi polling, retry, read-back sau mutație. Raportul nu trebuie să sugereze că
-orice request observat este cauzat de click-ul curent; trebuie să publice
-explicit `initiator`, `phase` și `role`.
-
-## Ce există astăzi în ATF
-
-### Părți deja bune
-
-- `ScenarioReportComposer` separă `SETUP`, `Business proposition / acceptance`
-  și `CLEANUP`.
-- `UiActionEvidenceReporter` și `UiActionEvidenceFormatter` pot păstra un
-  `HTTP exchange — request/response` ca sub-disclosure al acțiunii Playwright.
-- `BrowserApiExchange` are deja `EvidenceSource`, `CorrelationId`, auth source,
-  retry history și body-uri.
-- `Hooks.RecordApiExchange` păstrează body-urile în `ApiTraceEntry`, atât în
-  trace-ul scenariului, cât și în trace-ul pasului curent.
-- `AuthObservationHtmlFormatter` afișează deja summary, correlation, artifact,
-  transport counters și cards pentru request signatures.
-- `ConsecutiveApiEvidenceDeduplicator` nu confundă polling-ul consecutiv cu
-  pierderea trace-ului: deduplică numai proiecția Extent, nu artifactul JSON.
-- redacția query/auth este centralizată în `ApiAuthenticationEvidence`; acest
-  boundary trebuie păstrat pentru orice proiecție nouă.
-
-### Gap-uri găsite prin comparația cod–raport
-
-| ID | Gap observat | De ce contează | Prioritate |
-|---|---|---|---:|
-| `TRACE-REQ-01` | `ApiTraceEntry` nu are timestamp, sequence, phase, role, step identity, source sau correlation key | trace-ul poate fi citit, dar nu poate demonstra complet cauza și ordinea | P0 |
-| `TRACE-REQ-02` | `AuthObservationHtmlFormatter.FormatRequests` grupează după method, URL, service, auth și source, fără request body | două POST/PUT cu aceeași rută, dar payload-uri diferite, pot deveni aceeași „unique signature” | P0 |
-| `TRACE-REQ-03` | `AuthObservationRecord` este intenționat metadata-only și nu are operation/body/response | este corect pentru auth audit, dar insuficient ca proiecție business API | P0 |
-| `TRACE-REQ-04` | `ApiDetail` corelează prin ultimul `Operation` din `CurrentStepApiTrace` | operații repetate cu aceeași denumire pot atașa evidence la exchange-ul greșit | P0 |
-| `TRACE-REQ-05` | phase/role sunt exprimate mai ales prin titluri (`fixture`, `precondition`, `read-back`) | titlul este text volatil și nu poate guverna filtrarea, grouping-ul sau replay-ul | P1 |
-| `TRACE-REQ-06` | precondiția dinamică nu are output typed care să fie referit de pasul UI | cititorul vede request-ul, dar nu vede explicit ce valoare a făcut UI-ul posibil | P1 |
-| `TRACE-REQ-07` | retry history există în `BrowserApiExchange`, dar nu există uniform în summary/signature projection | count-ul poate amesteca încercări tehnice cu schimburi logice | P1 |
-| `TRACE-REQ-08` | trace-ul global și trace-ul pasului sunt colecții separate, fără event id comun | legătura dintre artifact, card și UI action nu este verificabilă fără heuristici | P1 |
-| `TRACE-REQ-09` | validarea de request/response poate fi prezentă în card, dar nu este obligatoriu declarată ca assertion | un body afișat nu dovedește singur că a fost validat | P1 |
-| `TRACE-REQ-10` | proiecția compactă și trace-ul complet nu au un contract comun de cardinalitate | cititorul nu știe dacă `count` înseamnă observații, încercări sau schimburi logice | P2 |
-
-`TRACE-REQ-02` nu cere eliminarea rezumatului auth existent. Cere două
-proiecții distincte: auth/transport grouping și business request signature.
-
-## Contractul de date — snapshot istoric al propunerii
-
-### Event ledger canonic
-
-Se recomandă un model intern unic, produs la boundary-ul de captură și apoi
-proiectat în Extent, JSON și assertions:
-
-```text
-ApiExchangeEvent
-  EventId              stable per observed exchange
-  Sequence             monotonic scenario order
-  TimestampUtc         capture time
-  Phase                Setup | UiAction | Assertion | Cleanup
-  Role                 Precondition | ActionCaused | Polling | ReadBack | Retry | Cleanup
-  StepId               stable identity of the Gherkin step, nullable for setup
-  StepIndex            human-readable sequence, nullable for setup
-  Initiator            business operation or Playwright action
-  Operation            semantic API operation
-  Method               HTTP method
-  SafeUrl              canonical URL with sensitive query values redacted
-  Service              logical backend service
-  CorrelationKey       stable method + canonical route identity
-  RequestSignature     method + safe URL + normalized request-body digest
-  Attempt              logical exchange attempt number
-  Status               HTTP status or transport failure
-  RequestBody          redacted, bounded preview / artifact reference
-  ResponseBody         redacted, bounded preview / artifact reference
-  RequestBodyDigest    stable digest for grouping and equality
-  ResponseBodyDigest   stable digest for variants and replay
-  EvidenceSource       Browser | HttpClient | Fixture | Replay
-  ExpectedContract     what the test expected from this exchange
-  ObservedOutcome      what actually happened
-```
-
-Nu toate câmpurile trebuie afișate în tabelul compact. Toate trebuie să fie
-disponibile în artifact sau în disclosure-ul exchange-ului atunci când sunt
-relevante.
-
-### Definiția corectă a unei unique request signature
-
-```text
-logical signature = METHOD
-                  + canonical safe URL
-                  + SHA-256(canonical normalized request body)
-```
-
-Reguli:
-
-- query-ul păstrează numele și valorile non-sensibile; credentialele sunt
-  redacted înainte de signature;
-- JSON-ul se normalizează recursiv: proprietățile obiectelor se ordonează,
-  whitespace-ul dispare, dar ordinea array-urilor se păstrează;
-- body-ul gol/absent este distinct de un JSON `{}`;
-- response body-ul nu face parte din request signature; polling-ul rămâne o
-  singură semnătură logică, cu status/response variants și count separat;
-- retry-urile sunt attempts ale aceleiași semnături, nu semnături noi;
-- `service`, `auth`, `evidence source` și `role` sunt dimensiuni de observație,
-  afișate în card, nu motive de a uni body-uri diferite;
-- trace-ul ordonat păstrează toate observațiile chiar când proiecția compactă
-  le grupează.
-
-### Precondiție dinamică
-
-O precondiție trebuie să aibă semantic următoarele câmpuri:
-
-| Câmp | Exemplu conceptual | Rol |
-|---|---|---|
-| `PreconditionId` | `quote-ready-for-review` | referință stabilă din UI step |
-| `Provider` | `POST /quotes/inject` sau `GET /reviews/pending` | sursa stării |
-| `Input` | fixture profile + identificatori | ce a fost trimis |
-| `Output` | `quoteId`, `reviewId`, route, state | ce va consuma UI-ul |
-| `Expected` | review pending pentru quote-ul creat | contractul verificat |
-| `Observed` | status/body/read-back rezultat | dovada concretă |
-| `ExchangeIds` | `[E12, E13]` | legătura cu trace-ul API |
-| `Blocking` | `true/false` | dacă UI-ul poate continua |
-
-Un `Given` trebuie să poată spune „consum precondiția X”, nu doar să repete
-într-un titlu că a fost făcut setup. Dacă precondiția nu este produsă sau
-read-back-ul nu confirmă output-ul, UI-ul nu trebuie să primească un verdict
-ambiguu.
-
-## Proiecția Extent ATF
-
-```mermaid
-flowchart LR
-    Ledger[canonical event ledger] --> Summary[collapsed diagnostic summary]
-    Ledger --> SignatureView[unique request signatures]
-    Ledger --> SetupView[SETUP / preconditions]
-    Ledger --> StepView[UI step + Playwright action]
-    StepView --> ApiChild[causal API exchange child]
-    Ledger --> Artifact[ordered JSON artifact]
-    ApiChild --> Assertions[expected / observed / result]
-```
-
-<details>
-<summary><strong>Legendă — proiecția ledgerului</strong></summary>
-
-- ledger-ul este sursa ordonată, iar restul sunt proiecții colapsabile;
-- semnătura compactă nu înlocuiește trace-ul complet;
-- exchange-ul API rămâne copilul pasului UI care l-a inițiat;
-- assertions consumă rezultatul observat și păstrează `expected / observed / result`.
-
-</details>
-
-### Ordinea obligatorie a afișării
-
-1. `SETUP` — identity, fixture, preconditions, API setup și read-back;
-2. `TEST BODY` / business proposition — pașii Gherkin în ordinea reală;
-3. pentru fiecare pas UI: acțiunile Playwright, request-urile cauzate, response,
-   assertions și screenshot-ul checkpoint;
-4. `API diagnostics` — rezumatul global și linkul către trace-ul ordonat;
-5. `CLEANUP` — control read-back, cleanup și eventuale warning-uri.
-
-În interiorul unui pas UI, API-ul trebuie afișat după acțiunea care îl inițiază
-și înainte de assertion-ul care consumă răspunsul. Nu este suficient să fie
-mutat într-un bloc final de diagnostics.
-
-### Cardul compact pentru o semnătură
-
-Cardul collapsed trebuie să rămână ușor de scanat:
-
-```text
-POST  /api/quotes/{quoteNumber}  · Status 200  · Count 1
-Service: Policy · Auth: Anonymous — None · Source: API client / HttpClient
-Role: Precondition · Phase: SETUP · Body: sha256:abcd1234 · Responses: 200
-```
-
-Disclosure-ul poate conține body-urile JSON, headers redacted, correlation,
-attempts, expected/observed și linkul către artifact. Nu se afișează token-uri,
-cookie-uri sau valori de secret query.
-
-## Matrice de implementare și testare
-
-| ID | Schimbare necesară | Owner probabil | Test minim | Gate de închidere |
-|---|---|---|---|---|
-| `TRACE-REQ-01` | event ledger cu sequence, phase, role, step și event id | `atf-reporting` / `atf-ui` | unit + component | două exchange-uri în aceeași acțiune păstrează ordinea și refs comune |
-| `TRACE-REQ-02` | canonical request signature cu body digest | reporting projection | unit | POST/PUT cu body diferit nu se unesc; JSON reordonat se unește |
-| `TRACE-REQ-03` | exchange ref explicit în UI action evidence | UI evidence | component | cardul UI indică exact exchange-ul cauzat, fără matching după titlu |
-| `TRACE-REQ-04` | role/phase typed, nu doar titlu HTML | scenario composer | unit + integration | setup, action, assertion, polling, read-back și cleanup apar distinct |
-| `TRACE-REQ-05` | precondition model + output consumption | workflow owner | unit + integration | UI step eșuează clar când output-ul precondiției lipsește |
-| `TRACE-REQ-06` | projection compactă + ordered JSON artifact | reporting | component + artifact audit | `Displayed: N unique signatures from M observations` este reconciliabil |
-| `TRACE-REQ-07` | retry logical vs attempt | browser capture / transport | unit | retry-ul crește attempts, nu cardinalitatea logical signatures |
-| `TRACE-REQ-08` | request/response validators legați de event id | API/UI tests | component + E2E | body prezent nu este raportat ca validat fără assertion explicit |
-| `TRACE-REQ-09` | display contract și overflow | reporting UI | Chromium/ATF Debug | `scrollWidth <= clientWidth`, disclosure-uri accesibile, body-uri inline |
-| `TRACE-REQ-10` | manual replay contract | reporting tests | E2E exploratory | cititorul poate repeta setup → UI → API → validation fără cod intern |
-
-## Plan de implementare — snapshot istoric, reconciliat mai jos
-
-### P0 — identitate și pierdere de informație
-
-- introducerea event ledger-ului sau extinderea modelului existent fără a dubla
-  capturarea Browser/HttpClient;
-- signature canonicală cu body digest și redacție înainte de persistare;
-- `EventId`/`Sequence` comun între `ApiTraceEntry`, UI action evidence și JSON;
-- teste pentru body-uri distincte, polling, retry, request fără body și JSON
-  reordonat;
-- păstrarea trace-ului lossless chiar dacă Extent afișează grupat.
-
-### P1 — cauzalitate și precondiții
-
-- `Phase` și `Role` typed în locul deducției din titlu;
-- API exchange refs atașate explicit la acțiunea UI și la assertion-ul care le
-  consumă;
-- precondition output typed pentru `quoteId`, `reviewId`, `documentId`, route și
-  state;
-- diferențierea clară între `fixture setup`, `UI prerequisite`, `action-caused`,
-  `polling`, `assertion read-back` și `cleanup`;
-- status/expected/observed pentru fiecare exchange, nu doar pentru scenariul
-  părinte.
-
-### P2 — citire, replay și robustețe vizuală
-
-- summary collapsed cu carduri compacte și count-uri reconciliabile;
-- body-urile complete în disclosure/artefact, previews bounded în tabel;
-- link inline către artifact JSON și screenshot în aceeași unitate de evidence;
-- E2E manual prin ATF Debug/Chromium pentru `Overview`, `Tests`, `Fails`,
-  `Categories`, `SETUP`, `TEST BODY`, `Preconditions`, `API exchange`,
-  `Assertions` și `CLEANUP`;
-- verificarea overflow, `<hr>` decorative, console/page errors și a orientării
-  verticale a disclosure-urilor.
-
-## Reguli de siguranță și non-obiective
-
-- nu se publică body-uri sau headers cu credentiale; redacția se face înainte de
-  hashing, render și artifact;
-- nu se tratează HTTP 200 ca dovadă business fără assertion pe body/state;
-- nu se transformă fiecare request static sau polling în pas Gherkin;
-- nu se deduplicatează trace-ul ordonat; se deduplicatează numai proiecția de
-  prezentare;
-- nu se potrivește un response cu UI-ul după textul titlului când există
-  `EventId`/reference explicit;
-- nu se mută în enum-uri valori dinamice precum quote IDs, review IDs, URLs sau
-  body-uri;
-- raportul de referință este inspirație structurală și evidence exploratorie,
-  nu fixture permanent și nu sursă de timestamp-uri în README.
-
-## Definition of done pentru acest feedback
-
-- [x] există o signature canonicală testată pentru method + safe URL + body;
-- [x] `Unique request signatures` separă body-uri diferite și explică count-ul;
-- [x] fiecare exchange are sequence, phase, role și correlation ref;
-- [x] un UI step poate indica explicit toate exchange-urile cauzate de el prin
-  metadata `EventId`/trace pe fiecare evidence;
-- [x] setup-ul și checkpoint-ul publică precondiția, output-ul observat și
-  read-back-ul prin assertions/evidence; lipsa datelor nu este inventată;
-- [x] assertion-ul API este distinct de simpla afișare a body-ului;
-- [x] trace-ul complet rămâne disponibil în metadata/evidence, chiar dacă
-  Extent este compact;
-- [x] component/integration/E2E gates verifică atât contractul datelor, cât și
-  efectul real în browser MCP/ATF Debug;
-- [x] README-ul owner primește regulile stabilizate, iar feedback-ul păstrează
-  numai gap-urile rămase.
-
-## Referințe ATF
-
-- [ATF Reporting Contract](../ATF_Reporting_Contract.md)
-- [ATF Build and Execution Safety](../ATF_Build_And_Execution_Safety.md)
-- UI evidence/reporting source boundary: `Automation.UI/Specs/Reporting/README.md`
-- [ATF reporting composition tests](../../atf-reporting-tests/src/test/java/atf/ui/tests/extent/README.md)
-- [ATF feedback registry](README.md)
-
-## Reconciliere live — 2026-10-20
-
-Aceasta este secțiunea autoritativă pentru implementarea Java curentă. Referințele
-istorice la `ApiTraceEntry`, `BrowserApiExchange` și `AuthObservationHtmlFormatter`
-provin din sistemul sursă analizat și nu sunt clase ATF Java; echivalentele actuale
-sunt `ReportExecutionEvidence`, `ReportTraceMetadata`,
-`ReportRequestSignature` și `PracticeShopApiNetworkJournal.Exchange`.
-
-| ID | Status | Dovadă live |
-|---|---|---|
-| `TRACE-REQ-01` | ✅ închis pe contract | `ReportTraceMetadata` păstrează event id, sequence, phase, role, step, initiator, correlation și source. |
-| `TRACE-REQ-02` | ✅ închis | `ReportRequestSignature` sortează obiectele JSON, păstrează ordinea array-urilor, redacted query-ul sensibil și distinge body absent de `{}`. |
-| `TRACE-REQ-03` | ✅ închis | auth rămâne metadata; business exchange-ul folosește `ReportExecutionEvidence` separat, cu request/response JSON și trace. |
-| `TRACE-REQ-04` | ✅ închis pe consumer | Practice Shop nu selectează cauza prin titlu: fiecare exchange publicat poartă `EventId` și signature proprie. |
-| `TRACE-REQ-05` | ✅ închis pe flow | `SETUP`, `productReady`, `cartReady`, `paymentConfirmed` și checkpoint assertions publică output/observed/read-back, fără fallback semantic. |
-| `TRACE-REQ-06` | ✅ închis | publisher-ul publică `observations`, `unique signatures` și fiecare grup cu count; trace-ul ordonat rămâne în evidence. |
-| `TRACE-REQ-07` | ✅ închis | `attempts`/retry history rămân separate de signature count; retry-ul reutilizează signature-ul requestului. |
-| `TRACE-REQ-08` | ✅ închis | metadata este randată în disclosure-ul execution și este disponibilă pe fiecare evidence UI/API. |
-| `TRACE-REQ-09` | ✅ închis | validatorii Practice Shop produc assertions business distincte de request/response display; gate-ul de renderer verifică metadata în HTML. |
-| `TRACE-REQ-10` | ✅ închis pe component/reporting | raportul păstrează ordinea requesturilor și rezumatul reconciliabil; explorarea MCP rămâne gate de prezentare, nu sursă de date. |
-
-### Gate-uri executate pentru această reconciliere
-
-- `ReportRequestSignatureTest`: **4/0/0**;
-- `ReportTraceMetadataRenderingTest`: **1/0/0**;
-- `ExtentReportRuntimeScriptTest`: **8/0/0**;
-- compilare reactor reporting + Practice Shop: **BUILD SUCCESS** în staging extern;
-- full Practice Shop rerun: reîncercat, dar JVM-ul nu a putut aloca native memory
-  deoarece existau multiple rulări Java active; acest lucru nu este marcat drept
-  failure de test și trebuie rerulat când resursele sunt disponibile.
-
-Prin urmare, nu rămâne un ToDo funcțional pe contractul de traceability. Rămâne
-doar un gate operațional de regresie finală și, separat, limita business externă
-`SHOP-API-REAL-01/02` când login-ul Practice Shop răspunde `401`.
-
-### Verificare MCP a artifactului component — 2026-10-20 18:09
-
-Gate-ul de componentă a fost rerulat după integrarea `ReportTraceMetadata` în
-publisher și în evidence renderer:
-
-- `PracticeShopApiContractReportComponentTest`: **1 test, 0 failures, 0 errors**;
-- artifact fresh: `<configured-api-report-file>`;
-- în MCP Tab au fost expandate manual `TEST BODY`, `POST /users/login`,
-  `Request details` și `Response details`;
-- raportul afișează `REQUEST SIGNATURE`, JSON request redacted și `TECHNICAL TRACE`
-  cu event id, sequence, phase, role, step id, initiator, correlation, digests,
-  source, expected și observed;
-- provenance-ul este vizibil și corect: `ACCEPTANCE / MOCK — network was not executed`.
-
-Această verificare închide dovada de contract și randare pentru traceability,
-dar nu închide `SHOP-API-REAL-01/02`: componenta nu execută rețeaua, iar rerun-ul
-live separat a fost blocat la recompilare de native memory a JVM-ului. Nu a fost
-oprit niciun proces activ și nu se promovează un artifact component la business
-PASS real.
-
-
+## Referințe normative
+
+- [`atf-test-practice-shop/README.md`](../../atf-test-practice-shop/README.md) —
+  flow-uri, API journal, evidence și business boundaries;
+- [`docs/ATF_Reporting_Contract.md`](../ATF_Reporting_Contract.md) — contractul
+  Extent/HTML;
+- [`atf-reporting/README.md`](../../atf-reporting/README.md) — model, publisher,
+  disclosure și artifact;
+- [`atf-reporting-tests/README.md`](../../atf-reporting-tests/README.md) — test
+  matrix și proof lower-level;
+- [`docs/feedback/README.md`](README.md) — registrul central.

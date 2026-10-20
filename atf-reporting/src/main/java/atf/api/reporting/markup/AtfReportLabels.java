@@ -9,6 +9,19 @@ package atf.api.reporting.markup;
  */
 public final class AtfReportLabels {
     public static final String REPORT_TITLE = "ATF Report";
+    public static final String CATEGORY = "Category";
+    public static final String FAILS = "Fails";
+    public static final String NO_CATEGORIES_AVAILABLE = "No categories available";
+    public static final String NO_CATEGORY_ANNOTATIONS =
+            "No category annotations were published for this report.";
+    public static final String OVERVIEW_DEFAULT_COPY =
+            "Overview is the default view; its tab remains last in the navigation contract.";
+    public static final String NO_FAILED_ASSERTIONS = "No failed assertions.";
+    public static final String OPEN_DUPLICATE_SCREENSHOT = "Open duplicate screenshot";
+    public static final String BASE64_IMAGE_MARKER = "📷 base64 img";
+    public static final String DUPLICATE_SCREENSHOT_NOTE =
+            "same image — identical to an earlier captured state in this run;"
+                    + " not re-embedded to avoid duplicating the same bytes.";
     public static final String REQUEST_DETAILS = "Request details";
     public static final String RESPONSE_DETAILS = "Response details";
     public static final String TECHNICAL_TRACE = "TECHNICAL TRACE";

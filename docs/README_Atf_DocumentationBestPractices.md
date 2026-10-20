@@ -36,7 +36,7 @@ fonturi injectate în fiecare document:
   bullets `-` pentru scanare rapidă;
 - fiecare bloc de cod sau schemă are fence tipizat: `mermaid`, `text`, `java`,
   `xml`, `yaml` sau limbajul real al exemplului;
-- sunt interzise `<font>`, `<h1>`/`<h2>` HTML, `style="..."` și CSS inline;
+- sunt interzise tagurile de prezentare HTML, atributul `style` și CSS inline;
 - stilul vizual este exprimat prin titluri, bullets, tabele minimale, diagrame și
   `<details>`, nu prin markup de prezentare dependent de un singur viewer;
 - `DocumentationStyleGovernanceTest` protejează această regulă pentru toate
@@ -60,6 +60,9 @@ dovezi, se închid TODO-uri sau se modifică limita rămasă.
   în feedback, cu dovadă și impact; nu se repară prin alegere implicită;
 - root README-ul, testele-gate și contractele normative se schimbă numai prin
   cerință explicită, motiv documentat, aprobare și dovadă nouă.
+- testele de guvernanță din `atf-tests` nu se modifică, dezactivează sau relaxează
+  pentru a face un README să treacă; orice schimbare a regulii cere feedback
+  direct, owner clar, motiv și un criteriu nou verificabil.
 
 ```mermaid
 flowchart LR
@@ -69,12 +72,13 @@ flowchart LR
     Gate[Test sau guard]
     Feedback[Feedback activ]
     Reconcile[Reconciliere]
-    Live --> Classify
-    Classify --> Owner
-    Owner --> Gate
+    Live -->|inspectează| Classify
+    Classify -->|atribuie| Owner
+    Owner -->|protejează| Gate
     Gate -->|dovadă stabilă| Owner
     Classify -->|gap reproductibil| Feedback
-    Feedback --> Reconcile --> Live
+    Feedback -->|reconciliază| Reconcile
+    Reconcile -->|actualizează| Live
 ```
 
 <details>
@@ -91,6 +95,8 @@ flowchart LR
   unui run rămâne dovadă de execuție;
 - un README normativ sau un test-gate existent nu se modifică incidental;
   schimbarea cere cerință, aprobare, motiv și dovadă nouă.
+- dacă un test de guvernanță pică, se repară documentul țintă înaintea testului;
+  testul se schimbă numai când feedback-ul direct schimbă regula guvernată.
 
 </details>
 

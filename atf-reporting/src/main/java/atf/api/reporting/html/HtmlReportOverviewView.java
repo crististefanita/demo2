@@ -1,4 +1,5 @@
 package atf.api.reporting.html;
+import atf.api.reporting.markup.AtfReportLabels;
 
 import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
 import atf.api.reporting.model.ReportExecutionModel;
@@ -11,12 +12,13 @@ public final class HtmlReportOverviewView {
         var overview = snapshot.overview();
         String summary = metric("Tests", overview.tests()) + metric("Passed", overview.passed())
                 + metric("Failed", overview.failed()) + metric("Skipped", overview.skipped());
-        String body = AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.H2, "Overview")
+        String body = AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.H2,
+                        AtfReportHtmlVocabulary.FallbackTab.OVERVIEW.label())
                 + AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.DIV, summary,
                 AtfReportHtmlVocabulary.classAttribute(
                         AtfReportHtmlVocabulary.CssClass.SUMMARY))
                 + AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.P,
-                "Overview is the default view; its tab remains last in the navigation contract.",
+                AtfReportLabels.OVERVIEW_DEFAULT_COPY,
                 AtfReportHtmlVocabulary.classAttribute(
                         AtfReportHtmlVocabulary.CssClass.CONTRACT));
         return AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.SECTION, body,

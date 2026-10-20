@@ -36,11 +36,11 @@
 
 ```mermaid
 flowchart LR
-    Test[Test API] --> Plan[Scenario plan]
-    Plan --> Setup[SETUP opțional]
-    Setup --> Body[TEST BODY]
-    Body --> Teardown[TEARDOWN]
-    Teardown --> Cleanup[Cleanup/read-back]
+    Test[Test API] -->|planifică| Plan[Scenario plan]
+    Plan -->|pregătește| Setup[SETUP opțional]
+    Setup -->|execută| Body[TEST BODY]
+    Body -->|închide| Teardown[TEARDOWN]
+    Teardown -->|curăță| Cleanup[Cleanup/read-back]
     Setup -. local evidence .-> SetupRequest[Setup request]
     Body -. local evidence .-> BodyRequest[Request + trace<br/>response evidence]
     Body -. local evidence .-> BodyValidation[Validation + aggregate<br/>assertion table]
@@ -131,14 +131,13 @@ api:
   baseUri: https://<real-api-host>/<base-path>
 ```
 
-Rularea mai cere `-Datf.api.live.optIn=true` sau
-`ATF_API_LIVE_OPT_IN=true`, apoi deschiderea unui endpoint prin
-`ApiLiveTransportCatalog`. După execuție, raportul poate genera cURL-ul de
-replay pentru schimbul live; token-urile și header-ele sensibile rămân
-redacted. Un test care nu declară explicit `live` nu are voie să deschidă
-network-ul doar pentru că `baseUri` arată ca un endpoint public. Catalogul
-respinge placeholder-ul acceptance și limitează request-urile la originea
-endpoint-ului selectat.
+Rularea live este permisă numai când sunt declarate explicit toate condițiile:
+
+- opt-in prin `-Datf.api.live.optIn=true` sau `ATF_API_LIVE_OPT_IN=true`;
+- endpoint selectat prin `ApiLiveTransportCatalog`;
+- replay cURL generat după execuție, cu token-uri și headere sensibile redactate;
+- fără network pentru testele care nu declară explicit profilul `live`;
+- fără placeholder acceptance și fără request în afara originii endpoint-ului selectat.
 
 ## Cleanup și failure
 

@@ -29,6 +29,7 @@ public final class AtfReportHtmlVocabulary {
         NAV("nav"),
         HEADER("header"),
         MAIN("main"),
+        ASIDE("aside"),
         DIV("div"),
         SECTION("section"),
         ARTICLE("article"),
@@ -45,6 +46,7 @@ public final class AtfReportHtmlVocabulary {
         BUTTON("button"),
         A("a"),
         SPAN("span"),
+        SMALL("small"),
         STRONG("strong"),
         I("i"),
         LINK("link"),
@@ -92,6 +94,8 @@ public final class AtfReportHtmlVocabulary {
         ATF_UI_ACTION_NUMBER("atf-ui-action-number"),
         ATF_UI_ACTION_SCREENSHOT("atf-ui-action-screenshot"),
         ATF_UI_ACTION_SCREENSHOT_LINK("atf-ui-action-screenshot-link"),
+        ATF_UI_SCREENSHOT_DUPLICATE("atf-ui-screenshot-duplicate"),
+        ATF_UI_SCREENSHOT_DUPLICATE_TEXT("atf-ui-screenshot-duplicate-text"),
         ATF_UI_ACTION_TABLE("atf-ui-action-table"),
         ATF_UI_ACTION_TABLE_WRAP("atf-ui-action-table-wrap"),
         ATF_UI_ACTION_TIME("atf-ui-action-time"),
@@ -100,10 +104,35 @@ public final class AtfReportHtmlVocabulary {
         ATF_UI_OBSERVATION_TABLE("atf-ui-observation-table"),
         ATF_UI_ASSERTIONS("atf-ui-assertions"),
         ATF_UI_EVIDENCE_SCREENSHOT_LINK("atf-ui-evidence-screenshot-link"),
+        ATF_EMPTY_STATE("atf-empty-state"),
+        ATF_EMPTY_STATE_TITLE("atf-empty-state-title"),
+        ATF_EMPTY_STATE_COPY("atf-empty-state-copy"),
+        ATF_OVERVIEW_DEFAULT("atf-overview-default"),
         BADGE("badge"),
+        BADGE_PRIMARY("badge-primary"),
+        BACK_TO_TEST("back-to-test"),
         BRAND("brand"),
+        CATEGORY_VIEW("category-view"),
+        DASHBOARD_VIEW("dashboard-view"),
+        CONTAINER_FLUID("container-fluid"),
+        P4("p-4"),
+        TEST_VIEW("test-view"),
         TITLE("title"),
+        SPA("spa"),
+        REPORT("-report"),
+        DARK("dark"),
         BADGE_GRADIENT_PRIMARY("badge-gradient-primary"),
+        NAV_ITEM("nav-item"),
+        DROPDOWN("dropdown"),
+        DROPDOWN_TOGGLE("dropdown-toggle"),
+        ICO("ico"),
+        EXCEPTION_VIEW("exception-view"),
+        OPEN("open"),
+        TABLE("table"),
+        TABLE_SM("table-sm"),
+        CARD("card"),
+        CARD_HEADER("card-header"),
+        CARD_BODY("card-body"),
         EVIDENCE_KEY_COLUMN("atf-evidence-key-column"),
         EVIDENCE_VALUE_COLUMN("atf-evidence-value-column"),
         DISCLOSURE_GLYPH("atf-disclosure-glyph"),
@@ -148,6 +177,25 @@ public final class AtfReportHtmlVocabulary {
         FAIL_LIST("fail-list"),
         EMPTY("empty"),
         TECHNICAL("technical"),
+        ATTRIBUTES_VIEW("attributes-view"),
+        TEST_WRAPPER("test-wrapper"),
+        ROW("row"),
+        VIEW("view"),
+        HIDE("hide"),
+        TEST_LIST("test-list"),
+        TEST_LIST_TOOLS("test-list-tools"),
+        TOOLS("tools"),
+        PULL_LEFT("pull-left"),
+        TEXT_RIGHT("text-right"),
+        FONT_SIZE_14("font-size-14"),
+        TEST_LIST_WRAPPER("test-list-wrapper"),
+        SCROLLABLE("scrollable"),
+        TEST_LIST_ITEM("test-list-item"),
+        TEST_CONTENT_TOOLS("test-content-tools"),
+        TEST_CONTENT_DETAIL("test-content-detail"),
+        DETAIL_BODY("detail-body"),
+        FA("fa"),
+        FA_ARROW_LEFT("fa-arrow-left"),
         TAB("tab"),
         TABS("tabs"),
         TAB_PANEL("tab-panel"),
@@ -182,13 +230,16 @@ public final class AtfReportHtmlVocabulary {
         ARIA_EXPANDED("aria-expanded"),
         ARIA_HIDDEN("aria-hidden"),
         ROLE("role"),
+        ONCLICK("onclick"),
         FEATHERLIGHT("data-featherlight"),
         INLINE("data-atf-inline"),
         EVIDENCE_STATUS("data-atf-evidence-status"),
         EVIDENCE_TYPE("data-atf-evidence-type"),
         NODE_ROLE("data-atf-node-role"),
+        EMPTY_STATE("data-atf-empty-state"),
         PHASE_NAME("data-atf-phase-name"),
         SCREENSHOT("data-atf-screenshot"),
+        SCREENSHOT_REF("data-atf-screenshot-ref"),
         TAB("data-atf-tab"),
         FALLBACK_TAB("data-tab");
 
@@ -214,6 +265,22 @@ public final class AtfReportHtmlVocabulary {
         private final String value;
 
         AttributeValue(String value) {
+            this.value = value;
+        }
+
+        public String value() {
+            return value;
+        }
+    }
+
+    /** Stable icon names kept at the vendor boundary instead of scattered literals. */
+    public enum Icon {
+        BUG("fa-bug"),
+        BAR_CHART("fa-bar-chart");
+
+        private final String value;
+
+        Icon(String value) {
             this.value = value;
         }
 
@@ -287,6 +354,11 @@ public final class AtfReportHtmlVocabulary {
     }
 
     public enum ElementId {
+        THEME_STYLE("atf-report-theme"),
+        NAV_TEST("nav-test"),
+        NAV_CATEGORY("nav-category"),
+        NAV_FAILS("nav-fails"),
+        NAV_OVERVIEW("nav-overview"),
         EXECUTION_METADATA("atf-execution-metadata"),
         EXECUTION_METADATA_GRID("atf-execution-metadata-grid"),
         TAG_AUDIT("atf-tag-audit"),

@@ -78,7 +78,7 @@ class PracticeShopAuthenticatedPurchaseE2eTest {
             var runtimeWarnings = context.runtimeDiagnostics().expectedRuntimeWarnings();
             if (!runtimeWarnings.isEmpty()) {
                 scenario.warning("known external bootstrap diagnostics are visible",
-                        context.page().url(), runtimeWarnings.stream()
+                        context.runtimeDiagnostics().expectedRuntimeWarningTarget(), runtimeWarnings.stream()
                                 .map(message -> new AtfAssertion("Browser runtime signal",
                                         "known anonymous bootstrap signal", message, true))
                                 .toList());

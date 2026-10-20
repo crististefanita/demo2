@@ -76,6 +76,17 @@ class PracticeShopGuestResilienceTest {
     }
 
     @Test
+    void warningTargetUsesNetworkFactsInsteadOfTheCurrentPage() {
+        var diagnostic = new PracticeShopRuntimeDiagnostics.Diagnostic("response",
+                HttpMethod.GET.value(), PracticeShopApiScenarioFixture.API_ENDPOINT
+                + PracticeShopApiRoutes.CURRENT_USER, PracticeShopApiRoutes.CURRENT_USER,
+                PracticeShopApiHttpStatus.UNAUTHORIZED.code(), "HTTP 401");
+
+        assertEquals("GET " + PracticeShopApiRoutes.CURRENT_USER + " → 401",
+                PracticeShopRuntimeDiagnostics.warningTarget(List.of(diagnostic)));
+    }
+
+    @Test
     void knownBootstrapSignalsRemainReportableWarningsWhileUnrelatedErrorsFail() {
         var bootstrap = new PracticeShopRuntimeDiagnostics.Diagnostic("console", "", "", "", -1,
                 "ERROR TypeError: Cannot read properties of null (reading 'cart_items')");

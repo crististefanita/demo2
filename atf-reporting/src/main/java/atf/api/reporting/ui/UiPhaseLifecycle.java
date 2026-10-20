@@ -77,6 +77,23 @@ public final class UiPhaseLifecycle implements AutoCloseable {
         setup(keyword.text(), title, target, assertions, status);
     }
 
+    void networkInspector(String title,
+                          Collection<ReportExecutionEvidence> executionEvidence) {
+        ensureOpen();
+        var request = delegate.startRequest(
+                title == null || title.isBlank() ? "API network inspector" : title.trim(),
+                "TRACE", "network");
+        try {
+            request.detail("request.action", "API network inspector");
+            request.detail("request.target", "ordered exchanges from the same UI browser session");
+            ReportNetworkInspector.fields(executionEvidence)
+                    .forEach(field -> request.detail(field.name(), field.value()));
+            request.complete(AtfReportStatus.PASS);
+        } finally {
+            request.close();
+        }
+    }
+
     void outcome(String keyword, String title, String target, AtfReportStatus status) {
         ensureOpen();
         evidencePublisher.publishOutcome(keyword, title, target, status);

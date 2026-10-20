@@ -10,6 +10,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @AtfUnitTest
 class ReportAssetSizeInventoryTest {
+    private static final ReportAssetSizeBudget CONSUMER_BASELINE = new ReportAssetSizeBudget(
+            235_000L, 195_000L,
+            java.util.Map.of(
+                    ReportAsset.Format.CSS, 123_000L,
+                    ReportAsset.Format.JAVASCRIPT, 112_000L),
+            java.util.Map.of(
+                    ReportAsset.Format.CSS, 104_000L,
+                    ReportAsset.Format.JAVASCRIPT, 89_000L),
+            java.util.Map.of(), java.util.Map.of());
+
     @Test
     void measuresNativeAndPublicationCopiesWithoutLosingTheFormatBoundary() {
         ReportAssetSizeInventory inventory = ReportAssetSizeInventory.capture(
@@ -28,5 +38,15 @@ class ReportAssetSizeInventoryTest {
                         .allMatch(ReportAssetSizeInventory.Entry::publicationCompacted)),
                 () -> assertFalse(inventory.entries().stream()
                         .anyMatch(entry -> entry.publicationBytes() > entry.nativeBytes())));
+    }
+
+    @Test
+    void keepsTheConsumerAssetBundleInsideItsExplicitPublicationBaseline() {
+        ReportAssetSizeInventory inventory = ReportAssetSizeInventory.capture(
+                new ReportAssetLoader(), ReportAssetManifest.production());
+
+        assertTrue(CONSUMER_BASELINE.accepts(inventory),
+                () -> "Reporting asset baseline violations: "
+                        + CONSUMER_BASELINE.violations(inventory));
     }
 }

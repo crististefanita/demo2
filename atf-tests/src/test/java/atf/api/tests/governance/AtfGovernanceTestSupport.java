@@ -28,7 +28,9 @@ public final class AtfGovernanceTestSupport {
             "atf.api.reporting.runtime.section",
             "Extent runtime section facades and their typed JS fragments share one publication boundary",
             "atf.api.reporting.evidence",
-            "typed evidence table normalization and HTML evidence rendering share one stable reporting boundary");
+            "typed evidence table normalization and HTML evidence rendering share one stable reporting boundary",
+            "atf.api.reporting.html",
+            "HTML shell, semantic snapshot, overview, tests and fails views share one artifact projection boundary");
     /** The whole-reactor suite is intentionally kept together as one readable gate. */
     static final Map<String, String> REVIEWED_TEST_COHESION_EXCEPTIONS = Map.of();
     private AtfGovernanceTestSupport() {

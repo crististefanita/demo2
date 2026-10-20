@@ -16,6 +16,7 @@ import atf.api.reporting.ui.AtfUiActionRecord;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -108,12 +109,21 @@ public final class UiExtentReportSession implements AutoCloseable {
     public static UiExtentReportSession openConfiguredResolved(Path outputDirectory,
                                                                 String resolvedFileName,
                                                                 AtfConsoleSink console) {
+        return openConfiguredResolved(outputDirectory, resolvedFileName, console, Map.of());
+    }
+
+    /** Opens a collision-resistant UI report with consumer-owned System metadata. */
+    public static UiExtentReportSession openConfiguredResolved(Path outputDirectory,
+                                                                String resolvedFileName,
+                                                                AtfConsoleSink console,
+                                                                Map<String, String> systemInfo) {
         var configuration = AtfReportConfigurationLoader.load();
         return open(configuration, UiExtentReportOptions.builder(outputDirectory)
                 .fileName(resolvedFileName)
                 .console(console)
                 .evidenceProfile(ReportEvidenceProfile.forScreenshotPolicy(
                         configuration.screenshotPolicy()))
+                .systemInfo(systemInfo)
                 .timestampEnabled(false)
                 .build());
     }
@@ -128,7 +138,8 @@ public final class UiExtentReportSession implements AutoCloseable {
                 options.evidenceProfile().screenshotPolicy());
         Path report = uiConfiguration.resolveReportPath(Clock.systemDefaultZone());
         return new UiExtentReportSession(new ExtentReportSession(report,
-                uiConfiguration.reportingSettings(), new SensitiveDataRedactor(), options.console()),
+                uiConfiguration.reportingSettings(), new SensitiveDataRedactor(), options.console(),
+                options.systemInfo()),
                 options.evidenceProfile());
     }
 
@@ -226,6 +237,12 @@ public final class UiExtentReportSession implements AutoCloseable {
                          AtfReportStatus status) {
             lifecycle.step(keyword.text(), title, target, base64Png, assertions, actions,
                     apiEvidence, status);
+        }
+
+        /** Adds a compact journey-level network projection without duplicating JSON bodies. */
+        public void networkInspector(String title,
+                                     Collection<atf.api.reporting.model.ReportExecutionEvidence> evidence) {
+            lifecycle.networkInspector(title, evidence);
         }
 
         public void setup(String keyword, String title, String target,

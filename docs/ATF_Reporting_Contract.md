@@ -13,9 +13,9 @@ Ordinea aprobată și rolul fiecărei suprafețe sunt vizibile într-un singur f
 
 ```mermaid
 flowchart LR
-    Tests["Tests<br/>sursa detaliilor"] --> Category["Category<br/>distribuții"]
-    Category --> Fails["Fails<br/>failure-uri navigabile"]
-    Fails --> Overview["Overview<br/>sinteză agregată"]
+    Tests["Tests<br/>sursa detaliilor"] -->|distribuie| Category["Category<br/>distribuții"]
+    Category -->|expune| Fails["Fails<br/>failure-uri navigabile"]
+    Fails -->|agregă| Overview["Overview<br/>sinteză agregată"]
 ```
 
 <details>
@@ -42,9 +42,9 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    Scenario[Scenariu<br/>status + durată + tag-uri] --> Setup[SETUP]
-    Setup --> Body[TEST BODY]
-    Body --> Teardown[TEARDOWN]
+    Scenario[Scenariu<br/>status + durată + tag-uri] -->|pregătește| Setup[SETUP]
+    Setup -->|execută| Body[TEST BODY]
+    Body -->|închide| Teardown[TEARDOWN]
     Setup -. local evidence .-> SetupEvidence[Request sau setup evidence]
     Body -. local evidence .-> BodyEvidence[Request + validation<br/>aggregate assertions]
     Teardown -. local evidence .-> Cleanup[Request sau cleanup]
@@ -79,14 +79,14 @@ Reguli de ownership:
 
 ## Evidence-ul de setup
 
-`SETUP` poate publica disponibilitatea unui artifact read-only pentru un audit
-UI, dar nu este un request HTTP și nu este o validare de ecran. Când detaliul
-`evidence.type` are valoarea `report-setup`, rendererul publică un singur bloc
-`Setup evidence` cu tabelul `CHECK | EXPECTED | ACTUAL | RESULT`. Sunt permise
-doar check-urile de input și rezultatul lor; nu se repetă în această zonă
-`Request details`, `Response details`, JSON de transport, `UI validation` sau
-`Screen validation`. Acestea rămân în ownerii lor: API request evidence,
-respectiv `TEST BODY` → `Screen validation` pentru browser/DOM/style.
+`SETUP` publică doar disponibilitatea unui artifact read-only pentru auditul UI.
+Pentru `evidence.type=report-setup`, contractul este:
+
+- un singur bloc `Setup evidence`;
+- tabelul `CHECK | EXPECTED | ACTUAL | RESULT`;
+- numai check-uri de input și rezultatul lor;
+- fără request/response, JSON de transport, `UI validation` sau `Screen validation`;
+- `API request evidence` și `TEST BODY` → `Screen validation` rămân ownerilor lor.
 
 ## Evidence-ul unui request
 
@@ -125,14 +125,14 @@ rendererul fallback:
 
 ```mermaid
 flowchart LR
-    Request[HTTP request] --> RequestDetails[Request details · N fields]
-    RequestDetails --> ResponseDetails[Response details · N fields]
-    RequestDetails --> RequestBody[REQUEST JSON or null]
-    ResponseDetails --> ResponseEvidence[response payload +<br/>technical trace]
-    ResponseDetails --> Execution[Execution evidence · N attempts]
-    ResponseEvidence --> ResponseBody[RESPONSE JSON or null]
-    ResponseEvidence --> Trace[TECHNICAL TRACE · response context]
-    Execution --> ExecutionContext[retry · provenance ·<br/>manual replay · assertions]
+    Request[HTTP request] -->|descrie| RequestDetails[Request details · N fields]
+    RequestDetails -->|expune| ResponseDetails[Response details · N fields]
+    RequestDetails -->|atașează| RequestBody[REQUEST JSON or null]
+    ResponseDetails -->|produce| ResponseEvidence[response payload +<br/>technical trace]
+    ResponseDetails -->|înregistrează| Execution[Execution evidence · N attempts]
+    ResponseEvidence -->|atașează| ResponseBody[RESPONSE JSON or null]
+    ResponseEvidence -->|explică| Trace[TECHNICAL TRACE · response context]
+    Execution -->|păstrează| ExecutionContext[retry · provenance ·<br/>manual replay · assertions]
 ```
 
 <details>
@@ -240,9 +240,9 @@ runnerul are o regulă mai strictă, raportul o reflectă și nu o suprascrie.
 
 ```mermaid
 flowchart LR
-    Rows["rânduri assertion"] --> Aggregate["tabel agregat unic"]
-    Aggregate --> Precedence["FAIL > SKIP > WARNING > PASS"]
-    Precedence --> Verdict["validation / phase / scenario"]
+    Rows["rânduri assertion"] -->|compune| Aggregate["tabel agregat unic"]
+    Aggregate -->|aplică| Precedence["FAIL > SKIP > WARNING > PASS"]
+    Precedence -->|determină| Verdict["validation / phase / scenario"]
 ```
 
 <details>
@@ -274,9 +274,9 @@ coloană dominantă primește lățimea dominantă.
 
 ```mermaid
 flowchart LR
-    Tests["Tests<br/>evidence tree"] --> Fails["Fails index<br/>one entry / failure"]
-    Fails --> Detail["Detail pane<br/>index-only"]
-    Detail --> Open["Open in Tests<br/>original evidence"]
+    Tests["Tests<br/>evidence tree"] -->|indexează| Fails["Fails index<br/>one entry / failure"]
+    Fails -->|rezumă| Detail["Detail pane<br/>index-only"]
+    Detail -->|navighează| Open["Open in Tests<br/>original evidence"]
 ```
 
 <details>
@@ -332,10 +332,10 @@ artifact offline poate afișa un view gol deși datele există în document.
 
 ```mermaid
 flowchart LR
-    Tests["Tests<br/>scenario set"] --> Overview["Overview<br/>same scenarios"]
-    Overview --> Counts["counts + status"]
-    Overview --> Navigation["Category + tags<br/>navigation only"]
-    Tests --> Fails["Fails<br/>failure index"]
+    Tests["Tests<br/>scenario set"] -->|agregă| Overview["Overview<br/>same scenarios"]
+    Overview -->|afișează| Counts["counts + status"]
+    Overview -->|alimentează| Navigation["Category + tags<br/>navigation only"]
+    Tests -->|indexează| Fails["Fails<br/>failure index"]
 ```
 
 <details>
@@ -363,15 +363,15 @@ tabele și blocuri JSON. Extent și fallback-ul nu își definesc palete separat
 
 ```mermaid
 flowchart LR
-    Theme["AtfReportTheme<br/>semantic tokens"] --> Contract["shared visual contract"]
-    Contract --> Tests[Tests]
-    Tests --> Category[Category]
-    Category --> Fails[Fails]
-    Fails --> Overview[Overview]
+    Theme["AtfReportTheme<br/>semantic tokens"] -->|definește| Contract["shared visual contract"]
+    Contract -->|stilizează| Tests[Tests]
+    Tests -->|stilizează| Category[Category]
+    Category -->|stilizează| Fails[Fails]
+    Fails -->|stilizează| Overview[Overview]
 ```
 
 <details>
-<summary><strong>Detalii — tokens, badge-uri și geometrie</strong></summary>
+<summary><strong>Legendă — tokens, badge-uri și geometrie</strong></summary>
 
 Linia după `shared visual contract` este o ordine de citire a suprafețelor, nu
 o dependență de runtime între tab-uri. Toate suprafețele consumă aceleași
@@ -460,13 +460,13 @@ este referențiat în README-uri.
 
 ```mermaid
 flowchart LR
-    Live[Cod + teste live] --> Stage[staging extern nou]
-    Stage --> Build[unit + component + integration]
-    Build --> Artifact[artifact HTML fresh]
-    Artifact --> Debug[ATF Debug read-only]
-    Debug --> Browser[Chromium / Playwright MCP]
-    Browser --> Verdict[DOM + style + interaction]
-    Verdict --> Sync[sync selectiv în live]
+    Live[Cod + teste live] -->|capturează| Stage[staging extern nou]
+    Stage -->|rulează| Build[unit + component + integration]
+    Build -->|produce| Artifact[artifact HTML fresh]
+    Artifact -->|servește| Debug[ATF Debug read-only]
+    Debug -->|deschide| Browser[Chromium / Playwright MCP]
+    Browser -->|verifică| Verdict[DOM + style + interaction]
+    Verdict -->|promovează| Sync[sync selectiv în live]
 ```
 
 <details>
@@ -485,9 +485,9 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    Config["Configurație raport<br/>nume + policy"] --> Session["Sesiune deschisă<br/>timestamp unic"]
-    Session --> Path["Cale raport<br/>destinație distinctă"]
-    Path --> Artifact["Artifact Extent<br/>fără overwrite"]
+    Config["Configurație raport<br/>nume + policy"] -->|deschide| Session["Sesiune deschisă<br/>timestamp unic"]
+    Session -->|rezolvă| Path["Cale raport<br/>destinație distinctă"]
+    Path -->|scrie| Artifact["Artifact Extent<br/>fără overwrite"]
 ```
 
 <details>

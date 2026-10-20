@@ -1,12 +1,14 @@
 package atf.api.reporting.html;
 
 import atf.api.reporting.configuration.ReportingSettings;
-import atf.api.reporting.security.SensitiveDataRedactor;
+import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.evidence.markup.ReportEvidenceMarkup;
 import atf.api.reporting.html.evidence.HtmlReportEvidenceView;
 import atf.api.reporting.markup.ExtentReportNodeSupport;
 import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
 import atf.api.reporting.model.ReportField;
 import atf.api.reporting.model.ReportExecutionModel;
+import atf.api.reporting.security.SensitiveDataRedactor;
 
 import java.util.List;
 import java.util.Objects;
@@ -36,73 +38,102 @@ public final class HtmlReportTestsView {
     String render(ReportExecutionModel snapshot) {
         List<ReportExecutionModel.Scenario> scenarios = snapshot.scenarios();
         var html = new StringBuilder();
-        html.append("<section id=\"tests\" ")
-                .append(AtfReportHtmlVocabulary.classAttribute(
-                        AtfReportHtmlVocabulary.CssClass.TAB_PANEL))
-                .append("><div ")
-                .append(AtfReportHtmlVocabulary.classAttribute(
-                        AtfReportHtmlVocabulary.CssClass.LAYOUT))
-                .append("><aside><h2>Tests</h2>");
-        for (var scenario : scenarios) {
-            html.append("<a ").append(AtfReportHtmlVocabulary.classAttribute(
-                            AtfReportHtmlVocabulary.CssClass.TEST_LINK.value(),
-                            AtfReportHtmlVocabulary.CssClass.STATUS.value(),
-                            AtfReportHtmlVocabulary.statusClass(scenario.status())))
-                    .append(" href=\"#").append(scenario.id()).append("\">")
-                    .append(escape(scenario.scenario())).append("<small>")
-                    .append(escape(scenario.testClass())).append("</small></a>");
-        }
-        html.append("</aside><div ").append(AtfReportHtmlVocabulary.classAttribute(
-                AtfReportHtmlVocabulary.CssClass.TEST_CONTENT)).append(">");
-        for (var scenario : scenarios) {
-            renderScenario(html, scenario);
-        }
-        return html.append("</div></div></section>").toString();
+        html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.SECTION,
+                        AtfReportHtmlVocabulary.idAttribute(
+                                AtfReportHtmlVocabulary.FallbackTab.TESTS.value()),
+                        AtfReportHtmlVocabulary.classAttribute(
+                                AtfReportHtmlVocabulary.CssClass.TAB_PANEL)))
+                .append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.DIV,
+                        AtfReportHtmlVocabulary.classAttribute(
+                                AtfReportHtmlVocabulary.CssClass.LAYOUT)))
+                .append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.ASIDE))
+                .append(AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.H2,
+                        AtfReportHtmlVocabulary.FallbackTab.TESTS.label()));
+        scenarios.forEach(scenario -> html.append(scenarioLink(scenario)));
+        html.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.ASIDE))
+                .append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.DIV,
+                        AtfReportHtmlVocabulary.classAttribute(
+                                AtfReportHtmlVocabulary.CssClass.TEST_CONTENT)));
+        scenarios.forEach(scenario -> renderScenario(html, scenario));
+        return html.append(AtfReportHtmlVocabulary.closeTag(
+                                AtfReportHtmlVocabulary.Tag.DIV))
+                .append(AtfReportHtmlVocabulary.closeTag(
+                                AtfReportHtmlVocabulary.Tag.DIV))
+                .append(AtfReportHtmlVocabulary.closeTag(
+                                AtfReportHtmlVocabulary.Tag.SECTION))
+                .toString();
+    }
+
+    private String scenarioLink(ReportExecutionModel.Scenario scenario) {
+        String label = escape(scenario.scenario())
+                + AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.SMALL,
+                escape(scenario.testClass()));
+        return AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.A, label,
+                AtfReportHtmlVocabulary.classAttribute(
+                        AtfReportHtmlVocabulary.CssClass.TEST_LINK.value(),
+                        AtfReportHtmlVocabulary.CssClass.STATUS.value(),
+                        AtfReportHtmlVocabulary.statusClass(scenario.status())),
+                AtfReportHtmlVocabulary.attribute(
+                        AtfReportHtmlVocabulary.Attribute.HREF,
+                        "#" + scenario.id()));
     }
 
     private void renderScenario(StringBuilder html, ReportExecutionModel.Scenario scenario) {
-        html.append("<article id=\"").append(scenario.id()).append("\" ")
-                .append(AtfReportHtmlVocabulary.classAttribute(
-                        AtfReportHtmlVocabulary.CssClass.SCENARIO))
-                .append("><div ").append(AtfReportHtmlVocabulary.classAttribute(
-                        AtfReportHtmlVocabulary.CssClass.SCENARIO_TITLE))
-                .append("><h2>").append(escape(scenario.scenario()))
-                .append("</h2><span ").append(AtfReportHtmlVocabulary.classAttribute(
-                        AtfReportHtmlVocabulary.statusClasses(scenario.status())))
-                .append(">").append(scenario.status()).append("</span></div>");
-        for (var phase : scenario.phases()) {
-            html.append("<section ").append(AtfReportHtmlVocabulary.classAttribute(
-                            AtfReportHtmlVocabulary.CssClass.PHASE.value(),
-                            AtfReportHtmlVocabulary.stateClass("phase-", phase.status())))
-                    .append(" ").append(AtfReportHtmlVocabulary.attribute(
-                            AtfReportHtmlVocabulary.Attribute.NODE_ROLE, "phase"))
-                    .append(" ").append(AtfReportHtmlVocabulary.attribute(
-                            AtfReportHtmlVocabulary.Attribute.PHASE_NAME, phaseKey(phase.name()))).append(">")
-                    .append("<h3>").append(escape(phase.name())).append("<span ")
-                    .append(AtfReportHtmlVocabulary.classAttribute(
-                        AtfReportHtmlVocabulary.statusClasses(phase.status()))).append(">").append(phase.status())
-                    .append("</span></h3>");
-            renderPhaseDetails(html, phase);
-            for (var child : phase.children()) {
-                renderNode(html, child);
-            }
-            html.append("</section>");
-        }
-        html.append("</article>");
+        html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.ARTICLE,
+                        AtfReportHtmlVocabulary.idAttribute(scenario.id()),
+                        AtfReportHtmlVocabulary.classAttribute(
+                                AtfReportHtmlVocabulary.CssClass.SCENARIO)))
+                .append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.DIV,
+                        AtfReportHtmlVocabulary.classAttribute(
+                                AtfReportHtmlVocabulary.CssClass.SCENARIO_TITLE)))
+                .append(AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.H2,
+                        escape(scenario.scenario())))
+                .append(status(scenario.status()))
+                .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DIV));
+        scenario.phases().forEach(phase -> renderPhase(html, phase));
+        html.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.ARTICLE));
+    }
+
+    private void renderPhase(StringBuilder html, ReportExecutionModel.Phase phase) {
+        html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.SECTION,
+                        AtfReportHtmlVocabulary.classAttribute(
+                                AtfReportHtmlVocabulary.CssClass.PHASE.value(),
+                                AtfReportHtmlVocabulary.stateClass("phase-", phase.status())),
+                        AtfReportHtmlVocabulary.attribute(
+                                AtfReportHtmlVocabulary.Attribute.NODE_ROLE, "phase"),
+                        AtfReportHtmlVocabulary.attribute(
+                                AtfReportHtmlVocabulary.Attribute.PHASE_NAME,
+                                phaseKey(phase.name()))))
+                .append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.H3))
+                .append(escape(phase.name()))
+                .append(status(phase.status()))
+                .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.H3));
+        renderPhaseDetails(html, phase);
+        phase.children().forEach(child -> renderNode(html, child));
+        html.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.SECTION));
+    }
+
+    private String status(AtfReportStatus status) {
+        return ReportEvidenceMarkup.statusBadge(status);
     }
 
     private void renderPhaseDetails(StringBuilder html, ReportExecutionModel.Phase phase) {
         if (phase.details().isEmpty()) return;
-        html.append("<table ").append(AtfReportHtmlVocabulary.classAttribute(
-                        AtfReportHtmlVocabulary.CssClass.HELM_EVIDENCE_TABLE.value(),
-                        AtfReportHtmlVocabulary.CssClass.HELM_TRACE_TABLE.value(),
-                        AtfReportHtmlVocabulary.CssClass.PHASE_DETAILS.value()))
-                .append("><tbody>");
+        html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TABLE,
+                        AtfReportHtmlVocabulary.classAttribute(
+                                AtfReportHtmlVocabulary.CssClass.HELM_EVIDENCE_TABLE.value(),
+                                AtfReportHtmlVocabulary.CssClass.HELM_TRACE_TABLE.value(),
+                                AtfReportHtmlVocabulary.CssClass.PHASE_DETAILS.value())))
+                .append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TBODY));
         for (ReportField detail : phase.details()) {
-            html.append("<tr><th>").append(escape(detail.name())).append("</th><td>")
-                    .append(escape(redactor.redactField(detail.name(), detail.value()))).append("</td></tr>");
+            html.append(AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.TR,
+                    AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.TH,
+                            escape(detail.name()))
+                            + AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.TD,
+                            escape(redactor.redactField(detail.name(), detail.value())))));
         }
-        html.append("</tbody></table>");
+        html.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TBODY))
+                .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TABLE));
     }
 
     private void renderNode(StringBuilder html, ReportExecutionModel.Node node) {
@@ -116,23 +147,23 @@ public final class HtmlReportTestsView {
     }
 
     private void renderRequest(StringBuilder html, ReportExecutionModel.Request request) {
-        html.append("<div ").append(AtfReportHtmlVocabulary.classAttribute(
-                        AtfReportHtmlVocabulary.CssClass.REQUEST))
-                .append(" ").append(AtfReportHtmlVocabulary.attribute(
-                        AtfReportHtmlVocabulary.Attribute.NODE_ROLE, "request"))
-                .append("><div ").append(AtfReportHtmlVocabulary.classAttribute(
-                        AtfReportHtmlVocabulary.CssClass.NODE_TITLE)).append("><span>")
-                .append(escape(ExtentReportNodeSupport.renderRequestTitle(
-                        request.title(), request.method(), request.path())))
-                .append("</span><span ").append(AtfReportHtmlVocabulary.classAttribute(
-                        AtfReportHtmlVocabulary.statusClasses(request.status())))
-                .append(">").append(request.status()).append("</span></div>");
+        html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.DIV,
+                        AtfReportHtmlVocabulary.classAttribute(
+                                AtfReportHtmlVocabulary.CssClass.REQUEST),
+                        AtfReportHtmlVocabulary.attribute(
+                                AtfReportHtmlVocabulary.Attribute.NODE_ROLE, "request")))
+                .append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.DIV,
+                        AtfReportHtmlVocabulary.classAttribute(
+                                AtfReportHtmlVocabulary.CssClass.NODE_TITLE)))
+                .append(AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.SPAN,
+                        escape(ExtentReportNodeSupport.renderRequestTitle(
+                                request.title(), request.method(), request.path()))))
+                .append(status(request.status()))
+                .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DIV));
         evidence.renderRequestDetails(html, request);
         evidence.renderResponseDetails(html, request);
         evidence.renderExecution(html, request.execution());
-        for (ReportExecutionModel.Node child : request.children()) {
-            renderNode(html, child);
-        }
-        html.append("</div>");
+        request.children().forEach(child -> renderNode(html, child));
+        html.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DIV));
     }
 }

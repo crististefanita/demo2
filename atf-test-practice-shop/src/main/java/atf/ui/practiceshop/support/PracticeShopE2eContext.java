@@ -40,11 +40,11 @@ public final class PracticeShopE2eContext implements AutoCloseable {
         String file = "ui-atf-practice-shop-e2e_"
                 + STAMP.withZone(Clock.systemDefaultZone().getZone()).format(Clock.systemDefaultZone().instant())
                 + ".html";
+        AtfConsoleSink console = AtfConsoleReporter.configuredStdout();
         UiExtentReportSession report = UiExtentReportSession.openConfiguredResolved(
-                configuration.uiReportDirectory(),
-                file, event -> { });
+                configuration.uiReportDirectory(), file, console,
+                PracticeShopReportSystemMetadata.from(configuration));
         try {
-            AtfConsoleSink console = AtfConsoleReporter.configuredStdout();
             PlaywrightUiSession browser = PlaywrightUiSession.open(configuration.browser(), console);
             PracticeShopApiNetworkJournal apiNetwork =
                     new PracticeShopApiNetworkJournal(configuration.validationProfile());
@@ -136,6 +136,7 @@ public final class PracticeShopE2eContext implements AutoCloseable {
         private final UiExtentReportSession.UiPhase body;
         private final String title;
         private boolean complete;
+        private boolean networkInspectorPublished;
 
         private Scenario(UiExtentReportSession.UiScenario scenario, String title) {
             this.scenario = scenario;
@@ -181,6 +182,7 @@ public final class PracticeShopE2eContext implements AutoCloseable {
             body.screenValidation(title, page.url(), evidence.base64Png(),
                     assertions, PracticeShopReportUiActionAdapters.from(actions.drain()),
                     AtfReportStatus.PASS);
+            publishNetworkInspector();
             body.complete(AtfReportStatus.PASS);
             scenario.complete(AtfReportStatus.PASS);
             complete = true;
@@ -191,6 +193,7 @@ public final class PracticeShopE2eContext implements AutoCloseable {
         }
 
         public void complete(AtfReportStatus status) {
+            publishNetworkInspector();
             body.complete(status);
             scenario.complete(status);
             complete = true;
@@ -204,6 +207,7 @@ public final class PracticeShopE2eContext implements AutoCloseable {
         public void fail(Page page, PlaywrightActionSequence actions, Throwable failure) {
             if (complete) return;
             try {
+                publishNetworkInspector();
                 body.failureEvidence("external E2E failure", page.url(),
                         PracticeShopReportUiActionAdapters.from(actions.drain()), failure);
                 body.complete(AtfReportStatus.FAIL);
@@ -219,11 +223,16 @@ public final class PracticeShopE2eContext implements AutoCloseable {
         @Override public void close() {
             if (!complete) {
                 try {
-                    body.complete(AtfReportStatus.FAIL);
-                    scenario.complete(AtfReportStatus.FAIL);
+                    complete(AtfReportStatus.FAIL);
                 }
                 finally { complete = true; }
             }
+        }
+
+        private void publishNetworkInspector() {
+            if (networkInspectorPublished || !configuration.validationProfile().apiEvidenceRequired()) return;
+            body.networkInspector("API network inspector — ordered UI journey", apiNetwork.allEvidence());
+            networkInspectorPublished = true;
         }
     }
 }

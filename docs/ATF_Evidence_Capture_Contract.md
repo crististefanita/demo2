@@ -18,17 +18,17 @@ referință; nu este owner-ul soluției.
 
 ```mermaid
 flowchart LR
-    Config[typed profile<br/>și configurație] --> Flow[flow coordinator]
-    Flow --> Ledger[evidence ledger<br/>acțiuni + assertions]
-    Flow --> Policy[capture policy]
-    Source[capture source<br/>browser sau mock] --> Payload[typed screenshot<br/>payload]
-    Policy --> Payload
-    Ledger --> Input[report input<br/>semantic]
-    Payload --> Input
-    Input --> Publisher[report publisher]
-    Publisher --> Artifact[Extent HTML]
-    Fixtures[deterministic fixtures<br/>în test scope] -.-> Policy
-    Fixtures -.-> Publisher
+    Config[typed profile<br/>și configurație] -->|configurează| Flow[flow coordinator]
+    Flow -->|înregistrează| Ledger[evidence ledger<br/>acțiuni + assertions]
+    Flow -->|aplică| Policy[capture policy]
+    Source[capture source<br/>browser sau mock] -->|capturează| Payload[typed screenshot<br/>payload]
+    Policy -->|filtrează| Payload
+    Ledger -->|compune| Input[report input<br/>semantic]
+    Payload -->|alimentează| Input
+    Input -->|publică| Publisher[report publisher]
+    Publisher -->|produce| Artifact[Extent HTML]
+    Fixtures[deterministic fixtures<br/>în test scope] -. furnizează .-> Policy
+    Fixtures -. publică .-> Publisher
 ```
 
 <details>
@@ -81,14 +81,14 @@ test-kit sau de o bibliotecă de compoziție, fără a confunda publisherul cu e
 
 ```mermaid
 flowchart LR
-    TestKit[generic test-kit<br/>profile + annotations] --> Consumer[consumer composition<br/>flow semantic]
-    Consumer --> Ui[atf-ui<br/>browser adapter]
-    Consumer --> Ledger[evidence ledger]
-    Ui --> Capture[typed capture payload]
-    Ledger --> Reporting[atf-reporting<br/>model + publication]
-    Capture --> Reporting
-    ReportingTests[atf-reporting-tests<br/>fixtures + component/integration] -.-> Reporting
-    PracticeShop[Practice Shop<br/>consumer mapping] -.-> TestKit
+    TestKit[generic test-kit<br/>profile + annotations] -->|compune| Consumer[consumer composition<br/>flow semantic]
+    Consumer -->|folosește| Ui[atf-ui<br/>browser adapter]
+    Consumer -->|înregistrează| Ledger[evidence ledger]
+    Ui -->|capturează| Capture[typed capture payload]
+    Ledger -->|alimentează| Reporting[atf-reporting<br/>model + publication]
+    Capture -->|alimentează| Reporting
+    ReportingTests[atf-reporting-tests<br/>fixtures + component/integration] -. dovedește .-> Reporting
+    PracticeShop[Practice Shop<br/>consumer mapping] -. folosește .-> TestKit
 ```
 
 <details>
@@ -108,11 +108,11 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    Contract[contract + model] --> Unit[unit<br/>policy și cardinalitate]
-    Unit --> Component[component<br/>mock image + HTML]
-    Component --> Integration[integration<br/>session + publisher]
-    Integration --> Browser[optional browser adapter<br/>HTML static]
-    Browser --> ConsumerE2E[consumer E2E<br/>proof minimal]
+    Contract[contract + model] -->|definește| Unit[unit<br/>policy și cardinalitate]
+    Unit -->|compune| Component[component<br/>mock image + HTML]
+    Component -->|integrează| Integration[integration<br/>session + publisher]
+    Integration -->|validează| Browser[optional browser adapter<br/>HTML static]
+    Browser -->|dovedește| ConsumerE2E[consumer E2E<br/>proof minimal]
 ```
 
 <details>

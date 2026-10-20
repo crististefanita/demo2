@@ -1,6 +1,8 @@
 package atf.api.reporting.html;
 
 import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.evidence.markup.ReportEvidenceMarkup;
+import atf.api.reporting.markup.AtfReportLabels;
 import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
 import atf.api.reporting.model.ReportExecutionModel;
 
@@ -9,31 +11,42 @@ import static atf.api.reporting.html.HtmlReportMarkupSupport.escape;
 /** Renders the fallback Fails index from validation assertions only. */
 public final class HtmlReportFailsView {
     String render(ReportExecutionModel snapshot) {
-        var html = new StringBuilder("<section ")
-                .append(AtfReportHtmlVocabulary.idAttribute(
-                        AtfReportHtmlVocabulary.FallbackTab.FAILS.value()))
-                .append(' ')
-                .append(AtfReportHtmlVocabulary.classAttribute(
-                        AtfReportHtmlVocabulary.CssClass.TAB_PANEL))
-                .append("><h2>Fails</h2><div ")
-                .append(AtfReportHtmlVocabulary.classAttribute(
-                        AtfReportHtmlVocabulary.CssClass.FAIL_LIST))
-                .append(">");
+        var html = new StringBuilder();
+        html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.SECTION,
+                        AtfReportHtmlVocabulary.idAttribute(
+                                AtfReportHtmlVocabulary.FallbackTab.FAILS.value()),
+                        AtfReportHtmlVocabulary.classAttribute(
+                                AtfReportHtmlVocabulary.CssClass.TAB_PANEL)))
+                .append(AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.H2,
+                        AtfReportLabels.FAILS))
+                .append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.DIV,
+                        AtfReportHtmlVocabulary.classAttribute(
+                                AtfReportHtmlVocabulary.CssClass.FAIL_LIST)));
         for (var failure : snapshot.failures().items()) {
-            html.append("<a ").append(AtfReportHtmlVocabulary.classAttribute(
-                            AtfReportHtmlVocabulary.CssClass.FAIL_ROW))
-                    .append(" href=\"#").append(failure.scenarioId()).append("\">")
-                    .append("<span ").append(AtfReportHtmlVocabulary.classAttribute(
-                            AtfReportHtmlVocabulary.statusClasses(AtfReportStatus.FAIL)))
-                    .append(">Fail</span><strong>")
-                    .append(escape(failure.assertionName())).append("</strong><span>")
-                    .append(escape(failure.actual())).append("</span></a>");
+            String status = ReportEvidenceMarkup.statusBadge(AtfReportStatus.FAIL);
+            String content = status
+                    + AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.STRONG,
+                    escape(failure.assertionName()))
+                    + AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.SPAN,
+                    escape(failure.actual()));
+            html.append(AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.A,
+                    content,
+                    AtfReportHtmlVocabulary.classAttribute(
+                            AtfReportHtmlVocabulary.CssClass.FAIL_ROW),
+                    AtfReportHtmlVocabulary.attribute(
+                            AtfReportHtmlVocabulary.Attribute.HREF,
+                            "#" + failure.scenarioId())));
         }
         if (snapshot.failures().isEmpty()) {
-            html.append("<p ").append(AtfReportHtmlVocabulary.classAttribute(
-                    AtfReportHtmlVocabulary.CssClass.EMPTY))
-                    .append(">No failed assertions.</p>");
+            html.append(AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.P,
+                    AtfReportLabels.NO_FAILED_ASSERTIONS,
+                    AtfReportHtmlVocabulary.classAttribute(
+                            AtfReportHtmlVocabulary.CssClass.EMPTY)));
         }
-        return html.append("</div></section>").toString();
+        return html.append(AtfReportHtmlVocabulary.closeTag(
+                        AtfReportHtmlVocabulary.Tag.DIV))
+                .append(AtfReportHtmlVocabulary.closeTag(
+                        AtfReportHtmlVocabulary.Tag.SECTION))
+                .toString();
     }
 }

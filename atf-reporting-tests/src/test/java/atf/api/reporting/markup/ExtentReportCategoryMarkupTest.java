@@ -33,6 +33,21 @@ class ExtentReportCategoryMarkupTest {
     }
 
     @Test
+    void publishesTheCompleteTypedCategoryContract() {
+        String result = ExtentReportCategoryMarkup.emptyView();
+
+        assertAll(
+                () -> assertTrue(result.contains("class=\"test-list-tools\"")),
+                () -> assertTrue(result.contains("class=\"tools pull-left\"")),
+                () -> assertTrue(result.contains("class=\"tools text-right\"")),
+                () -> assertTrue(result.contains("class=\"test-list-wrapper scrollable\"")),
+                () -> assertTrue(result.contains("class=\"test-content scrollable\"")),
+                () -> assertTrue(result.contains("class=\"back-to-test\" href=\"#\"")),
+                () -> assertTrue(result.contains("role=\"status\"")),
+                () -> assertTrue(result.contains("class=\"detail-body atf-empty-state\"")));
+    }
+
+    @Test
     void keepsCategoryEmptyStateOnTheSharedVisualContract() {
         String css = AtfReportTheme.css();
 

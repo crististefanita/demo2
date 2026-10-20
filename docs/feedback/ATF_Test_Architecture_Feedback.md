@@ -21,7 +21,7 @@ build și guard-uri, nu se păstrează ca jurnal în acest document.
 | reporting standalone | `atf-reporting` | ✅ independent; testele lui au excepție formală, finită și verificată |
 | reporting composition | `atf-reporting-tests` | ✅ API/UI/E2E pentru librărie, nu pentru o aplicație de business |
 | Practice Shop | `atf-test-practice-shop` | ✅ config, locatori, pages, flows și purchase E2E |
-| whole-ATF governance | `atf-tests` | ✅ module graph și architecture gates; fără fixture-uri Practice Shop |
+| whole-ATF governance | `atf-tests` | ✅ guard-urile sunt active și nu mai există dependency production `atf-console → atf-reporting`; adapterul cross-port este test-only în `atf-reporting-tests` |
 | overview arhitectural | root `README.md` | ✅ subțire, top-down, cu module map și linkuri către owneri |
 
 ## Matricea de testare
@@ -33,7 +33,7 @@ build și guard-uri, nu se păstrează ca jurnal în acest document.
 |---|---:|---:|---:|---:|---|
 | `atf-core` | ✅ | — | — | — | infrastructură generică |
 | `atf-validation` | ✅ | — | — | — | contracte de verdict |
-| `atf-console` | ✅ | — | — | — | proiecție diagnostică |
+| `atf-console` | ✅ | ✅ | — | — | proiecție diagnostică; port renderer-neutral fără dependency către reporting |
 | `atf-mock` | — | ✅ | — | — | transport fake |
 | `atf-ui` | — | ✅ | — | — | boundary Playwright generic |
 | `atf-debug-ui` | — | ✅ | — | — | inspector read-only |
@@ -152,6 +152,12 @@ scopul, owner-ul sau criteriul principal de acceptare.
 | ID | Prioritate | ToDo | Criteriu de închidere |
 |---|---:|---|---|
 | `TEST-ARCH-07` | P3 | păstrează gruparea semantică a zonelor `support` și identifică eventuale subzone care depășesc limita de coeziune | fiecare mutare are owner, motiv observabil, test de boundary și zero ștergeri speculative |
+
+`AtfConsoleBridgeTest` declară layer-ul component și trece focused gate-ul.
+Adapterul este owner-uit de `atf-reporting-tests`, singurul composition root care
+consumă ambele porturi. Astfel `atf-console` și `atf-reporting` rămân
+production-independent, iar whole-ATF boundary nu trebuie să accepte o
+dependență inversă doar pentru conversia test-only.
 
 Nu se redeschid item-urile închise pentru o schimbare de stil locală. Se redeschid
 doar la regresie reproductibilă, schimbare de ownership, consumer nou sau

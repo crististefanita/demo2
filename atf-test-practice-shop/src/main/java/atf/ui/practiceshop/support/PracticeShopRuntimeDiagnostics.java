@@ -7,9 +7,11 @@ import atf.api.core.http.request.HttpMethod;
 import atf.ui.practiceshop.api.PracticeShopApiRoutes;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /** Captures browser runtime failures and exposes known external bootstrap noise as reportable warnings. */
 public final class PracticeShopRuntimeDiagnostics {
@@ -67,6 +69,35 @@ public final class PracticeShopRuntimeDiagnostics {
                 .toList();
     }
 
+    /**
+     * Compact report target for the known guest branch. The report action must
+     * point to the network fact that caused the warning, not to the page that
+     * happened to be open when the diagnostic was published.
+     */
+    public String expectedGuestWarningTarget() {
+        return warningTarget(diagnostics.stream()
+                .filter(PracticeShopRuntimeDiagnostics::isExpectedGuestSignal)
+                .toList());
+    }
+
+    /** Compact report target for known authenticated-bootstrap diagnostics. */
+    public String expectedRuntimeWarningTarget() {
+        return warningTarget(diagnostics.stream()
+                .filter(PracticeShopRuntimeDiagnostics::isExpectedAuthenticatedSetupSignal)
+                .toList());
+    }
+
+    /** Pure formatter kept public so the target contract can be tested without a browser. */
+    public static String warningTarget(Collection<Diagnostic> diagnostics) {
+        if (diagnostics == null || diagnostics.isEmpty()) return "none";
+        String target = diagnostics.stream()
+                .filter(Objects::nonNull)
+                .map(PracticeShopRuntimeDiagnostics::compactTarget)
+                .distinct()
+                .collect(Collectors.joining("; "));
+        return target.isBlank() ? "unknown runtime diagnostic" : target;
+    }
+
     public List<String> unexpectedErrors() {
         return diagnostics.stream().filter(error -> !isExpectedGuestSignal(error)
                         && !isExpectedAuthenticatedSetupSignal(error)
@@ -78,6 +109,14 @@ public final class PracticeShopRuntimeDiagnostics {
         if (!unexpectedErrors().isEmpty()) {
             throw new AssertionError("Unexpected Practice Shop browser runtime errors: " + unexpectedErrors());
         }
+    }
+
+    private static String compactTarget(Diagnostic diagnostic) {
+        if (!diagnostic.method().isBlank() && !diagnostic.route().isBlank()) {
+            return diagnostic.method().toUpperCase(Locale.ROOT) + " " + diagnostic.route()
+                    + " → " + (diagnostic.status() < 0 ? "n/a" : diagnostic.status());
+        }
+        return diagnostic.source().toLowerCase(Locale.ROOT) + " diagnostic";
     }
 
     /**

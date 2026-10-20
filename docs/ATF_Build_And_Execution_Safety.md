@@ -12,14 +12,14 @@
 
 ```mermaid
 flowchart LR
-    Live[Checkout live] --> Inspect[inspectare read-only]
-    Inspect --> Stage[staging nou în director temporar]
-    Stage --> Sync[sincronizare surse fără output-uri]
-    Sync --> Build[build și teste în staging]
-    Build --> Report[raport în staging]
-    Report --> MCP[validare în TAB MCP]
-    MCP --> Review[review diff și rezultate]
-    Review --> SyncBack[sincronizare controlată doar a surselor aprobate]
+    Live[Checkout live] -->|inspectează| Inspect[inspectare read-only]
+    Inspect -->|izolează| Stage[staging nou în director temporar]
+    Stage -->|sincronizează| Sync[sincronizare surse fără output-uri]
+    Sync -->|rulează| Build[build și teste în staging]
+    Build -->|publică| Report[raport în staging]
+    Report -->|validează| MCP[validare în TAB MCP]
+    MCP -->|revizuiește| Review[review diff și rezultate]
+    Review -->|promovează| SyncBack[sincronizare controlată doar a surselor aprobate]
 ```
 
 <details>
@@ -46,9 +46,9 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    Yaml["atf.yaml<br/>captured once"] --> Base["startDirectory + YAML directory"]
-    Base --> Validate["validate boundaries<br/>reject .. escape"]
-    Validate --> Output["reporting.extent.outputDirectory"]
+    Yaml["atf.yaml<br/>captured once"] -->|rezolvă| Base["startDirectory + YAML directory"]
+    Base -->|validează| Validate["validate boundaries<br/>reject .. escape"]
+    Validate -->|scrie| Output["reporting.extent.outputDirectory"]
 ```
 
 <details>
@@ -67,13 +67,13 @@ output printr-un `user.dir` schimbat sau printr-un path relativ ambiguu.
 
 ```mermaid
 flowchart LR
-    Live["cod live<br/>README + feedback"] --> Baseline["baseline<br/>inspect + capture"]
-    Baseline --> Stage["staging izolat<br/>surse aprobate"]
-    Stage --> Change["increment delimitat<br/>test nominal + failure"]
-    Change --> Verify["build + teste<br/>artifact nou"]
-    Verify --> Audit["TAB MCP<br/>UI + negative path"]
-    Audit --> Reconcile["re-sync live<br/>drift check"]
-    Reconcile --> Close["feedback + owner README<br/>dovadă observabilă"]
+    Live["cod live<br/>README + feedback"] -->|capturează| Baseline["baseline<br/>inspect + capture"]
+    Baseline -->|izolează| Stage["staging izolat<br/>surse aprobate"]
+    Stage -->|delimitează| Change["increment delimitat<br/>test nominal + failure"]
+    Change -->|verifică| Verify["build + teste<br/>artifact nou"]
+    Verify -->|auditează| Audit["TAB MCP<br/>UI + negative path"]
+    Audit -->|reconciliază| Reconcile["re-sync live<br/>drift check"]
+    Reconcile -->|închide| Close["feedback + owner README<br/>dovadă observabilă"]
 ```
 
 <details>
@@ -113,13 +113,13 @@ fișierele atinse și se verifică linkurile.
 
 ```mermaid
 flowchart LR
-    Manifest["baseline"] --> Build["stage gate"]
-    Build --> Guard["drift check"]
-    Guard --> Promote["selective sync"]
+    Manifest["baseline"] -->|alimentează| Build["stage gate"]
+    Build -->|declanșează| Guard["drift check"]
+    Guard -->|permite| Promote["selective sync"]
 ```
 
 <details>
-<summary><strong>Detalii — manifest, drift și promovare</strong></summary>
+<summary><strong>Legendă — manifest, drift și promovare</strong></summary>
 
 - **Baseline**: manifestul conține numai fișiere aprobate și căi relative.
 - **Staging**: build-ul și testele rulează separat de checkout-ul live.
@@ -168,10 +168,10 @@ working directory-ul IDE/Maven.
 
 ```mermaid
 flowchart LR
-    Changed["ATF change"] --> Reactor["reactor gate"]
-    Reactor --> SameSources["same-stage"]
-    Standalone["reporting"] --> Isolated["standalone gate"]
-    Isolated --> IsolatedProof["isolated proof"]
+    Changed["ATF change"] -->|declanșează| Reactor["reactor gate"]
+    Reactor -->|dovedește| SameSources["same-stage"]
+    Standalone["reporting"] -->|declanșează| Isolated["standalone gate"]
+    Isolated -->|dovedește| IsolatedProof["isolated proof"]
 ```
 
 <details>
@@ -197,14 +197,14 @@ pentru codul live.
 
 ```mermaid
 flowchart LR
-    Live["live checkout"] --> Recreate["recreate staging"]
-    Recreate --> Verify["build + artifact + TAB MCP"]
-    Verify --> Feedback["feedback / owner README"]
-    Feedback --> Promote["selective sync"]
+    Live["live checkout"] -->|recreează| Recreate["recreate staging"]
+    Recreate -->|verifică| Verify["build + artifact + TAB MCP"]
+    Verify -->|alimentează| Feedback["feedback / owner README"]
+    Feedback -->|promovează| Promote["selective sync"]
 ```
 
 <details>
-<summary><strong>Detalii — reluarea unui ToDo și izolarea output-ului</strong></summary>
+<summary><strong>Legendă — reluarea unui ToDo și izolarea output-ului</strong></summary>
 
 La fiecare reluare a unui ToDo se pornește de la checkout-ul live, se recreează
 staging-ul și se copiază numai sursele; `target`, rapoartele HTML, capturile și

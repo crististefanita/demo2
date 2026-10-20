@@ -11,11 +11,11 @@ Codul ATF trebuie să fie ușor de citit din boundary spre detaliu:
 
 ```mermaid
 flowchart LR
-    Intent[intenție de test] --> Boundary[boundary explicit]
-    Boundary --> Model[model typed]
-    Model --> Policy[policy / validator pur]
-    Policy --> Adapter[adapter extern]
-    Adapter --> Evidence[evidence / artifact]
+    Intent[intenție de test] -->|delimitează| Boundary[boundary explicit]
+    Boundary -->|formează| Model[model typed]
+    Model -->|alimentează| Policy[policy / validator pur]
+    Policy -->|adaptează| Adapter[adapter extern]
+    Adapter -->|produce| Evidence[evidence / artifact]
 ```
 
 <details>
@@ -135,12 +135,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 ```mermaid
 flowchart LR
-    JavaFacade[typed facade] --> Semantic[semantic model]
-    Semantic --> Css[CSS]
-    Semantic --> Js[JavaScript]
-    Css --> Html[HTML artifact]
-    Js --> Html
-    Html --> Contract[component + browser proof]
+    JavaFacade[typed facade] -->|expune| Semantic[semantic model]
+    Semantic -->|generează| Css[CSS]
+    Semantic -->|generează| Js[JavaScript]
+    Css -->|stilizează| Html[HTML artifact]
+    Js -->|comportă| Html
+    Html -->|dovedește| Contract[component + browser proof]
 ```
 
 <details>
@@ -207,10 +207,12 @@ structura și randarea observabilă, fără să inventeze rezultate de business.
 
 ## Consolă și reporting
 
-Consola este responsabilitatea modulului console. API/UI/reporting emit evenimente
-structurate și evidence, nu mesaje de diagnostic direct în renderer. Un pas
-observabil conține acțiune, țintă, rezultat și cauza clară la fail. Verdictul
-aparține zonei care a eșuat efectiv: action, audit, assertion sau setup.
+Regula de separare pentru consolă și reporting este:
+
+- consola este responsabilitatea modulului `atf-console`;
+- API/UI/reporting emit evenimente structurate și evidence, nu diagnostic direct în renderer;
+- un pas observabil conține acțiune, țintă, rezultat și cauza clară la fail;
+- verdictul aparține zonei care a eșuat efectiv: action, audit, assertion sau setup.
 
 <details>
 <summary><strong>Regula `try/catch`: support/runtime versus teste</strong></summary>

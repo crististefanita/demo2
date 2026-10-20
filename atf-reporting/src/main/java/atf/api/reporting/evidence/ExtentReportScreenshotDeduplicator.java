@@ -1,5 +1,8 @@
 package atf.api.reporting.evidence;
 
+import atf.api.reporting.markup.AtfReportLabels;
+import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -14,8 +17,11 @@ import java.util.regex.Pattern;
  */
 public final class ExtentReportScreenshotDeduplicator {
     private static final Pattern SCREENSHOT_LINK = Pattern.compile(
-            "<a\\b(?=[^>]*data-atf-screenshot=\\\"base64\\\")"
-                    + "(?=[^>]*href=\\\"data:image/png;base64,([^\\\"]+)\\\")[^>]*>.*?</a>",
+            "<" + AtfReportHtmlVocabulary.Tag.A.value() + "\\b(?=[^>]*"
+                    + AtfReportHtmlVocabulary.Attribute.SCREENSHOT.value()
+                    + "=\\\"base64\\\")"
+                    + "(?=[^>]*href=\\\"data:image/png;base64,([^\\\"]+)\\\")[^>]*>.*?</"
+                    + AtfReportHtmlVocabulary.Tag.A.value() + ">",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
     private ExtentReportScreenshotDeduplicator() {
@@ -29,31 +35,52 @@ public final class ExtentReportScreenshotDeduplicator {
         while (matcher.find()) {
             String payload = matcher.group(1);
             String fingerprint = fingerprint(payload);
-            if (seen.add(fingerprint)) {
-                matcher.appendReplacement(result,
-                        Matcher.quoteReplacement(withCanonicalReference(matcher.group(), fingerprint)));
-            } else {
-                String replacement = "<a class=\"atf-ui-action-screenshot-link atf-ui-screenshot-duplicate\""
-                        + " data-atf-screenshot-ref=\"" + fingerprint + "\""
-                        + " href=\"#atf-screenshot-" + fingerprint + "\""
-                        + " aria-label=\"Open duplicate screenshot\""
-                        + " title=\"Open duplicate screenshot\">"
-                        + "<span class=\"badge-gradient-primary\">📷 base64 img</span>"
-                        + "<span class=\"atf-ui-screenshot-duplicate-text\">"
-                        + "same image — identical to an earlier captured state in this run;"
-                        + " not re-embedded to avoid duplicating the same bytes.</span></a>";
-                matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
-            }
+            String replacement = seen.add(fingerprint)
+                    ? withCanonicalReference(matcher.group(), fingerprint)
+                    : duplicateReference(fingerprint);
+            matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
         }
         matcher.appendTail(result);
         return result.toString();
     }
 
+    private static String duplicateReference(String fingerprint) {
+        String marker = AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.SPAN,
+                AtfReportLabels.BASE64_IMAGE_MARKER,
+                AtfReportHtmlVocabulary.classAttribute(
+                        AtfReportHtmlVocabulary.CssClass.BADGE_GRADIENT_PRIMARY));
+        String note = AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.SPAN,
+                AtfReportLabels.DUPLICATE_SCREENSHOT_NOTE,
+                AtfReportHtmlVocabulary.classAttribute(
+                        AtfReportHtmlVocabulary.CssClass.ATF_UI_SCREENSHOT_DUPLICATE_TEXT));
+        return AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.A,
+                marker + note,
+                AtfReportHtmlVocabulary.classAttribute(
+                        AtfReportHtmlVocabulary.CssClass.ATF_UI_ACTION_SCREENSHOT_LINK,
+                        AtfReportHtmlVocabulary.CssClass.ATF_UI_SCREENSHOT_DUPLICATE),
+                AtfReportHtmlVocabulary.attribute(
+                        AtfReportHtmlVocabulary.Attribute.SCREENSHOT_REF, fingerprint),
+                AtfReportHtmlVocabulary.attribute(
+                        AtfReportHtmlVocabulary.Attribute.HREF,
+                        "#atf-screenshot-" + fingerprint),
+                AtfReportHtmlVocabulary.attribute(
+                        AtfReportHtmlVocabulary.Attribute.ARIA_LABEL,
+                        AtfReportLabels.OPEN_DUPLICATE_SCREENSHOT),
+                AtfReportHtmlVocabulary.attribute(
+                        AtfReportHtmlVocabulary.Attribute.TITLE,
+                        AtfReportLabels.OPEN_DUPLICATE_SCREENSHOT));
+    }
+
     private static String withCanonicalReference(String anchor, String fingerprint) {
         String openingTag = anchor.substring(0, anchor.indexOf('>') + 1);
-        if (openingTag.contains("data-atf-screenshot-ref=\"")) return anchor;
-        String referenceAttributes = " id=\"atf-screenshot-" + fingerprint
-                + "\" data-atf-screenshot-ref=\"" + fingerprint + "\"";
+        String referenceAttribute = AtfReportHtmlVocabulary.Attribute.SCREENSHOT_REF.value()
+                + "=\"";
+        if (openingTag.contains(referenceAttribute)) return anchor;
+        String referenceAttributes = " "
+                + AtfReportHtmlVocabulary.idAttribute("atf-screenshot-" + fingerprint)
+                + " "
+                + AtfReportHtmlVocabulary.attribute(
+                AtfReportHtmlVocabulary.Attribute.SCREENSHOT_REF, fingerprint);
         String enrichedOpeningTag = openingTag.substring(0, openingTag.length() - 1)
                 + referenceAttributes + ">";
         return enrichedOpeningTag + anchor.substring(openingTag.length());

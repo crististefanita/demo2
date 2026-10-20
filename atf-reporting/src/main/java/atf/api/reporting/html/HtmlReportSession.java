@@ -9,7 +9,6 @@ import atf.api.reporting.html.script.HtmlReportNavigationScript;
 import atf.api.reporting.html.script.HtmlReportScript;
 import atf.api.reporting.html.scope.HtmlReportScenarioScope;
 import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
-import atf.api.reporting.markup.AtfReportLabels;
 import atf.api.reporting.ui.model.ReportDocumentModel;
 
 import atf.api.reporting.configuration.ReportingSettings;
@@ -20,7 +19,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.List;
 import java.util.Objects;
 
 import static atf.api.reporting.html.HtmlReportMarkupSupport.escape;

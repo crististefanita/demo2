@@ -13,7 +13,8 @@ public final class HtmlReportCategoryView {
                 AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.SPAN,
                         escape(tag), AtfReportHtmlVocabulary.classAttribute(
                                 AtfReportHtmlVocabulary.CssClass.TAG))));
-        String body = AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.H2, "Category")
+        String body = AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.H2,
+                        AtfReportHtmlVocabulary.FallbackTab.CATEGORY.label())
                 + AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.DIV, tags.toString(),
                 AtfReportHtmlVocabulary.classAttribute(AtfReportHtmlVocabulary.CssClass.TAG_LIST));
         return AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.SECTION, body,

@@ -4,6 +4,7 @@ import atf.api.reporting.console.AtfConsoleSink;
 import atf.api.reporting.evidence.profile.ReportEvidenceProfile;
 
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Objects;
 
 /** Typed composition options for the canonical UI report session entry point. */
@@ -11,7 +12,15 @@ public record UiExtentReportOptions(Path outputDirectory,
                                     String fileName,
                                     AtfConsoleSink console,
                                     ReportEvidenceProfile evidenceProfile,
-                                    boolean timestampEnabled) {
+                                    boolean timestampEnabled,
+                                    Map<String, String> systemInfo) {
+    public UiExtentReportOptions(Path outputDirectory, String fileName,
+                                 AtfConsoleSink console,
+                                 ReportEvidenceProfile evidenceProfile,
+                                 boolean timestampEnabled) {
+        this(outputDirectory, fileName, console, evidenceProfile, timestampEnabled, Map.of());
+    }
+
     public UiExtentReportOptions {
         outputDirectory = Objects.requireNonNull(outputDirectory, "outputDirectory");
         if (fileName == null || fileName.isBlank()) {
@@ -19,6 +28,7 @@ public record UiExtentReportOptions(Path outputDirectory,
         }
         console = Objects.requireNonNull(console, "console");
         evidenceProfile = Objects.requireNonNull(evidenceProfile, "evidenceProfile");
+        systemInfo = systemInfo == null ? Map.of() : Map.copyOf(systemInfo);
     }
 
     public static Builder builder(Path outputDirectory) {
@@ -32,6 +42,7 @@ public record UiExtentReportOptions(Path outputDirectory,
         private AtfConsoleSink console = AtfConsoleSink.noOp();
         private ReportEvidenceProfile evidenceProfile = ReportEvidenceProfile.defaults();
         private boolean timestampEnabled = true;
+        private Map<String, String> systemInfo = Map.of();
 
         private Builder(Path outputDirectory) {
             this.outputDirectory = Objects.requireNonNull(outputDirectory, "outputDirectory");
@@ -57,9 +68,14 @@ public record UiExtentReportOptions(Path outputDirectory,
             return this;
         }
 
+        public Builder systemInfo(Map<String, String> value) {
+            systemInfo = value == null ? Map.of() : Map.copyOf(value);
+            return this;
+        }
+
         public UiExtentReportOptions build() {
             return new UiExtentReportOptions(outputDirectory, fileName, console,
-                    evidenceProfile, timestampEnabled);
+                    evidenceProfile, timestampEnabled, systemInfo);
         }
     }
 }

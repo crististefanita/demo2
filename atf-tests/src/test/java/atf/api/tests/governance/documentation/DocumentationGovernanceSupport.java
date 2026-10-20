@@ -53,8 +53,11 @@ final class DocumentationGovernanceSupport {
     }
 
     static boolean isGovernedMarkdown(Path root, Path path) {
+        Path normalized = path.toAbsolutePath().normalize();
+        Path docsRoot = root.resolve("docs").toAbsolutePath().normalize();
         return isReadme(path)
-                || path.toAbsolutePath().normalize().equals(
-                root.resolve("docs/ATF_Architecture.md").toAbsolutePath().normalize());
+                || (Files.isRegularFile(normalized)
+                && normalized.startsWith(docsRoot)
+                && normalized.getFileName().toString().toLowerCase().endsWith(".md"));
     }
 }

@@ -18,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Objects;
 
 /** Public facade for the Extent boundary; tree scopes live behind this API. */
@@ -48,6 +49,13 @@ public final class ExtentReportSession implements AtfReportPorts.Session, AutoCl
 
     public ExtentReportSession(Path reportPath, ReportingSettings settings,
                                SensitiveDataRedactor redactor, AtfConsoleSink console) {
+        this(reportPath, settings, redactor, console, Map.of());
+    }
+
+    /** Opens a session with safe, consumer-owned Overview/System metadata. */
+    public ExtentReportSession(Path reportPath, ReportingSettings settings,
+                               SensitiveDataRedactor redactor, AtfConsoleSink console,
+                               Map<String, String> systemInfo) {
         this.reportPath = Objects.requireNonNull(reportPath, "reportPath").toAbsolutePath().normalize();
         Objects.requireNonNull(settings, "settings");
         Objects.requireNonNull(redactor, "redactor");
@@ -60,7 +68,7 @@ public final class ExtentReportSession implements AtfReportPorts.Session, AutoCl
         spark.config().setCss(AtfReportTheme.sparkCss());
         reports = new ExtentReports();
         reports.attachReporter(spark);
-        ReportEnvironment.defaults().forEach(reports::setSystemInfo);
+        ReportEnvironment.with(systemInfo, redactor).forEach(reports::setSystemInfo);
         tree = new ExtentReportTree(reports, settings, redactor, this::ensureOpen, console);
     }
 

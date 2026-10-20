@@ -34,7 +34,7 @@ public class DocumentationProseGovernanceTest {
         Path root = locateProjectRoot();
         List<DocumentationGovernanceSupport.Violation> violations = new ArrayList<>();
         try (var files = Files.walk(root)) {
-            files.filter(DocumentationGovernanceSupport::isReadme)
+            files.filter(path -> DocumentationGovernanceSupport.isGovernedMarkdown(root, path))
                     .forEach(path -> validate(path, root, violations));
         }
         DocumentationGovernanceSupport.assertNoViolations(

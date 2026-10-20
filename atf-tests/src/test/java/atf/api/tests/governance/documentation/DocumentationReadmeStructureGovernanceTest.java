@@ -34,7 +34,7 @@ public class DocumentationReadmeStructureGovernanceTest {
         Path root = locateProjectRoot();
         List<DocumentationGovernanceSupport.Violation> violations = new ArrayList<>();
         try (var files = Files.walk(root)) {
-            files.filter(path -> DocumentationGovernanceSupport.isGovernedMarkdown(root, path))
+            files.filter(DocumentationGovernanceSupport::isReadme)
                     .forEach(path -> validate(path, root, violations));
         }
         DocumentationGovernanceSupport.assertNoViolations("README structure governance", violations);

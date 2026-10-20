@@ -95,6 +95,9 @@ flowchart LR
 <summary><strong>Legendă — vocabular, modele și renderer</strong></summary>
 
 - enum-urile și constantele dețin vocabularul finit: tag, class, attribute, view, status și token;
+- `AtfReportHtmlVocabulary.element(...)` și `voidElement(...)` compun elementele fără
+  a reintroduce tag-uri raw în view-uri; `HtmlReportShell` deține exclusiv shell-ul
+  fallback (`html/head/body/meta/title/style/script`);
 - POJO-urile/record-urile immutable dețin datele runtime: request, JSON, evidence și checks;
 - builder-ele și renderer-ele transformă modelul în HTML/CSS/JavaScript;
 - validatorii verifică output-ul, iar adapterele îl publică; valorile dinamice nu devin enum-uri artificiale.
@@ -102,7 +105,7 @@ flowchart LR
 
 | Tip de informație | Owner | Regulă |
 |---|---|---|
-| tag, class, attribute, element, view, status | `AtfReportHtmlVocabulary`, `AtfReportAsset`, `ExtentReportRuntimeVocabulary`, `AtfReportStatus` | enum/constant unic; `displayValue()` produce valoarea lowercase pentru CSS/filter; fără literali distribuiți |
+| tag, class, attribute, element, view, status | `AtfReportHtmlVocabulary`, `HtmlReportShell`, `AtfReportAsset`, `ExtentReportRuntimeVocabulary`, `AtfReportStatus` | enum/constant unic; `element(...)`/`voidElement(...)` păstrează forma HTML; `displayValue()` produce valoarea lowercase pentru CSS/filter; fără literali distribuiți |
 | culori și geometrie | `AtfReportColors`, `AtfReportCssSelectors`, theme tokens | token stabil; output CSS determinist |
 | CSS evidence | `AtfUiEvidenceCss` și providerii theme/evidence | selectorii și token-urile sunt typed; stylesheet-ul este asset CSS nativ, iar valorile dinamice sunt doar placeholder-e de compoziție |
 | module JavaScript | `HtmlReportScriptModule`, builders și runtime section modules | ordine și ownership explicite |
@@ -310,6 +313,19 @@ JavaScript native; niciuna dintre aceste familii nu mai asamblează corpuri mari
 Java. `ScenarioCss` este facade typed peste `theme-scenario.css`, iar
 `ExtentReportNavigationView` publică numai markup și hash links; nu mai generează
 JavaScript executabil inline.
+`ExtentReportCategoryMarkup` folosește aceeași construcție semantică pentru
+shell-ul Category: vocabularul typed guvernează tag-uri, clase, atribute și
+empty-state, iar markerul vendor `atf-fails-view` este păstrat doar ca boundary
+de inserare documentat. `ExtentReportCategoryMarkupTest` verifică separat
+idempotency, ordinea în DOM și contractul CSS/accessibility.
+`HtmlReportFailsView` folosește aceleași primitive pentru fallback-ul Fails,
+inclusiv statusul semantic, deep-link-ul scenariului și empty-state-ul; astfel
+paritatea dintre Extent și fallback este verificabilă prin teste lower-level.
+`HtmlReportTestsView` și `ExtentReportPublicationPipeline` folosesc aceeași
+graniță pentru scenarii, phase/request nodes, theme și view identifiers.
+`ExtentReportScreenshotDeduplicator` păstrează fingerprint-ul doar intern,
+pentru deduplicare; în raport rămâne linkul inline cu emoji-ul curent, nu un
+hash afișat.
 `HtmlReportScriptBuilder` rămâne numai infrastructură generică pentru porturi
 typed/custom și teste; nu mai este folosit pentru a construi navigation sau boot
 în producție.

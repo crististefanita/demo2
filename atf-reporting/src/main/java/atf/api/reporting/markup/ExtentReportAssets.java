@@ -22,7 +22,7 @@ import java.util.stream.Stream;
  */
 public final class ExtentReportAssets {
     public static final String SPARK_DIRECTORY = "spark";
-    public static final String BASE64_SCREENSHOT_LABEL = "📷 base64 img";
+    public static final String BASE64_SCREENSHOT_LABEL = AtfReportLabels.BASE64_IMAGE_MARKER;
     private static final String PNG_DATA_URI_PREFIX = "data:image/png;base64,";
 
     private ExtentReportAssets() {
