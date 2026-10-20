@@ -6,12 +6,19 @@ import org.junit.jupiter.api.Test;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static atf.api.tests.governance.AtfGovernanceTestSupport.locateProjectRoot;
 
 /** Checks the stable visual contract of Mermaid diagrams embedded in README files. */
 @AtfComponentTest
 public class DocumentationDiagramGovernanceTest {
+    private static final int ROOT_MODULE_MAP_MAX_NODE_LABEL_CHARS = 18;
+    private static final int ROOT_MODULE_MAP_MAX_EDGE_LABEL_CHARS = 12;
+    private static final Pattern NODE_LABEL = Pattern.compile("^\\w+\\[(.+)]$");
+    private static final Pattern EDGE_LABEL = Pattern.compile("(?:-->|-\\.->)\\|([^|]+)\\|");
+
     @Test
     void nonRootReadmeDiagramsKeepTheDocumentedVisualContract() throws Exception {
         Path root = locateProjectRoot();
@@ -103,6 +110,49 @@ public class DocumentationDiagramGovernanceTest {
                             + unlabeledEdges.stream().limit(2).toList(),
                     "ownership, consumption and flow relations use one short verb on every edge",
                     "change `A --> B` to `A -->|consumă| B` or use an equivalent concise verb"));
+        }
+
+        if (isRootModuleMap(path, root, lines, opening)) {
+            inspectRootModuleMapCompactness(lines, opening, closing, root, path, violations);
+        }
+    }
+
+    private static boolean isRootModuleMap(Path path, Path root, List<String> lines, int opening) {
+        if (!path.normalize().equals(root.resolve("README.md").normalize())) return false;
+        for (int index = opening - 1; index >= 0; index--) {
+            String line = lines.get(index).trim();
+            if (line.startsWith("## ")) return line.equals("## Harta modulelor");
+        }
+        return false;
+    }
+
+    private static void inspectRootModuleMapCompactness(List<String> lines, int opening, int closing,
+                                                        Path root, Path path,
+                                                        List<DocumentationGovernanceSupport.Violation> violations) {
+        for (int index = opening + 1; index < closing; index++) {
+            String line = lines.get(index).trim();
+            Matcher node = NODE_LABEL.matcher(line);
+            if (node.matches()) {
+                String label = node.group(1).replaceAll("<br\\s*/?>", " ")
+                        .replace("\"", "").trim();
+                if (label.length() > ROOT_MODULE_MAP_MAX_NODE_LABEL_CHARS || node.group(1).contains("<br")) {
+                    violations.add(DocumentationGovernanceSupport.violation(
+                            "DOC-DIAG-COMPACT", root, path, index + 1,
+                            "root module-map node label is too large: " + node.group(1),
+                            "module-map nodes use one short concept (max "
+                                    + ROOT_MODULE_MAP_MAX_NODE_LABEL_CHARS + " visible characters, no forced line break)",
+                            "shorten the node label and move the full module name to the collapsed legend/table"));
+                }
+            }
+
+            Matcher edge = EDGE_LABEL.matcher(line);
+            if (edge.find() && edge.group(1).trim().length() > ROOT_MODULE_MAP_MAX_EDGE_LABEL_CHARS) {
+                violations.add(DocumentationGovernanceSupport.violation(
+                        "DOC-DIAG-COMPACT", root, path, index + 1,
+                        "root module-map edge label is too large: " + edge.group(1).trim(),
+                        "edge labels use one short verb (max " + ROOT_MODULE_MAP_MAX_EDGE_LABEL_CHARS + " characters)",
+                        "replace the phrase with a short verb and move the explanation to the collapsed legend"));
+            }
         }
     }
 
