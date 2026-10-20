@@ -1,6 +1,8 @@
 # Output local Maven/JVM; nu face parte din sursa ATF.
 target/
 artifacts/
+_mmdc-config.json
+_render_*.mmd
 hs_err_pid*.log
 
 # IDE-uri și fișiere locale.
