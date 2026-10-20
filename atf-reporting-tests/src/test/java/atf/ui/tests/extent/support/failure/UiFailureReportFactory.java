@@ -1,0 +1,102 @@
+package atf.ui.tests.extent.support.failure;
+
+import atf.api.reporting.console.AtfConsoleSink;
+import atf.api.reporting.contract.AtfAssertion;
+import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.AtfUiEvidenceSource;
+import atf.api.reporting.ui.UiExtentReportSession;
+import atf.api.reporting.ui.contract.ReportUiContract;
+import atf.ui.tests.extent.support.config.UiConfiguration;
+
+import java.nio.file.Path;
+import java.time.Clock;
+import java.util.List;
+
+import static atf.api.reporting.contract.AtfGherkinKeyword.GIVEN;
+
+/** Creates a real Extent artifact containing one intentional failure per UI channel. */
+public final class UiFailureReportFactory {
+    private static final String ONE_PIXEL_PNG =
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+    private static final String TEST_CLASS = "UiFailureReportFixture";
+    private static final String TEST_PACKAGE = "atf.ui.tests.extent.support.failure";
+    private static final List<String> TAGS = List.of("ui", "extent", "failure-contract", "fixture");
+
+    private UiFailureReportFactory() { }
+
+    public static Path create(UiConfiguration configuration) {
+        String fileName = configuration.timestampedReportFileName(
+                "ui-failure-contract-input", Clock.systemDefaultZone());
+        UiExtentReportSession report = UiExtentReportSession.openConfiguredResolved(
+                configuration.reportDirectory(), fileName, AtfConsoleSink.noOp());
+        try {
+            setupFailure(report);
+            actionFailure(report);
+            observationFailure(report);
+            assertionFailure(report);
+        } finally {
+            report.close();
+        }
+        return report.reportPath();
+    }
+
+    private static void setupFailure(UiExtentReportSession report) {
+        var scenario = report.startScenario(TEST_CLASS, TEST_PACKAGE,
+                "Setup failure — input availability", TAGS);
+        var setup = scenario.startPhase(ReportUiContract.Phase.SETUP.displayName());
+        setup.setup(GIVEN, "the configured report input is available",
+                "report input", List.of(new AtfAssertion("Input report", "available", "missing", false)),
+                AtfReportStatus.FAIL);
+        setup.complete(AtfReportStatus.FAIL);
+        scenario.complete(AtfReportStatus.FAIL);
+    }
+
+    private static void actionFailure(UiExtentReportSession report) {
+        var scenario = report.startScenario(TEST_CLASS, TEST_PACKAGE,
+                "Playwright action failure — click", TAGS);
+        passSetup(scenario);
+        var body = scenario.startPhase(ReportUiContract.Phase.TEST_BODY.displayName());
+        body.screenValidation("Playwright click did not reach the disclosure",
+                "#failure-action", ONE_PIXEL_PNG, List.of(),
+                List.of(new AtfUiActionRecord(1, "Click", "#failure-action",
+                        "disclosure opens", "AssertionError: disclosure remained closed", 4,
+                        AtfReportStatus.FAIL, AtfUiEvidenceSource.ACTION)), AtfReportStatus.FAIL);
+        body.complete(AtfReportStatus.FAIL);
+        scenario.complete(AtfReportStatus.FAIL);
+    }
+
+    private static void observationFailure(UiExtentReportSession report) {
+        var scenario = report.startScenario(TEST_CLASS, TEST_PACKAGE,
+                "Audit observation failure — rendered state", TAGS);
+        passSetup(scenario);
+        var body = scenario.startPhase(ReportUiContract.Phase.TEST_BODY.displayName());
+        body.screenValidation("Audit observed an invalid visual state", "#failure-audit",
+                ONE_PIXEL_PNG, List.of(), List.of(new AtfUiActionRecord(
+                        1, "Audit observation", "#failure-audit", "badge is visible",
+                        "badge is missing", 0, AtfReportStatus.FAIL, AtfUiEvidenceSource.OBSERVE)),
+                AtfReportStatus.FAIL);
+        body.complete(AtfReportStatus.FAIL);
+        scenario.complete(AtfReportStatus.FAIL);
+    }
+
+    private static void assertionFailure(UiExtentReportSession report) {
+        var scenario = report.startScenario(TEST_CLASS, TEST_PACKAGE,
+                "Assertion failure — expected versus actual", TAGS);
+        passSetup(scenario);
+        var body = scenario.startPhase(ReportUiContract.Phase.TEST_BODY.displayName());
+        body.screenValidation("Assertion contract is not satisfied", "#failure-assertion",
+                ONE_PIXEL_PNG, List.of(new AtfAssertion("Status badge", "Fail", "Pass", false)),
+                List.of(), AtfReportStatus.FAIL);
+        body.complete(AtfReportStatus.FAIL);
+        scenario.complete(AtfReportStatus.FAIL);
+    }
+
+    private static void passSetup(UiExtentReportSession.UiScenario scenario) {
+        var setup = scenario.startPhase(ReportUiContract.Phase.SETUP.displayName());
+        setup.setup(GIVEN, "the failure fixture is available", "fixture",
+                List.of(new AtfAssertion("Fixture", "available", "available", true)),
+                AtfReportStatus.PASS);
+        setup.complete(AtfReportStatus.PASS);
+    }
+}

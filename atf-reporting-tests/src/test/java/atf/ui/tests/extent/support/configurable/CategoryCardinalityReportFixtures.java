@@ -1,0 +1,47 @@
+package atf.ui.tests.extent.support.configurable;
+import atf.api.reporting.console.AtfConsoleSink;
+import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.ui.UiExtentReportSession;
+import atf.api.reporting.ui.contract.ReportUiContract;
+
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import static atf.api.reporting.contract.AtfGherkinKeyword.THEN;
+
+/** Publishes and cleans the standalone reports used by category cardinality tests. */
+public final class CategoryCardinalityReportFixtures {
+    private CategoryCardinalityReportFixtures() {
+    }
+
+    public static Path publish(Path root, CategoryCardinalityFixture fixture) {
+        try (UiExtentReportSession session = UiExtentReportSession.openConfigured(
+                root, "categories-" + fixture.name().toLowerCase() + ".html",
+                AtfConsoleSink.noOp())) {
+            var scenario = session.startScenario("CategoryCardinalityFixture",
+                    "atf.ui.tests.extent.e2e.configurable", "generated category fixture",
+                    fixture.tags());
+            var body = scenario.startPhase(ReportUiContract.Phase.TEST_BODY.displayName());
+            body.step(THEN,
+                    "generated category fixture is valid",
+                    ReportUiContract.Tab.CATEGORIES.hash(), null, AtfReportStatus.PASS);
+            body.complete(AtfReportStatus.PASS);
+            scenario.complete(AtfReportStatus.PASS);
+            return session.reportPath();
+        }
+    }
+
+    public static void deleteTree(Path root) throws Exception {
+        if (!Files.exists(root)) return;
+        try (var paths = Files.walk(root)) {
+            paths.sorted((left, right) -> right.compareTo(left)).forEach(path -> {
+                try {
+                    Files.deleteIfExists(path);
+                } catch (Exception failure) {
+                    throw new RuntimeException(failure);
+                }
+            });
+        }
+    }
+}

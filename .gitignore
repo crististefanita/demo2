@@ -1,0 +1,11 @@
+# Output local Maven/JVM; nu face parte din sursa ATF.
+target/
+artifacts/
+hs_err_pid*.log
+
+# IDE-uri și fișiere locale.
+.idea/
+*.iml
+.classpath
+.project
+.settings/

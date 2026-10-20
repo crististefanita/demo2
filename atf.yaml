@@ -1,0 +1,44 @@
+modules: [api, reporting, ui]
+
+api:
+  # Typed API bootstrap. Acceptance is explicit, offline and deterministic;
+  # live requires -Datf.api.live.optIn=true (or ATF_API_LIVE_OPT_IN=true).
+  baseUri: https://gorest.co.in
+  defaultAuthProfile: default
+  timeout: PT20S
+  retryStatuses: [429]
+  maxAttempts: 2
+  transport: acceptance
+
+validation:
+  # Warnings are opt-in at the concrete validation level; the global default
+  # remains strict so contract violations are not hidden.
+  warningMode: false
+
+reporting:
+  assertionMaxDisplayCharacters: 240
+  # Maximum characters kept in each redacted request/response JSON code block.
+  # The block remains scrollable; this bounds artifact size and DOM cost.
+  bodyMaxDisplayCharacters: 12000
+  console:
+    # Compact lifecycle messages are useful both from Maven and IntelliJ.
+    enabled: true
+    # Pretty, redacted request/response bodies are visible when enabled.
+    detailsEnabled: true
+  extent:
+    # Direct JUnit resource tests may open the same configured report session.
+    # Set to false to keep UsersApiTests/PostsApiTests console-only.
+    enabled: true
+    # Relative paths are resolved from this file, not IntelliJ's working directory.
+    outputDirectory: artifacts/reports
+    fileName: api-atf-extent-report.html
+    # Produces api-atf-extent-report_yyyy-MM-dd_HH-mm-ss-SSS.html.
+    # Set to false when a stable, replaceable file name is required.
+    timestampEnabled: true
+    timestampPattern: yyyy-MM-dd_HH-mm-ss-SSS
+    timestampZone: system
+    # UI screenshot policy: each checkpoint also retains final/failure evidence.
+    # Override with final-only, failure-only, final-and-failure or none.
+    screenshotPolicy: each-checkpoint
+
+

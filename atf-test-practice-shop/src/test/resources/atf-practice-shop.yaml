@@ -1,0 +1,42 @@
+practiceShop:
+  baseUrl: https://practicesoftwaretesting.com
+  browser: chromium
+  headless: true
+  timeout: PT20S
+  navigationTimeout: PT45S
+  viewport:
+    width: 1440
+    height: 1000
+  zoomPercent: 70
+  validation:
+    profile: ui-api
+  api:
+    endpoint: https://api.practicesoftwaretesting.com
+    mode: acceptance
+    precondition: authenticated
+    timeout: PT20S
+  screenshotOnFailure: true
+  # The external catalog rotates product ids; use auto for a stable name-based fixture.
+  # Set an exact /product/<id> route when a deterministic fixture is required.
+  productName: Pliers
+  productPath: auto
+  checkout:
+    quantity: 2
+    guest:
+      email: atf.practice.shop@example.test
+      firstName: ATF
+      lastName: PracticeShop
+    billing:
+      country: Romania
+      postalCode: 010101
+      houseNumber: 10
+      street: Test Street
+      city: Bucharest
+      state: Bucharest
+    paymentMethod: Cash on Delivery
+  # This deliberately reusable demo account is a test fixture owned by this
+  # module. The password is never copied into ATF evidence or logs.
+  # Override with -Datf.practice.account-file=<external-properties-file> in CI.
+  accountFile: atf-test-practice-shop/src/test/resources/practice-software-testing-account.properties
+
+
