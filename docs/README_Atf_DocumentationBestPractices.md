@@ -168,10 +168,22 @@ Preferința de stil:
   păstrăm o singură idee pe muchie și explicăm vocabularul imediat după schemă;
 - stilul de referință este o schemă `LR` compactă, cu noduri etichetate scurt,
   legături puține și o legendă imediată care explică ramificațiile;
+- dimensiunea vizuală se controlează separat de semantică: etichete scurte în
+  noduri, font/padding reduse și vocabularul complet în legendă;
 - orientarea se alege după întrebarea diagramei și costul vizual, nu după o
   regulă absolută de sintaxă;
 - o schemă orizontală nu trebuie lățită artificial cu noduri secundare;
 - săgețile au o singură semnificație și aceasta este explicată în legendă;
+- pentru relațiile de ownership, consum sau flow, etichetați muchia direct cu un
+  verb scurt (`guvernează`, `consumă`, `validează`, `publică`); nu obligați
+  cititorul să deducă relația numai din poziția nodurilor;
+- eticheta muchiei nu repetă numele nodurilor și nu devine o propoziție; detaliile
+  despre clase, module sau scope rămân în legenda colapsată;
+- textul de pe muchie este mai mic decât textul nodului: explică relația fără să
+  concureze cu conceptele principale;
+- într-un același README, diagramele folosesc aceeași bază vizuală — font,
+  padding, densitate și stil de săgeată; `rankSpacing` poate varia numai pentru
+  densitate sau pentru lizibilitatea etichetelor, fără să schimbe orientarea;
 - culorile nu sunt singura formă de diferențiere;
 - clasele, metodele și valorile care nu schimbă orientarea rămân în README-ul
   ownerului sau în tabelul colapsat.
@@ -276,6 +288,24 @@ primul segment, iar segmentele următoare au doar inițiala mare.
 | criteriu de acceptare | timestamp-ul artifactului |
 | test/guard care protejează regula | screenshot sau raport generat |
 | placeholder configurabil | path local, drive sau URL temporar |
+
+<details>
+<summary><strong>Regula pentru artefacte generate</strong></summary>
+
+- README-urile și documentele normative descriu contractul și criteriul de
+  verificare, nu numele unui raport produs într-un run;
+- nu se păstrează linkuri către HTML, screenshot-uri, URL-uri MCP sau directoare
+  de artifacte reale;
+- pentru output se folosesc placeholder-e precum `<configured-report-file>` sau
+  `${ATF_REPORT_DIRECTORY}`;
+- pentru randare se documentează structura observabilă — tab, selector, tabel,
+  verdict sau manifest — nu un fișier generat concret;
+- feedback-ul poate folosi dovada temporară în investigație, dar regula promovată
+  în README trebuie să rămână reproductibilă fără acel fișier;
+- sunt acceptate linkurile către sursa, contractul sau testul ownerului, nu către
+  output-ul unei rulări.
+
+</details>
 
 - [ ] linkurile sunt relative și au destinație existentă;
 - [ ] nu există căi absolute în text, comentarii sau diagrame;

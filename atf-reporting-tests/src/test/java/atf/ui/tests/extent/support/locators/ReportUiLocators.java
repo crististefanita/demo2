@@ -64,6 +64,12 @@ public final class ReportUiLocators {
     public Locator overviewSecondaryZones(Locator overview) {
         return pages.overviewSecondaryZones(overview);
     }
+    public Locator overviewSecondaryZone(Locator overview, ReportUiContract.OverviewSection zone) {
+        return pages.overviewSecondaryZone(overview, zone);
+    }
+    public Locator overviewSecondaryZoneBody(Locator overview, ReportUiContract.OverviewSection zone) {
+        return pages.overviewSecondaryZoneBody(overview, zone);
+    }
     public Locator overviewOpenSecondaryZones(Locator overview) {
         return pages.overviewOpenSecondaryZones(overview);
     }
@@ -75,6 +81,9 @@ public final class ReportUiLocators {
     }
     public AtfLocator overviewExecutionMetadataAction(Page page) {
         return pages.overviewExecutionMetadataAction(page);
+    }
+    public AtfLocator overviewSecondaryZoneAction(Page page, ReportUiContract.OverviewSection zone) {
+        return pages.overviewSecondaryZoneAction(page, zone);
     }
     public Locator overviewAuditRows(Locator overview) { return pages.overviewAuditRows(overview); }
     public Locator metricLabel(Locator metric) { return pages.metricLabel(metric); }

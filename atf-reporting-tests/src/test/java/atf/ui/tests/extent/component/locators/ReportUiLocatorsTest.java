@@ -85,9 +85,27 @@ class ReportUiLocatorsTest {
 
         assertTrue(locatorSource.contains("TEST_LIST_ITEMS + \" > \""),
                 "package extraction must start at the rendered test-list-item boundary");
-        assertTrue(locatorSource.contains("atf-test-package")
-                        && locatorSource.contains(".p-v-10 > .m-t-10"),
+        assertTrue(locatorSource.contains("[class~='atf-test-package'][data-atf-test-package]")
+                        && locatorSource.contains("TEST_CONTENTS.attributeSelector()")
+                        && locatorSource.contains("[class~='detail-head']")
+                        && locatorSource.contains("class~='p-v-10'")
+                        && locatorSource.contains("class~='m-t-10'"),
                 "package extraction must support the normalized node and its source fallback");
+    }
+
+    @Test
+    void secondaryOverviewExpansionUsesTheSemanticDetailsSummaryBoundary() throws IOException {
+        Path source = TEST_SOURCE_ROOT.resolve(
+                "atf/ui/tests/extent/support/locators/ReportPageLocators.java");
+        String locatorSource = Files.readString(source);
+
+        assertTrue(locatorSource.contains("overviewSecondaryZoneAction"),
+                "secondary Overview disclosures must expose a replayable locator action");
+        assertTrue(locatorSource.contains("zone.selector() + \" > summary\""),
+                "secondary Overview expansion must target the semantic details summary");
+        assertTrue(locatorSource.contains("SECONDARY_BODY")
+                        && locatorSource.contains("TAG_AUDIT_BODY"),
+                "secondary Overview expansion must target the rendered zone body, not a generic .body class");
     }
 
 }

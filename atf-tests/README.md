@@ -33,22 +33,50 @@ flowchart LR
 | Responsabilitate | Owner | Excludere explicită |
 |---|---|---|
 | reactor, POM și dependency direction | `atf-tests` | nu modifică production code |
-| source/package ownership | `ArchitectureModuleBoundaryTest` | nu deține selectorii unei aplicații |
+| source/package ownership și module placement | `ArchitectureModuleBoundaryTest`, `ArchitectureOwnershipBoundaryTest` | nu deține selectorii unei aplicații |
+| documentație relocabilă și surse coerente | `DynamicPathDocumentationArchitectureTest`, `AtfSourceReadabilityGovernanceTest` | nu validează conținutul unui singur consumer |
+| ownership de constante și coeziune de package | `ConstantsOwnershipGovernanceTest`, `AtfPackageCohesionGovernanceTest` | excepțiile trebuie să fie explicite |
 | Practice Shop purchase journey | `atf-test-practice-shop` | nu se copiază aici |
 | reporting contract/API/UI composition | `atf-reporting-tests` | nu se mută în governance |
 
-## Testul central și reziduul de compatibilitate
+## Suita whole-ATF și reziduul de compatibilitate
 
 ```text
 src/test/java/atf/api/tests/governance/
-└── ArchitectureModuleBoundaryTest.java
+├── ArchitectureModuleBoundaryTest.java
+├── ArchitectureOwnershipBoundaryTest.java
+├── AtfPackageCohesionGovernanceTest.java
+├── AtfGovernanceRules.java
+├── AtfGovernanceTestSupport.java
+├── AtfSourceReadabilityGovernanceTest.java
+├── ConstantsOwnershipGovernanceTest.java
+├── DocumentationDiagramGovernanceTest.java
+├── DynamicPathDocumentationArchitectureTest.java
+└── WholeAtfGovernanceSuiteTest.java
 ```
 
-Acest test verifică lista canonică din `AtfModuleIds`, prezența modulelor în
-root POM, direcția dependențelor, importurile interzise, output-ul de proces,
-starea statică și faptul că `atf-execution` rămâne eliminat. Dependențele
-test-scope și package boundary-ul sunt verificate de același
-guard.
+`WholeAtfGovernanceSuiteTest` este entry point-ul explicit pentru verificarea
+întregului reactor. El grupează verificările fără să mute responsabilitatea
+testelor de reporting în acest modul:
+
+- `ArchitectureModuleBoundaryTest` — reactor, POM, direcția dependențelor,
+  importuri interzise, output de proces, stare statică și eliminarea
+  `atf-execution`;
+- `ArchitectureOwnershipBoundaryTest` — placement-ul modulelor, package roots,
+  ownership-ul reporting/UI și absența duplicărilor;
+- `AtfPackageCohesionGovernanceTest` — coeziunea package-urilor de producție și
+  test, cu excepții revizuite explicit;
+- `AtfSourceReadabilityGovernanceTest` — importuri duplicate și invocații
+  fully-qualified care ascund intenția testului;
+- `ConstantsOwnershipGovernanceTest` — vocabularul de protocol, rute și
+  boundary-ul reporting standalone;
+- `DynamicPathDocumentationArchitectureTest` — documentație relocabilă, fără
+  căi de mașină sau nume de artifact generate concret.
+- `DocumentationDiagramGovernanceTest` — orientare `LR`, legendă imediată,
+  fence-uri echilibrate și relații etichetate în README-urile non-root.
+
+Astfel, `atf-reporting-tests` nu mai deține verificări care inspectează întregul
+repository; păstrează doar boundary-ul API/UI propriu compoziției reporting.
 
 <details>
 <summary><strong>Ținta de curățare urmărită în feedback</strong></summary>
@@ -95,7 +123,8 @@ verifică aplicația externă, aparține modulului Practice Shop.
 ## Rulare și staging
 
 ```text
-mvn -pl atf-tests -am -Dtest=ArchitectureModuleBoundaryTest test
+mvn -pl atf-tests -am "-Dtest=WholeAtfGovernanceSuiteTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -pl atf-tests -am test
 mvn -pl atf-test-practice-shop -am -Dtest=PracticeShopArchitectureTest,PracticeShopConfigurationTest,PracticeShopCheckoutConfigurationTest test
 mvn -pl atf-test-practice-shop -am -Dtest=PracticeShopPurchaseE2eTest test
 ```

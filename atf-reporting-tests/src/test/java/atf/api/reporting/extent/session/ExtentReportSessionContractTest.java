@@ -202,8 +202,8 @@ class ExtentReportSessionContractTest {
                 () -> assertTrue(html.contains("API base URL")),
                 () -> assertTrue(html.contains("ATF ApiTransport (configured per execution)")),
                 () -> assertTrue(html.contains("Extent · embedded offline HTML")),
-                () -> assertTrue(html.contains(".card:has(> .card-body #grandchild-analysis)")),
-                () -> assertTrue(html.contains("data-atf-node-role=\"phase\"] > .card-header .node-attr")),
+                () -> assertTrue(html.contains(".card:has(>.card-body #grandchild-analysis)")),
+                () -> assertTrue(html.contains("data-atf-node-role=\"phase\"]>.card-header .node-attr")),
                 () -> assertTrue(html.contains("function normalizeDurations()")),
                 () -> assertTrue(html.contains("function normalizeTestNavigatorSeparators()")
                         && html.contains("node.nodeType===3")

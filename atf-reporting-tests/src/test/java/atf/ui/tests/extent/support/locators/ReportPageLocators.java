@@ -28,6 +28,8 @@ final class ReportPageLocators {
     private static final String OPEN_DISCLOSURES = "details[open], [class~='collapse'][class~='show']";
     private static final String DECORATIVE_SEPARATORS = "hr, [class~='atf-ui-zone-separator']";
     private static final String IMAGES = "img";
+    private static final String SECONDARY_BODY = "[class~='atf-secondary-body']";
+    private static final String TAG_AUDIT_BODY = "[class~='atf-tag-audit-body']";
 
     Locator exactText(Locator scope, String text) {
         return scope.getByText(text, new Locator.GetByTextOptions().setExact(true));
@@ -100,6 +102,13 @@ final class ReportPageLocators {
     }
     Locator overviewExecutionMetadata(Locator overview) { return overview.locator(EXECUTION_METADATA); }
     Locator overviewSecondaryZones(Locator overview) { return overview.locator(SECONDARY_OVERVIEW_ZONES); }
+    Locator overviewSecondaryZone(Locator overview, ReportUiContract.OverviewSection zone) {
+        return overview.locator("details" + zone.selector());
+    }
+    Locator overviewSecondaryZoneBody(Locator overview, ReportUiContract.OverviewSection zone) {
+        return overviewSecondaryZone(overview, zone).locator(":scope > "
+                + secondaryBodySelector(zone));
+    }
     Locator overviewOpenSecondaryZones(Locator overview) {
         return overview.locator(SECONDARY_OVERVIEW_ZONES.replace("details", "details[open]"));
     }
@@ -110,14 +119,28 @@ final class ReportPageLocators {
     Locator testPackageNodes(Page page) {
         return testsView(page).locator(TEST_LIST_ITEMS + " > "
                 + AtfReportCssSelectors.Component.TEST_ITEM.attributeSelector()
-                + " .test-contents .detail-head :is([class~='atf-test-package'], .p-v-10 > .m-t-10)");
+                + " " + AtfReportCssSelectors.Component.TEST_CONTENTS.attributeSelector()
+                + " [class~='detail-head'] :is([class~='atf-test-package'][data-atf-test-package], "
+                + "[class~='p-v-10'] > [class~='m-t-10'])");
     }
     AtfLocator overviewExecutionMetadataAction(Page page) {
         return new AtfLocator(overviewExecutionMetadata(overviewView(page)).locator("summary"),
                 OVERVIEW_VIEW + " " + EXECUTION_METADATA + " > summary");
     }
+    AtfLocator overviewSecondaryZoneAction(Page page, ReportUiContract.OverviewSection zone) {
+        return new AtfLocator(overviewSecondaryZone(overviewView(page), zone).locator("summary"),
+                OVERVIEW_VIEW + " details" + zone.selector() + " > summary");
+    }
     Locator overviewAuditRows(Locator overview) {
         return overview.locator(ReportUiContract.OVERVIEW_SCENARIO_AUDIT + " tbody tr");
+    }
+
+    private static String secondaryBodySelector(ReportUiContract.OverviewSection zone) {
+        return switch (zone) {
+            case EXECUTION_METADATA -> SECONDARY_BODY;
+            case TAG_AUDIT -> TAG_AUDIT_BODY;
+            default -> throw new IllegalArgumentException("Unsupported secondary Overview zone: " + zone);
+        };
     }
     Locator metricLabel(Locator metric) { return metric.locator("small"); }
     Locator metricValue(Locator metric) { return metric.locator("strong"); }

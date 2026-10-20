@@ -25,21 +25,29 @@ riscuri reproductibile care mai pot schimba codul sau packaging-ul.
 ### Harta modulelor: platformă și consumatori
 
 ```mermaid
+%%{init: {"themeVariables": {"fontSize": "16px"}, "themeCSS": ".edgeLabel p { font-size: 13px; line-height: 1.1; margin: 0; padding: 0 2px; }", "flowchart": {"nodeSpacing": 16, "rankSpacing": 72, "padding": 4}}}%%
 flowchart LR
-    Governance["atf-tests<br/>architecture guards"] -.-> Roots["composition roots<br/>reporting-tests · practice-shop"]
-    Roots --> Reporting["atf-reporting<br/>standalone artifact"]
-    Roots -.-> Surface["test surfaces<br/>atf-ui · core · mock · validation<br/>console · debug-ui · test-kit"]
+    Governance["governance"] -.->|guvernează| Roots["consumers"]
+    Roots -->|consumă| Reporting["reporting"]
+    Roots -.->|folosește| Surface["platform"]
 ```
 
 <details>
 <summary><strong>Legendă — hartă module și direcția dependency</strong></summary>
 
-- săgeata solidă înseamnă consum de bibliotecă în composition root;
-- săgeata punctată marchează test scope, browser policy sau guvernanță, nu
-  ownership transferat;
-- `Roots` grupează `atf-reporting-tests` și `atf-test-practice-shop`, fără să le
+- `guvernează` = `atf-tests` protejează direcția și boundary-urile întregului
+  reactor;
+- `consumă` = composition roots folosesc API-ul public al `atf-reporting`;
+- `folosește test scope` = consumatorii leagă suportul platformei numai în
+  test scope; nu transferă ownership-ul în production;
+- `governance` este `atf-tests`, iar `consumers` sunt
+  `atf-reporting-tests` și `atf-test-practice-shop`;
+- `reporting` este `atf-reporting`, iar `platform` grupează
+  `atf-core`, `atf-mock`, `atf-validation`, `atf-console`, `atf-ui`,
+  `atf-debug-ui` și `atf-test-kit`;
+- `consumers` grupează `atf-reporting-tests` și `atf-test-practice-shop`, fără să le
   transforme într-un modul comun;
-- `Surface` grupează adaptoarele și suportul de test; relațiile interne sunt
+- `platform` grupează adaptoarele și suportul de test; relațiile interne sunt
   explicate în textul de sub diagramă și în README-urile ownerilor;
 - `atf-reporting` rămâne standalone în producție;
 - `atf-reporting-tests` este composition root-ul care leagă fixture-uri, mock,
@@ -47,15 +55,18 @@ flowchart LR
 
 </details>
 
-În această diagramă săgeata înseamnă „modulul din stânga depinde de modulul
-din dreapta”. `atf-validation` și fixture-urile reporting depind de `atf-core`, iar
-`atf-reporting` nu depinde de niciun modul ATF în producție. Testele care verifică aceste responsabilități
-sunt în `atf-reporting-tests/src/test/java`, unde dependențele spre mock, consolă,
-Playwright și debug UI sunt strict test-scope. `atf-tests` rulează separat
-`atf.api.tests.governance.ArchitectureModuleBoundaryTest`, care guvernează
-întregul reactor. `atf-test-practice-shop` găzduiește testele aplicației
-consumatoare. Configurația și flow-urile unei aplicații nu intră în
-`atf-reporting-tests`.
+În această diagramă, semnificația este dată de eticheta muchiei și nu trebuie
+dedusă din poziția nodurilor:
+
+- `atf-validation` și fixture-urile reporting depind de `atf-core`;
+- `atf-reporting` nu depinde de niciun modul ATF în production;
+- testele acestor responsabilități sunt în
+  `atf-reporting-tests/src/test/java`, cu mock, consolă, Playwright și debug UI
+  strict în test scope;
+- `atf-tests` rulează separat `atf.api.tests.governance.ArchitectureModuleBoundaryTest`
+  pentru guvernanța întregului reactor;
+- `atf-test-practice-shop` găzduiește testele aplicației consumatoare; configurația
+  și flow-urile aplicației nu intră în `atf-reporting-tests`.
 
 În sens de packaging, standalone înseamnă zero dependențe ATF pentru
 `atf-reporting/src/main`. Testele de integrare pot compune modulele ATF în
@@ -77,12 +88,13 @@ programatică a scenariilor API, iar `atf-reporting` oferă contractul pur pentr
 validarea unui artifact UI static:
 
 ```mermaid
+%%{init: {"themeVariables": {"fontSize": "16px"}, "themeCSS": ".edgeLabel p { font-size: 13px; line-height: 1.1; margin: 0; padding: 0 2px; }", "flowchart": {"nodeSpacing": 16, "rankSpacing": 48, "padding": 4}}}%%
 flowchart LR
-    Core["atf-core<br/>API selection contract"] --> Catalog["atf-reporting-tests<br/>contract catalog + setup"]
-    Catalog --> ApiArtifact["API Extent artifact"]
-    ApiArtifact --> Browser["atf-reporting-tests<br/>read-only browser inspector"]
-    Browser --> Reporting["atf-reporting<br/>UI contract + snapshot validator"]
-    Reporting --> UiArtifact["UI Extent audit artifact"]
+    Core["core contract"] -->|oferă contract| Catalog["test catalog"]
+    Catalog -->|compune| ApiArtifact["API artifact"]
+    ApiArtifact -->|este inspectat de| Browser["browser audit"]
+    Browser -->|verifică| Reporting["reporting contract"]
+    Reporting -->|publică| UiArtifact["UI artifact"]
 ```
 
 <details>
@@ -220,6 +232,7 @@ numai în `TEST BODY`, după acțiunile reale de browser.
 ## Fluxul unei cereri
 
 ```mermaid
+%%{init: {"themeVariables": {"fontSize": "16px"}}}%%
 sequenceDiagram
     participant T as Test
     participant M as API layer
@@ -277,16 +290,17 @@ network. Această separare este intenționată: raportarea și contractele nu
 trebuie să depindă de un serviciu extern.
 
 ```mermaid
+%%{init: {"themeVariables": {"fontSize": "16px"}, "themeCSS": ".edgeLabel p { font-size: 13px; line-height: 1.1; margin: 0; padding: 0 2px; }", "flowchart": {"nodeSpacing": 16, "rankSpacing": 48, "padding": 4}}}%%
 flowchart LR
-    Scenario[Acceptance scenario] --> Factory[ApiModuleFactory]
-    Factory --> Fake[AtfMockTransport]
-    Fake --> Offline[Deterministic ApiResponse]
-    Offline --> Report[Extent artifact]
+    Scenario["acceptance"] -->|alege| Factory["module factory"]
+    Factory -->|injectează| Fake["mock transport"]
+    Fake -->|returnează| Offline["deterministic response"]
+    Offline -->|publică| Report["Extent artifact"]
 
-    Live[Live API test] --> FactoryLive[ApiModuleFactory]
-    FactoryLive --> Http[HttpClientTransport]
-    Http --> Server[Real HTTP endpoint]
-    Server --> LiveReport[Live Extent artifact]
+    Live["live opt-in"] -->|alege| FactoryLive["module factory"]
+    FactoryLive -->|injectează| Http["HTTP transport"]
+    Http -->|apelează| Server["real endpoint"]
+    Server -->|publică| LiveReport["live artifact"]
 ```
 
 <details>
@@ -336,12 +350,13 @@ Rutele nu se scriu ca string-uri repetate în teste. Vocabularul stabil al
 căilor este separat de catalogul operațional și de configurația mediului:
 
 ```mermaid
+%%{init: {"themeVariables": {"fontSize": "16px"}, "themeCSS": ".edgeLabel p { font-size: 13px; line-height: 1.1; margin: 0; padding: 0 2px; }", "flowchart": {"nodeSpacing": 16, "rankSpacing": 48, "padding": 4}}}%%
 flowchart LR
-    Paths[Vocabular stabil al căilor] --> Catalog[Catalog operațional]
-    Catalog --> Operation[Metodă + resursă + operație]
-    Catalog --> Auth[Politică de autentificare]
-    Config[Configurație mediu] --> Catalog
-    Operation --> Executor[Executor API]
+    Paths["route vocabulary"] -->|descrie| Catalog["operation catalog"]
+    Config["environment config"] -->|configurează| Catalog
+    Catalog -->|compune| Operation["request intent"]
+    Catalog -->|alege| Auth["auth policy"]
+    Operation -->|alimentează| Executor["API executor"]
 ```
 
 <details>
@@ -360,34 +375,96 @@ de mediu.
 
 ## Configurație și snapshot
 
-`atf.yaml` este configurația generală a proiectului consumator, nu un asset al
-unui modul și nu o configurație citită de fiecare request. Fișierul versionat
-poate conține secțiunile `api`, `validation` și `reporting`; configurația UI de
-audit și catalogul mock ale contractului reporting sunt resurse test-owned ale
-`atf-reporting-tests`. Configurația unei aplicații, inclusiv
-`atf-practice-shop.yaml`, este test-owned de `atf-test-practice-shop`. Nu există
-`ui.enabled`. Rutele, răspunsurile, body-urile și fallback-ul folosite pentru
-raportare sunt în `atf-reporting-tests/src/test/resources/atf-mock.yaml`, încărcate
-explicit prin `ReportingTestResources`.
-API-ul este asamblat la composition root prin `ApiBootstrapConfiguration`, care
-conține snapshot-ul `ApiSettings` și `ApiTransportPolicy`. Loaderul
-`ApiBootstrapConfigurationLoader` citește o singură dată secțiunea `api`, o
-validează și o transmite către `ApiModuleFactory`; request-urile nu recitesc
-YAML-ul și nu își construiesc singure configurația.
+Configurația urmează un singur traseu operațional:
 
-În configurația actuală, `api.baseUri`, timeout-ul, retry-ul, auth profile-ul și
-`transport` sunt tipizate la bootstrap. `ApiReportAuditSetup` injectează intenționat
-`AtfMockTransport` când politica este `acceptance`; simpla prezență a unui
-`baseUri` în YAML nu activează rețeaua. Loaderul `atf-reporting` consumă
-efectiv doar `reporting.extent` pentru artifactul HTML; consola nu este
-fallback-ul rendererului și nu este încărcată de modulul Extent.
+```mermaid
+%%{init: {"themeVariables": {"fontSize": "16px"}, "themeCSS": ".edgeLabel p { font-size: 13px; line-height: 1.1; margin: 0; padding: 0 2px; }", "flowchart": {"nodeSpacing": 16, "rankSpacing": 48, "padding": 4}}}%%
+flowchart LR
+    Sources["YAML sources"] -->|sunt citite de| Loaders["owner loaders"]
+    Overrides["explicit overrides"] -->|suprascriu| Loaders
+    Loaders -->|validează| Bootstrap["typed bootstrap"]
+    Bootstrap -->|îngheață| Snapshot["immutable snapshot"]
+    Snapshot -->|alimentează| Runtime["runtime consumers"]
+    Loaders -->|construiesc| Mock["mock snapshot"]
+    Mock -->|injectează| Transport["mock transport"]
+    Transport -->|alimentează| Runtime
+```
 
-`api.transport` acceptă `acceptance` (alias compatibil `mock`) sau `live`.
-`acceptance` este implicit și selectează transportul mock; `live` este respins
-fără `-Datf.api.live.optIn=true` sau `ATF_API_LIVE_OPT_IN=true`. Astfel YAML-ul
-centralizează base URI, timeout și retry fără să ascundă diferența dintre un
-fake și o conexiune reală; politica nu poate fi schimbată accidental de un
-test UI.
+<details>
+<summary><strong>Legendă — de la sursă la runtime</strong></summary>
+
+- `YAML sources` = `atf.yaml`, catalogul `atf-mock.yaml` și configurația
+  consumatorului, inclusiv `atf-practice-shop.yaml`;
+- `owner loaders` = loader-e distincte pentru API, mock și aplicație;
+- `typed bootstrap` = validare la composition root, înaintea execuției;
+- `immutable snapshot` = configurație înghețată, transmisă consumatorilor;
+- `mock transport` = transport selectat de politica `acceptance`;
+- `runtime consumers` = executor, validation, reporting și fixture-urile de test;
+- săgeata nu reprezintă un import Maven, ci fluxul datelor de configurare.
+
+</details>
+
+<details>
+<summary><strong>Surse și ownership</strong></summary>
+
+- `atf.yaml` este configurația generală a proiectului consumator;
+- secțiunile `api`, `validation` și `reporting` aparțin proiectului care compune
+  rularea, nu unui request individual;
+- configurația UI de audit și catalogul mock pentru contractul reporting sunt
+  test-owned de `atf-reporting-tests`;
+- catalogul este în
+  `atf-reporting-tests/src/test/resources/atf-mock.yaml` și este încărcat prin
+  `ReportingTestResources`;
+- configurația aplicației este test-owned de `atf-test-practice-shop`;
+- configurația aplicației este în
+  `atf-test-practice-shop/src/test/resources/atf-practice-shop.yaml`;
+- nu există `ui.enabled`;
+- rutele, răspunsurile, body-urile și fallback-ul pentru raportare sunt încărcate
+  explicit prin resursa de test, nu dintr-un endpoint extern.
+
+</details>
+
+<details>
+<summary><strong>Bootstrap și politica de transport</strong></summary>
+
+- `ApiBootstrapConfiguration` compune `ApiSettings` și `ApiTransportPolicy`;
+- `ApiBootstrapConfigurationLoader` citește secțiunea `api` o singură dată,
+  o validează și o transmite către `ApiModuleFactory`;
+- `AtfMockConfigurationLoader` citește catalogul mock; override-urile acceptate
+  sunt `atf.mock.config`, `ATF_MOCK_CONFIG` și surse explicite de test;
+- `api.baseUri`, timeout-ul, retry-ul, auth profile-ul și `transport` sunt
+  tipizate la bootstrap;
+- `ApiReportAuditSetup` injectează `AtfMockTransport` pentru `acceptance`;
+- un `baseUri` în YAML nu activează singur rețeaua;
+- `api.transport` acceptă `acceptance` — alias compatibil `mock` — sau `live`;
+- `acceptance` este implicit; `live` cere
+  `-Datf.api.live.optIn=true` sau `ATF_API_LIVE_OPT_IN=true`;
+- loaderul `atf-reporting` consumă `reporting.extent` pentru artifactul HTML;
+  consola nu este fallback-ul rendererului și nu este încărcată de Extent.
+
+</details>
+
+<details>
+<summary><strong>Snapshot și reguli operaționale</strong></summary>
+
+- `AtfRuntimeSnapshot` păstrează `ApiSettingsSnapshot` și `ReportingSettings`
+  fără YAML, filesystem, environment sau Extent în `atf-core`;
+- `atf-core` deține modelele typed și snapshot-urile; loaderul complet rămâne în
+  composition root-ul testului din `atf-reporting` sau al consumatorului;
+- `ApiModuleFactory` proiectează snapshot-ul în executorul API, iar reporting
+  consumă separat politica sa;
+- `reporting.extent` rămâne responsabilitatea reporting; timeout, retry, auth,
+  routes, redaction și schema roots sunt setări runtime neutre;
+- loaderul eșuează clar la chei necunoscute, URI invalid, timeout invalid, root
+  de schemă absent sau output path nesigur;
+- căile relative se rezolvă față de fișierul YAML, nu față de `user.dir`;
+- secretele sunt referințe către un provider explicit, nu valori YAML publicate;
+- fiecare rulare primește snapshot-uri immutable; rulările paralele nu se pot
+  modifica reciproc;
+- nu se introduce un modul `atf-config`; `atf-reporting` își păstrează loaderul
+  specializat pentru `reporting.extent`.
+
+</details>
 
 ## Contracte de arhitectură verificate în codul live
 
@@ -408,14 +485,16 @@ reproductibilă, o schimbare de consumator sau o schimbare publică de contract.
 ### Parity semantică între renderer-e
 
 ```mermaid
+%%{init: {"themeVariables": {"fontSize": "16px"}, "themeCSS": ".edgeLabel p { font-size: 13px; line-height: 1.1; margin: 0; padding: 0 2px; }", "flowchart": {"nodeSpacing": 16, "rankSpacing": 48, "padding": 4}}}%%
 flowchart LR
-    Extent[Extent lifecycle<br/>AtfReportSemanticSnapshot]
-    Fallback[Fallback execution tree<br/>ReportExecutionModel]
-    Adapter[proiecție comună<br/>AtfReportSemanticSnapshot.from]
-    Guard[parity guard înainte de render]
-    Extent --> Guard
-    Fallback --> Adapter --> Guard
-    Guard --> Output[renderer-e și tab-uri coerente]
+    Extent["Extent model"]
+    Fallback["fallback model"]
+    Adapter["semantic snapshot"]
+    Guard["parity guard"]
+    Extent -->|furnizează| Guard
+    Fallback -->|normalizează| Adapter
+    Adapter -->|furnizează| Guard
+    Guard -->|publică| Output["coherent views"]
 ```
 
 <details>
@@ -438,11 +517,12 @@ forțarea aceleiași structuri interne.
 ### Evoluție controlată și redeschidere
 
 ```mermaid
+%%{init: {"themeVariables": {"fontSize": "16px"}, "themeCSS": ".edgeLabel p { font-size: 13px; line-height: 1.1; margin: 0; padding: 0 2px; }", "flowchart": {"nodeSpacing": 16, "rankSpacing": 48, "padding": 4}}}%%
 flowchart LR
-    Closed["contract închis<br/>boundary documentat"] --> Guarded["guarduri active<br/>teste + sync"]
-    Guarded --> Trigger["semnal valid<br/>regresie / consumator nou"]
-    Trigger --> Scope["schimbare țintită<br/>snapshot / golden"]
-    Scope --> Recheck["revalidare<br/>owner README"]
+    Closed["contract closed"] -->|activează| Guarded["guards active"]
+    Guarded -->|detectează| Trigger["valid signal"]
+    Trigger -->|limitează| Scope["targeted change"]
+    Scope -->|cere| Recheck["owner revalidation"]
 ```
 
 <details>
@@ -477,72 +557,17 @@ interne și nu devine dependent de lifecycle.
 
 </details>
 
-```mermaid
-flowchart LR
-    General[atf.yaml · api/validation/reporting] --> Loader[ApiBootstrapConfigurationLoader]
-    MockYaml[atf-reporting-tests/src/test/resources/atf-mock.yaml · routes/responses] --> MockLoader[AtfMockConfigurationLoader]
-    AppYaml[atf-test-practice-shop/src/test/resources/atf-practice-shop.yaml · app setup] --> AppLoader[application config loader]
-    MockOverride[atf.mock.config / ATF_MOCK_CONFIG] --> MockLoader
-    Env[explicit env/property override] --> Loader
-    Loader --> Config[ApiBootstrapConfiguration validată]
-    Config --> Snapshot[immutable API settings + transport policy]
-    Snapshot --> Runtime[typed runtime consumers<br/>atf-core · atf-validation · atf-reporting]
-    MockLoader --> MockSnapshot[AtfMockConfiguration]
-    MockSnapshot --> MockTransport[AtfMockTransport]
-    MockTransport --> ReportingFixtures[reporting-tests API fixtures]
-```
-
-<details>
-<summary><strong>Legendă — compoziția configurației</strong></summary>
-
-- YAML-ul și override-urile sunt citite la composition root;
-- snapshot-ul immutable intră în core, fără ca acesta să recitească mediul;
-- `Runtime` este o grupare vizuală pentru consumatorii snapshot-ului, nu un
-  modul nou;
-- mock-ul produce fixture-ul, iar reporting-tests îl consumă în test scope;
-- output-ul și căile rămân configurabile, nu devin valori de documentație.
-
-</details>
-
-`AtfRuntimeSnapshot` este boundary-ul typed pentru execuție: păstrează
-`ApiSettingsSnapshot` și `ReportingSettings` împreună, fără să introducă YAML,
-environment sau Extent în `atf-core`. `ApiModuleFactory` îl proiectează în
-executorul API, iar reporting consumă separat politica sa. Astfel un
-composition root poate crea două snapshots independente pentru rulări
-paralele, iar modificarea ulterioară a configurației de input nu schimbă
-executorul deja creat.
-
-Reguli obligatorii:
-
-- `atf-core` deține modelele typed și snapshot-urile, dar nu parsează YAML și
-  nu citește filesystem/env; în repository-ul curent loaderul complet aparține
-  composition root-ului de test din `atf-reporting`/proiectul consumator;
-- loaderul citește configurația o singură dată la bootstrap și eșuează clar la
-  chei necunoscute, URI invalid, timeout invalid, root de schema absent sau
-  output path nesigur;
-- `reporting.extent` rămâne responsabilitatea reporting; timeout, retry, auth,
-  routes, redaction și schema roots sunt setări runtime neutre;
-- căile relative se rezolvă față de fișierul YAML, nu față de `user.dir` al
-  IDE-ului; fallback-ul implicit este permis doar ca compatibilitate temporară;
-- secretele nu sunt valori YAML publicate, ci referințe către un provider
-  explicit;
-- după bootstrap, toate modulele primesc snapshot-uri immutable, iar două
-  rulări paralele nu își pot modifica reciproc configurația.
-
-Nu se introduce un modul `atf-config`. `atf-reporting` își păstrează loaderul
-specializat pentru `reporting.extent`, iar composition root-ul poate compune
-setările API și validation în același bootstrap folosind modelele din core.
-
 ## Lifecycle și ownership
 
 ```mermaid
+%%{init: {"themeVariables": {"fontSize": "16px"}, "themeCSS": ".edgeLabel p { font-size: 13px; line-height: 1.1; margin: 0; padding: 0 2px; }", "flowchart": {"nodeSpacing": 16, "rankSpacing": 48, "padding": 4}}}%%
 flowchart LR
-    Scenario[Scenariu] --> Setup[SETUP]
-    Setup --> Body[TEST BODY]
-    Body --> Teardown[TEARDOWN]
-    Teardown --> Cleanup[Cleanup în ordine inversă]
-    Setup -. local evidence .-> SetupEvidence[Request + validation<br/>sibling evidence]
-    Body -. local evidence .-> BodyEvidence[Request + validation<br/>sibling evidence]
+    Scenario["Scenariu"] -->|pornește| Setup["SETUP"]
+    Setup -->|execută| Body["TEST BODY"]
+    Body -->|închide| Teardown["TEARDOWN"]
+    Teardown -->|eliberează| Cleanup["cleanup invers"]
+    Setup -.->|evidence| SetupEvidence["Setup evidence"]
+    Body -.->|evidence| BodyEvidence["Body evidence"]
 ```
 
 <details>
@@ -586,11 +611,12 @@ Responsabilități obligatorii:
 ## Testabilitate
 
 ```mermaid
+%%{init: {"themeVariables": {"fontSize": "16px"}, "themeCSS": ".edgeLabel p { font-size: 13px; line-height: 1.1; margin: 0; padding: 0 2px; }", "flowchart": {"nodeSpacing": 16, "rankSpacing": 48, "padding": 4}}}%%
 flowchart LR
-    Unit[unitare<br/>politici pure] --> Component[componentă<br/>module + fake transport]
-    Component --> Artifact[artifact<br/>HTML/CSS/JS static]
-    Artifact --> MCP[TAB MCP<br/>click și computed styles]
-    MCP --> Live[scenarii API<br/>comportament real]
+    Unit["unit"] -->|policy| Component["component"]
+    Component -->|module| Artifact["artifact"]
+    Artifact -->|markup| MCP["browser audit"]
+    MCP -->|behavior| Live["API scenarios"]
 ```
 
 <details>

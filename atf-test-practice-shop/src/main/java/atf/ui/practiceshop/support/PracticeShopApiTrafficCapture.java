@@ -26,7 +26,8 @@ final class PracticeShopApiTrafficCapture {
             // Keep the limitation explicit when the browser still cannot expose
             // the payload after the lifecycle wait; assertions must not treat it
             // as an empty or successful JSON body.
-            responseBody = "<body unavailable: Chromium released response payload>";
+            responseBody = PracticeShopApiBodyEvidence.unavailable(
+                    "Chromium response body", unavailable);
         }
         return Optional.of(new PracticeShopApiNetworkJournal.Exchange(
                 request.method(), path(request.url()), request.url(), response.status(),

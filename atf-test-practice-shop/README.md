@@ -321,6 +321,8 @@ flowchart LR
 - `PracticeShopApiRequestFactory` — request și serializare JSON;
 - `PracticeShopApiScreenFlow` — ordinea semantică a operațiilor;
 - `PracticeShopApiTrafficCapture` — host filtering și sanitizare;
+- `PracticeShopApiBodyEvidence` — marker bounded pentru body indisponibil și cauza transportului;
+- `PracticeShopLoginBodyRecovery` — boundary typed `recovered/unavailable` pentru recovery-ul opțional;
 - `PracticeShopApiExchangeSelector` — selecție pură a exchange-urilor;
 - `PracticeShopApiNetworkJournal` — orchestration și sequence/phase;
 - `PracticeShopApiAssertions` — status, JSON și headers;
@@ -364,7 +366,9 @@ flowchart LR
 - request/response JSON rămân în disclosure-urile API, nu sunt duplicate în
   audit;
 - body-urile și headers sensibile sunt redacted înainte de publicare;
-- `body unavailable` este explicit, niciodată token inventat;
+- `body unavailable` este explicit și include sursa/cauza bounded, niciodată token inventat; un status HTTP non-2xx din recovery rămâne în evidence cu ruta și statusul, nu este degradat la body gol;
+- recovery-ul opțional de login nu întoarce body gol și nu înghite failure-ul: publică
+  evidence `unavailable`, iar browser exchange-ul rămâne verdictul autoritativ;
 - retry-urile rămân distincte prin sequence și signature;
 - exchange-ul malformed este omis din audit și nu produce evidence falsă.
 
@@ -428,8 +432,6 @@ se pot schimba dinamic.
 <details>
 <summary><strong>ToDo-uri active după ultima reconciliere live</strong></summary>
 
-- `SHOP-EXC-01` — parțial: boundary-urile defensive de transport/browser rămân
-  explicit typed și trebuie verificate fără mascarea failure-ului primar;
 - `SHOP-CONFIG-01` — parțial doar cross-module: seam-ul local PASS/FAIL este
   închis și testat; compatibilitatea UI-only și parity-ul generic se auditează
   în ownerul reporting;

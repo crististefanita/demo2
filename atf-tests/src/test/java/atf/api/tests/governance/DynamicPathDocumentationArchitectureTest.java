@@ -1,5 +1,5 @@
-package atf.api.tests.architecture;
-import atf.api.core.config.module.AtfModuleIds;
+package atf.api.tests.governance;
+
 import atf.api.testkit.AtfComponentTest;
 
 import org.junit.jupiter.api.Test;
@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static atf.api.tests.governance.AtfGovernanceTestSupport.locateProjectRoot;
 
 /** Keeps project documentation relocatable and free of machine-specific paths. */
 @AtfComponentTest
@@ -86,15 +87,4 @@ class DynamicPathDocumentationArchitectureTest {
         }
     }
 
-    private static Path locateProjectRoot() {
-        Path current = Path.of(System.getProperty("user.dir", "."))
-                .toAbsolutePath().normalize();
-        while (current != null) {
-            if (Files.isDirectory(current.resolve(AtfModuleIds.CORE))
-                    && Files.isRegularFile(current.resolve("pom.xml"))) return current;
-            current = current.getParent();
-        }
-        return Path.of(System.getProperty("user.dir", "."))
-                .toAbsolutePath().normalize();
-    }
 }

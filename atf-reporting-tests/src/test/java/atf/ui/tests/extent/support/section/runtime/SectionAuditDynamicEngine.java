@@ -8,6 +8,7 @@ import atf.ui.tests.extent.support.section.module.SectionAuditRegistry;
 import atf.api.reporting.ui.audit.plan.ExtentSectionGherkin;
 import atf.ui.tests.extent.support.section.publish.ExtentSectionAuditPublisher;
 import atf.ui.tests.extent.support.locators.ReportUiLocators;
+import atf.ui.tests.extent.support.audit.screen.OverviewSecondaryContractValidator;
 import atf.ui.tests.extent.support.uireport.browser.UiReportStyleValidator;
 import com.microsoft.playwright.Page;
 import atf.ui.tests.extent.support.section.runtime.SectionAuditFixture;
@@ -47,7 +48,22 @@ public final class SectionAuditDynamicEngine {
                                     assertTrue(result.valid(), result.validation()::failureSummary);
                                 }))
                         .toList());
+        nodes.add(overviewSecondaryExpansion(fixture));
         return DynamicContainer.dynamicContainer(fixture.spec().id(), nodes.stream());
+    }
+
+    private static DynamicTest overviewSecondaryExpansion(SectionAuditFixture fixture) {
+        return DynamicTest.dynamicTest(ExtentSectionGherkin.overviewSecondaryExpansionProposition(),
+                () -> fixture.audit().auditResult("ATF metadata sections expansion", audit -> {
+                    Page overview = fixture.audit().openTab(ReportUiContract.Tab.OVERVIEW.hash());
+                    var result = new OverviewSecondaryContractValidator()
+                            .validateExpansion(overview, fixture.audit().actions());
+                    audit.screen("ATF metadata sections expansion", "Overview / secondary metadata",
+                            fixture.audit().capture(overview, "ATF metadata sections expansion"),
+                            result.assertions(), status(result.valid()));
+                    assertTrue(result.valid(), result::failureSummary);
+                    return null;
+                }));
     }
 
     /**

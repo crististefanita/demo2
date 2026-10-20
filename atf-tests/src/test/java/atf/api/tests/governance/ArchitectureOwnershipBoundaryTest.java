@@ -1,4 +1,4 @@
-package atf.api.tests.architecture;
+package atf.api.tests.governance;
 
 import atf.api.core.config.module.AtfModuleIds;
 import atf.api.testkit.AtfComponentTest;
@@ -9,14 +9,14 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import static atf.api.tests.architecture.ArchitectureTestSupport.assertNoPackagePrefix;
-import static atf.api.tests.architecture.ArchitectureTestSupport.containsJavaFileNamed;
-import static atf.api.tests.architecture.ArchitectureTestSupport.locateProjectRoot;
+import static atf.api.tests.governance.AtfGovernanceTestSupport.assertNoPackagePrefix;
+import static atf.api.tests.governance.AtfGovernanceTestSupport.containsJavaFileNamed;
+import static atf.api.tests.governance.AtfGovernanceTestSupport.locateProjectRoot;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Guards reporting ownership without claiming the whole-ATF governance boundary. */
+/** Guards whole-ATF ownership and keeps reporting composition in its consumer module. */
 @AtfComponentTest
 class ArchitectureOwnershipBoundaryTest {
     private static final String MAIN_JAVA = "src/main/java";

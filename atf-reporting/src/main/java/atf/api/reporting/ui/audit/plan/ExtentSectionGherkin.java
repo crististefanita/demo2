@@ -30,6 +30,11 @@ public final class ExtentSectionGherkin {
         };
     }
 
+    /** Concise overview for the interactive secondary-Overview contract. */
+    public static String overviewSecondaryExpansionProposition() {
+        return "ATF metadata sections expand from their collapsed default with visible content";
+    }
+
     /** Returns the outcome only; the publisher adds exactly one THEN keyword. */
     public static String thenStatement(ExtentSection section) {
         Objects.requireNonNull(section, "section");

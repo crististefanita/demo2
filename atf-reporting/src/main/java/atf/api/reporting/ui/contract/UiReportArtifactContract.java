@@ -60,10 +60,7 @@ public final class UiReportArtifactContract {
                 "href=\"data:image/png;base64,", "data-featherlight=\"image\"",
                 "target=\"_blank\"", "rel=\"noopener\""));
         checks.put("closed disclosures", !lower.contains("<details open"));
-        checks.put("inline plus glyph", hasAll(source,
-                ".atf-ui-action-sequence>summary:before{content:'＋'",
-                ".atf-ui-observations>summary:before{content:'＋'",
-                ".atf-ui-action-sequence[open]>summary:before{content:'−'"));
+        checks.put("inline plus glyph", glyphRulesPresent(source));
         checks.put("long proposition wrapping", hasAll(source,
                 "overflow-wrap:anywhere!important", "word-break:break-word!important"));
         return new Evaluation(checks);
@@ -86,6 +83,17 @@ public final class UiReportArtifactContract {
             if (!source.contains(marker)) return false;
         }
         return true;
+    }
+
+    private static boolean glyphRulesPresent(String source) {
+        return hasAll(source,
+                ".atf-ui-action-sequence>summary:before{content:'＋'",
+                ".atf-ui-observations>summary:before{content:'＋'",
+                ".atf-ui-action-sequence[open]>summary:before{content:'−'")
+                || hasAll(source,
+                ".atf-ui-action-sequence>summary:before{content:\"＋\"",
+                ".atf-ui-observations>summary:before{content:\"＋\"",
+                ".atf-ui-action-sequence[open]>summary:before{content:\"−\"");
     }
 
     public record Evaluation(Map<String, Boolean> checks) {

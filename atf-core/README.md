@@ -113,9 +113,10 @@ pentru write requests este verificat la transport și în raport.
 `atf-test-kit` rămâne inclus în reactor, dar își guvernează separat test-layer-ul.
 Enum-ul `AtfModule` rămâne separat pentru cheile logice de configurație.
 
-`ArchitectureCohesionBoundaryTest` verifică inventarul de producție și source-set-urile
-de test. Orice pachet care depășește 8 clase trebuie împărțit după responsabilitate,
-nu după line count.
+`AtfPackageCohesionGovernanceTest`, rulat din `atf-tests`, verifică inventarul de
+producție și source-set-urile de test. Orice pachet care depășește 8 clase trebuie
+împărțit după responsabilitate, nu după line count; excepțiile rămân explicite și
+revizuibile în catalogul guvernanței.
 
 `AtfPathLocator` este utilitarul comun pentru discovery controlat: caută configurații
 în directoarele părinte și rezolvă un source root numai când markerul relativ

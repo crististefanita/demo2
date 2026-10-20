@@ -1,7 +1,5 @@
-package atf.api.tests.architecture;
+package atf.api.tests.governance;
 import atf.api.testkit.AtfComponentTest;
-import atf.api.core.http.request.ApiRequest;
-import atf.api.core.http.request.ApiRoute;
 
 import org.junit.jupiter.api.Test;
 
@@ -12,12 +10,13 @@ import java.util.List;
 import java.util.stream.Stream;
 import java.util.regex.Pattern;
 
+import static atf.api.tests.governance.AtfGovernanceTestSupport.locateProjectRoot;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Prevents canonical protocol identities from leaking back into audited tests. */
 @AtfComponentTest
-class ConstantsOwnershipArchitectureTest {
+class ConstantsOwnershipGovernanceTest {
     private static final List<String> REVIEWED_SOURCES = List.of(
             "atf-mock/src/main/java/atf/api/mock/AtfMockConfiguration.java",
             "atf-validation/src/main/java/atf/api/validation/contract/ContractValidators.java",
@@ -35,7 +34,7 @@ class ConstantsOwnershipArchitectureTest {
             Pattern.compile("Map\\.of\\(\\\"Content-Type\\\"\\s*,\\s*\\\"application/json\\\""),
             Pattern.compile("\\\"https://atf\\.local/"));
     private static final List<String> LITERAL_OWNER_EXEMPTIONS = List.of(
-            "atf-reporting-tests/src/test/java/atf/api/tests/architecture/ConstantsOwnershipArchitectureTest.java",
+            "atf-tests/src/test/java/atf/api/tests/governance/ConstantsOwnershipGovernanceTest.java",
             "atf-reporting-tests/src/test/java/atf/ui/tests/extent/component/architecture/DeclarativeUiTestArchitectureTest.java",
             "atf-reporting-tests/src/test/java/atf/api/reporting/support/ApiReportTestUrls.java");
 
@@ -119,7 +118,7 @@ class ConstantsOwnershipArchitectureTest {
         var violations = new ArrayList<String>();
         try (Stream<Path> files = Files.walk(reportingTests)) {
             files.filter(path -> path.toString().endsWith(".java"))
-                    .filter(path -> !path.getFileName().toString().equals("ConstantsOwnershipArchitectureTest.java"))
+                    .filter(path -> !path.getFileName().toString().equals("ConstantsOwnershipGovernanceTest.java"))
                     .forEach(path -> {
                 try {
                     String relative = root.relativize(path).toString().replace('\\', '/');
@@ -140,15 +139,4 @@ class ConstantsOwnershipArchitectureTest {
         return source.replaceAll("(?s)\\\"\\\"\\\".*?\\\"\\\"\\\"", "\\\"\\\"\\\"");
     }
 
-    private static Path locateProjectRoot() {
-        Path current = Path.of(System.getProperty("user.dir", "."))
-                .toAbsolutePath().normalize();
-        while (current != null) {
-            if (Files.isDirectory(current.resolve("atf-core"))
-                    && Files.isRegularFile(current.resolve("pom.xml"))) return current;
-            current = current.getParent();
-        }
-        return Path.of(System.getProperty("user.dir", "."))
-                .toAbsolutePath().normalize();
-    }
 }

@@ -150,7 +150,7 @@ un verdict de release și nu închide singur niciun ToDo.
 | `REP-ASSET-08` | `ReportAssetManifest`, `ReportAsset.Format.extension()`, `ReportAssetComposer.manifest()` și `ReportAssetContractTest` | ✅ asset-urile CSS/JavaScript au un inventar complet și determinist; sunt respinse duplicatele, owner-ii/path-urile duplicate, extensiile incompatibile, namespace-ul invalid și manifestele incomplete |
 | `REP-BUILD-01` | `atf-reporting/pom.xml` limitează Surefire la `atf/api/reporting/standalone/**/*Test.java`; run-ul standalone a rămas verde după injectarea controlată a unei clase stale de consumer în `target/test-classes` | ✅ discovery-ul standalone nu mai traversează clasele stale ale consumerului; build-ul extern rămâne izolat și reproductibil |
 | `REP-ADAPTER-01` | `ReportModelAdapterException`, `ReportModelAdaptersTest` și query-adapter tests | ✅ reflection este izolat la compatibility boundary; câmpurile obligatorii, map-urile, numericele, duratele, listele de retry și provenance invalidă eșuează cu `sourceType`/`field`, fără `null`/`0`/map gol tăcut |
-| `REP-BOUNDARY-01` | `ArchitectureOwnershipBoundaryTest`, `PracticeShopArchitectureTest`, POM-urile live și `atf-reporting-tests` composition root | ✅ regula a fost reconciliată: `atf-reporting-tests` este consumerul canonical al bibliotecii, dar `atf-test-practice-shop` poate consuma reporting în compile scope pentru runtime-ul reutilizabil din `src/main`; doar composition roots fără production runtime sunt test-scope |
+| `REP-BOUNDARY-01` | `atf-tests/ArchitectureOwnershipBoundaryTest`, `PracticeShopArchitectureTest`, POM-urile live și `atf-reporting-tests` composition root | ✅ regula este reconciliată: ownership-ul whole-reactor este verificat în `atf-tests`, `atf-reporting-tests` rămâne consumerul canonical al bibliotecii, iar `atf-test-practice-shop` poate consuma reporting în compile scope pentru runtime-ul reutilizabil din `src/main`; doar composition roots fără production runtime sunt test-scope |
 | `REP-EVID-01` | `ReportScreenshotPolicy`, `UiExtentReportSession` și `UiEvidencePublisher` | ✅ politica este typed și browser-neutral (`each-checkpoint`, `final-only`, `failure-only`, `final-and-failure`, `none`); punctul de captură este explicit, iar un screenshot publicat fără target eșuează diagnostic |
 | `REP-EVID-02` | `ReportScreenshotPolicyTest`, `UiScreenshotPolicyIntegrationTest`, `ReportScreenshotTest` și contractele UI existente cu fixture-uri PNG deterministe | ✅ capturile mock sunt verificate fără browser pentru payload, target, zero/una/multe, duplicate, failure/final și statusurile deja acoperite de consumer; nu se introduce provider Playwright în production |
 | `REP-EVID-03` | `UiScreenshotPolicyIntegrationTest` | ✅ session → semantic Extent → HTML este verificat pentru toate cele cinci politici, cu cardinalitatea exactă a linkurilor Base64 și fără endpoint/browser extern |
@@ -160,13 +160,15 @@ un verdict de release și nu închide singur niciun ToDo.
 | `REP-OVERVIEW-01` | `ExtentReportOverviewMarkup` și `ExtentReportMarkupContractTest` | ✅ publication-ul overview este idempotent și se ancorează pe containerul semantic `category-container`; variațiile de whitespace/ordine a claselor sunt acceptate, iar metadata nu se dublează la reinjectare |
 | `REP-RENDER-08` | `ExtentUiActionRenderer`, `ExtentUiObservationRenderer`, `ExtentUiAssertionRenderer`, `ExtentUiEvidenceMarkup` și contractele UI evidence | ✅ facade-ul UI nu mai conține markup pentru toate cele trei responsabilități; action/observation/assertion au renderere independente, escaping/status/publication sunt comune, iar testele existente păstrează parity-ul screenshot/action/observation/assertion |
 
-Dovada de rulare a acestei revizii: suitea reporting în staging extern
-`430/0/0/3` (teste/failures/errors/skips), inclusiv testul de arhitectură pentru
-limita de opt clase pe pachet, plus rapoartele API/UI fresh din
-`atf-reporting-feedback-gate-live-20261020l`, verificate în ATF Debug/Chromium.
-În raportul API s-au verificat navigarea, statusurile și semnele `＋` inline; în
-raportul UI s-au verificat cele 6 scenarii PASS, `SETUP → TEST BODY → THEN`,
-`Screen validation`, tabela cu 5 acțiuni Playwright, cele 2 observații, cele 5
+Dovada de rulare a acestei revizii: gate-ul reporting + consumer în staging extern
+`452/0/0/3` (teste/failures/errors/skips), inclusiv testele de arhitectură pentru
+boundary-ul locatorilor, limita de opt clase pe pachet și compactorul lexical,
+plus artefacte API/UI fresh din
+un staging extern, verificate în ATF Debug/Chromium.
+În raportul API s-au verificat navigarea, statusurile, request/response JSON
+pentru POST și PUT, validările contractuale și semnele `＋` inline; în raportul
+UI s-au verificat cele 7 scenarii PASS, `SETUP → TEST BODY → THEN`,
+`Screen validation`, tabela cu 9 acțiuni Playwright, cele 4 observații, cele 3
 assertions și screenshot-ul inline. Nu există `<hr>` sau overflow vizibil în
 renderarea verificată; contractele browser/E2E ale suitei au rămas verzi.
 Observație de audit: căutarea lexicală găsește un text `onclick` în sursa
@@ -440,17 +442,57 @@ introducă un E2E nou:
 |---|---|
 | package-ul din Overview trebuie să fie același cu cel afișat sub test name în `Tests` | `runtime-core-metadata.js` citește fallback-ul real `.detail-head .p-v-10 > .m-t-10`, îl normalizează ca `atf-test-package` și îl publică pe test root; `OverviewSecondaryContractValidator` reconciliază seturile din cele două tab-uri |
 | cele două zone ATF secundare din Overview trebuie să existe și să fie colapsate implicit | același validator verifică `2 found / 0 open`; este executat în modulul existent `OverviewSectionAuditModule` |
-| `Request details` standalone trebuie să aibă marginea inferioară | `evidence-stack.css` închide cadrul numai când `request-evidence` este marcat `data-atf-evidence-last=true`, fără separator între request/response/execution |
+| orice ultim detaliu semantic (`Request`, `Response`, `JSON` sau `Execution`) trebuie să închidă cadrul | `evidence-stack.css` aplică marginea inferioară pe markerul generic `details.step-detail[data-atf-evidence-last=true]` și are fallback structural pe ultimul `event-row`, fără separator între request/response/execution; contractul este independent de statusul testului |
 
 Acoperirea lower-level este în `ExtentReportRuntimeScriptTest`,
 `ReportAssetContractTest` și `OverviewSecondaryContractValidatorTest`. Verificarea
 browser reală a fost făcută pe raportul fresh prin ATF Debug + Playwright MCP:
 
-`http://127.0.0.1:55369/api-atf-reporting-overview-package-boundaries-final_2026-10-20_15-07-43-491.html`
+`http://127.0.0.1:<port>/<configured-report-file>`
 
-Rezultatul observat: `Test packages = atf.api.reporting.ui`, ambele disclosure-uri
-Overview `open=false`, iar `Request details` are `border-bottom` vizibil și raze
-inferioare. Numărul de clase E2E nu a crescut.
+Baseline-ul observat înainte de extensia de expand/collapse pe E2E-ul existent:
+`Tests run = 6`, `Failures = 0`,
+`Errors = 0`, `Skipped = 0`; `Test packages = atf.ui.tests.extent.e2e.section`
+cu `6 / 100%`, ambele disclosure-uri Overview `open=false`, iar toate cele `24`
+de stack-uri semantic-evidence au margine inferioară și raze inferioare vizibile.
+Nu există overflow orizontal (`scrollWidth = clientWidth`) și nu există runtime
+error. Numărul de clase E2E nu a crescut. Rezultatul final după extensie este
+documentat mai jos și păstrează aceeași clasă/root E2E.
+
+### Extensie chirurgicală — expand/collapse pentru cele două zone ATF
+
+La cerința de a verifica nu numai starea implicită colapsată, ci și conținutul
+după expandare, am reutilizat același `SelectedApiTestsReportUiTest` și aceeași
+listă de scenarii dinamice. Nu a fost adăugată o clasă E2E și nu a fost creat un
+al doilea flux de browser.
+
+| Contract | Dovadă implementată |
+|---|---|
+| propoziție Gherkin concisă, orientată pe rezultat | `ExtentSectionGherkin.overviewSecondaryExpansionProposition()` produce `ATF metadata sections expand from their collapsed default with visible content`; nu repetă `GIVEN/WHEN/THEN` în titlul testului |
+| locator stabil pentru ambele zone | `ReportPageLocators.overviewSecondaryZoneBody(...)` inspectează conținutul direct al `<details>` după `<summary>` și alege body-ul typed al zonei (`[class~='atf-secondary-body']` / `[class~='atf-tag-audit-body']`); validatorul nu compune selectori Playwright |
+| comportament verificat în același E2E | `OverviewSecondaryContractValidator.validateExpansion(...)` verifică `2 found / 0 open`, expandează ambele zone, verifică `2 expanded / 2 visible bodies`, apoi le închide și verifică `0 open` |
+| protecție lower-level | `OverviewSecondaryContractValidatorTest`, `ReportUiLocatorsTest` și `ExtentSectionGherkinTest` acoperă regulile pure, boundary-ul locatorului și textul Gherkin |
+
+Prima execuție a evidențiat o eroare reală de boundary: markup-ul nu are un
+body generic, ci două corpuri semantice distincte pentru cele două disclosures.
+Aceasta a fost reparată prin selecție zonală typed la locator boundary, nu prin
+relaxarea aserțiunii. Execuția finală a trecut cu:
+
+```text
+Tests run = 7, Failures = 0, Errors = 0, Skipped = 0
+ATF zones initial state  = 2 found / 0 open
+ATF zones expansion      = 2 expanded / 2 visible bodies
+ATF zones restored state = 0 open
+Test packages            = atf.ui.tests.extent.e2e.section (7 / 100%)
+```
+
+Raportul final verificat prin ATF Debug + Playwright MCP este artifactul
+configurat pentru rularea curentă: `<configured-report-file>`.
+
+În raport, noul scenariu este al șaptelea copil al testului existent, nu un test
+E2E separat. Zonele rămân colapsate în raportul inițial, iar conținutul devine
+vizibil numai în timpul validării interactive și este readus la starea implicită
+la final.
 
 ## ToDo active
 
@@ -502,9 +544,9 @@ reportingul este owner-ul renderării și păstrării evidence. Pentru Practice 
 
 | ID | Status | Dovadă |
 |---|---:|---|
-| `REP-API-TITLE-05` | ✅ | Full `atf-reporting-tests` reactor: **453 teste, 0 failures, 0 errors, 3 skipped**; component, integration și E2E au trecut, iar cele 3 skip-uri sunt explicite în suita existentă. |
-| `REP-API-TITLE-06` | ✅ | `ArchitectureCohesionBoundaryTest` include excepția revizuită pentru `atf.api.core.http.response`, introdusă de descriptorul typed, fără waiver global. |
-| `REP-DOC-RELOC-01` | ✅ | `DynamicPathDocumentationArchitectureTest` trece după înlocuirea căilor locale absolute din feedback cu descrierea relocatabilă a staging-ului extern. |
+| `REP-API-TITLE-05` | ✅ | Full `atf-reporting-tests` reactor: **452 teste, 0 failures, 0 errors, 3 skipped**; component, integration și E2E au trecut, iar cele 3 skip-uri sunt explicite în suita existentă. |
+| `REP-API-TITLE-06` | ✅ | `atf-tests/AtfPackageCohesionGovernanceTest` include excepția revizuită pentru `atf.api.core.http.response`, introdusă de descriptorul typed, fără waiver global. |
+| `REP-DOC-RELOC-01` | ✅ | `atf-tests/DynamicPathDocumentationArchitectureTest` trece după înlocuirea căilor locale absolute din feedback cu descrierea relocatabilă a staging-ului extern. |
 
 Consumerii pot păstra metoda raw observată ca metadata proprie, dar reporting-ul
 nu o interpretează și nu o transformă în pseudo-verb. Contractul librăriei rămâne
@@ -519,10 +561,10 @@ transport method + relative path + evidence semantică furnizată de consumer.
 - rapoartele generate, screenshot-urile și timestamp-urile rămân evidence externă,
   nu sursă normativă.
 
-## Gate final autoritativ al regresiei — 2026-10-20 14:09
+## Gate final autoritativ al regresiei — 2026-10-20 16:08
 
 Full `atf-reporting-tests` a fost rerulat din staging extern, în afara
-proiectului și fără oprirea rulărilor curente: **453 teste, 0 failures, 0 errors, 3 skipped**, cu toate
+proiectului și fără oprirea rulărilor curente: **452 teste, 0 failures, 0 errors, 3 skipped**, cu toate
 modulele reactorului în `BUILD SUCCESS`. Sunt confirmate inclusiv contractele
 de asset compaction, JSON pretty, sections, architecture boundaries, locator
 boundaries și E2E browser.
@@ -534,15 +576,13 @@ se consideră suficientă numai existența fișierului HTML.
 
 | Verificare | Rezultat |
 |---|---:|
-| API report: titlu canonical `GET /products/search — find configured product` | ✅ |
-| API report: request/response JSON și response JSON pretty vizibile | ✅ |
-| UI report: acțiuni, audit observations, assertions și screenshot inline | ✅ |
+| API report: request/response JSON POST și PUT, plus validări contractuale vizibile | ✅ |
+| API report: body-urile JSON sunt afișate pretty și păstrează Content-Type `application/json` | ✅ |
+| UI report: acțiuni Playwright, 4 audit observations, 3 assertions și screenshot inline | ✅ |
 | Capture alias `QUERY` publicat doar ca metadata `observed method=QUERY` | ✅ |
 | `<hr>` decorativ în artifactul UI final | 0 |
 | Rapoarte finale lăsate deschise în MCP | ✅ |
 
-Artifactele finale sunt:
-
-- [`api-atf-practice-shop-standalone_2026-10-20T11-01-51.141445600Z.html`](../../artifacts/reports/api-atf-practice-shop-standalone_2026-10-20T11-01-51.141445600Z.html)
-- [`ui-atf-practice-shop-e2e_2026-10-20_14-01-54-960.html`](../../artifacts/reports/ui/ui-atf-practice-shop-e2e_2026-10-20_14-01-54-960.html)
+Artifactele concrete nu sunt păstrate în feedback; tabelul de mai sus reține
+doar rezultatul verificării și criteriul observabil.
 

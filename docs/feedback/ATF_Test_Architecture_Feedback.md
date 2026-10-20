@@ -150,6 +150,7 @@ scopul, owner-ul sau criteriul principal de acceptare.
 
 | ID | Prioritate | ToDo | Criteriu de închidere |
 |---|---:|---|---|
+| `DOC-DIAG-05` | P1 | `DocumentationDiagramGovernanceTest` găsește flowchart-uri non-root cu mai multe relații neetichetate în README-urile ownerilor | fiecare relație de ownership/consum/flow are un verb scurt; diagramele rămân `LR`, au legendă imediată, iar suita whole-ATF trece |
 | `TEST-ARCH-07` | P3 | păstrează gruparea semantică a zonelor `support` și identifică eventuale subzone care depășesc limita de coeziune | fiecare mutare are owner, motiv observabil, test de boundary și zero ștergeri speculative |
 
 Nu se redeschid item-urile închise pentru o schimbare de stil locală. Se redeschid

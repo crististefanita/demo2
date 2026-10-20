@@ -3,6 +3,9 @@ package atf.ui.tests.extent.support.audit.screen;
 import atf.api.reporting.audit.ReportAuditChecks;
 import atf.api.reporting.audit.ValidationResult;
 import atf.api.reporting.contract.AtfAssertion;
+import atf.api.reporting.ui.contract.ReportUiContract;
+import atf.api.ui.playwright.AtfLocator;
+import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.ui.tests.extent.support.locators.ReportUiLocators;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
@@ -23,6 +26,9 @@ import java.util.Set;
  */
 public final class OverviewSecondaryContractValidator {
     private static final int REQUIRED_SECONDARY_ZONE_COUNT = 2;
+    private static final List<ReportUiContract.OverviewSection> SECONDARY_ZONES = List.of(
+            ReportUiContract.OverviewSection.EXECUTION_METADATA,
+            ReportUiContract.OverviewSection.TAG_AUDIT);
     private final ReportUiLocators locators;
 
     public OverviewSecondaryContractValidator() {
@@ -52,8 +58,70 @@ public final class OverviewSecondaryContractValidator {
         return ValidationResult.of(assertions);
     }
 
+    /**
+     * Verifies the interaction contract without creating another E2E class:
+     * both secondary disclosures start closed, each exposes its body when
+     * opened, and the flow restores the default closed state afterwards.
+     */
+    public ValidationResult validateExpansion(Page overviewPage, PlaywrightActionSequence actions) {
+        Objects.requireNonNull(overviewPage, "overviewPage");
+        Objects.requireNonNull(actions, "actions");
+        Locator overview = locators.overviewView(overviewPage);
+        int discovered = locators.overviewSecondaryZones(overview).count();
+        int initialOpen = locators.overviewOpenSecondaryZones(overview).count();
+        int expanded = 0;
+        int visibleBodies = 0;
+
+        for (ReportUiContract.OverviewSection zone : SECONDARY_ZONES) {
+            Locator disclosure = locators.overviewSecondaryZone(overview, zone);
+            if (disclosure.count() == 0) continue;
+            AtfLocator action = locators.overviewSecondaryZoneAction(overviewPage, zone);
+            if (disclosure.getAttribute("open") == null) {
+                actions.click(action, "expand " + zone.name().toLowerCase() + " metadata");
+            }
+            boolean isOpen = disclosure.getAttribute("open") != null;
+            Locator body = locators.overviewSecondaryZoneBody(overview, zone);
+            boolean hasVisibleBody = body.count() > 0 && body.isVisible();
+            if (isOpen) expanded++;
+            if (hasVisibleBody) visibleBodies++;
+            actions.observation("ATF disclosure content", zone.name(),
+                    "expanded disclosure exposes visible metadata", "open=" + isOpen
+                            + ", bodyVisible=" + hasVisibleBody);
+        }
+
+        for (ReportUiContract.OverviewSection zone : SECONDARY_ZONES) {
+            Locator disclosure = locators.overviewSecondaryZone(overview, zone);
+            if (disclosure.count() > 0 && disclosure.getAttribute("open") != null) {
+                actions.click(locators.overviewSecondaryZoneAction(overviewPage, zone),
+                        "collapse " + zone.name().toLowerCase() + " metadata");
+            }
+        }
+        int finalOpen = locators.overviewOpenSecondaryZones(overview).count();
+
+        List<AtfAssertion> assertions = List.of(
+                ReportAuditChecks.check("ATF zones initial state", "2 collapsed disclosures",
+                        discovered + " found / " + initialOpen + " open",
+                        collapsedSecondaryZones(discovered, initialOpen)),
+                ReportAuditChecks.check("ATF zones expansion", "2 expanded disclosures with visible content",
+                        expanded + " expanded / " + visibleBodies + " visible bodies",
+                        expandableSecondaryZones(discovered, expanded, visibleBodies)),
+                ReportAuditChecks.check("ATF zones restored state", "0 open after validation",
+                        finalOpen + " open", restoredSecondaryZones(finalOpen)));
+        return ValidationResult.of(assertions);
+    }
+
     public static boolean collapsedSecondaryZones(int discovered, int open) {
         return discovered == REQUIRED_SECONDARY_ZONE_COUNT && open == 0;
+    }
+
+    public static boolean expandableSecondaryZones(int discovered, int expanded, int visibleBodies) {
+        return discovered == REQUIRED_SECONDARY_ZONE_COUNT
+                && expanded == REQUIRED_SECONDARY_ZONE_COUNT
+                && visibleBodies == REQUIRED_SECONDARY_ZONE_COUNT;
+    }
+
+    public static boolean restoredSecondaryZones(int open) {
+        return open == 0;
     }
 
     public static boolean packageProjectionMatches(Collection<String> tests,

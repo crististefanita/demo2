@@ -278,12 +278,12 @@ flowchart LR
 | Configurație autoritativă | 86/100 | YAML-ul alimentează host, rute relative, profile, output, zoom, precondiție și screenshot policy; compatibilitatea UI-only mai aparține ownerului generic. |
 | Contract API JSON | 94/100 | POST/PUT au request JSON, publisher-ul verifică response JSON/content type, iar standalone fresh păstrează body-urile pretty și redacted. |
 | Corelare UI → API → evidence | 86/100 | journal-ul păstrează sequence/phase/signature cu body digest și checkpoint evidence; parity-ul cross-module rămâne în ATF UI/reporting. |
-| Diagnostic browser | 79/100 | semnalele guest/bootstrap sunt typed și reportabile ca warning; orice diagnostic necunoscut rămâne failure, iar mediul extern încă produce warning-uri cunoscute. |
+| Diagnostic browser | 82/100 | semnalele guest/bootstrap sunt typed și reportabile ca warning; body-ul indisponibil păstrează acum sursa și cauza bounded, orice diagnostic necunoscut rămâne failure, iar mediul extern încă produce warning-uri cunoscute. |
 | Transport local și variații | 88/100 | Component tests au transporturi locale deterministe și stateful cart lifecycle; YAML-ul nu simulează aplicația externă, integrarea/E2E folosesc serviciul real. |
 | Auth și siguranța fixture-ului | 88/100 | precondiția authenticated este obligatorie pentru journey-ul auth, fixture-ul este extern/opțional, iar credentialele sunt redacted; live auth rămâne opt-in. |
 | Test pyramid | 91/100 | component/API acoperă rutele, JSON, cart state, selectors și policy; un singur E2E guest dovedește wiring-ul, auth este condiționat de setup. |
 | Lifecycle și fail-safe reporting | 90/100 | `Scenario.execute` și contextul păstrează failure-ul primar, închid browser/report și publică evidence; runner generic cross-module rămâne evoluție separată. |
-| **Overall current** | **88/100** | Consumer matur și auditabil pentru scope-ul Practice Shop; ultimele limite sunt reporting parity, console port consolidation și diagnostic extern. |
+| **Overall current** | **89/100** | Consumer matur și auditabil pentru scope-ul Practice Shop; limitele rămase sunt reporting parity, console port consolidation și diagnosticul extern, nu swallow local de payload/recovery. |
 
 ### Ce a fost reparat chirurgical în această iterație
 
@@ -291,6 +291,7 @@ flowchart LR
 |---|---|---|
 | `SHOP-ROUTE-01` | ✅ sincronizat live | `PracticeShopApiRoutes` este owner-ul rutelor Practice Shop; `PracticeShopApiNetworkJournal`, transportul local de componentă și testele de factory/selector folosesc constantele și metodele dinamice ale owner-ului. |
 | `SHOP-ROUTE-02` | ✅ sincronizat live | `PracticeShopApiRoutesTest` verifică `/products/{id}`, `/carts/{id}`, update/remove și respinge ID-uri blank; literalul rămâne doar în testul care verifică explicit contractul de compunere. |
+| `SHOP-EXC-01` | ✅ sincronizat live | `PracticeShopApiBodyEvidence` publică markerul `unavailable` cu sursă/cauză; `PracticeShopLoginBodyRecovery` separă `recovered` de `unavailable`; testele acoperă body gol și transport `IOException`, iar recovery-ul nu maschează failure-ul browserului. |
 | `SHOP-ROUTE-03` | 🚫 scos din scope | Nu se introduce catalog YAML mock în `atf-test-practice-shop`; modulul testează aplicația/API-ul Practice Shop real. Constantele rămân owner-ul rutelor, iar variațiile rapide sunt acoperite de teste componente cu transport local declarat în test. |
 
 Regula de întreținere este acum explicită: string-urile de rută nu se repetă în
@@ -302,38 +303,42 @@ Metodele HTTP, cheile JSON și valorile business nu se mută într-un enum globa
 doar pentru a elimina orice string: fiecare valoare trebuie să aibă owner semantic
 (`PracticeShopPaymentMethod`, request factory, mock fixture sau config typed).
 
-### Gap-uri active — ordonate după impact și risc
+### Gap-uri curente — ordonate după impact și risc
 
-#### P0 — poate produce verdict verde fals
+Verdictul local trebuie citit separat de problemele cross-module. În acest moment nu
+mai există un P0 local în `atf-test-practice-shop`: diagnosticul, payload recovery,
+provenance-ul, contractul JSON, trace-ul, lifecycle-ul și boundary-urile de locator
+sunt închise și au gate-uri în cod. Nu marcăm un item ca „activ” doar pentru că
+apare într-un tabel istoric.
 
-| ID | Problemă live | De ce este grav | Criteriu de închidere |
+#### P0 — verdict verde fals
+
+| ID | Status live | Dovadă |
+|---|---|---|
+| — | ✅ niciun gap local | `SHOP-DIAG-01` și `SHOP-EXC-01` sunt închise pe scope Practice Shop; orice diagnostic necunoscut rămâne FAIL, iar body indisponibil este marker typed cu sursă/cauză bounded. |
+
+#### P1 — rămâne de rezolvat în alt owner
+
+| ID | Owner | Status live | Criteriu de închidere |
 |---|---|---|---|
-| `SHOP-DIAG-01` | ✅ închis | Modelul de diagnostic acceptă exact `GET /users/me` + `401` și semnalele de bootstrap `cart_items`/401 ca warning-uri reportabile; orice diagnostic neclasificat rămâne FAIL, cu component tests pentru clasificarea pozitivă și near-miss. |
+| `SHOP-CONFIG-01` | `atf-reporting` | 🟡 parțial, fără gap local | Reporting owner confirmă parity-ul generic al screenshot policy și compatibilitatea UI-only fără lifecycle duplicat. Seam-ul Practice Shop PASS/FAIL este deja închis și testat. |
+| `SHOP-CONSOLE-02` | `atf-core` + `atf-console` + `atf-reporting` | 🟡 cross-module | Se decide un port comun sau un adaptor owner-uit explicit pentru cele două perechi `AtfConsoleEvent/Sink`; Practice Shop nu introduce mapping duplicat și nu creează dependență inversă. |
+| `SHOP-REPORT-FAILURE-01` | `atf-reporting` | 🔴 deschis în ownerul reporting | `Fails` trebuie să prefere failure cause/evidence concretă în locul primului rând semantic verde; verificarea trebuie făcută în component și E2E în `atf-reporting-tests`. |
 
-#### P1 — corectitudine, reproducibilitate și audit
+#### P2 — mediu extern, nu defect local de contract
 
-| ID | Problemă live | Criteriu de închidere |
-|---|---|---|
-| `SHOP-EXC-01` | 🟡 parțial închis: token/parser, durate și validatorii au cauze typed/contextuale; au rămas doar boundary-uri defensive de transport/browser și recuperarea opțională a body-ului login. | Niciun catch gol sau fallback tăcut pentru verdict; fiecare fallback trebuie să emită evidence `unavailable`/diagnostic explicit. Închiderea finală cere test pentru failure de transport și pentru recovery login eșuat, fără mascarea failure-ului primar. |
-| `SHOP-API-PROV-01` | ✅ închis | `forTransport` publică `ACCEPTANCE_MOCK` pentru transportul local, `live` publică `LIVE_HTTP`, iar contract test-ul verifică provenance-ul fără dependență `atf-mock` în modul. |
-| `SHOP-API-CONTRACT-01` | ✅ închis | `PracticeShopApiReportPublisher` validează request JSON pentru POST/PUT, content type, status și response JSON parseabil/non-empty; standalone report și component gate verifică aceeași politică. |
-| `SHOP-API-JSON-02` | ✅ închis | `PracticeShopApiAssertions` folosește JSON tree/path/type pentru `data[*].id/name`, `cart_items[*].quantity` și `message`; near-miss product identity este testat explicit. |
-| `SHOP-API-TRACE-01` | ✅ închis pe scope Practice Shop: journal-ul păstrează `sequence`, `phase`, signature stabilă method + route normalizată + hash body, plus evidence în checkpoint-ul UI; corelarea cross-module rămâne în ownerii ATF UI/reporting. | Păstrare prin component test a retry-urilor cu aceeași semnătură și a body-urilor diferite cu semnături diferite; cerințele cross-module nu se dublează aici. |
-| `SHOP-MOCK-01` | Cerința anterioară de a adăuga `practice-shop-api-mock.yaml` și `atf-mock` ar schimba natura modulului: ar testa un scenariu artificial în locul aplicației Practice Shop. | **Nu se implementează în acest modul.** `atf-test-practice-shop` nu are dependență `atf-mock`, nu are catalog mock și nu folosește fixture mock. Testele rapide păstrează doar transporturi locale minimale, declarate lângă scenariul component; integrarea/E2E folosesc endpoint-urile reale. |
-| `SHOP-CONFIG-01` | 🟡 parțial închis: `api.precondition`, output UI/API, `zoomPercent` și `screenshotOnFailure` au consumeri și teste; seam-ul pur `PracticeShopScreenshotPolicy` acoperă PASS/FAIL, iar overload-ul UI-only rămâne compatibilitate explicită. | Reporting owner trebuie să confirme parity-ul generic și să păstreze UI-only fără lifecycle duplicat; nu mai există gap local pe decizia PASS/FAIL. |
-| `SHOP-AUTH-08` | ✅ închis chirurgical | `PracticeShopApiScreenFlowIntegrationTest` cere acum simultan `authenticatedE2eAllowed()` și `api.mode=live`; existența fixture-ului nu mai activează singură integrarea live. Default-ul `authenticatedE2eEnabled: false` păstrează run-ul component/API fără rețea; integrarea live se activează explicit, iar nicio parolă nu ajunge în raport/git. |
-| `SHOP-SEC-01` | ✅ închis pentru contractul Practice Shop | Redaction-ul JSON este parse-aware, recursiv pentru obiecte/array-uri și păstrează fallback pentru malformed payload; headers redacționează authorization, cookie, token, API key și variantele camel-case. Component test acoperă nested array, escaped value și `X-API-Key`/`apiKey`. |
-| `SHOP-SELECT-01` | ✅ închis: exact `productPath` este strict și fail-fast; numai `auto` selectează dinamic după nume și verifică ruta rezultată. | Menține testul de regression pe ruta absentă și nu reintroduce fallback implicit după display name. |
+| ID | Owner | Status live | Criteriu de închidere |
+|---|---|---|---|
+| `SHOP-NET-02` | `atf-test-practice-shop` + mediu extern | 🟡 warning cunoscut | Mediul extern este curățat sau excepția este aprobată explicit; evidence păstrează source/route/status/message, iar diagnosticul necunoscut continuă să eșueze E2E-ul. |
 
-#### P2 — robustețe și cost de întreținere
+#### Închise sau scoase explicit din scope
 
-| ID | Problemă live | Criteriu de închidere |
-|---|---|---|
-| `SHOP-LIFECYCLE-01` | ✅ închis pe codul live | `PracticeShopE2eContext.close()` închide browserul și apoi reportul în `finally`, păstrează failure-ul primar și atașează failure-ul de teardown ca `suppressed`; `Scenario.execute` deține lifecycle-ul scenariului. |
-| `SHOP-ARCH-14` | ✅ închis: guard-ul scanează și `component/`; exclude numai propriul guard și package-ul locatorilor, owner-ul permis pentru `page.locator`. | Păstrează allowlist-ul minim și testul whole-module; nu folosi excluderi după numele folderului. |
-| `SHOP-LOC-01` | ✅ închis: `PracticeShopCssEscaper` este owner unic pentru quoted CSS values și acoperă apostrof, backslash, controale, NUL și Unicode. | Păstrează locatori de forma `element[attribute=value]` și extinde doar cu cazuri noi reproduse, nu cu escape inline în page object. |
-| `SHOP-TEST-01` | ✅ fixture component unic | `PracticeShopApiComponentFixture` este singurul transport local test-scope; testele păstrează scenariul și expected-ul numit, iar integration/E2E rămân pe API-ul real. Publisher parity generică rămâne în `atf-reporting-tests`. |
-| `SHOP-CONSOLE-02` | Există încă două porturi typed `AtfConsoleEvent/Sink`: `atf-core` pentru consumer/UI și `atf-reporting` pentru librăria standalone. | Se păstrează independența `atf-reporting`; dacă se dorește o consolidare, ea trebuie făcută printr-un contract/adaptor owner-uit explicit și teste de parity, fără dependență inversă sau mapping duplicat în Practice Shop. |
+| ID-uri | Decizie live |
+|---|---|
+| `SHOP-API-PROV-01`, `SHOP-API-CONTRACT-01`, `SHOP-API-JSON-02`, `SHOP-API-TRACE-01` | ✅ închise pe scope Practice Shop; transportul local publică provenance, request/response JSON și signature/sequence, iar parity-ul cross-module rămâne la ownerii UI/reporting. |
+| `SHOP-AUTH-08`, `SHOP-SEC-01`, `SHOP-SELECT-01` | ✅ închise; auth live este opt-in, secret safety este parse-aware, iar selectarea exactă este fail-fast. |
+| `SHOP-LIFECYCLE-01`, `SHOP-ARCH-14`, `SHOP-LOC-01`, `SHOP-TEST-01` | ✅ închise; lifecycle-ul păstrează primary failure, guard-ul acoperă component, locatorii au owner unic, iar fixture-ul component este unic. |
+| `SHOP-ROUTE-03`, `SHOP-MOCK-01` | 🚫 scoase din scope; Practice Shop nu introduce `atf-mock`, YAML mock sau catalog de răspunsuri pentru aplicația externă. |
 
 ### Audit dinamic al utilizării lui `try` — 2026-10-20
 
@@ -347,12 +352,12 @@ construcțiile legitime de cele care pot ascunde un verdict sau o cauză.
 | parser API | `PracticeShopApiClient.token()` parsează typed și transformă numai `JsonProcessingException` într-o cauză contextuală; lipsa tokenului rămâne failure explicit | nu mai există fallback `""` pentru JSON malformed/missing token | păstrează testele pentru JSON malformed/missing token; orice fallback nou trebuie să fie `unavailable` observabil |
 | config | `PracticeShopConfigurationLoader.duration()` acceptă fallback numai pentru cheia absentă și raportează key/value + cause pentru text malformed | configurația greșită nu mai pare validă prin fallback tăcut | păstrează testul pentru durata malformed și nu lărgi catch-ul la `RuntimeException` |
 | validare UI | validatorii prind strict eroarea de operație pentru a produce assertion FAIL, iar `PracticeShopValidationDiagnostics` păstrează tipul și mesajul bounded | verdictul agregat rămâne FAIL și cauza este reprodusă în evidence, fără dump Playwright | extinde doar cu cazuri noi de diagnostic; nu reduce din nou cauza la numele clasei |
-| capture browser | `PracticeShopApiTrafficCapture` folosește placeholder explicit când Chromium eliberează body-ul | acceptabil ca fallback de transport, numai dacă JSON indisponibil nu trece validarea | păstrează `body unavailable` vizibil și assertion distinct; nu îl trata ca body gol valid |
+| capture browser | `PracticeShopApiTrafficCapture` folosește markerul typed `unavailable` când Chromium eliberează body-ul | acceptabil ca fallback de transport, numai dacă JSON indisponibil nu trece validarea | păstrează sursa/cauza vizibilă și assertion distinct; nu îl trata ca body gol valid |
 | JSON assertions | `isJson()` și `positiveContentLength()` întorc boolean după parse/number format | acceptabil doar dacă caller-ul publică assertion FAIL și nu confundă malformed cu absent | component tests pentru malformed JSON, header invalid și payload non-empty |
-| excepții așteptate | `PracticeShopPageContractTest` folosește catch manual pentru `UnsupportedOperationException` | zgomot evitabil în test | `assertThrows(UnsupportedOperationException.class, ...)` |
+| excepții așteptate | `PracticeShopPageContractTest` folosește deja `assertThrows(UnsupportedOperationException.class, ...)`; nu există `try/catch` de lifecycle în testele business | ✅ rezolvat; intenția de excepție așteptată este directă și verificabilă | păstrează `assertThrows` și nu reintroduce catch manual în test layer |
 | boundary IO | `PracticeShopArchitectureTest` rethrow-uiește `IOException` cu path, iar factory/API screen rethrow-uiesc cu context și cause | acceptabil | păstrat ca model pentru boundary-uri; fără catch generic nou |
 
-### Regula de acceptare pentru `SHOP-EXC-01`
+### Criteriul aplicat pentru `SHOP-EXC-01`
 
 ```text
 test intent
@@ -362,13 +367,12 @@ test intent
   → primary failure preserved
 ```
 
-Nu acceptăm un patch doar pentru că înlocuiește un `try` cu altul. Înainte de
-închidere trebuie verificat static că nu există catch gol sau catch-all nou, apoi
-component/integration tests trebuie să demonstreze că: un JSON malformed eșuează,
-un selector indisponibil eșuează cu diagnostic, o închidere defectă nu maschează
-failure-ul inițial, iar un test care trebuie să arunce chiar aruncă. Pentru E2E,
-runner-ul trebuie să publice evidence și să rethrow-uiască failure-ul, fără
-control-flow de excepții duplicat în fiecare test.
+În gate-ul curent s-a verificat static că nu a fost introdus catch gol/catch-all:
+transportul browser și recovery-ul login publică marker `unavailable` cu sursă și
+cauză bounded, iar `PracticeShopLoginBodyRecoveryTest` demonstrează body gol și
+`IOException` fără mascarea failure-ului primar. Validatorii JSON continuă să
+publice FAIL pentru payload malformed/absent; runner-ul E2E păstrează failure-ul
+și nu introduce control-flow de excepții în testele business.
 
 ### Cerința de rutare și fixture trebuie să rămână două lucruri diferite
 
@@ -391,21 +395,25 @@ YAML mock sau server mock în acest consumer.
 
 ### Ordinea recomandată de implementare
 
-1. `SHOP-DIAG-01`: eliminarea false-green-ului de diagnostic;
-2. `SHOP-EXC-01`: boundary typed, propagarea failure-ului și lifecycle fără swallow;
-3. `SHOP-API-PROV-01` și `SHOP-API-CONTRACT-01`: provenance și JSON policy;
-4. `SHOP-API-TRACE-01`: sequence/signature/checkpoint pentru corelare UI/API;
-5. `SHOP-ROUTE-03`/`SHOP-MOCK-01`: menținerea explicită a deciziei **fără mock în Practice Shop**; orice reducere a duplicării transporturilor locale se face numai prin helper-e test-only, fără `atf-mock` sau YAML mock;
-6. remainder-ul cross-module din `SHOP-CONFIG-01`, apoi `SHOP-AUTH-08`, `SHOP-SEC-01`: configurare efectivă și secret safety;
-7. `SHOP-SELECT-01`, `SHOP-LIFECYCLE-01`, `SHOP-ARCH-14`, `SHOP-LOC-01`;
-8. `SHOP-CONSOLE-02`: numai dacă se schimbă explicit boundary-ul cross-module al celor două porturi console.
+1. `SHOP-CONFIG-01`: reporting owner confirmă parity-ul generic al screenshot
+   policy și păstrează overload-ul UI-only fără lifecycle duplicat;
+2. `SHOP-CONSOLE-02`: `atf-core`, `atf-console` și `atf-reporting` decid portul
+   comun/adaptorul owner-uit, fără mapping duplicat în Practice Shop;
+3. `SHOP-REPORT-FAILURE-01`: ownerul `atf-reporting` repară proiecția din `Fails`
+   astfel încât failure cause/evidence să aibă prioritate față de un rând verde;
+4. `SHOP-NET-02`: se curăță sau se aprobă explicit mediul extern, fără a schimba
+   clasificarea locală și fără a ascunde diagnosticul necunoscut.
+
+Toate celelalte item-uri locale din tabelul de mai sus sunt închise sau scoase din
+scope. Nu se redeschid prin refactor cosmetic și nu se implementează în consumer
+workaround-uri pentru gap-uri care aparțin reportingului generic.
 
 ### Gate de acceptare pentru următoarea iterație
 
 - component gate pentru rute, diagnostics, JSON policy și provenance;
 - integration gate care demonstrează `setup → live API precondition → UI flow → API projection → Extent evidence`;
 - un singur E2E guest și unul authenticated doar dacă flag-ul live este explicit;
-- raport API și UI fresh, generate de rularea curentă, verificate prin ATF Debug/Chromium headless;
+- raport API și UI fresh, generate de rularea curentă, verificate prin tab-ul MCP/Chromium headless; nu se folosește browser Windows real;
 - click manual pe `Tests`, `Fails`, `Categories`, `Tags`, `Overview`, disclosures,
   request JSON, response JSON, execution evidence și screenshot inline;
 - `scrollWidth <= clientWidth`, zero console/page errors neașteptate, JSON pretty;
@@ -415,7 +423,7 @@ YAML mock sau server mock în acest consumer.
   statusul live; niciun ToDo închis doar prin afirmație.
 
 Auditul de mai sus este reconciliat cu sursele live și cu gate-ul fresh
-2026-10-20 15:13–15:15; artifactele curente sunt inspectate în MCP. Orice
+2026-10-20 15:30–15:33; artifactele curente sunt inspectate în MCP. Orice
 schimbare ulterioară de renderer, contract sau lifecycle redeschide gate-ul și
 nu reutilizează aceste nume de artifact.
 
@@ -832,9 +840,10 @@ stable named constants → explicit static import, never wildcard
 ```
 
 `try-with-resources` rămâne permis în support pentru ownership de sesiuni și
-streams; interdicția vizează corpul testului. `SHOP-EXC-01` rămâne deschis numai
-pentru auditul boundary-urilor support/parser/config, nu pentru reintroducerea
-unui catch în testele Practice Shop.
+streams; interdicția vizează corpul testului. Boundary-urile support/parser/config
+rămân auditate prin evidence typed și teste dedicate; `SHOP-EXC-01` este închis
+pe scope Practice Shop și nu justifică reintroducerea unui catch în testele
+Practice Shop.
 
 ## Gate final după refactorul de lizibilitate — 2026-10-20 12:18
 
@@ -1070,10 +1079,8 @@ fără oprirea altor rulări, apoi artifactele finale au fost copiate în
 | `SHOP-GATE-FINAL-04` | ✅ | Raportul UI a fost deschis și explorat manual în MCP: `SETUP`, `TEST BODY`, acțiuni Playwright, audit observations, assertions și linkul inline `📷 base64 img` sunt vizibile; warning-ul este numai ramura guest `/users/me` 401 documentată, nu assertion failure. |
 | `SHOP-GATE-FINAL-05` | ✅ | Verificarea artifactelor curente: API `GET /products/search — find configured product` = 1, `QUERY /products/search` = 0, request JSON = 4, response JSON = 8; UI `QUERY /products/search` = 0, `observed method=QUERY` = 1, `<hr>` = 0. |
 
-Artifactele finale copiate în live:
-
-- [`api-atf-practice-shop-standalone_2026-10-20T11-01-51.141445600Z.html`](../../artifacts/reports/api-atf-practice-shop-standalone_2026-10-20T11-01-51.141445600Z.html)
-- [`ui-atf-practice-shop-e2e_2026-10-20_14-01-54-960.html`](../../artifacts/reports/ui/ui-atf-practice-shop-e2e_2026-10-20_14-01-54-960.html)
+Artifactele concrete nu sunt păstrate în feedback; rămân doar rezultatul
+verificării și criteriul observabil.
 
 Aceste rezultate supersedează gate-urile istorice de 65/63/8 teste. Cele 4
 skip-uri din Practice Shop și warning-ul E2E sunt stări declarate ale suitei,
@@ -1139,7 +1146,7 @@ sincronizat într-un staging extern pentru build. Nu s-au oprit rulări existent
 | `SHOP-ARCH-14` | ✅ închis | `PracticeShopArchitectureTest` scanează acum și testele din `component/`; exclude numai propriul fișier de guard și package-ul locatorilor, care este owner-ul permis pentru `page.locator`. Nu mai există bypass după numele folderului. |
 | `SHOP-LOC-01` | ✅ închis | `PracticeShopCssEscaper` este owner unic pentru valori dinamice inserate în CSS quoted strings; acoperă apostrof, backslash, controale, NUL și Unicode. Test component dedicat. |
 | `SHOP-API-TRACE-01` | ✅ închis pe scope Practice Shop | `Exchange.signature` este acum identitate stabilă method + route normalizată + hash body: retry-urile se corelează, body-urile diferite nu se unesc. `sequence` și `phase` rămân metadata de captură, iar assertions API publică trace-ul în checkpoint-ul UI. Component test acoperă retry/body divergence. Corelarea cross-module completă `TRACE-REQ-01..08` rămâne în ownerii ATF UI/reporting. |
-| `SHOP-EXC-01` | 🟡 parțial închis | validatorii UI nu mai reduc cauza la numele excepției: evidence include tipul și mesajul compact, bounded. Parserul catalogului prinde acum numai `JsonProcessingException`; catch-urile de transport/browser și recovery-ul opțional de login rămân boundary-uri defensive, cu body/diagnostic explicit, și trebuie verificate separat fără mascarea failure-ului primar. |
+| `SHOP-EXC-01` | ✅ închis pe scope Practice Shop | validatorii UI păstrează tipul și mesajul bounded, parserul catalogului prinde numai `JsonProcessingException`, iar boundary-urile browser/recovery folosesc `PracticeShopApiBodyEvidence` și `PracticeShopLoginBodyRecovery`. Testele acoperă transport failure, body gol și `IOException`; orice body indisponibil rămâne vizibil ca evidence, nu ca payload JSON gol. |
 | `SHOP-CONFIG-01` | 🟡 parțial închis | `api.precondition` este consumat și invalid când `authenticatedE2eEnabled=true` fără `authenticated`; output UI/API și profile-ul sunt consumate. Decizia screenshot PASS/FAIL este acum un seam pur (`PracticeShopScreenshotPolicy`) cu test component pentru toate cele patru combinații. Compatibilitatea UI-only și contractul generic de policy rămân în ownerul reporting. |
 | `SHOP-FLOW-01` | ✅ închis pe component scope | `PracticeShopApiComponentFixture.statefulCartClient()` modelează izolat create → add → read → update → read → remove → read; testul verifică statusurile, quantity-ul după fiecare read-back și lista goală după remove. Nu se adaugă E2E deoarece contractul este determinist și nu cere browser. |
 | `SHOP-LIFECYCLE-01` | ✅ închis pe codul live | `PracticeShopE2eContext.close()` păstrează primary failure și atașează failure-ul de report ca suppressed; report close este garantat în `finally`. E2E-ul folosește `Scenario.execute`, fără lifecycle duplicat în test. |
@@ -1166,7 +1173,7 @@ body-ul JSON și trace-ul fără să deducă informația din ordinea vizuală a 
 tabel. Diagnosticul de validare trebuie să păstreze cauza observabilă, iar o
 rută exactă absentă trebuie să eșueze înaintea acțiunii UI.
 
-## Gate curent după auditul feedback-ului — 2026-10-20 15:13–15:15
+## Gate curent după auditul feedback-ului — 2026-10-20 15:30–15:54
 
 Aceasta este dovada autoritativă pentru ultima sincronizare live/staging.
 Build-ul a rulat în `${ATF_STAGING_ROOT}/shopping-feedback-<run-id>/repo`,
@@ -1174,19 +1181,38 @@ Build-ul a rulat în `${ATF_STAGING_ROOT}/shopping-feedback-<run-id>/repo`,
 
 | Verificare | Rezultat | Observație |
 |---|---:|---|
-| `atf-test-practice-shop` full suite | ✅ **79 / 0 / 0 / 4** | teste / failures / errors / skipped; E2E guest `1/1 PASS`; lifecycle component cart și screenshot policy incluse |
+| `atf-test-practice-shop` full suite | ✅ **84 / 0 / 0 / 4** | teste / failures / errors / skipped; E2E guest `1/1 PASS`; body-evidence/recovery tests, non-2xx diagnostic, lifecycle cart și screenshot policy incluse |
 | module reactor până la Practice Shop | ✅ | `atf-test-kit`, core, console, reporting, ui și Practice Shop au trecut în run-ul curent; gate-ul nu a inclus consumerii `atf-tests`/`atf-reporting-tests` |
-| artifact API fresh | ✅ | titluri semantice pentru login/search/detail/cart/postcode/payment; request/response JSON, headers și execution evidence vizibile |
-| artifact UI fresh | ✅ | `SETUP → TEST BODY`, 9 checkpoint-uri, acțiuni, audit observations, assertions și `📷 base64 img` verificate prin click în MCP |
+| artifact API fresh | ✅ | `api-atf-practice-shop-standalone_2026-10-20T12-31-23.530669500Z.html`; titluri semantice pentru login/search/detail/cart/postcode/payment; request/response JSON pretty, headers și execution evidence vizibile |
+| artifact UI fresh | ✅ | `ui-atf-practice-shop-e2e_2026-10-20_15-31-27-304.html`; `SETUP → TEST BODY`, checkpoint-uri, acțiuni, audit observations, assertions și `📷 base64 img` verificate prin click în MCP |
 | API `Fails` | ✅ | `No failed tests`; `Overview` arată 1 passed / 0 failed |
 | downstream `atf-reporting-tests` | 🔎 blocker separat | 12 regressions vizuale/contractuale existente: overview shape/typography/tags/navigator, Fails deep-link/layout, plus glyph/evidence CSS și UI artifact plus glyph |
 
+Gate-ul focalizat de reconfirmare a trecut în staging cu **15 teste, 0 failures,
+0 errors, 0 skipped** la 15:54: configurație, profile, screenshot policy,
+contractul de pagină, body JSON recuperat, body gol marcat explicit `unavailable`,
+transport `IOException`, status HTTP non-2xx și diagnostic bounded pentru
+excepție. Gate-ul confirmă că `SHOP-EXC-01` și seam-urile locale asociate sunt
+închise pe consumer; nu pretinde închiderea ToDo-urilor cross-module sau a
+warning-ului extern din E2E.
+
+Acesta a fost un gate de cod/documentație după promovarea artifactelor full-suite;
+nu a generat un al doilea raport HTML și nu invalidează artifactele fresh listate
+mai jos. Orice schimbare de renderer, contract sau lifecycle trebuie să genereze
+un nou raport înainte de o nouă închidere.
+
 Artifactele promovate în live și verificate manual în tab MCP:
 
-- [`api-atf-practice-shop-standalone_2026-10-20T12-14-35.303362900Z.html`](../../artifacts/reports/api-atf-practice-shop-standalone_2026-10-20T12-14-35.303362900Z.html)
-- [`ui-atf-practice-shop-e2e_2026-10-20_15-14-39-324.html`](../../artifacts/reports/ui/ui-atf-practice-shop-e2e_2026-10-20_15-14-39-324.html)
+- [`api-atf-practice-shop-standalone_2026-10-20T12-31-23.530669500Z.html`](../../artifacts/reports/api-atf-practice-shop-standalone_2026-10-20T12-31-23.530669500Z.html)
+- [`ui-atf-practice-shop-e2e_2026-10-20_15-31-27-304.html`](../../artifacts/reports/ui/ui-atf-practice-shop-e2e_2026-10-20_15-31-27-304.html)
 
-Raportul UI și raportul API rămân deschise în taburile MCP. Warning-ul din
+Raportul UI și raportul API rămân deschise în taburile MCP. Pentru run-ul final,
+`Tests`, `Fails` și `Overview` au fost navigate manual: API `Fails` afișează
+`No failed tests`, API `Overview` afișează `1 passed / 0 failed`, iar UI `Fails`
+afișează `No failed tests`. În UI, `Tests` a fost expandat până la acțiuni,
+audit observations și cele 7 assertions ale checkpoint-ului de home; layout-ul
+verificat în viewport MCP `1280×720` nu are overflow (`scrollWidth == clientWidth`),
+nu are `<hr>` decorative și nu produce erori de consolă. Warning-ul din
 raportul UI este ramura guest externă cunoscută și este separată de assertions
 business verzi; nu a fost convertit în PASS. Regressions din reporting-tests
 nu sunt atribuite modulului Practice Shop și rămân active în feedback-ul

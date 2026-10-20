@@ -5,6 +5,9 @@ import atf.api.core.config.module.AtfModuleIds;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -12,6 +15,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** Shared filesystem and Maven assertions for the whole-ATF governance suite. */
 final class AtfGovernanceTestSupport {
     private static final String JAVA_SUFFIX = ".java";
+    static final int PACKAGE_COHESION_LIMIT = 8;
+    static final List<String> PRODUCTION_MODULES = AtfModuleIds.SOURCE_GOVERNED_MODULES;
+    /** Reviewed exceptions are explicit seams, never a blanket package-size waiver. */
+    static final Map<String, String> REVIEWED_COHESION_EXCEPTIONS = Map.of(
+            "atf.api.core.http.response",
+            "core HTTP response vocabulary and typed operation descriptors share one response boundary",
+            "atf.api.reporting.api",
+            "standalone reporting contracts, evidence adapters and JSON policy share the public reporting boundary",
+            "atf.api.reporting.runtime.core",
+            "runtime core fragments share the single generated-script publication boundary",
+            "atf.api.reporting.runtime.section",
+            "Extent runtime section facades and their typed JS fragments share one publication boundary");
+    /** The whole-reactor suite is intentionally kept together as one readable gate. */
+    static final Map<String, String> REVIEWED_TEST_COHESION_EXCEPTIONS = Map.of(
+            "atf-tests:atf.api.tests.governance",
+            "one explicit whole-ATF gate keeps the governance checks discoverable and runnable together");
     private AtfGovernanceTestSupport() {
     }
 
@@ -32,6 +51,54 @@ final class AtfGovernanceTestSupport {
 
     static Path moduleSource(Path root, String module, boolean tests) {
         return sourceRoots(root, module, tests).getFirst();
+    }
+
+    static boolean containsJavaFileNamed(Path root, String suffix) throws Exception {
+        if (!Files.isDirectory(root)) return false;
+        try (var files = Files.walk(root)) {
+            return files.anyMatch(path -> path.toString().endsWith(suffix));
+        }
+    }
+
+    static void assertNoPackagePrefix(Path sourceRoot, String forbiddenPrefix)
+            throws Exception {
+        if (!Files.isDirectory(sourceRoot)) return;
+        try (var files = Files.walk(sourceRoot)) {
+            for (Path file : files.filter(path -> path.toString().endsWith(JAVA_SUFFIX)).toList()) {
+                String source = Files.readString(file);
+                assertFalse(source.contains("package " + forbiddenPrefix + ".")
+                                || source.contains("import " + forbiddenPrefix + "."),
+                        () -> file + " contains forbidden Java namespace " + forbiddenPrefix);
+            }
+        }
+    }
+
+    static Map<String, Integer> productionPackageCounts(Path root) throws Exception {
+        Map<String, Integer> counts = new TreeMap<>();
+        Pattern declaration = Pattern.compile("(?m)^package\\s+([^;]+);");
+        for (String module : AtfModuleIds.SOURCE_GOVERNED_MODULES) {
+            Path sourceRoot = root.resolve(module).resolve(
+                    module.equals(AtfModuleIds.TESTS) ? "src/main" : "src/main/java");
+            mergePackageCounts(sourceRoot, declaration, counts);
+        }
+        return counts;
+    }
+
+    static Map<String, Integer> testPackageCounts(Path sourceRoot) throws Exception {
+        Map<String, Integer> counts = new TreeMap<>();
+        mergePackageCounts(sourceRoot, Pattern.compile("(?m)^package\\s+([^;]+);"), counts);
+        return counts;
+    }
+
+    private static void mergePackageCounts(Path sourceRoot, Pattern declaration,
+                                           Map<String, Integer> counts) throws Exception {
+        if (!Files.isDirectory(sourceRoot)) return;
+        try (var files = Files.walk(sourceRoot)) {
+            for (Path file : files.filter(path -> path.toString().endsWith(JAVA_SUFFIX)).toList()) {
+                var match = declaration.matcher(Files.readString(file));
+                if (match.find()) counts.merge(match.group(1), 1, Integer::sum);
+            }
+        }
     }
 
     /** Resolves both conventional Maven roots and the legacy atf-tests layout. */

@@ -29,6 +29,16 @@ class ExtentSectionGherkinTest {
     }
 
     @Test
+    void secondaryOverviewPropositionDescribesInteractionWithoutGherkinNoise() {
+        String proposition = ExtentSectionGherkin.overviewSecondaryExpansionProposition();
+        assertTrue(proposition.equals(
+                "ATF metadata sections expand from their collapsed default with visible content"));
+        assertFalse(proposition.contains("GIVEN"));
+        assertFalse(proposition.contains("WHEN"));
+        assertFalse(proposition.contains("THEN"));
+    }
+
+    @Test
     void testBodyUsesOnlyThenOutcomeWhileOverviewStaysFreeOfGherkinKeywords() {
         for (ExtentSection section : ExtentSection.values()) {
             String proposition = ExtentSectionGherkin.proposition(section);

@@ -1,7 +1,6 @@
-package atf.api.tests.architecture;
+package atf.api.tests.governance;
 
 import atf.api.testkit.AtfComponentTest;
-import atf.api.core.config.module.AtfModuleIds;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
@@ -14,10 +13,11 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static atf.api.tests.governance.AtfGovernanceTestSupport.locateProjectRoot;
 
 /** Keeps reporting tests readable at the call site and imports semantic vocabulary normally. */
 @AtfComponentTest
-class ReportingTestReadabilityArchitectureTest {
+class AtfSourceReadabilityGovernanceTest {
     private static final Pattern FULLY_QUALIFIED_ATF_INVOCATION =
             Pattern.compile("\\batf\\.api\\.[A-Za-z0-9_.]+\\(");
     private static final Set<String> REVIEWED_ADAPTERS = Set.of(
@@ -97,15 +97,4 @@ class ReportingTestReadabilityArchitectureTest {
                 || normalized.contains("/src/test/java/");
     }
 
-    private static Path locateProjectRoot() {
-        Path current = Path.of(System.getProperty("user.dir", "."))
-                .toAbsolutePath().normalize();
-        while (current != null) {
-            if (Files.isDirectory(current.resolve(AtfModuleIds.CORE))
-                    && Files.isRegularFile(current.resolve("pom.xml"))) return current;
-            current = current.getParent();
-        }
-        return Path.of(System.getProperty("user.dir", "."))
-                .toAbsolutePath().normalize();
-    }
 }

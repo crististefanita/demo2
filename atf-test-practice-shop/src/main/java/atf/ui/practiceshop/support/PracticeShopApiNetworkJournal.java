@@ -94,21 +94,19 @@ public final class PracticeShopApiNetworkJournal {
                 || apiConfiguration.mode() != atf.api.core.config.ApiTransportMode.LIVE) {
             return login;
         }
-        try {
-            String recoveredBody = recoverLoginBody(apiConfiguration, credentials);
-            return recoveredBody.isBlank() ? login : login.withResponseBody(recoveredBody);
-        } catch (RuntimeException ignored) {
-            // Browser evidence remains authoritative when optional recovery fails.
-            return login;
-        }
+        PracticeShopLoginBodyRecovery.Result recovery = PracticeShopLoginBodyRecovery.attempt(
+                () -> recoverLoginBody(apiConfiguration, credentials));
+        // Browser evidence remains authoritative. A failed optional recovery is
+        // still published as explicit evidence instead of being swallowed.
+        return login.withResponseBody(recovery.effectiveBody());
     }
 
     private static String recoverLoginBody(PracticeShopApiConfiguration configuration,
-                                           PracticeShopCredentials credentials) {
+                                           PracticeShopCredentials credentials) throws IOException {
+        var request = new PracticeShopApiRequestFactory().login(credentials);
+        URI uri = configuration.endpoint().resolve(PracticeShopApiRoutes.LOGIN.substring(1));
+        HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
         try {
-            var request = new PracticeShopApiRequestFactory().login(credentials);
-            URI uri = configuration.endpoint().resolve(PracticeShopApiRoutes.LOGIN.substring(1));
-            HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
             connection.setConnectTimeout((int) configuration.timeout().toMillis());
             connection.setReadTimeout((int) configuration.timeout().toMillis());
             connection.setRequestMethod(HttpMethod.POST.value());
@@ -120,19 +118,19 @@ public final class PracticeShopApiNetworkJournal {
                 output.write(body);
             }
             int status = connection.getResponseCode();
-            if (status < 200 || status >= 300) return "";
+            if (status < 200 || status >= 300) {
+                throw new IOException("HTTP status " + status + " for " + PracticeShopApiRoutes.LOGIN);
+            }
             try (InputStream input = connection.getInputStream()) {
                 return new String(input.readAllBytes(), StandardCharsets.UTF_8);
-            } finally {
-                connection.disconnect();
             }
-        } catch (IOException | RuntimeException ignored) {
-            return "";
+        } finally {
+            connection.disconnect();
         }
     }
 
     private static boolean bodyUnavailable(String body) {
-        return body != null && body.startsWith("<body unavailable:");
+        return PracticeShopApiBodyEvidence.isUnavailable(body);
     }
 
     /**

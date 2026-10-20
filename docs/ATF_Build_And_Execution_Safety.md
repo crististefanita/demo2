@@ -113,8 +113,8 @@ fișierele atinse și se verifică linkurile.
 
 ```mermaid
 flowchart LR
-    Manifest["live baseline"] --> Build["staging gate"]
-    Build --> Guard["drift guard"]
+    Manifest["baseline"] --> Build["stage gate"]
+    Build --> Guard["drift check"]
     Guard --> Promote["selective sync"]
 ```
 
@@ -169,8 +169,8 @@ working directory-ul IDE/Maven.
 ```mermaid
 flowchart LR
     Changed["ATF change"] --> Reactor["reactor gate"]
-    Reactor --> SameSources["same-stage proof"]
-    Standalone["reporting only"] --> Isolated["standalone gate"]
+    Reactor --> SameSources["same-stage"]
+    Standalone["reporting"] --> Isolated["standalone gate"]
     Isolated --> IsolatedProof["isolated proof"]
 ```
 

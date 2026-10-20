@@ -19,6 +19,15 @@ class OverviewSecondaryContractValidatorTest {
     }
 
     @Test
+    void requiresBothSecondaryZonesToExpandWithVisibleContentAndRestoreClosedState() {
+        assertTrue(OverviewSecondaryContractValidator.expandableSecondaryZones(2, 2, 2));
+        assertFalse(OverviewSecondaryContractValidator.expandableSecondaryZones(2, 2, 1));
+        assertFalse(OverviewSecondaryContractValidator.expandableSecondaryZones(2, 1, 2));
+        assertTrue(OverviewSecondaryContractValidator.restoredSecondaryZones(0));
+        assertFalse(OverviewSecondaryContractValidator.restoredSecondaryZones(1));
+    }
+
+    @Test
     void reconcilesOverviewPackagesWithTheTestsTabProjection() {
         assertTrue(OverviewSecondaryContractValidator.packageProjectionMatches(
                 List.of("atf.ui.tests.extent.section"),

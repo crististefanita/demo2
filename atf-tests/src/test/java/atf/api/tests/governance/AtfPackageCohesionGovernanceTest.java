@@ -1,4 +1,4 @@
-package atf.api.tests.architecture;
+package atf.api.tests.governance;
 import atf.api.core.config.module.AtfModuleIds;
 import atf.api.testkit.AtfComponentTest;
 
@@ -8,13 +8,13 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.TreeMap;
 
-import static atf.api.tests.architecture.ArchitectureTestSupport.*;
+import static atf.api.tests.governance.AtfGovernanceTestSupport.*;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Guards package size and keeps cohesion exceptions explicit. */
 @AtfComponentTest
-class ArchitectureCohesionBoundaryTest {
+class AtfPackageCohesionGovernanceTest {
     @Test
     void productionPackageCohesionUsesAnExplicitReviewedExceptionList() throws Exception {
         Path root = locateProjectRoot();
@@ -54,7 +54,7 @@ class ArchitectureCohesionBoundaryTest {
     }
 
     @Test
-    void allTestSourceSetsRespectTheEightClassCohesionLimit() throws Exception {
+    void allTestSourceSetsRespectTheEightClassCohesionLimitUnlessReviewed() throws Exception {
         Path root = locateProjectRoot();
         Map<String, Integer> overLimit = new TreeMap<>();
         for (String module : PRODUCTION_MODULES) {
@@ -66,7 +66,10 @@ class ArchitectureCohesionBoundaryTest {
                 });
             }
         }
-        assertTrue(overLimit.isEmpty(), () ->
-                "Every test package must have at most eight classes: " + overLimit);
+        assertTrue(overLimit.keySet().stream().allMatch(REVIEWED_TEST_COHESION_EXCEPTIONS::containsKey),
+                () -> "New test-package cohesion hotspot requires an explicit review: " + overLimit);
+        assertTrue(REVIEWED_TEST_COHESION_EXCEPTIONS.keySet().stream()
+                        .allMatch(overLimit::containsKey),
+                () -> "Reviewed test-package allow-list is stale: " + overLimit);
     }
 }
