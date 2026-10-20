@@ -88,10 +88,10 @@ guvernanță. Contractele interne continuă în README-ul fiecărui modul.
 
 ```mermaid
 flowchart LR
-    Consumers[atf-reporting-tests<br/>+ Practice Shop]
-    Governance[ATF governance]
-    Reporting[atf-reporting<br/>standalone library]
-    Platform[Reusable ATF<br/>modules]
+    Consumers[tests + shop]
+    Governance[governance]
+    Reporting[reporting]
+    Platform[ATF platform]
 
     Consumers -->|consumă| Reporting
     Consumers -.->|reutilizează| Platform
@@ -103,6 +103,9 @@ flowchart LR
 <summary><strong>Legendă — module, ownership și relații</strong></summary>
 
 - `Consumers` grupează `atf-reporting-tests` și `atf-test-practice-shop`;
+- `Reporting` înseamnă `atf-reporting`, iar `Platform` grupează modulele ATF
+  reutilizabile;
+- `Governance` înseamnă `atf-tests` și guard-urile whole-ATF;
 - săgeata solidă = consum de bibliotecă/runtime în composition root;
 - săgeata punctată = reutilizare sau verificare de boundary;
 - nodul `Platform` grupează modulele reutilizabile; tabelul de mai jos
