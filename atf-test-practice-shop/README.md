@@ -55,6 +55,47 @@ exchange-urilor multiple în inspectorul generic. Binding-ul per checkpoint,
 aggregate-ul nested și policy-ul fail-closed sunt contracte verificate; warning
 projection-ul consumerului este separat de ownership-ul generic.
 
+### Network inspector UI — observație opt-in
+
+Practice Shop folosește boundary-ul generic din `atf-ui`, nu un listener local
+suplimentar în test:
+
+```text
+Playwright response
+  → UiNetworkInspector
+  → PracticeShopApiNetworkJournal
+  → UI checkpoint / API validation
+  → request · response · execution evidence
+```
+
+Configurația este în `src/test/resources/atf-practice-shop.yaml` și limitează
+colectarea la host-ul API configurat:
+
+```yaml
+networkInspector:
+  enabled: true
+  allowedHosts: [api.practicesoftwaretesting.com]
+  maxObservations: 256
+  maxBodyPreviewCharacters: 12000
+  collapseConsecutiveSignatures: true
+```
+
+Inspectorul publică method, safe path, status, service, mechanism, auth
+method/source și signature, fără credentiale și fără body nelimitat. Journal-ul
+consumerului păstrează trace-ul ordonat, iar aggregate-ul de journey rămâne un
+singur nod tehnic collapsed; nu se repetă propoziția Gherkin pentru UI și API.
+`observations()` este lossless pentru audit, iar stream-ul de prezentare
+colapsează numai semnăturile consecutive.
+
+Settlement-ul pentru acțiuni care modifică serverul este separat și dezactivat
+implicit. Când este activat explicit, oferă doar un wait bounded pentru response
+sau read-back; nu repetă acțiunea. Replay-ul cere un contract de idempotency
+deținut de consumer și nu se adaugă până la un fixture negativ care dovedește
+absența false-green.
+
+Detaliile și limitele active sunt centralizate în
+[`ATF_UI_Network_Inspector_Feedback.md`](../docs/feedback/ATF_UI_Network_Inspector_Feedback.md).
+
 ## Harta internă a consumerului
 
 ```mermaid

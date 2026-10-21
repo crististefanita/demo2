@@ -43,9 +43,11 @@ public final class ReportNetworkInspector {
     }
 
     /**
-     * Projects the ordered trace and one renderer-neutral aggregate.  The
-     * aggregate deliberately contains facts only; bodies remain attached to
-     * their canonical request/response disclosures.
+     * Projects only the compact index attached to the inspector request. The
+     * typed aggregate is stored separately by the lifecycle and rendered in
+     * its own disclosure. Keeping the two projections separate prevents
+     * request signatures and Gherkin correlation from being copied into the
+     * request's response-details table.
      */
     public static List<ReportField> fields(Collection<ReportExecutionEvidence> evidence,
                                            Collection<Step> steps,
@@ -55,23 +57,19 @@ public final class ReportNetworkInspector {
                 : evidence.stream().filter(Objects::nonNull).toList();
         Set<String> signatures = new LinkedHashSet<>();
         List<ReportField> fields = new java.util.ArrayList<>();
-        fields.add(ReportField.of("network.observations", Integer.toString(exchanges.size())));
+        fields.add(ReportField.of("network.observations",
+                exchanges.size() + " canonical exchanges"));
         List<Step> journey = steps == null ? List.of() : steps.stream()
                 .filter(Objects::nonNull).toList();
-        fields.add(ReportField.of("network.ui.steps", Integer.toString(journey.size())));
-        for (int index = 0; index < journey.size(); index++) {
-            fields.add(ReportField.of("network.ui.step." + (index + 1), journey.get(index).summary()));
-        }
+        fields.add(ReportField.of("network.gherkin.correlation",
+                journey.size() + " Gherkin steps; details are shown in Scenario correlation"));
         for (ReportExecutionEvidence exchange : exchanges) {
             if (exchange.request() != null) {
                 signatures.add(signature(exchange));
             }
         }
-        fields.add(ReportField.of("network.unique.signatures", Integer.toString(signatures.size())));
-        for (int index = 0; index < exchanges.size(); index++) {
-            fields.add(ReportField.of("network.exchange." + (index + 1), summary(exchanges.get(index))));
-        }
-        appendAggregate(fields, aggregate(exchanges, journey, diagnostics));
+        fields.add(ReportField.of("network.unique.signatures",
+                signatures.size() + " unique request signatures; details are shown once below"));
         return List.copyOf(fields);
     }
 
@@ -104,7 +102,7 @@ public final class ReportNetworkInspector {
                 String requestSignature = signature(exchange);
                 SignatureKey signatureKey = new SignatureKey(requestSignature);
                 signatures.computeIfAbsent(signatureKey, ignored -> new SignatureAccumulator())
-                        .add(status);
+                        .add(exchange);
             }
             if (exchange.response() != null) {
                 if (exchange.response().status() >= 200 && exchange.response().status() < 400) successful++;
@@ -133,36 +131,6 @@ public final class ReportNetworkInspector {
         return new JourneyAggregate(authentication, correlation,
                 new TransportCounters(exchanges.size(), successful, failed, attempts, retries,
                         live, mock, unknown), signatureObservations, diagnosticObservations);
-    }
-
-    private static void appendAggregate(List<ReportField> fields, JourneyAggregate aggregate) {
-        if (aggregate.observations() == 0 && aggregate.correlation().isEmpty()
-                && aggregate.diagnostics().isEmpty()) return;
-        fields.add(ReportField.of("network.aggregate.authentication",
-                Integer.toString(aggregate.authentication().size())));
-        for (int index = 0; index < aggregate.authentication().size(); index++) {
-            fields.add(ReportField.of("network.aggregate.authentication." + (index + 1),
-                    aggregate.authentication().get(index).summary()));
-        }
-        fields.add(ReportField.of("network.aggregate.correlation",
-                Integer.toString(aggregate.correlation().size())));
-        for (int index = 0; index < aggregate.correlation().size(); index++) {
-            fields.add(ReportField.of("network.aggregate.correlation." + (index + 1),
-                    aggregate.correlation().get(index).summary()));
-        }
-        fields.add(ReportField.of("network.aggregate.transport", aggregate.transport().summary()));
-        fields.add(ReportField.of("network.aggregate.signatures",
-                Integer.toString(aggregate.signatures().size())));
-        for (int index = 0; index < aggregate.signatures().size(); index++) {
-            fields.add(ReportField.of("network.aggregate.signature." + (index + 1),
-                    aggregate.signatures().get(index).summary()));
-        }
-        fields.add(ReportField.of("network.aggregate.diagnostics",
-                Integer.toString(aggregate.diagnostics().size())));
-        for (int index = 0; index < aggregate.diagnostics().size(); index++) {
-            fields.add(ReportField.of("network.aggregate.diagnostic." + (index + 1),
-                    aggregate.diagnostics().get(index).summary()));
-        }
     }
 
     private static List<DiagnosticObservation> deduplicateDiagnostics(Collection<Diagnostic> diagnostics) {
@@ -261,10 +229,26 @@ public final class ReportNetworkInspector {
         }
     }
 
-    public record SignatureObservation(String signature, int count, List<Integer> statuses) {
+    public record SignatureObservation(String signature, String method, String route,
+                                       String service, String mechanism, int count,
+                                       List<Integer> statuses,
+                                       List<String> authentication, List<String> evidenceSources,
+                                       List<String> phases) {
+        public SignatureObservation(String signature, int count, List<Integer> statuses) {
+            this(signature, "", "", "", "", count, statuses,
+                    List.of(), List.of(), List.of());
+        }
+
         public SignatureObservation {
             signature = signature == null ? "" : signature;
+            method = normalize(method).toUpperCase(Locale.ROOT);
+            route = normalize(route);
+            service = normalize(service);
+            mechanism = normalize(mechanism);
             statuses = List.copyOf(statuses == null ? List.of() : statuses);
+            authentication = List.copyOf(authentication == null ? List.of() : authentication);
+            evidenceSources = List.copyOf(evidenceSources == null ? List.of() : evidenceSources);
+            phases = List.copyOf(phases == null ? List.of() : phases);
         }
 
         public String summary() {
@@ -315,11 +299,61 @@ public final class ReportNetworkInspector {
     private static final class SignatureAccumulator {
         private int count;
         private final List<Integer> statuses = new ArrayList<>();
+        private String method = "";
+        private String route = "";
+        private String service = "";
+        private String mechanism = "";
+        private final LinkedHashSet<String> authentication = new LinkedHashSet<>();
+        private final LinkedHashSet<String> evidenceSources = new LinkedHashSet<>();
+        private final LinkedHashSet<String> phases = new LinkedHashSet<>();
 
-        void add(int status) { count++; if (!statuses.contains(status)) statuses.add(status); }
+        void add(ReportExecutionEvidence evidence) {
+            count++;
+            if (evidence == null) return;
+            if (evidence.request() != null) {
+                method = evidence.request().method();
+                route = evidence.request().path();
+                authentication.add(evidence.request().authObservation().summary());
+                if (service.isBlank()) service = service(evidence);
+                if (mechanism.isBlank()) mechanism = mechanism(evidence);
+            }
+            if (evidence.response() != null && !statuses.contains(evidence.response().status())) {
+                statuses.add(evidence.response().status());
+            }
+            var trace = evidence.trace();
+            if (trace != null) {
+                if (!trace.evidenceSource().isBlank()) evidenceSources.add(trace.evidenceSource());
+                if (!trace.phase().isBlank()) phases.add(trace.phase());
+            }
+        }
 
         SignatureObservation toObservation(String signature) {
-            return new SignatureObservation(signature, count, statuses);
+            return new SignatureObservation(signature, method, route, service, mechanism, count, statuses,
+                    List.copyOf(authentication), List.copyOf(evidenceSources), List.copyOf(phases));
+        }
+
+        private static String service(ReportExecutionEvidence evidence) {
+            if (evidence == null || evidence.response() == null || evidence.response().url().isBlank()) {
+                return "unknown";
+            }
+            try {
+                String host = java.net.URI.create(evidence.response().url()).getHost();
+                return host == null || host.isBlank() ? "unknown" : host;
+            } catch (RuntimeException ignored) {
+                return "unknown";
+            }
+        }
+
+        private static String mechanism(ReportExecutionEvidence evidence) {
+            String source = evidence.trace() == null ? "" : evidence.trace().evidenceSource();
+            if (source.toUpperCase(Locale.ROOT).contains("UI_BROWSER")) {
+                return "browser network / Playwright";
+            }
+            return switch (evidence.provenance()) {
+                case LIVE_HTTP -> "API client / HTTP";
+                case ACCEPTANCE_MOCK -> "acceptance mock";
+                case UNKNOWN -> "unknown";
+            };
         }
     }
 

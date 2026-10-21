@@ -25,6 +25,9 @@
   proiecția UI compactă;
 - guest product → cart → payment este acoperit prin `LIVE_HTTP`; dovada
   authenticated rămâne dependentă de un fixture extern acceptat;
+- calibrarea vizuală curentă este artifactul guest regenerat la
+  `ui-atf-practice-shop-e2e_2026-10-21_15-50-42-303.html`, verificat după
+  recompilarea reporting și Practice Shop;
 - feedback-ul păstrează numai limitele care pot redeschide contractul, nu un
   jurnal de artifacte sau de rulări.
 
@@ -67,15 +70,15 @@ intenționat vizibile și nu sunt ascunse de un run guest verde.
 | Axă | Notă | Citire actuală |
 |---|---:|---|
 | identitate și sequence | 98 | `eventId`, `sequence`, `phase`, `role` și `correlation` sunt păstrate în ledger și verificate lower-level |
-| request/response evidence | 97 | status, headers, auth redacted, body și indisponibilitatea explicită sunt typed |
-| UI → API cauzalitate | 97 | cauzalitatea, continuation order și topologia single-node sunt verificate: același checkpoint deține `UI validation` și `API validation` |
-| network inspector de journey | 97 | `JourneyAggregate` rămâne index nested bounded, iar UI trace-ul publică separat forma canonicală request/response/execution pentru fiecare exchange sub `API validation` |
+| request/response evidence | 98 | status, headers, auth redacted, body și indisponibilitatea explicită sunt typed și vizibile în disclosure-urile canonical ale exchange-ului |
+| UI → API cauzalitate | 98 | cauzalitatea, continuation order și topologia single-node sunt confirmate în raportul regenerat: același checkpoint deține `UI validation` și `API validation` |
+| network inspector de journey | 98 | `JourneyAggregate` rămâne index nested bounded, iar UI trace-ul publică separat forma canonicală request/response/execution pentru fiecare exchange sub `API validation`; inspectorul nu dublează exchange-ul |
 | precondiții și cleanup | 93 | lifecycle-ul și guest precondition sunt demonstrate; business authenticated rămâne dependent de mediu |
 | unique signatures | 98 | grupurile deterministe cu count și status sunt corecte, iar cardul trace păstrează exchange-urile distincte înainte de indexarea lor |
 | runtime diagnostics | 92 | aggregate-ul dedupează response/console corelate, iar consumerul publică o singură assertion per semnătură cu count/sources; semnalele console/page fără facts folosesc identity internă exactă și token-uri bounded, conform contractului închis `REP-DIAGNOSTIC-04` |
 | API binding configurabil | 96 | `PracticeShopApiEvidenceBinding` și `PracticeShopApiCheckpoint` mută selecția în YAML/override typed; journal-ul expune `evidence(checkpoint)` și fresh System confirmă binding-ul efectiv |
-| proiecție Extent/HTML | 97 | `API validation` și disclosure-urile request/response/execution per exchange sunt verificate lower-level și vizibile sub același checkpoint Gherkin; URL-ul complet are wrapping controlat, iar fresh UI proof-ul confirmă forma fără duplicarea cardului Gherkin |
-| **scor global** | **94** | ledger-ul, binding-ul și exchange-ul canonical sunt solide, iar topologia single-node este dovedită; authenticated rămâne separat blocat extern |
+| proiecție Extent/HTML | 98 | `API validation` și disclosure-urile request/response/execution per exchange sunt verificate lower-level și vizibile sub același checkpoint Gherkin; URL-ul complet are wrapping controlat, iar fresh UI proof-ul confirmă forma fără duplicarea cardului Gherkin |
+| **scor global** | **95** | ledger-ul, binding-ul și exchange-ul canonical sunt solide, iar topologia single-node este dovedită; authenticated rămâne separat blocat extern |
 
 ## Recalibrare live — două proiecții care nu trebuie confundate
 
@@ -131,7 +134,7 @@ flowchart LR
 | auth observation vocabulary | `ReportAuthObservationTest` și publisher component coverage | method/source sunt typed și redacted; clasificarea nu pretinde validarea credentialului |
 | `REP-NET-03`, `REP-AUTH-02` | `ReportNetworkInspector.JourneyAggregate`, `ReportNetworkInspectorTest` și UI publishing contract | journey aggregate grupează auth method/source/status/count, correlation, transport counters și unique signatures fără body-uri sau credentiale |
 | `REP-DIAGNOSTIC-02` | `DiagnosticObservation`, `ReportNetworkInspectorTest` și `ExtentReportUiEvidencePublishingTest` | response și console pentru aceeași rută/status sunt o singură observație cu count și sources; semnalele distincte rămân separate |
-| `REP-NET-04` | `ReportNetworkAggregateMarkup`, `ReportNetworkInspectorTest`, `HtmlReportViewsTest` și fresh MCP/Chromium | inspectorul journey este collapsed și nested în ambele renderere, cu cele cinci secțiuni typed; fields flat `network.aggregate.*` nu mai sunt expuse în trace |
+| `REP-NET-04` | `ReportNetworkAggregateMarkup`, `ReportNetworkInspectorTest`, `HtmlReportViewsTest` și fresh MCP/Chromium | inspectorul journey este collapsed și nested în ambele renderere, cu cele cinci secțiuni typed; `Response details` rămâne doar indexul bounded, `Scenario correlation` deține pașii Gherkin, iar `Unique request signatures` deține request-urile deduplicate; nu există copiere flat `network.aggregate.*` sau repetarea aceleiași propoziții |
 | `SHOP-DIAGNOSTIC-03` | `Scenario.warningDiagnostics`, `PracticeShopRuntimeDiagnosticsTest` și guest E2E | warning-ul consumerului grupează response/console într-o singură assertion per semnătură, cu count/sources observabile |
 | JSON semantic | `PracticeShopJsonEvidence` și typed fields | body-urile sunt parse-uite ca structură, nu căutate prin substring |
 | replay local | mock-backed integration | replay-ul verifică transportul și contractul local fără să pretindă business live |

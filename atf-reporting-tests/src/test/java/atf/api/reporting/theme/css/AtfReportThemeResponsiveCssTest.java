@@ -24,14 +24,14 @@ class AtfReportThemeResponsiveCssTest {
 
         assertAll(
                 () -> assertTrue(css.contains("@media only screen and (max-width:992px)")),
-                () -> assertTrue(css.contains(".test-wrapper,.test-view{left:var(--atf-narrow-nav-inset)!important")),
+                () -> assertTrue(css.contains(".test-wrapper,.test-view{position:relative!important;left:var(--atf-narrow-nav-inset)!important")),
                 () -> assertTrue(css.contains("width:calc(100% - var(--atf-narrow-nav-inset))!important")),
-                () -> assertTrue(css.contains(".test-wrapper .test-list,.test-view .test-list{width:100%!important")),
-                () -> assertTrue(css.contains(".test-wrapper .test-content,.test-view .test-content{left:var(--atf-narrow-nav-inset)!important")),
+                () -> assertTrue(css.contains(".test-wrapper .test-list,.test-view .test-list{position:relative!important;float:none!important;flex:0 0 auto!important;width:100%!important")),
+                () -> assertTrue(css.contains(".test-wrapper .test-content,.test-view .test-content{position:relative!important;left:auto!important")),
                 () -> assertTrue(source.contains("${NARROW_VIEWPORT}")),
                 () -> assertTrue(css.contains("@media only screen and (max-width:" + AtfReportThemeTokens.NARROW_VIEWPORT + ")")),
                 () -> assertFalse(css.contains("${")),
                 () -> assertTrue(tokens.contains("--atf-narrow-nav-inset:" + AtfReportThemeTokens.NARROW_NAV_INSET)),
-                () -> assertTrue(theme.contains(".test-wrapper,.test-view{left:var(--atf-narrow-nav-inset)!important")));
+                () -> assertTrue(theme.contains(".test-wrapper,.test-view{position:relative!important;left:var(--atf-narrow-nav-inset)!important")));
     }
 }

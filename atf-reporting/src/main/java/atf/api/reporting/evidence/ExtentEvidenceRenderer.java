@@ -47,6 +47,11 @@ public final class ExtentEvidenceRenderer {
         transport.renderNetworkAggregate(node, aggregate);
     }
 
+    public void renderNetworkAggregateSubstep(ExtentTest node,
+                                               ReportNetworkInspector.JourneyAggregate aggregate) {
+        transport.renderNetworkAggregateSubstep(node, aggregate);
+    }
+
     public void renderExecution(ExtentTest node, ReportExecutionEvidence execution) {
         transport.renderExecution(node, execution);
     }

@@ -292,6 +292,40 @@ class ExtentReportInteractionContractTest {
         );
     }
 
+    @Test
+    void overviewCountsWarningsAsPassLikeWithoutHidingTheWarningBucket() throws Exception {
+        Path report = TestReportPaths.report("extent-overview-warning-pass-like-contract.html");
+        try (var session = new ExtentReportSession(report)) {
+            var scenario = session.startScenario("WarningTests", "warning remains actionable",
+                    List.of("reporting", "warning"));
+            scenario.complete(AtfReportStatus.WARNING);
+        }
+
+        String html = Files.readString(report);
+        String javascript = compactJavaScript(html);
+        assertAll(
+                () -> assertTrue(javascript.contains(
+                                "functionpassLikeCount(statuses){returnstatuses.pass+statuses.warning;}"),
+                        "Overview must define one explicit pass-like policy for warning outcomes"),
+                () -> assertTrue(javascript.contains(
+                                "if(label==='TestsPassed')h.textContent=passLikeCount(scenarioCounts);"),
+                        "the headline must not report zero tests when the only outcome is a warning"),
+                () -> assertTrue(javascript.contains(
+                                "updateOverviewSummaryFooter(overviewChartCard('parent-analysis'),classCounts,'testclasses')"),
+                        "the Tests card must include warning outcomes in its pass-like total"),
+                () -> assertTrue(javascript.contains(
+                                "updateOverviewSummaryFooter(overviewChartCard('child-analysis'),scenarioCounts,'steps')"),
+                        "the Steps card must include warning outcomes in its pass-like total"),
+                () -> assertTrue(javascript.contains("passLike=passLikeCount(statuses)"),
+                        "the shared Overview footer helper must use the pass-like policy"),
+                () -> assertTrue(javascript.contains("statuses.warning")
+                                && javascript.contains("scenarioCounts.warning")
+                                && javascript.contains("warnings"),
+                        "warning counts must remain visible after the pass-like total is corrected"),
+                () -> assertTrue(html.contains("status=\"warning\""),
+                        "the scenario status must remain Warning in the Tests tree"));
+    }
+
     private static int divDepthAt(String html, int index) {
         String prefix = html.substring(0, index);
         int depth = 0;

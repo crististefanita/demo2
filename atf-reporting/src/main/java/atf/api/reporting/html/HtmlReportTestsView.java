@@ -162,7 +162,7 @@ public final class HtmlReportTestsView {
                 .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DIV));
         evidence.renderRequestDetails(html, request);
         evidence.renderResponseDetails(html, request);
-        evidence.renderNetworkAggregate(html, request.networkAggregate());
+        evidence.renderNetworkAggregateSubstep(html, request.networkAggregate());
         request.executions().forEach(execution -> evidence.renderExecution(html, execution));
         request.children().forEach(child -> renderNode(html, child));
         html.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DIV));

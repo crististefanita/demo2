@@ -192,6 +192,26 @@ impune maximum opt clase pe package.
 | convergență | JSON și visual sunt verificate împreună | browserul observă; regulile se verifică fără Playwright |
 | browser proof | `E2eSuiteBudgetArchitectureTest` plafonează la 8 clase `@AtfE2eTest` | orice clasă nouă cere justificare în feedback și modificarea bugetului |
 
+### Responsive render gate
+
+`SelectedApiTestsReportUiTest` este entry-point-ul configurabil pentru raportul
+Extent generat. Un run de componentă verifică static vocabularul, CSS-ul și
+asset-urile; gate-ul E2E verifică raportul real la viewport-ul configurat, inclusiv
+un profil îngust. Pentru fiecare profil trebuie păstrate aceleași invariants:
+
+- minimum șase semnături de secțiune și disclosure-uri collapsed la sosire;
+- `SETUP → TEST BODY → Screen validation`, request/response JSON și
+  `Execution evidence` expandabile;
+- glyph-ul `＋/−` inline înaintea propoziției, fără `<hr>` sau separator
+  decorativ;
+- `scrollWidth <= clientWidth`, imagini necorupte și zero console/page/request
+  diagnostics colectate de `ReportAuditContext`.
+
+Artifactele sunt output de run și nu se copiază în README. Sursa `.js`/`.css`
+rămâne formatată în `atf-reporting/src/main/resources`; numai copia publicată în
+HTML este compactată de `ReportAssetCompactor`. Astfel testele component pot
+verifica fragmentele native, iar browserul verifică efectul compoziției finale.
+
 ### Proof pentru inspectorul de journey
 
 Inspectorul de rețea se verifică în două trepte, fără a transforma E2E în owner
@@ -244,7 +264,7 @@ Entry-point-urile selectabile direct din IntelliJ sunt separate pe layer:
 | Entry point | Include | Rol |
 |---|---|---|
 | `AtfReportingUnitSuite` | `unit` din `atf.api.reporting` | model, policy, parser, renderer seam și vocabular |
-| `AtfReportingComponentSuite` | `component` din reporting și UI extent | boundary HTML/CSS/JS, contracte și fixture-uri controlate; navigation performance expune doar snapshot diagnostic, fără verdict business |
+| `AtfReportingComponentSuite` | `component` din reporting și UI extent | boundary HTML/CSS/JS, contracte și fixture-uri controlate; snapshot-ul de navigation performance este mapat prin `ReportRuntimePerformanceSnapshot`, iar `ReportRuntimePerformanceBudget` verifică fixture-uri configurabile fără verdict business |
 | `AtfReportingIntegrationSuite` | `integration` din `atf.api.reporting` | session, publication, replay și contracte de integrare ale librăriei |
 | `AtfReportingApiFixtureSuite` | `integration` din `atf.api.tests.api` | mock API → core → validation → reporting evidence, fără browser |
 | `AtfReportingUiAuditSuite` | `e2e` din `atf.ui.tests.extent.e2e` | audit browser/debug al artifactului Extent, cu owner UI explicit |

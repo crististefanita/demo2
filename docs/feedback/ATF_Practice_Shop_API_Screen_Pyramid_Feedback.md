@@ -46,8 +46,8 @@ de business.
 |---|---:|---|
 | API screen contracts | 98 | login, catalog, product, cart și checkout sunt typed, cu variații component și flow live verificabile |
 | UI page validation | 97 | contractele declarative și validatorul semantic acoperă ecranele traversate fără E2E multiplicat |
-| API evidence în UI | 97 | binding-ul per checkpoint, exchange-ul typed și atașarea single-node sunt corecte: un singur card Gherkin deține `UI validation` și `API validation`; artifactul regenerat nu mai expune digesturi brute |
-| E2E client–server trace | 97 | ordinea cauzală este corectă și topologia `un singur Gherkin → UI validation + API validation → Exchange → UI continuation` este verificată în artifactul fresh; POST/GET rămân exchange-uri distincte, nu duplicate |
+| API evidence în UI | 98 | binding-ul per checkpoint, exchange-ul typed și atașarea single-node sunt confirmate în artifactul UI regenerat: un singur card Gherkin deține `UI validation` și `API validation`, iar request/response/execution rămân nested fără digesturi brute |
+| E2E client–server trace | 98 | ordinea cauzală este confirmată vizual: `un singur Gherkin → UI validation + API validation → Exchange → Request/Response/Execution`; POST/GET rămân exchange-uri distincte, iar retry-ul nu creează pași API suplimentari |
 | Overview configuration observability | 96 | snapshot-ul typed publică doar configurația relevantă, bounded și redacted, cu etichete operaționale și destinații UI/API separate |
 | console wiring | 97 | Practice Shop consumă `atf-console` prin composition boundary; nu există mapping sau scriere directă în consumer |
 | E2E discipline | 97 | guest și authenticated sunt journey-uri distincte; variațiile rămân component/API integration, iar contextul este per test |
@@ -56,7 +56,7 @@ de business.
 | Test readability/OOP | 97 | flow-urile sunt business-oriented, lifecycle-ul este explicit și support-ul are boundary-uri clare; evidence multi-exchange păstrează aceeași formă canonicală ca API direct |
 | Plug-and-play test selection | 96 | adnotările și condițiile typed selectează fixture-ul authenticated/live fără metode `isConfigured()` duplicate |
 | live business proof | 82 | guest product → cart → payment este verificat prin `LIVE_HTTP`; login/catalog/cart/payment authenticated rămâne blocat de fixture extern |
-| **scor consumer** | **94** | contractul guest, binding-ul typed, proiecția per exchange și topologia single-node sunt auditabile pe codul și artifactul regenerat; limita principală rămasă este fixture-ul authenticated extern care rămâne explicit skip |
+| **scor consumer** | **95** | contractul guest, binding-ul typed, proiecția per exchange și topologia single-node sunt confirmate pe codul live, suitele verzi și artifactul regenerat; limita principală rămasă este fixture-ul authenticated extern care rămâne explicit skip |
 
 ## Închideri promovate în README-ul ownerului
 
@@ -198,7 +198,7 @@ Reguli de calitate:
 | ID | Dovadă | Verdict |
 |---|---|---|
 | `SHOP-REPORT-NET-02` | `ReportNetworkInspector.JourneyAggregate`, `ReportNetworkInspectorTest` și consumer E2E | aggregate-ul journey calculează authentication, correlation, transport, signatures și diagnostics fără JSON duplicat; collision handling-ul necorelat este închis generic prin `REP-DIAGNOSTIC-04` |
-| `SHOP-REPORT-NET-03` | `ReportNetworkAggregateMarkup`, `ReportNetworkInspectorTest` și fresh MCP/Chromium | Extent și fallback publică inspectorul nested, cu cele cinci secțiuni typed și fără fields flat `network.aggregate.*`; aggregate-ul este indexul canonical, iar request/response/execution per exchange sunt închise prin `REP-TRACE-03` |
+| `SHOP-REPORT-NET-03` | `ReportNetworkAggregateMarkup`, `ReportNetworkInspectorTest` și fresh MCP/Chromium | Extent și fallback publică inspectorul nested, cu cele cinci secțiuni typed și fără fields flat `network.aggregate.*`; `Response details` are numai indexul bounded, `Scenario correlation` este separat de request-uri, iar `Unique request signatures` afișează fiecare semnătură o singură dată ca un card compact; request/response/execution per exchange rămân în checkpoint-ul canonical prin `REP-TRACE-03` |
 | `SHOP-REPORT-AUTH-02` | `AuthenticationObservation` + component/HTML contract | method/source/status/count sunt grupate determinist și rămân credential-free; semantică „observed” |
 | `SHOP-DIAGNOSTIC-02` | `DiagnosticObservation` + component/HTML contract | response și console pentru aceeași semnătură sunt un singur observation cu count/sources; alte rute/statusuri rămân distincte |
 | `SHOP-DIAGNOSTIC-03` | `Scenario.warningDiagnostics`, `PracticeShopRuntimeDiagnosticsTest` și fresh guest E2E/MCP | warning-ul consumerului grupează diagnosticele după semnătură semantică și publică count/sources într-o singură assertion; erorile neașteptate rămân failure |

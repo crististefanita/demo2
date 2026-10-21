@@ -106,6 +106,12 @@ public final class ExtentTransportEvidenceRenderer {
         if (!markup.isBlank()) node.info(markup);
     }
 
+    void renderNetworkAggregateSubstep(ExtentTest node,
+                                       ReportNetworkInspector.JourneyAggregate aggregate) {
+        String markup = ReportNetworkAggregateMarkup.substepBody(aggregate);
+        if (!markup.isBlank()) node.info(markup);
+    }
+
     private ReportCheck setupCheck(String value) {
         String safe = value == null ? "" : value;
         String[] parts = safe.split(" \\| (?:expected=|actual=|result=)", -1);

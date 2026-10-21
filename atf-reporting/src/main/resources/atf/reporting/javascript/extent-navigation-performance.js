@@ -4,12 +4,17 @@ var atfReportPerformanceState = window.__atfReportPerformance || {
   normalizationDurationMs: 0,
   relevantMutationBatches: 0,
   durationMutationBatches: 0,
+  pageLoadMs: null,
+  firstDisclosureToggleMs: null,
+  disclosureToggleDurationMs: 0,
+  disclosureToggles: 0,
   scenarioToggles: 0,
   phaseToggles: 0,
   nodeToggles: 0,
   readinessStartedAt: null,
   readinessCompletedAt: null,
   readinessMs: null,
+  ready: false,
   longTaskObservationSupported: false,
   longTaskCount: 0,
   longTaskDurationMs: 0
@@ -32,11 +37,43 @@ function atfPerformanceEnd(start, target) {
     Number(atfReportPerformanceState[target] || 0) +
     Math.max(0, atfPerformanceNow() - start);
 }
+function atfPerformanceRecordDisclosureToggle(start) {
+  if (start == null) return;
+  var duration = Math.max(0, atfPerformanceNow() - start);
+  atfReportPerformanceState.disclosureToggleDurationMs += duration;
+  atfReportPerformanceState.disclosureToggles++;
+  if (atfReportPerformanceState.firstDisclosureToggleMs == null)
+    atfReportPerformanceState.firstDisclosureToggleMs = duration;
+  atfPerformancePublish();
+}
+function atfPerformancePublish() {
+  var root = document.documentElement;
+  if (!root) return;
+  root.setAttribute('data-atf-performance-ready',
+    atfReportPerformanceState.ready ? 'true' : 'false');
+  root.setAttribute('data-atf-performance-readiness-ms',
+    String(atfReportPerformanceState.readinessMs == null
+      ? '' : atfReportPerformanceState.readinessMs));
+  root.setAttribute('data-atf-performance-page-load-ms',
+    String(atfReportPerformanceState.pageLoadMs == null
+      ? '' : atfReportPerformanceState.pageLoadMs));
+  root.setAttribute('data-atf-performance-first-toggle-ms',
+    String(atfReportPerformanceState.firstDisclosureToggleMs == null
+      ? '' : atfReportPerformanceState.firstDisclosureToggleMs));
+  root.setAttribute('data-atf-performance-toggle-duration-ms',
+    String(atfReportPerformanceState.disclosureToggleDurationMs));
+  root.setAttribute('data-atf-performance-toggle-count',
+    String(atfReportPerformanceState.disclosureToggles));
+  root.setAttribute('data-atf-performance-normalization-runs',
+    String(atfReportPerformanceState.normalizationRuns));
+}
 function atfPerformanceBeginReadiness() {
   atfReportPerformanceState.readinessStartedAt = atfPerformanceNow();
   atfReportPerformanceState.readinessCompletedAt = null;
   atfReportPerformanceState.readinessMs = null;
+  atfReportPerformanceState.ready = false;
   document.documentElement.removeAttribute('data-atf-test-view-ready');
+  atfPerformancePublish();
 }
 function atfPerformanceMarkReady() {
   if (atfReportPerformanceState.readinessStartedAt == null ||
@@ -45,7 +82,13 @@ function atfPerformanceMarkReady() {
   atfReportPerformanceState.readinessMs =
     Math.max(0, atfReportPerformanceState.readinessCompletedAt -
       atfReportPerformanceState.readinessStartedAt);
+  var navigation = window.performance && window.performance.getEntriesByType
+    ? window.performance.getEntriesByType('navigation') : [];
+  if (navigation && navigation.length)
+    atfReportPerformanceState.pageLoadMs = Math.max(0, Number(navigation[0].duration || 0));
+  atfReportPerformanceState.ready = true;
   document.documentElement.setAttribute('data-atf-test-view-ready', 'true');
+  atfPerformancePublish();
 }
 function atfPerformanceSnapshot() {
   return Object.assign({}, atfReportPerformanceState);

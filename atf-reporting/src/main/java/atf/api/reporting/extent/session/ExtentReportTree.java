@@ -144,6 +144,11 @@ public final class ExtentReportTree {
         evidence.renderNetworkAggregate(node, aggregate);
     }
 
+    public void renderNetworkAggregateSubstep(ExtentTest node,
+                                              ReportNetworkInspector.JourneyAggregate aggregate) {
+        evidence.renderNetworkAggregateSubstep(node, aggregate);
+    }
+
     /** Publishes one renderer-neutral transport evidence block at the request boundary. */
     public void renderExecution(ExtentTest node, ReportExecutionEvidence execution) {
         evidence.renderExecution(node, execution);

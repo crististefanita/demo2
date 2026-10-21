@@ -4,6 +4,7 @@ import atf.api.reporting.configuration.ReportingSettings;
 import atf.api.reporting.api.ReportAttemptRecord;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.contract.AtfAssertion;
+import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.duration.AtfDurationFormatter;
 import atf.api.reporting.security.SensitiveDataRedactor;
 import atf.api.reporting.evidence.EvidenceTableFormatter;
@@ -158,6 +159,20 @@ public final class HtmlReportEvidenceView {
         html.append(ReportNetworkAggregateMarkup.disclosure(aggregate));
     }
 
+    public void renderNetworkAggregateSubstep(StringBuilder html,
+                                              ReportNetworkInspector.JourneyAggregate aggregate) {
+        if (aggregate == null) return;
+        html.append(openTag(DIV, classAttribute(VALIDATION), attribute(NODE_ROLE, "validation")))
+                .append(openTag(DIV, classAttribute(NODE_TITLE)))
+                .append(openTag(SPAN))
+                .append(escape("Network aggregate · " + aggregate.observations() + " exchanges"))
+                .append(closeTag(SPAN))
+                .append(ReportEvidenceMarkup.statusBadge(AtfReportStatus.PASS))
+                .append(closeTag(DIV))
+                .append(ReportNetworkAggregateMarkup.substepBody(aggregate))
+                .append(closeTag(DIV));
+    }
+
     /** Test/composition seam for legacy execution snapshots; typed production callers stay unchanged. */
     public void renderExecution(StringBuilder html, Object execution) {
         renderExecution(html, ReportModelAdapters.execution(execution));
@@ -205,7 +220,7 @@ public final class HtmlReportEvidenceView {
                 .append(closeTag(DIV));
         renderRequestDetails(html, request);
         renderResponseDetails(html, request);
-        renderNetworkAggregate(html, request.networkAggregate());
+        renderNetworkAggregateSubstep(html, request.networkAggregate());
         request.executions().forEach(execution -> renderExecution(html, execution));
         request.children().forEach(child -> {
             if (child instanceof ReportExecutionModel.Validation validation) {

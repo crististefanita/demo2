@@ -1,22 +1,54 @@
 @media only screen and (max-width: ${NARROW_VIEWPORT}) {
+  /* Keep the folded navigation reachable when the viewport enters the
+     vendor stylesheet's mobile rule that moves the 200px rail off-screen. */
+  .side-nav {
+    left: 0 !important;
+    width: var(--atf-narrow-nav-inset) !important;
+    box-sizing: border-box !important;
+  }
+  .side-nav .side-nav-inner .side-nav-menu {
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .side-nav .side-nav-inner .side-nav-menu > li > a {
+    padding: 10px 20px !important;
+    box-sizing: border-box !important;
+  }
+  .side-nav .side-nav-inner .side-nav-menu > li > a .ico {
+    margin-right: 0 !important;
+  }
   .test-wrapper,
   .test-view {
+    position: relative !important;
     left: var(--atf-narrow-nav-inset) !important;
+    right: auto !important;
+    top: auto !important;
     width: calc(100% - var(--atf-narrow-nav-inset)) !important;
     max-width: calc(100% - var(--atf-narrow-nav-inset)) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: auto !important;
     box-sizing: border-box !important;
   }
   .test-wrapper .test-list,
   .test-view .test-list {
+    position: relative !important;
+    float: none !important;
+    flex: 0 0 auto !important;
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
   }
   .test-wrapper .test-content,
   .test-view .test-content {
-    left: var(--atf-narrow-nav-inset) !important;
-    width: calc(100% - var(--atf-narrow-nav-inset)) !important;
-    max-width: calc(100% - var(--atf-narrow-nav-inset)) !important;
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 1 1 auto !important;
+    overflow: visible !important;
     box-sizing: border-box !important;
   }
 }

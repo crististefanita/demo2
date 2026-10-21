@@ -16,7 +16,8 @@ public record UiBrowserConfiguration(
         int viewportHeight,
         int zoomPercent,
         boolean screenshotOnFailure,
-        UiRetryPolicy retryPolicy) {
+        UiRetryPolicy retryPolicy,
+        UiNetworkInspectionConfiguration networkInspection) {
 
     public static final int DEFAULT_ZOOM_PERCENT = 100;
     public static final int MIN_ZOOM_PERCENT = 25;
@@ -29,7 +30,7 @@ public record UiBrowserConfiguration(
                                   boolean screenshotOnFailure) {
         this(baseUrl, browser, headless, timeout, navigationTimeout,
                 viewportWidth, viewportHeight, DEFAULT_ZOOM_PERCENT, screenshotOnFailure,
-                UiRetryPolicy.none());
+                UiRetryPolicy.none(), UiNetworkInspectionConfiguration.disabled());
     }
 
     /** Compatibility constructor for callers that use the zoom policy only. */
@@ -39,7 +40,17 @@ public record UiBrowserConfiguration(
                                   int zoomPercent, boolean screenshotOnFailure) {
         this(baseUrl, browser, headless, timeout, navigationTimeout,
                 viewportWidth, viewportHeight, zoomPercent, screenshotOnFailure,
-                UiRetryPolicy.none());
+                UiRetryPolicy.none(), UiNetworkInspectionConfiguration.disabled());
+    }
+
+    /** Compatibility constructor for callers that already provide UI retry policy. */
+    public UiBrowserConfiguration(URI baseUrl, String browser, boolean headless,
+                                  Duration timeout, Duration navigationTimeout,
+                                  int viewportWidth, int viewportHeight, int zoomPercent,
+                                  boolean screenshotOnFailure, UiRetryPolicy retryPolicy) {
+        this(baseUrl, browser, headless, timeout, navigationTimeout, viewportWidth, viewportHeight,
+                zoomPercent, screenshotOnFailure, retryPolicy,
+                UiNetworkInspectionConfiguration.disabled());
     }
 
     public UiBrowserConfiguration {
@@ -58,12 +69,14 @@ public record UiBrowserConfiguration(
                     + MIN_ZOOM_PERCENT + " and " + MAX_ZOOM_PERCENT);
         }
         retryPolicy = Objects.requireNonNull(retryPolicy, "retryPolicy");
+        networkInspection = Objects.requireNonNull(networkInspection, "networkInspection");
     }
 
     public static UiBrowserConfiguration defaults() {
         return new UiBrowserConfiguration(URI.create("about:blank"), "chromium", true,
                 Duration.ofSeconds(10), Duration.ofSeconds(15), 1440, 900,
-                DEFAULT_ZOOM_PERCENT, true, UiRetryPolicy.none());
+                DEFAULT_ZOOM_PERCENT, true, UiRetryPolicy.none(),
+                UiNetworkInspectionConfiguration.disabled());
     }
 
     private static Duration positive(Duration value, String name) {

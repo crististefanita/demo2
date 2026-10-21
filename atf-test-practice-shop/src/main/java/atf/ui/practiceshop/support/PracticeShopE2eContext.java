@@ -55,7 +55,7 @@ public final class PracticeShopE2eContext implements AutoCloseable {
             PracticeShopApiNetworkJournal apiNetwork =
                     new PracticeShopApiNetworkJournal(configuration.validationProfile(),
                             configuration.api().evidenceBinding());
-            apiNetwork.attach(browser.page());
+            apiNetwork.attach(browser.networkInspector());
             PracticeShopRuntimeDiagnostics runtimeDiagnostics = new PracticeShopRuntimeDiagnostics();
             runtimeDiagnostics.attach(browser.page());
             return new PracticeShopE2eContext(configuration, report, browser, apiNetwork, runtimeDiagnostics);

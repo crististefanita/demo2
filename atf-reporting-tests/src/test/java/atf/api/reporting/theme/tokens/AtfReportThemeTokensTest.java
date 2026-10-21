@@ -148,6 +148,10 @@ class AtfReportThemeTokensTest {
                 () -> assertTrue(css.contains("data-atf-phase-name=\"setup\"]{border-left-color:var(--atf-setup)")),
                 () -> assertTrue(css.contains("data-atf-phase-name=\"teardown\"]{border-left-color:var(--atf-good)")),
                 () -> assertTrue(css.contains("data-atf-node-role=\"validation\"]{border-left-width:1px!important}")),
+                () -> assertTrue(css.contains("data-atf-evidence-family=\"technical\"]{border-left:2px solid var(--atf-accent)!important}"),
+                        "technical diagnostic and inspector cards must use the same restrained accent rail"),
+                () -> assertTrue(css.contains("data-atf-evidence-family=\"technical\"]>.card-header{background:var(--atf-accent08)!important}"),
+                        "technical diagnostic and inspector headers must use the same accent surface"),
                 () -> assertTrue(css.contains(".atf-tag-table{width:100%!important")
                         && css.contains("background-color:var(--atf-dark)!important;background-color:#101723!important")),
                 () -> assertTrue(css.contains(".dark .dashboard-view .atf-tag-table{background-color:#101723!important}")),

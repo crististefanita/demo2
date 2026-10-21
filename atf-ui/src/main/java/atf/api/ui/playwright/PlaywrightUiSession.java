@@ -3,6 +3,7 @@ package atf.api.ui.playwright;
 import atf.api.core.reporting.console.AtfConsoleSink;
 import atf.api.ui.config.UiBrowserConfiguration;
 import atf.api.ui.config.UiRetryPolicy;
+import atf.api.ui.network.UiNetworkInspector;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.BrowserType;
@@ -27,11 +28,13 @@ public final class PlaywrightUiSession implements AutoCloseable {
     private final UiActionTrace actionTrace;
     private final Duration actionTimeout;
     private final UiRetryPolicy retryPolicy;
+    private final UiNetworkInspector networkInspector;
     private boolean closed;
 
     private PlaywrightUiSession(Playwright playwright, Browser browser,
                                 BrowserContext context, Page page, UiActionTrace actionTrace,
-                                Duration actionTimeout, UiRetryPolicy retryPolicy) {
+                                Duration actionTimeout, UiRetryPolicy retryPolicy,
+                                UiNetworkInspector networkInspector) {
         this.playwright = playwright;
         this.browser = browser;
         this.context = context;
@@ -39,6 +42,7 @@ public final class PlaywrightUiSession implements AutoCloseable {
         this.actionTrace = Objects.requireNonNull(actionTrace, "actionTrace");
         this.actionTimeout = Objects.requireNonNull(actionTimeout, "actionTimeout");
         this.retryPolicy = Objects.requireNonNull(retryPolicy, "retryPolicy");
+        this.networkInspector = Objects.requireNonNull(networkInspector, "networkInspector");
     }
 
     public static PlaywrightUiSession open(UiBrowserConfiguration configuration) {
@@ -67,8 +71,12 @@ public final class PlaywrightUiSession implements AutoCloseable {
             context.addInitScript(zoomInitScript(configuration.zoomPercent()));
             context.setDefaultTimeout(configuration.timeout().toMillis());
             context.setDefaultNavigationTimeout(configuration.navigationTimeout().toMillis());
-            return new PlaywrightUiSession(playwright, browser, context, context.newPage(), trace,
-                    configuration.timeout(), configuration.retryPolicy());
+            Page page = context.newPage();
+            UiNetworkInspector networkInspector =
+                    new UiNetworkInspector(configuration.networkInspection());
+            networkInspector.attach(page);
+            return new PlaywrightUiSession(playwright, browser, context, page, trace,
+                    configuration.timeout(), configuration.retryPolicy(), networkInspector);
         } catch (RuntimeException error) {
             playwright.close();
             throw error;
@@ -76,6 +84,9 @@ public final class PlaywrightUiSession implements AutoCloseable {
     }
 
     public Page page() { return page; }
+
+    /** Generic opt-in network observer for consumers that need UI/API correlation. */
+    public UiNetworkInspector networkInspector() { return networkInspector; }
 
     /**
      * Init scripts can run before the document element exists.  Keep the
@@ -126,10 +137,13 @@ public final class PlaywrightUiSession implements AutoCloseable {
     public void close() {
         if (closed) return;
         closed = true;
-        try { context.close(); }
+        try { networkInspector.close(); }
+        finally {
+            try { context.close(); }
         finally {
             try { browser.close(); }
             finally { playwright.close(); }
+        }
         }
     }
 }

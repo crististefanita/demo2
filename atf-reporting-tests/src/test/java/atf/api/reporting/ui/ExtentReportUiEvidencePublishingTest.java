@@ -420,8 +420,13 @@ class ExtentReportUiEvidencePublishingTest {
                 () -> assertTrue(html.contains("transport counters · 1")),
                 () -> assertTrue(html.contains("unique request signatures · 1")),
                 () -> assertTrue(html.contains("technical diagnostics · 1")),
+                () -> assertTrue(html.contains("response details · 4 fields")),
+                () -> assertFalse(html.contains("network ui step")),
+                () -> assertFalse(html.contains("network exchange")),
+                () -> assertTrue(html.contains("evidence type") && html.contains("api-trace"),
+                        "the ordered network inspector must expose its typed technical evidence contract"),
                 () -> assertFalse(html.contains("network.aggregate.authentication")),
-                () -> assertTrue(html.contains("[response, console]")),
+                () -> assertTrue(html.contains("response · console")),
                 () -> assertFalse(html.contains("unauthorized bootstrap")));
     }
 }

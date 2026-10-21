@@ -247,6 +247,12 @@ UI checkpoint
 - `Execution evidence · 1 attempts` nu poate rămâne un titlu repetat fără
   context: exchange-ul trebuie identificat prin disclosure-ul părinte sau printr-un
   label semantic per exchange;
+- `Runtime diagnostic` și `API network inspector — ordered UI journey` aparțin
+  aceleiași familii vizuale de evidence tehnică: rail-ul și header-ul folosesc
+  accentul tehnic comun, iar badge-ul păstrează statusul real (`Warning`, `Pass`);
+  inspectorul nu devine astfel o validare UI și diagnosticul nu devine failure;
+- copiii tehnici ai acestor noduri moștenesc aceeași familie vizuală, fără să
+  primească un verdict artificial sau un card Gherkin nou;
 - proiecția UI folosește aceeași semantică și redaction policy ca raportul API
   direct: headerele browserului și response headers volatile sunt filtrate,
   iar response headers stabile sunt opționale;
@@ -283,7 +289,9 @@ flowchart LR
 - `correlation` păstrează legătura dintre checkpoint și exchange-urile cauzate;
 - `transport` numără observations, success/failure, attempts, retries și
   provenance live/mock/unknown;
-- `signatures` grupează signature-ul safe cu count și statusuri;
+- `signatures` grupează signature-ul safe cu count și statusuri și îl afișează
+  o singură dată ca un card compact cu method, route, authentication, evidence
+  source și phase;
 - `diagnostics` deduplicatează response/console/page după method/route/status și
   păstrează `count` și `sources`, fără mesaje volatile; pentru semnale fără facts
   de transport, tripletul gol nu este o identitate suficientă: mesajul exact este
@@ -291,6 +299,10 @@ flowchart LR
   distincte `UNBOUND-n`, cu count comun numai pentru repetări reale;
 - body-urile JSON, headerele sensibile și execution details rămân în disclosure-ul
   canonical al exchange-ului; nu se copiază în sumar;
+- indexul atașat request-ului de inspector conține numai trei facts bounded:
+  numărul de exchange-uri canonice, numărul de pași Gherkin și numărul de
+  semnături unice; pașii compleți apar numai în `Scenario correlation`, iar
+  request-urile numai în `Unique request signatures`;
 - semnătura request-ului și digesturile body-ului rămân identitate internă pentru
   grouping/retry; HTML-ul public afișează doar `body=present|absent` și markerul
   bounded `internal digest hidden`;
@@ -411,8 +423,11 @@ context, cause-chain și projection au câte un asset JS și o fațadă Java pro
 funcții; astfel testele pot verifica independent cauza, contextul și randarea
 failure fără browser, iar testul E2E verifică deep-link-ul către testul exact.
 
-Rămâne intenționat în următorul val auditul final al vocabularului/builder-ului CSS
-și al seam-urilor mici de publicare. `AtfUiEvidenceCss` este facade typed peste
+Auditul final al vocabularului/builder-ului CSS și al seam-urilor mici de
+publicare este acoperit de contractele component și de gate-ul fresh
+standard/responsive. Orice schimbare viitoare rămâne incrementală și cere
+aceeași dovadă; nu există un TODO deschis doar pentru că asset-urile sunt
+împărțite în fișiere native. `AtfUiEvidenceCss` este facade typed peste
 `ui-evidence.css`, iar `Duration` și `RuntimeCore` sunt compuse din asset-uri
 JavaScript native; niciuna dintre aceste familii nu mai asamblează corpuri mari în
 Java. `ScenarioCss` este facade typed peste `theme-scenario.css`, iar
@@ -433,7 +448,9 @@ pentru deduplicare; în raport rămâne linkul inline cu emoji-ul curent, nu un
 hash afișat.
 `HtmlReportScriptBuilder` rămâne numai infrastructură generică pentru porturi
 typed/custom și teste; nu mai este folosit pentru a construi navigation sau boot
-în producție.
+în producție. Regula de formatare este explicită: fișierele `.js`/`.css` din
+classpath rămân multiline și ușor de revizuit, iar `ReportAssetCompactor`
+compactează numai copia injectată în HTML.
 
 </details>
 
@@ -470,11 +487,19 @@ Navigation are și un asset separat, `extent-navigation-performance.js`, compus
 prin `ExtentReportRuntimeNavigationPerformance`. El nu decide verdictul și nu
 scrie conținut de business; expune doar un snapshot diagnostic opțional prin
 `window.__atfReportPerformance`, cu numărul/durata normalizărilor, burst-urile
-relevante, toggle-urile, readiness-ul și long-task-urile disponibile browserului.
+relevante, toggle-urile, readiness-ul, încărcarea, primul toggle și long-task-urile
+disponibile browserului. Valorile sunt oglindite și pe `html` prin atribute
+`data-atf-performance-*`, astfel încât un adapter MCP/component să poată observa
+aceeași dovadă fără acces direct la `window`.
 Controllerul consumă acest seam prin funcții mici (`atfPerformanceStart/End`,
-`atfPerformanceBeginReadiness`, `atfPerformanceMarkReady`), astfel încât testele
-component pot verifica ownership-ul și ordinea fără browser, iar testele MCP pot
-audita costul efectiv al unui artifact fresh. Asset-ul nativ rămâne formatat,
+`atfPerformanceBeginReadiness`, `atfPerformanceMarkReady`,
+`atfPerformanceRecordDisclosureToggle`), astfel încât testele component pot
+verifica ownership-ul și ordinea fără browser, iar testele MCP pot audita costul
+efectiv al unui artifact fresh. Boundary-ul Java typed este
+`ReportRuntimePerformanceSnapshot` + `ReportRuntimePerformanceBudget`: snapshot-ul
+poate fi construit din mapa returnată de browser, iar bugetul este configurabil
+pentru fiecare fixture și produce numai violări tehnice, nu verdict business.
+Asset-ul nativ rămâne formatat,
 iar publisher-ul îl compactează împreună cu celelalte `.js`.
 
 `ReportArtifactInspectorTest` și contractele runtime verifică unicitatea și

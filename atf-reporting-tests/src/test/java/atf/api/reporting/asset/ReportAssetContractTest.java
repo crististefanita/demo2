@@ -184,6 +184,8 @@ class ReportAssetContractTest {
                 () -> assertTrue(navigationDisclosure.contains("function bindScenarioCollapse(")),
                 () -> assertTrue(navigationDisclosure.contains("function bindNodeCollapse(")),
                 () -> assertTrue(navigationPerformance.contains("function atfPerformanceSnapshot(")),
+                () -> assertTrue(navigationPerformance.contains("firstDisclosureToggleMs")),
+                () -> assertTrue(navigationPerformance.contains("data-atf-performance-ready")),
                 () -> assertTrue(navigationPerformance.contains("longtask")),
                 () -> assertTrue(navigationController.contains("window.atfActivate=function")),
                 () -> assertFalse(navigationDom.contains("${")),

@@ -42,7 +42,7 @@ class ExtentReportRuntimeOverviewComponentTest {
             }
         }
 
-        assertEquals(9, declarations.size(), "Overview function count must remain explicit and reviewable");
+        assertEquals(12, declarations.size(), "Overview function count must remain explicit and reviewable");
     }
 
     @Test
@@ -73,5 +73,19 @@ class ExtentReportRuntimeOverviewComponentTest {
                 () -> assertTrue(script.contains("function normalizeChartPalettes(")),
                 () -> assertTrue(script.contains("function normalizePercentages(")),
                 () -> assertTrue(script.contains("function removeUnsupportedOverviewCards(")));
+    }
+
+    @Test
+    void warningIsPassLikeForTotalsButRemainsVisibleAsAWarning() {
+        String script = ExtentReportRuntimeOverview.script();
+
+        assertAll(
+                () -> assertTrue(script.contains("function passLikeCount(statuses)")),
+                () -> assertTrue(script.contains("return statuses.pass+statuses.warning")),
+                () -> assertTrue(script.contains("statuses.warning")),
+                () -> assertTrue(script.contains("Scenario warnings")),
+                () -> assertTrue(script.contains("updateOverviewSummaryFooter(")),
+                () -> assertTrue(script.contains("overviewChartCard('parent-analysis')")),
+                () -> assertTrue(script.contains("overviewChartCard('child-analysis')")));
     }
 }

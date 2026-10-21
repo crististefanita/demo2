@@ -35,6 +35,7 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
     private final Consumer<AtfReportStatus> onComplete;
     private final List<ReportExecutionEvidence> executions = new ArrayList<>();
     private ReportNetworkInspector.JourneyAggregate networkAggregate;
+    private ExtentTest networkAggregateNode;
     private int openValidations;
     private boolean closed;
 
@@ -94,6 +95,11 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
 
     @Override public void networkAggregate(ReportNetworkInspector.JourneyAggregate aggregate) {
         networkAggregate = aggregate;
+        if (aggregate != null) {
+            networkAggregateNode = request.createNode(
+                    "Network aggregate · " + aggregate.observations() + " exchanges");
+            tree.markStarted(networkAggregateNode);
+        }
         semantic.detail("network.aggregate");
     }
 
@@ -107,12 +113,16 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
         } else {
             tree.renderRequestDetails(request, details, json);
             tree.renderResponseDetails(request, details, json);
-            tree.renderNetworkAggregate(request, networkAggregate);
             executions.forEach(execution -> tree.renderExecution(request, execution));
             tree.renderUiActions(request, uiActions, screenshots);
             if (uiActions.stream().noneMatch(action -> action.source() == AtfUiEvidenceSource.ACTION)) {
                 tree.renderScreenshots(request, screenshots);
             }
+        }
+        if (networkAggregateNode != null) {
+            tree.renderNetworkAggregateSubstep(networkAggregateNode, networkAggregate);
+            tree.complete(networkAggregateNode, AtfReportStatus.PASS);
+            tree.markEnded(networkAggregateNode);
         }
         var effective = AtfReportStatus.worst(statuses.aggregate(), status);
         tree.complete(request, effective);

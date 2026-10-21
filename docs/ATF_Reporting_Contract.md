@@ -141,6 +141,11 @@ rendererul fallback:
 - în UI trace, acest spine este copilul semantic `API validation`, poziționat
   între pasul Gherkin și disclosure-urile collapsed; `API validation` are stilul
   și statusul unei `UI validation`, dar nu creează un test sau un verdict paralel;
+- `Runtime diagnostic` și `API network inspector — ordered UI journey`, inclusiv
+  copiii lor tehnici, folosesc aceeași familie vizuală de evidence (accent rail
+  și header); statusul rămâne însă semantic pentru fiecare nod (`Warning` sau
+  `Pass`), astfel încât stilul comun nu schimbă verdictul și nu creează o
+  validare UI artificială;
 - când există mai multe exchange-uri, `Execution evidence` trebuie să păstreze
   identitatea exchange-ului în disclosure-ul părinte sau în titlu; repetarea
   unui titlu generic fără context nu este auditabilă;
@@ -160,6 +165,25 @@ rendererul fallback:
   raportului API direct.
 
 </details>
+
+Pentru inspectorul journey, corelarea Gherkin și inspectorul de rețea sunt două
+axe distincte, nu două copii ale aceluiași tabel:
+
+```text
+Gherkin checkpoint
+├── UI validation
+├── API validation
+└── Network inspector
+    ├── Scenario correlation       → pași Gherkin + count/assertions
+    └── Unique request signatures  → method/route/status/count + metadate
+```
+
+`Response details` al inspectorului este doar un index bounded. Nu conține
+request rows, `NETWORK EXCHANGE n` sau propoziții Gherkin complete; acestea
+apar o singură dată în disclosure-ul semantic potrivit. Astfel, aceeași
+propoziție Gherkin nu se repetă pentru UI și API, iar request-urile retry sau
+repetate sunt grupate după semnătură, cu istoricul de attempt păstrat local în
+`Execution evidence`.
 
 ```mermaid
 flowchart LR

@@ -76,9 +76,9 @@ class ExtentReportRuntimeScriptTest {
                                 || overview.contains("Tests Skipped")
                                 || overview.contains("normalizeStatusSummaryCards(scenarioCounts)"),
                         "Warning and skip outcomes must remain in test evidence, not Overview cards"),
-                () -> assertTrue(overview.contains("h.textContent=scenarioCounts.pass")
+                () -> assertTrue(overview.contains("h.textContent=passLikeCount(scenarioCounts)")
                                 && overview.contains("h.textContent=scenarioCounts.fail"),
-                        "PASS and FAIL cards must use the same scenario-level denominator"),
+                        "pass-like and FAIL cards must use the same scenario-level projection"),
                 () -> assertTrue(overview.contains("function normalizeChartPalettes("),
                         "Overview must own chart normalization"),
                 () -> assertTrue(evidence.contains("function normalizeEvidenceDisclosures("),
@@ -303,6 +303,12 @@ class ExtentReportRuntimeScriptTest {
                         "THEN and all other Gherkin outcome nodes must share the validation card role"),
                 () -> assertTrue(html.contains("data-atf-node-role=\"validation\"]"),
                         "the validation styling and disclosure selectors must apply to the THEN card"),
+                () -> assertTrue(html.contains("function technicalEvidenceType(card)"),
+                        "technical evidence cards must be classified from their typed evidence table"),
+                () -> assertTrue(html.contains("data-atf-evidence-family=\"technical\""),
+                        "runtime diagnostics and API traces must share one visual evidence family"),
+                () -> assertTrue(html.contains("runtime-diagnostic") && html.contains("api-trace"),
+                        "the two technical evidence kinds must remain distinguishable by metadata"),
                 () -> assertTrue(html.contains("assignNodeRoles();aggregateClassDurations();normalizeEvidenceDisclosures()"),
                         "opening a scenario must recalculate the visible cloned phase tree"),
                 () -> assertTrue(html.contains("if(next){assignNodeRoles();aggregateClassDurations();normalizeEvidenceDisclosures();bindPhaseCollapse();"),

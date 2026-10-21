@@ -14,6 +14,8 @@ import atf.ui.practiceshop.config.PracticeShopCredentials;
 import atf.ui.practiceshop.config.PracticeShopValidationProfile;
 import atf.ui.practiceshop.config.PracticeShopApiCheckpoint;
 import atf.ui.practiceshop.config.PracticeShopApiEvidenceBinding;
+import atf.api.ui.network.UiNetworkInspector;
+import atf.api.ui.network.UiNetworkObservation;
 import com.microsoft.playwright.Page;
 
 import java.util.ArrayList;
@@ -63,10 +65,28 @@ public final class PracticeShopApiNetworkJournal {
         page.onResponse(response -> trafficCapture.capture(response).ifPresent(this::recordCapturedExchange));
     }
 
+    /**
+     * Reuses the generic Playwright network boundary when the UI session owns
+     * one. This is the plug-and-play path; the page-specific overload above is
+     * retained as a compatibility seam for focused consumer tests.
+     */
+    public void attach(UiNetworkInspector inspector) {
+        Objects.requireNonNull(inspector, "inspector");
+        if (!hasEnabledCheckpoint()) return;
+        inspector.subscribe(this::recordCapturedObservation);
+    }
+
     /** Internal composition seam for deterministic component tests; browser capture remains the live path. */
     void recordCapturedExchange(Exchange exchange) {
         Objects.requireNonNull(exchange, "exchange");
         exchanges.add(exchange.withTrace(sequence.incrementAndGet(), Instant.now(), phase(exchange.path())));
+    }
+
+    private void recordCapturedObservation(UiNetworkObservation observation) {
+        recordCapturedExchange(new Exchange(
+                observation.method(), observation.path(), observation.url(), observation.status(),
+                observation.requestBody(), observation.responseBody(), observation.requestHeaders(),
+                observation.responseHeaders()));
     }
 
     /** API precondition for the product-page purchase action. */

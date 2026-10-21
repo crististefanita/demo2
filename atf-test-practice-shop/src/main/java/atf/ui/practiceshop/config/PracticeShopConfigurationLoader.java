@@ -3,6 +3,8 @@ package atf.ui.practiceshop.config;
 import atf.api.ui.config.UiBrowserConfiguration;
 import atf.api.ui.config.UiRetryOperation;
 import atf.api.ui.config.UiRetryPolicy;
+import atf.api.ui.config.UiNetworkInspectionConfiguration;
+import atf.api.ui.config.UiNetworkSettlementPolicy;
 import atf.api.core.config.ApiTransportMode;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,6 +20,7 @@ import java.util.EnumSet;
 import java.util.Set;
 import java.util.Collection;
 import java.util.stream.StreamSupport;
+import java.util.LinkedHashSet;
 
 /** YAML-first setup with explicit process overrides for local/CI account reuse. */
 public final class PracticeShopConfigurationLoader {
@@ -61,6 +64,8 @@ public final class PracticeShopConfigurationLoader {
             PracticeShopApiEvidenceBinding evidenceBinding = apiEvidenceBinding(
                     root.path("validation"), validationProfile);
             PracticeShopUiRetryConfiguration uiRetry = retry(root.path("retry"));
+            UiNetworkInspectionConfiguration networkInspection = networkInspection(
+                    root.path("networkInspector"));
             JsonNode api = root.path("api");
             PracticeShopApiConfiguration apiConfiguration = new PracticeShopApiConfiguration(
                     URI.create(text(api, "endpoint", PracticeShopApiConfiguration.defaults().endpoint().toString())),
@@ -97,7 +102,7 @@ public final class PracticeShopConfigurationLoader {
                             integer(root.path("viewport"), "height", 1000),
                             integer(root, "zoomPercent", 100),
                             bool(root, "screenshotOnFailure", true),
-                            uiRetry.policy()), uiRetry, validationProfile,
+                            uiRetry.policy(), networkInspection), uiRetry, validationProfile,
                     apiConfiguration, uiReports, apiReports, authenticatedE2e));
     }
 
@@ -126,6 +131,38 @@ public final class PracticeShopConfigurationLoader {
             operations.add(UiRetryOperation.from(node.asText()));
         });
         return operations;
+    }
+
+    private static UiNetworkInspectionConfiguration networkInspection(JsonNode network) {
+        boolean enabled = bool(network, "enabled", false);
+        Set<String> hosts = textSet(network.path("allowedHosts"),
+                "practiceShop.networkInspector.allowedHosts");
+        UiNetworkSettlementPolicy settlement = new UiNetworkSettlementPolicy(
+                bool(network.path("settlement"), "enabled", false),
+                duration(network.path("settlement"), "timeout", Duration.ofSeconds(10)),
+                duration(network.path("settlement"), "pollInterval", Duration.ofMillis(100)));
+        return new UiNetworkInspectionConfiguration(enabled, hosts,
+                positiveInteger(network, "maxObservations", 256,
+                        "practiceShop.networkInspector.maxObservations"),
+                positiveInteger(network, "maxBodyPreviewCharacters", 12_000,
+                        "practiceShop.networkInspector.maxBodyPreviewCharacters"),
+                bool(network, "collapseConsecutiveSignatures", true), settlement);
+    }
+
+    private static Set<String> textSet(JsonNode configured, String path) {
+        if (configured.isMissingNode() || configured.isNull()) return Set.of();
+        if (!configured.isArray()) {
+            throw new IllegalArgumentException("Configuration key " + path + " must be an array");
+        }
+        Set<String> values = new LinkedHashSet<>();
+        for (JsonNode node : configured) {
+            if (!node.isTextual() || node.asText().isBlank()) {
+                throw new IllegalArgumentException("Configuration key " + path
+                        + " must contain text values");
+            }
+            values.add(node.asText().trim());
+        }
+        return Set.copyOf(values);
     }
 
     private static PracticeShopApiEvidenceBinding apiEvidenceBinding(
@@ -195,7 +232,8 @@ public final class PracticeShopConfigurationLoader {
         UiBrowserConfiguration browser = new UiBrowserConfiguration(uri, base.browser().browser(),
                 base.browser().headless(), base.browser().timeout(), base.browser().navigationTimeout(),
                 base.browser().viewportWidth(), base.browser().viewportHeight(), base.browser().zoomPercent(),
-                base.browser().screenshotOnFailure(), base.browser().retryPolicy());
+                base.browser().screenshotOnFailure(), base.browser().retryPolicy(),
+                base.browser().networkInspection());
         return new PracticeShopConfiguration(uri, accountFile, product, productPath,
                 base.checkout(), browser, base.uiRetry(), validationProfile,
                 new PracticeShopApiConfiguration(URI.create(apiEndpoint), ApiTransportMode.parse(apiMode),

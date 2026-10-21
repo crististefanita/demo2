@@ -10,6 +10,7 @@ import atf.ui.tests.extent.support.section.publish.ExtentSectionAuditPublisher;
 import atf.ui.tests.extent.support.locators.ReportUiLocators;
 import atf.ui.tests.extent.support.audit.screen.OverviewSecondaryContractValidator;
 import atf.ui.tests.extent.support.uireport.browser.UiReportStyleValidator;
+import atf.ui.tests.extent.support.performance.ReportRuntimePerformanceBrowserProbe;
 import com.microsoft.playwright.Page;
 import atf.ui.tests.extent.support.section.runtime.SectionAuditFixture;
 import org.junit.jupiter.api.DynamicContainer;
@@ -95,9 +96,28 @@ public final class SectionAuditDynamicEngine {
                     assertions.add(ReportAuditChecks.check("Browser diagnostics",
                             "zero console/page/request errors", diagnostics.isEmpty()
                                     ? "valid" : diagnostics.toString(), diagnostics.isEmpty()));
+                    ReportRuntimePerformanceBrowserProbe.Result performance =
+                            new ReportRuntimePerformanceBrowserProbe().inspect(fixture);
+                    violations.addAll(performance.violations());
+                    assertions.add(ReportAuditChecks.check("Runtime performance readiness",
+                            "fresh browser publishes a ready snapshot",
+                            performance.snapshot().readinessAvailable()
+                                    ? performance.metricSummary() : "unavailable",
+                            performance.snapshot().readinessAvailable()));
+                    assertions.add(ReportAuditChecks.check("Runtime performance budget",
+                            "load, readiness, disclosure and mutation counters stay within budget",
+                            performance.metricSummary()
+                                    + (performance.violations().isEmpty()
+                                    ? " / valid" : " / " + performance.violations()),
+                            performance.violations().isEmpty()));
+                    assertions.add(ReportAuditChecks.check("Request signature coverage",
+                            "at least six unique rendered request signatures are expandable",
+                            performance.requestSignatures().size() + " unique signatures; expanded="
+                                    + performance.expandedRequestCount(),
+                            performance.requestSignatures().size() >= 6));
                     boolean valid = violations.isEmpty();
-                    audit.screen("Generated API report render health", "all report tabs",
-                            fixture.audit().capture(lastPage, "generated report render health"),
+                    audit.screen("Generated API report render health", "all report tabs + runtime budget",
+                            fixture.audit().capture(performance.page(), "generated report render health"),
                             assertions, status(valid));
                     assertTrue(valid, () -> "Generated report render violations: " + violations);
                     return null;

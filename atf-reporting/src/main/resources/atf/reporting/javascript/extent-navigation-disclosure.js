@@ -89,6 +89,7 @@ function toggleScenario(card, panel, e) {
     e.stopPropagation();
     if (e.stopImmediatePropagation) e.stopImmediatePropagation();
   }
+  var startedAt = atfPerformanceStart();
   normalizeScenarioAnnotations();
   var open = card.getAttribute('data-atf-scenario-open') === 'true',
     next = !open;
@@ -102,6 +103,7 @@ function toggleScenario(card, panel, e) {
     bindNodeCollapse();
   }
   collapseScenarioCards(true);
+  atfPerformanceRecordDisclosureToggle(startedAt);
 }
 function initializeScenarioCard(card, panel) {
   if (card.getAttribute('data-atf-scenario-open') !== null) return;
@@ -218,10 +220,12 @@ function bindPhaseCollapse() {
           e.stopImmediatePropagation();
           e.stopPropagation();
         }
-        var next = card.getAttribute('data-atf-phase-open') !== 'true';
+        var startedAt = atfPerformanceStart(),
+          next = card.getAttribute('data-atf-phase-open') !== 'true';
         atfPerformanceCount('phaseToggles');
         setDisclosureState(card, panel, next, 'data-atf-phase-open');
         applyPhaseBodyState(card, next);
+        atfPerformanceRecordDisclosureToggle(startedAt);
       };
       header.addEventListener('click', toggle, true);
     }
@@ -257,9 +261,11 @@ function bindNodeCollapse() {
         e.stopPropagation();
       }
       var open = card.getAttribute('data-atf-node-open') === 'true',
+        startedAt = atfPerformanceStart(),
         next = !open;
       atfPerformanceCount('nodeToggles');
       setDisclosureState(card, panel, next, 'data-atf-node-open');
+      atfPerformanceRecordDisclosureToggle(startedAt);
     };
     header.addEventListener('click', toggle, true);
     header.addEventListener(

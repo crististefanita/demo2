@@ -6,6 +6,37 @@ function countStatuses(items) {
   });
   return result;
 }
+function passLikeCount(statuses) {
+  return statuses.pass + statuses.warning;
+}
+function updateOverviewSummaryFooter(card, statuses, noun) {
+  if (!card) return;
+  var footer = card.querySelectorAll('.card-footer small');
+  if (!footer || footer.length < 2) return;
+  var total = statuses.pass + statuses.fail + statuses.skip + statuses.warning,
+    passLike = passLikeCount(statuses),
+    percentage = total ? Math.round((passLike * 100) / total) : 0,
+    failedPercentage = total ? Math.round((statuses.fail * 100) / total) : 0;
+  footer[0].setAttribute('data-tooltip', percentage + '%');
+  footer[0].innerHTML = '<b>' + passLike + '</b> ' + noun + ' passed';
+  footer[1].setAttribute('data-tooltip', failedPercentage + '%');
+  footer[1].innerHTML =
+    '<b>' +
+    statuses.fail +
+    '</b> ' +
+    noun +
+    ' failed, <b>' +
+    statuses.skip +
+    '</b> skipped, <b data-tooltip="' +
+    (total ? Math.round((statuses.warning * 100) / total) : 0) +
+    '%">' +
+    statuses.warning +
+    '</b> warnings';
+}
+function overviewChartCard(id) {
+  var chart = document.getElementById(id);
+  return chart ? chart.closest('.card') : null;
+}
 function auditRows(id, data, share, total, keepOrder) {
   var body = document.querySelector('#' + id + ' tbody');
   if (!body) return;
@@ -54,25 +85,19 @@ function populateAudit() {
     var label = text(body, 'p'),
       h = body.querySelector('h3');
     if (!h) return;
-    if (label === 'Tests Passed') h.textContent = scenarioCounts.pass;
+    if (label === 'Tests Passed') h.textContent = passLikeCount(scenarioCounts);
     if (label === 'Tests Failed') h.textContent = scenarioCounts.fail;
   });
-  var parentCard = document.getElementById('parent-analysis');
-  if (parentCard) {
-    var card = parentCard.closest('.card'),
-      foot = card && card.querySelectorAll('.card-footer small');
-    if (foot && foot.length > 1) {
-      foot[0].innerHTML = '<b>' + classCounts.pass + '</b> test classes passed';
-      foot[1].innerHTML =
-        '<b>' +
-        classCounts.fail +
-        '</b> test classes failed, <b>' +
-        classCounts.skip +
-        '</b> skipped, <b>' +
-        classCounts.warning +
-        '</b> warnings';
-    }
-  }
+  updateOverviewSummaryFooter(
+    overviewChartCard('parent-analysis'),
+    classCounts,
+    'test classes'
+  );
+  updateOverviewSummaryFooter(
+    overviewChartCard('child-analysis'),
+    scenarioCounts,
+    'steps'
+  );
   var grid = document.getElementById('atf-execution-metadata-grid');
   if (grid) {
     grid.innerHTML = [

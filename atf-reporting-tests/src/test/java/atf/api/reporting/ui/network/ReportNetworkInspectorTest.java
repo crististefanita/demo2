@@ -43,15 +43,15 @@ class ReportNetworkInspectorTest {
         String projection = fields.toString();
 
         assertAll(
-                () -> assertEquals("3", fields.get(0).value()),
-                () -> assertEquals("2", fields.get(1).value()),
-                () -> assertTrue(projection.contains("network.ui.step.1")),
-                () -> assertTrue(projection.contains("GIVEN product page is ready | exchanges=2 | responses=[200, 200] | assertions=1 PASS")),
-                () -> assertTrue(projection.contains("WHEN cart contains the product | exchanges=1 | responses=[200] | assertions=1 PASS")),
-                () -> assertTrue(projection.indexOf("E1") < projection.indexOf("E2")),
-                () -> assertTrue(projection.indexOf("E2") < projection.indexOf("E3")),
-                () -> assertTrue(projection.contains("GET /products → 200")),
-                () -> assertTrue(projection.contains("POST /carts → 200")),
+                () -> assertEquals("3 canonical exchanges", fields.get(0).value()),
+                () -> assertEquals("2 Gherkin steps; details are shown in Scenario correlation", fields.get(1).value()),
+                () -> assertTrue(projection.contains("2 unique request signatures; details are shown once below")),
+                () -> assertFalse(projection.contains("network.ui.step.1")),
+                () -> assertFalse(projection.contains("GIVEN product page is ready | exchanges=2")),
+                () -> assertFalse(projection.contains("network.aggregate")),
+                () -> assertFalse(projection.contains("E1")),
+                () -> assertFalse(projection.contains("E2")),
+                () -> assertFalse(projection.contains("E3")),
                 () -> assertFalse(projection.contains("Pliers")),
                 () -> assertFalse(projection.contains("product_id")));
     }
@@ -61,8 +61,8 @@ class ReportNetworkInspectorTest {
         var fields = ReportNetworkInspector.fields(List.of());
 
         assertAll(
-                () -> assertEquals("0", fields.get(0).value()),
-                () -> assertEquals("0", fields.get(1).value()),
+                () -> assertEquals("0 canonical exchanges", fields.get(0).value()),
+                () -> assertEquals("0 Gherkin steps; details are shown in Scenario correlation", fields.get(1).value()),
                 () -> assertEquals(3, fields.size()));
     }
 
@@ -85,11 +85,13 @@ class ReportNetworkInspectorTest {
         String projection = ReportNetworkInspector.fields(List.of(evidence)).toString();
 
         assertAll(
-                () -> assertTrue(projection.contains("sequence=4")),
-                () -> assertTrue(projection.contains("step=checkout-payment")),
-                () -> assertTrue(projection.contains("auth=bearer")),
-                () -> assertTrue(projection.contains("attempts=2")),
-                () -> assertTrue(projection.contains("retries=1")),
+                () -> assertTrue(projection.contains("1 canonical exchanges")),
+                () -> assertFalse(projection.contains("attempts=2")),
+                () -> assertFalse(projection.contains("retries=1")),
+                () -> assertFalse(projection.contains("sequence=4")),
+                () -> assertFalse(projection.contains("step=checkout-payment")),
+                () -> assertFalse(projection.contains("auth=bearer")),
+                () -> assertFalse(projection.contains("network.aggregate")),
                 () -> assertFalse(projection.contains("amount")),
                 () -> assertFalse(projection.contains("accepted")));
     }
@@ -112,13 +114,14 @@ class ReportNetworkInspectorTest {
         assertAll(
                 () -> assertEquals(1, aggregate.authentication().size()),
                 () -> assertEquals(1, aggregate.signatures().size()),
+                () -> assertEquals("api.example.test", aggregate.signatures().get(0).service()),
+                () -> assertEquals("browser network / Playwright",
+                        aggregate.signatures().get(0).mechanism()),
                 () -> assertEquals(1, aggregate.diagnostics().size()),
                 () -> assertEquals(2, aggregate.diagnostics().get(0).count()),
                 () -> assertEquals(List.of("response", "console"),
                         aggregate.diagnostics().get(0).sources()),
-                () -> assertTrue(projection.contains("network.aggregate.authentication")),
-                () -> assertTrue(projection.contains("network.aggregate.transport")),
-                () -> assertTrue(projection.contains("sources=[response, console]")),
+                () -> assertFalse(projection.contains("network.aggregate")),
                 () -> assertFalse(projection.contains("Unauthorized bootstrap")),
                 () -> assertFalse(projection.contains("Unauthorized")));
     }
@@ -141,6 +144,7 @@ class ReportNetworkInspectorTest {
                 () -> assertTrue(html.contains("Transport counters · 1")),
                 () -> assertTrue(html.contains("Unique request signatures · 1")),
                 () -> assertTrue(html.contains("Technical diagnostics · 0")),
+                () -> assertTrue(html.contains("network-signature-card")),
                 () -> assertFalse(html.contains("network.aggregate.authentication")),
                 () -> assertFalse(html.contains("<details open")));
     }
@@ -166,10 +170,12 @@ class ReportNetworkInspectorTest {
                         .map(ReportNetworkInspector.DiagnosticObservation::signal).toList()),
                 () -> assertTrue(ReportNetworkInspector.fields(List.of(), List.of(),
                         List.of(first, firstRepeat, second)).stream()
-                        .anyMatch(field -> field.name().equals("network.aggregate.diagnostics")
-                                && field.value().equals("2"))),
+                        .noneMatch(field -> field.name().startsWith("network.aggregate."))),
                 () -> assertTrue(html.contains("UNBOUND-1")),
                 () -> assertTrue(html.contains("UNBOUND-2")),
+                () -> assertTrue(html.contains("Unbound browser diagnostic")),
+                () -> assertFalse(html.contains("<td></td>")),
+                () -> assertFalse(html.contains("<td>-1</td>")),
                 () -> assertFalse(html.contains("first page signal")),
                 () -> assertFalse(html.contains("second page signal")));
     }

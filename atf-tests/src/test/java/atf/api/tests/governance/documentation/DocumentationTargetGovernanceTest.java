@@ -35,6 +35,7 @@ import static atf.api.tests.governance.AtfGovernanceTestSupport.locateProjectRoo
 @DocumentationTarget("docs/feedback/ATF_Request_Traceability_Feedback.md")
 @DocumentationTarget("docs/feedback/ATF_Test_Architecture_Feedback.md")
 @DocumentationTarget("docs/feedback/README.md")
+@DocumentationTarget("docs/feedback/README_AI_Evaluation.md")
 @DocumentationTarget("atf-tests/README.md")
 @DocumentationTarget("atf-test-practice-shop/README.md")
 @DocumentationTarget("atf-ui/README.md")

@@ -12,16 +12,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ReportAssetSizeInventoryTest {
     // The incremental table-layout cache/observer contract is part of the
     // published runtime; keep a small measured headroom without masking growth.
-    private static final long NATIVE_JAVASCRIPT_BASELINE_BYTES = 121_000L;
-    private static final long PUBLICATION_JAVASCRIPT_BASELINE_BYTES = 98_000L;
+    private static final long NATIVE_JAVASCRIPT_BASELINE_BYTES = 123_000L;
+    private static final long PUBLICATION_JAVASCRIPT_BASELINE_BYTES = 100_000L;
 
     private static final ReportAssetSizeBudget CONSUMER_BASELINE = new ReportAssetSizeBudget(
-            242_000L, 202_000L,
+            246_000L, 205_000L,
             java.util.Map.of(
                     ReportAsset.Format.CSS, 123_000L,
                     ReportAsset.Format.JAVASCRIPT, NATIVE_JAVASCRIPT_BASELINE_BYTES),
             java.util.Map.of(
-                    ReportAsset.Format.CSS, 104_000L,
+                    ReportAsset.Format.CSS, 105_000L,
                     ReportAsset.Format.JAVASCRIPT, PUBLICATION_JAVASCRIPT_BASELINE_BYTES),
             java.util.Map.of(), java.util.Map.of());
 

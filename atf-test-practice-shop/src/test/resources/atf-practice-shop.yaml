@@ -14,6 +14,19 @@ practiceShop:
     profile: ui-api
     # Typed journey binding; omit the list to enable all checkpoints for UI_API.
     apiEvidence: [product, login, cart, payment]
+  # Opt-in browser boundary. It observes only the configured API host, keeps
+  # bodies bounded/redacted and feeds the existing API network inspector; it
+  # never creates verdicts or replays a mutating browser action.
+  networkInspector:
+    enabled: true
+    allowedHosts: [api.practicesoftwaretesting.com]
+    maxObservations: 256
+    maxBodyPreviewCharacters: 12000
+    collapseConsecutiveSignatures: true
+    settlement:
+      enabled: false
+      timeout: PT10S
+      pollInterval: PT0.1S
   # Fail closed by default. To enable bounded read-only retries, raise
   # maxAttempts and list only eligible operations below; mutating actions stay
   # ineligible by construction.

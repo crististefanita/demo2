@@ -1,6 +1,7 @@
 package atf.api.reporting.ui;
 
 import atf.api.reporting.ui.network.ReportNetworkInspector;
+import atf.api.reporting.markup.AtfReportEvidenceKeys;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.api.reporting.contract.AtfReportPorts;
@@ -101,6 +102,8 @@ public final class UiPhaseLifecycle implements AutoCloseable {
         try {
             request.detail("request.action", "API network inspector");
             request.detail("request.target", "ordered exchanges from the same UI browser session");
+            request.detail(AtfReportEvidenceKeys.EVIDENCE_TYPE,
+                    AtfReportEvidenceKeys.API_TRACE);
             ReportNetworkInspector.fields(executionEvidence, steps, diagnostics).stream()
                     .filter(field -> !field.name().startsWith("network.aggregate."))
                     .forEach(field -> request.detail(field.name(), field.value()));

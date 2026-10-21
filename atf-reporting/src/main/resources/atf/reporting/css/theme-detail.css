@@ -424,6 +424,17 @@ ${FAILS_STATUS_CSS}.test-view
   background: var(--atf-panel-2) !important;
   box-shadow: none !important;
 }
+.test-view
+  .test-content-detail
+  .card[data-atf-evidence-family="technical"] {
+  border-left: 2px solid var(--atf-accent) !important;
+}
+.test-view
+  .test-content-detail
+  .card[data-atf-evidence-family="technical"]
+  > .card-header {
+  background: var(--atf-accent08) !important;
+}
 .test-contents .card[data-atf-node-role="request"] > .card-header {
   background: ${ACCENT_045} !important;
 }
