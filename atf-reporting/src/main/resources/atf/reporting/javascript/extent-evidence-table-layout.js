@@ -28,6 +28,11 @@ function evidenceTableHeader(table, index) {
     .trim()
     .toLowerCase();
 }
+function isKeyValue(table, count) {
+  return count === 2
+    && evidenceTableHeader(table, 0) === 'field'
+    && evidenceTableHeader(table, 1) === 'value';
+}
 function evidenceTableIsReservedColumn(table, index, count) {
   var header = evidenceTableHeader(table, index);
   return (
@@ -183,6 +188,17 @@ function evidenceTableAllocateWidths(
       return value * minimumScale;
     });
   }
+  if (isKeyValue(table, count)) {
+    var k = contentIndexes[0],
+      v = contentIndexes[1],
+      tableWidth = table.clientWidth,
+      keyWidth = validationClamp(Math.max(20,
+        tableWidth ? intrinsic[0] * 100 / tableWidth + 1.5 : 28), 20, 38);
+    keyWidth = Math.min(keyWidth, Math.max(20, available - 62));
+    widths[k] = keyWidth;
+    widths[v] = Math.max(0, available - keyWidth);
+    return widths;
+  }
   contentIndexes.forEach(function (index, position) {
     widths[index] = 0;
   });
@@ -238,12 +254,68 @@ var ATF_EVIDENCE_TABLE_SELECTOR =
   'table.atf-setup-evidence-table,' +
   'table.helm-evidence-table,' +
   'table.helm-validation-table';
+var ATF_EVIDENCE_TABLE_LAYOUT_CACHE = '__atfEvidenceTableLayout';
 
-function normalizeEvidenceTableColumns() {
-  q(ATF_EVIDENCE_TABLE_SELECTOR).forEach(function (table) {
+function evidenceTableCandidates(root) {
+  if (!root) return q(ATF_EVIDENCE_TABLE_SELECTOR);
+  if (Array.isArray(root)) return root;
+  if (root.matches && root.matches(ATF_EVIDENCE_TABLE_SELECTOR)) return [root];
+  return root.querySelectorAll
+    ? Array.prototype.slice.call(root.querySelectorAll(ATF_EVIDENCE_TABLE_SELECTOR)) : [];
+}
+function evidenceTableFingerprint(table, count) {
+  var style = window.getComputedStyle ? window.getComputedStyle(table) : null,
+    font = style
+      ? [style.fontFamily, style.fontSize, style.fontWeight, style.lineHeight].join('/')
+      : '';
+  var parts = [
+    String(count),
+    String(table.clientWidth || 0),
+    font
+  ];
+  Array.prototype.slice.call(table.rows || []).forEach(function (row) {
+    Array.prototype.slice.call(row.cells || []).forEach(function (cell) {
+      parts.push(String(cell.textContent || '').replace(/\s+/g, ' ').trim());
+    });
+  });
+  return parts.join('|');
+}
+function evidenceTableSetAttribute(table, name, value) {
+  if (table.getAttribute(name) !== value) table.setAttribute(name, value);
+}
+function evidenceTableCache(table) {
+  return table[ATF_EVIDENCE_TABLE_LAYOUT_CACHE]
+    || (table[ATF_EVIDENCE_TABLE_LAYOUT_CACHE] = {});
+}
+function evidenceTablesFromMutation(record) {
+  var tables = new Set();
+  var add = function (node) {
+    if (!node || node.nodeType !== 1) return;
+    if (node.matches && node.matches(ATF_EVIDENCE_TABLE_SELECTOR)) tables.add(node);
+    if (node.closest) {
+      var table = node.closest(ATF_EVIDENCE_TABLE_SELECTOR);
+      if (table) tables.add(table);
+    }
+    if (node.querySelectorAll) {
+      Array.prototype.forEach.call(
+        node.querySelectorAll(ATF_EVIDENCE_TABLE_SELECTOR),
+        function (table) { tables.add(table); }
+      );
+    }
+  };
+  add(record.target);
+  Array.prototype.forEach.call(record.addedNodes || [], add);
+  return Array.from(tables);
+}
+
+function normalizeEvidenceTableColumns(root) {
+  evidenceTableCandidates(root).forEach(function (table) {
     var rows = table.rows ? Array.prototype.slice.call(table.rows) : [],
       count = rows.length ? rows[0].cells.length : 0;
     if (count < 2) return;
+    var cache = evidenceTableCache(table),
+      fingerprint = evidenceTableFingerprint(table, count);
+    if (cache.fingerprint === fingerprint) return;
     var longest = [],
       intrinsic = [];
     rows.forEach(function (row) {
@@ -273,69 +345,83 @@ function normalizeEvidenceTableColumns() {
       count,
       table
     );
-    rows.forEach(function (row) {
-      Array.prototype.slice
-        .call(row.cells || [])
-        .forEach(function (cell, index) {
-          var width = widths[index];
-          if (width)
-            cell.style.setProperty(
-              'width',
-              width.toFixed(2) + '%',
-              'important'
-            );
-        });
+    var widthSignature = widths
+        .map(function (value) { return value.toFixed(2) + '%'; })
+        .join('|'),
+      maxSignature = intrinsic
+        .map(function (value) { return Math.round(value || 0) + 'px'; })
+        .join('|');
+    if (cache.widthSignature !== widthSignature) rows.forEach(function (row) {
+      Array.prototype.slice.call(row.cells || []).forEach(function (cell, index) {
+        var width = widths[index];
+        if (width) cell.style.setProperty('width', width.toFixed(2) + '%', 'important');
+      });
     });
-    table.setAttribute('data-atf-content-layout', 'dynamic-longest-value');
-    table.setAttribute('data-atf-content-column-count', String(count));
-    table.setAttribute(
-      'data-atf-content-column-max-px',
-      intrinsic
-        .map(function (value) {
-          return Math.round(value || 0) + 'px';
-        })
-        .join('|')
-    );
-    table.setAttribute(
-      'data-atf-content-column-widths',
-      widths
-        .map(function (value) {
-          return value.toFixed(2) + '%';
-        })
-        .join('|')
-    );
-    if (table.classList.contains('helm-validation-table')) {
-      table.setAttribute('data-atf-validation-layout', 'dynamic-longest-value');
-      table.setAttribute(
-        'data-atf-validation-column-widths',
-        widths
-          .map(function (value) {
-            return value.toFixed(2) + '%';
-          })
-          .join('|')
-      );
+    evidenceTableSetAttribute(table, 'data-atf-content-layout', 'dynamic-longest-value');
+    evidenceTableSetAttribute(table, 'data-atf-content-column-count', String(count));
+    if (isKeyValue(table, count)) {
+      evidenceTableSetAttribute(table, 'data-atf-key-value-layout', 'field-value');
+      evidenceTableSetAttribute(table, 'data-atf-key-column-width', widths[0].toFixed(2) + '%');
     }
+    evidenceTableSetAttribute(table, 'data-atf-content-column-max-px', maxSignature);
+    evidenceTableSetAttribute(table, 'data-atf-content-column-widths', widthSignature);
+    if (table.classList.contains('helm-validation-table')) {
+      evidenceTableSetAttribute(table, 'data-atf-validation-layout', 'dynamic-longest-value');
+      evidenceTableSetAttribute(table, 'data-atf-validation-column-widths', widthSignature);
+    }
+    cache.fingerprint = fingerprint;
+    cache.widthSignature = widthSignature;
+    cache.maxSignature = maxSignature;
   });
 }
-function normalizeValidationTableColumns() {
-  normalizeEvidenceTableColumns();
+function normalizeValidationTableColumns(root) {
+  normalizeEvidenceTableColumns(root);
 }
 function bindValidationTableLayout() {
   normalizeValidationTableColumns();
   if (window.__atfValidationTableLayoutBound) return;
   window.__atfValidationTableLayoutBound = true;
-  var schedule = function () {
-    clearTimeout(window.__atfValidationTableLayoutTimer);
-    window.__atfValidationTableLayoutTimer = setTimeout(
-      normalizeValidationTableColumns,
-      0
-    );
+  var pendingTables = new Set(),
+    schedule = function (tables) {
+      (tables || q(ATF_EVIDENCE_TABLE_SELECTOR)).forEach(function (table) {
+        pendingTables.add(table);
+      });
+      if (window.__atfValidationTableLayoutFrame != null) return;
+      var flush = function () {
+        window.__atfValidationTableLayoutFrame = null;
+        var current = Array.from(pendingTables);
+        pendingTables.clear();
+        normalizeValidationTableColumns(current);
+      };
+      window.__atfValidationTableLayoutFrame = window.requestAnimationFrame
+        ? window.requestAnimationFrame(flush)
+        : setTimeout(flush, 0);
   };
-  window.addEventListener('resize', function () {
-    schedule();
-  });
+  var initialTables = q(ATF_EVIDENCE_TABLE_SELECTOR);
+  if (window.ResizeObserver) {
+    window.__atfValidationTableResizeObserver = new ResizeObserver(function (entries) {
+      var tables = Array.prototype.map.call(entries, function (entry) { return entry.target; });
+      schedule(tables);
+    });
+    initialTables.forEach(function (table) {
+      window.__atfValidationTableResizeObserver.observe(table);
+    });
+  } else {
+    window.addEventListener('resize', function () { schedule(); });
+  }
   if (window.MutationObserver && document.body) {
-    new MutationObserver(schedule).observe(document.body, {
+    new MutationObserver(function (records) {
+      var tables = new Set();
+      records.forEach(function (record) {
+        evidenceTablesFromMutation(record).forEach(function (table) {
+          tables.add(table);
+        });
+      });
+      if (window.__atfValidationTableResizeObserver) tables.forEach(function (table) {
+        window.__atfValidationTableResizeObserver.observe(table);
+      });
+      if (tables.size) schedule(Array.from(tables));
+    }).observe(document.body, {
       childList: true,
       subtree: true,
       attributes: true,

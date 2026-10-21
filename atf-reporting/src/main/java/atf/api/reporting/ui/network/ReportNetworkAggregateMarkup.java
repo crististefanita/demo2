@@ -2,6 +2,7 @@ package atf.api.reporting.ui.network;
 
 import atf.api.reporting.evidence.ReportEvidenceTable;
 import atf.api.reporting.evidence.markup.ReportEvidenceMarkup;
+import atf.api.reporting.api.ReportRequestSignature;
 import atf.api.reporting.markup.AtfReportLabels;
 import atf.api.reporting.markup.AtfReportMarkup;
 import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
@@ -65,7 +66,8 @@ public final class ReportNetworkAggregateMarkup {
                 ReportEvidenceTable.of(
                         List.of("SIGNATURE", "COUNT", "STATUSES"),
                         aggregate.signatures().stream()
-                                .map(item -> List.of(item.signature(), Integer.toString(item.count()),
+                                .map(item -> List.of(ReportRequestSignature.displaySignature(item.signature()),
+                                        Integer.toString(item.count()),
                                         item.statuses().toString()))
                                 .toList())));
         sections.append(section(DIAGNOSTICS, aggregate.diagnostics().size(),

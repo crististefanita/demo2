@@ -214,7 +214,7 @@ TestCase
 | layout | `＋/−` este inline înaintea propoziției; cele trei zone de validation sunt surori, fără `<hr>` decorativ |
 | responsive evidence | până la breakpoint-ul de lucru (`1300px`), action tables se redimensionează și împachetează conținutul fără scrollbar orizontal; padding-ul lateral al wrapperului este eliminat semantic, nu prin crop | 
 | action number | fiecare acțiune afișează `#n` într-un token dedicat, `atf-ui-action-number`, compact (`inline-block`/`max-content`); nu se reutilizează clasa extensibilă `atf-ui-action-sequence` |
-| screenshot | link inline cu emoji-ul curent; payload Base64 pentru prima apariție sau referință inline pentru o stare deduplicată; nu hash afișat în locul linkului |
+| screenshot | link inline cu emoji-ul curent; payload Base64 pentru prima apariție sau referință locală bounded (`screenshot-n`) pentru o stare deduplicată; fingerprint-ul rămâne intern și nu este afișat în locul linkului |
 | action table | acțiunile relevante includ `getText`/text extraction; timpul apare numai pentru acțiuni |
 | failures | `Setup`, `Playwright action`, `Audit observation` și `Assertion` au cauze distincte și `Open in Tests` |
 | navigation | `Tests`, `Overview`, `Categories`, `Fails` folosesc aceeași identitate semantică și deep-link |
@@ -234,13 +234,16 @@ UI checkpoint
 ```
 
 - disclosures sunt închise by default și rămân pe același nod UI;
-- în consumerul UI, forma țintă este `Gherkin API trace → API validation →
-  exchange disclosures`; `API validation` trebuie să aibă același rol vizibil și
-  același status semantic ca `UI validation`;
-- pentru `apiTrace(...)`, cardul sibling păstrează titlul Gherkin exact și
-  prefixează câmpurile cu `API n ·` numai pentru corelarea exchange-urilor;
-  aceasta aliniază vocabularul și redaction policy, dar nu înlocuiește forma
-  canonicală per exchange din raportul API direct;
+- în consumerul UI, forma țintă este `un singur pas Gherkin → UI validation +
+  API validation → exchange disclosures`; cele două validation nodes sunt copii
+  semantici ai aceluiași pas și au statusuri proprii;
+- `apiTrace(...)` nu trebuie să producă un al doilea card vizibil cu același
+  titlu Gherkin ca checkpoint-ul UI. Dacă un consumer are API evidence pentru
+  aceeași propoziție, publisher-ul trebuie să atașeze validation-ul la nodul
+  existent sau să folosească o compoziție echivalentă fără duplicare;
+- `Exchange n` este identificator local în `API validation`; nu se revine la
+  chei flat `API n · ...` și nu se multiplică propoziția Gherkin pentru
+  request-uri diferite;
 - `Execution evidence · 1 attempts` nu poate rămâne un titlu repetat fără
   context: exchange-ul trebuie identificat prin disclosure-ul părinte sau printr-un
   label semantic per exchange;
@@ -265,9 +268,10 @@ nu este un al doilea trace și nu înlocuiește evidence-ul canonical al unui ex
 
 ```mermaid
 flowchart LR
-    Checkpoint["UI checkpoint"] -->|cauzează| Trace["API trace sibling"]
-    Trace -->|păstrează canonical| Evidence["request · response · execution"]
-    Trace -->|indexează| Aggregate["journey aggregate"]
+    Checkpoint["un singur Gherkin checkpoint"] -->|păstrează| Ui["UI validation"]
+    Checkpoint -->|păstrează| Api["API validation"]
+    Api -->|păstrează canonical| Evidence["request · response · execution"]
+    Checkpoint -->|indexează| Aggregate["journey aggregate"]
     Aggregate -->|grupează| Facts["auth · correlation · transport · signatures · diagnostics"]
 ```
 
@@ -282,10 +286,14 @@ flowchart LR
 - `signatures` grupează signature-ul safe cu count și statusuri;
 - `diagnostics` deduplicatează response/console/page după method/route/status și
   păstrează `count` și `sources`, fără mesaje volatile; pentru semnale fără facts
-  de transport, tripletul gol nu este o identitate suficientă și cere o cheie
-  bounded distinctă;
+  de transport, tripletul gol nu este o identitate suficientă: mesajul exact este
+  folosit numai intern pentru grouping, iar HTML-ul expune token-uri bounded
+  distincte `UNBOUND-n`, cu count comun numai pentru repetări reale;
 - body-urile JSON, headerele sensibile și execution details rămân în disclosure-ul
   canonical al exchange-ului; nu se copiază în sumar;
+- semnătura request-ului și digesturile body-ului rămân identitate internă pentru
+  grouping/retry; HTML-ul public afișează doar `body=present|absent` și markerul
+  bounded `internal digest hidden`;
 - consumerul selectează evidence-ul înainte de publisher, prin contract typed;
   renderer-ul nu decide ce request-uri intră;
 - `Overview → System` nu este owner pentru trace, auth, diagnostic sau body;
@@ -293,15 +301,15 @@ flowchart LR
 
 </details>
 
-În implementarea curentă, bridge-ul generic publică aggregate-ul într-un singur
-nod collapsed `TRACE`, cu disclosure-uri nested pentru auth, correlation,
-transport, signatures și diagnostics. Limita rămasă este separată: când un
-checkpoint are mai multe exchange-uri, request/response sunt încă serializate
-în tabele comune, lipsește copilul `API validation`, iar `TRACE PARENT STEP`/
-`TRACE POSITION` ajung în response details. Forma țintă reutilizează disclosure-
-urile API direct per exchange, fără JSON duplicat și cu execution evidence
-identificabil; acest gap este urmărit în `REP-TRACE-03`, iar URL wrapping-ul în
-`REP-EVID-08`.
+În implementarea generică, bridge-ul publică aggregate-ul într-un singur nod
+collapsed `TRACE`, cu disclosure-uri nested pentru auth, correlation, transport,
+signatures și diagnostics. Pentru checkpoint-uri cu mai multe exchange-uri,
+pipeline-ul lower-level păstrează `API validation → Exchange → request →
+response → execution`, fără JSON duplicat; retry-ul rămâne în execution
+evidence-ul aceluiași exchange. Compoziția consumerului trebuie să atașeze
+acest validation la același nod Gherkin cu `UI validation`; dacă apare un card
+Gherkin duplicat, contractul este neconform și este urmărit în feedback-ul activ
+`REP-TRACE-03`.
 
 ## Structura producției
 
@@ -457,6 +465,17 @@ Durata este emisă de seams cu owner unic, compuse de facade-ul public
 | `ExtentReportDurationProjectionPublication` | badge-uri, summary și publicarea class duration | output consistent în toate tab-urile |
 | `ExtentReportDurationScheduling` / `Lifecycle` | scheduling, click hooks, observer și boot | activare idempotentă și ready marker |
 | `ExtentReportDurationVocabulary` | contract typed pentru atribute, selectori și funcții | cardinalitate și unicitate verificate static |
+
+Navigation are și un asset separat, `extent-navigation-performance.js`, compus
+prin `ExtentReportRuntimeNavigationPerformance`. El nu decide verdictul și nu
+scrie conținut de business; expune doar un snapshot diagnostic opțional prin
+`window.__atfReportPerformance`, cu numărul/durata normalizărilor, burst-urile
+relevante, toggle-urile, readiness-ul și long-task-urile disponibile browserului.
+Controllerul consumă acest seam prin funcții mici (`atfPerformanceStart/End`,
+`atfPerformanceBeginReadiness`, `atfPerformanceMarkReady`), astfel încât testele
+component pot verifica ownership-ul și ordinea fără browser, iar testele MCP pot
+audita costul efectiv al unui artifact fresh. Asset-ul nativ rămâne formatat,
+iar publisher-ul îl compactează împreună cu celelalte `.js`.
 
 `ReportArtifactInspectorTest` și contractele runtime verifică unicitatea și
 prezența acestor seams în HTML-ul publicat. Stringurile dinamice se compun local,
@@ -661,6 +680,22 @@ Output-ul este configurabil prin `reporting.extent.outputDirectory` și
 `fileName`; runtime-ul UI folosește separat directorul UI configurat de test.
 Documentația descrie numai politica și pattern-ul de output, nu nume concrete de
 rapoarte generate.
+
+### Prospețimea dovezii vizuale
+
+Un HTML generat înainte de recompilarea claselor sau a resurselor reporting este
+un artifact istoric, nu dovadă pentru codul curent. Pentru orice audit vizual:
+
+- regenerează raportul după build-ul care conține schimbarea;
+- verifică întâi testele component/integration, apoi raportul proaspăt;
+- nu redeschide un ToDo dintr-un artifact vechi dacă rendererul actual are deja
+  contractul și testul corespunzător;
+- dacă artifactul vechi contrazice contractul curent, marchează-l stale și nu-l
+  copia în feedback sau README.
+
+Digesturile folosite intern pentru grouping nu devin evidence umană: HTML-ul
+public proiectează numai starea bounded (`body=present|absent`, `internal digest
+hidden`).
 
 `ReportPublicationCoordinator` are următoarele responsabilități:
 

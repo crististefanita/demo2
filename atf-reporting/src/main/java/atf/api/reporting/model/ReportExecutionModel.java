@@ -150,15 +150,22 @@ public record ReportExecutionModel(List<Scenario> scenarios) {
     }
 
     public record Validation(String title, List<AtfAssertion> assertions,
-                             AtfReportStatus status, int uiActionCount, int screenshotCount) implements Node {
+                             AtfReportStatus status, int uiActionCount, int screenshotCount,
+                             List<Node> children) implements Node {
         public Validation(String title, List<AtfAssertion> assertions, AtfReportStatus status) {
-            this(title, assertions, status, 0, 0);
+            this(title, assertions, status, 0, 0, List.of());
+        }
+
+        public Validation(String title, List<AtfAssertion> assertions,
+                          AtfReportStatus status, int uiActionCount, int screenshotCount) {
+            this(title, assertions, status, uiActionCount, screenshotCount, List.of());
         }
 
         public Validation {
             title = title == null ? "" : title;
             assertions = List.copyOf(Objects.requireNonNull(assertions, "assertions"));
             status = Objects.requireNonNull(status, "status");
+            children = List.copyOf(Objects.requireNonNull(children, "children"));
             if (uiActionCount < 0 || screenshotCount < 0) {
                 throw new IllegalArgumentException("Evidence counts must be non-negative");
             }

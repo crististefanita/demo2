@@ -18,6 +18,8 @@ import com.aventstack.extentreports.ExtentTest;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Consumer;
 
 final class ExtentRequestScope implements AtfReportPorts.Request {
     private final ExtentReportTree tree;
@@ -30,6 +32,7 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
     private final List<AtfUiActionRecord> uiActions = new ArrayList<>();
     private final ReportStatusAggregator statuses = new ReportStatusAggregator();
     private final AtfReportSemanticRecorder.RequestHandle semantic;
+    private final Consumer<AtfReportStatus> onComplete;
     private final List<ReportExecutionEvidence> executions = new ArrayList<>();
     private ReportNetworkInspector.JourneyAggregate networkAggregate;
     private int openValidations;
@@ -37,11 +40,18 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
 
     ExtentRequestScope(ExtentReportTree tree, ExtentPhaseScope phase, ExtentTest request,
                        String requestTitle, AtfReportSemanticRecorder.RequestHandle semantic) {
+        this(tree, phase, request, requestTitle, semantic, status -> { });
+    }
+
+    ExtentRequestScope(ExtentReportTree tree, ExtentPhaseScope phase, ExtentTest request,
+                       String requestTitle, AtfReportSemanticRecorder.RequestHandle semantic,
+                       Consumer<AtfReportStatus> onComplete) {
         this.tree = tree;
         this.phase = phase;
         this.request = request;
         this.requestTitle = requestTitle;
-        this.semantic = semantic;
+        this.semantic = Objects.requireNonNull(semantic, "semantic");
+        this.onComplete = Objects.requireNonNull(onComplete, "onComplete");
         tree.markStarted(request);
     }
 
@@ -111,6 +121,7 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
         semantic.complete(effective);
         tree.consoleCompleted(atf.api.reporting.console.AtfConsoleEvent.Scope.REQUEST,
                 requestTitle, effective, request);
+        onComplete.accept(effective);
         closed = true;
     }
 
@@ -127,6 +138,7 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
     }
 
     void record(AtfReportStatus status) { statuses.record(status); }
+    ExtentPhaseScope phase() { return phase; }
     void validationCompleted() { openValidations--; }
     @Override public void close() { closed = true; }
 

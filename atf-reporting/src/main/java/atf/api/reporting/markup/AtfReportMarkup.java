@@ -84,7 +84,11 @@ public final class AtfReportMarkup {
                 var cellTag = table.firstColumnHeader() && columnIndex == 0
                         ? AtfReportHtmlVocabulary.Tag.TH
                         : AtfReportHtmlVocabulary.Tag.TD;
-                html.append(AtfReportHtmlVocabulary.openTag(cellTag))
+                String cellAttributes = isUrlValueCell(safeTable, row, columnIndex)
+                        ? AtfReportHtmlVocabulary.classAttribute(
+                        AtfReportHtmlVocabulary.CssClass.EVIDENCE_URL_VALUE)
+                        : "";
+                html.append(AtfReportHtmlVocabulary.openTag(cellTag, cellAttributes))
                         .append(AtfReportHtmlVocabulary.escapeHtml(value))
                         .append(AtfReportHtmlVocabulary.closeTag(cellTag));
             }
@@ -104,6 +108,15 @@ public final class AtfReportMarkup {
                 AtfReportHtmlVocabulary.CssClass.HELM_TRACE_TABLE.value())
                 || cssClass.contains(AtfReportHtmlVocabulary.CssClass.HELM_REQUEST_TABLE.value())
                 || cssClass.contains(AtfReportHtmlVocabulary.CssClass.EXECUTION_TABLE.value()));
+    }
+
+    private static boolean isUrlValueCell(ReportEvidenceTable table,
+                                          List<String> row, int columnIndex) {
+        if (columnIndex != 1 || row.isEmpty() || table.headers().size() != 2) return false;
+        String field = row.get(0) == null ? "" : row.get(0).trim().toLowerCase(java.util.Locale.ROOT);
+        return field.equals("url") || field.endsWith(" url") || field.endsWith(".url")
+                || field.equals("target") || field.endsWith(" target") || field.endsWith(".target")
+                || field.equals("response url") || field.equals("request target");
     }
 
 }

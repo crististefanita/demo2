@@ -41,6 +41,16 @@ public final class AtfReportPorts {
         void complete(AtfReportStatus status); @Override void close();
     }
     public interface Validation extends ValidationSink.Scope, AutoCloseable {
+        /**
+         * Adds a nested request evidence node to this validation.  The seam is
+         * intentionally optional so existing lightweight adapters remain
+         * source-compatible; renderer implementations that support the
+         * structured API trace expose the full request/response/execution
+         * pipeline here.
+         */
+        default Request startRequest(String title, String method, String path) {
+            throw new UnsupportedOperationException("Nested request evidence is not supported");
+        }
         void assertions(Collection<AtfAssertion> assertions);
         default void completeFailure(AtfReportStatus status) { complete(status); }
         default void uiActions(Collection<AtfUiActionRecord> actions) { }

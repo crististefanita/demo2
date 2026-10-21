@@ -119,6 +119,10 @@ public final class AtfReportSemanticRecorder {
             state.screenshot();
         }
 
+        public RequestHandle startRequest(String title, String method, String path) {
+            return new RequestHandle(state.startRequest(title, method, path));
+        }
+
         public void complete(AtfReportStatus status) {
             state.complete(Objects.requireNonNull(status, "status"));
         }

@@ -190,11 +190,7 @@ public final class PracticeShopE2eContext implements AutoCloseable {
                     ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
             body.step(checkpoint.keyword(), checkpoint.title(), page.url(), evidence.base64Png(),
                     checkpoint.assertions(), PracticeShopReportUiActionAdapters.from(actions.drain()),
-                    checkpointStatus);
-            if (!checkpoint.apiEvidence().isEmpty()) {
-                body.apiTrace(checkpoint.keyword(), checkpoint.title(), page.url(),
-                        checkpoint.apiEvidence(), checkpointStatus);
-            }
+                    checkpoint.apiEvidence(), checkpointStatus);
         }
 
         /** Compatibility path for the optional authenticated catalog scenarios. */

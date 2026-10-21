@@ -27,8 +27,6 @@ import java.util.Objects;
  */
 public final class UiEvidencePublisher {
     private static final String SCREEN_VALIDATION = "Screen validation";
-    private static final String REQUEST_API_KEY = "request.api.%d.%s";
-    private static final String RESPONSE_API_KEY = "response.api.%d.%s";
     private static final String METHOD = "method";
     private static final String PATH = "path";
     private static final String URL = "url";
@@ -41,6 +39,7 @@ public final class UiEvidencePublisher {
     private static final String STATUS = "status";
     private static final String CONTENT_TYPE = "content.type";
     private static final String RESPONSE_HEADERS = "response.headers";
+    private static final String API_VALIDATION = "API validation";
 
     private final AtfReportPorts.Phase phase;
     private final ReportScreenshotPolicy screenshotPolicy;
@@ -153,8 +152,9 @@ public final class UiEvidencePublisher {
         try {
             request.detail(AtfReportEvidenceKeys.REQUEST_ACTION, stepTitle);
             detailTarget(request, target);
-            publishApiEvidence(request, apiEvidence);
             boolean visualValidation = SCREEN_VALIDATION.equals(validationTitle);
+            boolean hasApiEvidence = hasApiEvidence(apiEvidence);
+            AtfReportStatus effectiveStatus = defaultStatus(status, AtfReportStatus.PASS);
             if (visualValidation) {
                 request.detail(AtfReportEvidenceKeys.EVIDENCE_TYPE, AtfReportEvidenceKeys.SCREEN_VALIDATION);
                 request.detail(AtfReportEvidenceKeys.EVIDENCE_POLICY,
@@ -166,19 +166,24 @@ public final class UiEvidencePublisher {
                 publishActions(validation, actions);
                 publishScreenshot(validation, target, title, base64Png, status, "UI assertion", capturePoint);
                 validation.assertions(assertions);
-                validation.complete(defaultStatus(status, AtfReportStatus.PASS));
+                validation.complete(effectiveStatus);
             }
-            request.complete(defaultStatus(status, AtfReportStatus.PASS));
+            if (hasApiEvidence) {
+                var apiValidation = request.startValidation(API_VALIDATION);
+                try {
+                    publishApiEvidence(apiValidation, apiEvidence, effectiveStatus);
+                    apiValidation.complete(effectiveStatus);
+                } finally {
+                    apiValidation.close();
+                }
+            }
+            request.complete(effectiveStatus);
         } finally {
             request.close();
         }
     }
 
-    /**
-     * Publishes one causal API exchange group as a sibling of its UI step.
-     * The canonical request/response/execution disclosures are reused once;
-     * the compact final inspector remains free to summarize the same trace.
-     */
+    /** Publishes an explicit standalone API trace with nested exchange evidence. */
     void publishApiTrace(String keyword, String title, String target,
                          Collection<ReportExecutionEvidence> apiEvidence,
                          AtfReportStatus status) {
@@ -192,7 +197,13 @@ public final class UiEvidencePublisher {
             request.detail(AtfReportEvidenceKeys.EVIDENCE_TYPE, AtfReportEvidenceKeys.API_TRACE);
             request.detail("trace.parent.step", sourceStep);
             request.detail("trace.position", "causal sibling published immediately after UI step");
-            publishApiEvidence(request, apiEvidence);
+            var validation = request.startValidation(API_VALIDATION);
+            try {
+                publishApiEvidence(validation, apiEvidence, effectiveStatus);
+                validation.complete(effectiveStatus);
+            } finally {
+                validation.close();
+            }
             request.complete(effectiveStatus);
         } finally {
             request.close();
@@ -200,16 +211,15 @@ public final class UiEvidencePublisher {
     }
 
     /**
-     * Projects an API exchange into the canonical request/response/execution
-     * disclosures already used by API reports. The UI step remains the owner;
-     * the UI trace deliberately keeps only stable exchange facts; volatile
-     * browser headers and volatile response headers are filtered at this
-     * boundary. Stable response headers use the same optional disclosure as
-     * the direct API report. No duplicate assertion table or second test node
-     * is created.
+     * Projects each API exchange into a request child of one semantic
+     * {@code API validation}. This is deliberately the same typed request /
+     * response / execution pipeline used by direct API reports: one exchange
+     * owns one request node, one request JSON, one response JSON and its own
+     * attempt history. The parent trace carries only causal context.
      */
-    private static void publishApiEvidence(AtfReportPorts.Request request,
-                                           Collection<ReportExecutionEvidence> apiEvidence) {
+    private static void publishApiEvidence(AtfReportPorts.Validation validation,
+                                           Collection<ReportExecutionEvidence> apiEvidence,
+                                           AtfReportStatus exchangeStatus) {
         if (apiEvidence == null) return;
         int exchangeNumber = 0;
         for (ReportExecutionEvidence evidence : apiEvidence) {
@@ -217,43 +227,46 @@ public final class UiEvidencePublisher {
             exchangeNumber++;
             ReportRequest apiRequest = evidence.request();
             ReportResponse apiResponse = evidence.response();
-            request.detail(apiKey(REQUEST_API_KEY, exchangeNumber, METHOD), apiRequest.method());
-            request.detail(apiKey(REQUEST_API_KEY, exchangeNumber, PATH), apiRequest.path());
-            request.detail(apiKey(REQUEST_API_KEY, exchangeNumber, URL), apiResponse.url());
-            request.detail(apiKey(REQUEST_API_KEY, exchangeNumber, AUTH_PROFILE), apiRequest.authProfile());
-            request.detail(apiKey(REQUEST_API_KEY, exchangeNumber, AUTH_TYPE),
+            var request = validation.startRequest(exchangeTitle(apiRequest, exchangeNumber),
+                    apiRequest.method(), apiRequest.path());
+            request.detail("trace.exchange", "#" + exchangeNumber);
+            request.detail(METHOD, apiRequest.method());
+            request.detail(PATH, apiRequest.path());
+            request.detail(URL, apiResponse.url());
+            request.detail(AUTH_PROFILE, apiRequest.authProfile());
+            request.detail(AUTH_TYPE,
                     apiRequest.authMethod().wireValue());
             if (!apiRequest.query().isEmpty()) {
-                request.detail(apiKey(REQUEST_API_KEY, exchangeNumber, QUERY_PARAMS),
-                        format(apiRequest.query()));
+                request.detail(QUERY_PARAMS, format(apiRequest.query()));
             }
-            request.detail(apiKey(REQUEST_API_KEY, exchangeNumber, REQUEST_HEADERS),
+            request.detail(REQUEST_HEADERS,
                     ApiManualReplay.redactedHeaders(apiRequest));
-            request.detail(apiKey(REQUEST_API_KEY, exchangeNumber, TRANSPORT),
+            request.detail(TRANSPORT,
                     evidence.provenance().reportLabel());
-            request.detail(apiKey(REQUEST_API_KEY, exchangeNumber, MANUAL_REPLAY),
+            request.detail(MANUAL_REPLAY,
                     ApiManualReplay.describe(evidence.provenance(), apiRequest,
                             apiResponse.url(), apiRequest.bodyText()));
             if (!apiRequest.bodyText().isBlank()) {
-                request.json("REQUEST JSON · API " + exchangeNumber, apiRequest.bodyText());
+                request.json("REQUEST JSON", apiRequest.bodyText());
             }
-            request.detail(apiKey(RESPONSE_API_KEY, exchangeNumber, STATUS),
+            request.detail(STATUS,
                     String.valueOf(apiResponse.status()));
-            request.detail(apiKey(RESPONSE_API_KEY, exchangeNumber, CONTENT_TYPE),
+            request.detail(CONTENT_TYPE,
                     header(apiResponse.headers(), "content-type"));
             String responseHeaders = ApiManualReplay.relevantResponseHeaders(apiResponse.headers());
             if (!"[]".equals(responseHeaders)) {
-                request.detail(apiKey(RESPONSE_API_KEY, exchangeNumber, RESPONSE_HEADERS), responseHeaders);
+                request.detail(RESPONSE_HEADERS, responseHeaders);
             }
             if (!apiResponse.body().isBlank()) {
-                request.json("RESPONSE JSON · API " + exchangeNumber, apiResponse.body());
+                request.json("RESPONSE JSON", apiResponse.body());
             }
             request.execution(evidence);
+            request.complete(exchangeStatus);
         }
     }
 
-    private static String apiKey(String pattern, int exchangeNumber, String field) {
-        return pattern.formatted(exchangeNumber, field);
+    private static String exchangeTitle(ReportRequest request, int number) {
+        return "Exchange " + number;
     }
 
     private static String header(Map<String, String> headers, String name) {
@@ -367,6 +380,13 @@ public final class UiEvidencePublisher {
     private static String stepTitle(String keyword, String title) {
         return ((keyword == null ? "" : keyword.trim()) + " "
                 + (title == null ? "" : title.trim())).trim();
+    }
+
+    private static boolean hasApiEvidence(Collection<ReportExecutionEvidence> apiEvidence) {
+        return apiEvidence != null && apiEvidence.stream()
+                .anyMatch(evidence -> evidence != null
+                        && evidence.request() != null
+                        && evidence.response() != null);
     }
 
     private static boolean hasText(String value) {

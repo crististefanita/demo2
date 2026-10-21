@@ -8,6 +8,7 @@ import atf.api.core.http.transport.ApiTransportProvenance;
 import atf.api.core.reporting.console.AtfConsoleEvent;
 import atf.api.core.reporting.console.AtfConsoleSink;
 import atf.api.reporting.contract.AtfAssertion;
+import atf.api.reporting.api.ReportRequestSignature;
 import atf.api.reporting.contract.AtfReportPorts;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.extent.session.ExtentReportSession;
@@ -153,7 +154,7 @@ public final class PracticeShopApiReportPublisher {
             if (sequence > 0) {
                 var traced = PracticeShopApiExecutionExchange.from(execution, sequence,
                         phaseFor(request.path()));
-                node.detail("request.signature", traced.signature());
+                node.detail("request.signature", ReportRequestSignature.displaySignature(traced.signature()));
                 node.detail("capture.sequence", Long.toString(traced.sequence()));
                 node.detail("capture.phase", traced.phase());
             }

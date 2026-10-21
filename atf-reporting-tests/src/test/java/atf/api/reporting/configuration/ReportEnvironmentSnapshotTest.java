@@ -20,6 +20,7 @@ class ReportEnvironmentSnapshotTest {
                 .put(ReportEnvironmentField.TEST_PACKAGE, "atf.tests.internal")
                 .put(ReportEnvironmentField.FLOW, "business checkout")
                 .put(ReportEnvironmentField.FIXTURE, "private-fixture")
+                .put(ReportEnvironmentField.UI_JOURNEY_PRECONDITION, "guest checkout configuration ready")
                 .put(ReportEnvironmentField.RETRY_POLICY, "disabled")
                 .build();
 
@@ -29,6 +30,7 @@ class ReportEnvironmentSnapshotTest {
                 () -> assertTrue(snapshot.displayValues().containsKey("Suite")),
                 () -> assertTrue(published.containsKey("Environment")),
                 () -> assertTrue(published.containsKey("UI host")),
+                () -> assertTrue(published.containsKey("UI journey precondition")),
                 () -> assertTrue(published.containsKey("Retry policy")),
                 () -> assertFalse(published.containsKey("Suite")),
                 () -> assertFalse(published.containsKey("Test package")),

@@ -207,6 +207,7 @@ public final class HtmlReportSemanticDocument {
     public static final class ValidationModel implements NodeModel {
         final String title;
         List<AtfAssertion> assertions = List.of();
+        final List<NodeModel> children = new ArrayList<>();
         int uiActionCount;
         int screenshotCount;
         AtfReportStatus status = AtfReportStatus.INFO;
@@ -225,6 +226,16 @@ public final class HtmlReportSemanticDocument {
 
         public List<AtfAssertion> assertions() {
             return assertions;
+        }
+
+        public RequestModel addRequest(String title, String method, String path) {
+            var request = new RequestModel(title, method, path);
+            children.add(request);
+            return request;
+        }
+
+        public List<NodeModel> children() {
+            return List.copyOf(children);
         }
 
         public void addUiActions(Collection<AtfUiActionRecord> actions) {

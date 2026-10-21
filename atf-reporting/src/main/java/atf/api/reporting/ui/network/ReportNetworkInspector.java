@@ -2,6 +2,7 @@ package atf.api.reporting.ui.network;
 
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.api.ReportAuthObservation;
+import atf.api.reporting.api.ReportRequestSignature;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.model.ReportField;
 
@@ -267,7 +268,9 @@ public final class ReportNetworkInspector {
         }
 
         public String summary() {
-            return "count=" + count + "; signature=" + signature + "; statuses=" + statuses;
+            return "count=" + count + "; signature="
+                    + ReportRequestSignature.displaySignature(signature)
+                    + "; statuses=" + statuses;
         }
     }
 
@@ -353,7 +356,7 @@ public final class ReportNetworkInspector {
                 + " | attempts=" + evidence.attempts()
                 + " | retries=" + evidence.retryEvents().size()
                 + " | source=" + source + " | transport=" + transport
-                + " | signature=" + signature;
+                + " | signature=" + ReportRequestSignature.displaySignature(signature);
     }
 
     private static String traceFacts(atf.api.reporting.api.ReportTraceMetadata trace) {

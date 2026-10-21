@@ -111,7 +111,7 @@ class HtmlReportViewsTest {
                 () -> assertTrue(html.contains("class=\"atf-evidence-value-column\"")),
                 () -> assertTrue(html.contains("class=\"helm-api-classification technical\"")),
                 () -> assertTrue(html.contains("<th>FIELD</th><th>VALUE</th>")),
-                () -> assertTrue(html.contains("<td>URL</td><td>/users</td>")));
+                () -> assertTrue(html.contains("<td>URL</td><td class=\"atf-evidence-url-value\">/users</td>")));
     }
 
     @Test

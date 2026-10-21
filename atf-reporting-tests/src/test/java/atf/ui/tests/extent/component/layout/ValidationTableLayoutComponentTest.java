@@ -22,6 +22,10 @@ class ValidationTableLayoutComponentTest {
                 () -> assertTrue(script.contains("evidenceTableIntrinsicWidth")),
                 () -> assertTrue(script.contains("measureText")),
                 () -> assertTrue(script.contains("evidenceTableContentMinimumWidth")),
+                () -> assertTrue(script.contains("isKeyValue")),
+                () -> assertTrue(script.contains("data-atf-key-column-width")),
+                () -> assertTrue(script.contains("tableWidth?intrinsic[0]")),
+                () -> assertTrue(script.contains("Math.max(20,available - 62)")),
                 () -> assertTrue(script.contains("semanticMinimum")),
                 () -> assertTrue(script.contains("headerPercent")),
                 () -> assertTrue(script.contains("minimums")),
@@ -54,9 +58,20 @@ class ValidationTableLayoutComponentTest {
                 () -> assertTrue(script.contains("data-atf-content-column-widths")),
                 () -> assertTrue(script.contains("data-atf-validation-layout")),
                 () -> assertTrue(script.contains("data-atf-validation-column-widths")),
+                () -> assertTrue(script.contains("ATF_EVIDENCE_TABLE_LAYOUT_CACHE")),
+                () -> assertTrue(script.contains("evidenceTableFingerprint")),
+                () -> assertTrue(script.contains("cache.fingerprint")),
+                () -> assertTrue(script.contains("cache.widthSignature")),
+                () -> assertTrue(script.contains("evidenceTableCandidates(root)")),
+                () -> assertTrue(script.contains("evidenceTablesFromMutation")),
+                () -> assertTrue(script.contains("ResizeObserver")),
+                () -> assertTrue(script.contains("requestAnimationFrame")),
+                () -> assertTrue(script.contains("pendingTables")),
                 () -> assertTrue(script.contains("window.addEventListener('resize'")),
                 () -> assertTrue(script.contains("MutationObserver")),
-                () -> assertTrue(script.contains("normalizeValidationTableColumns()")));
+                () -> assertFalse(script.contains("new MutationObserver(schedule)")),
+                () -> assertFalse(script.contains("setTimeout(normalizeValidationTableColumns")),
+                () -> assertTrue(script.contains("normalizeValidationTableColumns(root)")));
     }
 
     @Test

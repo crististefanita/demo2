@@ -1,6 +1,7 @@
 package atf.ui.practiceshop.support;
 
 import atf.api.reporting.contract.AtfAssertion;
+import atf.api.reporting.api.ReportRequestSignature;
 import atf.api.core.http.request.HttpMethod;
 import atf.api.core.http.request.MediaTypes;
 import atf.ui.practiceshop.api.PracticeShopApiOperation;
@@ -152,7 +153,7 @@ public final class PracticeShopApiAssertions {
         String observed = exchange == null ? "missing" : "sequence="
                 + (exchange.sequence() > 0 ? exchange.sequence() : "n/a")
                 + "; phase=" + exchange.phase()
-                + "; signature=" + exchange.signature();
+                + "; signature=" + ReportRequestSignature.displaySignature(exchange.signature());
         return check("API trace · " + label,
                 "request signature + phase + capture order", observed, present);
     }

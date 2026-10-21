@@ -228,7 +228,8 @@ Contractul failure este schematic:
 - `Tests` și `Fails` indică aceeași identitate;
 - screenshot-ul este evidence inline cu `📷`:
   - PNG Base64 direct; sau
-  - link inline deduplicat către ancora PNG canonică;
+  - link inline deduplicat către ancora PNG canonică, cu referință locală bounded
+    (`screenshot-n`), nu cu fingerprint-ul intern;
 - un hash izolat fără link și marker vizibil nu este evidence;
 - `Setup evidence` rămâne setup;
 - `Screen validation` apare în `TEST BODY` după acțiunile browser și inspecția
@@ -702,9 +703,26 @@ Regulile sunt dinamice, nu depend de un endpoint sau de un fixture anume:
 - păstrează coloanele de status/timp compacte și lizibile;
 - aplică procentele pe header și body, cu limite min/max pentru coloanele de
   conținut;
-- recalculează la `resize` și la modificările de DOM/disclosure;
+- face o normalizare inițială globală, apoi lucrează incremental: fiecare tabel
+  păstrează un fingerprint al textului, fontului și lățimii disponibile, iar un
+  fingerprint identic oprește măsurarea și rescrierea inline;
+- urmărește mutațiile doar până la tabelul/containerul afectat; când browserul
+  oferă `ResizeObserver`, acesta programează tabelul redimensionat, iar fallback-ul
+  folosește `resize` cu un singur frame debounced (`requestAnimationFrame`);
+- tratează `hidden → visible`, `open → close` și tabelele adăugate ulterior ca
+  invalidări dirty ale zonei respective, nu ca rescannare funcțională a întregului
+  raport;
 - păstrează fallback-ul CSS și `table-layout: fixed`, deci nu introduce scroll
   orizontal accidental.
+
+Pentru tabelele `FIELD | VALUE` există o ramură semantică separată: prima
+coloană este calculată din lățimea maximă intrinsecă a cheilor și este limitată
+la `20%..38%`, iar `VALUE` primește restul (minimum `62%` când nu există
+coloane tehnice rezervate). Aceasta este politica pentru trace/API diagnostics,
+nu o regulă globală pentru toate tabelele. Component contract-ul trebuie să
+verifice și markerii `data-atf-key-value-layout` / `data-atf-key-column-width`,
+iar inspectorul trebuie să accepte `VALUE` ca dominantă chiar dacă o cheie
+izolată ar fi mai lungă ca text.
 
 Tabelele agregate de Overview (de exemplu `atf-tag-table`) rămân intenționat în
 afara acestui normalizator: au contract de dashboard propriu, coloane numerice

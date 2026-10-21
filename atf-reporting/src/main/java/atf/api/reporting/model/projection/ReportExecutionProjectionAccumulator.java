@@ -65,6 +65,7 @@ final class ReportExecutionProjectionAccumulator {
                     .map(assertion -> new ReportExecutionModel.Failure(
                             scenario.id(), assertion.name(), assertion.actual()))
                     .forEach(failures::add);
+            collectFailures(scenario, validation.children());
         }
     }
 

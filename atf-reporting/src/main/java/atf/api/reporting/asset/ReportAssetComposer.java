@@ -143,6 +143,10 @@ public final class ReportAssetComposer {
         return LOADER.loadForPublication(ReportAsset.EXTENT_NAVIGATION_DISCLOSURE_JS);
     }
 
+    public static String extentNavigationPerformanceScript() {
+        return LOADER.loadForPublication(ReportAsset.EXTENT_NAVIGATION_PERFORMANCE_JS);
+    }
+
     public static String extentNavigationControllerScript() {
         return LOADER.loadForPublication(ReportAsset.EXTENT_NAVIGATION_CONTROLLER_JS);
     }

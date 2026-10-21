@@ -17,6 +17,7 @@ public final class ValidationTableLayoutInspector {
                   const headers = rows.length && rows[0].cells
                     ? Array.from(rows[0].cells).map(cell => String(cell.textContent || '').trim().toLowerCase())
                     : [];
+                  const keyValue = count === 2 && headers[0] === 'field' && headers[1] === 'value';
                   const contentIndexes = Array.from({length: count}, (_, index) => index)
                     .filter(index => !/(^|\\b)(result|status|outcome|time|duration|attempt|attempts)(\\b|$)/.test(headers[index] || ''));
                   const widths = String(element.getAttribute('data-atf-content-column-widths')
@@ -37,27 +38,32 @@ public final class ValidationTableLayoutInspector {
                     maxPx.join(','),
                     longestIndex,
                     widestIndex,
+                    keyValue ? 'key-value' : 'content',
                     element.scrollWidth,
                     element.clientWidth
                   ].join('|');
                 }
                 """).toString();
         String[] parts = evidence.split("\\|", -1);
-        if (parts.length != 9) return new Result(false, evidence);
+        if (parts.length != 10) return new Result(false, evidence);
         try {
             int columns = Integer.parseInt(parts[1]);
             double widthSum = Double.parseDouble(parts[3]);
             int maxWidthColumns = parts[4].split(",", -1).length;
             int longestIndex = Integer.parseInt(parts[5]);
             int widestIndex = Integer.parseInt(parts[6]);
-            double scrollWidth = Double.parseDouble(parts[7]);
-            double clientWidth = Double.parseDouble(parts[8]);
+            boolean keyValue = "key-value".equals(parts[7]);
+            double scrollWidth = Double.parseDouble(parts[8]);
+            double clientWidth = Double.parseDouble(parts[9]);
+            boolean semanticWidth = keyValue
+                    ? widestIndex == 1 && widthsAtLeastValueColumn(parts[2])
+                    : longestIndex >= 0 && longestIndex == widestIndex;
             boolean valid = "dynamic-longest-value".equals(parts[0])
                     && columns >= 2
                     && parts[2].split(",", -1).length == columns
                     && maxWidthColumns == columns
                     && widthSum >= 99.0 && widthSum <= 101.0
-                    && longestIndex >= 0 && longestIndex == widestIndex
+                    && semanticWidth
                     && scrollWidth <= clientWidth + 1.0;
             return new Result(valid, evidence);
         } catch (NumberFormatException ignored) {
@@ -68,6 +74,16 @@ public final class ValidationTableLayoutInspector {
     public record Result(boolean valid, String evidence) {
         public Result {
             Objects.requireNonNull(evidence, "evidence");
+        }
+    }
+
+    private static boolean widthsAtLeastValueColumn(String widths) {
+        String[] values = widths.split(",", -1);
+        if (values.length != 2) return false;
+        try {
+            return Double.parseDouble(values[1]) >= Double.parseDouble(values[0]);
+        } catch (NumberFormatException ignored) {
+            return false;
         }
     }
 }

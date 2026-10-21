@@ -1,4 +1,5 @@
 var atfDurationAggregationPending = false;
+var atfDurationAggregationTimers = {};
 function scheduleDurationAggregation() {
   if (atfDurationAggregationPending) return;
   atfDurationAggregationPending = true;
@@ -7,8 +8,16 @@ function scheduleDurationAggregation() {
     aggregateClassDurations();
   }, 0);
 }
+function scheduleDurationAggregationAt(delay) {
+  var key = String(delay);
+  if (atfDurationAggregationTimers[key] != null) return;
+  atfDurationAggregationTimers[key] = setTimeout(function () {
+    atfDurationAggregationTimers[key] = null;
+    scheduleDurationAggregation();
+  }, delay);
+}
 function scheduleDurationAggregationAfterClassClick() {
   scheduleDurationAggregation();
-  setTimeout(aggregateClassDurations, 100);
-  setTimeout(aggregateClassDurations, 500);
+  scheduleDurationAggregationAt(100);
+  scheduleDurationAggregationAt(500);
 }

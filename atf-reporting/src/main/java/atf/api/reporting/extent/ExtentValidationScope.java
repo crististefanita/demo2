@@ -3,6 +3,7 @@ import atf.api.reporting.console.AtfConsoleEvent;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportPorts;
 import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.contract.ReportStatusAggregator;
 import atf.api.reporting.extent.session.ExtentReportTree;
 import atf.api.reporting.model.ReportScreenshot;
 import atf.api.reporting.semantic.AtfReportSemanticRecorder;
@@ -21,6 +22,7 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
     private final ExtentTest validation;
     private final String validationTitle;
     private final AtfReportSemanticRecorder.ValidationHandle semantic;
+    private final ReportStatusAggregator childStatuses = new ReportStatusAggregator();
     private List<AtfAssertion> assertions = List.of();
     private final List<AtfUiActionRecord> uiActions = new ArrayList<>();
     private final List<ReportScreenshot> screenshots = new ArrayList<>();
@@ -28,6 +30,7 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
     private boolean completed;
     private boolean closed;
     private boolean screenshotOptional;
+    private int openRequests;
 
     ExtentValidationScope(ExtentReportTree tree, ExtentRequestScope owner, ExtentTest validation,
                           String validationTitle, AtfReportSemanticRecorder.ValidationHandle semantic) {
@@ -40,16 +43,19 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
     }
 
     @Override public void assertions(Collection<AtfAssertion> rows) {
+        ensureOpen();
         assertions = rows == null ? List.of() : List.copyOf(rows);
         semantic.assertions(rows);
     }
 
     @Override public void uiActions(Collection<AtfUiActionRecord> actions) {
+        ensureOpen();
         if (actions != null) uiActions.addAll(actions);
         semantic.uiActions(actions);
     }
 
     @Override public void screenshot(String title, String base64Png) {
+        ensureOpen();
         if (base64Png == null || base64Png.isBlank()) {
             throw new IllegalArgumentException("base64Png must not be blank");
         }
@@ -58,6 +64,7 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
     }
 
     @Override public void mediaScreenshot(String title, String base64Png) {
+        ensureOpen();
         if (base64Png == null || base64Png.isBlank()) {
             throw new IllegalArgumentException("base64Png must not be blank");
         }
@@ -68,6 +75,10 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
     @Override public void complete(AtfReportStatus status) {
         tree.ensureOpen();
         if (completed) throw new IllegalStateException("Validation is already complete");
+        if (openRequests > 0) {
+            throw new IllegalStateException("Validation cannot complete while a nested request is open");
+        }
+        AtfReportStatus effective = AtfReportStatus.worst(childStatuses.aggregate(), status);
         if (screenshotOptional) {
             tree.renderUiActionsAsMedia(validation, uiActions);
         } else if (mediaScreenshots.isEmpty()) {
@@ -93,14 +104,28 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
             }
         }
         tree.renderAssertions(validation, assertions);
-        tree.complete(validation, status);
+        tree.complete(validation, effective);
         tree.markEnded(validation);
         tree.consoleCompleted(atf.api.reporting.console.AtfConsoleEvent.Scope.VALIDATION,
-                validationTitle, status, validation);
+                validationTitle, effective, validation);
         completed = true;
-        owner.record(status);
-        semantic.complete(status);
+        owner.record(effective);
+        semantic.complete(effective);
         owner.validationCompleted();
+    }
+
+    @Override public AtfReportPorts.Request startRequest(String title, String method, String path) {
+        ensureOpen();
+        openRequests++;
+        String requestTitle = tree.renderRequestTitle(title, method, path);
+        tree.consoleStarted(atf.api.reporting.console.AtfConsoleEvent.Scope.REQUEST, requestTitle);
+        return new ExtentRequestScope(tree, owner.phase(), validation.createNode(requestTitle), requestTitle,
+                semantic.startRequest(title, method, path), this::recordChildStatus);
+    }
+
+    private void recordChildStatus(AtfReportStatus status) {
+        childStatuses.record(status);
+        openRequests--;
     }
 
     @Override public void completeFailure(AtfReportStatus status) {
@@ -120,5 +145,10 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
             if (!completed) owner.validationCompleted();
             closed = true;
         }
+    }
+
+    private void ensureOpen() {
+        tree.ensureOpen();
+        if (completed || closed) throw new IllegalStateException("Validation is closed");
     }
 }

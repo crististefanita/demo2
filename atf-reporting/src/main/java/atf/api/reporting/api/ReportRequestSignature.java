@@ -22,6 +22,10 @@ import java.util.StringJoiner;
 public final class ReportRequestSignature {
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final String ABSENT_BODY = "<absent>";
+    private static final String BODY_FRAGMENT = "#body=";
+    private static final String BODY_ABSENT = "absent";
+    private static final String BODY_PRESENT = "present";
+    private static final String INTERNAL_DIGEST = " (internal digest hidden)";
 
     private ReportRequestSignature() {
     }
@@ -30,11 +34,34 @@ public final class ReportRequestSignature {
         if (request == null) return "";
         return request.method().trim().toUpperCase(Locale.ROOT) + " "
                 + safeTarget(request.path(), request.query())
-                + "#body=" + sha256(canonicalBody(request.bodyText()));
+                + BODY_FRAGMENT + sha256(canonicalBody(request.bodyText()));
     }
 
     public static String bodyDigest(String body) {
         return sha256(canonicalBody(body));
+    }
+
+    /**
+     * Returns the bounded signature suitable for report HTML. The digest is
+     * still used internally for deterministic grouping, but the raw SHA-256
+     * value is deliberately not part of the human-facing artifact.
+     */
+    public static String displaySignature(String signature) {
+        if (signature == null || signature.isBlank()) return "";
+        int marker = signature.indexOf(BODY_FRAGMENT);
+        if (marker < 0) return signature;
+        return signature.substring(0, marker) + BODY_FRAGMENT
+                + bodyState(signature.substring(marker + BODY_FRAGMENT.length()));
+    }
+
+    /** Returns a semantic body state while keeping the internal digest private. */
+    public static String displayDigest(String digest) {
+        if (digest == null || digest.isBlank()) return "";
+        return bodyState(digest) + INTERNAL_DIGEST;
+    }
+
+    private static String bodyState(String digest) {
+        return bodyDigest(null).equals(digest) ? BODY_ABSENT : BODY_PRESENT;
     }
 
     public static String correlationKey(ReportRequest request) {

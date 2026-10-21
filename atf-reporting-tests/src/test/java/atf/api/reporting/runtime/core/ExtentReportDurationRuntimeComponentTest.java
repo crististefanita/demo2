@@ -54,8 +54,10 @@ class ExtentReportDurationRuntimeComponentTest {
             "publishClassDuration",
             "aggregateClassDurations",
             "scheduleDurationAggregation",
+            "scheduleDurationAggregationAt",
             "scheduleDurationAggregationAfterClassClick",
             "bindDurationClassClicks",
+            "hasRelevantDurationNodes",
             "watchDurationNodes");
 
     @Test
@@ -86,6 +88,7 @@ class ExtentReportDurationRuntimeComponentTest {
                 () -> assertTrue(aggregation.contains("function aggregateNodeDuration(")),
                 () -> assertTrue(projection.contains("function aggregateClassDurations(")),
                 () -> assertTrue(scheduling.contains("function scheduleDurationAggregation(")),
+                () -> assertTrue(scheduling.contains("function scheduleDurationAggregationAt(")),
                 () -> assertTrue(lifecycle.contains("function watchDurationNodes(")));
     }
 
@@ -118,6 +121,13 @@ class ExtentReportDurationRuntimeComponentTest {
                 () -> assertFalse(aggregation.contains("normalizeCategoryDurations")),
                 () -> assertFalse(projection.contains("MutationObserver")),
                 () -> assertFalse(scheduling.contains("MutationObserver")),
+                () -> assertTrue(scheduling.contains("atfDurationAggregationTimers")),
+                () -> assertTrue(scheduling.contains("atfDurationAggregationTimers[key]")),
+                () -> assertTrue(lifecycle.contains("function hasRelevantDurationNodes(")),
+                () -> assertTrue(lifecycle.contains(".test-item,.test-detail,[data-duration-ms],[data-duration]")),
+                () -> assertTrue(lifecycle.contains("n.querySelector&&n.querySelector(s)")),
+                () -> assertFalse(lifecycle.contains("return record.addedNodes && record.addedNodes.length > 0;")),
+                () -> assertFalse(lifecycle.contains("q('.test-contents > .mt-4 > .accordion > .card').length")),
                 () -> assertFalse(lifecycle.contains("function aggregateNodeDuration(")),
                 () -> assertTrue(
                         ExtentReportDurationRuntime.script().indexOf("function atfDurationValue(")

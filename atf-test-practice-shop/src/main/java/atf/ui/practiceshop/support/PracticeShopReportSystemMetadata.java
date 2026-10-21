@@ -39,6 +39,10 @@ public final class PracticeShopReportSystemMetadata {
                 .put(ReportEnvironmentField.PRECONDITION,
                         "API authentication: "
                                 + configuration.api().precondition().name().toLowerCase())
+                .put(ReportEnvironmentField.UI_JOURNEY_PRECONDITION,
+                        configuration.authenticatedE2eAllowed()
+                                ? "authenticated checkout account fixture loaded"
+                                : "guest checkout configuration ready")
                 .put(ReportEnvironmentField.API_EVIDENCE,
                         configuration.validationProfile().apiEvidenceRequired()
                                 ? "enabled at checkpoints: "

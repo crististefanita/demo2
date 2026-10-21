@@ -117,6 +117,9 @@ class ExtentReportAssetsTest {
                 () -> assertEquals(1, count(result, "data:image/png;base64," + ReportTestScreenshots.SECOND_PIXEL_PNG)),
                 () -> assertEquals(1, count(result, "identical to an earlier captured state in this run")),
                 () -> assertTrue(result.contains("data-atf-screenshot-ref=\"")),
+                () -> assertTrue(result.contains("data-atf-screenshot-ref=\"screenshot-1\"")),
+                () -> assertTrue(result.contains("href=\"#atf-screenshot-screenshot-1\"")),
+                () -> assertFalse(result.matches(".*[0-9a-f]{64}.*")),
                 () -> assertFalse(result.contains("<img")));
     }
 

@@ -158,7 +158,8 @@ class ExtentReportSessionContractTest {
                 () -> assertTrue(html.contains("#events-analysis")),
                 () -> assertTrue(html.contains("(column||card||canvas).remove()")),
                 () -> assertTrue(html.contains("setTimeout(removeUnsupportedOverviewCards,150)")),
-                () -> assertTrue(html.contains("function collapseScenarioCards()")),
+                () -> assertTrue(containsJavaScriptSignature(html,
+                                "function collapseScenarioCards(force)")),
                 () -> assertTrue(html.contains("data-atf-collapse-bound")),
                 () -> assertTrue(html.contains("data-atf-scenario-collapse-bound")),
                 () -> assertTrue(html.contains("function watchScenarioCards()")),
@@ -261,7 +262,9 @@ class ExtentReportSessionContractTest {
                 () -> assertTrue(html.contains("auditRows('atf-audit-tags',tags,false,total,false)")),
                 () -> assertTrue(html.contains("data-atf-scenario-open")),
                 () -> assertTrue(html.contains("data-atf-phase-open")),
-                () -> assertTrue(html.contains(".test-content-detail .test-contents > .mt-4 > .accordion > .card > .accordion > .card > .accordion")),
+                () -> assertTrue(containsJavaScriptSignature(html,
+                                "function collapseScenarioCards(force)")
+                                && html.contains("scenario.querySelectorAll(':scope [data-atf-node-role]")),
                 () -> assertFalse(html.contains("--atf-surface:#141d2b")),
                 // The Fails navigation intentionally uses the compact 1.45
                 // line-height from the .NET reference; only the old global
@@ -458,6 +461,14 @@ class ExtentReportSessionContractTest {
             if (prefix.startsWith("</div>", index)) depth--;
         }
         return depth;
+    }
+
+    private static boolean containsJavaScriptSignature(String html, String signature) {
+        return compactJavaScript(html).contains(compactJavaScript(signature));
+    }
+
+    private static String compactJavaScript(String value) {
+        return value.replaceAll("\\s+", "");
     }
 }
 

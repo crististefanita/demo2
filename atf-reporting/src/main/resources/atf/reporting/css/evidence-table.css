@@ -140,8 +140,16 @@ table.helm-validation-table td:last-child {
   width: auto !important;
   min-width: 0 !important;
   white-space: normal !important;
+  overflow-wrap: break-word !important;
+  word-break: normal !important;
+}
+.helm-evidence-table td.atf-evidence-url-value,
+.helm-evidence-table th.atf-evidence-url-value {
+  white-space: normal !important;
   overflow-wrap: anywhere !important;
-  word-break: break-word !important;
+  word-break: normal !important;
+  min-width: 0 !important;
+  max-width: none !important;
 }
 .helm-evidence-table.helm-request-table col.atf-evidence-key-column,
 .helm-evidence-table.helm-trace-table col.atf-evidence-key-column,

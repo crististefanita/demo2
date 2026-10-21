@@ -176,7 +176,14 @@ public record AtfReportSemanticSnapshot(List<ClassSnapshot> classes) {
 
     public record ValidationSnapshot(String title, List<String> assertionNames,
                                      int uiActionCount, int screenshotCount,
-                                     AtfReportStatus status) implements NodeSnapshot {
+                                     AtfReportStatus status,
+                                     List<RequestSnapshot> requests) implements NodeSnapshot {
+        public ValidationSnapshot(String title, List<String> assertionNames,
+                                  int uiActionCount, int screenshotCount,
+                                  AtfReportStatus status) {
+            this(title, assertionNames, uiActionCount, screenshotCount, status, List.of());
+        }
+
         public ValidationSnapshot {
             title = title == null ? "" : title;
             assertionNames = List.copyOf(Objects.requireNonNull(assertionNames, "assertionNames"));
@@ -184,6 +191,7 @@ public record AtfReportSemanticSnapshot(List<ClassSnapshot> classes) {
                 throw new IllegalArgumentException("Evidence counts must be non-negative");
             }
             status = Objects.requireNonNull(status, "status");
+            requests = List.copyOf(Objects.requireNonNull(requests, "requests"));
         }
     }
 

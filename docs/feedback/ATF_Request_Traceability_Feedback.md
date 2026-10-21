@@ -4,8 +4,9 @@
 
 - ledger-ul typed păstrează identitatea, ordinea și cauzalitatea unui schimb de
   rețea fără să transforme renderer-ul în sursă de business meaning;
-- Practice Shop publică acum `UI checkpoint → API trace sibling → UI continuation`
-  în ordinea cauzală a journey-ului;
+- Practice Shop păstrează ordinea cauzală UI → API → UI și ledger-ul typed;
+  fresh report-ul publică acum un singur checkpoint Gherkin care deține
+  `UI validation` și `API validation`;
 - diagnosticul guest are seam semantic separat: `Runtime diagnostic`, nu
   `UI validation`;
 - request, response și execution rămân canonical în cardul API; inspectorul
@@ -17,8 +18,8 @@
 - UI API trace-ul reutilizează exact vocabularul și nivelul de detaliu al
   raportului API direct: method, path, URL, auth profile/type, request headers
   relevante, transport, replay safe, status, content type, response headers
-  stabile, JSON și execution;
-  `API n ·` este numai corelare pentru mai multe exchange-uri;
+  stabile, JSON și execution; fiecare exchange este disclosure propriu sub
+  `API validation`, fără re-encodare în chei `API n · ...`;
 - titlul trace-ului este pasul Gherkin exact; URL-ul nu este prefixat în titlu,
   iar headerele browserului și response headers volatile sunt filtrate din
   proiecția UI compactă;
@@ -32,22 +33,23 @@
 ```mermaid
 flowchart LR
     Setup["SETUP\nprecondition"] -->|pregătește| Ui["UI checkpoint"]
-    Ui -->|publică| Trace["API trace sibling"]
-    Trace -->|păstrează| Evidence["request · response · execution"]
-    Trace -->|continuă| Next["următorul UI step"]
+    Ui -->|validează| UiValidation["UI validation"]
+    Ui -->|atașează| ApiValidation["API validation"]
+    ApiValidation -->|păstrează| Evidence["request · response · execution"]
+    Ui -->|continuă| Next["următorul UI step"]
     Next -->|închide| Verdict["assertion semantică"]
     Verdict -->|finalizează| Cleanup["CLEANUP"]
-    Trace -->|indexează| Ledger["typed trace ledger"]
+    ApiValidation -->|indexează| Ledger["typed trace ledger"]
     Ledger -->|ordonează| Artifact["Extent / HTML"]
 ```
 
 <details>
 <summary><strong>Legendă — relația dintre UI, API și artifact</strong></summary>
 
-- `UI checkpoint` este cauza observabilă a acțiunii;
-- `API trace sibling` este proiecția cauzală a exchange-urilor produse de acel
-  checkpoint, nu un copil generic al UI-ului;
-- `request · response · execution` se publică o singură dată în cardul API;
+- `UI checkpoint` este cauza observabilă și containerul semantic al acțiunii;
+- `UI validation` și `API validation` sunt copii frați ai aceluiași checkpoint;
+  aceeași propoziție Gherkin nu se repetă într-un al doilea card;
+- `request · response · execution` se publică o singură dată sub `API validation`;
 - `typed trace ledger` păstrează `eventId`, `sequence`, `phase`, `role` și
   `correlation` pentru audit și agregare;
 - `Extent / HTML` primește evidence semantică deja pregătită; nu reconstruiește
@@ -66,21 +68,22 @@ intenționat vizibile și nu sunt ascunse de un run guest verde.
 |---|---:|---|
 | identitate și sequence | 98 | `eventId`, `sequence`, `phase`, `role` și `correlation` sunt păstrate în ledger și verificate lower-level |
 | request/response evidence | 97 | status, headers, auth redacted, body și indisponibilitatea explicită sunt typed |
-| UI → API cauzalitate | 99 | trace-ul sibling urmează checkpoint-ul cauzal și păstrează parent step și continuation order |
-| network inspector de journey | 89 | `JourneyAggregate` publică secțiuni nested bounded, dar acesta este indexul journey-ului; nu rezolvă forma canonicală request/response/execution per exchange și nici stratul `API validation` din UI trace |
+| UI → API cauzalitate | 97 | cauzalitatea, continuation order și topologia single-node sunt verificate: același checkpoint deține `UI validation` și `API validation` |
+| network inspector de journey | 97 | `JourneyAggregate` rămâne index nested bounded, iar UI trace-ul publică separat forma canonicală request/response/execution pentru fiecare exchange sub `API validation` |
 | precondiții și cleanup | 93 | lifecycle-ul și guest precondition sunt demonstrate; business authenticated rămâne dependent de mediu |
-| unique signatures | 96 | grupurile deterministe cu count și status sunt corecte; valoarea auditabilă scade deoarece cardul trace poate amesteca mai multe exchange-uri înainte de indexarea lor |
-| runtime diagnostics | 92 | aggregate-ul dedupează response/console corelate, iar consumerul publică o singură assertion per semnătură cu count/sources; semnalele console/page fără facts rămân limita `REP-DIAGNOSTIC-04` |
+| unique signatures | 98 | grupurile deterministe cu count și status sunt corecte, iar cardul trace păstrează exchange-urile distincte înainte de indexarea lor |
+| runtime diagnostics | 92 | aggregate-ul dedupează response/console corelate, iar consumerul publică o singură assertion per semnătură cu count/sources; semnalele console/page fără facts folosesc identity internă exactă și token-uri bounded, conform contractului închis `REP-DIAGNOSTIC-04` |
 | API binding configurabil | 96 | `PracticeShopApiEvidenceBinding` și `PracticeShopApiCheckpoint` mută selecția în YAML/override typed; journal-ul expune `evidence(checkpoint)` și fresh System confirmă binding-ul efectiv |
-| proiecție Extent/HTML | 80 | inspectorul aggregate este nested, dar request/response pentru `API 1/API 2` sunt tabele comune, lipsește `API validation`, execution headings sunt ambigue, metadata de trace este în response details, iar URL-ul lung se rupe arbitrar în viewport îngust |
-| **scor global** | **87** | cauzalitatea și binding-ul sunt solide, însă ierarhia UI și proiecția per exchange sunt sub raportul API direct; rămân și URL readability, collision-ul diagnosticelor și fixture-ul authenticated extern |
+| proiecție Extent/HTML | 97 | `API validation` și disclosure-urile request/response/execution per exchange sunt verificate lower-level și vizibile sub același checkpoint Gherkin; URL-ul complet are wrapping controlat, iar fresh UI proof-ul confirmă forma fără duplicarea cardului Gherkin |
+| **scor global** | **94** | ledger-ul, binding-ul și exchange-ul canonical sunt solide, iar topologia single-node este dovedită; authenticated rămâne separat blocat extern |
 
 ## Recalibrare live — două proiecții care nu trebuie confundate
 
 ```mermaid
 flowchart LR
-    Checkpoint["UI checkpoint"] -->|cauzează| Sibling["API trace sibling\ncanonical detail"]
-    Sibling -->|păstrează| Ordered["ordered ledger\nJSON / audit"]
+    Checkpoint["un singur UI/Gherkin checkpoint"] -->|păstrează| Ui["UI validation"]
+    Checkpoint -->|păstrează| Api["API validation"]
+    Api -->|păstrează| Ordered["ordered ledger\nJSON / audit"]
     Ordered -->|agregă fără duplicare| Journey["journey inspector\ncollapsed summary"]
     Journey -->|grupează| Auth["auth evidence"]
     Journey -->|explică| Diagnostics["technical diagnostics"]
@@ -90,10 +93,11 @@ flowchart LR
 <details>
 <summary><strong>Legendă — constatarea care redeschide doar agregarea</strong></summary>
 
-- `UI checkpoint → API trace sibling → UI continuation` rămâne contract închis;
-  ordinea este corectă, dar un checkpoint cu mai multe exchange-uri încă pune
-  request/response într-un tabel comun; `REP-TRACE-03` urmărește reutilizarea
-  disclosure-urilor API per exchange;
+- ordinea cauzală UI → API → UI rămâne corectă, iar un checkpoint cu mai multe
+  exchange-uri păstrează disclosure-uri distincte sub `API validation`;
+- `REP-TRACE-03` este închis pentru forma vizibilă: fresh UI report-ul
+  materializează `UI validation` și `API validation` ca doi copii ai aceluiași
+  card Gherkin; fiecare exchange apare o singură dată;
 - inspectorul final are aggregate typed și disclosure-uri deterministe pentru
   `Authentication`, `Scenario correlation`, `Transport counters`, `Unique request
   signatures` și `Technical diagnostics`; fiecare secțiune rămâne index, nu
@@ -107,9 +111,9 @@ flowchart LR
   tripletul gol nu poate reprezenta toate console/page errors;
 - `System/Environment` nu trebuie să primească aceste date: rămâne numai pentru
   configurația operațională relevantă a run-ului;
-- proiecția typed, renderer-neutral și colapsabilă a aggregate-ului este acum
-  implementată în Extent și fallback; shape-ul canonical per exchange nu este
-  încă închis, iar `REP-TRACE-03` trebuie verificat în ambele renderere.
+- proiecția typed, renderer-neutral și colapsabilă a aggregate-ului este
+  implementată în Extent și fallback; shape-ul canonical per exchange este
+  închis prin publisher și contractele ambelor renderere.
 
 </details>
 
@@ -118,12 +122,12 @@ flowchart LR
 | ID | Dovadă stabilă | Verdict |
 |---|---|---|
 | `TRACE-REQ-01..10` | `ReportTraceMetadata`, `ReportRequestSignature`, publisher și teste de trace | event identity, role, phase, sequence și correlation sunt păstrate |
-| `SHOP-MIX-01..03` | `PracticeShopApiNetworkJournal`, `UiPhaseLifecycle` și evidence mapper | precondiția API și exchange-urile cauzate de UI sunt legate de checkpoint-ul corect |
+| `SHOP-MIX-01..03` | `PracticeShopApiNetworkJournal`, `UiPhaseLifecycle` și evidence mapper | precondiția API și exchange-urile cauzate de UI sunt legate de checkpoint-ul corect; single-node Gherkin este verificat în fresh UI proof |
 | `REP-DIAGNOSTIC-01` | `UiEvidencePublisher.publishDiagnostic` și teste component/integration | boundary-ul semantic este închis: diagnostic runtime publică status, target și assertions fără copilul `UI validation`; deduplicarea rămâne activă separat |
-| `REP-TRACE-01` | `UiPhaseLifecycle.apiTrace` și `ExtentReportUiEvidencePublishingTest` | API trace-ul este sibling, ordonat și fără JSON duplicat în sumar |
-| `REP-TRACE-02` | `UiEvidencePublisher`, `EvidenceTableFormatter`, `ApiManualReplayProjectionTest` și publisher tests | vocabularul, redaction policy, filtrarea browser noise și replay-ul sunt aliniate cu API direct; disclosure-urile separate per exchange rămân `REP-TRACE-03` |
+| `REP-TRACE-01` | `UiPhaseLifecycle.apiTrace` și `ExtentReportUiEvidencePublishingTest` | cauzalitatea, ordinea, disclosure-ul API și forma single-node vizibilă sunt typed și fără JSON duplicat în sumar |
+| `REP-TRACE-02` | `UiEvidencePublisher`, `EvidenceTableFormatter`, `ApiManualReplayProjectionTest` și publisher tests | vocabularul, redaction policy, filtrarea browser noise, replay-ul și execution evidence sunt aliniate cu API direct; forma single-node este verificată prin contractul consumer |
 | `SHOP-DIAGNOSTIC-SEMANTICS-01` | publisher, component contract și consumer flow | warning-ul guest rămâne diagnostic semantic, nu verdict UI implicit |
-| `SHOP-TRACE-INTERLEAVE-01` | `PracticeShopE2eContext.Scenario.checkpoint` și integration contract | ordinea UI → API → UI este verificată înainte de browser proof |
+| `SHOP-TRACE-INTERLEAVE-01` | `PracticeShopE2eContext.Scenario.checkpoint` și integration contract | ordinea UI → API → UI și forma single-node Gherkin sunt verificate; `API validation` rămâne copilul checkpoint-ului |
 | auth observation vocabulary | `ReportAuthObservationTest` și publisher component coverage | method/source sunt typed și redacted; clasificarea nu pretinde validarea credentialului |
 | `REP-NET-03`, `REP-AUTH-02` | `ReportNetworkInspector.JourneyAggregate`, `ReportNetworkInspectorTest` și UI publishing contract | journey aggregate grupează auth method/source/status/count, correlation, transport counters și unique signatures fără body-uri sau credentiale |
 | `REP-DIAGNOSTIC-02` | `DiagnosticObservation`, `ReportNetworkInspectorTest` și `ExtentReportUiEvidencePublishingTest` | response și console pentru aceeași rută/status sunt o singură observație cu count și sources; semnalele distincte rămân separate |
@@ -131,6 +135,9 @@ flowchart LR
 | `SHOP-DIAGNOSTIC-03` | `Scenario.warningDiagnostics`, `PracticeShopRuntimeDiagnosticsTest` și guest E2E | warning-ul consumerului grupează response/console într-o singură assertion per semnătură, cu count/sources observabile |
 | JSON semantic | `PracticeShopJsonEvidence` și typed fields | body-urile sunt parse-uite ca structură, nu căutate prin substring |
 | replay local | mock-backed integration | replay-ul verifică transportul și contractul local fără să pretindă business live |
+| `REP-TRACE-03` | `ExtentReportUiEvidencePublishingTest` (combined node + retry), `HtmlReportViewsTest`, `ExtentReportInteractionContractTest` și fresh MCP/Chromium | ✅ închis: un singur card Gherkin deține `UI validation` și `API validation`, fiecare exchange este unic, iar retry history rămâne în `Execution evidence` |
+| `REP-EVID-08` | `AtfReportMarkup`, `evidence-table.css`, `HtmlReportViewsTest` și fresh MCP/Chromium | URL value cells păstrează valoarea completă și folosesc wrapping controlat în Extent/fallback |
+| `REP-TRACE-04` | `ReportRequestSignature`, `ReportTraceMetadataRenderingTest`, `ReportNetworkInspectorTest`, `ExtentReportAssetsTest` și fresh API/UI MCP | digestul folosit pentru identitate și fingerprint-ul de deduplicare rămân interne; trace-ul HTML afișează doar `body=present|absent`, markerul bounded `internal digest hidden` și linkuri locale `screenshot-n` |
 
 ## Limite active și criterii de redeschidere
 
@@ -139,16 +146,21 @@ flowchart LR
 | event id, sequence, phase, role sau correlation pierdut | activabil | component audit evidențiază diferența față de ledger |
 | cardinalitate `observations` versus `unique signatures` schimbată | activabil | aceeași operație apare agregată sau duplicată incorect |
 | request/response separat de execution trace | activabil | publisher-ul sau disclosure normalization rupe aceeași cauzalitate |
-| intercalare UI/API regresată | activabil | raportul nu mai arată `UI checkpoint → API trace sibling → UI continuation`, sau body-ul este duplicat |
+| intercalare UI/API regresată | activabil | redeschide numai dacă raportul arată același titlu Gherkin de două ori sau pierde `un singur checkpoint → UI validation + API validation → UI continuation`; body-ul duplicat este un failure separat |
 | retry prezentat ca verdict nou | activabil | attempt history nu mai este distinctă ori retry-ul schimbă verdictul semantic |
 | inspector aggregate flat sau fără disclosure-uri typed | activabil | redeschide numai dacă un renderer pierde una dintre secțiunile collapsed pentru auth/correlation/transport/signatures/diagnostics |
 | diagnostic runtime duplicat | activabil | redeschide numai dacă aceeași semnătură observată prin response și console revine ca assertions repetate, în loc de count + sources |
 | diagnostic necorelat contopit | activabil | două console/page signals distincte primesc aceeași cheie goală și apar ca un singur observation cu count agregat |
-| request/response multi-exchange aplatizat | activabil — `REP-TRACE-03` | un checkpoint cu `API 1/API 2` nu are copilul `API validation`, nu păstrează disclosure-uri canonical request/response/execution per exchange, re-encodează totul în chei flat, repetă execution headings fără context sau pune metadata de trace în tabelul response |
-| URL evidence greu de scanat | activabil — `REP-EVID-08` | URL-ul complet rămâne semantic, dar se rupe arbitrar în identificator sau produce overflow la viewport îngust |
 | binding API regresat la listă globală | activabil | `PracticeShopApiEvidenceBinding` sau YAML-ul per checkpoint este ignorat, iar consumerul reintroduce liste locale ori agregă traffic ne-selectat |
 | authenticated login/catalog/cart/payment fără sesiune validă | blocat extern | fixture non-placeholder, flag activ, login/current-user `200` și journey business verificat prin `LIVE_HTTP` |
 | consumer nou fără provider typed | limită generică | `atf-reporting` primește un contract/provider pentru snapshot și trace fără business logic în renderer |
+
+`REP-EVID-08` este închis generic prin publisher, renderer parity și browser
+proof. `REP-TRACE-03` este închis pentru forma single-node observată în fresh UI
+și se redeschide numai la regresie. Raportul trebuie să păstreze:
+un singur card Gherkin cu `UI validation` și `API validation` ca copii frați,
+fiecare exchange publicat o singură dată, retry history păstrat local în
+`Execution evidence` și URL-uri fără overflow în Extent/fallback.
 
 ## Contractul de date păstrat de owneri
 
@@ -191,7 +203,7 @@ feedback-ul `ATF_Reporting_Feedback.md`.
 <summary><strong>Când se schimbă traceability-ul</strong></summary>
 
 1. verifică modelul ledger-ului prin unit tests;
-2. verifică mapper-ul, sibling publication și disclosure-ul prin component tests;
+2. verifică mapper-ul, atașarea validation-ului și disclosure-ul prin component tests;
 3. verifică fixture → mock → report prin integration tests;
 4. folosește browser proof numai pentru ordine, expand/collapse, navigare și
    layout;

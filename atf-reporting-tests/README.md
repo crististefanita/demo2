@@ -218,11 +218,15 @@ flowchart LR
   pentru `0..N` exchange-uri, fiecare pereche request/response și execution
   evidence trebuie să rămână scanabilă ca unitate API; un tabel comun cu prefixe
   `API 1/API 2` nu este suficient;
-- UI trace proof trebuie să verifice ierarhia `Gherkin API trace → API validation
-  → disclosures`, cu `API validation` în același stil semantic ca `UI validation`;
+- UI trace proof trebuie să verifice ierarhia `un singur Gherkin checkpoint →
+  UI validation + API validation → disclosures`, cu cele două validation nodes
+  ca frați semantici și fără repetarea propoziției Gherkin;
 - execution disclosure-ul trebuie să fie identificabil pentru exchange-ul lui;
   două apariții `Execution evidence · 1 attempts` fără context sunt ambigue chiar
   dacă numărul de attempts este corect;
+- retry-ul aceluiași request trebuie verificat ca un singur exchange logic:
+  attempts/history se păstrează în execution disclosure și nu generează un nou
+  `API n`;
 - contractul de layout trebuie să păstreze URL-ul complet lizibil la viewport
   îngust, fără break arbitrar în identificator și fără overflow;
 - browser/debug verifică numai structură vizibilă, expand/collapse, ordine și
@@ -240,7 +244,7 @@ Entry-point-urile selectabile direct din IntelliJ sunt separate pe layer:
 | Entry point | Include | Rol |
 |---|---|---|
 | `AtfReportingUnitSuite` | `unit` din `atf.api.reporting` | model, policy, parser, renderer seam și vocabular |
-| `AtfReportingComponentSuite` | `component` din reporting și UI extent | boundary HTML/CSS/JS, contracte și fixture-uri controlate |
+| `AtfReportingComponentSuite` | `component` din reporting și UI extent | boundary HTML/CSS/JS, contracte și fixture-uri controlate; navigation performance expune doar snapshot diagnostic, fără verdict business |
 | `AtfReportingIntegrationSuite` | `integration` din `atf.api.reporting` | session, publication, replay și contracte de integrare ale librăriei |
 | `AtfReportingApiFixtureSuite` | `integration` din `atf.api.tests.api` | mock API → core → validation → reporting evidence, fără browser |
 | `AtfReportingUiAuditSuite` | `e2e` din `atf.ui.tests.extent.e2e` | audit browser/debug al artifactului Extent, cu owner UI explicit |

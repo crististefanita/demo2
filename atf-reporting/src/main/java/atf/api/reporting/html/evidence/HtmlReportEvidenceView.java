@@ -11,6 +11,7 @@ import atf.api.reporting.evidence.ReportEvidenceTable;
 import atf.api.reporting.evidence.markup.ReportEvidenceMarkup;
 import atf.api.reporting.markup.AtfReportLabels;
 import atf.api.reporting.markup.AtfReportMarkup;
+import atf.api.reporting.markup.ExtentReportNodeSupport;
 import atf.api.reporting.evidence.markup.ReportEvidenceJsonFormatter;
 import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
 import atf.api.reporting.model.ReportExecutionModel;
@@ -184,6 +185,33 @@ public final class HtmlReportEvidenceView {
                     .append(ReportEvidenceMarkup.statusBadge(row.resultStatus()))
                     .append(closeTag(TD)).append(closeTag(TR));
         }
-        html.append(closeTag(TBODY)).append(closeTag(TABLE)).append(closeTag(DIV));
+        html.append(closeTag(TBODY)).append(closeTag(TABLE));
+        validation.children().forEach(child -> {
+            if (child instanceof ReportExecutionModel.Request request) {
+                renderNestedRequest(html, request);
+            }
+        });
+        html.append(closeTag(DIV));
+    }
+
+    private void renderNestedRequest(StringBuilder html, ReportExecutionModel.Request request) {
+        html.append(openTag(DIV, classAttribute(AtfReportHtmlVocabulary.CssClass.REQUEST),
+                        attribute(AtfReportHtmlVocabulary.Attribute.NODE_ROLE, "request")))
+                .append(openTag(DIV, classAttribute(AtfReportHtmlVocabulary.CssClass.NODE_TITLE)))
+                .append(openTag(SPAN))
+                .append(escape(ExtentReportNodeSupport.renderRequestTitle(
+                        request.title(), request.method(), request.path())))
+                .append(ReportEvidenceMarkup.statusBadge(request.status()))
+                .append(closeTag(DIV));
+        renderRequestDetails(html, request);
+        renderResponseDetails(html, request);
+        renderNetworkAggregate(html, request.networkAggregate());
+        request.executions().forEach(execution -> renderExecution(html, execution));
+        request.children().forEach(child -> {
+            if (child instanceof ReportExecutionModel.Validation validation) {
+                renderValidation(html, validation);
+            }
+        });
+        html.append(closeTag(DIV));
     }
 }

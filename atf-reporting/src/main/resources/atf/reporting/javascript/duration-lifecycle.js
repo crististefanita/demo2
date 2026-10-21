@@ -3,15 +3,15 @@ window.atfActivate = function (id) {
   rememberMeasuredDurations();
   atfBaseActivate(id);
   aggregateClassDurations();
-  setTimeout(aggregateClassDurations, 0);
-  setTimeout(aggregateClassDurations, 150);
-  setTimeout(aggregateClassDurations, 500);
+  scheduleDurationAggregation();
+  scheduleDurationAggregationAt(150);
+  scheduleDurationAggregationAt(500);
 };
 document.addEventListener('DOMContentLoaded', function () {
-  setTimeout(aggregateClassDurations, 0);
+  scheduleDurationAggregation();
 });
 window.addEventListener('load', function () {
-  setTimeout(aggregateClassDurations, 0);
+  scheduleDurationAggregation();
 });
 function bindDurationClassClicks() {
   classItems().forEach(function (item) {
@@ -24,6 +24,15 @@ function bindDurationClassClicks() {
     );
   });
 }
+function hasRelevantDurationNodes(r) {
+  var s = '.test-item,.test-detail,[data-duration-ms],[data-duration]';
+  return r.some(function (x) {
+    return [].some.call(x.addedNodes || [], function (n) {
+      return n && ((n.matches && n.matches(s)) ||
+        (n.querySelector && n.querySelector(s)));
+    });
+  });
+}
 function watchDurationNodes() {
   var root = document.getElementById('test-view');
   if (!root) return;
@@ -31,10 +40,11 @@ function watchDurationNodes() {
   if (root.getAttribute('data-atf-duration-watch')) return;
   if (window.MutationObserver) {
     root.setAttribute('data-atf-duration-watch', 'true');
-    var observer = new MutationObserver(function () {
+    var observer = new MutationObserver(function (records) {
+      if (!hasRelevantDurationNodes(records)) return;
+      atfPerformanceCount('durationMutationBatches');
       bindDurationClassClicks();
-      if (q('.test-contents > .mt-4 > .accordion > .card').length)
-        scheduleDurationAggregation();
+      scheduleDurationAggregation();
     });
     observer.observe(root, { childList: true, subtree: true });
   }

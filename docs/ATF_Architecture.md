@@ -242,7 +242,7 @@ sequenceDiagram
     T->>V: contract + response
     V->>V: evaluate rules + warning policy
     V-->>T: ValidationResult
-    V->>R: validation sibling + aggregate assertions
+    V->>R: validation + aggregate assertions
     E->>R: complete phase + scenario verdict
     R->>R: finalizează HTML autonom
 ```

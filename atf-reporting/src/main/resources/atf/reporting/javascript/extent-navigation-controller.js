@@ -1,3 +1,40 @@
+var atfTestViewNormalizationPending = false;
+var atfTestViewReadinessTimers = {};
+function normalizeTestViewContent() {
+  var startedAt = atfPerformanceStart();
+  atfPerformanceCount('normalizationRuns');
+  try {
+  normalizeTestPackageMetadata();
+  normalizeScenarioAnnotations();
+  bindPhaseCollapse();
+  bindNodeCollapse();
+  collapseDirectScenarioCards();
+  collapseScenarioCards();
+  normalizeValidationTableColumns();
+  } finally {
+    atfPerformanceEnd(startedAt, 'normalizationDurationMs');
+    atfPerformanceMarkReady();
+  }
+}
+function scheduleTestViewNormalization() {
+  if (atfTestViewNormalizationPending) return;
+  atfPerformanceCount('normalizationSchedules');
+  atfTestViewNormalizationPending = true;
+  var flush = function () {
+    atfTestViewNormalizationPending = false;
+    normalizeTestViewContent();
+  };
+  if (window.requestAnimationFrame) window.requestAnimationFrame(flush);
+  else setTimeout(flush, 0);
+}
+function scheduleTestViewNormalizationAt(delay) {
+  var key = String(delay);
+  if (atfTestViewReadinessTimers[key] != null) return;
+  atfTestViewReadinessTimers[key] = setTimeout(function () {
+    atfTestViewReadinessTimers[key] = null;
+    scheduleTestViewNormalization();
+  }, delay);
+}
 window.atfOpenTest = function (id, scenarioIndex, expansion) {
   var hash = 'test-id=' + id;
   if (scenarioIndex !== undefined) hash += '&scenario-index=' + scenarioIndex;
@@ -49,29 +86,14 @@ window.atfActivate = function (id) {
   normalizeEvidenceDisclosures();
   normalizeValidationTableColumns();
   if (id === 'test-view') {
+    atfPerformanceBeginReadiness();
     normalizeTestPackageMetadata();
     normalizeScenarioAnnotations();
     bindScenarioCollapse();
     bindPhaseCollapse();
     bindNodeCollapse();
-    setTimeout(function () {
-      normalizeTestPackageMetadata();
-      normalizeScenarioAnnotations();
-      bindPhaseCollapse();
-      bindNodeCollapse();
-      collapseDirectScenarioCards();
-      collapseScenarioCards();
-      normalizeValidationTableColumns();
-    }, 0);
-    setTimeout(function () {
-      normalizeTestPackageMetadata();
-      normalizeScenarioAnnotations();
-      bindPhaseCollapse();
-      bindNodeCollapse();
-      collapseDirectScenarioCards();
-      collapseScenarioCards();
-      normalizeValidationTableColumns();
-    }, 100);
+    scheduleTestViewNormalization();
+    scheduleTestViewNormalizationAt(100);
   }
   if (id === 'atf-fails-view') renderFails();
   if (id === 'dashboard-view') {
@@ -152,10 +174,9 @@ document.addEventListener('DOMContentLoaded', function () {
   setTimeout(normalizeNavigationLinks, 0);
   setTimeout(function () {
     watchDurationNodes();
-    normalizeTestPackageMetadata();
+    scheduleTestViewNormalization();
+    scheduleTestViewNormalizationAt(250);
     removeUnsupportedOverviewCards();
-    collapseDirectScenarioCards();
-    collapseScenarioCards();
     applyTestFilters();
   }, 250);
 });

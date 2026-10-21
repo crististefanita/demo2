@@ -450,7 +450,7 @@ proiecție.
 
 ```mermaid
 flowchart LR
-    Checkpoint["UI checkpoint"] -->|conține| Payload["assertions + evidence"]
+    Checkpoint["un singur pas Gherkin"] -->|conține| Payload["UI + API evidence"]
     Payload -->|selectează| Capture["screenshot policy"]
     Capture -->|creează| Extent["Extent step"]
 ```
@@ -458,8 +458,9 @@ flowchart LR
 <details>
 <summary><strong>Legendă — payload-ul checkpoint-ului și publicarea</strong></summary>
 
-- **checkpoint** este punctul semantic al UI flow-ului;
-- **payload** grupează assertions, audit observations și API evidence;
+- **checkpoint** este singurul nod semantic al propoziției Gherkin;
+- **payload** grupează separat copii `UI validation` și `API validation`, plus
+  assertions, audit observations și evidence-ul selectat;
 - **screenshot policy** decide dacă payload-ul primește captură;
 - **Extent step** publică rezultatul observabil;
 - **assertions** decid verdictul, iar observations explică evidence-ul;
@@ -472,7 +473,13 @@ flowchart LR
 - recovery-ul opțional de login nu întoarce body gol și nu înghite failure-ul: publică
   evidence `unavailable`, iar browser exchange-ul rămâne verdictul autoritativ;
 - retry-urile rămân distincte prin sequence și signature;
+- signature-ul și digestul body-ului sunt folosite intern pentru corelare, dar
+  HTML-ul public afișează numai starea bounded `body=present|absent` și markerul
+  `internal digest hidden`, niciodată SHA-256-ul brut;
 - exchange-ul malformed este omis din audit și nu produce evidence falsă.
+- aceeași propoziție Gherkin nu se publică a doua oară doar pentru că are și
+  evidence API; un pas poate avea copii diferiți UI și API, dar nu frați cu
+  același titlu și aceeași intenție.
 
 </details>
 
@@ -482,8 +489,10 @@ Fiecare exchange publicat în checkpoint păstrează metadata causală comună c
 publisher-ul API.
 
 - `EVENT ID`, `SEQUENCE`, `PHASE`, `ROLE`, `STEP ID`, `INITIATOR`, `CORRELATION`;
-- `REQUEST SIGNATURE`, body digests, source, `EXPECTED`, `OBSERVED`;
-- signature = method + safe target + digestul body-ului JSON canonicalizat;
+- `REQUEST SIGNATURE`, body-state marker, source, `EXPECTED`, `OBSERVED`;
+- signature-ul intern = method + safe target + digestul body-ului JSON
+  canonicalizat; HTML-ul public proiectează numai `body=present|absent`, iar
+  digestul brut rămâne ascuns;
 - obiectele JSON sunt sortate, array-urile își păstrează ordinea, iar body absent
   este diferit de `{}`.
 
@@ -508,15 +517,20 @@ publisher-ul API.
 - renderer-ul nu filtrează business evidence și nu reconstituie liste locale;
 - bridge-ul publică aggregate-ul într-un singur nod `TRACE` collapsed, cu
   secțiuni nested, nu în `Overview → System`;
-- trace-ul trebuie să păstreze ierarhia vizibilă `pas Gherkin → API validation →
-  detalii collapsed`; `API validation` este copil semantic, nu un nou test sau
-  un verdict paralel al UI-ului;
+- trace-ul trebuie să păstreze ierarhia vizibilă
+  `un pas Gherkin → UI validation și API validation → detalii collapsed`;
+  `UI validation` și `API validation`
+  sunt copii semantici frați ai aceluiași pas, nu două teste sau două carduri
+  Gherkin cu titlu repetat;
 - trace-ul trebuie să reutilizeze și forma API canonicală per exchange:
   `Request details` → `Response details` → `Execution evidence`; un tabel
   comun `API 1/API 2` este doar un index insuficient pentru audit;
 - fiecare `Execution evidence` trebuie să fie legat vizibil de exchange-ul său;
-  titlul generic repetat nu este suficient când checkpoint-ul produce mai multe
-  request-uri;
+  `Exchange n` este identificatorul local când checkpoint-ul produce mai multe
+  request-uri, nu un motiv pentru duplicarea propoziției Gherkin;
+- retry-ul aceluiași request rămâne un singur exchange în raport; numărul de
+  attempts și retry history apar în `Execution evidence`, nu ca pași `API n`
+  suplimentari;
 - `TRACE PARENT STEP` și `TRACE POSITION` sunt context al trace-ului, nu rânduri
   repetate în response details; URL-ul complet rămâne vizibil fără wrapping
   arbitrar în identificator.
@@ -591,14 +605,25 @@ se pot schimba dinamic.
 
 Feedback-ul păstrează limitele active și criteriile de redeschidere; README-ul
 păstrează numai contractele stabile. Deciziile deja implementate și documentate
-aici includ ownership-ul rutelor și selectorilor, screen contracts, audit
-observations, capture/select seams, vocabularul typed, provenance-ul
-transportului, lifecycle-ul E2E, contractul stateful al cart-ului la nivel
-component, assertions observate și limitarea numărului de journey-uri.
-Binding-ul API per checkpoint și aggregate-ul semantic nested al inspectorului
-sunt contracte stabile; reuse-ul structural per exchange și layout-ul URL-ului
-rămân limite de prezentare urmărite în feedback generic, nu logică business
-copiată în consumer.
+aici sunt:
+
+- ownership-ul rutelor și selectorilor, screen contracts și audit observations;
+- capture/select seams, vocabularul typed și provenance-ul transportului;
+- lifecycle-ul E2E, contractul stateful al cart-ului și assertions observate;
+- limitarea numărului de journey-uri și binding-ul API per checkpoint;
+- aggregate-ul semantic nested al inspectorului, cu reuse structural per exchange
+  verificat lower-level.
+
+Topologia vizibilă rămâne obligatoriu `un singur Gherkin → UI validation și API
+validation`. Dacă raportul afișează două propoziții identice, feedback-ul
+redeschide contractul; consumerul nu copiază logică de renderer pentru a ascunde
+problema.
+
+Un artifact UI este auditabil numai dacă a fost regenerat după compilarea
+versiunii de reporting verificată. Un raport mai vechi poate păstra markup sau
+digesturi dintr-un renderer anterior și nu poate închide ori redeschide singur un
+ToDo; dovada canonicală este combinația `component/integration tests + fresh
+E2E artifact`.
 
 Nu se copiază în README:
 

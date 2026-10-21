@@ -33,6 +33,9 @@ final class HtmlReportSemanticSnapshotMapper {
         }
         var validation = (HtmlReportSemanticDocument.ValidationModel) node;
         return new ReportExecutionModel.Validation(validation.title, validation.assertions,
-                validation.status, validation.uiActionCount, validation.screenshotCount);
+                validation.status, validation.uiActionCount, validation.screenshotCount,
+                validation.children.stream()
+                        .map(HtmlReportSemanticSnapshotMapper::mapNode)
+                        .toList());
     }
 }

@@ -233,6 +233,7 @@ final class AtfReportSemanticState {
     static final class ValidationState implements NodeState {
         private final String title;
         private final List<String> assertionNames = new ArrayList<>();
+        private final List<RequestState> requests = new ArrayList<>();
         private int uiActionCount;
         private int screenshotCount;
         private AtfReportStatus status = AtfReportStatus.INFO;
@@ -240,6 +241,13 @@ final class AtfReportSemanticState {
 
         private ValidationState(String title) {
             this.title = title == null ? "" : title;
+        }
+
+        RequestState startRequest(String title, String method, String path) {
+            ensureOpen();
+            var request = new RequestState(title, method, path);
+            requests.add(request);
+            return request;
         }
 
         void assertions(Collection<AtfAssertion> assertions) {
@@ -264,6 +272,9 @@ final class AtfReportSemanticState {
 
         void complete(AtfReportStatus status) {
             ensureOpen();
+            if (requests.stream().anyMatch(request -> !request.completed())) {
+                throw new IllegalStateException("Cannot complete validation before all nested requests are complete");
+            }
             this.status = Objects.requireNonNull(status, "status");
             completed = true;
         }
@@ -280,7 +291,8 @@ final class AtfReportSemanticState {
         @Override
         public AtfReportSemanticSnapshot.ValidationSnapshot snapshot() {
             return new AtfReportSemanticSnapshot.ValidationSnapshot(title, assertionNames,
-                    uiActionCount, screenshotCount, status);
+                    uiActionCount, screenshotCount, status,
+                    requests.stream().map(RequestState::snapshot).toList());
         }
     }
 

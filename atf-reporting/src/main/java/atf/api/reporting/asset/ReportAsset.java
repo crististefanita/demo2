@@ -47,6 +47,8 @@ public enum ReportAsset {
             "extent-navigation-dom"),
     EXTENT_NAVIGATION_DISCLOSURE_JS("/atf/reporting/javascript/extent-navigation-disclosure.js", Format.JAVASCRIPT,
             "extent-navigation-disclosure"),
+    EXTENT_NAVIGATION_PERFORMANCE_JS("/atf/reporting/javascript/extent-navigation-performance.js", Format.JAVASCRIPT,
+            "extent-navigation-performance"),
     EXTENT_NAVIGATION_CONTROLLER_JS("/atf/reporting/javascript/extent-navigation-controller.js", Format.JAVASCRIPT,
             "extent-navigation-controller"),
     EXTENT_OVERVIEW_AUDIT_JS("/atf/reporting/javascript/extent-overview-audit.js", Format.JAVASCRIPT,

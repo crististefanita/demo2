@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -42,6 +43,18 @@ class ReportRequestSignatureTest {
     void arrayOrderRemainsBusinessSignificant() {
         assertNotEquals(ReportRequestSignature.bodyDigest("{\"ids\":[1,2]}"),
                 ReportRequestSignature.bodyDigest("{\"ids\":[2,1]}"));
+    }
+
+    @Test
+    void publicDisplayKeepsCorrelationWithoutPublishingDigest() {
+        String signature = ReportRequestSignature.forRequest(request("{\"quantity\":2}"));
+
+        String display = ReportRequestSignature.displaySignature(signature);
+
+        assertTrue(display.endsWith("#body=present"));
+        assertFalse(display.matches(".*[0-9a-f]{64}.*"));
+        assertEquals("absent (internal digest hidden)",
+                ReportRequestSignature.displayDigest(ReportRequestSignature.bodyDigest("")));
     }
 
     private static ReportRequest request(String body) {

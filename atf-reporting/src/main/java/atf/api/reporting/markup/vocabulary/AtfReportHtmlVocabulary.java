@@ -135,6 +135,7 @@ public final class AtfReportHtmlVocabulary {
         CARD_BODY("card-body"),
         EVIDENCE_KEY_COLUMN("atf-evidence-key-column"),
         EVIDENCE_VALUE_COLUMN("atf-evidence-value-column"),
+        EVIDENCE_URL_VALUE("atf-evidence-url-value"),
         DISCLOSURE_GLYPH("atf-disclosure-glyph"),
         EXECUTION_EVIDENCE("execution-evidence"),
         EXECUTION_EVIDENCE_BODY("execution-evidence-body"),

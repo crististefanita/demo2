@@ -218,12 +218,13 @@ class ExtentReportUiEvidencePublishingTest {
                 () -> assertTrue(html.contains("REQUEST JSON")),
                 () -> assertTrue(html.contains("RESPONSE JSON")),
                 () -> assertTrue(html.contains("AUTH TYPE")),
-                () -> assertTrue(html.contains("AUTH PROFILE")),
+                () -> assertTrue(html.contains("AUTHENTICATION")),
                 () -> assertTrue(html.contains("REQUEST HEADERS")),
                 () -> assertTrue(html.contains("MANUAL REPLAY")),
-                () -> assertTrue(html.contains("API 1 · METHOD")),
-                () -> assertTrue(html.contains("API 1 · HTTP STATUS")),
-                () -> assertTrue(html.contains("API 1 · RESPONSE HEADERS")),
+                () -> assertTrue(html.contains("API validation")),
+                () -> assertTrue(html.contains("Exchange 1")),
+                () -> assertTrue(html.contains("METHOD")),
+                () -> assertTrue(html.contains("HTTP STATUS")),
                 () -> assertFalse(html.contains("AUTH SOURCE")),
                 () -> assertFalse(html.contains("REQUEST API 1 HEADERS")),
                 () -> assertFalse(html.contains("RESPONSE API 1 HEADERS")),
@@ -240,14 +241,15 @@ class ExtentReportUiEvidencePublishingTest {
     }
 
     @Test
-    void publishesApiEvidenceAsCausalSiblingAfterItsUiCheckpoint() throws Exception {
-        Path root = Files.createTempDirectory("atf-ui-api-trace-sibling-");
+    void keepsUiAndApiValidationUnderOneGherkinCheckpoint() throws Exception {
+        Path root = Files.createTempDirectory("atf-ui-api-trace-combined-");
         Path report;
         var request = new ReportRequest("POST", "/checkout", Map.of("step", "payment"),
                 Map.of("Content-Type", "application/json"), "none",
                 "{\"payment\":{\"method\":\"cash-on-delivery\"}}");
         var response = new ReportResponse(200, "{\"message\":\"Payment was successful\"}",
-                Map.of("Content-Type", "application/json"), Duration.ofMillis(12),
+                Map.of("Content-Type", "application/json", "X-Request-Id", "req-456"),
+                Duration.ofMillis(12),
                 "https://api.practicesoftwaretesting.com/payment/check");
         var execution = new ReportExecutionEvidence(response, 1, Duration.ofMillis(12), List.of(),
                 List.of(new ReportAttemptRecord(1, 200, Duration.ofMillis(12), "SUCCESS", "final response")),
@@ -257,12 +259,10 @@ class ExtentReportUiEvidencePublishingTest {
                 AtfConsoleSink.noOp())) {
             report = session.reportPath();
             var scenario = session.startScenario("UiTest", EXTENT_UI_TEST_PACKAGE,
-                    "causal API trace", List.of("ui", "api"));
+                    "combined UI and API validation", List.of("ui", "api"));
             var body = scenario.startPhase(ReportUiContract.Phase.TEST_BODY.displayName());
             body.step(GIVEN, "the payment response is visible", "/checkout", null,
                     List.of(new AtfAssertion("Payment", "success", "success", true)), List.of(),
-                    AtfReportStatus.PASS);
-            body.apiTrace(GIVEN, "the payment response is visible", "/checkout",
                     List.of(execution), AtfReportStatus.PASS);
             body.complete(AtfReportStatus.PASS);
             scenario.complete(AtfReportStatus.PASS);
@@ -271,34 +271,31 @@ class ExtentReportUiEvidencePublishingTest {
         String html = Files.readString(report);
         String traceTitle = "<span>GIVEN the payment response is visible</span>";
         int uiStep = html.indexOf(traceTitle);
-        int traceNode = html.indexOf(traceTitle, uiStep + traceTitle.length());
-        int apiTrace = html.indexOf("EVIDENCE TYPE</td><td>api-trace");
         int requestJson = html.indexOf("REQUEST JSON");
-        String uiProjection = uiStep >= 0 && traceNode > uiStep
-                ? html.substring(uiStep, traceNode) : "";
         assertAll(
                 () -> assertTrue(uiStep >= 0),
-                () -> assertTrue(traceNode > uiStep),
-                () -> assertTrue(apiTrace > traceNode),
-                 () -> assertTrue(ExtentReportUiEvidenceTestSupport.count(
-                         html, "GIVEN the payment response is visible") >= 2),
+                // The title is also recorded as REQUEST ACTION inside the evidence table.
+                // Count the semantic card title, not the repeated diagnostic value.
+                () -> assertEquals(1, ExtentReportUiEvidenceTestSupport.count(
+                        html, "<span>GIVEN the payment response is visible</span>")),
+                 () -> assertTrue(html.contains("UI validation")),
+                 () -> assertTrue(html.contains("API validation")),
                  () -> assertTrue(html.contains("Request details")),
                  () -> assertTrue(html.contains("Response details")),
                  () -> assertTrue(html.contains("TECHNICAL TRACE")),
                  () -> assertTrue(html.contains("Execution evidence")),
-                 () -> assertTrue(html.contains("AUTH PROFILE")),
+                 () -> assertTrue(html.contains("AUTHENTICATION")),
                  () -> assertTrue(html.contains("REQUEST HEADERS")),
                  () -> assertTrue(html.contains("MANUAL REPLAY")),
-                 () -> assertTrue(html.contains("API 1 · METHOD")),
-                 () -> assertTrue(html.contains("API 1 · HTTP STATUS")),
+                 () -> assertTrue(html.contains("API validation")),
+                 () -> assertTrue(html.contains("Exchange 1")),
+                 () -> assertTrue(html.contains("METHOD")),
+                 () -> assertTrue(html.contains("HTTP STATUS")),
                  () -> assertFalse(html.contains("API trace · GIVEN the payment response is visible")),
                  () -> assertFalse(html.contains("TRACE /checkout — GIVEN")),
                  () -> assertFalse(html.contains("TRACE https://api.practicesoftwaretesting.com")),
-                 () -> assertFalse(html.contains("RESPONSE HEADERS")),
-                 () -> assertTrue(requestJson > traceNode),
-                () -> assertTrue(html.contains("EVIDENCE TYPE</td><td>api-trace")),
-                () -> assertTrue(html.contains("TRACE PARENT STEP")),
-                () -> assertFalse(uiProjection.contains("REQUEST JSON")),
+                  () -> assertTrue(html.contains("RESPONSE HEADERS")),
+                  () -> assertTrue(requestJson > uiStep),
                 () -> assertFalse(html.contains("REQUEST JSON</span></summary>")));
     }
 
@@ -341,7 +338,48 @@ class ExtentReportUiEvidencePublishingTest {
                 () -> assertTrue(html.contains("first-exchange-evidence")),
                 () -> assertTrue(html.contains("second-exchange-evidence")),
                 () -> assertTrue(ExtentReportUiEvidenceTestSupport.count(html,
-                        "RESPONSE JSON · API") >= 2));
+                        "RESPONSE JSON") >= 2),
+                () -> assertTrue(ExtentReportUiEvidenceTestSupport.count(html,
+                        "API validation") == 1),
+                () -> assertTrue(ExtentReportUiEvidenceTestSupport.count(html,
+                        "Exchange 1") == 1),
+                () -> assertTrue(ExtentReportUiEvidenceTestSupport.count(html,
+                        "Exchange 2") == 1),
+                () -> assertFalse(html.contains("API 1 · METHOD")),
+                () -> assertFalse(html.contains("RESPONSE JSON · API")));
+    }
+
+    @Test
+    void keepsRetryHistoryInsideOneExchangeNode() throws Exception {
+        Path root = Files.createTempDirectory("atf-ui-api-trace-retry-");
+        Path report;
+        var request = new ReportRequest("GET", "/products/1", Map.of(),
+                Map.of("Accept", "application/json"), "none", "");
+        var response = new ReportResponse(200, "{\"id\":1}",
+                Map.of("Content-Type", "application/json"), Duration.ofMillis(12),
+                "https://api.practicesoftwaretesting.com/products/1");
+        var evidence = new ReportExecutionEvidence(response, 2, Duration.ofMillis(30), List.of(),
+                List.of(new ReportAttemptRecord(1, 503, Duration.ofMillis(18), "RETRY", "temporary upstream"),
+                        new ReportAttemptRecord(2, 200, Duration.ofMillis(12), "SUCCESS", "final response")),
+                request, ReportTransportProvenance.LIVE_HTTP);
+
+        try (var session = UiExtentReportSession.openConfigured(root, "ui-api-trace-retry.html",
+                AtfConsoleSink.noOp())) {
+            report = session.reportPath();
+            var scenario = session.startScenario("UiTest", EXTENT_UI_TEST_PACKAGE,
+                    "retry is one exchange", List.of("ui", "api"));
+            var body = scenario.startPhase(ReportUiContract.Phase.TEST_BODY.displayName());
+            body.apiTrace(THEN, "product is ready", "/products/1", List.of(evidence), AtfReportStatus.PASS);
+            body.complete(AtfReportStatus.PASS);
+            scenario.complete(AtfReportStatus.PASS);
+        }
+
+        String html = Files.readString(report);
+        assertAll(
+                () -> assertEquals(1, ExtentReportUiEvidenceTestSupport.count(html, "Exchange 1")),
+                () -> assertTrue(html.contains("Execution evidence · 2 attempts")),
+                () -> assertTrue(html.contains("temporary upstream")),
+                () -> assertTrue(html.contains("final response")));
     }
 
     @Test

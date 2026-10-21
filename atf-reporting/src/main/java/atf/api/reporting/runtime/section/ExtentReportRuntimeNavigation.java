@@ -11,6 +11,7 @@ public final class ExtentReportRuntimeNavigation {
     private enum Fragment {
         DOM_CONTRACT(ExtentReportRuntimeNavigationDom.script()),
         DISCLOSURE(ExtentReportRuntimeNavigationDisclosure.script()),
+        PERFORMANCE(ExtentReportRuntimeNavigationPerformance.script()),
         CONTROLLER(ExtentReportRuntimeNavigationController.script());
 
         private final String source;

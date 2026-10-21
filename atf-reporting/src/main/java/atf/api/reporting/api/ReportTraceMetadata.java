@@ -67,9 +67,9 @@ public record ReportTraceMetadata(
         add(fields, "STEP ID", stepId);
         add(fields, "INITIATOR", initiator);
         add(fields, "CORRELATION", correlationKey);
-        add(fields, "REQUEST SIGNATURE", requestSignature);
-        add(fields, "REQUEST BODY DIGEST", requestBodyDigest);
-        add(fields, "RESPONSE BODY DIGEST", responseBodyDigest);
+        add(fields, "REQUEST SIGNATURE", ReportRequestSignature.displaySignature(requestSignature));
+        add(fields, "REQUEST BODY DIGEST", ReportRequestSignature.displayDigest(requestBodyDigest));
+        add(fields, "RESPONSE BODY DIGEST", ReportRequestSignature.displayDigest(responseBodyDigest));
         add(fields, "SOURCE", evidenceSource);
         add(fields, "EXPECTED", expected);
         add(fields, "OBSERVED", observed);

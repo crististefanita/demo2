@@ -51,6 +51,7 @@ class ReportAssetContractTest {
         assertEquals(ReportAsset.Format.JAVASCRIPT, ReportAsset.EXTENT_TEST_FILTERS_JS.format());
         assertEquals(ReportAsset.Format.JAVASCRIPT, ReportAsset.EXTENT_NAVIGATION_DOM_JS.format());
         assertEquals(ReportAsset.Format.JAVASCRIPT, ReportAsset.EXTENT_NAVIGATION_DISCLOSURE_JS.format());
+        assertEquals(ReportAsset.Format.JAVASCRIPT, ReportAsset.EXTENT_NAVIGATION_PERFORMANCE_JS.format());
         assertEquals(ReportAsset.Format.JAVASCRIPT, ReportAsset.EXTENT_NAVIGATION_CONTROLLER_JS.format());
         assertEquals(ReportAsset.Format.JAVASCRIPT, ReportAsset.EXTENT_OVERVIEW_AUDIT_JS.format());
         assertEquals(ReportAsset.Format.JAVASCRIPT, ReportAsset.EXTENT_OVERVIEW_LABELS_JS.format());
@@ -123,6 +124,7 @@ class ReportAssetContractTest {
         String filters = ExtentReportRuntimeTestFilters.script();
         String navigationDom = ReportAssetComposer.extentNavigationDomScript();
         String navigationDisclosure = ReportAssetComposer.extentNavigationDisclosureScript();
+        String navigationPerformance = ReportAssetComposer.extentNavigationPerformanceScript();
         String navigationController = ReportAssetComposer.extentNavigationControllerScript();
         String overviewAudit = ReportAssetComposer.extentOverviewAuditScript();
         String overviewLabels = ReportAssetComposer.extentOverviewLabelsScript();
@@ -181,9 +183,12 @@ class ReportAssetContractTest {
                 () -> assertTrue(navigationDom.contains("function captureDomContract(")),
                 () -> assertTrue(navigationDisclosure.contains("function bindScenarioCollapse(")),
                 () -> assertTrue(navigationDisclosure.contains("function bindNodeCollapse(")),
+                () -> assertTrue(navigationPerformance.contains("function atfPerformanceSnapshot(")),
+                () -> assertTrue(navigationPerformance.contains("longtask")),
                 () -> assertTrue(navigationController.contains("window.atfActivate=function")),
                 () -> assertFalse(navigationDom.contains("${")),
                 () -> assertFalse(navigationDisclosure.contains("${")),
+                () -> assertFalse(navigationPerformance.contains("${")),
                 () -> assertFalse(navigationController.contains("${")),
                 () -> assertTrue(overviewAudit.contains("function populateAudit(")),
                 () -> assertTrue(overviewLabels.contains("function normalizeTagTableHeaders(")),

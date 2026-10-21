@@ -11,6 +11,8 @@ import atf.api.reporting.html.HtmlReportSemanticDocument;
 import atf.api.reporting.semantic.AtfReportSemanticRecorder;
 
 import java.util.Collection;
+import java.util.Objects;
+import java.util.function.Consumer;
 
 /** Coordinates request evidence and its nested validation port. */
 public final class HtmlReportRequestScope implements AtfReportPorts.Request {
@@ -18,6 +20,7 @@ public final class HtmlReportRequestScope implements AtfReportPorts.Request {
     private final String consoleName;
     private final AtfReportSemanticRecorder.RequestHandle semantic;
     private final AtfConsoleSink console;
+    private final Consumer<AtfReportStatus> onComplete;
     private ReportNetworkInspector.JourneyAggregate networkAggregate;
     private final long startedAt = System.nanoTime();
     private boolean closed;
@@ -26,10 +29,19 @@ public final class HtmlReportRequestScope implements AtfReportPorts.Request {
                                   String consoleName,
                                   AtfReportSemanticRecorder.RequestHandle semantic,
                                   AtfConsoleSink console) {
+        this(model, consoleName, semantic, console, status -> { });
+    }
+
+    HtmlReportRequestScope(HtmlReportSemanticDocument.RequestModel model,
+                           String consoleName,
+                           AtfReportSemanticRecorder.RequestHandle semantic,
+                           AtfConsoleSink console,
+                           Consumer<AtfReportStatus> onComplete) {
         this.model = model;
         this.consoleName = consoleName;
-        this.semantic = semantic;
-        this.console = console;
+        this.semantic = Objects.requireNonNull(semantic, "semantic");
+        this.console = Objects.requireNonNull(console, "console");
+        this.onComplete = Objects.requireNonNull(onComplete, "onComplete");
     }
 
     @Override
@@ -85,6 +97,7 @@ public final class HtmlReportRequestScope implements AtfReportPorts.Request {
         semantic.complete(status);
         console.publish(AtfConsoleEvent.completed(AtfConsoleEvent.Scope.REQUEST,
                 consoleName, status, HtmlReportScopeTiming.elapsedMillis(startedAt)));
+        onComplete.accept(status);
     }
 
     @Override

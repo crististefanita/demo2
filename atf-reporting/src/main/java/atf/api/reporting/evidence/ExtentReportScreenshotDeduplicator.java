@@ -6,8 +6,8 @@ import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -29,22 +29,28 @@ public final class ExtentReportScreenshotDeduplicator {
 
     public static String deduplicate(String html) {
         if (html == null || html.isEmpty()) return html;
-        Set<String> seen = new HashSet<>();
+        Map<String, String> references = new LinkedHashMap<>();
         Matcher matcher = SCREENSHOT_LINK.matcher(html);
         StringBuffer result = new StringBuffer();
         while (matcher.find()) {
             String payload = matcher.group(1);
             String fingerprint = fingerprint(payload);
-            String replacement = seen.add(fingerprint)
-                    ? withCanonicalReference(matcher.group(), fingerprint)
-                    : duplicateReference(fingerprint);
+            String reference = references.get(fingerprint);
+            boolean canonical = reference == null;
+            if (canonical) {
+                reference = "screenshot-" + (references.size() + 1);
+                references.put(fingerprint, reference);
+            }
+            String replacement = canonical
+                    ? withCanonicalReference(matcher.group(), reference)
+                    : duplicateReference(reference);
             matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
         }
         matcher.appendTail(result);
         return result.toString();
     }
 
-    private static String duplicateReference(String fingerprint) {
+    private static String duplicateReference(String reference) {
         String marker = AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.SPAN,
                 AtfReportLabels.BASE64_IMAGE_MARKER,
                 AtfReportHtmlVocabulary.classAttribute(
@@ -59,10 +65,10 @@ public final class ExtentReportScreenshotDeduplicator {
                         AtfReportHtmlVocabulary.CssClass.ATF_UI_ACTION_SCREENSHOT_LINK,
                         AtfReportHtmlVocabulary.CssClass.ATF_UI_SCREENSHOT_DUPLICATE),
                 AtfReportHtmlVocabulary.attribute(
-                        AtfReportHtmlVocabulary.Attribute.SCREENSHOT_REF, fingerprint),
+                        AtfReportHtmlVocabulary.Attribute.SCREENSHOT_REF, reference),
                 AtfReportHtmlVocabulary.attribute(
                         AtfReportHtmlVocabulary.Attribute.HREF,
-                        "#atf-screenshot-" + fingerprint),
+                        "#atf-screenshot-" + reference),
                 AtfReportHtmlVocabulary.attribute(
                         AtfReportHtmlVocabulary.Attribute.ARIA_LABEL,
                         AtfReportLabels.OPEN_DUPLICATE_SCREENSHOT),
@@ -71,16 +77,16 @@ public final class ExtentReportScreenshotDeduplicator {
                         AtfReportLabels.OPEN_DUPLICATE_SCREENSHOT));
     }
 
-    private static String withCanonicalReference(String anchor, String fingerprint) {
+    private static String withCanonicalReference(String anchor, String reference) {
         String openingTag = anchor.substring(0, anchor.indexOf('>') + 1);
         String referenceAttribute = AtfReportHtmlVocabulary.Attribute.SCREENSHOT_REF.value()
                 + "=\"";
         if (openingTag.contains(referenceAttribute)) return anchor;
         String referenceAttributes = " "
-                + AtfReportHtmlVocabulary.idAttribute("atf-screenshot-" + fingerprint)
+                + AtfReportHtmlVocabulary.idAttribute("atf-screenshot-" + reference)
                 + " "
                 + AtfReportHtmlVocabulary.attribute(
-                AtfReportHtmlVocabulary.Attribute.SCREENSHOT_REF, fingerprint);
+                AtfReportHtmlVocabulary.Attribute.SCREENSHOT_REF, reference);
         String enrichedOpeningTag = openingTag.substring(0, openingTag.length() - 1)
                 + referenceAttributes + ">";
         return enrichedOpeningTag + anchor.substring(openingTag.length());

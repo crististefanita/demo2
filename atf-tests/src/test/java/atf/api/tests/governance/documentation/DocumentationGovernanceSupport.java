@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 final class DocumentationGovernanceSupport {
     private static final List<String> IGNORED_DIRECTORY_NAMES = List.of(
             ".git", "target", "artifacts", ".idea", "migration-copy-rejected",
-            "migration-quarantine");
+            "migration-quarantine", ".presentation-build");
 
     private DocumentationGovernanceSupport() {
     }

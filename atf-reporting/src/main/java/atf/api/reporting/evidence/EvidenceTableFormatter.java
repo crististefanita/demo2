@@ -100,6 +100,8 @@ public final class EvidenceTableFormatter {
                 || normalized.equals("auth profile") || normalized.equals("auth type")
                 || normalized.equals("transport") || normalized.equals("manual replay")
                 || normalized.equals("query params") || normalized.equals("request headers")
+                || normalized.equals("trace.parent.step") || normalized.equals("trace.position")
+                || normalized.equals("trace.exchange")
                 || normalized.equals("body") || normalized.equals("request body");
     }
 
@@ -129,6 +131,9 @@ public final class EvidenceTableFormatter {
             case "response.content.type" -> "CONTENT TYPE";
             case "response.duration.ms" -> "RESPONSE DURATION";
             case "exchange.duration.ms" -> "TOTAL DURATION";
+            case "trace.parent.step" -> "TRACE PARENT STEP";
+            case "trace.position" -> "TRACE POSITION";
+            case "trace.exchange" -> "TRACE EXCHANGE";
             case "response duration", "response duration (ms)" -> "RESPONSE DURATION";
             case "total duration", "total duration (ms)" -> "TOTAL DURATION";
             case "attempt" -> "ATTEMPT";

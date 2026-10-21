@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @AtfComponentTest
@@ -56,6 +57,10 @@ class ReportTraceMetadataRenderingTest {
                 () -> assertTrue(html.contains("E7")),
                 () -> assertTrue(html.contains("ActionCaused")),
                 () -> assertTrue(html.contains("cart-checkpoint")),
-                () -> assertTrue(html.contains("response-digest")));
+                () -> assertTrue(html.contains("#body=present")),
+                () -> assertTrue(html.contains("present (internal digest hidden)")),
+                () -> assertFalse(html.contains("body-digest")),
+                () -> assertFalse(html.contains("request-digest")),
+                () -> assertFalse(html.contains("response-digest")));
     }
 }

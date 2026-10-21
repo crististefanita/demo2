@@ -14,12 +14,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ExtentReportRuntimeNavigationComponentTest {
     private static final List<String> FUNCTIONS = List.of(
             "normalizeCodeBlocks", "normalizeDisclosureState", "captureDomContract",
-            "openScenarioCard", "openDeepLinkCard", "openScenarioAuditPath",
+            "openScenarioCard", "setDisclosureState", "openDeepLinkCard", "openScenarioAuditPath",
             "collapseDirectScenarioCards", "collapseScenarioCards",
             "toggleScenario", "initializeScenarioCard", "bindScenarioCollapse",
-            "watchScenarioCards", "phaseDirectBody", "applyPhaseBodyState",
+            "hasRelevantScenarioNodes", "watchScenarioCards", "phaseDirectBody", "applyPhaseBodyState",
             "bindPhaseCollapse", "nodePanel", "bindNodeCollapse", "activateFromHash",
-            "normalizeNavigationLinks");
+            "normalizeNavigationLinks", "normalizeTestViewContent",
+            "scheduleTestViewNormalization", "scheduleTestViewNormalizationAt");
 
     @Test
     void navigationFacadePublishesOneStableDeclarationPerFunction() {
@@ -39,17 +40,42 @@ class ExtentReportRuntimeNavigationComponentTest {
     void navigationResponsibilitiesRemainSeparatedByComponent() {
         String dom = ExtentReportRuntimeNavigationDom.script();
         String disclosure = ExtentReportRuntimeNavigationDisclosure.script();
+        String performance = ExtentReportRuntimeNavigationPerformance.script();
         String controller = ExtentReportRuntimeNavigationController.script();
 
         assertAll(
                 () -> assertTrue(dom.contains("function captureDomContract(")),
                 () -> assertTrue(dom.contains("window.__atfDomContract")),
                 () -> assertTrue(disclosure.contains("function bindScenarioCollapse(")),
+                 () -> assertTrue(disclosure.contains("function setDisclosureState(")),
+                () -> assertTrue(disclosure.contains("function collapseScenarioCards(force)")),
+                () -> assertTrue(disclosure.contains("!force&&card.getAttribute(attribute)==='true'")),
+                () -> assertTrue(disclosure.contains("collapseScenarioCards(true)")),
                 () -> assertTrue(disclosure.contains("function bindNodeCollapse(")),
                 () -> assertTrue(disclosure.contains("function nodePanel(")),
                 () -> assertTrue(controller.contains("window.atfOpenTest=function")),
+                () -> assertTrue(performance.contains("window.__atfReportPerformance")),
+                () -> assertTrue(performance.contains("function atfPerformanceSnapshot(")),
+                () -> assertTrue(performance.contains("longtask")),
+                () -> assertTrue(performance.contains("data-atf-test-view-ready")),
+                () -> assertTrue(performance.contains("atfPerformanceMarkReady")),
+                () -> assertTrue(controller.contains("atfPerformanceBeginReadiness()")),
+                () -> assertTrue(controller.contains("atfPerformanceEnd(startedAt,'normalizationDurationMs')")),
+                () -> assertTrue(disclosure.contains("atfPerformanceCount('relevantMutationBatches')")),
+                () -> assertTrue(disclosure.contains("atfPerformanceCount('scenarioToggles')")),
+                () -> assertTrue(disclosure.contains("atfPerformanceCount('phaseToggles')")),
+                () -> assertTrue(disclosure.contains("atfPerformanceCount('nodeToggles')")),
+                () -> assertTrue(ExtentReportRuntimeNavigation.script().indexOf("window.__atfReportPerformance")
+                        < ExtentReportRuntimeNavigation.script().indexOf("function normalizeTestViewContent(")),
                 () -> assertTrue(controller.contains("function activateFromHash(")),
                 () -> assertTrue(controller.contains("screen-validation")),
+                () -> assertTrue(controller.contains("atfTestViewReadinessTimers")),
+                () -> assertTrue(controller.contains("requestAnimationFrame")),
+                () -> assertTrue(disclosure.contains("function hasRelevantScenarioNodes(")),
+                () -> assertTrue(disclosure.contains(".test-contents > .mt-4")),
+                () -> assertTrue(disclosure.contains("n.querySelector&&n.querySelector(s)")),
+                () -> assertFalse(disclosure.contains("return record.addedNodes && record.addedNodes.length > 0;")),
+                () -> assertFalse(disclosure.contains("q('.test-contents > .mt-4 > .accordion > .card').length")),
                 () -> assertTrue(disclosure.contains("function openScenarioAuditPath(")),
                 () -> assertTrue(controller.contains("function normalizeNavigationLinks(")),
                 () -> assertFalse(dom.contains("window.atfActivate=function")),

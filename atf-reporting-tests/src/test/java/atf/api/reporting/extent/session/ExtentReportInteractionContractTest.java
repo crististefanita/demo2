@@ -88,11 +88,14 @@ class ExtentReportInteractionContractTest {
                 () -> assertTrue(divDepthAt(html, validation) > divDepthAt(html, request),
                         "validation must be rendered inside the Gherkin request node, never as a phase sibling"),
                 () -> assertTrue(html.contains("function collapseDirectScenarioCards()")),
-                () -> assertTrue(html.contains("function collapseScenarioCards()")),
+                () -> assertTrue(containsJavaScriptSignature(html,
+                                "function collapseScenarioCards(force)")),
+                 () -> assertTrue(html.contains("function setDisclosureState(card,panel,open,attribute)"),
+                         "all card transitions must update panel, data state, aria and glyph through one helper"),
                 () -> assertTrue(html.contains("function bindScenarioCollapse()")),
                 () -> assertTrue(html.contains("function bindPhaseCollapse()"),
                         "lifecycle phase headers must have an explicit collapse controller"),
-                () -> assertTrue(html.contains("function toggleScenario(card,panel,node,e)")),
+                () -> assertTrue(html.contains("function toggleScenario(card,panel,e)")),
                 () -> assertTrue(html.contains("function initializeScenarioCard(card,panel)")),
                 () -> assertTrue(html.contains("data-atf-scenario-node-collapse-bound")),
                 () -> assertTrue(html.contains("data-atf-scenario-open")),
@@ -116,9 +119,11 @@ class ExtentReportInteractionContractTest {
                         "overview charts must use the same semantic palette as status badges"),
                 () -> assertTrue(html.contains("['--atf-pass','--atf-fail','--atf-skip','--atf-skip','--atf-info']"),
                         "chart slices must map pass, fail, warning, skip and info to shared tokens"),
-                () -> assertTrue(html.contains("<td>URL</td><td>" + ApiReportTestUrls.example(USERS) + "</td>"),
+                () -> assertTrue(html.contains("<td>URL</td><td class=\"atf-evidence-url-value\">"
+                                + ApiReportTestUrls.example(USERS) + "</td>"),
                         "technical trace must expose the request URL"),
-                () -> assertTrue(html.contains("<td>response.url</td><td>" + ApiReportTestUrls.example(USERS) + "</td>"),
+                () -> assertTrue(html.contains("<td>response.url</td><td class=\"atf-evidence-url-value\">"
+                                + ApiReportTestUrls.example(USERS) + "</td>"),
                         "execution evidence must retain the effective URL"),
                 () -> assertTrue(html.contains("<td>HTTP STATUS</td><td>200</td>"),
                         "technical trace must expose the response status"),
@@ -224,7 +229,9 @@ class ExtentReportInteractionContractTest {
                 () -> assertTrue(html.contains("json-evidence")),
                 () -> assertTrue(html.contains("assertion-evidence")),
                 () -> assertTrue(html.contains("helm-validation-table")),
-                () -> assertTrue(html.contains("style.setProperty('display',next?'block':'none','important')")),
+                 () -> assertTrue(html.contains("panel.style.setProperty('display',open?'block':'none','important')"),
+                         "the shared disclosure helper must own the visible panel state"),
+                 () -> assertTrue(html.contains("setDisclosureState(card,panel,next,'data-atf-node-open')")),
                 () -> assertFalse(html.contains("class=\"collapse show\""),
                         "evidence must start collapsed in the artifact")
         );
@@ -296,5 +303,13 @@ class ExtentReportInteractionContractTest {
             }
         }
         return depth;
+    }
+
+    private static boolean containsJavaScriptSignature(String html, String signature) {
+        return compactJavaScript(html).contains(compactJavaScript(signature));
+    }
+
+    private static String compactJavaScript(String value) {
+        return value.replaceAll("\\s+", "");
     }
 }

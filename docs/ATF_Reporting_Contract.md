@@ -144,6 +144,9 @@ rendererul fallback:
 - când există mai multe exchange-uri, `Execution evidence` trebuie să păstreze
   identitatea exchange-ului în disclosure-ul părinte sau în titlu; repetarea
   unui titlu generic fără context nu este auditabilă;
+- retry-ul aceluiași request nu este exchange nou: request/response rămân o
+  singură unitate API, iar attempts, retry events și outcome rămân în
+  `Execution evidence`;
 - `REQUEST JSON` și `RESPONSE JSON` există și pentru body absent, caz în care
   valoarea explicită este `null`;
 - `TRANSPORT PROVENANCE` vine din composition root: `ACCEPTANCE / MOCK` nu a
@@ -181,8 +184,11 @@ flowchart LR
 - `Request details`, `Response details` și `Execution evidence` sunt
   disclosure-uri separate în artifact; schema le leagă printr-un spine compact.
   Într-un UI trace cu mai multe exchange-uri, același spine se repetă per
-  exchange într-un singur sibling Gherkin; concatenarea tuturor rândurilor
-  într-un tabel comun `API 1/API 2` nu este contract canonical;
+  exchange sub un singur nod Gherkin. Nodul are copii semantici separați pentru
+  `UI validation` și `API validation`; un al doilea card cu aceeași propoziție
+  Gherkin este duplicare de intent și nu este contract canonical. Concatenarea
+  tuturor rândurilor într-un tabel comun `API 1/API 2` nu este contract
+  canonical;
 - `TECHNICAL TRACE` descrie response context, nu înlocuiește response-ul;
 - provenance și replay-ul explică transportul, fără să pretindă că mock-ul a făcut trafic real;
 - assertions rămân legate de request-ul și validation-ul care le-au produs.
