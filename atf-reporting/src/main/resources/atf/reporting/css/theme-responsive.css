@@ -18,7 +18,8 @@
     margin-right: 0 !important;
   }
   .test-wrapper,
-  .test-view {
+  .test-view,
+  #category-view:not(.hide) {
     position: relative !important;
     left: var(--atf-narrow-nav-inset) !important;
     right: auto !important;
@@ -31,7 +32,8 @@
     box-sizing: border-box !important;
   }
   .test-wrapper .test-list,
-  .test-view .test-list {
+  .test-view .test-list,
+  #category-view .test-list {
     position: relative !important;
     float: none !important;
     flex: 0 0 auto !important;
@@ -40,7 +42,8 @@
     box-sizing: border-box !important;
   }
   .test-wrapper .test-content,
-  .test-view .test-content {
+  .test-view .test-content,
+  #category-view .test-content {
     position: relative !important;
     left: auto !important;
     right: auto !important;
@@ -50,5 +53,86 @@
     flex: 1 1 auto !important;
     overflow: visible !important;
     box-sizing: border-box !important;
+  }
+  #category-view .test-content-detail,
+  #category-view .detail-body,
+  #category-view .test-contents {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    overflow-wrap: anywhere !important;
+  }
+  #category-view table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+  }
+  #category-view th,
+  #category-view td {
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+  #category-view .test-contents a,
+  #category-view .test-contents .node,
+  #category-view .test-contents .badge,
+  #category-view .test-contents div {
+    max-width: 100% !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    min-width: 0 !important;
+  }
+  .test-view .test-content-detail .node,
+  .category-view .test-content-detail .node,
+  .exception-view .test-content-detail .node,
+  .test-view .test-content-detail .table th,
+  .test-view .test-content-detail .table td,
+  .category-view .test-content-detail .table th,
+  .category-view .test-content-detail .table td,
+  .exception-view .test-content-detail .table th,
+  .exception-view .test-content-detail .table td {
+    max-width: 100% !important;
+    min-width: 0 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+  #atf-fails-view .test-content-detail .node,
+  #atf-fails-view .test-content-detail .card-title .node {
+    display: inline-block !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+  #atf-fails-view .test-content-detail table th,
+  #atf-fails-view .test-content-detail table td {
+    padding-left: 3px !important;
+    padding-right: 3px !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+  .test-view .test-content-detail .table,
+  .category-view .test-content-detail .table,
+  .exception-view .test-content-detail .table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+  }
+  #test-view .test-content-detail .card[data-atf-scenario-id]
+    > .card-header > .card-title > a.node {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    line-height: 1.35 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    text-overflow: clip !important;
   }
 }

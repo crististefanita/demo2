@@ -58,7 +58,7 @@ public final class PracticeShopReportSystemMetadata {
                         configuration.uiRetry().summary())
                 .put(ReportEnvironmentField.BODY_PREVIEW,
                         String.format("%,d characters · full JSON remains in checkpoint evidence",
-                                reportingSettings.bodyMaxDisplayCharacters()))
+                                configuration.reporting().systemBodyPreviewCharacters()))
                 .put(ReportEnvironmentField.SCREENSHOT_POLICY,
                         PracticeShopScreenshotPolicy.profile(
                                 configuration.browser().screenshotOnFailure())
@@ -85,7 +85,7 @@ public final class PracticeShopReportSystemMetadata {
      */
     public static Map<String, String> from(PracticeShopConfiguration configuration,
                                            ReportingSettings reportingSettings) {
-        return snapshot(configuration, reportingSettings).displayValues();
+        return snapshot(configuration, reportingSettings).systemDisplayValues();
     }
 
     private static String browser(PracticeShopConfiguration configuration) {

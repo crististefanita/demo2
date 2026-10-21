@@ -1,5 +1,6 @@
 package atf.api.validation.ai;
 
+import atf.api.validation.ai.grounding.AiGroundingRequirement;
 import java.math.BigDecimal;
 import java.text.Normalizer;
 import java.util.HashSet;
@@ -12,13 +13,20 @@ public record AiFieldExpectation(
         Comparison comparison,
         boolean critical,
         int weight,
-        InputPresence inputPresence) {
+        InputPresence inputPresence,
+        AiGroundingRequirement groundingRequirement) {
 
     public AiFieldExpectation {
         fieldPath = requireText(fieldPath, "fieldPath");
         Objects.requireNonNull(comparison, "comparison");
         Objects.requireNonNull(inputPresence, "inputPresence");
+        Objects.requireNonNull(groundingRequirement, "groundingRequirement");
         if (weight <= 0) throw new IllegalArgumentException("weight must be positive");
+    }
+
+    public AiFieldExpectation(String fieldPath, Comparison comparison, boolean critical, int weight,
+                              InputPresence inputPresence) {
+        this(fieldPath, comparison, critical, weight, inputPresence, AiGroundingRequirement.none());
     }
 
     public AiFieldExpectation(String fieldPath, ComparisonMode mode, Object expectedValue,
@@ -29,6 +37,12 @@ public record AiFieldExpectation(
     public AiFieldExpectation(String fieldPath, ComparisonMode mode, Object expectedValue,
                               boolean critical, int weight, InputPresence inputPresence) {
         this(fieldPath, Comparison.of(mode, expectedValue), critical, weight, inputPresence);
+    }
+
+    public AiFieldExpectation(String fieldPath, ComparisonMode mode, Object expectedValue,
+                              boolean critical, int weight, InputPresence inputPresence,
+                              AiGroundingRequirement groundingRequirement) {
+        this(fieldPath, Comparison.of(mode, expectedValue), critical, weight, inputPresence, groundingRequirement);
     }
 
     private static String requireText(String value, String name) {

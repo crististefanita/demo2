@@ -3,6 +3,7 @@ package atf.ui.tests.practiceshop.component;
 import atf.api.testkit.AtfComponentTest;
 import atf.ui.practiceshop.config.PracticeShopConfigurationLoader;
 import atf.ui.practiceshop.support.PracticeShopReportSystemMetadata;
+import atf.ui.practiceshop.config.PracticeShopReportConfiguration;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.configuration.ReportEnvironmentField;
 import org.junit.jupiter.api.Test;
@@ -30,12 +31,13 @@ class PracticeShopReportSystemMetadataTest {
                 () -> assertTrue(values.contains("UI + API evidence")),
                 () -> assertTrue(values.contains("Transport mode=LIVE HTTP")),
                 () -> assertTrue(values.contains("Precondition=API authentication: authenticated")),
-                () -> assertTrue(values.contains("UI journey precondition=guest checkout configuration ready")),
+                () -> assertFalse(values.contains("UI journey precondition")),
                 () -> assertTrue(values.contains("UI action timeout=20s")),
                 () -> assertTrue(values.contains("Page navigation timeout=45s")),
                 () -> assertTrue(values.contains("API request timeout=20s")),
                 () -> assertTrue(values.contains("Network inspector")),
                 () -> assertTrue(values.contains("Body preview")),
+                () -> assertTrue(values.contains("Body preview=100 characters")),
                 () -> assertFalse(values.contains("PT20S")),
                 () -> assertFalse(values.contains("PT45S")),
                 () -> assertFalse(values.contains("Flow=")),
@@ -58,6 +60,8 @@ class PracticeShopReportSystemMetadataTest {
                 () -> assertTrue(snapshot.values().containsKey(ReportEnvironmentField.UI_HOST)),
                 () -> assertTrue(snapshot.values().containsKey(ReportEnvironmentField.API_ENDPOINT)),
                 () -> assertTrue(snapshot.values().containsKey(ReportEnvironmentField.UI_JOURNEY_PRECONDITION)),
+                () -> assertFalse(snapshot.systemDisplayValues().containsKey(
+                        ReportEnvironmentField.UI_JOURNEY_PRECONDITION.label())),
                 () -> assertTrue(snapshot.values().containsKey(ReportEnvironmentField.BODY_PREVIEW)),
                 () -> assertTrue(snapshot.values().containsKey(ReportEnvironmentField.SCREENSHOT_POLICY)),
                 () -> assertEquals(ReportScreenshotPolicy.EACH_CHECKPOINT.configValue(),
@@ -73,5 +77,21 @@ class PracticeShopReportSystemMetadataTest {
                 () -> assertFalse(snapshot.values().containsKey(ReportEnvironmentField.TEST_PACKAGE)),
                 () -> assertFalse(snapshot.displayValues().toString().contains("password")),
                 () -> assertFalse(snapshot.displayValues().toString().contains(".tmp")));
+    }
+
+    @Test
+    void keepsSystemPreviewIndependentFromRequestResponseJsonLimit() {
+        var base = PracticeShopConfigurationLoader.load();
+        var configured = new atf.ui.practiceshop.config.PracticeShopConfiguration(
+                base.baseUrl(), base.accountFile(), base.productName(), base.productPath(),
+                base.checkout(), base.browser(), base.uiRetry(), base.validationProfile(), base.api(),
+                base.uiReportDirectory(), base.apiReportDirectory(), base.authenticatedE2eEnabled(),
+                new PracticeShopReportConfiguration(64));
+
+        var values = PracticeShopReportSystemMetadata.snapshot(configured,
+                new atf.api.reporting.configuration.ReportingSettings(240, 12_000)).displayValues();
+
+        assertEquals("64 characters · full JSON remains in checkpoint evidence",
+                values.get(ReportEnvironmentField.BODY_PREVIEW.label()));
     }
 }

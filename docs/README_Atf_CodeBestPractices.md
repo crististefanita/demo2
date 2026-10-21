@@ -196,6 +196,9 @@ flowchart LR
 ## Structura testelor
 
 `support` este zonă auxiliară, nu al cincilea nivel de test.
+Strategia de selecție, matricea module × layer și proof-ul potrivit fiecărui
+boundary sunt deținute de [ATF_Testing_Guide.md](ATF_Testing_Guide.md); această
+secțiune păstrează convențiile de structură și lizibilitate a codului de test.
 
 ```text
 src/test/java/<owner>/

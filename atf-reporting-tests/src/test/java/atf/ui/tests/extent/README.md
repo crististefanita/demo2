@@ -200,12 +200,23 @@ static contract validator
 Extent assertion / evidence
 ```
 
-Inputul poate fi schimbat prin `-Datf.ui.report=<report.html>`, fără cale
-absolută sau checkout hardcodat. Gate-ul verifică Overview, Tests, Categories
-și Fails, plus/minus inline, screenshot `📷` ca link inline, acțiunile inclusiv
-`getText`, lipsa `<hr>`/overflow-ului, disclosure-uri închise implicit și
-consola fără erori. `TIME` apare numai în tabelul acțiunilor Playwright, unde
-măsoară o acțiune; observațiile statice nu primesc o durată artificială.
+- Schimbă inputul prin `-Datf.ui.report=<report.html>`; nu este necesară o cale
+  absolută sau un checkout hardcodat.
+- Gate-ul verifică Overview, Tests, Categories și Fails, plus/minus inline,
+  screenshot `📷` ca link inline, acțiunile inclusiv `getText`, lipsa `<hr>` și a
+  overflow-ului, disclosure-uri închise implicit și consola fără erori.
+- `TIME` apare numai în tabelul acțiunilor Playwright; observațiile statice nu
+  primesc o durată artificială.
+- Pentru arborele UI, `UI validation` este eticheta canonică; `Screen validation`
+  este acceptată numai ca nume legacy. Se verifică eticheta prezentă, nu ambele.
+- Contractul de densitate este comun: API exchange/aggregate și UI evidence au
+  summary de `34px`, padding `9px 12px` și glyph inline de `18px` în Extent și
+  fallback; `500px` se aplică numai viewport-urilor de tabele lungi.
+- `AtfReportEvidenceCssTest`/`AtfReportThemeTokensTest` verifică tokenii și
+  paritatea CSS; `ScreenValidationSectionExtractor` măsoară computed height,
+  padding, glyph, badge și gap-ul dintre acțiuni/observații/assertions pe raportul
+  randat. E2E/static contract + Browser MCP confirmă vizual aceeași geometrie
+  la viewport normal și îngust.
 
 ### Failure report
 
@@ -616,7 +627,7 @@ regulilor:
 
 | Seam | Owner | Dovadă executabilă |
 |---|---|---|
-| raport static ales explicit | `StaticUiExtentReportContractTest` + `UiReportContractDynamicEngine` | toate cele patru tab-uri, click/collapse în Tests, Screen validation, screenshot, style/render boundary |
+| raport static ales explicit | `StaticUiExtentReportContractTest` + `UiReportContractDynamicEngine` | toate cele patru tab-uri, click/collapse în Tests, UI validation (legacy: Screen validation), screenshot, style/render boundary |
 | raport generat din setup API | `SelectedApiTestsReportUiTest` + `SectionAuditRegistry` | mock → API, POST/PUT request/response JSON, owner/scenario/phase, Categories/Overview/Fails/Evidence și render-health pe toate tab-urile |
 | browser render health | `UiReportStyleValidator` + `ReportAuditContext` | overflow document/body/non-scrollable, zero `<hr>`, imagini, glyph `＋/−`, console/page/request diagnostics |
 
@@ -626,7 +637,8 @@ regulilor:
 - un link PNG Base64 valid, direct sau deduplicat prin referință;
 - markerul `📷 base64 img` și alinierea verticală a linkului;
 - prezența reală a zonelor, nu doar numărul de carduri;
-- `Screen validation` pe artifactul UI care produce evidence;
+- `UI validation` pe artifactul UI care produce evidence (`Screen validation`
+  rămâne acceptat pentru artifacte legacy);
 - `N/A` pentru inputul API pur, cu render-health API obligatoriu;
 - zoom-ul configurat de `PlaywrightUiSession` fără dereferențiere înaintea
   existenței `documentElement`;

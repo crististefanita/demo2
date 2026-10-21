@@ -54,7 +54,7 @@ public enum ReportEnvironmentField {
      */
     public boolean isSystemVisible() {
         return switch (this) {
-            case TEST_PACKAGE, SUITE, FLOW, FIXTURE -> false;
+            case TEST_PACKAGE, SUITE, FLOW, FIXTURE, UI_JOURNEY_PRECONDITION -> false;
             default -> true;
         };
     }

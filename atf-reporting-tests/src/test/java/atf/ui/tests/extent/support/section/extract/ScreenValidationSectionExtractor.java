@@ -1,5 +1,6 @@
 package atf.ui.tests.extent.support.section.extract;
 import atf.api.reporting.ui.contract.ReportUiContract;
+import atf.api.reporting.theme.tokens.AtfReportThemeTokens;
 import atf.api.ui.playwright.AtfLocator;
 import atf.ui.tests.extent.support.lifecycle.UiAuditFlow;
 
@@ -12,6 +13,7 @@ import com.microsoft.playwright.Page;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -19,6 +21,7 @@ import java.util.Objects;
  * rendered report and returns a renderer-neutral snapshot; it never asserts.
  */
 public final class ScreenValidationSectionExtractor {
+    private static final double SUMMARY_GEOMETRY_TOLERANCE_PX = 1.5;
     private final UiAuditFlow audit;
     private final ReportUiLocators locators;
     private final ValidationTableLayoutInspector validationTableLayout = new ValidationTableLayoutInspector();
@@ -62,6 +65,12 @@ public final class ScreenValidationSectionExtractor {
         int observations = locators.screenValidationObservations(card).count();
         int assertions = locators.screenValidationAssertionTables(card).count();
         List<String> violations = new ArrayList<>();
+        validateCompactDisclosures("Playwright actions",
+                locators.screenValidationActionSequences(card), violations);
+        validateCompactDisclosures("Audit observations",
+                locators.screenValidationObservations(card), violations);
+        validateCompactDisclosures("Assertions",
+                locators.screenValidationAssertionZones(card), violations);
         for (Locator evidenceTable : locators.screenValidationEvidenceTables(card).all()) {
             ValidationTableLayoutInspector.Result layout = validationTableLayout.inspect(evidenceTable);
             if (!layout.valid()) {
@@ -143,6 +152,7 @@ public final class ScreenValidationSectionExtractor {
         boolean stacked = true;
         boolean noSeparators = true;
         List<Double> tops = new ArrayList<>();
+        List<Double> bottoms = new ArrayList<>();
         for (int index = 0; index < rows.count(); index++) {
             Locator row = rows.nth(index);
             String text = row.innerText();
@@ -153,10 +163,13 @@ public final class ScreenValidationSectionExtractor {
                 stacked = false;
             } else {
                 tops.add(box.y);
+                bottoms.add(box.y + box.height);
             }
         }
         for (int index = 1; index < tops.size(); index++) {
-            stacked &= tops.get(index) >= tops.get(index - 1);
+            double gap = tops.get(index) - bottoms.get(index - 1);
+            stacked &= tops.get(index) >= tops.get(index - 1)
+                    && Math.abs(gap) <= SUMMARY_GEOMETRY_TOLERANCE_PX;
         }
 
         boolean inlineScreenshot = screenshots.count() > 0
@@ -176,7 +189,7 @@ public final class ScreenValidationSectionExtractor {
         }
         if (!directSiblings) violations.add("action sequence, observations and assertions are not direct sibling zones");
         if (!semanticActionRows) violations.add("Playwright rows do not expose the dynamic operation/#N identity and semantic time cell");
-        if (!stacked) violations.add("Screen validation zones are not vertically ordered");
+        if (!stacked) violations.add("Screen validation zones are not compactly stacked without vertical gaps");
         if (!noEmptyRows) violations.add("Screen validation contains an empty evidence row");
         if (!noSeparators) violations.add("Screen validation contains a decorative separator");
         if (screenshots.count() == 0) {
@@ -212,6 +225,73 @@ public final class ScreenValidationSectionExtractor {
         return new ReportAuditSnapshot.ScreenValidation(1, actionSequences, observations,
                 assertions, rows.count(), screenshots.count(), canonicalScreenshots,
                 directSiblings, stacked, noEmptyRows, noSeparators, inlineScreenshot, violations);
+    }
+
+    private void validateCompactDisclosures(String label, Locator disclosures,
+                                            List<String> violations) {
+        if (disclosures.count() == 0) {
+            violations.add(label + " disclosure is missing");
+            return;
+        }
+        double expectedHeight = cssPixels(AtfReportThemeTokens.EVIDENCE_SUMMARY_HEIGHT);
+        for (int index = 0; index < disclosures.count(); index++) {
+            Locator summary = locators.disclosureSummary(disclosures.nth(index));
+            if (summary.count() == 0 || !summary.isVisible()) {
+                violations.add(label + " disclosure summary is not visible at index " + index);
+                continue;
+            }
+            @SuppressWarnings("unchecked")
+            Map<String, Object> geometry = (Map<String, Object>) summary.evaluate("""
+                    element => {
+                      const rect = element.getBoundingClientRect();
+                      const style = getComputedStyle(element);
+                      const glyph = element.querySelector('.atf-disclosure-glyph');
+                      const glyphRect = glyph?.getBoundingClientRect();
+                      const markerStyle = glyph
+                        ? getComputedStyle(glyph, '::before')
+                        : getComputedStyle(element, '::before');
+                      const row = element.closest('tr.event-row');
+                      const badge = row?.querySelector('td:first-child [class*="badge"]');
+                      const badgeRect = badge?.getBoundingClientRect();
+                      return {
+                        height: rect.height,
+                        padding: style.padding,
+                        display: style.display,
+                        marker: markerStyle.content,
+                        glyphWidth: glyphRect?.width ?? Number.parseFloat(
+                          getComputedStyle(element, '::before').width),
+                        badgeCenterOffset: badgeRect
+                          ? (badgeRect.top + badgeRect.height / 2) - (rect.top + rect.height / 2)
+                          : null
+                      };
+                    }
+                    """);
+            double height = number(geometry, "height");
+            double badgeCenterOffset = number(geometry, "badgeCenterOffset");
+            String padding = String.valueOf(geometry.get("padding"));
+            String marker = String.valueOf(geometry.get("marker"));
+            boolean compact = Math.abs(height - expectedHeight) <= SUMMARY_GEOMETRY_TOLERANCE_PX
+                    && AtfReportThemeTokens.EVIDENCE_SUMMARY_PADDING.equals(padding);
+            boolean inline = "flex".equals(geometry.get("display"))
+                    && (marker.contains("＋") || marker.contains("−"))
+                    && Math.abs(number(geometry, "glyphWidth") - 18) <= SUMMARY_GEOMETRY_TOLERANCE_PX;
+            boolean badgeAligned = Double.isFinite(badgeCenterOffset)
+                    && Math.abs(badgeCenterOffset) <= SUMMARY_GEOMETRY_TOLERANCE_PX;
+            if (!compact || !inline || !badgeAligned) {
+                violations.add(label + " disclosure differs from compact API evidence geometry: height="
+                        + height + ", padding=" + padding + ", display=" + geometry.get("display")
+                        + ", glyph=" + marker + ", badge-center-offset=" + badgeCenterOffset);
+            }
+        }
+    }
+
+    private static double cssPixels(String value) {
+        return Double.parseDouble(value.replace("px", ""));
+    }
+
+    private static double number(Map<String, Object> values, String key) {
+        Object value = values.get(key);
+        return value instanceof Number number ? number.doubleValue() : Double.NaN;
     }
 
     /**

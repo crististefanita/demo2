@@ -48,7 +48,7 @@ flowchart LR
 |---|---|---|
 | `src/main` | librăria producție și artifactul publicat | orice modul ATF, browser, fixture de business |
 | `src/test` | guard-uri și contracte standalone | mock, Playwright, endpoint live |
-| `atf-reporting-tests` | consumatorul canonic pentru API/UI/E2E | nu intră în JAR-ul reporting |
+| `atf-reporting-tests` | consumatorul canonic pentru component/integration API și UI/E2E | nu intră în JAR-ul reporting |
 | alte module | nu trebuie să fie consumatori direcți în ținta de decuplare | dependențe test-scope rămase se urmăresc separat în feedback |
 
 <details>
@@ -384,6 +384,13 @@ CSS native, iar fațadele Java rezolvă doar token-uri și seam-urile de compozi
 Evidence interaction/table/disclosure/stack și fallback theme folosesc aceeași
 graniță. Navigarea HTML publicată nu mai include `onclick` inline; linkurile cu
 hash sunt contractul static, iar controllerul nativ le activează prin hash.
+
+Geometria disclosure-urilor de evidence este un contract comun, nu o alegere
+per componentă: API exchange/aggregate și UI action/observations/assertions
+folosesc `AtfReportThemeTokens` pentru summary-ul `34px`, padding-ul `9px 12px`
+și line-height-ul comun în Extent și fallback. Nu se adaugă excepții înalte
+pentru o singură familie; `500px` este viewport separat pentru tabele lungi, nu
+înălțimea summary-ului.
 
 </details>
 

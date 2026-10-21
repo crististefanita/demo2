@@ -1,5 +1,9 @@
 package atf.api.validation.ai;
 
+import atf.api.validation.ai.grounding.AiGroundingObservation;
+import atf.api.validation.ai.grounding.AiSourceReference;
+import atf.api.validation.ai.invocation.AiInvocationEvidence;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.time.Clock;
@@ -36,9 +40,16 @@ public final class AiEvaluationEvaluator {
 
     public AiEvaluationSnapshot evaluate(AiEvaluationCase evaluationCase, Map<String, ?> observedFields,
                                          AiInvocationEvidence invocation) {
+        return evaluate(evaluationCase, observedFields, invocation, Map.of());
+    }
+
+    public AiEvaluationSnapshot evaluate(AiEvaluationCase evaluationCase, Map<String, ?> observedFields,
+                                         AiInvocationEvidence invocation,
+                                         Map<String, AiSourceReference> groundingSources) {
         Objects.requireNonNull(evaluationCase, "evaluationCase");
         Objects.requireNonNull(observedFields, "observedFields");
         Objects.requireNonNull(invocation, "invocation");
+        Objects.requireNonNull(groundingSources, "groundingSources");
         var comparisons = new ArrayList<AiFieldComparison>();
         var hardFailures = new ArrayList<AiEvaluationSnapshot.HardFailure>();
         long totalWeight = 0;
@@ -46,6 +57,7 @@ public final class AiEvaluationEvaluator {
         var outputReference = invocation.reference(AiInvocationEvidence.ReferenceKind.OUTPUT);
         var outputReferenceId = outputReference == null ? "" : outputReference.referenceId();
         var declaredPaths = new HashSet<String>();
+        var groundingObservations = new ArrayList<AiGroundingObservation>();
 
         for (var expectation : evaluationCase.expectations()) {
             declaredPaths.add(expectation.fieldPath());
@@ -63,6 +75,17 @@ public final class AiEvaluationEvaluator {
             comparisons.add(new AiFieldComparison(expectation.fieldPath(), expectation.comparison().expectedValue(), observed,
                     expectation.comparison().mode(), matched ? AiFieldComparison.Outcome.MATCH : AiFieldComparison.Outcome.MISMATCH,
                     expectation.inputPresence(), expectation.critical(), expectation.weight(), reason, outputReferenceId));
+            var grounding = grounding(expectation, groundingSources.get(expectation.fieldPath()));
+            groundingObservations.add(grounding);
+            if (grounding.result() != AiGroundingObservation.Result.SUPPORTED
+                    && grounding.result() != AiGroundingObservation.Result.NOT_REQUIRED
+                    && expectation.groundingRequirement().required()) {
+                hardFailures.add(new AiEvaluationSnapshot.HardFailure(
+                        grounding.result() == AiGroundingObservation.Result.UNSUPPORTED
+                                ? "UNSUPPORTED_GROUNDING" : "MISSING_GROUNDING_REFERENCE",
+                        expectation.fieldPath(), null, null, grounding.reasonCode(),
+                        grounding.sourceReference() == null ? "" : grounding.sourceReference().sourceId()));
+            }
         }
         for (var entry : observedFields.entrySet()) {
             if (declaredPaths.contains(entry.getKey())) continue;
@@ -97,7 +120,26 @@ public final class AiEvaluationEvaluator {
                 ? AiEvaluationSnapshot.Verdict.FAIL : AiEvaluationSnapshot.Verdict.PASS;
         return AiEvaluationSnapshot.complete(evaluationCase.caseId(), evaluationCase.version(),
                 evaluationCase.inputReference(), scoreEligible ? score : null, verdict,
-                hardFailures, invocation, comparisons, policy, clock.instant());
+                hardFailures, invocation, comparisons, groundingObservations, policy, clock.instant());
+    }
+
+    private static AiGroundingObservation grounding(AiFieldExpectation expectation, AiSourceReference source) {
+        var requirement = expectation.groundingRequirement();
+        if (!requirement.required()) {
+            return new AiGroundingObservation(expectation.fieldPath(), source,
+                    AiGroundingObservation.Result.NOT_REQUIRED, "NOT_REQUIRED");
+        }
+        if (source == null) {
+            return new AiGroundingObservation(expectation.fieldPath(), null,
+                    AiGroundingObservation.Result.MISSING_REFERENCE, "MISSING_REFERENCE");
+        }
+        if (!source.fieldPath().equals(expectation.fieldPath())
+                || !requirement.allowedSourceIds().contains(source.sourceId())) {
+            return new AiGroundingObservation(expectation.fieldPath(), source,
+                    AiGroundingObservation.Result.UNSUPPORTED, "UNSUPPORTED_SOURCE");
+        }
+        return new AiGroundingObservation(expectation.fieldPath(), source,
+                AiGroundingObservation.Result.SUPPORTED, "SUPPORTED");
     }
 
     private static boolean matches(AiFieldExpectation expectation, boolean present, Object observed) {

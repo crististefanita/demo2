@@ -20,7 +20,8 @@ public record PracticeShopConfiguration(
         PracticeShopApiConfiguration api,
         Path uiReportDirectory,
         Path apiReportDirectory,
-        boolean authenticatedE2eEnabled) {
+        boolean authenticatedE2eEnabled,
+        PracticeShopReportConfiguration reporting) {
     public static final String DYNAMIC_PRODUCT_PATH = "auto";
 
     public PracticeShopConfiguration {
@@ -33,6 +34,7 @@ public record PracticeShopConfiguration(
         uiRetry = Objects.requireNonNull(uiRetry, "uiRetry");
         validationProfile = Objects.requireNonNull(validationProfile, "validationProfile");
         api = Objects.requireNonNull(api, "api");
+        reporting = Objects.requireNonNull(reporting, "reporting");
         if (authenticatedE2eEnabled && !api.authenticatedPrecondition()) {
             throw new IllegalArgumentException(
                     "authenticatedE2eEnabled requires api.precondition=authenticated");
@@ -51,7 +53,8 @@ public record PracticeShopConfiguration(
         this(baseUrl, accountFile, productName, productPath, checkout, browser,
                 PracticeShopUiRetryConfiguration.none(), validationProfile,
                 PracticeShopApiConfiguration.defaults(),
-                Path.of("artifacts", "reports", "ui"), Path.of("artifacts", "reports", "api"), false);
+                Path.of("artifacts", "reports", "ui"), Path.of("artifacts", "reports", "api"), false,
+                PracticeShopReportConfiguration.defaults());
     }
 
     /** Compatibility constructor for callers that already provide the complete pre-retry shape. */
@@ -64,7 +67,22 @@ public record PracticeShopConfiguration(
                                      boolean authenticatedE2eEnabled) {
         this(baseUrl, accountFile, productName, productPath, checkout, browser,
                 PracticeShopUiRetryConfiguration.none(), validationProfile, api,
-                uiReportDirectory, apiReportDirectory, authenticatedE2eEnabled);
+                uiReportDirectory, apiReportDirectory, authenticatedE2eEnabled,
+                PracticeShopReportConfiguration.defaults());
+    }
+
+    /** Compatibility constructor for callers that already provide UI retry policy. */
+    public PracticeShopConfiguration(URI baseUrl, Path accountFile, String productName,
+                                     String productPath, PracticeShopCheckoutConfiguration checkout,
+                                     UiBrowserConfiguration browser,
+                                     PracticeShopUiRetryConfiguration uiRetry,
+                                     PracticeShopValidationProfile validationProfile,
+                                     PracticeShopApiConfiguration api,
+                                     Path uiReportDirectory, Path apiReportDirectory,
+                                     boolean authenticatedE2eEnabled) {
+        this(baseUrl, accountFile, productName, productPath, checkout, browser, uiRetry,
+                validationProfile, api, uiReportDirectory, apiReportDirectory,
+                authenticatedE2eEnabled, PracticeShopReportConfiguration.defaults());
     }
 
     public boolean accountConfigured() {

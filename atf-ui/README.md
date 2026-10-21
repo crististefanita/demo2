@@ -187,8 +187,7 @@ fără un response inventat.
 adaptoare. Inspectorul resanitizează observația înainte de storage și de
 notificarea subscriberilor: URL/path, headers, body, auth/source, failure,
 service și signature sunt reconstruite sau limitate. Testul negativ pentru
-input creat de caller protejează acest boundary; criteriul de redeschidere este
-în [`ATF_UI_Network_Inspector_Feedback.md`](../docs/feedback/ATF_UI_Network_Inspector_Feedback.md).
+input creat de caller protejează acest boundary.
 
 Read-back după acțiune:
 
@@ -208,8 +207,11 @@ Contractul de retry Playwright:
   reprezintă payload identity pentru replay;
 - request observation și cursor temporal nu dovedesc idempotency.
 
-Detaliul și criteriile de extindere sunt în
-[`ATF_UI_Network_Inspector_Feedback.md`](../docs/feedback/ATF_UI_Network_Inspector_Feedback.md).
+Se redeschide contractul numai dacă o observație caller-supplied poate ocoli
+resanitizarea/bounding-ul, un read-back anterior satisface settlement-ul nou,
+request-failed inventează un response/verdict sau o mutație este reluată fără
+contract de idempotency. Orice extindere de retry rămâne o decizie separată a
+consumerului și nu schimbă politica generică fail-closed.
 
 ## Ce nu se pune în `atf-ui`
 
@@ -226,7 +228,8 @@ Detaliul și criteriile de extindere sunt în
 
 Aceste limite sunt intenționate: `atf-ui` rămâne reutilizabil și testabil ca
 runtime Playwright, `atf-reporting` rămâne reutilizabil ca librărie de raportare,
-iar `atf-reporting-tests` compune scenariile E2E și adaptorul browser.
+iar `atf-reporting-tests` deține compoziția testelor librăriei, de la componentă
+și integration până la E2E și adaptoarele browser.
 
 ## Verificare
 

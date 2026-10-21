@@ -5,6 +5,7 @@ import atf.api.reporting.theme.evidence.AtfReportEvidenceCss;
 import atf.api.reporting.theme.evidence.AtfReportEvidenceDisclosureCss;
 import atf.api.reporting.theme.evidence.AtfReportEvidenceInteractionCss;
 import atf.api.reporting.theme.evidence.AtfReportEvidenceTableCss;
+import atf.api.reporting.theme.tokens.AtfReportThemeTokens;
 import atf.api.reporting.theme.css.AtfReportThemeBaseCss;
 import atf.api.reporting.support.CssContractSupport;
 
@@ -46,6 +47,18 @@ class AtfReportEvidenceCssTest {
     }
 
     @Test
+    void narrowViewportKeepsScenarioTitlesAndActionResultsReadable() {
+        CssContractSupport theme = CssContractSupport.of(AtfReportTheme.css());
+
+        assertAll(
+                () -> assertTrue(theme.contains(
+                        "#test-view .test-content-detail .card[data-atf-scenario-id] > .card-header > .card-title > a.node")),
+                () -> assertTrue(theme.contains("white-space:normal!important;overflow:visible!important;")),
+                () -> assertTrue(theme.contains(".atf-ui-action-table td:nth-child(5){width:14%!important;white-space:normal!important;overflow-wrap:anywhere!important}")),
+                () -> assertTrue(theme.contains(".atf-ui-action-table td:nth-child(6){width:12%!important;white-space:normal!important;overflow-wrap:anywhere!important}")));
+    }
+
+    @Test
     void evidenceResponsibilitiesRemainSeparatedByProvider() {
         assertAll(
                  () -> assertTrue(CssContractSupport.contains(AtfReportEvidenceTableCss.css(), ".helm-evidence-table")),
@@ -66,8 +79,10 @@ class AtfReportEvidenceCssTest {
         assertAll(
                 () -> assertTrue(css.contains(".atf-ui-action-table{width:100%!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;table-layout:fixed!important")),
                 () -> assertTrue(css.contains(".atf-ui-action-table-wrap{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;overflow:hidden!important")),
-                () -> assertTrue(css.contains("--atf-evidence-summary-height:var(--atf-evidence-tall-summary-height)"),
-                        "action, audit, assertion and network disclosures must share the tall summary token"),
+                () -> assertTrue(css.contains("height:var(--atf-evidence-summary-height)!important"),
+                        "UI evidence disclosures must use the shared compact API summary token"),
+                () -> assertFalse(css.contains("evidence-tall-summary"),
+                        "no disclosure may override the shared compact geometry"),
                 () -> assertTrue(css.contains(".network-aggregate-sections>thead>tr>th:first-child,.network-aggregate-sections>tbody>tr>td:first-child{width:var(--atf-evidence-status-column-width)!important"),
                         "aggregate sections must use the same status lane as standard report evidence"),
                 () -> assertTrue(css.contains(".network-aggregate-sections>tbody>tr>td.details-col{padding:0!important;vertical-align:middle!important"),
@@ -120,7 +135,8 @@ class AtfReportEvidenceCssTest {
                 () -> assertTrue(css.contains("table.helm-validation-table{margin:0!important;border-radius:0 0 10px 10px!important;overflow:hidden!important}")),
                 () -> assertTrue(css.contains("details.assertion-evidence{display:block!important;margin:0!important;border:1px solid var(--atf-border)!important;border-top:0!important;border-radius:0 0 10px 10px!important")),
                 () -> assertTrue(css.contains("details.step-detail.request-evidence,")),
-                () -> assertTrue(css.contains(".step-detail>summary{list-style:none!important;display:flex!important;align-items:center!important;gap:0!important;padding:9px 12px!important;")),
+                () -> assertTrue(css.contains(".step-detail>summary{box-sizing:border-box!important;list-style:none!important;display:flex!important;align-items:center!important;gap:0!important;height:var(--atf-evidence-summary-height)!important;")),
+                () -> assertTrue(css.contains("padding:var(--atf-evidence-summary-padding)!important;")),
                 () -> assertTrue(css.contains(".step-detail:not([open])> :not(summary),.atf-ui-action-sequence:not([open])> :not(summary),")),
                 () -> assertTrue(css.contains(".step-detail[open]> :not(summary),.atf-ui-action-sequence[open]> :not(summary),")),
                 () -> assertTrue(css.contains("details.step-detail.assertion-evidence{margin:0!important;border-radius:0 0 10px 10px!important;background:var(--atf-panel)!important}")),
@@ -169,6 +185,35 @@ class AtfReportEvidenceCssTest {
                 () -> assertTrue(css.contains("details.step-detail.atf-ui-failure-evidence"),
                         "The explicit UI failure evidence must keep a distinct fail treatment"),
                 () -> assertTrue(css.contains("border-bottom:1px solid var(--atf-border)!important;border-radius:0 0 var(--atf-evidence-radius) var(--atf-evidence-radius)!important}")));
+    }
+
+    @Test
+    void uiAndNetworkDisclosuresShareCompactApiSummaryGeometryInBothRenderers() {
+        String extent = AtfReportTheme.css();
+        String fallback = AtfReportTheme.fallbackCss();
+        CssContractSupport extentCss = CssContractSupport.of(extent);
+        CssContractSupport fallbackCss = CssContractSupport.of(fallback);
+        String tokens = AtfReportThemeTokens.cssVariables();
+
+        assertAll(
+                () -> assertTrue(extentCss.contains(".step-detail > summary"),
+                        "API exchange and aggregate disclosures must retain the shared summary contract"),
+                () -> assertTrue(extentCss.contains("height:var(--atf-evidence-summary-height)!important")),
+                () -> assertTrue(extentCss.contains("padding:var(--atf-evidence-summary-padding)!important")),
+                () -> assertTrue(extentCss.contains("line-height:var(--atf-evidence-summary-line-height)!important")),
+                () -> assertTrue(extentCss.contains("details.atf-ui-action-sequence > summary")),
+                () -> assertTrue(extentCss.contains("details.atf-ui-observations > summary")),
+                () -> assertTrue(extentCss.contains("details.assertion-evidence > summary")),
+                () -> assertTrue(extentCss.contains("height:var(--atf-evidence-summary-height)!important")),
+                () -> assertTrue(extentCss.contains("padding:var(--atf-evidence-summary-padding)!important")),
+                () -> assertFalse(extent.contains("evidence-tall-summary")),
+                () -> assertTrue(fallbackCss.contains("height:var(--atf-evidence-summary-height)")),
+                () -> assertTrue(fallbackCss.contains("padding:var(--atf-evidence-summary-padding)")),
+                () -> assertTrue(fallbackCss.contains(":is(.atf-ui-action-sequence,.atf-ui-observations,details.assertion-evidence,.network-signatures,.network-diagnostics)>summary"),
+                        "fallback API aggregates and UI evidence must share one disclosure rule"),
+                () -> assertFalse(fallback.contains("evidence-tall-summary")),
+                () -> assertTrue(tokens.contains("--atf-evidence-summary-height:34px")),
+                () -> assertTrue(tokens.contains("--atf-evidence-summary-padding:9px 12px")));
     }
 
     @Test

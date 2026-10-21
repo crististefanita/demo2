@@ -16,6 +16,7 @@ verificabilă.
 | Întrebarea | Document owner | Conține |
 |---|---|---|
 | Cum proiectez modulele, clasele și testele? | [README_Atf_CodeBestPractices.md](README_Atf_CodeBestPractices.md) | OOP, boundary-uri, modele, constante, CSS/JavaScript, layere de test |
+| Cum aleg layer-ul și dovedesc o schimbare? | [ATF_Testing_Guide.md](ATF_Testing_Guide.md) | matrice module × layer, proof UI/API și selecția testelor |
 | Cum scriu și mențin documentația? | [README_Atf_DocumentationBestPractices.md](README_Atf_DocumentationBestPractices.md) | structură, diagrame, tabele, naming, feedback și linkuri |
 | Ce gap-uri sunt încă active? | [feedback/README.md](feedback/README.md) | ToDo-uri, owneri și criterii de închidere |
 | Care este arhitectura modulelor? | [ATF_Architecture.md](ATF_Architecture.md) | module, dependențe și direcția boundary-urilor |

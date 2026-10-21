@@ -75,7 +75,7 @@ a aceleiași legende.
 | reporting library | `atf-reporting` | renderer Extent, HTML, CSS/JS și artifact | standalone unit/component |
 | browser runtime | `atf-ui` | sesiune Playwright și politici generice | component |
 | debug inspector | `atf-debug-ui` | servește read-only un HTML pe loopback | component |
-| reporting composition | `atf-reporting-tests` | probe API/UI/E2E ale librăriei reporting | integration/E2E |
+| reporting composition | `atf-reporting-tests` | component/API mock → publisher și UI/E2E pentru librăria reporting | component/integration/E2E |
 | aplicație consumatoare | `atf-test-practice-shop` | config, locatori, pages, flows și purchase journey | component/E2E |
 | whole-ATF governance | `atf-tests` | module graph și boundary-uri ale reactorului | component/architecture |
 
@@ -340,7 +340,7 @@ fără să parcurgă aceeași explicație în root și în fiecare modul; indexu
 | reporting standalone | [`atf-reporting/README.md`](atf-reporting/README.md) | cum se construiește artifactul fără module ATF? |
 | browser runtime | [`atf-ui/README.md`](atf-ui/README.md) | cum este controlat browserul fără logică de produs? |
 | inspector read-only | [`atf-debug-ui/README.md`](atf-debug-ui/README.md) | cum investigăm un HTML deja generat? |
-| reporting composition | [`atf-reporting-tests/README.md`](atf-reporting-tests/README.md) | cum sunt compuse testele API/UI/E2E pentru reporting? |
+| reporting composition | [`atf-reporting-tests/README.md`](atf-reporting-tests/README.md) | cum sunt verificate compoziția API/mock și randarea UI a reportingului? |
 | consumer aplicație | [`atf-test-practice-shop/README.md`](atf-test-practice-shop/README.md) | cum folosește o aplicație reală infrastructura ATF? |
 | guvernanță reactor | [`atf-tests/README.md`](atf-tests/README.md) | cine apără modulele și direcția dependențelor? |
 

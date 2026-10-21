@@ -33,8 +33,10 @@ public final class UiReportStyleValidator {
         }
         inspectRenderBoundary(page, tab, violations);
         switch (tab) {
-            case OVERVIEW -> checkVisibleAndSized(locators.overviewCard(page),
-                    "Overview card", violations);
+            case OVERVIEW -> {
+                checkVisibleAndSized(locators.overviewCard(page), "Overview card", violations);
+                inspectOverviewTableAccess(page, violations);
+            }
             case TESTS -> checkVisibleAndSized(locators.testsList(page),
                     "Tests list", violations);
             case CATEGORIES -> checkVisibleAndSized(locators.categoryList(page),
@@ -43,6 +45,52 @@ public final class UiReportStyleValidator {
                     "Fails list", violations);
         }
         return new Result(violations);
+    }
+
+    /** Prevent Overview tables from being silently clipped by a narrow pane. */
+    @SuppressWarnings("unchecked")
+    private static void inspectOverviewTableAccess(Page page, List<String> violations) {
+        List<Map<String, Object>> tables = (List<Map<String, Object>>) page.evaluate("""
+                () => [...document.querySelectorAll(
+                  '.dashboard-view .category-container table,'
+                  + '.dashboard-view .sysenv-container table,'
+                  + '.category-view table')]
+                  .filter(table => {
+                    const style = getComputedStyle(table);
+                    return style.display !== 'none' && style.visibility !== 'hidden'
+                      && table.getClientRects().length > 0;
+                  })
+                  .map(table => {
+                    const container = table.parentElement;
+                    const bounds = table.getBoundingClientRect();
+                    let scrollContainer = null;
+                    for (let ancestor = container; ancestor; ancestor = ancestor.parentElement) {
+                      const style = getComputedStyle(ancestor);
+                      if (['auto', 'scroll'].includes(style.overflowX)
+                          && ancestor.scrollWidth > ancestor.clientWidth + 1) {
+                        scrollContainer = ancestor.className || ancestor.tagName.toLowerCase();
+                        break;
+                      }
+                    }
+                    return {
+                      surface: table.closest('.category-container') ? 'Category'
+                        : table.closest('.sysenv-container') ? 'System' : 'Categories',
+                      tableWidth: table.getBoundingClientRect().width,
+                      viewportWidth: window.innerWidth,
+                      left: bounds.left,
+                      right: bounds.right,
+                      scrollContainer
+                    };
+                  })
+                """);
+        for (Map<String, Object> table : tables) {
+            double left = number(table, "left");
+            double right = number(table, "right");
+            double viewportWidth = number(table, "viewportWidth");
+            if ((left < -1 || right > viewportWidth + 1) && table.get("scrollContainer") == null) {
+                violations.add(table.get("surface") + " table is clipped horizontally: " + table);
+            }
+        }
     }
 
     /**
@@ -68,10 +116,27 @@ public final class UiReportStyleValidator {
                       .includes(style.overflowX);
                     if (element.scrollWidth > element.clientWidth + 1
                         && !intentionallyScrollable) {
-                      offenders.push(element.tagName.toLowerCase()
-                        + (element.id ? '#' + element.id : '')
-                        + (element.className && typeof element.className === 'string'
-                          ? '.' + element.className.trim().replace(/\s+/g, '.') : ''));
+                      const bounds = element.getBoundingClientRect();
+                      offenders.push({
+                        node: element.tagName.toLowerCase()
+                          + (element.id ? '#' + element.id : '')
+                          + (element.className && typeof element.className === 'string'
+                            ? '.' + element.className.trim().replace(/\s+/g, '.') : ''),
+                        clientWidth: element.clientWidth,
+                        scrollWidth: element.scrollWidth,
+                        left: Math.round(bounds.left),
+                        right: Math.round(bounds.right),
+                        overflowX: style.overflowX,
+                        whiteSpace: style.whiteSpace,
+                        parentWidth: element.parentElement?.clientWidth ?? 0,
+                        text: (element.innerText || '').trim().slice(0, 72),
+                        parent: element.parentElement
+                          ? element.parentElement.tagName.toLowerCase()
+                            + (element.parentElement.className
+                              && typeof element.parentElement.className === 'string'
+                              ? '.' + element.parentElement.className.trim().replace(/\s+/g, '.') : '')
+                          : ''
+                      });
                     }
                   }
                   return {

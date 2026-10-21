@@ -153,19 +153,13 @@ summary {
   color: var(--atf-accent);
   cursor: pointer;
 }
-.atf-ui-action-sequence,
-.atf-ui-observations,
-details.assertion-evidence {
-  --atf-evidence-summary-height: var(--atf-evidence-tall-summary-height);
-  --atf-evidence-summary-padding: var(--atf-evidence-tall-summary-padding);
-}
 :is(.atf-ui-action-sequence, .atf-ui-observations, details.assertion-evidence,
     .network-signatures, .network-diagnostics) > summary {
   box-sizing: border-box;
-  height: var(--atf-evidence-tall-summary-height);
-  min-height: var(--atf-evidence-tall-summary-height);
-  max-height: var(--atf-evidence-tall-summary-height);
-  padding: var(--atf-evidence-tall-summary-padding);
+  height: var(--atf-evidence-summary-height);
+  min-height: var(--atf-evidence-summary-height);
+  max-height: var(--atf-evidence-summary-height);
+  padding: var(--atf-evidence-summary-padding);
   line-height: var(--atf-evidence-summary-line-height);
   display: flex;
   align-items: center;

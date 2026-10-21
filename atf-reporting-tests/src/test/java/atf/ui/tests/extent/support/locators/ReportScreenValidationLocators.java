@@ -29,9 +29,12 @@ final class ReportScreenValidationLocators {
     }
 
     Locator screenValidationNodes(Page page) {
-        return pages.testsView(page).locator(TEST_CONTENT_DETAIL + " "
-                        + "[class~='card-title'] a[class~='node']")
-                .filter(new Locator.FilterOptions().setHasText("Screen validation"));
+        Locator candidates = pages.testsView(page).locator(TEST_CONTENT_DETAIL + " "
+                + "[class~='card-title'] a[class~='node']");
+        Locator uiValidation = candidates.filter(
+                new Locator.FilterOptions().setHasText("UI validation"));
+        return uiValidation.count() > 0 ? uiValidation : candidates.filter(
+                new Locator.FilterOptions().setHasText("Screen validation"));
     }
     Locator visibleScreenValidationNode(Page page) {
         Locator nodes = screenValidationNodes(page);

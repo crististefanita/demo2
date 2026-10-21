@@ -6,6 +6,7 @@ import atf.ui.practiceshop.config.PracticeShopApiConfiguration;
 import atf.ui.practiceshop.config.PracticeShopApiPrecondition;
 import atf.ui.practiceshop.config.PracticeShopApiCheckpoint;
 import atf.ui.practiceshop.config.PracticeShopValidationProfile;
+import atf.ui.practiceshop.config.PracticeShopReportConfiguration;
 import atf.ui.practiceshop.routes.PracticeShopUiRoutes;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -21,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @AtfComponentTest
 class PracticeShopConfigurationTest {
     @Test
-    void yamlDefinesTheExternalJourneyWithoutAnInRepoSecret() {
+    void yamlDefinesExternalJourneyAndDefaultsCredentialsOutsideSourceResources() {
         var configuration = PracticeShopConfigurationLoader.load();
 
         assertTrue(configuration.baseUrl().isAbsolute());
@@ -46,11 +47,14 @@ class PracticeShopConfigurationTest {
         assertTrue(configuration.uiReportDirectory().toString().endsWith("artifacts\\reports\\ui"));
         assertTrue(configuration.apiReportDirectory().toString().endsWith("artifacts\\reports\\api"));
         assertFalse(configuration.uiReportDirectory().equals(configuration.apiReportDirectory()));
+        assertFalse(configuration.authenticatedE2eEnabled());
         assertFalse(configuration.authenticatedE2eAllowed());
-        assertFalse(configuration.accountConfigured(),
-                "a tracked example.com fixture must never enable an authenticated live run");
-        // The external account path remains configurable without committing a real account.
-        assertTrue(configuration.accountFile().toString().contains("practice-software-testing-account.properties"));
+        assertEquals(PracticeShopReportConfiguration.DEFAULT_SYSTEM_BODY_PREVIEW_CHARACTERS,
+                configuration.reporting().systemBodyPreviewCharacters());
+        assertEquals("target", configuration.accountFile().getParent().getFileName().toString(),
+                "credentials must default outside tracked source resources");
+        assertEquals("practice-software-testing-account.properties",
+                configuration.accountFile().getFileName().toString());
     }
 
     @Test
@@ -86,6 +90,28 @@ class PracticeShopConfigurationTest {
 
         assertFalse(withAccountFile(base, example).authenticatedE2eAllowed());
         assertTrue(withAccountFile(base, externalCandidate).authenticatedE2eAllowed());
+    }
+
+    @Test
+    void rejectsAccountFilesInsideSourceTestResources(@TempDir Path temp) {
+        String property = "atf.practice.account-file";
+        String previous = System.getProperty(property);
+        System.setProperty(property, temp.resolve("src/test/resources/account.properties").toString());
+        try {
+            IllegalStateException failure = assertThrows(IllegalStateException.class,
+                    PracticeShopConfigurationLoader::load);
+            assertTrue(failure.getCause() instanceof IllegalArgumentException);
+            assertTrue(failure.getCause().getMessage().contains("source test resources"));
+        } finally {
+            if (previous == null) System.clearProperty(property);
+            else System.setProperty(property, previous);
+        }
+    }
+
+    @Test
+    void rejectsAnUnboundedSystemPreviewPolicy() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new PracticeShopReportConfiguration(0));
     }
 
     private static atf.ui.practiceshop.config.PracticeShopConfiguration configuration() {

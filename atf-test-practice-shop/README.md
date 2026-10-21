@@ -45,21 +45,25 @@ Surse de aprofundare:
 | authenticated E2E/API | selectat prin adnotare și condiție typed; configurația curentă îl dezactivează explicit | `SKIP` este precondiție/opt-in lipsă, nu PASS degradat; fișierul existent nu dovedește autentificarea live |
 | retry Playwright | suport generic fail-closed există în `atf-ui`; YAML-ul Practice Shop declară explicit `maxAttempts`, `backoff`, `eligibleOperations` și `reason` | policy-ul implicit rămâne un singur attempt; numai operații read-only typed pot fi activate ulterior |
 | API evidence binding | `validation.apiEvidence` selectează checkpoint-uri typed (`product`, `login`, `cart`, `payment`); override-ul system property este acceptat | binding-ul fail-closed aparține consumerului; publisher-ul primește numai evidence selectat |
-| Overview → System | snapshot allowlist-uit, redacted și bounded; țintele și valorile efective sunt separate | nu se publică dump YAML, secrete sau path-uri temporare |
+| Overview → System | snapshot allowlist-uit, redacted și bounded pentru configurația operațională globală; țintele și valorile efective sunt separate | nu se publică dump YAML, secrete, path-uri temporare, suite/test identity sau precondiția/fixture state specifică unui journey UI |
 | output | `artifacts/reports/ui` și `artifacts/reports/api` | rolurile UI/API nu se suprapun |
 
 Contracte și limite curente:
 
 - binding-ul per checkpoint, aggregate-ul nested, diagnosticele bounded și
   exchange-urile canonicale multiple sunt verificate;
-- `authenticatedE2eEnabled` este `false` în configurația curentă; existența
-  fișierului de cont nu dovedește că autentificarea este validă în mediul țintă;
+- `authenticatedE2eEnabled` este `false` în configurația curentă; configurația
+  implicită nu citește contul din `src/test/resources`, iar calea implicită este
+  un fișier opțional în `target/`; existența lui nu dovedește autentificarea;
   preflight-ul respinge domeniile rezervate `example`, `example.com`,
   `example.net`, `example.org`, `.test`, `.invalid` și `.localhost` (inclusiv
   subdomeniile), dar nu validează parola sau contul remote;
-- un fișier privat poate fi selectat prin `-Datf.practice.account-file` sau
-  `ATF_PRACTICE_ACCOUNT_FILE`; această cale este disponibilă, dar nu constituie
-  dovadă că un cont provisionat a fost furnizat ori autentificat;
+- un fișier privat, aflat în afara repository-ului, poate fi selectat prin
+  `-Datf.practice.account-file` sau `ATF_PRACTICE_ACCOUNT_FILE`; această cale
+  este disponibilă, dar nu constituie dovadă că un cont provisionat a fost
+  furnizat ori autentificat;
+- fișierele de cont nu sunt fixture-uri classpath: loader-ul respinge căi din
+  `src/test/resources`, iar default-ul rămâne fișierul opțional din `target/`;
 - authenticated E2E/API rămân `SKIP` până la opt-in explicit și dovada
   login/current-user reușită;
 - retry-ul generic al mutațiilor este exclus de `atf-ui`; Practice Shop nu reia
@@ -116,8 +120,9 @@ implicit:
   payload complet asociat și idempotency garantată de server; această facilitate
   nu este activată în Practice Shop.
 
-Detaliile și limitele active sunt centralizate în
-[`ATF_UI_Network_Inspector_Feedback.md`](../docs/feedback/ATF_UI_Network_Inspector_Feedback.md).
+Contractul generic și criteriile pentru o posibilă extindere sunt în
+[README-ul `atf-ui`](../atf-ui/README.md); configurația și comportamentul
+consumerului rămân documentate aici.
 
 ## Harta internă a consumerului
 

@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/** Internal defensive-copy utility; it is deliberately not part of the public AI API. */
 final class AiEvaluationValues {
     private AiEvaluationValues() { }
 

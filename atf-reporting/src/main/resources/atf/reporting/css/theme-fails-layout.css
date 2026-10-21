@@ -57,4 +57,37 @@
     min-width: 0 !important;
     overflow: visible !important;
   }
+  .exception-view.atf-fails-view .test-content-detail,
+  .exception-view.atf-fails-view .detail-body,
+  .exception-view.atf-fails-view .test-contents {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    overflow-wrap: anywhere !important;
+  }
+  .exception-view.atf-fails-view table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+  }
+  .exception-view.atf-fails-view th,
+  .exception-view.atf-fails-view td {
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+  .exception-view.atf-fails-view .test-list a,
+  .exception-view.atf-fails-view .test-list .node,
+  .exception-view.atf-fails-view .test-content a,
+  .exception-view.atf-fails-view .test-content .node,
+  .exception-view.atf-fails-view .node,
+  .exception-view.atf-fails-view .badge,
+  .exception-view.atf-fails-view .test-content div {
+    max-width: 100% !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    min-width: 0 !important;
+  }
 }

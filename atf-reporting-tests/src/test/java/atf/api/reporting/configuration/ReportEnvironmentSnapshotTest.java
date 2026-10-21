@@ -28,14 +28,15 @@ class ReportEnvironmentSnapshotTest {
 
         assertAll(
                 () -> assertTrue(snapshot.displayValues().containsKey("Suite")),
+                () -> assertTrue(snapshot.displayValues().containsKey("UI journey precondition")),
                 () -> assertTrue(published.containsKey("Environment")),
                 () -> assertTrue(published.containsKey("UI host")),
-                () -> assertTrue(published.containsKey("UI journey precondition")),
                 () -> assertTrue(published.containsKey("Retry policy")),
                 () -> assertFalse(published.containsKey("Suite")),
                 () -> assertFalse(published.containsKey("Test package")),
                 () -> assertFalse(published.containsKey("Flow")),
                 () -> assertFalse(published.containsKey("Fixture")),
+                () -> assertFalse(published.containsKey("UI journey precondition")),
                 () -> assertFalse(published.values().stream()
                         .anyMatch(value -> value.contains("private-fixture"))));
     }

@@ -12,15 +12,16 @@ cunoaște rutele sau intenția unui test de produs.
 | execuție API generică | `atf-core` | executor, lifecycle și binding de transport | unit/component + consumer |
 | verdicturi | `atf-validation` | reguli și `ValidationResult` prin port neutru | unit/component |
 | artifact | `atf-reporting` | renderer semantic standalone, Extent/HTML și contracte pure | POM standalone + unit/component |
-| reporting composition | `atf-reporting-tests` | mock → API → raport → browser/E2E pentru contractul reporting | integration/API + Chromium/Playwright |
+| reporting composition | `atf-reporting-tests` | mock → API → raport, cu component/integration proof și browser/E2E pentru contractul reporting | component + integration/API + Chromium/Playwright |
 | Practice Shop consumer | `atf-test-practice-shop` | journey de purchase, config, pages, flow-uri și locatori | component + E2E |
 | guvernanță whole-ATF | `atf-tests` | graph, dependency direction și architecture boundary | architecture/component |
 
 `atf-reporting` este biblioteca reutilizabilă, nu composition root-ul suitei.
-Poate fi construită și testată singură; API/UI/E2E sunt demonstrate de
-`atf-reporting-tests`, iar regulile asupra întregului reactor sunt deținute de
-`atf-tests`. Feedback-ul activ nu redefinește aceste contracte: păstrează doar
-riscuri reproductibile care mai pot schimba codul sau packaging-ul.
+Poate fi construită și testată singură; compoziția API/mock și proof-ul
+component/integration/browser sunt demonstrate de `atf-reporting-tests`, iar
+regulile asupra întregului reactor sunt deținute de `atf-tests`. Feedback-ul
+activ nu redefinește aceste contracte: păstrează doar riscuri reproductibile
+care mai pot schimba codul sau packaging-ul.
 
 ### Harta modulelor: platformă și consumatori
 
@@ -128,7 +129,7 @@ Limitele de compoziție și ownership sunt:
 | atf-ui | configurație browser și adaptor Java Playwright pentru verificări UI automate | generarea HTML-ului și testele executabile |
 | atf-debug-ui | publică read-only un HTML existent pe loopback și furnizează target-ul pentru TAB MCP | renderer, modificarea artifactului, verdicturi și teste executabile |
 | atf-test-kit | meta-anotații JUnit pentru niveluri și guard transversal al tuturor testelor | cod production, fixture-uri, browser și business rules |
-| atf-reporting-tests | contracte API/mock și E2E UI care verifică exclusiv `atf-reporting`; fixture-uri și adaptoare ale raportului | nu devine suita unei aplicații și nu mută aceste responsabilități în production |
+| atf-reporting-tests | contracte component/integration API/mock și E2E UI care verifică exclusiv `atf-reporting`; fixture-uri și adaptoare ale raportului | nu devine suita unei aplicații și nu mută aceste responsabilități în production |
 | atf-test-practice-shop | testele aplicației consumatoare, config/flows/locators/pages și purchase E2E | renderer, publisher și guvernanța whole-ATF |
 | atf-tests | guvernanța whole-ATF și gates de arhitectură | teste de produs și contracte interne ale `atf-reporting` |
 

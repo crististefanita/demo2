@@ -1,13 +1,17 @@
 .step-detail > summary {
+  box-sizing: border-box !important;
   list-style: none !important;
   display: flex !important;
   align-items: center !important;
   gap: 0 !important;
-  padding: 9px 12px !important;
+  height: var(--atf-evidence-summary-height) !important;
+  min-height: var(--atf-evidence-summary-height) !important;
+  max-height: var(--atf-evidence-summary-height) !important;
+  padding: var(--atf-evidence-summary-padding) !important;
   color: var(--atf-accent) !important;
   cursor: pointer !important;
   font-size: 12px !important;
-  line-height: 16px !important;
+  line-height: var(--atf-evidence-summary-line-height) !important;
 }
 .step-detail > summary::-webkit-details-marker {
   display: none !important;

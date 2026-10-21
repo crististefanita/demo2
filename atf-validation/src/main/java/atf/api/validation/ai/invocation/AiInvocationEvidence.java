@@ -1,4 +1,4 @@
-package atf.api.validation.ai;
+package atf.api.validation.ai.invocation;
 
 import java.time.Instant;
 import java.util.HashSet;

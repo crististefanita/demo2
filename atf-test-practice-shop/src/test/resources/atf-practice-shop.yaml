@@ -45,6 +45,8 @@ practiceShop:
   reports:
     ui: artifacts/reports/ui
     api: artifacts/reports/api
+  reporting:
+    systemBodyPreviewCharacters: 100
   authenticatedE2eEnabled: false
   screenshotOnFailure: true
   # The external catalog rotates product ids; use auto for a stable name-based fixture.
@@ -65,9 +67,9 @@ practiceShop:
       city: Bucharest
       state: Bucharest
     paymentMethod: Cash on Delivery
-  # Plaintext demo-only credentials for the public Practice Software Testing
-  # training application. Never reuse this fixture for production or real users.
-  # Replace the account if the external demo service locks or retires it.
-  accountFile: atf-test-practice-shop/src/test/resources/practice-software-testing-account.properties
+  # Account properties are external input. The default configuration points
+  # to target/ and does not read a credential file from this resource directory.
+  # For an explicitly opted-in run, use -Datf.practice.account-file or
+  # ATF_PRACTICE_ACCOUNT_FILE with a private file outside the repository.
 
 

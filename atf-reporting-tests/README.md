@@ -96,8 +96,9 @@ Contractul este verificat pe două seam-uri:
 ## Ordinea testelor și ownership-ul guard-urilor
 
 1. `atf-reporting` — unit/component pentru model, renderer, artifact și CSS/JS;
-2. `atf-reporting-tests` — integration și E2E pentru contractul librăriei
-   `atf-reporting`;
+2. `atf-reporting-tests` — component pentru compoziția controlată mock →
+   reporting, integration pentru boundary-urile dintre module și E2E numai
+   pentru browser/rendering-ul contractului librăriei `atf-reporting`;
 3. `atf-test-practice-shop` — testele consumer pentru journey-ul Practice Shop.
 4. `atf-tests` — boundary și guvernanță whole-reactor, inclusiv verificările
    globale de documentație, ownership, coeziune și vocabular.

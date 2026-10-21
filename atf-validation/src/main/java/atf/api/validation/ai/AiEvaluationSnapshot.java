@@ -1,5 +1,8 @@
 package atf.api.validation.ai;
 
+import atf.api.validation.ai.grounding.AiGroundingObservation;
+import atf.api.validation.ai.invocation.AiInvocationEvidence;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -15,12 +18,14 @@ public final class AiEvaluationSnapshot {
     private final List<HardFailure> hardFailures;
     private final AiInvocationEvidence invocationEvidence;
     private final List<AiFieldComparison> comparisons;
+    private final List<AiGroundingObservation> groundingObservations;
     private final AiEvaluationPolicy policy;
     private final Instant completedAt;
 
     private AiEvaluationSnapshot(String caseId, int caseVersion, String inputReference, Integer qualityScore,
                                  Verdict verdict, List<HardFailure> hardFailures,
                                  AiInvocationEvidence invocationEvidence, List<AiFieldComparison> comparisons,
+                                 List<AiGroundingObservation> groundingObservations,
                                  AiEvaluationPolicy policy, Instant completedAt) {
         this.caseId = Objects.requireNonNull(caseId, "caseId");
         this.caseVersion = caseVersion;
@@ -30,6 +35,7 @@ public final class AiEvaluationSnapshot {
         this.hardFailures = List.copyOf(hardFailures);
         this.invocationEvidence = Objects.requireNonNull(invocationEvidence, "invocationEvidence");
         this.comparisons = List.copyOf(comparisons);
+        this.groundingObservations = List.copyOf(groundingObservations);
         this.policy = Objects.requireNonNull(policy, "policy");
         this.completedAt = Objects.requireNonNull(completedAt, "completedAt");
         validate();
@@ -38,9 +44,10 @@ public final class AiEvaluationSnapshot {
     static AiEvaluationSnapshot complete(String caseId, int caseVersion, String inputReference, Integer qualityScore,
                                          Verdict verdict, List<HardFailure> hardFailures,
                                          AiInvocationEvidence invocationEvidence, List<AiFieldComparison> comparisons,
+                                         List<AiGroundingObservation> groundingObservations,
                                          AiEvaluationPolicy policy, Instant completedAt) {
         return new AiEvaluationSnapshot(caseId, caseVersion, inputReference, qualityScore, verdict,
-                hardFailures, invocationEvidence, comparisons, policy, completedAt);
+                hardFailures, invocationEvidence, comparisons, groundingObservations, policy, completedAt);
     }
 
     private void validate() {
@@ -67,6 +74,7 @@ public final class AiEvaluationSnapshot {
     public List<HardFailure> hardFailures() { return hardFailures; }
     public AiInvocationEvidence invocationEvidence() { return invocationEvidence; }
     public List<AiFieldComparison> comparisons() { return comparisons; }
+    public List<AiGroundingObservation> groundingObservations() { return groundingObservations; }
     public AiEvaluationPolicy policy() { return policy; }
     public Instant completedAt() { return completedAt; }
     public Lifecycle lifecycle() { return Lifecycle.COMPLETE; }

@@ -21,6 +21,10 @@
 - `Suite`, `Test package`, `Flow`, `Fixture`, `Checkout` și payload-ul business
   nu apar în `Overview/System`; identitatea testului aparține suprafeței `Tests`,
   iar facts-urile schimbului aparțin disclosure-ului request/response/execution;
+- orice precondiție de journey sau stare de fixture specifică unui scenariu
+  (`UI journey precondition`) aparține tot suprafeței `Tests`, nu allowlist-ului
+  System; `Precondition` din System rămâne numai un setting operațional global,
+  precum modul de autentificare configurat;
 - duratele vizibile sunt operaționale și umane (`20s`, `45s`); forma ISO și cheia
   tehnică rămân cel mult în debugging colapsat.
 
@@ -150,13 +154,15 @@ rendererul fallback:
   exchanges` este copilul său real; copilul deține disclosure-urile typed pentru
   auth, correlation, transport, unique signatures și diagnostics, fără să
   repete titlul sau request-urile în părinte;
+- summary-ul compact comun are înălțimea de bază `34px`; excepțiile sunt
+  deliberate și trebuie să rămână puține;
 - `Unique request signatures` și `Technical diagnostics` au summary disclosure
-  de 2× înălțimea standard și sunt collapsed implicit pentru scanare vizuală;
-  regula este exclusiv de prezentare și nu schimbă cardinalitatea, verdictul
-  sau deduplicarea;
-- `Playwright action sequence`, `Audit observations` și `Assertions` reutilizează
-  aceeași geometrie de summary de 2× și aceeași zonă de tabel cu viewport
-  vertical bounded, scrollabil, cu header sticky; wrapper-ul este comun
+  de 2× înălțimea de bază și sunt collapsed implicit pentru scanare; accentul
+  este exclusiv de prezentare și nu schimbă cardinalitatea, verdictul sau
+  deduplicarea;
+- `Playwright action sequence`, `Audit observations` și `Assertions` păstrează
+  summary-ul compact de bază, dar tabelele lor folosesc același viewport
+  vertical bounded și scrollabil, cu header sticky; wrapper-ul este comun
   rendererelor Extent și fallback și nu mută screenshot-ul în viewport-ul
   tabelului;
 - toate tabelele care pot derula vertical folosesc aceeași înălțime de viewport
@@ -567,6 +573,44 @@ Artifactul final trebuie să fie un singur HTML autonom:
 - contraste și fonturi consistente între tabelele de Overview și detaliile testului.
 
 </details>
+
+### Disclosure stability — proof în browser
+
+Disclosure-urile formează un arbore de stare, nu controale independente:
+
+- deschiderea unui copil nu închide părintele sau faza care îl conține;
+- închiderea scenariului închide și ascunde toate fazele, checkpoint-urile și
+  disclosure-urile descendente;
+- redeschiderea scenariului deschide numai containerul scenariului; copiii rămân
+  închiși până la o acțiune explicită;
+- starea vizuală, panelul, `aria-expanded` și glyph-ul se actualizează împreună;
+  normalizarea întârziată nu inversează o tranziție deja stabilită.
+
+```mermaid
+flowchart LR
+    Fresh[Raport fresh] -->|deschide| Scenario[Scenariu]
+    Scenario -->|deschide| Phase[Fază]
+    Phase -->|deschide copilul| Child[Evidence]
+    Child -->|după normalizare, păstrează| ParentOpen[Părinți deschiși]
+    Scenario -->|închide| Reset[Descendenți închiși și ascunși]
+    Reset -->|redeschide scenariul| ScenarioOnly[Doar containerul deschis]
+    ScenarioOnly -->|click explicit| Child
+```
+
+<details>
+<summary><strong>Legendă — tranziții stabile ale disclosure-urilor</strong></summary>
+
+- copilul deschis nu își închide părinții;
+- închiderea scenariului resetează descendenții;
+- redeschiderea scenariului nu extinde automat copiii.
+
+</details>
+
+Testele component/interaction verifică tranzițiile și sincronizarea atributelor;
+proba în browser folosește un artifact fresh prin ATF Debug/TAB MCP și verifică
+expandare succesivă, stabilitatea părintelui, resetarea la închiderea scenariului
+și redeschiderea fără expandarea automată a copiilor. Un artifact vechi sau o
+assertion doar pe text nu dovedește acest contract.
 
 ## Dovezi obligatorii pentru schimbări
 

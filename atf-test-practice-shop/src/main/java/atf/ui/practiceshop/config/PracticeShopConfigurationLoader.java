@@ -56,7 +56,7 @@ public final class PracticeShopConfigurationLoader {
                     .resolve("target/practice-software-testing-account.properties");
             JsonNode root = YAML.readTree(stream).path("practiceShop");
             URI base = URI.create(requiredText(root, "baseUrl"));
-            Path configuredAccount = resolvePath(text(root, "accountFile", account.toString()));
+            Path configuredAccount = accountPath(text(root, "accountFile", account.toString()));
             String product = text(root, "productName", "Pliers");
             String path = text(root, "productPath", PracticeShopConfiguration.DYNAMIC_PRODUCT_PATH);
             PracticeShopValidationProfile validationProfile = PracticeShopValidationProfile.from(
@@ -92,6 +92,8 @@ public final class PracticeShopConfigurationLoader {
             JsonNode reports = root.path("reports");
             Path uiReports = resolveDirectory(text(reports, "ui", "artifacts/reports/ui"));
             Path apiReports = resolveDirectory(text(reports, "api", "artifacts/reports/api"));
+            PracticeShopReportConfiguration reportConfiguration = reportConfiguration(
+                    root.path("reporting"));
             boolean authenticatedE2e = bool(root, "authenticatedE2eEnabled", false);
             return override(new PracticeShopConfiguration(base, configuredAccount, product, path,
                     checkoutConfiguration,
@@ -103,7 +105,7 @@ public final class PracticeShopConfigurationLoader {
                             integer(root, "zoomPercent", 100),
                             bool(root, "screenshotOnFailure", true),
                             uiRetry.policy(), networkInspection), uiRetry, validationProfile,
-                    apiConfiguration, uiReports, apiReports, authenticatedE2e));
+                    apiConfiguration, uiReports, apiReports, authenticatedE2e, reportConfiguration));
     }
 
     private static PracticeShopUiRetryConfiguration retry(JsonNode retry) {
@@ -147,6 +149,13 @@ public final class PracticeShopConfigurationLoader {
                 positiveInteger(network, "maxBodyPreviewCharacters", 12_000,
                         "practiceShop.networkInspector.maxBodyPreviewCharacters"),
                 bool(network, "collapseConsecutiveSignatures", true), settlement);
+    }
+
+    private static PracticeShopReportConfiguration reportConfiguration(JsonNode reporting) {
+        return new PracticeShopReportConfiguration(
+                positiveInteger(reporting, "systemBodyPreviewCharacters",
+                        PracticeShopReportConfiguration.DEFAULT_SYSTEM_BODY_PREVIEW_CHARACTERS,
+                        "practiceShop.reporting.systemBodyPreviewCharacters"));
     }
 
     private static Set<String> textSet(JsonNode configured, String path) {
@@ -209,7 +218,7 @@ public final class PracticeShopConfigurationLoader {
         String baseUrl = System.getProperty("atf.practice.base-url", base.baseUrl().toString());
         String account = System.getProperty("atf.practice.account-file",
                 System.getenv().getOrDefault("ATF_PRACTICE_ACCOUNT_FILE", "")).trim();
-        Path accountFile = account.isEmpty() ? base.accountFile() : resolvePath(account);
+        Path accountFile = account.isEmpty() ? base.accountFile() : accountPath(account);
         String product = System.getProperty("atf.practice.product-name", base.productName());
         String productPath = System.getProperty("atf.practice.product-path", base.productPath());
         String profile = System.getProperty("atf.practice.validation-profile", base.validationProfile().name());
@@ -238,7 +247,8 @@ public final class PracticeShopConfigurationLoader {
                 base.checkout(), browser, base.uiRetry(), validationProfile,
                 new PracticeShopApiConfiguration(URI.create(apiEndpoint), ApiTransportMode.parse(apiMode),
                         PracticeShopApiPrecondition.from(apiPrecondition), base.api().timeout(), evidenceBinding),
-                resolveDirectory(uiReports), resolveDirectory(apiReports), authenticatedE2e);
+                resolveDirectory(uiReports), resolveDirectory(apiReports), authenticatedE2e,
+                base.reporting());
     }
 
     private static String text(JsonNode parent, String key, String fallback) {
@@ -280,6 +290,19 @@ public final class PracticeShopConfigurationLoader {
         }
         return Path.of(System.getProperty("user.dir", ".")).toAbsolutePath().normalize()
                 .resolve(path).normalize();
+    }
+
+    private static Path accountPath(String configured) {
+        Path path = resolvePath(configured);
+        for (int index = 0; index + 2 < path.getNameCount(); index++) {
+            if (path.getName(index).toString().equalsIgnoreCase("src")
+                    && path.getName(index + 1).toString().equalsIgnoreCase("test")
+                    && path.getName(index + 2).toString().equalsIgnoreCase("resources")) {
+                throw new IllegalArgumentException("Practice Shop account files must be external; "
+                        + "source test resources cannot contain account credentials");
+            }
+        }
+        return path;
     }
 
     private static boolean bool(JsonNode parent, String key, boolean fallback) {

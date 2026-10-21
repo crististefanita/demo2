@@ -31,9 +31,6 @@ public final class AtfReportThemeTokens {
     public static final String EVIDENCE_SUMMARY_PADDING = "9px 12px";
     public static final String EVIDENCE_SUMMARY_LINE_HEIGHT = "16px";
     public static final String EVIDENCE_SUMMARY_HEIGHT = "34px";
-    /** Shared tall disclosure geometry for evidence that owns a bounded table. */
-    public static final String EVIDENCE_TALL_SUMMARY_PADDING = "18px 12px";
-    public static final String EVIDENCE_TALL_SUMMARY_HEIGHT = "68px";
     /** One bounded viewport for every scrollable report table, matching System/Environment. */
     public static final String TABLE_SCROLL_HEIGHT = "500px";
     /** Source-compatible semantic aliases; the value remains owned by TABLE_SCROLL_HEIGHT. */
@@ -115,8 +112,6 @@ public final class AtfReportThemeTokens {
                 variable("evidence-summary-padding", EVIDENCE_SUMMARY_PADDING),
                 variable("evidence-summary-line-height", EVIDENCE_SUMMARY_LINE_HEIGHT),
                 variable("evidence-summary-height", EVIDENCE_SUMMARY_HEIGHT),
-                variable("evidence-tall-summary-padding", EVIDENCE_TALL_SUMMARY_PADDING),
-                variable("evidence-tall-summary-height", EVIDENCE_TALL_SUMMARY_HEIGHT),
                 variable("table-scroll-height", TABLE_SCROLL_HEIGHT),
                 variable("evidence-table-scroll-height", TABLE_SCROLL_HEIGHT),
                 variable("evidence-radius", EVIDENCE_RADIUS),

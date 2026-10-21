@@ -1,5 +1,9 @@
 package atf.api.validation.ai;
 
+import atf.api.validation.ai.grounding.AiGroundingObservation;
+import atf.api.validation.ai.grounding.AiGroundingRequirement;
+import atf.api.validation.ai.grounding.AiSourceReference;
+import atf.api.validation.ai.invocation.AiInvocationEvidence;
 import atf.api.testkit.AtfComponentTest;
 import org.junit.jupiter.api.Test;
 
@@ -202,6 +206,58 @@ class AiEvaluationEvaluatorTest {
         assertEquals(invocation, result.invocationEvidence());
         assertEquals(AiInvocationEvidence.Mode.REAL_AI, result.invocationEvidence().mode());
         assertEquals(4, result.invocationEvidence().references().size());
+    }
+
+    @Test
+    void recordsSupportedGroundingPerFieldWithoutEmbeddingSourcePayload() {
+        var evaluationCase = new AiEvaluationCase("grounded", 1, "fixture:grounded:v1", List.of(
+                new AiFieldExpectation("decision", EXACT, "REVIEW", true, 1,
+                        AiFieldExpectation.InputPresence.PRESENT,
+                        AiGroundingRequirement.requiredFrom("source:decision"))));
+        var source = new AiSourceReference("source:decision", AiSourceReference.SourceType.INPUT_FIELD,
+                "input:customer", "excerpt:decision", "decision");
+
+        var result = evaluator.evaluate(evaluationCase, Map.of("decision", "REVIEW"), realInvocation(),
+                Map.of("decision", source));
+
+        assertEquals(PASS, result.verdict());
+        assertEquals(AiGroundingObservation.Result.SUPPORTED,
+                result.groundingObservations().getFirst().result());
+        assertEquals(source, result.groundingObservations().getFirst().sourceReference());
+        assertThrows(UnsupportedOperationException.class, () -> result.groundingObservations().clear());
+    }
+
+    @Test
+    void missingCriticalGroundingFailsEvenWhenTheFieldValueMatches() {
+        var evaluationCase = new AiEvaluationCase("missing-grounding", 1, "fixture:missing-grounding:v1", List.of(
+                new AiFieldExpectation("decision", EXACT, "REVIEW", true, 1,
+                        AiFieldExpectation.InputPresence.PRESENT,
+                        AiGroundingRequirement.requiredFrom("source:decision"))));
+
+        var result = evaluator.evaluate(evaluationCase, Map.of("decision", "REVIEW"), realInvocation());
+
+        assertEquals(FAIL, result.verdict());
+        assertEquals(AiGroundingObservation.Result.MISSING_REFERENCE,
+                result.groundingObservations().getFirst().result());
+        assertEquals("MISSING_GROUNDING_REFERENCE", result.hardFailures().getFirst().ruleId());
+    }
+
+    @Test
+    void rejectsAReferenceOutsideTheExpectedSourceAllowlist() {
+        var evaluationCase = new AiEvaluationCase("unsupported-grounding", 1, "fixture:unsupported-grounding:v1", List.of(
+                new AiFieldExpectation("decision", EXACT, "REVIEW", true, 1,
+                        AiFieldExpectation.InputPresence.PRESENT,
+                        AiGroundingRequirement.requiredFrom("source:decision"))));
+        var source = new AiSourceReference("source:other", AiSourceReference.SourceType.API_RESPONSE,
+                "response:1", "excerpt:decision", "decision");
+
+        var result = evaluator.evaluate(evaluationCase, Map.of("decision", "REVIEW"), realInvocation(),
+                Map.of("decision", source));
+
+        assertEquals(FAIL, result.verdict());
+        assertEquals(AiGroundingObservation.Result.UNSUPPORTED,
+                result.groundingObservations().getFirst().result());
+        assertEquals("UNSUPPORTED_GROUNDING", result.hardFailures().getFirst().ruleId());
     }
 
     @Test

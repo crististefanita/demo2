@@ -19,6 +19,7 @@ particular.
 | contract | `ATF_Reporting_Contract.md`, ghidurile de modul | ce comportament este stabil? |
 | evidence transversal | `ATF_Evidence_Capture_Contract.md` | cum se separă flow-ul, policy-ul, sursa și publisherul? |
 | practică | `README_Atf_BestPractices.md` | cum adăugăm cod fără drift? |
+| testare | `ATF_Testing_Guide.md` | ce layer, modul și proof aleg pentru un comportament? |
 | execuție | `ATF_Build_And_Execution_Safety.md` | cum lucrăm fără să oprim run-uri? |
 | feedback | `feedback/README.md` și documentele active pe owner | ce gap observabil rămâne? |
 
@@ -87,7 +88,9 @@ flowchart LR
    [README_Atf_CodeBestPractices.md](README_Atf_CodeBestPractices.md) pentru cod,
    OOP și testare; [README_Atf_DocumentationBestPractices.md](README_Atf_DocumentationBestPractices.md)
    pentru structură, diagrame și lizibilitate.
-19. [feedback/README.md](feedback/README.md) — ToDo active, criterii de închidere
+19. [ATF_Testing_Guide.md](ATF_Testing_Guide.md) — alegerea layer-ului, matricea
+    module × layer și dovada potrivită pentru UI/API și raportare.
+20. [feedback/README.md](feedback/README.md) — ToDo active, criterii de închidere
     și registrul de ownership pentru API, UI și reporting.
 
 ## Responsabilități și aprofundare
@@ -99,6 +102,7 @@ continuă în [ATF_Architecture.md](ATF_Architecture.md).
 - evidence transversal: [ATF_Evidence_Capture_Contract.md](ATF_Evidence_Capture_Contract.md);
 - build și sync: [ATF_Build_And_Execution_Safety.md](ATF_Build_And_Execution_Safety.md);
 - test API: [ATF_Api_Test_Guide.md](ATF_Api_Test_Guide.md);
+- alegerea layer-ului și proof-ul unei schimbări: [ATF_Testing_Guide.md](ATF_Testing_Guide.md);
 - reguli editoriale: [README_Atf_DocumentationBestPractices.md](README_Atf_DocumentationBestPractices.md);
 - gap-uri dinamice: [feedback/README.md](feedback/README.md).
 

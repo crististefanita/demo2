@@ -132,3 +132,20 @@ Nu se opresc procesele altui agent. Dacă hostul este deja saturat, testele
 reporting pot fi rulate izolat cu `-DforkCount=0`; acest mod este o măsură de
 diagnostic/resurse, nu schimbă contractul testelor și nu devine implicit pentru
 execuțiile normale.
+
+Classpath-ul launcherului trebuie să includă `atf-console`, `atf-core` și
+dependențele lor runtime. În PowerShell, pregătește-l înainte de o rulare
+independentă; valoarea din `<report-path>` este calea artifactului aprobat:
+
+```powershell
+mvn -pl atf-debug-ui -am -DskipTests package
+mvn -q -pl atf-debug-ui dependency:build-classpath '-Dmdep.outputFile=target/debug-classpath.txt' '-Dmdep.includeScope=runtime'
+$runtimeDependencies = Get-Content -Raw 'atf-debug-ui/target/debug-classpath.txt'
+$launcherClasspath = 'atf-debug-ui/target/classes;atf-console/target/classes;atf-core/target/classes;' + $runtimeDependencies
+$report = '<report-path>'
+java -Xms16m -Xmx128m -XX:MaxMetaspaceSize=64m -cp $launcherClasspath atf.api.debugui.AtfDebugUiLauncher --html $report --port 0
+```
+
+În IntelliJ, o configurație `Application` pentru `AtfDebugUiLauncher` include
+automat classpath-ul runtime al modulului; setează aceleași limite în
+`VM options` și `--html <report-path> --port 0` în `Program arguments`.

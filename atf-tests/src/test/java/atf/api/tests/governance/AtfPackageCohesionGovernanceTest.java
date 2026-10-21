@@ -7,10 +7,12 @@ import org.junit.jupiter.api.Test;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import static atf.api.tests.governance.AtfGovernanceTestSupport.*;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Guards package size and keeps cohesion exceptions explicit. */
@@ -35,6 +37,28 @@ public class AtfPackageCohesionGovernanceTest {
                         .filter(counts::containsKey)
                         .allMatch(overLimit::containsKey),
                 () -> "Reviewed package allow-list is stale: " + overLimit);
+    }
+
+    @Test
+    void aiValidationUsesSemanticSubpackagesWithoutAnAllowListException() throws Exception {
+        Map<String, List<String>> inventory = productionPackageClassInventory(locateProjectRoot());
+
+        assertEquals(Set.of(
+                        "AiEvaluationCase.java",
+                        "AiEvaluationEvaluator.java",
+                        "AiEvaluationPolicy.java",
+                        "AiEvaluationSnapshot.java",
+                        "AiEvaluationValues.java",
+                        "AiFieldComparison.java",
+                        "AiFieldExpectation.java"),
+                Set.copyOf(inventory.getOrDefault("atf.api.validation.ai", List.of())));
+        assertEquals(Set.of("AiGroundingObservation.java", "AiGroundingRequirement.java",
+                        "AiSourceReference.java"),
+                Set.copyOf(inventory.getOrDefault("atf.api.validation.ai.grounding", List.of())));
+        assertEquals(List.of("AiInvocationEvidence.java"),
+                inventory.getOrDefault("atf.api.validation.ai.invocation", List.of()));
+        assertFalse(inventory.containsKey("atf.api.validation.ai.support"),
+                "internal AI defensive-copy helpers must not become a public support package");
     }
 
     @Test
