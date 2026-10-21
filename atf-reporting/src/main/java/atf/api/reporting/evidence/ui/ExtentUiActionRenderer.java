@@ -41,7 +41,8 @@ public final class ExtentUiActionRenderer {
         }
         StringBuilder html = actionTable(actions)
                 .append(close(AtfReportHtmlVocabulary.Tag.TBODY))
-                .append(close(AtfReportHtmlVocabulary.Tag.TABLE));
+                .append(close(AtfReportHtmlVocabulary.Tag.TABLE))
+                .append(close(AtfReportHtmlVocabulary.Tag.DIV));
         for (ReportScreenshot screenshot : distinctScreenshots) {
             html.append(open(AtfReportHtmlVocabulary.Tag.DIV,
                             AtfReportHtmlVocabulary.classAttribute(
@@ -51,7 +52,7 @@ public final class ExtentUiActionRenderer {
                             screenshot.title(), screenshot.base64Png()))
                     .append(close(AtfReportHtmlVocabulary.Tag.DIV));
         }
-        publish(node, html.append(close(AtfReportHtmlVocabulary.Tag.DIV))
+        publish(node, html
                 .append(close(AtfReportHtmlVocabulary.Tag.DETAILS)).toString(), hasFailure(actions));
     }
 

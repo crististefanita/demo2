@@ -81,8 +81,9 @@ public final class ReportNetworkInspector {
                 ? List.of() : evidence.stream().filter(Objects::nonNull).toList();
         List<Step> journey = steps == null ? List.of() : steps.stream()
                 .filter(Objects::nonNull).toList();
-        List<Diagnostic> runtimeDiagnostics = diagnostics == null ? List.of() : diagnostics.stream()
-                .filter(Objects::nonNull).toList();
+        List<Diagnostic> runtimeDiagnostics = new ArrayList<>();
+        if (diagnostics != null) diagnostics.stream().filter(Objects::nonNull)
+                .forEach(runtimeDiagnostics::add);
 
         Map<AuthKey, Integer> authCounts = new LinkedHashMap<>();
         Map<SignatureKey, SignatureAccumulator> signatures = new LinkedHashMap<>();
@@ -107,6 +108,16 @@ public final class ReportNetworkInspector {
             if (exchange.response() != null) {
                 if (exchange.response().status() >= 200 && exchange.response().status() < 400) successful++;
                 else failed++;
+                if (exchange.response().status() < 0 && exchange.request() != null) {
+                    String reason = exchange.attemptHistory().stream()
+                            .map(attempt -> attempt.reason())
+                            .filter(value -> value != null && !value.isBlank())
+                            .findFirst().orElse("request failed before response");
+                    String source = exchange.trace() == null ? "UI_BROWSER_REQUEST_FAILED"
+                            : exchange.trace().evidenceSource();
+                    runtimeDiagnostics.add(new Diagnostic(source, exchange.request().method(),
+                            exchange.request().path(), -1, reason));
+                }
             }
             attempts += Math.max(0, exchange.attempts());
             retries += exchange.retryEvents().size();
@@ -143,7 +154,8 @@ public final class ReportNetworkInspector {
         List<DiagnosticObservation> observations = new ArrayList<>();
         for (var entry : grouped.entrySet()) {
             var key = entry.getKey();
-            String signal = key.unbound() ? "UNBOUND-" + (++unboundIndex) : "";
+            String signal = key.unbound() ? "UNBOUND-" + (++unboundIndex)
+                    : key.status() < 0 ? key.message() : "";
             observations.add(new DiagnosticObservation(key.method(), key.route(), key.status(), signal,
                     entry.getValue().count, entry.getValue().sources()));
         }
@@ -292,7 +304,7 @@ public final class ReportNetworkInspector {
                     && diagnostic.route().isBlank()
                     && diagnostic.status() < 0;
             return new DiagnosticKey(diagnostic.method(), diagnostic.route(), diagnostic.status(),
-                    unbound ? diagnostic.message() : "", unbound);
+                    diagnostic.status() < 0 ? diagnostic.message() : "", unbound);
         }
     }
 
@@ -333,6 +345,10 @@ public final class ReportNetworkInspector {
         }
 
         private static String service(ReportExecutionEvidence evidence) {
+            if (evidence != null && evidence.trace() != null
+                    && !evidence.trace().service().isBlank()) {
+                return evidence.trace().service();
+            }
             if (evidence == null || evidence.response() == null || evidence.response().url().isBlank()) {
                 return "unknown";
             }
@@ -381,7 +397,7 @@ public final class ReportNetworkInspector {
         String contentType = header(response.headers(), "content-type");
         String transport = evidence.provenance().reportLabel();
         String operation = request.method() + " " + request.path() + " → "
-                + response.status() + (contentType.isBlank() ? "" : " " + contentType);
+                + response.statusLabel() + (contentType.isBlank() ? "" : " " + contentType);
         String signature = signature(evidence);
         String source = trace == null || trace.evidenceSource().isBlank()
                 ? "unknown" : trace.evidenceSource();

@@ -66,6 +66,14 @@ class AtfReportEvidenceCssTest {
         assertAll(
                 () -> assertTrue(css.contains(".atf-ui-action-table{width:100%!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;table-layout:fixed!important")),
                 () -> assertTrue(css.contains(".atf-ui-action-table-wrap{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;overflow:hidden!important")),
+                () -> assertTrue(css.contains("--atf-evidence-summary-height:var(--atf-evidence-tall-summary-height)"),
+                        "action, audit, assertion and network disclosures must share the tall summary token"),
+                () -> assertTrue(css.contains("max-height:var(--atf-table-scroll-height)!important"),
+                        "long evidence tables must use the shared System/Environment viewport"),
+                () -> assertTrue(css.contains("overflow-y:auto!important"),
+                        "bounded evidence tables must scroll vertically"),
+                () -> assertTrue(css.contains("position:sticky!important"),
+                        "bounded evidence tables must keep their header visible"),
                 () -> assertTrue(css.contains(".atf-ui-action-table th,.atf-ui-action-table td{box-sizing:border-box!important;border:1px solid var(--atf-border)!important;padding:5px 6px!important;text-align:left!important;vertical-align:top!important;overflow:hidden!important;overflow-wrap:anywhere!important;word-break:break-word!important}")),
                 () -> assertFalse(interactionCss.contains("min-width:720px!important")),
                 () -> assertFalse(interactionCss.contains(".atf-ui-action-table-wrap{max-width:100%!important;overflow-x:auto!important")),
@@ -157,6 +165,27 @@ class AtfReportEvidenceCssTest {
                 () -> assertTrue(css.contains("details.step-detail.atf-ui-failure-evidence"),
                         "The explicit UI failure evidence must keep a distinct fail treatment"),
                 () -> assertTrue(css.contains("border-bottom:1px solid var(--atf-border)!important;border-radius:0 0 var(--atf-evidence-radius) var(--atf-evidence-radius)!important}")));
+    }
+
+    @Test
+    void everyScrollableTableFamilyUsesTheSystemEnvironmentViewport() {
+        String theme = AtfReportTheme.css();
+        String fallback = AtfReportTheme.fallbackCss();
+
+        assertAll(
+                () -> assertTrue(theme.contains(".dashboard-view .category-container>.card>.card-body")),
+                () -> assertTrue(theme.contains("height:var(--atf-table-scroll-height)!important"),
+                        "Overview/System table bodies must use the shared viewport token"),
+                () -> assertTrue(theme.contains(".atf-tag-scroll{height:var(--atf-table-scroll-height)!important"),
+                        "tag audit tables must use the shared viewport token"),
+                () -> assertTrue(theme.contains("max-height:var(--atf-table-scroll-height)!important"),
+                        "Extent action/audit/assertion tables must use the shared viewport token"),
+                () -> assertTrue(fallback.contains(".atf-ui-action-table-wrap,.atf-validation-table-wrap{max-height:var(--atf-table-scroll-height)"),
+                        "fallback action and validation tables must use the shared viewport token"),
+                () -> assertFalse(theme.contains("height:500px!important"),
+                        "the viewport must be configured through the common CSS token"),
+                () -> assertFalse(theme.contains("max-height:500px!important"),
+                        "the viewport must not be hardcoded in a renderer stylesheet"));
     }
 }
 

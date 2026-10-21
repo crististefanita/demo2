@@ -155,6 +155,10 @@ public final class UiEvidencePublisher {
             boolean visualValidation = SCREEN_VALIDATION.equals(validationTitle);
             boolean hasApiEvidence = hasApiEvidence(apiEvidence);
             AtfReportStatus effectiveStatus = defaultStatus(status, AtfReportStatus.PASS);
+            if (hasApiEvidence && apiEvidence.stream().anyMatch(evidence -> evidence != null
+                    && evidence.response() != null && evidence.response().status() < 0)) {
+                effectiveStatus = AtfReportStatus.worst(effectiveStatus, AtfReportStatus.WARNING);
+            }
             if (visualValidation) {
                 request.detail(AtfReportEvidenceKeys.EVIDENCE_TYPE, AtfReportEvidenceKeys.SCREEN_VALIDATION);
                 request.detail(AtfReportEvidenceKeys.EVIDENCE_POLICY,
@@ -249,19 +253,19 @@ public final class UiEvidencePublisher {
             if (!apiRequest.bodyText().isBlank()) {
                 request.json("REQUEST JSON", apiRequest.bodyText());
             }
-            request.detail(STATUS,
-                    String.valueOf(apiResponse.status()));
+            request.detail(STATUS, apiResponse.statusLabel());
             request.detail(CONTENT_TYPE,
                     header(apiResponse.headers(), "content-type"));
             String responseHeaders = ApiManualReplay.relevantResponseHeaders(apiResponse.headers());
             if (!"[]".equals(responseHeaders)) {
                 request.detail(RESPONSE_HEADERS, responseHeaders);
             }
-            if (!apiResponse.body().isBlank()) {
+            if (apiResponse.status() >= 0 && !apiResponse.body().isBlank()) {
                 request.json("RESPONSE JSON", apiResponse.body());
             }
             request.execution(evidence);
-            request.complete(exchangeStatus);
+            request.complete(apiResponse.status() < 0
+                    ? AtfReportStatus.WARNING : exchangeStatus);
         }
     }
 

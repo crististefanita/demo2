@@ -64,9 +64,16 @@ public final class UiPhaseLifecycle implements AutoCloseable {
     void step(String keyword, String title, String target, String base64Png,
               Collection<AtfAssertion> assertions, Collection<AtfUiActionRecord> actions,
               Collection<ReportExecutionEvidence> apiEvidence, AtfReportStatus status) {
+        step(keyword, title, target, base64Png, assertions, actions, apiEvidence,
+                ReportScreenshotPolicy.CapturePoint.CHECKPOINT, status);
+    }
+
+    void step(String keyword, String title, String target, String base64Png,
+              Collection<AtfAssertion> assertions, Collection<AtfUiActionRecord> actions,
+              Collection<ReportExecutionEvidence> apiEvidence,
+              ReportScreenshotPolicy.CapturePoint capturePoint, AtfReportStatus status) {
         action(keyword, title, target, base64Png, assertions, status,
-                "UI validation", actions, apiEvidence,
-                ReportScreenshotPolicy.CapturePoint.CHECKPOINT);
+                "UI validation", actions, apiEvidence, capturePoint);
     }
 
     void setup(String keyword, String title, String target,
@@ -108,7 +115,10 @@ public final class UiPhaseLifecycle implements AutoCloseable {
                     .filter(field -> !field.name().startsWith("network.aggregate."))
                     .forEach(field -> request.detail(field.name(), field.value()));
             request.networkAggregate(ReportNetworkInspector.aggregate(executionEvidence, steps, diagnostics));
-            request.complete(AtfReportStatus.PASS);
+            boolean requestFailed = executionEvidence != null && executionEvidence.stream()
+                    .anyMatch(evidence -> evidence != null && evidence.response() != null
+                            && evidence.response().status() < 0);
+            request.complete(requestFailed ? AtfReportStatus.WARNING : AtfReportStatus.PASS);
         } finally {
             request.close();
         }

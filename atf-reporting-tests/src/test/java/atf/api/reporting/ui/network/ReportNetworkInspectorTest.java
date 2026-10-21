@@ -145,6 +145,8 @@ class ReportNetworkInspectorTest {
                 () -> assertTrue(html.contains("Unique request signatures · 1")),
                 () -> assertTrue(html.contains("Technical diagnostics · 0")),
                 () -> assertTrue(html.contains("network-signature-card")),
+                () -> assertTrue(html.contains("network-signatures")),
+                () -> assertTrue(html.contains("network-diagnostics")),
                 () -> assertFalse(html.contains("network.aggregate.authentication")),
                 () -> assertFalse(html.contains("<details open")));
     }

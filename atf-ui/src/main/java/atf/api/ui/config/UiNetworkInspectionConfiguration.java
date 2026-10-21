@@ -55,8 +55,8 @@ public record UiNetworkInspectionConfiguration(
         try {
             String host = java.net.URI.create(url).getHost();
             return host != null && allowedHosts.contains(host.toLowerCase(Locale.ROOT));
-        } catch (RuntimeException ignored) {
-            return false;
+        } catch (IllegalArgumentException error) {
+            throw new IllegalStateException("UI network observation received an invalid URL: " + url, error);
         }
     }
 

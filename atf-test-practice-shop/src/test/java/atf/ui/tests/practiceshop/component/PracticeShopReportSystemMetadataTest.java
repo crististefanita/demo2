@@ -3,6 +3,7 @@ package atf.ui.tests.practiceshop.component;
 import atf.api.testkit.AtfComponentTest;
 import atf.ui.practiceshop.config.PracticeShopConfigurationLoader;
 import atf.ui.practiceshop.support.PracticeShopReportSystemMetadata;
+import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.configuration.ReportEnvironmentField;
 import org.junit.jupiter.api.Test;
 
@@ -59,6 +60,8 @@ class PracticeShopReportSystemMetadataTest {
                 () -> assertTrue(snapshot.values().containsKey(ReportEnvironmentField.UI_JOURNEY_PRECONDITION)),
                 () -> assertTrue(snapshot.values().containsKey(ReportEnvironmentField.BODY_PREVIEW)),
                 () -> assertTrue(snapshot.values().containsKey(ReportEnvironmentField.SCREENSHOT_POLICY)),
+                () -> assertEquals(ReportScreenshotPolicy.EACH_CHECKPOINT.configValue(),
+                        snapshot.displayValues().get(ReportEnvironmentField.SCREENSHOT_POLICY.label())),
                 () -> assertEquals("20s", snapshot.displayValues().get(ReportEnvironmentField.UI_TIMEOUT.label())),
                 () -> assertEquals("45s", snapshot.displayValues().get(ReportEnvironmentField.NAVIGATION_TIMEOUT.label())),
                 () -> assertEquals("20s", snapshot.displayValues().get(ReportEnvironmentField.API_TIMEOUT.label())),

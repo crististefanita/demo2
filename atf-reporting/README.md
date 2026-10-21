@@ -190,6 +190,19 @@ screenshot și verdictul rămân în `TEST BODY`; `Overview/System` explică num
 configurația operațională efectivă a run-ului. Nu publică `Suite`, `Test package`,
 `Flow`, `Fixture`, `Checkout` sau payload business.
 
+Un consumer nou folosește contractele publice la nivelul la care există datele:
+
+| Date furnizate de consumer | Contract typed | Publicare |
+|---|---|---|
+| configurație operațională per run | `ReportEnvironmentSnapshot` | `ExtentReportSession` sau `UiExtentReportOptions.environment(...)`; System primește doar câmpurile allowlist-uite și redacted |
+| cauzalitate per exchange | `ReportTraceMetadata` în `ReportExecutionEvidence` | `AtfReportPorts.Request.execution(...)`; request/response/execution rămân împreună în pasul care le-a cauzat |
+
+Consumerul construiește valorile la composition root; rendererul nu deduce
+business facts din titlu sau YAML. Cele două contracte nu sunt reunite într-un
+provider de sesiune: trace-ul poate varia la fiecare exchange, în timp ce
+snapshot-ul System este stabil pe durata raportului. Contractul combinat este
+verificat cu un consumer sintetic în `ReportTraceMetadataRenderingTest`.
+
 ## Contractul raportului
 
 ```text
@@ -213,6 +226,7 @@ TestCase
 | UI evidence | `SETUP` este setup; `Screen validation` este în `TEST BODY` după acțiuni și observații |
 | layout | `＋/−` este inline înaintea propoziției; cele trei zone de validation sunt surori, fără `<hr>` decorativ |
 | responsive evidence | până la breakpoint-ul de lucru (`1300px`), action tables se redimensionează și împachetează conținutul fără scrollbar orizontal; padding-ul lateral al wrapperului este eliminat semantic, nu prin crop | 
+| scrollable tables | toate tabelele scrollabile folosesc `--atf-table-scroll-height`, derivat din `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT` și egal cu viewport-ul `System/Environment` (`500px` curent); header-ul rămâne sticky, iar JSON/code panes nu intră în acest contract |
 | action number | fiecare acțiune afișează `#n` într-un token dedicat, `atf-ui-action-number`, compact (`inline-block`/`max-content`); nu se reutilizează clasa extensibilă `atf-ui-action-sequence` |
 | screenshot | link inline cu emoji-ul curent; payload Base64 pentru prima apariție sau referință locală bounded (`screenshot-n`) pentru o stare deduplicată; fingerprint-ul rămâne intern și nu este afișat în locul linkului |
 | action table | acțiunile relevante includ `getText`/text extraction; timpul apare numai pentru acțiuni |
@@ -640,6 +654,11 @@ publication policy, validarea target-ului și proiecția în artifact.
 - seam-ul typed pentru configurare extinsă este `ReportEvidenceProfile`;
 - profilul compune `ReportEvidenceFlowMode`, `ReportScreenshotPolicy` și
   `ReportEvidenceCaptureSource`;
+- `ReportEvidenceCaptureProvider` este seam-ul public pentru browser sau mock;
+  `ReportEvidenceProfile.capture(...)` aplică policy înainte de provider,
+  verifică source-ul și cere PNG Base64 valid când captura este permisă;
+- `flowMode` este metadata pentru composition root: publisherul nu modifică
+  singur gruparea pașilor în funcție de această valoare;
 - profilul se construiește prin builder sau `fromConfig(...)` și se pasează în
   `UiExtentReportSession.openConfigured(..., profile)`;
 - profilul descrie policy și proveniență, nu execută browserul; mock-ul și

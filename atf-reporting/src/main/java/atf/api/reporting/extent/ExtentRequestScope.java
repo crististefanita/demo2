@@ -95,7 +95,7 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
 
     @Override public void networkAggregate(ReportNetworkInspector.JourneyAggregate aggregate) {
         networkAggregate = aggregate;
-        if (aggregate != null) {
+        if (aggregate != null && networkAggregateNode == null) {
             networkAggregateNode = request.createNode(
                     "Network aggregate · " + aggregate.observations() + " exchanges");
             tree.markStarted(networkAggregateNode);

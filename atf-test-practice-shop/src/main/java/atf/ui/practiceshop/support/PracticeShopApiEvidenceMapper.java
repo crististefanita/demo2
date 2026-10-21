@@ -25,6 +25,11 @@ public final class PracticeShopApiEvidenceMapper {
     private PracticeShopApiEvidenceMapper() { }
 
     static ReportExecutionEvidence toExecution(PracticeShopApiNetworkJournal.Exchange exchange) {
+        return toExecution(exchange, "");
+    }
+
+    static ReportExecutionEvidence toExecution(PracticeShopApiNetworkJournal.Exchange exchange,
+                                               String serviceAlias) {
         PracticeShopApiOperation operation = PracticeShopApiOperation.resolve(
                 exchange.method(), exchange.path());
         String reportMethod = operation == PracticeShopApiOperation.UNKNOWN
@@ -36,12 +41,13 @@ public final class PracticeShopApiEvidenceMapper {
                 PracticeShopJsonEvidence.redactHeaders(exchange.responseHeaders()), Duration.ZERO, exchange.url());
         var attempt = new ReportAttemptRecord(1, exchange.status(), Duration.ZERO,
                 exchange.status() >= 200 && exchange.status() < 400 ? "SUCCESS" : "FAILURE",
-                "final response");
+                exchange.status() < 0 ? exchange.failureReason() : "final response");
         ReportTraceMetadata trace = ReportTraceMetadata.from(request).withCapture(
                 exchange.eventId(), exchange.sequence(), exchange.phase(), exchange.role(),
                 exchange.stepId(), exchange.initiator(), exchange.evidenceSource(),
                 ReportRequestSignature.bodyDigest(response.body()),
                 exchange.expected(), exchange.observed());
+        if (serviceAlias != null && !serviceAlias.isBlank()) trace = trace.withService(serviceAlias);
         return new ReportExecutionEvidence(response, 1, Duration.ZERO, List.of(), List.of(attempt),
                 request, ReportTransportProvenance.LIVE_HTTP, trace);
     }

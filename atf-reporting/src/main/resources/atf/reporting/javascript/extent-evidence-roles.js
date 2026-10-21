@@ -13,17 +13,15 @@ function assignNodeRoles() {
     else if (
       /^GET |^POST |^PUT |^PATCH |^DELETE |^HEAD /.test(upper) ||
       /^(GIVEN|WHEN|THEN|AND|BUT)\s+/.test(upper) ||
-      /^TRACE\s+/.test(upper)
+      /^TRACE\s+/.test(upper) ||
+      /NETWORK/.test(upper)
     )
       role = 'request';
-    else if (/^VALIDATE[: ]/.test(upper) || upper.indexOf('VALIDATION') >= 0)
+    else if (/^VALIDATE[: ]/.test(upper)||upper.indexOf('VALIDATION')>=0||upper==='RUNTIME DIAGNOSTIC')
       role = 'validation';
     if (role) card.setAttribute('data-atf-node-role', role);
     if (role === 'phase')
-      card.setAttribute(
-        'data-atf-phase-name',
-        upper.toLowerCase().replace(/\s+/g, '-')
-      );
+      card.setAttribute('data-atf-phase-name', upper.toLowerCase().replace(/\s+/g, '-'));
     if (card.querySelector('.helm-trace-table'))
       card.setAttribute('data-atf-evidence-kind', 'trace');
     if (card.querySelector('pre.code-block,textarea.code-block'))

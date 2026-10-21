@@ -1,5 +1,6 @@
 package atf.api.ui.network;
 
+import atf.api.core.security.SensitiveDataRedactor;
 import atf.api.ui.config.UiNetworkInspectionConfiguration;
 import com.microsoft.playwright.Request;
 import com.microsoft.playwright.Response;
@@ -29,7 +30,9 @@ public record UiNetworkObservation(
         String service,
         String evidenceSource,
         String requestSignature,
-        boolean responseBodyAvailable) {
+        boolean responseBodyAvailable,
+        String failureReason) {
+    private static final SensitiveDataRedactor REDACTOR = new SensitiveDataRedactor();
 
     public UiNetworkObservation {
         capturedAt = capturedAt == null ? Instant.EPOCH : capturedAt;
@@ -45,18 +48,32 @@ public record UiNetworkObservation(
         service = normalize(service);
         evidenceSource = normalize(evidenceSource);
         requestSignature = normalize(requestSignature);
+        failureReason = normalize(failureReason);
+    }
+
+    /** Compatibility constructor for response observations created before request-failure evidence. */
+    public UiNetworkObservation(long sequence, Instant capturedAt, String method, String url,
+                                String path, int status, Map<String, String> requestHeaders,
+                                Map<String, String> responseHeaders, String requestBody,
+                                String responseBody, String authMethod, String authSource,
+                                String service, String evidenceSource, String requestSignature,
+                                boolean responseBodyAvailable) {
+        this(sequence, capturedAt, method, url, path, status, requestHeaders, responseHeaders,
+                requestBody, responseBody, authMethod, authSource, service, evidenceSource,
+                requestSignature, responseBodyAvailable, "");
     }
 
     static UiNetworkObservation from(Response response, long sequence,
                                      UiNetworkInspectionConfiguration configuration) {
         Request request = response.request();
         String url = request.url();
-        String requestBody = bounded(request.postData(), configuration.maxBodyPreviewCharacters());
+        String requestBody = bounded(redactJson(request.postData()),
+                configuration.maxBodyPreviewCharacters());
         String responseBody;
         boolean bodyAvailable = true;
         try {
             response.finished();
-            responseBody = bounded(new String(response.body(), StandardCharsets.UTF_8),
+            responseBody = bounded(redactJson(new String(response.body(), StandardCharsets.UTF_8)),
                     configuration.maxBodyPreviewCharacters());
         } catch (RuntimeException unavailable) {
             bodyAvailable = false;
@@ -65,14 +82,78 @@ public record UiNetworkObservation(
         Map<String, String> requestHeaders = redact(request.headers());
         Map<String, String> responseHeaders = redact(response.headers());
         String[] auth = authentication(request.headers(), url);
-        return new UiNetworkObservation(sequence, Instant.now(), request.method(), url,
+        return new UiNetworkObservation(sequence, Instant.now(), request.method(), safeUrl(url),
                 path(url), response.status(), requestHeaders, responseHeaders, requestBody,
                 responseBody, auth[0], auth[1], host(url), "UI_BROWSER",
                 signature(request.method(), url, requestBody), bodyAvailable);
     }
 
+    static UiNetworkObservation fromFailure(Request request, long sequence,
+                                            UiNetworkInspectionConfiguration configuration) {
+        String url = request.url();
+        String requestBody = bounded(redactJson(request.postData()),
+                configuration.maxBodyPreviewCharacters());
+        String failure = request.failure();
+        String reason = bounded(failure == null ? "" : REDACTOR.redactText(
+                failure.replaceAll("https?://[^\\s]+", "<url-redacted>")),
+                configuration.maxBodyPreviewCharacters());
+        if (reason.isBlank()) reason = "request failed before response";
+        Map<String, String> requestHeaders = redact(request.headers());
+        String[] auth = authentication(request.headers(), url);
+        return new UiNetworkObservation(sequence, Instant.now(), request.method(), safeUrl(url),
+                path(url), -1, requestHeaders, Map.of(), requestBody,
+                "<unavailable: request failed before response>", auth[0], auth[1], host(url),
+                "UI_BROWSER_REQUEST_FAILED", signature(request.method(), url, requestBody),
+                false, reason);
+    }
+
+    /** Returns a copy with a consumer-owned service label; the generic inspector stays host-based. */
+    public UiNetworkObservation withService(String consumerService) {
+        return new UiNetworkObservation(sequence, capturedAt, method, url, path, status,
+                requestHeaders, responseHeaders, requestBody, responseBody, authMethod,
+                authSource, consumerService, evidenceSource, requestSignature,
+                responseBodyAvailable, failureReason);
+    }
+
+    public boolean requestFailed() {
+        return status < 0 && !failureReason.isBlank();
+    }
+
     public String displayTarget() {
-        return method + " " + path + " → " + status;
+        return method + " " + path + " → " + (status < 0 ? "UNAVAILABLE" : status);
+    }
+
+    /**
+     * Rebuilds a caller-provided observation at the browser-boundary policy.
+     *
+     * <p>The Playwright factories already produce safe values, but the public
+     * typed capture seam must not trust arbitrary fixture or consumer objects.
+     * Recomputing the target, body preview and signature here means that a
+     * subscriber sees exactly the same bounded/redacted object that is stored
+     * by the inspector.</p>
+     */
+    UiNetworkObservation sanitizedFor(UiNetworkInspectionConfiguration configuration) {
+        String safeUrl = safeUrl(url);
+        String safeRequestBody = bounded(safeRedactJson(requestBody),
+                configuration.maxBodyPreviewCharacters());
+        String safeResponseBody = bounded(safeRedactJson(responseBody),
+                configuration.maxBodyPreviewCharacters());
+        String safeService = bounded(REDACTOR.redactText(
+                        service.isBlank() ? host(safeUrl) : service),
+                configuration.maxBodyPreviewCharacters());
+        String safeEvidenceSource = bounded(REDACTOR.redactText(evidenceSource),
+                configuration.maxBodyPreviewCharacters());
+        String safeAuthMethod = bounded(REDACTOR.redactText(authMethod),
+                configuration.maxBodyPreviewCharacters());
+        String safeAuthSource = bounded(REDACTOR.redactText(authSource),
+                configuration.maxBodyPreviewCharacters());
+        String safeFailureReason = bounded(REDACTOR.redactText(failureReason),
+                configuration.maxBodyPreviewCharacters());
+        return new UiNetworkObservation(sequence, capturedAt, method, safeUrl,
+                path(safeUrl), status, redact(requestHeaders), redact(responseHeaders),
+                safeRequestBody, safeResponseBody, safeAuthMethod, safeAuthSource,
+                safeService, safeEvidenceSource, signature(method, safeUrl, safeRequestBody),
+                responseBodyAvailable, safeFailureReason);
     }
 
     private static String[] authentication(Map<String, String> headers, String url) {
@@ -98,8 +179,8 @@ public record UiNetworkObservation(
                     .map(part -> part.split("=", 2)[0].toLowerCase(Locale.ROOT))
                     .anyMatch(name -> name.contains("token") || name.contains("secret")
                             || name.equals("sig") || name.equals("code") || name.equals("key"));
-        } catch (RuntimeException ignored) {
-            return false;
+        } catch (IllegalArgumentException error) {
+            throw new IllegalStateException("UI network observation received an invalid URL: " + url, error);
         }
     }
 
@@ -133,7 +214,21 @@ public record UiNetworkObservation(
     private static String bounded(String value, int limit) {
         if (value == null || value.isBlank()) return "";
         if (value.length() <= limit) return value;
+        if (limit <= 14) return value.substring(0, limit);
         return value.substring(0, Math.max(0, limit - 14)) + "… [truncated]";
+    }
+
+    private static String redactJson(String value) {
+        return value == null || value.isBlank() ? value : REDACTOR.redactJson(value);
+    }
+
+    private static String safeRedactJson(String value) {
+        if (value == null || value.isBlank()) return value;
+        try {
+            return REDACTOR.redactJson(value);
+        } catch (RuntimeException malformedJson) {
+            return REDACTOR.redactText(value);
+        }
     }
 
     private static String signature(String method, String url, String body) {
@@ -145,23 +240,40 @@ public record UiNetworkObservation(
         try {
             URI uri = URI.create(url);
             return uri.getRawPath() + (uri.getRawQuery() == null ? "" : "?<redacted-query>");
-        } catch (RuntimeException ignored) {
-            return "<unavailable-url>";
+        } catch (IllegalArgumentException error) {
+            throw new IllegalStateException("Cannot derive a safe request target from URL: " + url, error);
+        }
+    }
+
+    private static String safeUrl(String url) {
+        try {
+            URI uri = URI.create(url);
+            String host = uri.getHost();
+            if (host == null || host.isBlank()) {
+                throw new IllegalArgumentException("URL has no host");
+            }
+            String authority = host + (uri.getPort() < 0 ? "" : ":" + uri.getPort());
+            return uri.getScheme() + "://" + authority + uri.getRawPath()
+                    + (uri.getRawQuery() == null ? "" : "?redacted-query");
+        } catch (IllegalArgumentException error) {
+            throw new IllegalStateException("Cannot derive a safe request URL: " + url, error);
         }
     }
 
     private static String path(String url) {
         try {
             URI uri = URI.create(url);
-            return uri.getRawPath() + (uri.getRawQuery() == null ? "" : "?" + uri.getRawQuery());
-        } catch (RuntimeException ignored) {
-            return "<unavailable-path>";
+            return uri.getRawPath() + (uri.getRawQuery() == null ? "" : "?redacted-query");
+        } catch (IllegalArgumentException error) {
+            throw new IllegalStateException("Cannot derive a request path from URL: " + url, error);
         }
     }
 
     private static String host(String url) {
         try { return normalize(URI.create(url).getHost()); }
-        catch (RuntimeException ignored) { return "unknown"; }
+        catch (IllegalArgumentException error) {
+            throw new IllegalStateException("Cannot derive a service host from URL: " + url, error);
+        }
     }
 
     private static String sha256(String value) {

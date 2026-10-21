@@ -3,5 +3,8 @@ package atf.api.reporting.api;
 import java.time.Duration;
 
 public record ReportAttemptRecord(int number, int statusCode, Duration duration, String outcome, String reason) {
-    public ReportAttemptRecord { if(number<1 || statusCode<0) throw new IllegalArgumentException("invalid attempt"); duration=duration==null?Duration.ZERO:duration; reason=reason==null?"":reason; }
+    /** -1 means the browser request failed before an HTTP response existed. */
+    public ReportAttemptRecord { if(number<1 || statusCode < -1) throw new IllegalArgumentException("invalid attempt"); duration=duration==null?Duration.ZERO:duration; reason=reason==null?"":reason; }
+
+    public String statusLabel() { return statusCode < 0 ? "Unavailable" : Integer.toString(statusCode); }
 }

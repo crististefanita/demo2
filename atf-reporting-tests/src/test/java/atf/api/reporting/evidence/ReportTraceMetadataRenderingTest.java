@@ -6,9 +6,13 @@ import atf.api.reporting.api.ReportResponse;
 import atf.api.reporting.api.ReportTraceMetadata;
 import atf.api.reporting.api.ReportTransportProvenance;
 import atf.api.reporting.console.AtfConsoleSink;
+import atf.api.reporting.configuration.ReportEnvironmentField;
+import atf.api.reporting.configuration.ReportEnvironmentSnapshot;
+import atf.api.reporting.configuration.ReportingSettings;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.extent.session.ExtentReportSession;
 import atf.api.reporting.model.ReportExecutionEvidence;
+import atf.api.reporting.security.SensitiveDataRedactor;
 import atf.api.testkit.AtfComponentTest;
 import org.junit.jupiter.api.Test;
 
@@ -24,6 +28,51 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @AtfComponentTest
 class ReportTraceMetadataRenderingTest {
+    @Test
+    void acceptsAnotherConsumersTypedEnvironmentAndCausalTraceThroughPublicPorts() throws Exception {
+        Path report = Files.createTempDirectory("atf-consumer-contract-").resolve("report.html");
+        var environment = ReportEnvironmentSnapshot.builder()
+                .put(ReportEnvironmentField.ENVIRONMENT, "INTEGRATION")
+                .put(ReportEnvironmentField.API_ENDPOINT, "https://catalog.example.test")
+                .put(ReportEnvironmentField.SUITE, "private consumer suite")
+                .put(ReportEnvironmentField.AUTHENTICATION, "Bearer raw-consumer-token")
+                .build();
+        var request = new ReportRequest("GET", "/inventory/42", Map.of(), Map.of(), "none", "");
+        var response = new ReportResponse(200, "{\"available\":true}",
+                Map.of("Content-Type", "application/json"), Duration.ofMillis(4),
+                "https://catalog.example.test/inventory/42");
+        var trace = ReportTraceMetadata.from(request)
+                .withCapture("CATALOG-17", 17, "UI_ACTION", "ActionCaused",
+                        "inventory-checkpoint", "Open inventory", "UI_BROWSER", "",
+                        "available=true", "available=true")
+                .withService("catalog-service");
+        var execution = new ReportExecutionEvidence(response, 1, Duration.ofMillis(4), List.of(),
+                List.of(new ReportAttemptRecord(1, 200, Duration.ofMillis(4), "SUCCESS", "final")),
+                request, ReportTransportProvenance.LIVE_HTTP, trace);
+
+        try (var session = new ExtentReportSession(report, ReportingSettings.defaults(),
+                new SensitiveDataRedactor(), AtfConsoleSink.noOp(), environment)) {
+            var scenario = session.startScenario("CatalogContractTest", "inventory contract", List.of("api"));
+            var phase = scenario.startPhase("TEST BODY");
+            var node = phase.startRequest("read inventory", "GET", "/inventory/42");
+            node.execution(execution);
+            node.complete(AtfReportStatus.PASS);
+            phase.complete(AtfReportStatus.PASS);
+            scenario.complete(AtfReportStatus.PASS);
+        }
+
+        String html = Files.readString(report);
+        assertAll(
+                () -> assertTrue(html.contains("https://catalog.example.test")),
+                () -> assertTrue(html.contains("CATALOG-17")),
+                () -> assertTrue(html.contains("inventory-checkpoint")),
+                () -> assertTrue(html.contains("catalog-service")),
+                () -> assertTrue(html.contains("REQUEST SIGNATURE")),
+                () -> assertTrue(html.contains("***REDACTED***")),
+                () -> assertFalse(html.contains("private consumer suite")),
+                () -> assertFalse(html.contains("raw-consumer-token")));
+    }
+
     @Test
     void rendersCausalTraceInsideExecutionEvidence() throws Exception {
         Path report = Files.createTempDirectory("atf-trace-render-").resolve("trace.html");

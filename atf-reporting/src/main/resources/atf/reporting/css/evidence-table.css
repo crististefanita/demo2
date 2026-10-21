@@ -114,34 +114,7 @@ table.helm-validation-table td:last-child {
   color: var(--atf-muted) !important;
 }
 
-/* Network inspector: local layout only; overview card tokens are reused. */
-.network-signature-heading,
-.network-diagnostic-heading {
-  display: flex !important;
-  gap: 8px !important;
-  flex-wrap: wrap !important;
-}
-.network-signature-list,
-.network-diagnostic-list {
-  display: grid !important;
-  gap: 8px;
-}
-div.network-signature-meta,
-div.network-diagnostic-meta {
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-}
-.network-meta-item {
-  min-width: 0;
-}
-.network-meta-value {
-  font-size: 10px !important;
-}
-.network-signature-route {
-  flex: 1 1 260px !important;
-  overflow-wrap: anywhere !important;
-  color: var(--atf-link) !important;
-  font-family: ui-monospace, Consolas, monospace !important;
-}
+.network-signature-heading,.network-diagnostic-heading{display:flex!important;gap:8px!important;flex-wrap:wrap!important}.network-signature-list,.network-diagnostic-list{display:grid!important;gap:8px}div.network-signature-meta,div.network-diagnostic-meta{grid-template-columns:repeat(2,minmax(0,1fr))!important}.network-meta-item{min-width:0}.network-meta-value{font-size:10px!important}.network-signature-route{flex:1 1 260px!important;overflow-wrap:anywhere!important;color:var(--atf-link)!important;font-family:ui-monospace,Consolas,monospace!important}.network-signatures,.network-diagnostics{--atf-evidence-summary-height:var(--atf-evidence-tall-summary-height);--atf-evidence-summary-padding:var(--atf-evidence-tall-summary-padding)}
 .helm-evidence-table.helm-request-table,
 .helm-evidence-table.helm-trace-table,
 .helm-evidence-table.execution-table {

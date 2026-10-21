@@ -147,6 +147,22 @@ public final class UiExtentReportSession implements AutoCloseable {
                 .build());
     }
 
+    /** Opens a resolved report with independent typed evidence and System contracts. */
+    public static UiExtentReportSession openConfiguredResolved(Path outputDirectory,
+                                                                String resolvedFileName,
+                                                                AtfConsoleSink console,
+                                                                ReportEvidenceProfile evidenceProfile,
+                                                                ReportEnvironmentSnapshot systemInfo) {
+        var configuration = AtfReportConfigurationLoader.load();
+        return open(configuration, UiExtentReportOptions.builder(outputDirectory)
+                .fileName(resolvedFileName)
+                .console(console)
+                .evidenceProfile(evidenceProfile)
+                .environment(systemInfo)
+                .timestampEnabled(false)
+                .build());
+    }
+
     private static UiExtentReportSession open(ExtentReportConfiguration configuration,
                                               UiExtentReportOptions options) {
         var uiConfiguration = new ExtentReportConfiguration(
@@ -260,6 +276,17 @@ public final class UiExtentReportSession implements AutoCloseable {
                          AtfReportStatus status) {
             lifecycle.step(keyword.text(), title, target, base64Png, assertions, actions,
                     apiEvidence, status);
+        }
+
+        /** Keeps API evidence on the same checkpoint with an explicit capture point. */
+        public void step(AtfGherkinKeyword keyword, String title, String target,
+                         String base64Png, Collection<AtfAssertion> assertions,
+                         Collection<AtfUiActionRecord> actions,
+                         Collection<ReportExecutionEvidence> apiEvidence,
+                         ReportScreenshotPolicy.CapturePoint capturePoint,
+                         AtfReportStatus status) {
+            lifecycle.step(keyword.text(), title, target, base64Png, assertions, actions,
+                    apiEvidence, capturePoint, status);
         }
 
         /** Adds a compact journey-level network projection without duplicating JSON bodies. */

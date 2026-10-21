@@ -198,7 +198,7 @@ public final class ExtentTransportEvidenceRenderer {
                         AtfReportHtmlVocabulary.CssClass.HELM_EVIDENCE_TABLE,
                         AtfReportHtmlVocabulary.CssClass.EXECUTION_TABLE),
                         ReportEvidenceTable.of(List.of(AtfReportLabels.FIELD, AtfReportLabels.VALUE), List.of(
-                                List.of(AtfReportLabels.RESPONSE_STATUS, String.valueOf(execution.response().status())),
+                                List.of(AtfReportLabels.RESPONSE_STATUS, execution.response().statusLabel()),
                                 List.of(AtfReportLabels.RESPONSE_URL, redactor.redactText(execution.response().url())),
                                 List.of(AtfReportLabels.RESPONSE_DURATION_MS, AtfDurationFormatter.format(execution.response().duration())),
                                 List.of(AtfReportLabels.ATTEMPTS, String.valueOf(execution.attempts())),
@@ -239,7 +239,7 @@ public final class ExtentTransportEvidenceRenderer {
     private ReportEvidenceTable attemptTable(List<ReportAttemptRecord> attempts) {
         var rows = attempts.stream().map(attempt -> List.of(
                 String.valueOf(attempt.number()),
-                String.valueOf(attempt.statusCode()),
+                attempt.statusLabel(),
                 AtfDurationFormatter.format(attempt.duration()),
                 attempt.outcome(),
                 redactor.redactText(attempt.reason()))).toList();

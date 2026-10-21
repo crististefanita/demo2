@@ -32,6 +32,7 @@ import java.util.Objects;
 import java.util.EnumMap;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -42,6 +43,7 @@ import java.util.stream.Collectors;
 public final class PracticeShopApiNetworkJournal {
     private final PracticeShopValidationProfile profile;
     private final PracticeShopApiEvidenceBinding evidenceBinding;
+    private final Function<String, String> serviceAlias;
     private final PracticeShopApiTrafficCapture trafficCapture = new PracticeShopApiTrafficCapture();
     private final List<Exchange> exchanges = new ArrayList<>();
     private final AtomicLong sequence = new AtomicLong();
@@ -55,8 +57,16 @@ public final class PracticeShopApiNetworkJournal {
 
     public PracticeShopApiNetworkJournal(PracticeShopValidationProfile profile,
                                          PracticeShopApiEvidenceBinding evidenceBinding) {
+        this(profile, evidenceBinding, Function.identity());
+    }
+
+    /** Consumer adapter seam for an honest service alias; the generic inspector remains host-based. */
+    public PracticeShopApiNetworkJournal(PracticeShopValidationProfile profile,
+                                         PracticeShopApiEvidenceBinding evidenceBinding,
+                                         Function<String, String> serviceAlias) {
         this.profile = Objects.requireNonNull(profile, "profile");
         this.evidenceBinding = Objects.requireNonNull(evidenceBinding, "evidenceBinding");
+        this.serviceAlias = Objects.requireNonNull(serviceAlias, "serviceAlias");
     }
 
     public void attach(Page page) {
@@ -83,10 +93,12 @@ public final class PracticeShopApiNetworkJournal {
     }
 
     private void recordCapturedObservation(UiNetworkObservation observation) {
-        recordCapturedExchange(new Exchange(
+        Exchange exchange = new Exchange(
                 observation.method(), observation.path(), observation.url(), observation.status(),
                 observation.requestBody(), observation.responseBody(), observation.requestHeaders(),
-                observation.responseHeaders()));
+                observation.responseHeaders()).withObservedAuthMethod(observation.authMethod());
+        recordCapturedExchange(observation.requestFailed()
+                ? exchange.withFailureReason(observation.failureReason()) : exchange);
     }
 
     /** API precondition for the product-page purchase action. */
@@ -117,9 +129,8 @@ public final class PracticeShopApiNetworkJournal {
                 exchanges, HttpMethod.GET.value(), PracticeShopApiRoutes.CURRENT_USER,
                 exchange -> exchange.status() == 200);
         store(PracticeShopApiCheckpoint.LOGIN, currentUser == null
-                ? List.of(PracticeShopApiEvidenceMapper.toExecution(login))
-                : List.of(PracticeShopApiEvidenceMapper.toExecution(login),
-                        PracticeShopApiEvidenceMapper.toExecution(currentUser)));
+                ? List.of(toEvidence(login))
+                : List.of(toEvidence(login), toEvidence(currentUser)));
         return PracticeShopApiAssertions.login(login, currentUser, displayName);
     }
 
@@ -188,8 +199,7 @@ public final class PracticeShopApiNetworkJournal {
         Exchange detail = PracticeShopApiExchangeSelector.latest(exchanges, HttpMethod.GET.value(), productPath,
                 exchange -> exchange.status() == 200
                         && exchange.path().equals(productPath));
-        store(PracticeShopApiCheckpoint.PRODUCT, List.of(PracticeShopApiEvidenceMapper.toExecution(search),
-                PracticeShopApiEvidenceMapper.toExecution(detail)));
+        store(PracticeShopApiCheckpoint.PRODUCT, List.of(toEvidence(search), toEvidence(detail)));
         return PracticeShopApiAssertions.product(search, detail, productName, productId);
     }
 
@@ -204,8 +214,7 @@ public final class PracticeShopApiNetworkJournal {
                 && exchange.requestBody().contains(productId));
         Exchange read = PracticeShopApiExchangeSelector.latest(
                 exchanges, HttpMethod.GET.value(), add.path(), exchange -> exchange.status() == 200);
-        store(PracticeShopApiCheckpoint.CART, List.of(PracticeShopApiEvidenceMapper.toExecution(add),
-                PracticeShopApiEvidenceMapper.toExecution(read)));
+        store(PracticeShopApiCheckpoint.CART, List.of(toEvidence(add), toEvidence(read)));
         return PracticeShopApiAssertions.cart(add, read, productId, quantity);
     }
 
@@ -215,7 +224,7 @@ public final class PracticeShopApiNetworkJournal {
         Exchange payment = PracticeShopApiExchangeSelector.latest(
                 exchanges, HttpMethod.POST.value(), PracticeShopApiRoutes.PAYMENT_CHECK,
                 exchange -> exchange.status() == 200);
-        store(PracticeShopApiCheckpoint.PAYMENT, List.of(PracticeShopApiEvidenceMapper.toExecution(payment)));
+        store(PracticeShopApiCheckpoint.PAYMENT, List.of(toEvidence(payment)));
         return PracticeShopApiAssertions.payment(payment, paymentMethod);
     }
 
@@ -223,7 +232,7 @@ public final class PracticeShopApiNetworkJournal {
     /** Returns the complete ordered browser network trace for the journey-level inspector. */
     public List<ReportExecutionEvidence> allEvidence() {
         return exchanges.stream()
-                .map(PracticeShopApiEvidenceMapper::toExecution)
+                .map(this::toEvidence)
                 .toList();
     }
 
@@ -254,6 +263,18 @@ public final class PracticeShopApiNetworkJournal {
                 .toList();
     }
 
+    /** Keeps failed allowed-host requests visible in the journey even without a successful checkpoint. */
+    public List<ReportExecutionEvidence> inspectorEvidence() {
+        if (!hasEnabledCheckpoint()) return List.of();
+        Set<String> selectedEventIds = selectedEvidence().stream()
+                .map(evidence -> evidence.trace().eventId())
+                .collect(Collectors.toSet());
+        return allEvidence().stream()
+                .filter(evidence -> evidence.response().status() < 0
+                        || selectedEventIds.contains(evidence.trace().eventId()))
+                .toList();
+    }
+
     public List<ReportExecutionEvidence> evidence(PracticeShopApiCheckpoint checkpoint) {
         return evidenceByCheckpoint.getOrDefault(Objects.requireNonNull(checkpoint, "checkpoint"), List.of());
     }
@@ -269,6 +290,12 @@ public final class PracticeShopApiNetworkJournal {
 
     private void store(PracticeShopApiCheckpoint checkpoint, List<ReportExecutionEvidence> evidence) {
         if (enabled(checkpoint)) evidenceByCheckpoint.put(checkpoint, List.copyOf(evidence));
+    }
+
+    private ReportExecutionEvidence toEvidence(Exchange exchange) {
+        String host = URI.create(exchange.url()).getHost();
+        String alias = serviceAlias.apply(host == null ? "" : host);
+        return PracticeShopApiEvidenceMapper.toExecution(exchange, alias);
     }
 
     private static String phase(String path) {
@@ -291,14 +318,44 @@ public final class PracticeShopApiNetworkJournal {
                            long sequence, Instant capturedAt, String phase,
                            String signature, String digest,
                            String role, String stepId, String initiator,
-                           String evidenceSource, String expected, String observed) {
+                           String evidenceSource, String expected, String observed,
+                           String observedAuthMethod, String failureReason) {
         public Exchange(String method, String path, String url, int status,
                         String requestBody, String responseBody,
                         java.util.Map<String, String> requestHeaders,
                         java.util.Map<String, String> responseHeaders) {
             this(method, path, url, status, requestBody, responseBody, requestHeaders, responseHeaders,
                     0, Instant.EPOCH, "unknown", digest(method, path, status, requestBody, responseBody), "",
-                    "", "", "", "", "", "");
+                    "", "", "", "", "", "", "", "");
+        }
+
+        /** Compatibility constructor for direct API fixture and test callers. */
+        public Exchange(String method, String path, String url, int status,
+                        String requestBody, String responseBody,
+                        java.util.Map<String, String> requestHeaders,
+                        java.util.Map<String, String> responseHeaders,
+                        long sequence, Instant capturedAt, String phase,
+                        String signature, String digest, String role, String stepId,
+                        String initiator, String evidenceSource, String expected,
+                        String observed) {
+            this(method, path, url, status, requestBody, responseBody, requestHeaders,
+                    responseHeaders, sequence, capturedAt, phase, signature, digest,
+                    role, stepId, initiator, evidenceSource, expected, observed, "");
+        }
+
+        /** Compatibility constructor for response exchanges created before failure evidence. */
+        public Exchange(String method, String path, String url, int status,
+                        String requestBody, String responseBody,
+                        java.util.Map<String, String> requestHeaders,
+                        java.util.Map<String, String> responseHeaders,
+                        long sequence, Instant capturedAt, String phase,
+                        String signature, String digest, String role, String stepId,
+                        String initiator, String evidenceSource, String expected,
+                        String observed, String observedAuthMethod) {
+            this(method, path, url, status, requestBody, responseBody, requestHeaders,
+                    responseHeaders, sequence, capturedAt, phase, signature, digest,
+                    role, stepId, initiator, evidenceSource, expected, observed,
+                    observedAuthMethod, "");
         }
 
         public Exchange {
@@ -317,11 +374,13 @@ public final class PracticeShopApiNetworkJournal {
             evidenceSource = evidenceSource == null ? "" : evidenceSource.trim();
             expected = expected == null ? "" : expected.trim();
             observed = observed == null ? "" : observed.trim();
+            observedAuthMethod = observedAuthMethod == null ? "" : observedAuthMethod.trim();
+            failureReason = failureReason == null ? "" : failureReason.trim();
         }
 
         public Exchange withTrace(long sequence, Instant capturedAt, String phase) {
             return withTrace(sequence, capturedAt, phase, "ActionCaused", phase,
-                    reportSummary(), "UI_BROWSER", "", "");
+                    reportSummary(), failureReason.isBlank() ? "UI_BROWSER" : "UI_BROWSER_REQUEST_FAILED", "", "");
         }
 
         public Exchange withTrace(long sequence, Instant capturedAt, String phase,
@@ -331,14 +390,29 @@ public final class PracticeShopApiNetworkJournal {
             String signature = requestSignature(method, path, requestBody);
             return new Exchange(method, path, url, status, requestBody, responseBody,
                     requestHeaders, responseHeaders, sequence, capturedAt, phase, signature, digest,
-                    role, stepId, initiator, evidenceSource, expected, observed);
+                    role, stepId, initiator, evidenceSource, expected, observed,
+                    observedAuthMethod, failureReason);
         }
 
         public Exchange withResponseBody(String body) {
             return new Exchange(method, path, url, status, requestBody, body,
                     requestHeaders, responseHeaders, sequence, capturedAt, phase, signature,
                     digest(method, path, status, requestBody, body), role, stepId, initiator,
-                    evidenceSource, expected, observed);
+                    evidenceSource, expected, observed, observedAuthMethod, failureReason);
+        }
+
+        public Exchange withObservedAuthMethod(String authMethod) {
+            return new Exchange(method, path, url, status, requestBody, responseBody,
+                    requestHeaders, responseHeaders, sequence, capturedAt, phase, signature,
+                    digest, role, stepId, initiator, evidenceSource, expected, observed,
+                    authMethod, failureReason);
+        }
+
+        public Exchange withFailureReason(String reason) {
+            return new Exchange(method, path, url, status, requestBody, responseBody,
+                    requestHeaders, responseHeaders, sequence, capturedAt, phase, signature,
+                    digest, role, stepId, initiator, evidenceSource, expected, observed,
+                    observedAuthMethod, reason);
         }
 
         public String contentType() {
@@ -350,6 +424,7 @@ public final class PracticeShopApiNetworkJournal {
         public boolean isJsonResponse() { return contentType().toLowerCase().contains(
                 atf.api.core.http.request.MediaTypes.APPLICATION_JSON); }
         public String authType() {
+            if (!observedAuthMethod.isBlank()) return observedAuthMethod;
             if (requestHeaders.keySet().stream().anyMatch(key -> key.equalsIgnoreCase("authorization"))) {
                 String value = requestHeaders.entrySet().stream()
                         .filter(entry -> entry.getKey().equalsIgnoreCase("authorization"))
@@ -370,7 +445,9 @@ public final class PracticeShopApiNetworkJournal {
             }
             return PracticeShopApiAuthType.NONE.wireValue();
         }
-        public String summary() { return method + " " + path + " → " + status + " " + contentType(); }
+        public String summary() { return method + " " + path + " → " + statusLabel() + " " + contentType(); }
+
+        public String statusLabel() { return status < 0 ? "Unavailable" : Integer.toString(status); }
 
         public String eventId() { return sequence > 0 ? "E" + sequence : ""; }
 
@@ -390,7 +467,7 @@ public final class PracticeShopApiNetworkJournal {
             PracticeShopApiOperation operation = PracticeShopApiOperation.resolve(method, path);
             String reportMethod = operation == PracticeShopApiOperation.UNKNOWN
                     ? method : operation.reportMethod();
-            String summary = reportMethod + " " + path + " → " + status + " " + contentType();
+            String summary = reportMethod + " " + path + " → " + statusLabel() + " " + contentType();
             return operation != PracticeShopApiOperation.UNKNOWN
                     && !reportMethod.equalsIgnoreCase(method)
                     ? summary + " (observed method=" + method + ")" : summary;

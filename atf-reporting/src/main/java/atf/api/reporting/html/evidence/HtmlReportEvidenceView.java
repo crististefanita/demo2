@@ -33,6 +33,7 @@ import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.closeT
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.openTag;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.Attribute.NODE_ROLE;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.ASSERTIONS;
+import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.ATF_VALIDATION_TABLE_WRAP;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.EXECUTION_EVIDENCE;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.EXECUTION_TABLE;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.HELM_EVIDENCE_TABLE;
@@ -125,7 +126,7 @@ public final class HtmlReportEvidenceView {
                 .append(AtfReportMarkup.tableHtml(
                         AtfReportHtmlVocabulary.classList(HELM_EVIDENCE_TABLE, EXECUTION_TABLE),
                         ReportEvidenceTable.of(List.of(AtfReportLabels.FIELD, AtfReportLabels.VALUE), List.of(
-                                List.of(AtfReportLabels.RESPONSE_STATUS, String.valueOf(execution.response().status())),
+                                List.of(AtfReportLabels.RESPONSE_STATUS, execution.response().statusLabel()),
                                 List.of(AtfReportLabels.RESPONSE_URL, redactor.redactText(execution.response().url())),
                                 List.of(AtfReportLabels.RESPONSE_DURATION_MS,
                                         AtfDurationFormatter.format(execution.response().duration())),
@@ -135,7 +136,7 @@ public final class HtmlReportEvidenceView {
         if (!execution.attemptHistory().isEmpty()) {
             var rows = execution.attemptHistory().stream().map(attempt -> List.of(
                     String.valueOf(attempt.number()),
-                    String.valueOf(attempt.statusCode()),
+                    attempt.statusLabel(),
                     AtfDurationFormatter.format(attempt.duration()),
                     attempt.outcome(),
                     redactor.redactText(attempt.reason()))).toList();
@@ -162,7 +163,8 @@ public final class HtmlReportEvidenceView {
     public void renderNetworkAggregateSubstep(StringBuilder html,
                                               ReportNetworkInspector.JourneyAggregate aggregate) {
         if (aggregate == null) return;
-        html.append(openTag(DIV, classAttribute(VALIDATION), attribute(NODE_ROLE, "validation")))
+        html.append(openTag(DIV, classAttribute(VALIDATION.value(), "network-aggregate-substep"),
+                        attribute(NODE_ROLE, "network-aggregate")))
                 .append(openTag(DIV, classAttribute(NODE_TITLE)))
                 .append(openTag(SPAN))
                 .append(escape("Network aggregate · " + aggregate.observations() + " exchanges"))
@@ -184,6 +186,7 @@ public final class HtmlReportEvidenceView {
                 .append(openTag(SPAN)).append(escape(validation.title())).append(closeTag(SPAN))
                 .append(ReportEvidenceMarkup.statusBadge(validation.status()))
                 .append(closeTag(DIV))
+                .append(openTag(DIV, classAttribute(ATF_VALIDATION_TABLE_WRAP)))
                 .append(openTag(TABLE, classAttribute(ASSERTIONS)))
                 .append(openTag(THEAD)).append(openTag(TR))
                 .append(openTag(TH)).append(AtfReportLabels.ASSERTION).append(closeTag(TH))
@@ -200,7 +203,7 @@ public final class HtmlReportEvidenceView {
                     .append(ReportEvidenceMarkup.statusBadge(row.resultStatus()))
                     .append(closeTag(TD)).append(closeTag(TR));
         }
-        html.append(closeTag(TBODY)).append(closeTag(TABLE));
+        html.append(closeTag(TBODY)).append(closeTag(TABLE)).append(closeTag(DIV));
         validation.children().forEach(child -> {
             if (child instanceof ReportExecutionModel.Request request) {
                 renderNestedRequest(html, request);

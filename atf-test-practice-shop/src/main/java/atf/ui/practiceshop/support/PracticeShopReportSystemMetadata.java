@@ -60,8 +60,9 @@ public final class PracticeShopReportSystemMetadata {
                         String.format("%,d characters · full JSON remains in checkpoint evidence",
                                 reportingSettings.bodyMaxDisplayCharacters()))
                 .put(ReportEnvironmentField.SCREENSHOT_POLICY,
-                        configuration.browser().screenshotOnFailure()
-                                ? "Failure checkpoints" : "Disabled")
+                        PracticeShopScreenshotPolicy.profile(
+                                configuration.browser().screenshotOnFailure())
+                                .screenshotPolicy().configValue())
                 .put(ReportEnvironmentField.UI_TIMEOUT,
                         humanDuration(configuration.browser().timeout()))
                 .put(ReportEnvironmentField.NAVIGATION_TIMEOUT,

@@ -2,6 +2,7 @@ package atf.api.ui.network;
 
 import atf.api.ui.config.UiNetworkInspectionConfiguration;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.Request;
 import com.microsoft.playwright.Response;
 
 import java.time.Duration;
@@ -32,6 +33,7 @@ public final class UiNetworkInspector implements AutoCloseable {
     private final List<Consumer<UiNetworkObservation>> subscribers = new CopyOnWriteArrayList<>();
     private Page page;
     private Consumer<Response> responseListener;
+    private Consumer<Request> requestFailedListener;
 
     public UiNetworkInspector(UiNetworkInspectionConfiguration configuration) {
         this.configuration = Objects.requireNonNull(configuration, "configuration");
@@ -49,7 +51,9 @@ public final class UiNetworkInspector implements AutoCloseable {
         this.page = page;
         subscribers.add(subscriber);
         responseListener = this::observe;
+        requestFailedListener = this::observeFailure;
         page.onResponse(responseListener);
+        page.onRequestFailed(requestFailedListener);
     }
 
     /** Allows a consumer adapter to subscribe after the Playwright session opened. */
@@ -63,12 +67,24 @@ public final class UiNetworkInspector implements AutoCloseable {
     public Optional<UiNetworkObservation> capture(Response response) {
         if (!configuration.enabled() || response == null || response.request() == null
                 || !configuration.accepts(response.url())) return Optional.empty();
+        return capture(UiNetworkObservation.from(response, sequence.incrementAndGet(), configuration));
+    }
+
+    /**
+     * Publishes an already typed observation through the same bounded path as
+     * browser responses. Consumers and component fixtures use this seam when a
+     * real Playwright response is intentionally outside the test boundary;
+     * The inspector re-applies the configured redaction, bounding and
+     * signature policy before storage or subscriber notification.
+     */
+    public Optional<UiNetworkObservation> capture(UiNetworkObservation observation) {
+        if (!configuration.enabled() || observation == null
+                || !configuration.accepts(observation.url())) return Optional.empty();
         if (observations.size() >= configuration.maxObservations()) return Optional.empty();
-        UiNetworkObservation observation = UiNetworkObservation.from(response,
-                sequence.incrementAndGet(), configuration);
-        observations.add(observation);
-        subscribers.forEach(subscriber -> notifySafely(subscriber, observation));
-        return Optional.of(observation);
+        UiNetworkObservation safeObservation = observation.sanitizedFor(configuration);
+        observations.add(safeObservation);
+        subscribers.forEach(subscriber -> notifySafely(subscriber, safeObservation));
+        return Optional.of(safeObservation);
     }
 
     /** Returns lossless bounded observations in browser order. */
@@ -135,15 +151,22 @@ public final class UiNetworkInspector implements AutoCloseable {
     }
 
     @Override public void close() {
-        if (page != null && responseListener != null) {
-            page.offResponse(responseListener);
+        if (page != null) {
+            if (responseListener != null) page.offResponse(responseListener);
+            if (requestFailedListener != null) page.offRequestFailed(requestFailedListener);
         }
         page = null;
         responseListener = null;
+        requestFailedListener = null;
         subscribers.clear();
     }
 
     private void observe(Response response) { capture(response); }
+
+    private void observeFailure(Request request) {
+        if (!configuration.enabled() || request == null || !configuration.accepts(request.url())) return;
+        capture(UiNetworkObservation.fromFailure(request, sequence.incrementAndGet(), configuration));
+    }
 
     private static void notifySafely(Consumer<UiNetworkObservation> subscriber,
                                      UiNetworkObservation observation) {

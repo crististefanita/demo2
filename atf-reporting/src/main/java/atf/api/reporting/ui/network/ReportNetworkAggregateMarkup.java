@@ -55,7 +55,8 @@ public final class ReportNetworkAggregateMarkup {
                         List.of("METHOD", "SOURCE", "STATUS", "COUNT"),
                         aggregate.authentication().stream()
                                 .map(item -> List.of(item.method(), item.source(),
-                                        Integer.toString(item.status()), Integer.toString(item.count())))
+                                        item.status() < 0 ? "Unavailable" : Integer.toString(item.status()),
+                                        Integer.toString(item.count())))
                                 .toList())));
         sections.append(section(CORRELATION, aggregate.correlation().size(),
                 ReportEvidenceTable.of(
@@ -150,6 +151,9 @@ public final class ReportNetworkAggregateMarkup {
             html.append(close());
             html.append(open("atf-secondary-grid network-diagnostic-meta"));
             meta(html, "SOURCES", join(item.sources()));
+            if (item.status() < 0 && !item.method().isBlank()) {
+                meta(html, "REASON", item.signal());
+            }
             if (item.method().isBlank() && item.route().isBlank()) {
                 meta(html, "MEANING", "console/page signal without a bound HTTP exchange");
             }
@@ -182,7 +186,9 @@ public final class ReportNetworkAggregateMarkup {
         if (statuses == null || statuses.isEmpty()) return "Status unavailable";
         return statuses.size() == 1
                 ? status(statuses.get(0))
-                : "Statuses " + statuses.stream().map(String::valueOf).collect(Collectors.joining(" · "));
+                : "Statuses " + statuses.stream()
+                        .map(value -> value < 0 ? "unavailable" : Integer.toString(value))
+                        .collect(Collectors.joining(" · "));
     }
 
     private static String status(int status) {

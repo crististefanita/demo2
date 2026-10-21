@@ -8,6 +8,7 @@ import atf.api.reporting.support.CssContractSupport;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -58,6 +59,15 @@ class AtfReportThemeTokensTest {
                 () -> assertTrue(tokens.contains("--atf-evidence-status-column-width:52px")),
                 () -> assertTrue(tokens.contains("--atf-evidence-summary-padding:9px 12px")),
                 () -> assertTrue(tokens.contains("--atf-evidence-summary-height:34px")),
+                () -> assertTrue(tokens.contains("--atf-evidence-tall-summary-padding:18px 12px")),
+                () -> assertTrue(tokens.contains("--atf-evidence-tall-summary-height:68px")),
+                () -> assertTrue(tokens.contains("--atf-table-scroll-height:500px")),
+                () -> assertTrue(tokens.contains("--atf-evidence-table-scroll-height:500px")),
+                () -> assertTrue(tokens.contains("--atf-audit-scroll-height:500px")),
+                () -> assertEquals(AtfReportThemeTokens.TABLE_SCROLL_HEIGHT,
+                        AtfReportThemeTokens.EVIDENCE_TABLE_SCROLL_HEIGHT),
+                () -> assertEquals(AtfReportThemeTokens.TABLE_SCROLL_HEIGHT,
+                        AtfReportThemeTokens.AUDIT_SCROLL_HEIGHT),
                 () -> assertTrue(tokens.contains("--atf-evidence-radius:10px")),
                 () -> assertTrue(tokens.contains("--atf-base-line-height:1.55")),
                 () -> assertTrue(tokens.contains("--atf-scenario-line-height:1.55")),

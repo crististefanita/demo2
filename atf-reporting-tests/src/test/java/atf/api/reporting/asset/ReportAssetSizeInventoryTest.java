@@ -10,18 +10,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @AtfUnitTest
 class ReportAssetSizeInventoryTest {
-    // The incremental table-layout cache/observer contract is part of the
-    // published runtime; keep a small measured headroom without masking growth.
-    private static final long NATIVE_JAVASCRIPT_BASELINE_BYTES = 123_000L;
-    private static final long PUBLICATION_JAVASCRIPT_BASELINE_BYTES = 100_000L;
+    // The table-layout, network-disclosure and bounded-evidence contracts are
+    // part of the published runtime; keep measured headroom without masking
+    // unrelated growth.
+    private static final long NATIVE_JAVASCRIPT_BASELINE_BYTES = 125_000L;
+    private static final long PUBLICATION_JAVASCRIPT_BASELINE_BYTES = 105_000L;
 
     private static final ReportAssetSizeBudget CONSUMER_BASELINE = new ReportAssetSizeBudget(
-            246_000L, 205_000L,
+            252_000L, 210_000L,
             java.util.Map.of(
-                    ReportAsset.Format.CSS, 123_000L,
+                    ReportAsset.Format.CSS, 128_000L,
                     ReportAsset.Format.JAVASCRIPT, NATIVE_JAVASCRIPT_BASELINE_BYTES),
             java.util.Map.of(
-                    ReportAsset.Format.CSS, 105_000L,
+                    // Tall shared disclosure summaries and sticky bounded
+                    // evidence headers are an intentional publication cost.
+                    ReportAsset.Format.CSS, 108_000L,
                     ReportAsset.Format.JAVASCRIPT, PUBLICATION_JAVASCRIPT_BASELINE_BYTES),
             java.util.Map.of(), java.util.Map.of());
 

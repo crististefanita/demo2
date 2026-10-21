@@ -103,6 +103,7 @@ public final class AtfReportHtmlVocabulary {
         ATF_UI_OBSERVATIONS("atf-ui-observations"),
         ATF_UI_OBSERVATION_TABLE("atf-ui-observation-table"),
         ATF_UI_ASSERTIONS("atf-ui-assertions"),
+        ATF_VALIDATION_TABLE_WRAP("atf-validation-table-wrap"),
         ATF_UI_EVIDENCE_SCREENSHOT_LINK("atf-ui-evidence-screenshot-link"),
         ATF_EMPTY_STATE("atf-empty-state"),
         ATF_EMPTY_STATE_TITLE("atf-empty-state-title"),

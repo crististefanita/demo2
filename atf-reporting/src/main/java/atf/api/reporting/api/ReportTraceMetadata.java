@@ -21,6 +21,7 @@ public record ReportTraceMetadata(
         String requestBodyDigest,
         String responseBodyDigest,
         String evidenceSource,
+        String service,
         String expected,
         String observed) {
 
@@ -36,12 +37,24 @@ public record ReportTraceMetadata(
         requestBodyDigest = normalize(requestBodyDigest);
         responseBodyDigest = normalize(responseBodyDigest);
         evidenceSource = normalize(evidenceSource);
+        service = normalize(service);
         expected = normalize(expected);
         observed = normalize(observed);
     }
 
+    /** Compatibility constructor for callers that predate consumer-owned service aliases. */
+    public ReportTraceMetadata(String eventId, long sequence, String phase, String role,
+                               String stepId, String initiator, String correlationKey,
+                               String requestSignature, String requestBodyDigest,
+                               String responseBodyDigest, String evidenceSource,
+                               String expected, String observed) {
+        this(eventId, sequence, phase, role, stepId, initiator, correlationKey,
+                requestSignature, requestBodyDigest, responseBodyDigest, evidenceSource,
+                "", expected, observed);
+    }
+
     public static ReportTraceMetadata empty() {
-        return new ReportTraceMetadata("", 0, "", "", "", "", "", "", "", "", "", "", "");
+        return new ReportTraceMetadata("", 0, "", "", "", "", "", "", "", "", "", "", "", "");
     }
 
     public static ReportTraceMetadata from(ReportRequest request) {
@@ -49,7 +62,7 @@ public record ReportTraceMetadata(
         return new ReportTraceMetadata("", 0, "", "", "", "",
                 ReportRequestSignature.correlationKey(request),
                 ReportRequestSignature.forRequest(request),
-                ReportRequestSignature.bodyDigest(request.bodyText()), "", "", "", "");
+                ReportRequestSignature.bodyDigest(request.bodyText()), "", "", "", "", "");
     }
 
     public boolean present() {
@@ -71,6 +84,7 @@ public record ReportTraceMetadata(
         add(fields, "REQUEST BODY DIGEST", ReportRequestSignature.displayDigest(requestBodyDigest));
         add(fields, "RESPONSE BODY DIGEST", ReportRequestSignature.displayDigest(responseBodyDigest));
         add(fields, "SOURCE", evidenceSource);
+        add(fields, "SERVICE", service);
         add(fields, "EXPECTED", expected);
         add(fields, "OBSERVED", observed);
         return Collections.unmodifiableMap(new LinkedHashMap<>(fields));
@@ -82,7 +96,14 @@ public record ReportTraceMetadata(
                                             String expected, String observed) {
         return new ReportTraceMetadata(eventId, sequence, phase, role, stepId, initiator,
                 correlationKey, requestSignature, requestBodyDigest, responseBodyDigest,
-                evidenceSource, expected, observed);
+                evidenceSource, service, expected, observed);
+    }
+
+    /** Applies a consumer-owned display alias without changing request identity. */
+    public ReportTraceMetadata withService(String consumerService) {
+        return new ReportTraceMetadata(eventId, sequence, phase, role, stepId, initiator,
+                correlationKey, requestSignature, requestBodyDigest, responseBodyDigest,
+                evidenceSource, consumerService, expected, observed);
     }
 
     private static void add(Map<String, String> fields, String name, String value) {

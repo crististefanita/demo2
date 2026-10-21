@@ -38,6 +38,9 @@ flowchart LR
 - nu se folosește reset --hard, checkout -- sau git clean;
 - nu se șterg target, bin, obj, artifacts sau fișierele altui proces;
 - nu se reutilizează un staging care poate aparține unei alte execuții;
+- nu se rulează două build-uri Maven în același checkout sau stage: ambele
+  folosesc `target`, iar un `clean` concurent poate produce false-negative de
+  classloading în Surefire; fiecare execuție are staging propriu;
 - nu se suprascrie raportul deschis de utilizator;
 - nu se deschide browserul Windows pentru validarea raportului; interacțiunea se
   face în TAB MCP.

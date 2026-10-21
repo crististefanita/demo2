@@ -71,6 +71,24 @@ class ReportRuntimePerformanceComponentTest {
     }
 
     @Test
+    void keepsTheBrowserAuditLongTaskAllowanceBounded() {
+        ReportRuntimePerformanceBudget browserBudget =
+                ReportRuntimePerformanceBudget.browserAuditDefaults();
+        ReportRuntimePerformanceSnapshot observedSchedulerVariance =
+                fixture(7, 43, 16, 42, 12, 982);
+        ReportRuntimePerformanceSnapshot excessiveSchedulerVariance =
+                fixture(7, 43, 16, 42, 17, 1_501);
+
+        assertAll(
+                () -> assertTrue(browserBudget.accepts(observedSchedulerVariance)),
+                () -> assertFalse(browserBudget.accepts(excessiveSchedulerVariance)),
+                () -> assertTrue(browserBudget.violations(excessiveSchedulerVariance).stream()
+                        .anyMatch(value -> value.startsWith("longTaskCount"))),
+                () -> assertTrue(browserBudget.violations(excessiveSchedulerVariance).stream()
+                        .anyMatch(value -> value.startsWith("longTaskDurationMs"))));
+    }
+
+    @Test
     void exposesBudgetViolationsWithoutChangingTheReportVerdict() {
         ReportRuntimePerformanceSnapshot slow = fixture(6, 6, 3_000, 1_400);
 
@@ -89,6 +107,14 @@ class ReportRuntimePerformanceComponentTest {
     private static ReportRuntimePerformanceSnapshot fixture(int signatures, int toggles,
                                                             long readinessMs,
                                                             long firstToggleMs) {
+        return fixture(signatures, toggles, readinessMs, firstToggleMs, 0, 0);
+    }
+
+    private static ReportRuntimePerformanceSnapshot fixture(int signatures, int toggles,
+                                                            long readinessMs,
+                                                            long firstToggleMs,
+                                                            long longTaskCount,
+                                                            long longTaskDurationMs) {
         return new ReportRuntimePerformanceSnapshot(
                 400 + signatures * 40L,
                 readinessMs,
@@ -103,8 +129,8 @@ class ReportRuntimePerformanceComponentTest {
                 Math.min(2, toggles),
                 Math.min(2, toggles),
                 Math.max(0, toggles - 4),
-                0,
-                0,
+                longTaskCount,
+                longTaskDurationMs,
                 true,
                 true);
     }

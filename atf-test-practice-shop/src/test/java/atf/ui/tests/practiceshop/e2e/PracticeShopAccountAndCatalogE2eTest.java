@@ -1,9 +1,7 @@
 package atf.ui.tests.practiceshop.e2e;
 
 import atf.api.testkit.AtfE2eTest;
-import atf.api.ui.config.UiScreenValidationConfiguration;
 import atf.api.ui.playwright.PlaywrightActionSequence;
-import atf.api.ui.playwright.UiScreenValidation;
 import atf.ui.practiceshop.config.PracticeShopConfiguration;
 import atf.ui.practiceshop.config.PracticeShopCredentials;
 import atf.ui.practiceshop.flow.PracticeShopAccountFlow;
@@ -57,13 +55,10 @@ class PracticeShopAccountAndCatalogE2eTest {
             new PracticeShopAccountFlow(locators).loginAndAssertAccount(
                     context.page(), actions, configuration, credentials);
             context.runtimeDiagnostics().markAuthenticatedSetup();
-            UiScreenValidation.Evidence evidence = UiScreenValidation.capture(
-                    context.page(), UiScreenValidationConfiguration.defaults(),
-                    "signed-in account page");
             var assertions = new PracticeShopPageValidator(locators)
                     .validate(context.page(), PracticeShopAccountPage.class)
                     .assertions();
-            scenario.pass(context.page(), actions, evidence, assertions);
+            scenario.pass(context.page(), actions, "signed-in account page", assertions);
         });
     }
 
@@ -80,15 +75,12 @@ class PracticeShopAccountAndCatalogE2eTest {
             context.runtimeDiagnostics().markAuthenticatedSetup();
             new PracticeShopCatalogFlow(locators).searchAndOpenConfiguredProduct(
                     context.page(), actions, configuration);
-            UiScreenValidation.Evidence evidence = UiScreenValidation.capture(
-                    context.page(), UiScreenValidationConfiguration.defaults(),
-                    "configured product detail");
             var assertions = new java.util.ArrayList<>(new PracticeShopPageValidator(locators)
                     .validate(context.page(), PracticeShopProductPage.class, configuration.productName())
                     .assertions());
             assertions.add(check("Product route", configuration.productPathExpectation(), context.page().url(),
                     configuration.matchesProductPath(java.net.URI.create(context.page().url()).getPath())));
-            scenario.pass(context.page(), actions, evidence, assertions);
+            scenario.pass(context.page(), actions, "configured product detail", assertions);
         });
     }
 }

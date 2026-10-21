@@ -48,6 +48,9 @@ class HtmlReportSessionTest {
                         && divDepthAt(html, validationIndex) > divDepthAt(html, requestIndex),
                 "validation must be nested inside the Gherkin request node");
         assertTrue(html.contains("class=\"assertions\""));
+        assertTrue(html.contains("class=\"atf-validation-table-wrap\""));
+        assertTrue(html.indexOf("class=\"atf-validation-table-wrap\"")
+                        < html.indexOf("class=\"assertions\""));
         assertTrue(html.contains("HTTP status"));
         assertTrue(html.contains("schema"));
         assertTrue(html.contains("class=\"json-code\""));

@@ -415,11 +415,16 @@ class ExtentReportUiEvidencePublishingTest {
         String html = Files.readString(report).toLowerCase();
         assertAll(
                 () -> assertTrue(html.contains("api network inspector")),
+                () -> assertTrue(html.indexOf("network aggregate · 1 exchanges")
+                                > html.indexOf("api network inspector")),
+                () -> assertEquals(1, html.split("network aggregate · 1 exchanges", -1).length - 1),
                 () -> assertTrue(html.contains("authentication evidence · 1")),
                 () -> assertTrue(html.contains("scenario correlation · 1")),
                 () -> assertTrue(html.contains("transport counters · 1")),
                 () -> assertTrue(html.contains("unique request signatures · 1")),
                 () -> assertTrue(html.contains("technical diagnostics · 1")),
+                () -> assertTrue(html.contains("network-signatures")),
+                () -> assertTrue(html.contains("network-diagnostics")),
                 () -> assertTrue(html.contains("response details · 4 fields")),
                 () -> assertFalse(html.contains("network ui step")),
                 () -> assertFalse(html.contains("network exchange")),
@@ -428,6 +433,48 @@ class ExtentReportUiEvidencePublishingTest {
                 () -> assertFalse(html.contains("network.aggregate.authentication")),
                 () -> assertTrue(html.contains("response · console")),
                 () -> assertFalse(html.contains("unauthorized bootstrap")));
+    }
+
+    @Test
+    void rendersBrowserRequestFailureAsUnavailableWarningWithoutInventingAResponse() throws Exception {
+        Path root = Files.createTempDirectory("atf-ui-request-failed-");
+        var request = new ReportRequest("POST", "/carts", Map.of(), Map.of(), "none", "");
+        var response = new ReportResponse(-1, "response body unavailable", Map.of(),
+                Duration.ofMillis(7), "https://api.example.test/carts");
+        var evidence = new ReportExecutionEvidence(response, 1, Duration.ofMillis(7), List.of(),
+                List.of(new ReportAttemptRecord(1, -1, Duration.ofMillis(7),
+                        "FAILURE", "net::ERR_CONNECTION_RESET")), request,
+                ReportTransportProvenance.LIVE_HTTP);
+        Path report;
+
+        try (var session = UiExtentReportSession.openConfigured(root, "ui-request-failed.html",
+                AtfConsoleSink.noOp())) {
+            report = session.reportPath();
+            var scenario = session.startScenario("UiTest", EXTENT_UI_TEST_PACKAGE,
+                    "browser request failure", List.of("ui", "api"));
+            var body = scenario.startPhase(ReportUiContract.Phase.TEST_BODY.displayName());
+            body.apiTrace(THEN, "cart mutation is observable", "/carts", List.of(evidence),
+                    AtfReportStatus.PASS);
+            body.networkInspector("API network inspector", List.of(evidence));
+            body.complete(AtfReportStatus.PASS);
+            scenario.complete(AtfReportStatus.PASS);
+        }
+
+        String html = Files.readString(report);
+        int exchangeTitle = html.indexOf("POST /carts — Exchange 1");
+        int scenarioTitle = html.indexOf("<span>browser request failure</span>");
+        assertAll(
+                () -> assertTrue(html.contains("API validation")),
+                () -> assertTrue(scenarioTitle > 0 && html.substring(
+                        Math.max(0, scenarioTitle - 500), scenarioTitle).contains("warning-bg")),
+                () -> assertTrue(exchangeTitle > 0),
+                () -> assertTrue(exchangeTitle > 0 && html.substring(
+                        Math.max(0, exchangeTitle - 500), exchangeTitle).contains("warning-bg")),
+                () -> assertTrue(html.contains("Unavailable")),
+                () -> assertTrue(html.contains("net::ERR_CONNECTION_RESET")),
+                () -> assertTrue(html.contains("Technical diagnostics")),
+                () -> assertFalse(html.contains("RESPONSE JSON")),
+                () -> assertFalse(html.contains("HTTP STATUS</td><td>-1")));
     }
 }
 

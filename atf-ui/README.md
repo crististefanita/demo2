@@ -167,6 +167,29 @@ assert Java care ascunde acțiunea din raport. Contractul complet de cardinalita
 markup și randare este în
 [`atf-reporting/README.md`](../atf-reporting/README.md).
 
+## Network inspector — boundary generic
+
+`UiNetworkInspector` este opt-in și acceptă numai host-urile configurate.
+Listenerii Playwright observă atât `response`, cât și `request-failed`; nu
+execută replay și nu decid verdictul testului. Observațiile browser sunt
+transformate în date typed, cu URL/query, headers și body redacted/bounded;
+failure-ul înainte de response are status `Unavailable` și motiv explicit,
+fără un response inventat.
+
+| Contract | Owner |
+|---|---|
+| stream-ul raw și colapsarea doar a semnăturilor consecutive pentru prezentare | `atf-ui` |
+| așteptarea bounded printr-o settlement policy explicită, fără retry de acțiune | `atf-ui` |
+| aliasul de serviciu, corelarea cu checkpoint-ul și verdictul business | consumerul |
+| cardurile HTML și sumarul agregat | `atf-reporting` |
+
+`capture(UiNetworkObservation)` este și o intrare publică pentru fixture-uri și
+adaptoare. Inspectorul resanitizează observația înainte de storage și de
+notificarea subscriberilor: URL/path, headers, body, auth/source, failure,
+service și signature sunt reconstruite sau limitate. Testul negativ pentru
+input creat de caller protejează acest boundary; criteriul de redeschidere este
+în [`ATF_UI_Network_Inspector_Feedback.md`](../docs/feedback/ATF_UI_Network_Inspector_Feedback.md).
+
 ## Ce nu se pune în `atf-ui`
 
 - teste JUnit sau colecții API;

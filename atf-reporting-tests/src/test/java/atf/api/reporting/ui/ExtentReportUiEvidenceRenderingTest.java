@@ -2,6 +2,7 @@ package atf.api.reporting.ui;
 import atf.api.testkit.AtfUnitTest;
 
 import atf.api.reporting.console.AtfConsoleSink;
+import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.ui.AtfUiActionRecord;
 import atf.api.reporting.ui.AtfUiEvidenceSource;
@@ -118,6 +119,8 @@ class ExtentReportUiEvidenceRenderingTest {
                 () -> assertTrue(html.contains("role=\"img\" aria-label=\"Pass\" title=\"Pass\">✅</span>")),
                 () -> assertFalse(html.contains("class=\"atf-ui-action-result atf-ui-action-result-pass\">Pass</span>")),
                 () -> assertTrue(html.contains("class=\"atf-ui-action-screenshot\"")),
+                () -> assertTrue(html.contains("</table></div><div class=\"atf-ui-action-screenshot\""),
+                        "the screenshot must remain outside the scrollable action-table viewport"),
                 () -> assertTrue(html.contains("class=\"atf-ui-action-screenshot-link\" data-atf-screenshot=\"base64\" href=\"data:image/png;base64," + ReportTestScreenshots.ONE_PIXEL_PNG + "\"")),
                 () -> assertTrue(html.contains(">📷 base64 img</span>")),
                 () -> assertTrue(html.contains("aria-label=\"Open Screen validation\"")),
@@ -205,7 +208,8 @@ class ExtentReportUiEvidenceRenderingTest {
             report = session.reportPath();
             var scenario = session.startScenario("UiTest", EXTENT_UI_TEST_PACKAGE, "observation split", List.of("ui"));
             var body = scenario.startPhase("TEST BODY");
-            body.screenValidation("report state", "#test-view", ReportTestScreenshots.ONE_PIXEL_PNG, List.of(), List.of(
+            body.screenValidation("report state", "#test-view", ReportTestScreenshots.ONE_PIXEL_PNG, List.of(
+                    new AtfAssertion("report state", "ready", "ready", true)), List.of(
                     new AtfUiActionRecord(1, "Click", "#tests", "tests opens", "click completed", 4, AtfReportStatus.PASS),
                     new AtfUiActionRecord(2, "Screenshot", "current page", "visual state captured",
                             "Base64 media link", 0, AtfReportStatus.PASS, AtfUiEvidenceSource.OBSERVE)), AtfReportStatus.PASS);
@@ -220,6 +224,8 @@ class ExtentReportUiEvidenceRenderingTest {
                 () -> assertTrue(html.contains("aria-label=\"Audit observations · 1 checkpoint\"")),
                 () -> assertFalse(html.contains("Audit observations · 1 checkpoint · Screenshot")),
                 () -> assertTrue(html.contains("atf-ui-observation-table")),
+                () -> assertTrue(html.contains("class=\"atf-ui-assertions\"")),
+                () -> assertTrue(html.contains("class=\"atf-validation-table-wrap\"")),
                 () -> assertTrue(html.contains(
                         "class=\"atf-ui-action-table atf-ui-observation-table\"><thead><tr>"
                                 + "<th>ACTION</th><th>TARGET</th><th>EXPECTED</th>"

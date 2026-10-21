@@ -6,6 +6,8 @@ import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.configuration.AtfReportConfigurationLoader;
+import atf.api.reporting.evidence.ReportScreenshotPolicy;
+import atf.api.reporting.model.ReportScreenshot;
 import atf.api.reporting.ui.UiExtentReportSession;
 import atf.api.reporting.ui.network.ReportNetworkInspector;
 import atf.api.ui.config.UiScreenValidationConfiguration;
@@ -13,6 +15,7 @@ import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.api.ui.playwright.PlaywrightUiSession;
 import atf.api.ui.playwright.UiScreenValidation;
 import atf.ui.practiceshop.config.PracticeShopConfiguration;
+import atf.ui.practiceshop.support.evidence.PracticeShopBrowserCaptureProvider;
 import com.microsoft.playwright.Page;
 
 import java.nio.file.Path;
@@ -28,14 +31,17 @@ public final class PracticeShopE2eContext implements AutoCloseable {
     private final PracticeShopConfiguration configuration;
     private final UiExtentReportSession report;
     private final PlaywrightUiSession browser;
+    private final PracticeShopBrowserCaptureProvider browserCaptureProvider;
     private final PracticeShopApiNetworkJournal apiNetwork;
     private final PracticeShopRuntimeDiagnostics runtimeDiagnostics;
 
     private PracticeShopE2eContext(PracticeShopConfiguration configuration,
                                    UiExtentReportSession report, PlaywrightUiSession browser,
+                                   PracticeShopBrowserCaptureProvider browserCaptureProvider,
                                    PracticeShopApiNetworkJournal apiNetwork,
                                    PracticeShopRuntimeDiagnostics runtimeDiagnostics) {
         this.configuration = configuration; this.report = report; this.browser = browser;
+        this.browserCaptureProvider = browserCaptureProvider;
         this.apiNetwork = apiNetwork; this.runtimeDiagnostics = runtimeDiagnostics;
     }
 
@@ -45,20 +51,27 @@ public final class PracticeShopE2eContext implements AutoCloseable {
                 + ".html";
         AtfConsoleSink console = AtfConsoleReporter.configuredStdout();
         var reportConfiguration = AtfReportConfigurationLoader.load();
+        var evidenceProfile = PracticeShopScreenshotPolicy.profile(
+                configuration.browser().screenshotOnFailure());
         UiExtentReportSession report = UiExtentReportSession.openConfiguredResolved(
                 configuration.uiReportDirectory(), file,
                 atf.api.reporting.console.AtfConsoleSink.noOp(),
+                evidenceProfile,
                 PracticeShopReportSystemMetadata.snapshot(configuration,
                         reportConfiguration.reportingSettings()));
         try {
             PlaywrightUiSession browser = PlaywrightUiSession.open(configuration.browser(), console);
+            PracticeShopBrowserCaptureProvider browserCaptureProvider =
+                    new PracticeShopBrowserCaptureProvider(browser.page(),
+                            UiScreenValidationConfiguration.defaults());
             PracticeShopApiNetworkJournal apiNetwork =
                     new PracticeShopApiNetworkJournal(configuration.validationProfile(),
                             configuration.api().evidenceBinding());
             apiNetwork.attach(browser.networkInspector());
             PracticeShopRuntimeDiagnostics runtimeDiagnostics = new PracticeShopRuntimeDiagnostics();
             runtimeDiagnostics.attach(browser.page());
-            return new PracticeShopE2eContext(configuration, report, browser, apiNetwork, runtimeDiagnostics);
+            return new PracticeShopE2eContext(configuration, report, browser, browserCaptureProvider,
+                    apiNetwork, runtimeDiagnostics);
         } catch (RuntimeException error) {
             report.close();
             throw error;
@@ -179,10 +192,12 @@ public final class PracticeShopE2eContext implements AutoCloseable {
 
         public void checkpoint(Page page, PlaywrightActionSequence actions,
                                PracticeShopPurchaseCheckpoint checkpoint) {
-            UiScreenValidation.Evidence evidence = !PracticeShopScreenshotPolicy.shouldCapture(
-                    checkpoint.passed(), configuration.browser().screenshotOnFailure())
-                    ? new UiScreenValidation.Evidence(checkpoint.title(), "", false)
-                    : UiScreenValidation.capture(page, UiScreenValidationConfiguration.defaults(), checkpoint.title());
+            var capturePoint = checkpoint.passed()
+                    ? ReportScreenshotPolicy.CapturePoint.CHECKPOINT
+                    : ReportScreenshotPolicy.CapturePoint.FAILURE;
+            String payload = capture(page, checkpoint.title(), capturePoint);
+            UiScreenValidation.Evidence evidence = new UiScreenValidation.Evidence(
+                    checkpoint.title(), payload, !payload.isBlank());
             PracticeShopAuditObservations.recordCheckpoint(actions, page, checkpoint, evidence);
             networkSteps.add(ReportNetworkInspector.Step.from(checkpoint.keyword().text(), checkpoint.title(),
                     checkpoint.assertions(), checkpoint.apiEvidence()));
@@ -190,18 +205,21 @@ public final class PracticeShopE2eContext implements AutoCloseable {
                     ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
             body.step(checkpoint.keyword(), checkpoint.title(), page.url(), evidence.base64Png(),
                     checkpoint.assertions(), PracticeShopReportUiActionAdapters.from(actions.drain()),
-                    checkpoint.apiEvidence(), checkpointStatus);
+                    checkpoint.apiEvidence(), capturePoint, checkpointStatus);
         }
 
-        /** Compatibility path for the optional authenticated catalog scenarios. */
+        /** Final screen contract for the optional authenticated catalog scenarios. */
         public void pass(Page page, PlaywrightActionSequence actions,
-                         UiScreenValidation.Evidence evidence,
+                         String evidenceTitle,
                          Collection<AtfAssertion> assertions) {
+            String payload = capture(page, evidenceTitle, ReportScreenshotPolicy.CapturePoint.FINAL);
+            UiScreenValidation.Evidence evidence = new UiScreenValidation.Evidence(
+                    evidenceTitle, payload, !payload.isBlank());
             PracticeShopAuditObservations.recordScreenContract(actions, page, title,
                     assertions, evidence, true);
             body.screenValidation(title, page.url(), evidence.base64Png(),
                     assertions, PracticeShopReportUiActionAdapters.from(actions.drain()),
-                    AtfReportStatus.PASS);
+                    ReportScreenshotPolicy.CapturePoint.FINAL, AtfReportStatus.PASS);
             publishNetworkInspector();
             body.complete(AtfReportStatus.PASS);
             scenario.complete(AtfReportStatus.PASS);
@@ -248,8 +266,15 @@ public final class PracticeShopE2eContext implements AutoCloseable {
             if (complete) return;
             try {
                 publishNetworkInspector();
+                String screenshot = "";
+                try {
+                    screenshot = capture(page, "external E2E failure",
+                            ReportScreenshotPolicy.CapturePoint.FAILURE);
+                } catch (RuntimeException captureFailure) {
+                    failure.addSuppressed(captureFailure);
+                }
                 body.failureEvidence("external E2E failure", page.url(),
-                        PracticeShopReportUiActionAdapters.from(actions.drain()), failure);
+                        PracticeShopReportUiActionAdapters.from(actions.drain()), failure, screenshot);
                 body.complete(AtfReportStatus.FAIL);
                 scenario.complete(AtfReportStatus.FAIL);
             } catch (IllegalStateException alreadyClosed) {
@@ -258,6 +283,13 @@ public final class PracticeShopE2eContext implements AutoCloseable {
             } finally {
                 complete = true;
             }
+        }
+
+        private String capture(Page page, String title,
+                               ReportScreenshotPolicy.CapturePoint point) {
+            return report.evidenceProfile().capture(point, title, page.url(),
+                            browserCaptureProvider)
+                    .map(ReportScreenshot::base64Png).orElse("");
         }
 
         @Override public void close() {
@@ -271,7 +303,7 @@ public final class PracticeShopE2eContext implements AutoCloseable {
 
         private void publishNetworkInspector() {
             if (networkInspectorPublished || !configuration.validationProfile().apiEvidenceRequired()) return;
-            body.networkInspector("API network inspector — ordered UI journey", apiNetwork.selectedEvidence(),
+            body.networkInspector("API network inspector — ordered UI journey", apiNetwork.inspectorEvidence(),
                     networkSteps, runtimeDiagnostics.structuredDiagnostics().stream()
                             .map(diagnostic -> new ReportNetworkInspector.Diagnostic(
                                     diagnostic.source(), diagnostic.method(), diagnostic.route(),

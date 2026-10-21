@@ -1,8 +1,12 @@
 package atf.api.reporting.evidence.profile;
 
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
+import atf.api.reporting.model.ReportScreenshot;
+import atf.api.reporting.support.ReportTestScreenshots;
 import atf.api.testkit.AtfUnitTest;
 import org.junit.jupiter.api.Test;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -40,5 +44,45 @@ class ReportEvidenceProfileTest {
                 () -> ReportEvidenceProfile.fromConfig("unified", "final-only", "mock"));
         assertThrows(IllegalArgumentException.class,
                 () -> ReportEvidenceProfile.fromConfig("unified-flow", "final-only", "fixture"));
+    }
+
+    @Test
+    void filtersBeforeCallingTheProviderAndRequiresProvenanceAndValidPng() {
+        var profile = ReportEvidenceProfile.fromConfig(
+                "unified-flow", "final-only", "mock");
+        var calls = new AtomicInteger();
+        ReportEvidenceCaptureProvider valid = provider(
+                ReportEvidenceCaptureSource.DETERMINISTIC_MOCK,
+                ReportTestScreenshots.ONE_PIXEL_PNG, calls);
+
+        assertTrue(profile.capture(ReportScreenshotPolicy.CapturePoint.CHECKPOINT,
+                "checkpoint", "#checkpoint", valid).isEmpty());
+        assertEquals(0, calls.get());
+        assertEquals("final", profile.capture(ReportScreenshotPolicy.CapturePoint.FINAL,
+                "final", "#final", valid).orElseThrow().title());
+        assertEquals(1, calls.get());
+        assertThrows(IllegalArgumentException.class,
+                () -> profile.capture(ReportScreenshotPolicy.CapturePoint.FINAL,
+                        "final", " ", valid));
+        assertThrows(IllegalArgumentException.class,
+                () -> profile.capture(ReportScreenshotPolicy.CapturePoint.FINAL,
+                        "final", "#final", provider(ReportEvidenceCaptureSource.BROWSER,
+                                ReportTestScreenshots.ONE_PIXEL_PNG, calls)));
+        assertThrows(IllegalArgumentException.class,
+                () -> profile.capture(ReportScreenshotPolicy.CapturePoint.FINAL,
+                        "final", "#final", provider(ReportEvidenceCaptureSource.DETERMINISTIC_MOCK,
+                                "AQID", calls)));
+        assertEquals(2, calls.get(), "only permitted captures with matching sources reach a provider");
+    }
+
+    private static ReportEvidenceCaptureProvider provider(ReportEvidenceCaptureSource source,
+                                                          String payload, AtomicInteger calls) {
+        return new ReportEvidenceCaptureProvider() {
+            @Override public ReportEvidenceCaptureSource source() { return source; }
+            @Override public ReportScreenshot capture(String title, String target) {
+                calls.incrementAndGet();
+                return new ReportScreenshot(title, payload);
+            }
+        };
     }
 }

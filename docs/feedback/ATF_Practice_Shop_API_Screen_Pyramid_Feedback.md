@@ -58,6 +58,12 @@ de business.
 | live business proof | 82 | guest product → cart → payment este verificat prin `LIVE_HTTP`; login/catalog/cart/payment authenticated rămâne blocat de fixture extern |
 | **scor consumer** | **95** | contractul guest, binding-ul typed, proiecția per exchange și topologia single-node sunt confirmate pe codul live, suitele verzi și artifactul regenerat; limita principală rămasă este fixture-ul authenticated extern care rămâne explicit skip |
 
+Dovada live curentă este `111` teste, `0` failure/error și `5` skip-uri
+explicite (`mvn -pl atf-test-practice-shop -am test`). Scorul consumer rămâne
+`95`: settlement/read-back, capturarea request-failed și intercalarea UI/API
+sunt verificate, dar fixture-ul authenticated extern nu este încă o dovadă de
+business. Numărul de teste nu ridică singur scorul.
+
 ## Închideri promovate în README-ul ownerului
 
 | Grup | Stare | Dovadă stabilă |

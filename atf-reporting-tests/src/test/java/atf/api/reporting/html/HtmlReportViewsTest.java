@@ -129,6 +129,8 @@ class HtmlReportViewsTest {
 
         assertAll(
                 () -> assertTrue(html.contains("Network aggregate")),
+                () -> assertTrue(html.contains("network-aggregate-substep")),
+                () -> assertTrue(html.contains("data-atf-node-role=\"network-aggregate\"")),
                 () -> assertFalse(html.contains("<details open")));
     }
 

@@ -10,7 +10,8 @@ guvernanță care trebuie validate înaintea implementării.
 - owner: ATF Java, cu validare în `atf-tests`;
 - scope: evaluare AI, creare asistată de teste și handoff auditabil;
 - out of scope: securitate, secrete, CLI și metodologia completă a ATF1;
-- status: feedback compilat și design propus, fără implementarea guard-urilor noi.
+- status: feedback compilat; AI evaluation rămâne design-only, iar observația
+  bounded de rețea UI este implementată separat ca vertical slice tehnic.
 
 ## 1. Scop și limită
 
@@ -1255,8 +1256,8 @@ se adaugă într-un singur „overall” decorativ.
 | Validator generic reutilizabil | **58/100** | `ValidationEvaluator`, `ValidationTable`, `ValidationDecision` și API contract validators | lipsesc comparison modes și reason codes AI |
 | AI evaluation implementată în ATF Java | **12/100** | există doar primitive generice care pot fi reutilizate | nu există încă `AiEvaluationCase`, evaluator AI, grounding ledger, AI invocation evidence sau AI verdict precedence |
 | AI-assisted workflow governance | **31/100** | există guvernanță whole-ATF, documentație, ownership și proof gates | nu există încă proposal/handoff/feedback contract pentru agent |
-| Potrivirea principiilor ATF1 pentru adoptare | **84/100** | cold baseline, claim → proof → artifact, handoff, anti-copy și separarea orchestrator/execution/reporting sunt direct transferabile | nu trebuie importată economia de runs/slots ca runtime ATF |
-| Potrivirea pattern-urilor .NET pentru adoptare | **88/100** | read models typed, field decisions, retry contract, evidence policy, auth evidence și ownership unic | modelele sunt business-specific și trebuie transpuse, nu copiate |
+| Potrivirea principiilor ATF1 pentru adoptare | **86/100** | cold baseline, claim → proof → artifact, handoff, anti-copy și separarea orchestrator/execution/reporting sunt direct transferabile | nu trebuie importată economia de runs/slots ca runtime ATF |
+| Potrivirea pattern-urilor .NET pentru adoptare | **92/100** | read models typed, field decisions, retry contract, evidence policy, auth evidence și ownership unic | modelele sunt business-specific și trebuie transpuse, nu copiate |
 | Readiness pentru primul pilot AI | **63/100** | infrastructura de evidence și test governance permite un pilot controlat | lipsește vertical slice-ul semantic și matricea de cazuri negative |
 
 **Concluzie:** ATF Java este pregătit pentru un pilot de evaluator, nu pentru a
@@ -1434,6 +1435,9 @@ transport / UI observation
 | allowlist-uri de gap-uri hardcodate | excepțiile pot deveni permanente | orice excepție are `ruleId`, source, scope, motiv și criteriu de eliminare |
 | identificatorii de run generați din timp | snapshot-urile pot deveni greu de comparat semantic | correlation identity și semantic identity trebuie păstrate separat |
 | evidence reportată din multe hooks | pot apărea duplicate sau ownership ambiguu | un singur composer per categorie; workflow-urile nu scriu direct HTML |
+| `AuthObservationCollector` din .NET | clasifică auth-ul observat pentru browser și `HttpClient`, fără credentiale | adoptăm vocabulary-ul typed, dar nu importăm serviciile business; Java păstrează auth-ul la boundary-ul browserului și îl transmite consumerului |
+| `BrowserRequestRetryPolicy` din .NET | retry-ul UI este permis numai când request-ul a lipsit și nu există failure matching | adoptăm regula ca guard de siguranță; Java nu face replay implicit și cere proof de idempotency pentru orice retry de mutație |
+| `FrontendAssetNetworkObserver` din .NET | request/response/failure pentru asset-uri sunt separate de API evidence | Java nu amestecă asset traffic cu API inspector; request-failed API capture este typed și rămâne evidence explicit, nu warning ascuns |
 
 Regula sintetizată: adoptăm **disciplinele de boundary**, nu importăm modelul
 business .NET în `atf-core` sau `atf-reporting`.
@@ -1695,7 +1699,7 @@ Playwright response
 | Boundary | Implementare ATF Java | Contract verificat |
 |---|---|---|
 | opt-in și allowlist | `UiNetworkInspectionConfiguration` | inspectorul este dezactivat implicit și acceptă numai host-uri explicite |
-| observație browser | `UiNetworkInspector` + `UiNetworkObservation` | method, safe path, status, auth method/source, service, mechanism, bounded body preview și signature |
+| observație browser | `UiNetworkInspector` + `UiNetworkObservation` | method, safe path, status, auth method/source, service, mechanism, redacted + bounded body preview și signature |
 | așteptare read-back | `UiNetworkSettlementPolicy` | wait bounded și configurabil; nu face replay automat și nu folosește sleep arbitrar |
 | ownership | `PlaywrightUiSession` | un singur response listener generic; consumerul adaptează observația, nu reporting-ul |
 | Practice Shop | `PracticeShopApiNetworkJournal.attach(...)` | journal-ul existent primește observația typed fără listener duplicat |
@@ -1752,7 +1756,7 @@ Java ATF1. Ele rămân scoruri de readiness, nu scoruri de produs.
 | AI evaluation implementată | **12/100** | există doar primitive generice reutilizabile | nu există vertical slice AI |
 | governance pentru workflow agentic | **31/100** | există whole-ATF governance și documentation gates | proposal/handoff/feedback nu sunt încă executabile |
 | readiness pentru modul agentic | **25/100** | boundary-ul poate fi proiectat fără contaminarea reporting-ului | modulul, config-ul și gates sunt doar design |
-| network inspector UI — vertical slice | **78/100** | observație typed, allowlist, auth redacted, signatures, aggregate și settlement bounded sunt implementate și testate | nu există încă fixture generic de read-back/replay pentru mutații |
+| network inspector UI — vertical slice | **88/100** | response/request-failed și custom capture trec prin allowlist și resanitizare/bounding înainte de storage/subscriber; signature, aggregate și settlement bounded au teste, iar fixture-ul consumer-owned dovedește read-back-ul fără replay | mutation retry/replay generic rămâne intenționat neimplementat |
 | readiness pentru primul pilot AI | **63/100** | evidence, fixture și layering permit un pilot mic | lipsesc expected/observed typed, invocation și hard-fail AI |
 
 Regula de calibrare: pattern-ul bun ridică **readiness-ul de design**, nu
@@ -1765,16 +1769,17 @@ criteriilor de închidere din secțiunea 34.7.
 AGENT_KIT_STATUS = DESIGN_ONLY
 NETWORK_INSPECTOR_STATUS = IMPLEMENTED_VERTICAL_SLICE
 IMPLEMENTATION_AUTHORIZED = BOUNDED_NETWORK_OBSERVATION_ONLY
-NEXT VALID MOVE = add one consumer-owned read-back fixture before enabling settlement
+NEXT VALID MOVE = add identity + payload proof for any mutation retry; keep replay disabled by default
 ```
 
-Pentru agent kit, primul pas viitor nu este construirea unui agent. Este un
-fixture artificial care demonstrează că un proposal/handoff invalid eșuează cu
-diagnostic util, iar unul valid trece fără provider AI, browser sau HTML.
-Pentru network inspector, următorul proof este un fixture consumer-owned care
-arată o mutație idempotentă, un read-back bounded și un caz negativ în care
-timeout-ul nu produce replay sau false-green.
+- pentru agent kit, primul proof viitor este un fixture artificial, nu un agent;
+- proposal/handoff invalid trebuie să eșueze cu diagnostic util;
+- proposal/handoff valid trebuie să treacă fără provider AI, browser sau HTML.
+Pentru network inspector, read-back-ul consumer-owned și observația typed pentru
+request-failed sunt deja demonstrate. Următorul proof este — numai dacă un
+consumer o cere — un contract explicit de identity + payload pentru mutation
+retry; timeout-ul nu poate produce replay sau false-green.
 
-Până la acele fixture-uri, `atf-agent-test-kit` și AI evaluation rămân direcții
-de design, iar acest README separă explicit cerințele țintă de vertical slice-ul
-tehnic implementat.
+`atf-agent-test-kit` și AI evaluation rămân direcții de design; network
+observation este implementată pentru response/failure evidence și settlement
+bounded, iar mutation retry/replay rămâne blocat până la contractul explicit.

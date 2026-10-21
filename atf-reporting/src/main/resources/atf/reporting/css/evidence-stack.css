@@ -467,11 +467,8 @@
     .card[data-atf-node-role='validation']
     details.assertion-evidence
     > summary {
-    height: 30px !important;
-    min-height: 30px !important;
-    max-height: 30px !important;
-    padding: 7px 8px !important;
-    line-height: 14px !important;
+    height: var(--atf-evidence-summary-height) !important;
+    padding: var(--atf-evidence-summary-padding) !important;
   }
   .test-view
     .test-content-detail
@@ -524,6 +521,42 @@
   > tr.event-row:has(table.helm-validation-table) {
   border-top: 0 !important;
   border-bottom: 0 !important;
+}
+
+/* Shared geometry for long action, audit, assertion and network evidence. */
+.test-view .test-content-detail .card[data-atf-node-role='validation'] :is(
+  .atf-ui-action-sequence,
+  .atf-ui-observations,
+  details.assertion-evidence
+) {
+  --atf-evidence-summary-height: var(--atf-evidence-tall-summary-height);
+  --atf-evidence-summary-padding: var(--atf-evidence-tall-summary-padding);
+}
+.test-view .test-content-detail .card[data-atf-node-role='validation'] :is(
+  .atf-ui-action-table-wrap,
+  .atf-validation-table-wrap
+) {
+  max-height: var(--atf-table-scroll-height) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  scrollbar-gutter: stable !important;
+}
+.test-view .test-content-detail .card[data-atf-node-role='validation'] :is(
+  .atf-ui-action-table-wrap > .atf-ui-action-table,
+  .atf-validation-table-wrap > .helm-validation-table,
+  .atf-validation-table-wrap > table.assertions
+) {
+  margin: 0 !important;
+}
+.test-view .test-content-detail .card[data-atf-node-role='validation'] :is(
+  .atf-ui-action-table-wrap,
+  .atf-validation-table-wrap
+) thead th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 2 !important;
+  background: var(--atf-panel-2) !important;
 }
 
 /*

@@ -135,7 +135,8 @@ consumer și nu cere Practice Shop pentru testarea suportului.
 
 ```mermaid
 flowchart LR
-    Fixture[PNG mock + typed input] -->|configurează| Policy[policy + cardinality]
+    Fixture[PNG mock + typed input] -->|implementează| Provider[capture provider]
+    Provider -->|filtrat de| Policy[profile + policy]
     Policy -->|deschide| Session[reporting session]
     Session -->|publică| Html[HTML local]
     Html -->|verifică| Contract[component assertions]
@@ -146,7 +147,7 @@ flowchart LR
 <details>
 <summary><strong>Legendă — testare pe niveluri</strong></summary>
 
-- unit: valori de policy, target, duplicate și cardinalitate `0/1/N`;
+- unit: policy înainte de provider, target, provenance, PNG și cardinalitate `0/1/N`;
 - component: markup, status, disclosure, referință media și păstrarea acțiunilor;
 - integration: session → model semantic → HTML, fără endpoint sau browser extern;
 - browser opțional: captura reală pe artifact HTML static;
@@ -155,10 +156,12 @@ flowchart LR
 
 </details>
 
-Starea curentă are `ReportScreenshotPolicy` și fixture-uri mock deja verificate.
-Combinarea generică dintre `flow mode` și policy rămâne contract de evoluție și
-se închide numai după ce există un model typed, teste lower-level și un consumer
-subțire care îl folosește.
+`ReportEvidenceProfileTest` verifică filtrarea înainte de captură, potrivirea
+sursei și payload-ul PNG; `ReportEvidenceProfileIntegrationTest` dovedește
+provider mock → sesiune → HTML local. Profile-ul typed combină flow mode, policy
+și source, iar Practice Shop mapează configurația sa într-un adapter subțire.
+`flowMode` nu regrupează implicit pașii în renderer; orchestrarea lor rămâne
+responsabilitatea consumerului.
 
 ## Matricea integration și boundary-ul verificat
 
@@ -204,6 +207,11 @@ un profil îngust. Pentru fiecare profil trebuie păstrate aceleași invariants:
   `Execution evidence` expandabile;
 - glyph-ul `＋/−` inline înaintea propoziției, fără `<hr>` sau separator
   decorativ;
+- fiecare tabel scrollabil — `System/Environment`, `Category/Overview`, tag
+  audit, Playwright actions, audit observations, assertions și API/UI evidence —
+  folosește aceeași înălțime `--atf-table-scroll-height` ca
+  `System/Environment`; tokenul este definit o singură dată în
+  `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT`, iar header-ul rămâne sticky;
 - `scrollWidth <= clientWidth`, imagini necorupte și zero console/page/request
   diagnostics colectate de `ReportAuditContext`.
 

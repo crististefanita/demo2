@@ -21,8 +21,8 @@ flowchart LR
     Config[typed profile<br/>și configurație] -->|configurează| Flow[flow coordinator]
     Flow -->|înregistrează| Ledger[evidence ledger<br/>acțiuni + assertions]
     Flow -->|aplică| Policy[capture policy]
-    Source[capture source<br/>browser sau mock] -->|capturează| Payload[typed screenshot<br/>payload]
-    Policy -->|filtrează| Payload
+    Source[capture provider<br/>browser sau mock] -->|capturează| Payload[typed screenshot<br/>payload]
+    Policy -->|permite înainte de apel| Source
     Ledger -->|compune| Input[report input<br/>semantic]
     Payload -->|alimentează| Input
     Input -->|publică| Publisher[report publisher]
@@ -36,7 +36,7 @@ flowchart LR
 
 - `Config` descrie intenția consumerului, nu un selector sau o cale locală;
 - `Flow` ordonează pașii și păstrează evidența neutră;
-- `Policy` decide momentele permise: checkpoint, final, failure sau niciunul;
+- `Policy` decide momentele permise înainte de invocarea providerului;
 - `Source` furnizează payload-ul; poate fi Playwright în consumer sau mock în teste;
 - `Input` este boundary-ul semantic consumat de reporting;
 - `Publisher` publică HTML-ul; nu reia acțiuni de browser;
@@ -50,13 +50,13 @@ flowchart LR
 |---|---|---|---|
 | flow mode | cum este reprezentat flow-ul? | `SCREEN_CHECKPOINTS`, `UNIFIED_FLOW` | test-kit / consumer composition |
 | screenshot policy | când se publică imaginea? | `EACH_CHECKPOINT`, `FINAL_ONLY`, `FAILURE_ONLY`, `FINAL_AND_FAILURE`, `NONE` | contract evidence + publisher |
-| capture source | de unde vine payload-ul? | browser, mock deterministic, provider viitor | adapterul consumerului / test scope |
+| capture source | de unde vine payload-ul? | `BROWSER`, `MOCK`, `CUSTOM_PROVIDER` | adapterul consumerului / test scope |
 
 `flow mode` și `screenshot policy` sunt independente. Un flow unificat poate avea
 `FINAL_ONLY`, `FAILURE_ONLY`, `FINAL_AND_FAILURE` sau `NONE`; un flow pe checkpoint-uri
 poate păstra `EACH_CHECKPOINT` fără să schimbe rendererul.
 
-### Starea live și direcția țintă
+### Starea live
 
 - **existent**: `atf-reporting` deține `ReportScreenshotPolicy`, modelul screenshot,
   session lifecycle și publication sink;
@@ -68,8 +68,14 @@ poate păstra `EACH_CHECKPOINT` fără să schimbe rendererul.
   face prin `fromConfig(...)` sau builder și poate traversa `UiExtentReportSession`;
 - **distincție**: setările `reporting.extent` rămân configurarea publisherului;
   `evidence.flowMode` și mapping-ul unui flow nu se ascund în acel loader;
-- **nefinalizat**: un contract transversal de provider/adapter care poate fi folosit
-  de mai mulți consumatori;
+- **implementat**: `ReportEvidenceCaptureProvider` este seam-ul browser-neutral;
+  `ReportEvidenceProfile.capture(point, title, target, provider)` filtrează înainte
+  de apel, verifică source-ul declarat și refuză target-ul lipsă ori payload-ul
+  care nu este PNG Base64. Mock-ul determinist și adapterul Playwright folosesc
+  același contract;
+- **limită explicită**: `flowMode` descrie reprezentarea cerută de consumer;
+  nu schimbă singur grouping-ul din renderer. Coordonarea unui flow unificat
+  rămâne în consumer/test-kit, nu în publisher;
 - **regulă**: Practice Shop doar mapează YAML-ul propriu la acest contract și nu
   introduce politica în page objects sau în flow-uri de business.
 
@@ -82,9 +88,10 @@ test-kit sau de o bibliotecă de compoziție, fără a confunda publisherul cu e
 ```mermaid
 flowchart LR
     TestKit[generic test-kit<br/>profile + annotations] -->|compune| Consumer[consumer composition<br/>flow semantic]
-    Consumer -->|folosește| Ui[atf-ui<br/>browser adapter]
+    Consumer -->|deține| Adapter[consumer capture adapter]
+    Adapter -->|folosește| Ui[atf-ui<br/>browser operations]
     Consumer -->|înregistrează| Ledger[evidence ledger]
-    Ui -->|capturează| Capture[typed capture payload]
+    Adapter -->|implementează providerul| Capture[typed capture payload]
     Ledger -->|alimentează| Reporting[atf-reporting<br/>model + publication]
     Capture -->|alimentează| Reporting
     ReportingTests[atf-reporting-tests<br/>fixtures + component/integration] -. dovedește .-> Reporting
@@ -96,7 +103,8 @@ flowchart LR
 
 - `test-kit` definește reutilizabil configurația și compoziția permisă;
 - consumerul definește flow-ul semantic, ținta finală și locatori;
-- `atf-ui` execută browserul și produce payload neutru;
+- `atf-ui` execută operațiile browserului; adapterul consumerului implementează
+  `ReportEvidenceCaptureProvider` și întoarce payload neutru;
 - `atf-reporting` normalizează și publică evidence-ul primit;
 - `atf-reporting-tests` validează biblioteca prin fixture-uri, nu devine production;
 - Practice Shop demonstrează consumul, dar nu deține contractul transversal;

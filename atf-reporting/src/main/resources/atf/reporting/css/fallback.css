@@ -153,6 +153,42 @@ summary {
   color: var(--atf-accent);
   cursor: pointer;
 }
+.atf-ui-action-sequence,
+.atf-ui-observations,
+details.assertion-evidence {
+  --atf-evidence-summary-height: var(--atf-evidence-tall-summary-height);
+  --atf-evidence-summary-padding: var(--atf-evidence-tall-summary-padding);
+}
+:is(.atf-ui-action-sequence, .atf-ui-observations, details.assertion-evidence,
+    .network-signatures, .network-diagnostics) > summary {
+  box-sizing: border-box;
+  height: var(--atf-evidence-tall-summary-height);
+  min-height: var(--atf-evidence-tall-summary-height);
+  max-height: var(--atf-evidence-tall-summary-height);
+  padding: var(--atf-evidence-tall-summary-padding);
+  line-height: var(--atf-evidence-summary-line-height);
+  display: flex;
+  align-items: center;
+}
+.atf-ui-action-table-wrap,
+.atf-validation-table-wrap {
+  max-height: var(--atf-table-scroll-height);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.atf-ui-action-table-wrap > table,
+.atf-validation-table-wrap > table {
+  margin: 0;
+}
+.atf-ui-action-table-wrap thead th,
+.atf-validation-table-wrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--atf-panel-2);
+}
 table {
   width: 100%;
   border-collapse: collapse;

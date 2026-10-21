@@ -4,8 +4,10 @@ import atf.api.reporting.console.AtfConsoleSink;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.evidence.profile.ReportEvidenceCaptureSource;
+import atf.api.reporting.evidence.profile.ReportEvidenceCaptureProvider;
 import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
 import atf.api.reporting.evidence.profile.ReportEvidenceProfile;
+import atf.api.reporting.model.ReportScreenshot;
 import atf.api.reporting.support.ReportTestScreenshots;
 import atf.api.reporting.ui.UiExtentReportSession;
 import atf.api.testkit.AtfIntegrationTest;
@@ -31,13 +33,23 @@ class ReportEvidenceProfileIntegrationTest {
                 .build();
 
         Path report;
+        ReportEvidenceCaptureProvider provider = new ReportEvidenceCaptureProvider() {
+            @Override public ReportEvidenceCaptureSource source() {
+                return ReportEvidenceCaptureSource.DETERMINISTIC_MOCK;
+            }
+            @Override public ReportScreenshot capture(String title, String target) {
+                return new ReportScreenshot(title, ReportTestScreenshots.ONE_PIXEL_PNG);
+            }
+        };
         try (var session = UiExtentReportSession.openConfigured(root, "profile.html",
                 AtfConsoleSink.noOp(), profile)) {
             assertEquals(profile, session.evidenceProfile());
             var scenario = session.startScenario("ProfileTest", "atf.api.reporting.ui",
                     "typed evidence profile", List.of("evidence", "component"));
             var body = scenario.startPhase("TEST BODY");
-            body.screenValidation("final state", "#final", ReportTestScreenshots.ONE_PIXEL_PNG,
+            var finalCapture = profile.capture(ReportScreenshotPolicy.CapturePoint.FINAL,
+                    "final state", "#final", provider).orElseThrow();
+            body.screenValidation(finalCapture.title(), "#final", finalCapture.base64Png(),
                     List.of(), List.of(), ReportScreenshotPolicy.CapturePoint.FINAL,
                     AtfReportStatus.PASS);
             body.complete(AtfReportStatus.PASS);

@@ -48,12 +48,11 @@ Surse de aprofundare:
 | Overview → System | snapshot allowlist-uit, redacted și bounded; țintele și valorile efective sunt separate | nu se publică dump YAML, secrete sau path-uri temporare |
 | output | `artifacts/reports/ui` și `artifacts/reports/api` | rolurile UI/API nu se suprapun |
 
-Regulile stabile de mai sus sunt contractul consumerului. Feedback-ul păstrează
-numai limitele care pot redeschide contractul: fixture extern authenticated,
-identity bounded pentru diagnostice necorelate și proiecția canonicală a
-exchange-urilor multiple în inspectorul generic. Binding-ul per checkpoint,
-aggregate-ul nested și policy-ul fail-closed sunt contracte verificate; warning
-projection-ul consumerului este separat de ownership-ul generic.
+Regulile stabile de mai sus sunt contractul consumerului. Binding-ul per
+checkpoint, aggregate-ul nested, identitatea bounded a diagnosticelor
+necorelate și exchange-urile canonicale multiple sunt verificate. Feedback-ul
+păstrează limitele încă active: fixture-ul extern authenticated și contractul
+de identity/payload necesar înaintea oricărui retry activ al mutațiilor.
 
 ### Network inspector UI — observație opt-in
 
@@ -61,7 +60,7 @@ Practice Shop folosește boundary-ul generic din `atf-ui`, nu un listener local
 suplimentar în test:
 
 ```text
-Playwright response
+Playwright response / request-failed
   → UiNetworkInspector
   → PracticeShopApiNetworkJournal
   → UI checkpoint / API validation
@@ -87,11 +86,22 @@ singur nod tehnic collapsed; nu se repetă propoziția Gherkin pentru UI și API
 `observations()` este lossless pentru audit, iar stream-ul de prezentare
 colapsează numai semnăturile consecutive.
 
+Un request eșuat înainte de response rămâne evidence explicită: status
+`Unavailable`, motiv bounded, fără `RESPONSE JSON` inventat. Adapterul
+Practice Shop poate atașa un alias de serviciu, dar host allowlist-ul și
+semnătura generică rămân neschimbate. Inspectorul publică un `Warning`
+diagnostic; numai assertion-ul business stabilește verdictul testului.
+
 Settlement-ul pentru acțiuni care modifică serverul este separat și dezactivat
-implicit. Când este activat explicit, oferă doar un wait bounded pentru response
-sau read-back; nu repetă acțiunea. Replay-ul cere un contract de idempotency
-deținut de consumer și nu se adaugă până la un fixture negativ care dovedește
-absența false-green.
+implicit:
+
+- wait-ul bounded așteaptă un response sau un read-back; nu repetă acțiunea;
+- replay-ul cere un contract de idempotency deținut de consumer;
+- `PracticeShopUiNetworkSettlementFixture` acoperă read-back-ul idempotent,
+  compactarea response-urilor consecutive și timeout-ul fără replay sau
+  false-green;
+- retry-ul activ al mutațiilor Playwright rămâne separat, fail-closed și
+  neimplementat implicit.
 
 Detaliile și limitele active sunt centralizate în
 [`ATF_UI_Network_Inspector_Feedback.md`](../docs/feedback/ATF_UI_Network_Inspector_Feedback.md).
@@ -330,7 +340,7 @@ practiceShop:
 | `api.mode` | `acceptance` pentru transport determinist; `live` numai la boundary explicit |
 | `api.precondition` | `anonymous` sau `authenticated`; authenticated E2E nu pornește fără precondiția potrivită |
 | `productPath` | `auto` acceptă numai ruta `/product/*`; o rută exactă e fail-fast dacă nu există |
-| `screenshotOnFailure` | controlează capturarea la checkpoint prin `PracticeShopScreenshotPolicy`; failure-ul are întotdeauna evidence, iar PASS-ul numai când policy-ul este activ |
+| `screenshotOnFailure` | switch legacy mapat de `PracticeShopScreenshotPolicy` la `ReportEvidenceProfile`: `true` → `EACH_CHECKPOINT`, `false` → `FAILURE_ONLY`; providerul Playwright este apelat numai când policy permite captura |
 | `accountFile` | fixture extern/opțional pentru setup autentificat; nu este copiat în evidence |
 
 Reguli de configurare:
@@ -348,11 +358,14 @@ Reguli de configurare:
 - ID-urile de produs și cart sunt dinamice și nu intră în enum-uri;
 - profile-ul este typed (`UI_API`, `UI_ONLY`), fără matrice de booleeni paraleli;
 - loaderul eșuează clar la URI, timeout, path sau combinație de precondiții invalidă.
-- implementarea curentă are policy explicită `screenshotOnFailure`, izolată într-un
-  seam pur și verificată pentru matricea PASS/FAIL; modurile distincte „după
-  fiecare screen / o singură captură finală / fără captură” nu se declară
-  implementate aici până când contractul generic de reporting este închis în
-  ownerul său.
+- switch-ul existent este doar mapping-ul de configurație al consumerului;
+  profile-ul typed și `PracticeShopBrowserCaptureProvider` sunt contractul de
+  execuție. Inclusiv calea opțională authenticated cere captura finală prin
+  profil, nu direct din test. Alte politici generice există în reporting, dar
+  acest YAML nu le expune încă drept opțiuni Practice Shop.
+- `Overview → System/Environment → Screenshot policy` afișează
+  `configValue()` din profilul efectiv; nu deduce o etichetă din booleanul
+  legacy, astfel metadata și imaginile publicate nu se contrazic.
 
 ## Contracte UI și selectors
 

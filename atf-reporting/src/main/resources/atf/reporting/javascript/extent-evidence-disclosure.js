@@ -113,6 +113,7 @@ function normalizeEvidenceDisclosures() {
           }
         }
         var assertion = row.querySelector('.helm-validation-table'),
+          assertionContainer = assertion && assertion.closest('.atf-validation-table-wrap'),
           validationTitle = text(card, '.card-title a.node').trim();
         if (
           assertion &&
@@ -127,7 +128,7 @@ function normalizeEvidenceDisclosures() {
             row,
             'assertion-evidence',
             'Assertions · ' + count,
-            assertion
+            assertionContainer || assertion
           );
         }
       }

@@ -146,6 +146,27 @@ rendererul fallback:
   și header); statusul rămâne însă semantic pentru fiecare nod (`Warning` sau
   `Pass`), astfel încât stilul comun nu schimbă verdictul și nu creează o
   validare UI artificială;
+- inspectorul de rețea este un nod synthetic unic, iar `Network aggregate · N
+  exchanges` este copilul său real; copilul deține disclosure-urile typed pentru
+  auth, correlation, transport, unique signatures și diagnostics, fără să
+  repete titlul sau request-urile în părinte;
+- `Unique request signatures` și `Technical diagnostics` au summary disclosure
+  de 2× înălțimea standard și sunt collapsed implicit pentru scanare vizuală;
+  regula este exclusiv de prezentare și nu schimbă cardinalitatea, verdictul
+  sau deduplicarea;
+- `Playwright action sequence`, `Audit observations` și `Assertions` reutilizează
+  aceeași geometrie de summary de 2× și aceeași zonă de tabel cu viewport
+  vertical bounded, scrollabil, cu header sticky; wrapper-ul este comun
+  rendererelor Extent și fallback și nu mută screenshot-ul în viewport-ul
+  tabelului;
+- toate tabelele care pot derula vertical folosesc aceeași înălțime de viewport
+  ca `Overview → System/Environment`: tokenul unic
+  `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT` (`500px` în profilul curent),
+  publicat ca `--atf-table-scroll-height`. Regula acoperă System/Environment,
+  Category/Overview, tag audit, Playwright action, audit observations,
+  assertions și echivalentele API/UI; nu există înălțimi hardcodate per
+  renderer. Blocurile JSON/code sunt payload panes, nu tabele, și își păstrează
+  limita compactă proprie;
 - când există mai multe exchange-uri, `Execution evidence` trebuie să păstreze
   identitatea exchange-ului în disclosure-ul părinte sau în titlu; repetarea
   unui titlu generic fără context nu este auditabilă;
@@ -241,6 +262,15 @@ alte facts HTTP non-duplicative
 transportului. El păstrează URL-ul efectiv, durata response-ului, numărul de
 încercări, numărul de retry events și istoricul attempt-urilor. Este închis
 implicit și nu trebuie contopit cu `TECHNICAL TRACE`.
+
+Un `request-failed` înainte de orice răspuns HTTP este un caz diferit de un
+răspuns existent cu body absent:
+
+- sentinelul intern `status=-1` se afișează `Unavailable`, nu ca status HTTP;
+- încercarea are outcome `FAILURE` și motiv bounded; nu se fabrică `RESPONSE JSON`;
+- exchange-ul și inspectorul sunt `Warning`, iar agregarea păstrează scenariul
+  `Warning` chiar dacă un consumer îl închide cu `PASS`. Testul de business
+  decide separat dacă acel failure este `FAIL`.
 
 Retry-ul Playwright are aceeași regulă de fail-closed, dar este o policy de UI
 separată de retry-ul transportului: `UiRetryPolicy` pornește cu un singur
@@ -346,6 +376,20 @@ iar verificarea browser confirmă atât suma lățimilor, cât și faptul că ac
 coloană dominantă primește lățimea dominantă.
 
 </details>
+
+### Layout pentru evidence `FIELD | VALUE`
+
+În tabelele key/value din trace și din detaliile request/response:
+
+- `FIELD`: lățimea cheilor vizibile, limitată la 20–38%;
+- `VALUE`: spațiul rămas, minimum 62% la lățimea disponibilă;
+- alte tabele: alocarea content-aware existentă, nemodificată;
+- viewport îngust: textul se rupe în celule, fără scroll orizontal al paginii.
+
+Markerii `data-atf-key-value-layout` și `data-atf-key-column-width` expun
+decizia de layout pentru audit. `ValidationTableLayoutComponentTest` verifică
+contractul runtime, iar `ValidationTableLayoutInspector` verifică lățimile și
+absența overflow-ului în browser.
 
 ## Fails și legături
 
