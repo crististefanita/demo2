@@ -3,6 +3,7 @@ package atf.ui.practiceshop.flow;
 import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.ui.practiceshop.pages.PracticeShopHomePage;
 import atf.ui.practiceshop.pages.PracticeShopProductPage;
+import atf.ui.practiceshop.config.PracticeShopApiCheckpoint;
 
 import java.util.List;
 
@@ -75,7 +76,7 @@ final class PracticeShopCatalogPurchaseStage {
                                 configuredProductPathFound && configuration.matchesProductPath(selectedProductPath)),
                         check("Selected product route loaded", selectedProductPath, page.url(),
                                 selectedProductPath != null && page.url().contains(selectedProductPath))),
-                context.apiNetwork().productEvidence())
+                context.apiNetwork().evidence(PracticeShopApiCheckpoint.PRODUCT))
                 .withAdditionalAssertions(productApiAssertions)
                 .withAdditionalAssertions(context.purchaseScreenValidator().product(page)));
 

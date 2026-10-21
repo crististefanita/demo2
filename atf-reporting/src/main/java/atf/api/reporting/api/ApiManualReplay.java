@@ -5,6 +5,7 @@ import atf.api.reporting.api.ReportHttpHeaders;
 import atf.api.reporting.api.ReportTransportProvenance;
 import atf.api.reporting.security.SensitiveDataRedactor;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -41,12 +42,33 @@ public final class ApiManualReplay {
     public static String redactedHeaders(ReportRequest request) {
         if (request == null) return "[]";
         return effectiveHeaders(request).entrySet().stream()
-                .map(entry -> entry.getKey() + "="
-                        + REDACTOR.redactField(entry.getKey(), entry.getValue()))
+                .map(ApiManualReplay::redactedHeader)
                 .collect(Collectors.joining(", ", "[", "]"));
     }
 
     public static String redactedHeaders(Object request) { return redactedHeaders(ReportModelAdapters.request(request)); }
+
+    /** Returns response headers without exposing credential-bearing values. */
+    public static String redactedHeaders(Map<String, String> headers) {
+        if (headers == null || headers.isEmpty()) return "[]";
+        return headers.entrySet().stream()
+                .map(ApiManualReplay::redactedHeader)
+                .collect(Collectors.joining(", ", "[", "]"));
+    }
+
+    /** Returns only stable, semantically useful response headers for a compact projection. */
+    public static String relevantResponseHeaders(Map<String, String> headers) {
+        if (headers == null || headers.isEmpty()) return "[]";
+        return headers.entrySet().stream()
+                .filter(entry -> isRelevantResponseHeader(entry.getKey()))
+                .map(ApiManualReplay::redactedHeader)
+                .collect(Collectors.joining(", ", "[", "]"));
+    }
+
+    private static String redactedHeader(Map.Entry<String, String> entry) {
+        return entry.getKey() + "="
+                + REDACTOR.redactField(entry.getKey(), entry.getValue());
+    }
 
     private static String curl(ReportRequest request, String url, String requestBody) {
         StringBuilder command = new StringBuilder("curl --request ")
@@ -67,10 +89,45 @@ public final class ApiManualReplay {
 
     private static Map<String, String> effectiveHeaders(ReportRequest request) {
         var headers = new LinkedHashMap<String, String>();
-        headers.put(ReportHttpHeaders.ACCEPT, "application/json");
-        headers.put(ReportHttpHeaders.CONTENT_TYPE, "application/json");
-        request.headers().forEach(headers::put);
-        return Map.copyOf(headers);
+        putHeader(headers, ReportHttpHeaders.ACCEPT, "application/json");
+        putHeader(headers, ReportHttpHeaders.CONTENT_TYPE, "application/json");
+        request.headers().entrySet().stream()
+                .filter(entry -> isReplayRelevantHeader(entry.getKey()))
+                .forEach(entry -> putHeader(headers, entry.getKey(), entry.getValue()));
+        return Collections.unmodifiableMap(headers);
+    }
+
+    private static void putHeader(Map<String, String> headers, String name, String value) {
+        String canonicalName = name.equalsIgnoreCase(ReportHttpHeaders.ACCEPT)
+                ? ReportHttpHeaders.ACCEPT
+                : name.equalsIgnoreCase(ReportHttpHeaders.CONTENT_TYPE)
+                ? ReportHttpHeaders.CONTENT_TYPE
+                : name;
+        headers.put(canonicalName, value);
+    }
+
+    /**
+     * Browser transport headers do not help an API reader reproduce the
+     * exchange. Keep semantic/custom headers and authentication signals, but
+     * omit client fingerprint, navigation and connection noise.
+     */
+    private static boolean isReplayRelevantHeader(String name) {
+        if (name == null || name.isBlank()) return false;
+        String normalized = name.trim().toLowerCase(java.util.Locale.ROOT);
+        return !normalized.startsWith("sec-")
+                && !java.util.Set.of("user-agent", "referer", "origin", "host",
+                "content-length", "accept-encoding", "connection").contains(normalized);
+    }
+
+    private static boolean isRelevantResponseHeader(String name) {
+        if (name == null || name.isBlank()) return false;
+        String normalized = name.trim().toLowerCase(java.util.Locale.ROOT);
+        if (normalized.startsWith("access-control-")) return false;
+        return !java.util.Set.of("content-type", "content-length", "date", "cache-control",
+                "content-encoding", "connection", "transfer-encoding", "vary", "server",
+                "via", "age", "expires", "strict-transport-security",
+                "x-content-type-options", "x-frame-options", "referrer-policy",
+                "permissions-policy", "set-cookie").contains(normalized);
     }
 
     private static String shellQuote(String value) {

@@ -2,6 +2,7 @@ package atf.api.reporting.ui;
 
 import atf.api.reporting.console.AtfConsoleSink;
 import atf.api.reporting.evidence.profile.ReportEvidenceProfile;
+import atf.api.reporting.configuration.ReportEnvironmentSnapshot;
 
 import java.nio.file.Path;
 import java.util.Map;
@@ -13,12 +14,23 @@ public record UiExtentReportOptions(Path outputDirectory,
                                     AtfConsoleSink console,
                                     ReportEvidenceProfile evidenceProfile,
                                     boolean timestampEnabled,
-                                    Map<String, String> systemInfo) {
+                                    Map<String, String> systemInfo,
+                                    ReportEnvironmentSnapshot environment) {
     public UiExtentReportOptions(Path outputDirectory, String fileName,
                                  AtfConsoleSink console,
                                  ReportEvidenceProfile evidenceProfile,
                                  boolean timestampEnabled) {
-        this(outputDirectory, fileName, console, evidenceProfile, timestampEnabled, Map.of());
+        this(outputDirectory, fileName, console, evidenceProfile, timestampEnabled,
+                Map.of(), ReportEnvironmentSnapshot.empty());
+    }
+
+    public UiExtentReportOptions(Path outputDirectory, String fileName,
+                                 AtfConsoleSink console,
+                                 ReportEvidenceProfile evidenceProfile,
+                                 boolean timestampEnabled,
+                                 Map<String, String> systemInfo) {
+        this(outputDirectory, fileName, console, evidenceProfile, timestampEnabled,
+                systemInfo, ReportEnvironmentSnapshot.empty());
     }
 
     public UiExtentReportOptions {
@@ -29,6 +41,7 @@ public record UiExtentReportOptions(Path outputDirectory,
         console = Objects.requireNonNull(console, "console");
         evidenceProfile = Objects.requireNonNull(evidenceProfile, "evidenceProfile");
         systemInfo = systemInfo == null ? Map.of() : Map.copyOf(systemInfo);
+        environment = environment == null ? ReportEnvironmentSnapshot.empty() : environment;
     }
 
     public static Builder builder(Path outputDirectory) {
@@ -43,6 +56,7 @@ public record UiExtentReportOptions(Path outputDirectory,
         private ReportEvidenceProfile evidenceProfile = ReportEvidenceProfile.defaults();
         private boolean timestampEnabled = true;
         private Map<String, String> systemInfo = Map.of();
+        private ReportEnvironmentSnapshot environment = ReportEnvironmentSnapshot.empty();
 
         private Builder(Path outputDirectory) {
             this.outputDirectory = Objects.requireNonNull(outputDirectory, "outputDirectory");
@@ -73,9 +87,15 @@ public record UiExtentReportOptions(Path outputDirectory,
             return this;
         }
 
+        /** Adds semantic, allowlisted fields to Overview/System metadata. */
+        public Builder environment(ReportEnvironmentSnapshot value) {
+            environment = value == null ? ReportEnvironmentSnapshot.empty() : value;
+            return this;
+        }
+
         public UiExtentReportOptions build() {
             return new UiExtentReportOptions(outputDirectory, fileName, console,
-                    evidenceProfile, timestampEnabled, systemInfo);
+                    evidenceProfile, timestampEnabled, systemInfo, environment);
         }
     }
 }

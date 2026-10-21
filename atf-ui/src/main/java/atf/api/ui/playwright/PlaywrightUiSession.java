@@ -2,6 +2,7 @@ package atf.api.ui.playwright;
 
 import atf.api.core.reporting.console.AtfConsoleSink;
 import atf.api.ui.config.UiBrowserConfiguration;
+import atf.api.ui.config.UiRetryPolicy;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.BrowserType;
@@ -25,17 +26,19 @@ public final class PlaywrightUiSession implements AutoCloseable {
     private final Page page;
     private final UiActionTrace actionTrace;
     private final Duration actionTimeout;
+    private final UiRetryPolicy retryPolicy;
     private boolean closed;
 
     private PlaywrightUiSession(Playwright playwright, Browser browser,
                                 BrowserContext context, Page page, UiActionTrace actionTrace,
-                                Duration actionTimeout) {
+                                Duration actionTimeout, UiRetryPolicy retryPolicy) {
         this.playwright = playwright;
         this.browser = browser;
         this.context = context;
         this.page = page;
         this.actionTrace = Objects.requireNonNull(actionTrace, "actionTrace");
         this.actionTimeout = Objects.requireNonNull(actionTimeout, "actionTimeout");
+        this.retryPolicy = Objects.requireNonNull(retryPolicy, "retryPolicy");
     }
 
     public static PlaywrightUiSession open(UiBrowserConfiguration configuration) {
@@ -65,7 +68,7 @@ public final class PlaywrightUiSession implements AutoCloseable {
             context.setDefaultTimeout(configuration.timeout().toMillis());
             context.setDefaultNavigationTimeout(configuration.navigationTimeout().toMillis());
             return new PlaywrightUiSession(playwright, browser, context, context.newPage(), trace,
-                    configuration.timeout());
+                    configuration.timeout(), configuration.retryPolicy());
         } catch (RuntimeException error) {
             playwright.close();
             throw error;
@@ -112,7 +115,7 @@ public final class PlaywrightUiSession implements AutoCloseable {
     /** Starts an isolated consecutive action log for one visual validation state. */
     public PlaywrightActionSequence newActionSequence() {
         if (closed) throw new IllegalStateException("Playwright UI session is closed");
-        return new PlaywrightActionSequence(actionTrace, actionTimeout);
+        return new PlaywrightActionSequence(actionTrace, actionTimeout, retryPolicy);
     }
 
     public void navigate(URI uri) {

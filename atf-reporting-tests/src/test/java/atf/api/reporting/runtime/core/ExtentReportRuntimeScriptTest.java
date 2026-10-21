@@ -103,6 +103,8 @@ class ExtentReportRuntimeScriptTest {
                         "Assertion failures must be discovered after legacy evidence is normalized"),
                 () -> assertTrue(evidence.contains("function assignNodeRoles("),
                         "Evidence must own semantic node roles"),
+                () -> assertTrue(evidence.contains("/^TRACE\\s+/.test(upper)"),
+                        "API trace cards must reuse the request role and its UI-equivalent collapse/layout contract"),
                 () -> assertTrue(navigation.contains("window.atfOpenTest=function"),
                         "Navigation must own deep links into Tests"),
                 () -> assertTrue(navigation.contains("function bindNodeCollapse("),

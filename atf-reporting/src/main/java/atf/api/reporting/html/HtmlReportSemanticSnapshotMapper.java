@@ -26,9 +26,10 @@ final class HtmlReportSemanticSnapshotMapper {
         if (node instanceof HtmlReportSemanticDocument.RequestModel request) {
             return new ReportExecutionModel.Request(request.title, request.method, request.path,
                     request.details.stream().toList(), request.json.stream().toList(),
-                    request.execution, request.children.stream()
+                    request.executions, request.children.stream()
                             .map(HtmlReportSemanticSnapshotMapper::mapNode).toList(),
-                    request.status, request.uiActionCount, request.screenshotCount);
+                    request.status, request.uiActionCount, request.screenshotCount,
+                    request.networkAggregate);
         }
         var validation = (HtmlReportSemanticDocument.ValidationModel) node;
         return new ReportExecutionModel.Validation(validation.title, validation.assertions,

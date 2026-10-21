@@ -17,13 +17,14 @@ import java.util.Map;
 import java.util.Objects;
 
 /** Small API adapter shared by screen-specific API modules and component tests. */
-public final class PracticeShopApiClient {
+public final class PracticeShopApiClient implements AutoCloseable {
     private static final ObjectMapper JSON = new ObjectMapper();
     private final PracticeShopApiRequestFactory requests;
     private final URI endpoint;
     private final ApiTransport transport;
     private final ApiExecutor executor;
     private String bearerToken = "";
+    private boolean closed;
 
     private PracticeShopApiClient(URI endpoint, ApiTransport transport,
                                   PracticeShopApiRequestFactory requests,
@@ -71,10 +72,12 @@ public final class PracticeShopApiClient {
     }
 
     public ApiExecutionResult execute(atf.api.core.http.request.ApiRequest request) {
+        ensureOpen();
         return executor.execute(request);
     }
 
     public PracticeShopApiSession login(PracticeShopCredentials credentials) {
+        ensureOpen();
         ApiExecutionResult result = execute(requests.login(credentials));
         var response = result.response();
         String token = PracticeShopApiHttpStatus.isSuccess(response.status())
@@ -83,10 +86,29 @@ public final class PracticeShopApiClient {
         return new PracticeShopApiSession(token, result);
     }
 
-    public ApiExecutionResult currentUser() { return execute(requests.currentUser(bearerToken)); }
+    public ApiExecutionResult currentUser() {
+        ensureOpen();
+        return execute(requests.currentUser(bearerToken));
+    }
     public PracticeShopApiRequestFactory requests() { return requests; }
     public URI endpoint() { return endpoint; }
     public String bearerToken() { return bearerToken; }
+
+    /**
+     * Closes the logical API session owned by this client. The current HTTP
+     * transport closes each URL connection per exchange, so cleanup here is
+     * deliberately about session state: no bearer token can survive the test
+     * boundary and later network use fails fast.
+     */
+    @Override
+    public void close() {
+        bearerToken = "";
+        closed = true;
+    }
+
+    private void ensureOpen() {
+        if (closed) throw new IllegalStateException("Practice Shop API client is closed");
+    }
 
     private static String token(String body) {
         try {

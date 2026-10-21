@@ -7,6 +7,8 @@ import atf.api.reporting.ui.UiScenarioLifecycle;
 import atf.api.reporting.console.AtfConsoleSink;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.evidence.profile.ReportEvidenceProfile;
+import atf.api.reporting.configuration.ReportEnvironmentField;
+import atf.api.reporting.configuration.ReportEnvironmentSnapshot;
 
 import org.junit.jupiter.api.Test;
 
@@ -50,6 +52,33 @@ class UiExtentReportSessionCompositionTest {
                 () -> assertEquals("ui.html", options.fileName()),
                 () -> assertEquals(profile, options.evidenceProfile()),
                 () -> assertFalse(options.timestampEnabled()));
+    }
+
+    @Test
+    void typedEnvironmentKeepsOverviewConfigurationOnAnAllowlist() {
+        var environment = ReportEnvironmentSnapshot.builder()
+                .put(ReportEnvironmentField.ENVIRONMENT, "LOCAL")
+                .put(ReportEnvironmentField.UI_TIMEOUT, "20 s")
+                .put(ReportEnvironmentField.TEST_PACKAGE, "atf.ui.tests.extent")
+                .put(ReportEnvironmentField.SUITE, "Extent UI audit")
+                .put(ReportEnvironmentField.FLOW, "report inspection")
+                .put(ReportEnvironmentField.FIXTURE, "ui-audit-fixture")
+                .put(ReportEnvironmentField.RETRY_POLICY, "read-only; max=2")
+                .build();
+        var options = UiExtentReportOptions.builder(Path.of("target/reports"))
+                .environment(environment)
+                .build();
+
+        assertAll(
+                () -> assertEquals("LOCAL",
+                        options.environment().displayValues().get("Environment")),
+                () -> assertEquals("20 s",
+                         options.environment().displayValues().get("UI action timeout")),
+                () -> assertFalse(options.environment().systemDisplayValues().containsKey("Test package")),
+                () -> assertFalse(options.environment().systemDisplayValues().containsKey("Suite")),
+                () -> assertFalse(options.environment().systemDisplayValues().containsKey("Flow")),
+                () -> assertFalse(options.environment().systemDisplayValues().containsKey("Fixture")),
+                () -> assertFalse(options.environment().displayValues().containsKey("raw.yaml.key")));
     }
 
     @Test

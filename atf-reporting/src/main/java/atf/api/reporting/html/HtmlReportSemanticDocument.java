@@ -7,6 +7,7 @@ import atf.api.reporting.model.ReportField;
 import atf.api.reporting.model.ReportJsonBody;
 import atf.api.reporting.model.ReportExecutionModel;
 import atf.api.reporting.model.ReportTagNormalizer;
+import atf.api.reporting.ui.network.ReportNetworkInspector;
 
 
 import java.util.ArrayList;
@@ -128,7 +129,8 @@ public final class HtmlReportSemanticDocument {
         final List<ReportField> details = new ArrayList<>();
         final List<ReportJsonBody> json = new ArrayList<>();
         final List<NodeModel> children = new ArrayList<>();
-        ReportExecutionEvidence execution;
+        final List<ReportExecutionEvidence> executions = new ArrayList<>();
+        ReportNetworkInspector.JourneyAggregate networkAggregate;
         int uiActionCount;
         int screenshotCount;
         AtfReportStatus status = AtfReportStatus.INFO;
@@ -152,7 +154,11 @@ public final class HtmlReportSemanticDocument {
         }
 
         public ReportExecutionEvidence execution() {
-            return execution;
+            return executions.isEmpty() ? null : executions.get(executions.size() - 1);
+        }
+
+        public List<ReportExecutionEvidence> executions() {
+            return List.copyOf(executions);
         }
 
         public void addJson(String label, String json) {
@@ -160,12 +166,18 @@ public final class HtmlReportSemanticDocument {
         }
 
         public void execution(ReportExecutionEvidence result) {
-            this.execution = result;
+            if (result != null) {
+                executions.add(result);
+            }
+        }
+
+        public void networkAggregate(ReportNetworkInspector.JourneyAggregate aggregate) {
+            networkAggregate = aggregate;
         }
 
         /** Compatibility seam for test-only legacy execution fixtures. */
         public void execution(Object result) {
-            this.execution = atf.api.reporting.api.ReportModelAdapters.execution(result);
+            execution(atf.api.reporting.api.ReportModelAdapters.execution(result));
         }
 
         public void addUiActions(Collection<AtfUiActionRecord> actions) {

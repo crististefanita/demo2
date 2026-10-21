@@ -13,4 +13,13 @@ public record ReportRequest(String method, String path, Map<String,String> query
         authProfile = authProfile == null || authProfile.isBlank() ? "none" : authProfile;
         bodyText = bodyText == null ? "" : bodyText;
     }
+
+    /** Safe typed auth observation; no credential value is retained. */
+    public ReportAuthObservation authObservation() {
+        return ReportAuthObservation.from(this);
+    }
+
+    public ReportAuthMethod authMethod() {
+        return authObservation().method();
+    }
 }

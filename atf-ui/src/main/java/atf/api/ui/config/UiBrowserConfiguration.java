@@ -15,7 +15,8 @@ public record UiBrowserConfiguration(
         int viewportWidth,
         int viewportHeight,
         int zoomPercent,
-        boolean screenshotOnFailure) {
+        boolean screenshotOnFailure,
+        UiRetryPolicy retryPolicy) {
 
     public static final int DEFAULT_ZOOM_PERCENT = 100;
     public static final int MIN_ZOOM_PERCENT = 25;
@@ -27,7 +28,18 @@ public record UiBrowserConfiguration(
                                   int viewportWidth, int viewportHeight,
                                   boolean screenshotOnFailure) {
         this(baseUrl, browser, headless, timeout, navigationTimeout,
-                viewportWidth, viewportHeight, DEFAULT_ZOOM_PERCENT, screenshotOnFailure);
+                viewportWidth, viewportHeight, DEFAULT_ZOOM_PERCENT, screenshotOnFailure,
+                UiRetryPolicy.none());
+    }
+
+    /** Compatibility constructor for callers that use the zoom policy only. */
+    public UiBrowserConfiguration(URI baseUrl, String browser, boolean headless,
+                                  Duration timeout, Duration navigationTimeout,
+                                  int viewportWidth, int viewportHeight,
+                                  int zoomPercent, boolean screenshotOnFailure) {
+        this(baseUrl, browser, headless, timeout, navigationTimeout,
+                viewportWidth, viewportHeight, zoomPercent, screenshotOnFailure,
+                UiRetryPolicy.none());
     }
 
     public UiBrowserConfiguration {
@@ -45,12 +57,13 @@ public record UiBrowserConfiguration(
             throw new IllegalArgumentException("ui.zoomPercent must be between "
                     + MIN_ZOOM_PERCENT + " and " + MAX_ZOOM_PERCENT);
         }
+        retryPolicy = Objects.requireNonNull(retryPolicy, "retryPolicy");
     }
 
     public static UiBrowserConfiguration defaults() {
         return new UiBrowserConfiguration(URI.create("about:blank"), "chromium", true,
                 Duration.ofSeconds(10), Duration.ofSeconds(15), 1440, 900,
-                DEFAULT_ZOOM_PERCENT, true);
+                DEFAULT_ZOOM_PERCENT, true, UiRetryPolicy.none());
     }
 
     private static Duration positive(Duration value, String name) {

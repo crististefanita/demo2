@@ -1,6 +1,7 @@
 package atf.api.ui.playwright;
 
 import atf.api.core.ui.AtfUiActionRecord;
+import atf.api.ui.config.UiRetryPolicy;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 
@@ -29,7 +30,12 @@ public final class PlaywrightActionSequence {
     }
 
     PlaywrightActionSequence(UiActionTrace trace, Duration stateTimeout) {
+        this(trace, stateTimeout, UiRetryPolicy.none());
+    }
+
+    PlaywrightActionSequence(UiActionTrace trace, Duration stateTimeout, UiRetryPolicy retryPolicy) {
         recorder = new UiActionRecorder(trace);
+        recorder.setRetryPolicy(retryPolicy);
         locatorActions = new PlaywrightLocatorActions(recorder);
         browserActions = new PlaywrightBrowserActions(recorder, stateTimeout);
     }

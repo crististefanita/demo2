@@ -65,6 +65,8 @@ public final class PracticeShopLocators {
     private static final String STATE = "input[data-test='state']";
     private static final String BILLING_PROCEED = "button[data-test='proceed-3']";
     private static final String PAYMENT_METHOD = "select[data-test='payment-method']";
+    private static final String PAYMENT_METHOD_SELECTED_OPTION =
+            PAYMENT_METHOD + " option:checked";
     private static final String FINISH = "button[data-test='finish']";
     private static final String ACCOUNT_HEADING = "h1";
     private static final String PAYMENT_SUCCESS =
@@ -144,6 +146,9 @@ public final class PracticeShopLocators {
     public AtfLocator state(Page page) { return css(page, STATE); }
     public AtfLocator billingProceed(Page page) { return css(page, BILLING_PROCEED); }
     public AtfLocator paymentMethod(Page page) { return css(page, PAYMENT_METHOD); }
+    public AtfLocator selectedPaymentMethod(Page page) {
+        return css(page, PAYMENT_METHOD_SELECTED_OPTION);
+    }
     public AtfLocator finish(Page page) { return css(page, FINISH); }
     public AtfLocator paymentSuccess(Page page) { return css(page, PAYMENT_SUCCESS); }
     /** Resolves a semantic control for annotation-driven page validation. */

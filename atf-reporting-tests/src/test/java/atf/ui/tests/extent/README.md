@@ -651,6 +651,27 @@ action sequence`, `Audit observations`, `Assertions` — astfel încât pasul s�
 auditabil dintr-o singură vedere. La închiderea scenariului, toate disclosure-
 urile revin colapsate; component testele verifică separat și această revenire.
 
+### Retry UI: policy publică, fail-closed
+
+Retry-ul Playwright este policy de acțiune, nu replay de test. `UiRetryPolicy`
+are implicit un singur attempt și niciun operation eligibil. YAML poate activa
+doar operații read-only enumerate (`navigate`, `wait-for-visible`,
+`wait-for-text`, `wait-for-enabled`, `wait-for-state`, `wait-for-disclosure`):
+
+```yaml
+ui:
+  retry:
+    maxAttempts: 2
+    backoff: PT0S
+    eligibleOperations: [wait-for-visible]
+    reason: DOM stabilization
+```
+
+`click`, `fill` și `select-option` nu sunt eligibile prin design. Fiecare retry
+este rând `Info` în tabelul Playwright cu tentativa și motivul bounded; acțiunea
+finală păstrează verdictul real. Loader-ul, recorder-ul și renderer-ul au
+teste component/unitare, iar E2E verifică numai efectul browser observabil.
+
 ### Tabele de evidență cu resize content-aware
 
 Tabelele de evidență din raport nu trebuie să folosească o împărțire uniformă

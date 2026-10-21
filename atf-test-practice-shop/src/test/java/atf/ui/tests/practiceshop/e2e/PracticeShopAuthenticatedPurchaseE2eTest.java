@@ -1,11 +1,10 @@
 package atf.ui.tests.practiceshop.e2e;
 
 import atf.api.reporting.contract.AtfGherkinKeyword;
-import atf.api.reporting.contract.AtfAssertion;
 import atf.api.testkit.AtfE2eTest;
 import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.ui.practiceshop.config.PracticeShopConfiguration;
-import atf.ui.practiceshop.config.PracticeShopConfigurationLoader;
+import atf.ui.practiceshop.config.PracticeShopApiCheckpoint;
 import atf.ui.practiceshop.config.PracticeShopCredentials;
 import atf.ui.practiceshop.flow.PracticeShopAccountFlow;
 import atf.ui.practiceshop.flow.PracticeShopPurchaseFlow;
@@ -14,38 +13,37 @@ import atf.ui.practiceshop.pages.PracticeShopAccountPage;
 import atf.ui.practiceshop.support.PracticeShopE2eContext;
 import atf.ui.practiceshop.support.PracticeShopPageValidator;
 import atf.ui.practiceshop.support.PracticeShopPurchaseCheckpoint;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import atf.ui.practiceshop.support.PracticeShopRuntimeDiagnostics;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
+import atf.ui.tests.practiceshop.support.PracticeShopTestSupport;
 
 /** One authenticated purchase proof: reusable login setup, then the complete UI journey. */
-@EnabledIf("isConfigured")
+@PracticeShopTestSupport.RequiresAuthenticatedFixture
 @AtfE2eTest
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Execution(ExecutionMode.SAME_THREAD)
 @DisplayName("Practice Shop authenticated purchase flow")
 class PracticeShopAuthenticatedPurchaseE2eTest {
     private PracticeShopConfiguration configuration;
     private PracticeShopCredentials credentials;
     private PracticeShopE2eContext context;
+    private PracticeShopTestSupport.E2eHarness harness;
     private final PracticeShopLocators locators = new PracticeShopLocators();
 
-    static boolean isConfigured() { return PracticeShopConfigurationLoader.load().authenticatedE2eAllowed(); }
-
-    @BeforeAll
+    @BeforeEach
     void open() {
-        configuration = PracticeShopConfigurationLoader.load();
+        harness = PracticeShopTestSupport.openE2e();
+        configuration = harness.configuration();
         credentials = PracticeShopCredentials.load(configuration.accountFile());
-        context = PracticeShopE2eContext.open(configuration);
+        context = harness.context();
     }
 
-    @AfterAll
-    void close() { if (context != null) context.close(); }
+    @AfterEach
+    void close() { if (harness != null) harness.close(); }
 
     @Test
     @DisplayName("Reusable account can complete a purchase after API-backed login setup")
@@ -68,7 +66,7 @@ class PracticeShopAuthenticatedPurchaseE2eTest {
                                     .validate(context.page(), PracticeShopAccountPage.class, "My account")
                                     .assertions())
                             .withAdditionalAssertions(loginAssertions)
-                            .withApiEvidence(context.apiNetwork().loginEvidence()));
+                            .withApiEvidence(context.apiNetwork().evidence(PracticeShopApiCheckpoint.LOGIN)));
 
             new PracticeShopPurchaseFlow(locators).purchaseConfiguredProductAuthenticated(
                     context.page(), actions, configuration,
@@ -77,11 +75,12 @@ class PracticeShopAuthenticatedPurchaseE2eTest {
             context.runtimeDiagnostics().assertClean();
             var runtimeWarnings = context.runtimeDiagnostics().expectedRuntimeWarnings();
             if (!runtimeWarnings.isEmpty()) {
-                scenario.warning("known external bootstrap diagnostics are visible",
-                        context.runtimeDiagnostics().expectedRuntimeWarningTarget(), runtimeWarnings.stream()
-                                .map(message -> new AtfAssertion("Browser runtime signal",
-                                        "known anonymous bootstrap signal", message, true))
-                                .toList());
+                String warningTarget = context.runtimeDiagnostics().expectedRuntimeWarningTarget();
+                var runtimeDiagnostics = context.runtimeDiagnostics().structuredDiagnostics().stream()
+                        .filter(PracticeShopRuntimeDiagnostics::isExpectedAuthenticatedSetupSignal)
+                        .toList();
+                scenario.warningDiagnostics("known external bootstrap diagnostics are visible",
+                        warningTarget, PracticeShopRuntimeDiagnostics.toNetworkDiagnostics(runtimeDiagnostics));
                 scenario.complete(atf.api.reporting.contract.AtfReportStatus.WARNING);
             } else {
                 scenario.complete();

@@ -153,6 +153,43 @@ Extent și fallback-ul să împartă aceeași structură internă:
 - modelele rămân separate: `Overview/Categories/Fails` sunt specifice fallback-ului,
   iar snapshot-ul este contractul comun renderer-neutral.
 
+`ReportExecutionModel.projections()` expune aceeași populație printr-un singur
+`ReportExecutionProjections` typed, colectat într-o singură traversare
+renderer-neutrală. Fațadele existente `overview()`,
+`categories()` și `failures()` rămân disponibile pentru compatibilitate, dar
+composition roots și validatorii noi pot transmite agregatul fără să aleagă
+proiecții din surse diferite. Agregatul nu deține lifecycle state și nu schimbă
+arborele immutable; separarea dintre recorderul mutabil și proiecția pură rămâne
+explicită.
+
+### Snapshot typed pentru Overview/System
+
+Configurația relevantă a unui run se publică printr-un snapshot allowlist-uit,
+nu prin dump-ul arbitrar al YAML-ului:
+
+```java
+var environment = ReportEnvironmentSnapshot.builder()
+        .put(ReportEnvironmentField.ENVIRONMENT, "LOCAL")
+        .put(ReportEnvironmentField.PROFILE, "users-posts")
+        .put(ReportEnvironmentField.UI_TIMEOUT, "20 s")
+        .build();
+```
+
+`ReportEnvironmentField` deține vocabularul semantic și grupul de afișare
+(`Runtime`, `Targets`, `Browser`, `Time`, `Precondition`, `Network`, `Retry`,
+`Evidence`, `Reporting`). `ReportEnvironmentSnapshot` este immutable, ignoră valori goale
+și separă `displayValues()` (context typed complet) de `systemDisplayValues()`
+(allowlist operațional pentru `Overview/System`); `ReportEnvironment` aplică redaction
+la boundary-ul Extent. Overload-urile
+vechi cu `Map<String,String>` rămân pentru compatibilitate și migrare; codul nou
+preferă snapshot-ul typed pentru a preveni chei arbitrare, duplicate și valori
+tehnice neacționabile în `System/Environment`.
+
+Snapshot-ul nu înlocuiește evidence-ul observat: request/response, retry,
+screenshot și verdictul rămân în `TEST BODY`; `Overview/System` explică numai
+configurația operațională efectivă a run-ului. Nu publică `Suite`, `Test package`,
+`Flow`, `Fixture`, `Checkout` sau payload business.
+
 ## Contractul raportului
 
 ```text
@@ -191,20 +228,80 @@ creează un test artificial și nu recalculează verdictul; proiectează schimbu
 
 ```text
 UI checkpoint
-├── Request details  → method/path/url/query/auth/headers/transport + REQUEST JSON
-├── Response details → status/content-type/headers + RESPONSE JSON
+├── Request details  → method/path/url/auth profile/type/relevant headers/transport/replay + REQUEST JSON
+├── Response details → status/content-type + RESPONSE JSON
 └── Execution evidence → attempts/retries/duration/outcome
 ```
 
-Disclosures sunt închise by default și rămân pe același nod UI. Body-urile sunt
-afișate cu limita configurată de consumer prin
-`reporting.bodyMaxDisplayCharacters`, cu redaction înainte de render; nu se
-introduce o limită hardcodată în `atf-reporting`. `atf-reporting` rămâne
-independent de mock, browser și aplicație: consumerul furnizează datele typed,
-iar librăria publică numai contractul semantic și layout-ul verificabil.
+- disclosures sunt închise by default și rămân pe același nod UI;
+- în consumerul UI, forma țintă este `Gherkin API trace → API validation →
+  exchange disclosures`; `API validation` trebuie să aibă același rol vizibil și
+  același status semantic ca `UI validation`;
+- pentru `apiTrace(...)`, cardul sibling păstrează titlul Gherkin exact și
+  prefixează câmpurile cu `API n ·` numai pentru corelarea exchange-urilor;
+  aceasta aliniază vocabularul și redaction policy, dar nu înlocuiește forma
+  canonicală per exchange din raportul API direct;
+- `Execution evidence · 1 attempts` nu poate rămâne un titlu repetat fără
+  context: exchange-ul trebuie identificat prin disclosure-ul părinte sau printr-un
+  label semantic per exchange;
+- proiecția UI folosește aceeași semantică și redaction policy ca raportul API
+  direct: headerele browserului și response headers volatile sunt filtrate,
+  iar response headers stabile sunt opționale;
+- body-urile folosesc limita consumerului `reporting.bodyMaxDisplayCharacters`;
+- redaction-ul precedă render-ul; default-ul este `100`, iar `0` dezactivează
+  limita pentru body preview;
+- renderer-ul nu introduce o limită hardcodată;
+- consumerul furnizează datele typed, iar `atf-reporting` publică numai
+  contractul semantic și layout-ul verificabil, independent de mock, browser și
+  aplicație.
 
 Verdictul este calculat de execution/validation și doar publicat de reporting.
 Rendererul nu inventează statusuri.
+
+### Inspector agregat pentru journey UI/API
+
+`ReportNetworkInspector.JourneyAggregate` este proiecția semantică a journey-ului;
+nu este un al doilea trace și nu înlocuiește evidence-ul canonical al unui exchange.
+
+```mermaid
+flowchart LR
+    Checkpoint["UI checkpoint"] -->|cauzează| Trace["API trace sibling"]
+    Trace -->|păstrează canonical| Evidence["request · response · execution"]
+    Trace -->|indexează| Aggregate["journey aggregate"]
+    Aggregate -->|grupează| Facts["auth · correlation · transport · signatures · diagnostics"]
+```
+
+<details>
+<summary><strong>Legendă — ce intră în aggregate și ce rămâne local</strong></summary>
+
+- `authentication` grupează numai method/source/status/count; semantica este
+  `observed`, nu validarea tokenului, issuerului sau claims-urilor;
+- `correlation` păstrează legătura dintre checkpoint și exchange-urile cauzate;
+- `transport` numără observations, success/failure, attempts, retries și
+  provenance live/mock/unknown;
+- `signatures` grupează signature-ul safe cu count și statusuri;
+- `diagnostics` deduplicatează response/console/page după method/route/status și
+  păstrează `count` și `sources`, fără mesaje volatile; pentru semnale fără facts
+  de transport, tripletul gol nu este o identitate suficientă și cere o cheie
+  bounded distinctă;
+- body-urile JSON, headerele sensibile și execution details rămân în disclosure-ul
+  canonical al exchange-ului; nu se copiază în sumar;
+- consumerul selectează evidence-ul înainte de publisher, prin contract typed;
+  renderer-ul nu decide ce request-uri intră;
+- `Overview → System` nu este owner pentru trace, auth, diagnostic sau body;
+  acestea aparțin inspectorului/evidence-ului.
+
+</details>
+
+În implementarea curentă, bridge-ul generic publică aggregate-ul într-un singur
+nod collapsed `TRACE`, cu disclosure-uri nested pentru auth, correlation,
+transport, signatures și diagnostics. Limita rămasă este separată: când un
+checkpoint are mai multe exchange-uri, request/response sunt încă serializate
+în tabele comune, lipsește copilul `API validation`, iar `TRACE PARENT STEP`/
+`TRACE POSITION` ajung în response details. Forma țintă reutilizează disclosure-
+urile API direct per exchange, fără JSON duplicat și cu execution evidence
+identificabil; acest gap este urmărit în `REP-TRACE-03`, iar URL wrapping-ul în
+`REP-EVID-08`.
 
 ## Structura producției
 
@@ -221,7 +318,7 @@ Rendererul nu inventează statusuri.
 
 ```text
 atf.api.reporting
-├── semantic/       snapshot și recorder lifecycle
+├── semantic/       snapshot, recorder facade, lifecycle orchestrator și state aggregate mutation intern
 ├── model/          execution tree și evidence POJO
 ├── markup/         Extent nodes, assets și vocabulary bridge
 ├── html/            fallback document și script builder
@@ -512,12 +609,15 @@ publication policy, validarea target-ului și proiecția în artifact.
 
 ### Evidence JSON și renderer-ele UI
 
-`ReportJsonBody` păstrează body-ul semantic așa cum a fost primit. Pentru
-afișare, atât Extent cât și fallback HTML folosesc
-`ReportJsonBodyFormatter`: redaction-ul se aplică primul, pretty-print-ul este
-determinist, iar limita `bodyMaxDisplayCharacters` se aplică numai după
-formatare. Obiectele, array-urile, scalarul și `null` sunt păstrate; payload-ul
-invalid rămâne neschimbat pentru diagnostic și nu este transformat artificial.
+- `ReportJsonBody` păstrează body-ul semantic așa cum a fost primit;
+- Extent și fallback HTML folosesc același `ReportJsonBodyFormatter`;
+- redaction-ul se aplică primul, pretty-print-ul este determinist, iar limita
+  `bodyMaxDisplayCharacters` se aplică numai după formatare;
+- markerul de truncare arată prefixul și lungimea totală; `0` publică body-ul
+  complet;
+- obiectele, array-urile, scalarul și `null` sunt păstrate;
+- payload-ul invalid rămâne neschimbat pentru diagnostic și nu este transformat
+  artificial.
 
 `ExtentUiEvidenceRenderer` este orchestration-only:
 

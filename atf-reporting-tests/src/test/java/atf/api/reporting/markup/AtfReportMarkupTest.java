@@ -105,6 +105,19 @@ class AtfReportMarkupTest {
     }
 
     @Test
+    void multiExchangeUiTraceReusesDirectApiVocabularyWithoutRequestPrefixNoise() {
+        assertAll(
+                () -> assertEquals("API 1 · METHOD", EvidenceTableFormatter.displayName("request.api.1.method")),
+                () -> assertEquals("API 1 · PATH", EvidenceTableFormatter.displayName("request.api.1.path")),
+                () -> assertEquals("API 1 · TRANSPORT PROVENANCE",
+                        EvidenceTableFormatter.displayName("request.api.1.transport")),
+                () -> assertEquals("API 2 · HTTP STATUS",
+                        EvidenceTableFormatter.displayName("response.api.2.status")),
+                () -> assertEquals("API 2 · CONTENT-TYPE",
+                        EvidenceTableFormatter.displayName("response.api.2.content.type")));
+    }
+
+    @Test
     void requestAndResponseDetailsKeepTheirOwnEvidence() {
         var allDetails = List.of(
                 new String[]{"Duration", "12 ms"},

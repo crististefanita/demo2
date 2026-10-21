@@ -8,6 +8,7 @@ import atf.api.reporting.ui.AtfUiEvidenceSource;
 import atf.api.reporting.ui.UiExtentReportSession;
 import atf.api.reporting.ui.contract.ReportUiContract;
 import atf.ui.tests.extent.support.config.UiConfiguration;
+import atf.ui.tests.extent.support.config.environment.UiReportEnvironmentSnapshotFactory;
 
 import java.nio.file.Path;
 import java.time.Clock;
@@ -29,7 +30,9 @@ public final class UiFailureReportFactory {
         String fileName = configuration.timestampedReportFileName(
                 "ui-failure-contract-input", Clock.systemDefaultZone());
         UiExtentReportSession report = UiExtentReportSession.openConfiguredResolved(
-                configuration.reportDirectory(), fileName, AtfConsoleSink.noOp());
+                configuration.reportDirectory(), fileName, AtfConsoleSink.noOp(),
+                UiReportEnvironmentSnapshotFactory.fixture(
+                        "UI failure contract", "failure evidence channels"));
         try {
             setupFailure(report);
             actionFailure(report);

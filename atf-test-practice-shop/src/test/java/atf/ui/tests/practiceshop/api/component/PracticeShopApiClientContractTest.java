@@ -94,6 +94,18 @@ class PracticeShopApiClientContractTest {
         assertEquals(PracticeShopApiScenarioFixture.UNAUTHORIZED_BODY, currentUser.response().body());
     }
 
+    @Test
+    void closingClientClearsSessionAndRejectsLaterNetworkUse() {
+        var client = PracticeShopApiComponentFixture.client();
+        client.login(PracticeShopApiScenarioFixture.validCredentials());
+
+        client.close();
+
+        assertEquals("", client.bearerToken());
+        assertThrows(IllegalStateException.class,
+                () -> client.currentUser());
+    }
+
     private static ApiTransport jsonTransport(String responseBody) {
         return (request, url, auth) -> CompletableFuture.completedFuture(new ApiResponse(
                 PracticeShopApiHttpStatus.OK.code(), responseBody,

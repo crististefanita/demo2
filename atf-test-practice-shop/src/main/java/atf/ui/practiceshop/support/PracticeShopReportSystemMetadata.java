@@ -2,10 +2,12 @@ package atf.ui.practiceshop.support;
 
 import atf.ui.practiceshop.config.PracticeShopConfiguration;
 import atf.api.core.config.ApiTransportMode;
+import atf.api.reporting.configuration.ReportingSettings;
+import atf.api.reporting.configuration.ReportEnvironmentField;
+import atf.api.reporting.configuration.ReportEnvironmentSnapshot;
 
 import java.net.URI;
-import java.util.Collections;
-import java.util.LinkedHashMap;
+import java.time.Duration;
 import java.util.Map;
 
 /** Builds the safe, semantic configuration snapshot shown in Overview/System. */
@@ -16,41 +18,87 @@ public final class PracticeShopReportSystemMetadata {
     }
 
     public static Map<String, String> from(PracticeShopConfiguration configuration) {
-        if (configuration == null) return Map.of();
-        var metadata = new LinkedHashMap<String, String>();
-        metadata.put("Environment", System.getProperty(ENVIRONMENT_PROPERTY, "LOCAL"));
-        metadata.put("UI host", origin(configuration.baseUrl()));
-        metadata.put("API endpoint", origin(configuration.api().endpoint()));
-        metadata.put("Browser", browser(configuration));
-        metadata.put("Validation profile", configuration.validationProfile().name().toLowerCase());
-        metadata.put("API mode", configuration.api().mode().name());
-        metadata.put("API precondition", configuration.api().precondition().name().toLowerCase());
-        metadata.put("API evidence", configuration.validationProfile().apiEvidenceRequired()
-                ? "enabled per UI checkpoint" : "disabled by profile");
-        metadata.put("Screenshot policy", configuration.browser().screenshotOnFailure()
-                ? "failure checkpoints" : "disabled");
-        metadata.put("UI timeout", configuration.browser().timeout().toString());
-        metadata.put("Navigation timeout", configuration.browser().navigationTimeout().toString());
-        metadata.put("API timeout", configuration.api().timeout().toString());
-        metadata.put("UI report destination", "configured UI report directory");
-        metadata.put("API report destination", "configured API report directory");
-        metadata.put("Product fixture", configuration.productName() + "; route="
-                + configuration.productPathExpectation());
-        metadata.put("Checkout", "quantity=" + configuration.checkout().quantity()
-                + "; payment=" + configuration.checkout().paymentMethod());
-        metadata.put("Authenticated E2E", "configured=" + configuration.authenticatedE2eEnabled()
-                + "; allowed=" + configuration.authenticatedE2eAllowed());
-        metadata.put("Suite", "Practice Shop purchase E2E");
-        metadata.put("Provenance", configuration.api().mode() == ApiTransportMode.LIVE
-                ? "LIVE_HTTP when network evidence is present" : "acceptance/fixture boundary");
-        return Collections.unmodifiableMap(metadata);
+        return from(configuration, ReportingSettings.defaults());
+    }
+
+    /** Builds the allowlisted form consumed by the reporting composition root. */
+    public static ReportEnvironmentSnapshot snapshot(PracticeShopConfiguration configuration,
+                                                     ReportingSettings reportingSettings) {
+        if (configuration == null) return ReportEnvironmentSnapshot.empty();
+        if (reportingSettings == null) throw new NullPointerException("reportingSettings");
+        return ReportEnvironmentSnapshot.builder()
+                .put(ReportEnvironmentField.ENVIRONMENT,
+                        System.getProperty(ENVIRONMENT_PROPERTY, "LOCAL"))
+                .put(ReportEnvironmentField.UI_HOST, origin(configuration.baseUrl()))
+                .put(ReportEnvironmentField.API_ENDPOINT, origin(configuration.api().endpoint()))
+                .put(ReportEnvironmentField.BROWSER, browser(configuration))
+                .put(ReportEnvironmentField.PROFILE,
+                        profile(configuration))
+                .put(ReportEnvironmentField.TRANSPORT_MODE,
+                        configuration.api().mode() == ApiTransportMode.LIVE ? "LIVE HTTP" : "FIXTURE")
+                .put(ReportEnvironmentField.PRECONDITION,
+                        "API authentication: "
+                                + configuration.api().precondition().name().toLowerCase())
+                .put(ReportEnvironmentField.API_EVIDENCE,
+                        configuration.validationProfile().apiEvidenceRequired()
+                                ? "enabled at checkpoints: "
+                                + configuration.api().evidenceBinding().displayValue()
+                                : "disabled by profile")
+                .put(ReportEnvironmentField.NETWORK_INSPECTOR,
+                        configuration.validationProfile().apiEvidenceRequired()
+                                ? "Enabled · collapsed summary · checkpoints: "
+                                + configuration.api().evidenceBinding().displayValue()
+                                + " · JSON in checkpoint evidence"
+                                : "disabled by validation profile")
+                .put(ReportEnvironmentField.RETRY_POLICY,
+                        configuration.uiRetry().summary())
+                .put(ReportEnvironmentField.BODY_PREVIEW,
+                        String.format("%,d characters · full JSON remains in checkpoint evidence",
+                                reportingSettings.bodyMaxDisplayCharacters()))
+                .put(ReportEnvironmentField.SCREENSHOT_POLICY,
+                        configuration.browser().screenshotOnFailure()
+                                ? "Failure checkpoints" : "Disabled")
+                .put(ReportEnvironmentField.UI_TIMEOUT,
+                        humanDuration(configuration.browser().timeout()))
+                .put(ReportEnvironmentField.NAVIGATION_TIMEOUT,
+                        humanDuration(configuration.browser().navigationTimeout()))
+                .put(ReportEnvironmentField.API_TIMEOUT,
+                        humanDuration(configuration.api().timeout()))
+                .put(ReportEnvironmentField.SOURCE_BUILD,
+                        configuration.api().mode() == ApiTransportMode.LIVE
+                                ? "Live HTTP evidence when observed"
+                                : "Fixture transport boundary")
+                .put(ReportEnvironmentField.REPORTING,
+                        "Extent offline HTML · UI/API output roles separated")
+                .build();
+    }
+
+    /**
+     * Builds the consumer snapshot with the effective reporting body bound.
+     * The overload keeps the pure component contract convenient while the E2E
+     * composition root can publish the exact value loaded from {@code atf.yaml}.
+     */
+    public static Map<String, String> from(PracticeShopConfiguration configuration,
+                                           ReportingSettings reportingSettings) {
+        return snapshot(configuration, reportingSettings).displayValues();
     }
 
     private static String browser(PracticeShopConfiguration configuration) {
         var browser = configuration.browser();
-        return browser.browser() + "; headless=" + browser.headless()
-                + "; viewport=" + browser.viewportWidth() + "x" + browser.viewportHeight()
-                + "; zoom=" + browser.zoomPercent() + "%";
+        return browser.browser() + " · " + (browser.headless() ? "headless" : "headed")
+                + " · viewport " + browser.viewportWidth() + " × " + browser.viewportHeight()
+                + " · zoom " + browser.zoomPercent() + "%";
+    }
+
+    private static String profile(PracticeShopConfiguration configuration) {
+        return configuration.validationProfile().apiEvidenceRequired()
+                ? "UI + API evidence" : "UI evidence";
+    }
+
+    private static String humanDuration(Duration duration) {
+        long millis = duration.toMillis();
+        if (millis % 1_000 == 0) return (millis / 1_000) + "s";
+        return millis + "ms";
     }
 
     private static String origin(URI uri) {

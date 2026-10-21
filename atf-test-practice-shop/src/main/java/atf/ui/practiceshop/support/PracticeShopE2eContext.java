@@ -5,7 +5,9 @@ import atf.api.core.reporting.console.AtfConsoleSink;
 import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.configuration.AtfReportConfigurationLoader;
 import atf.api.reporting.ui.UiExtentReportSession;
+import atf.api.reporting.ui.network.ReportNetworkInspector;
 import atf.api.ui.config.UiScreenValidationConfiguration;
 import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.api.ui.playwright.PlaywrightUiSession;
@@ -17,6 +19,7 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
+import java.util.ArrayList;
 import java.util.List;
 
 /** Owns the browser/report lifecycle for one external Practice Shop suite. */
@@ -41,13 +44,17 @@ public final class PracticeShopE2eContext implements AutoCloseable {
                 + STAMP.withZone(Clock.systemDefaultZone().getZone()).format(Clock.systemDefaultZone().instant())
                 + ".html";
         AtfConsoleSink console = AtfConsoleReporter.configuredStdout();
+        var reportConfiguration = AtfReportConfigurationLoader.load();
         UiExtentReportSession report = UiExtentReportSession.openConfiguredResolved(
-                configuration.uiReportDirectory(), file, console,
-                PracticeShopReportSystemMetadata.from(configuration));
+                configuration.uiReportDirectory(), file,
+                atf.api.reporting.console.AtfConsoleSink.noOp(),
+                PracticeShopReportSystemMetadata.snapshot(configuration,
+                        reportConfiguration.reportingSettings()));
         try {
             PlaywrightUiSession browser = PlaywrightUiSession.open(configuration.browser(), console);
             PracticeShopApiNetworkJournal apiNetwork =
-                    new PracticeShopApiNetworkJournal(configuration.validationProfile());
+                    new PracticeShopApiNetworkJournal(configuration.validationProfile(),
+                            configuration.api().evidenceBinding());
             apiNetwork.attach(browser.page());
             PracticeShopRuntimeDiagnostics runtimeDiagnostics = new PracticeShopRuntimeDiagnostics();
             runtimeDiagnostics.attach(browser.page());
@@ -84,32 +91,41 @@ public final class PracticeShopE2eContext implements AutoCloseable {
                 reportClass, "atf.ui.tests.practiceshop",
                 overview, List.of("ui", "e2e", "external", "practice-shop"));
         var setup = scenario.startPhase("SETUP");
+        List<AtfAssertion> setupAssertions = setupAssertions();
+        AtfReportStatus setupStatus = setupAssertions.stream().allMatch(AtfAssertion::passed)
+                ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
         boolean authenticated = configuration.authenticatedE2eAllowed();
         setup.setup(AtfGherkinKeyword.GIVEN,
                 authenticated
                         ? "the pre-registered Practice Shop account fixture is loaded"
                         : "the typed guest checkout configuration is ready",
                 authenticated ? "practice-software-testing-account.properties" : "YAML checkout inputs",
-                List.of(new AtfAssertion(authenticated ? "Authenticated checkout" : "Guest checkout",
-                        authenticated ? "reusable account is required" : "valid and account-independent",
-                        authenticated
-                                ? "authenticated fixture is required by this journey"
-                                : configuration.accountConfigured()
-                                ? "optional account available" : "guest flow without account",
-                        true),
-                        new AtfAssertion("Account setup",
-                                authenticated ? "pre-registered account loaded before UI flow" : "not required",
-                                authenticated ? "fixture loaded; credentials redacted" : "guest journey",
-                                true),
-                        new AtfAssertion("API evidence profile", "ui-api or ui-only",
-                                configuration.validationProfile().name().toLowerCase(), true),
-                        new AtfAssertion("API evidence disclosures", "request, response and execution details are attached per checkpoint",
-                                configuration.validationProfile().apiEvidenceRequired()
-                                        ? "enabled per API exchange" : "disabled by profile",
-                                true)),
-                AtfReportStatus.PASS);
-        setup.complete(AtfReportStatus.PASS);
+                setupAssertions, setupStatus);
+        setup.complete(setupStatus);
         return new Scenario(scenario, title);
+    }
+
+    private List<AtfAssertion> setupAssertions() {
+        boolean accountConfigured = configuration.accountConfigured();
+        boolean authenticated = configuration.authenticatedE2eAllowed();
+        String selectedMode = authenticated ? "authenticated" : "guest";
+        String expectedMode = configuration.authenticatedE2eEnabled() && accountConfigured
+                ? "authenticated" : "guest";
+        String profile = configuration.validationProfile().name().toLowerCase().replace('_', '-');
+        return List.of(
+                new AtfAssertion("Checkout mode", expectedMode + " checkout is selected",
+                        selectedMode + " checkout; authenticatedE2eEnabled="
+                                + configuration.authenticatedE2eEnabled()
+                                + "; accountFile=" + (accountConfigured ? "available" : "missing"),
+                        expectedMode.equals(selectedMode)),
+                new AtfAssertion("Account setup",
+                        authenticated ? "pre-registered account file is available" : "not required for guest journey",
+                        authenticated
+                                ? (accountConfigured ? "account file available; credentials redacted" : "account file missing")
+                                : "guest journey; account file optional",
+                        !authenticated || accountConfigured),
+                new AtfAssertion("API evidence profile", "ui-api or ui-only", profile,
+                        "ui-api".equals(profile) || "ui-only".equals(profile)));
     }
 
     @Override public void close() {
@@ -135,6 +151,7 @@ public final class PracticeShopE2eContext implements AutoCloseable {
         private final UiExtentReportSession.UiScenario scenario;
         private final UiExtentReportSession.UiPhase body;
         private final String title;
+        private final List<ReportNetworkInspector.Step> networkSteps = new ArrayList<>();
         private boolean complete;
         private boolean networkInspectorPublished;
 
@@ -167,10 +184,17 @@ public final class PracticeShopE2eContext implements AutoCloseable {
                     ? new UiScreenValidation.Evidence(checkpoint.title(), "", false)
                     : UiScreenValidation.capture(page, UiScreenValidationConfiguration.defaults(), checkpoint.title());
             PracticeShopAuditObservations.recordCheckpoint(actions, page, checkpoint, evidence);
+            networkSteps.add(ReportNetworkInspector.Step.from(checkpoint.keyword().text(), checkpoint.title(),
+                    checkpoint.assertions(), checkpoint.apiEvidence()));
+            AtfReportStatus checkpointStatus = checkpoint.passed()
+                    ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
             body.step(checkpoint.keyword(), checkpoint.title(), page.url(), evidence.base64Png(),
                     checkpoint.assertions(), PracticeShopReportUiActionAdapters.from(actions.drain()),
-                    checkpoint.apiEvidence(),
-                    checkpoint.passed() ? AtfReportStatus.PASS : AtfReportStatus.FAIL);
+                    checkpointStatus);
+            if (!checkpoint.apiEvidence().isEmpty()) {
+                body.apiTrace(checkpoint.keyword(), checkpoint.title(), page.url(),
+                        checkpoint.apiEvidence(), checkpointStatus);
+            }
         }
 
         /** Compatibility path for the optional authenticated catalog scenarios. */
@@ -200,8 +224,28 @@ public final class PracticeShopE2eContext implements AutoCloseable {
         }
 
         public void warning(String title, String target, Collection<AtfAssertion> assertions) {
-            body.step(AtfGherkinKeyword.AND, title, target, "", assertions, List.of(),
+            body.diagnostic(AtfGherkinKeyword.AND, title, target, assertions,
                     AtfReportStatus.WARNING);
+        }
+
+        /**
+         * Publishes one assertion per deduplicated runtime signature. The
+         * aggregate remains the canonical source for count/sources, so a
+         * response plus console observation is not rendered as two identical
+         * warning rows.
+         */
+        public void warningDiagnostics(String title, String target,
+                                       Collection<ReportNetworkInspector.Diagnostic> diagnostics) {
+            var aggregate = ReportNetworkInspector.aggregate(List.of(), List.of(), diagnostics);
+            var assertions = aggregate.diagnostics().stream()
+                    .map(diagnostic -> new AtfAssertion(
+                            "Runtime diagnostic",
+                            diagnostic.method() + " " + diagnostic.route() + " → " + diagnostic.status()
+                                    + " observed",
+                            "count=" + diagnostic.count() + "; sources=" + diagnostic.sources(),
+                            true))
+                    .toList();
+            warning(title, target, assertions);
         }
 
         public void fail(Page page, PlaywrightActionSequence actions, Throwable failure) {
@@ -231,7 +275,12 @@ public final class PracticeShopE2eContext implements AutoCloseable {
 
         private void publishNetworkInspector() {
             if (networkInspectorPublished || !configuration.validationProfile().apiEvidenceRequired()) return;
-            body.networkInspector("API network inspector — ordered UI journey", apiNetwork.allEvidence());
+            body.networkInspector("API network inspector — ordered UI journey", apiNetwork.selectedEvidence(),
+                    networkSteps, runtimeDiagnostics.structuredDiagnostics().stream()
+                            .map(diagnostic -> new ReportNetworkInspector.Diagnostic(
+                                    diagnostic.source(), diagnostic.method(), diagnostic.route(),
+                                    diagnostic.status(), diagnostic.message()))
+                            .toList());
             networkInspectorPublished = true;
         }
     }

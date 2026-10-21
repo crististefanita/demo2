@@ -23,10 +23,12 @@ public final class PracticeShopPaymentPage {
         this.actions = actions;
     }
 
-    public void chooseMethod(String paymentMethod) {
+    public String chooseMethod(String paymentMethod) {
         actions.waitForVisible(locators.paymentMethod(page));
         actions.selectOption(locators.paymentMethod(page), paymentMethod,
                 "configured demo payment method is selected");
+        return actions.getText(locators.selectedPaymentMethod(page),
+                "selected payment method is observed");
     }
 
     public String confirm() {

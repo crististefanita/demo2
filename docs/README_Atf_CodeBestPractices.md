@@ -81,6 +81,9 @@ mentenanță, nu material de curățare incidentală.
       nu decide verdicturi în aceeași metodă.
 - [ ] Un `record`/POJO reprezintă o zonă semantică stabilă: setup, request,
       response, assertion, evidence, section sau verdict.
+- [ ] Metadata de run pentru `Overview/System` folosește un snapshot typed și
+      allowlist-uit (`ReportEnvironmentField`/`ReportEnvironmentSnapshot`);
+      `Map<String,String>` rămâne numai boundary de compatibilitate.
 - [ ] Builder-ul gestionează opționale; validatorul verifică invariants; niciunul
       nu ascunde efecte externe.
 - [ ] Interfața reprezintă un port real care poate fi observat, înlocuit sau
@@ -91,6 +94,34 @@ Un split de clasă este justificat de boundary semantic — facade, provider,
 extractor, validator, publisher sau lifecycle — nu doar de numărul de linii.
 Nu se creează pachete `misc` și nu se mută mecanic fișiere doar pentru a atinge
 un număr.
+
+### Coeziunea pachetelor — pragul de opt clase
+
+```text
+un pachet
+   ├─ maximum 8 clase
+   ├─ un boundary semantic dominant
+   └─ peste prag → split coeziv sau excepție revizuită explicit
+```
+
+- `AtfPackageCohesionGovernanceTest` verifică producția și source-set-urile
+  de test relevante;
+- un pachet peste opt clase nu devine automat acceptat printr-o allow-list;
+- o excepție trebuie să aibă motiv semantic, owner și dovadă de boundary;
+- diagnosticul guard-ului enumeră pachetul, numărul și clasele concrete;
+- split-ul urmărește responsabilități — `api`, `runtime`, `evidence`,
+  `lifecycle`, `support` — nu o împărțire arbitrară a fișierelor;
+- feedback-ul păstrează hotspot-ul până când split-ul sau excepția revizuită
+  este demonstrată de test.
+
+<details>
+<summary><strong>De ce pragul nu se rezolvă prin mutări mecanice</strong></summary>
+
+Pragul de opt clase este un semnal de navigare și coeziune, nu o regulă de
+formatare. Un pachet mare poate ascunde mai multe motive de schimbare; un
+split bun separă ownership-ul și păstrează dependențele lizibile. Nu se creează
+pachete artificiale și nu se șterg clase fără dovadă de nefolosire.
+</details>
 
 ## Constante, enum-uri și string-uri
 
@@ -193,13 +224,80 @@ Pentru API, mock-ul poate furniza `pass`, `fail`, `warning` și `skip`. Pentru
 UI, inputul poate fi un raport static sau unul generat; validarea verifică
 structura și randarea observabilă, fără să inventeze rezultate de business.
 
+<details>
+<summary><strong>Modelul unui test ATF elegant și plug-and-play</strong></summary>
+
+### Ordinea de proiectare
+
+1. **Alege layer-ul** — unit, component, integration sau E2E.
+2. **Declară intenția** — adnotarea și metadata typed spun ce se testează, cu ce
+   transport și cu ce precondiție.
+3. **Încarcă inputul** — configurația/fixture-ul este rezolvat o singură dată,
+   printr-un loader/harness reutilizabil.
+4. **Compune flow-ul** — testul apelează un flow semantic, nu locatori, request
+   factory, report session sau cleanup intern.
+5. **Verifică efectul** — `expected` vine din config/fixture, `actual` vine din
+   sistemul observat; assertions sunt scurte și reale.
+6. **Publică evidence** — support-ul atașează acțiunile, observations și
+   artifactul; testul nu reconstruiește HTML-ul.
+7. **Închide prin owner** — extension/harness-ul închide browserul, transportul
+   și sesiunea; testul nu adaugă `try/catch/finally`.
+
+### Forma preferată
+
+```text
+@layer + metadata
+class BusinessJourneyTest {
+    @Test
+    void configuredJourneyProducesExpectedOutcome() {
+        flow.execute(configuredScenario());
+        assertObservedOutcome();
+    }
+}
+```
+
+### Reguli de lizibilitate
+
+- un test are un singur motiv de failure și un singur rezultat dominant;
+- `given → when → then` este vizibil din numele metodelor sau al flow-ului;
+- nu se repetă loader/context/locators în fiecare composition root;
+- nu se folosesc assertions tautologice: `check(expected, expected, true)`;
+- nu se acceptă `true` hardcodat ca dovadă a unei proprietăți observabile;
+- rutele și starea se verifică semantic, nu prin `URL.contains(...)` sau text
+  copiat din aceeași configurație;
+- `contains` rămâne permis doar pentru smoke text și forbidden-secret checks;
+- matricea de variații se mută în component/parameterized tests;
+- E2E rămâne o dovadă de wiring și business journey, nu un loc pentru toate
+  cazurile de status, body și selector;
+- importurile statice sunt nominale și fac testul mai ușor de citit numai când
+  owner-ul rămâne evident.
+
+### Criteriu vizual pentru un test bun
+
+```text
+metadata → fixture → flow → observed assertions → evidence
+```
+
+Dacă cititorul vede înainte de flow inițializări de browser, directoare de
+raport, request factory, selectori sau cleanup, composition root-ul este prea
+încărcat și responsabilitatea trebuie mutată într-un harness/support typed.
+
+</details>
+
 ## Configurare și căi
 
 - [ ] Nicio cale absolută nu apare în cod, comentarii, mesaj sau README.
 - [ ] Root-ul, staging-ul și output-ul sunt rezolvate la boundary-ul de
       configurație/I/O.
-- [ ] Utilitățile generice de file/YAML/source-root stau în core sau într-un
-      owner reutilizabil, nu în teste duplicate.
+- [ ] Discovery-ul de module/source-root și traversal-ul generic de fișiere stau
+      în `atf-core.files`; testele nu reimplementează `locateModuleRoot()`,
+      `sourceFiles()`, `user.dir` traversal sau `Files.walk` pentru aceeași
+      responsabilitate.
+- [ ] Helper-ul generic primește markere relative și excluderi explicite;
+      nu cunoaște module concrete, package-uri de produs sau reguli ascunse ale
+      unui singur test.
+- [ ] Un helper nou se adaugă numai dacă API-ul existent nu exprimă contractul;
+      în acest caz se extinde ownerul `files`, nu se creează o copie în consumer.
 - [ ] YAML-ul configurează fixture și runtime; adnotarea exprimă selecția și
       intenția semantică a testului.
 - [ ] Un output este referit prin nume logic sau placeholder configurabil,

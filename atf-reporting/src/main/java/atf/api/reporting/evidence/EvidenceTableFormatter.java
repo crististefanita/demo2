@@ -115,7 +115,10 @@ public final class EvidenceTableFormatter {
 
     public static String displayName(String key) {
         if (key == null || key.isBlank()) return "DETAIL";
-        return switch (key.trim().toLowerCase(Locale.ROOT)) {
+        String normalized = key.trim().toLowerCase(Locale.ROOT);
+        String apiExchangeLabel = apiExchangeDisplayName(normalized);
+        if (apiExchangeLabel != null) return apiExchangeLabel;
+        return switch (normalized) {
             case "method" -> "METHOD";
             case "path" -> "PATH";
             case "url" -> "URL";
@@ -131,6 +134,36 @@ public final class EvidenceTableFormatter {
             case "attempt" -> "ATTEMPT";
             default -> key.replace('.', ' ').replace('_', ' ').toUpperCase(Locale.ROOT);
         };
+    }
+
+    /**
+     * Keeps a multi-exchange UI trace readable while reusing the direct API
+     * report vocabulary. The exchange number is the only UI-specific context;
+     * the field name stays the same semantic label a direct API request uses.
+     */
+    private static String apiExchangeDisplayName(String normalized) {
+        String[] parts = normalized.split("\\.");
+        if (parts.length < 4 || !("request".equals(parts[0]) || "response".equals(parts[0]))
+                || !"api".equals(parts[1]) || !parts[2].matches("\\d+")) {
+            return null;
+        }
+        String field = String.join(".", java.util.Arrays.copyOfRange(parts, 3, parts.length));
+        String label = switch (field) {
+            case "method" -> "METHOD";
+            case "path" -> "PATH";
+            case "url" -> "URL";
+            case "auth.type" -> "AUTH TYPE";
+            case "auth.profile" -> "AUTH PROFILE";
+            case "query.params" -> "QUERY PARAMS";
+            case "request.headers" -> "REQUEST HEADERS";
+            case "transport" -> "TRANSPORT PROVENANCE";
+            case "manual.replay" -> "MANUAL REPLAY";
+            case "status" -> "HTTP STATUS";
+            case "content.type" -> "CONTENT-TYPE";
+            case "response.headers" -> "RESPONSE HEADERS";
+            default -> null;
+        };
+        return label == null ? null : "API " + parts[2] + " · " + label;
     }
 
     /** Applies the shared display policy while keeping source keys backward-compatible. */

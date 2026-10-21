@@ -13,14 +13,13 @@ public final class HtmlReportCategoryView {
                 AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.SPAN,
                         escape(tag), AtfReportHtmlVocabulary.classAttribute(
                                 AtfReportHtmlVocabulary.CssClass.TAG))));
-        String body = AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.H2,
-                        AtfReportHtmlVocabulary.FallbackTab.CATEGORY.label())
+        String body = HtmlReportFallbackViewSupport.heading(
+                        AtfReportHtmlVocabulary.FallbackTab.CATEGORY)
                 + AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.DIV, tags.toString(),
                 AtfReportHtmlVocabulary.classAttribute(AtfReportHtmlVocabulary.CssClass.TAG_LIST));
-        return AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.SECTION, body,
-                AtfReportHtmlVocabulary.idAttribute(
-                        AtfReportHtmlVocabulary.FallbackTab.CATEGORY.value()),
-                AtfReportHtmlVocabulary.classAttribute(
-                        AtfReportHtmlVocabulary.CssClass.TAB_PANEL));
+        return HtmlReportFallbackViewSupport.sectionStart(
+                        AtfReportHtmlVocabulary.FallbackTab.CATEGORY)
+                + body
+                + HtmlReportFallbackViewSupport.sectionEnd();
     }
 }

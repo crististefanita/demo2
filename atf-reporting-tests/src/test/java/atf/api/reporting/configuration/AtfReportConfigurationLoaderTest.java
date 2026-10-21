@@ -127,13 +127,17 @@ class AtfReportConfigurationLoaderTest {
     }
 
     @Test
-    void rejectsAnInvalidJsonBodyDisplayLimit() throws Exception {
+    void usesACompactBodyPreviewDefault() {
+        assertEquals(100, ReportingSettings.defaults().bodyMaxDisplayCharacters());
+    }
+
+    @Test
+    void allowsZeroToDisableJsonBodyDisplayLimit() throws Exception {
         Path config = Files.createTempFile("atf-invalid-body-limit-", ".yaml");
         try {
             Files.writeString(config, "reporting:\n  bodyMaxDisplayCharacters: 0\n");
-            var error = assertThrows(IllegalStateException.class,
-                    () -> AtfReportConfigurationLoader.load(config));
-            assertTrue(error.getMessage().contains("bodyMaxDisplayCharacters"));
+            assertEquals(0, AtfReportConfigurationLoader.load(config)
+                    .reportingSettings().bodyMaxDisplayCharacters());
         } finally {
             Files.deleteIfExists(config);
         }

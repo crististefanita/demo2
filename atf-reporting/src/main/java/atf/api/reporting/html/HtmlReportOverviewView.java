@@ -12,8 +12,8 @@ public final class HtmlReportOverviewView {
         var overview = snapshot.overview();
         String summary = metric("Tests", overview.tests()) + metric("Passed", overview.passed())
                 + metric("Failed", overview.failed()) + metric("Skipped", overview.skipped());
-        String body = AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.H2,
-                        AtfReportHtmlVocabulary.FallbackTab.OVERVIEW.label())
+        String body = HtmlReportFallbackViewSupport.heading(
+                        AtfReportHtmlVocabulary.FallbackTab.OVERVIEW)
                 + AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.DIV, summary,
                 AtfReportHtmlVocabulary.classAttribute(
                         AtfReportHtmlVocabulary.CssClass.SUMMARY))
@@ -21,11 +21,10 @@ public final class HtmlReportOverviewView {
                 AtfReportLabels.OVERVIEW_DEFAULT_COPY,
                 AtfReportHtmlVocabulary.classAttribute(
                         AtfReportHtmlVocabulary.CssClass.CONTRACT));
-        return AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.SECTION, body,
-                AtfReportHtmlVocabulary.idAttribute(
-                        AtfReportHtmlVocabulary.FallbackTab.OVERVIEW.value()),
-                AtfReportHtmlVocabulary.classAttribute(
-                        AtfReportHtmlVocabulary.CssClass.TAB_PANEL));
+        return HtmlReportFallbackViewSupport.sectionStart(
+                        AtfReportHtmlVocabulary.FallbackTab.OVERVIEW)
+                + body
+                + HtmlReportFallbackViewSupport.sectionEnd();
     }
 
     private static String metric(String label, long value) {

@@ -9,12 +9,30 @@ import org.junit.jupiter.api.Test;
 import java.lang.annotation.Annotation;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Keeps the reporting seam-to-test-level matrix executable and reviewable. */
 @AtfComponentTest
 class ReportingCoverageMatrixTest {
     private static final List<Entry> MATRIX = List.of(
+            entry("execution projections", "atf.api.reporting.model.ReportExecutionProjectionTest",
+                    AtfUnitTest.class),
+            entry("fallback view shell", "atf.api.reporting.html.HtmlReportViewsTest",
+                    AtfUnitTest.class),
+            entry("fallback/Extent renderer parity",
+                    "atf.api.reporting.html.ReportRendererParityTest",
+                    AtfComponentTest.class),
+            entry("typed environment snapshot", "atf.api.reporting.ui.UiExtentReportSessionCompositionTest",
+                    AtfUnitTest.class),
+            entry("operational System projection",
+                    "atf.api.reporting.configuration.ReportEnvironmentSnapshotTest",
+                    AtfUnitTest.class),
+            entry("safe manual replay", "atf.api.reporting.api.ApiManualReplayProjectionTest",
+                    AtfUnitTest.class),
+            entry("semantic lifecycle boundary",
+                    "atf.api.reporting.semantic.AtfReportSemanticSnapshotTest",
+                    AtfUnitTest.class),
             entry("semantic snapshot", "atf.api.reporting.html.HtmlReportSemanticSnapshotMapperTest",
                     AtfUnitTest.class),
             entry("evidence markup", "atf.api.reporting.evidence.markup.ReportEvidenceMarkupTest",
@@ -60,6 +78,34 @@ class ReportingCoverageMatrixTest {
                     () -> entry.seam() + " must be marked with " + entry.annotation().getSimpleName()
                             + ": " + entry.className());
         }
+    }
+
+    @Test
+    void eachExecutableLayerHasAStableLauncherBoundary() {
+        assertEquals("atf.api.reporting",
+                AtfReportingUnitSuite.class.getAnnotation(org.junit.platform.suite.api.SelectPackages.class)
+                        .value()[0]);
+        assertEquals("atf.api.reporting",
+                AtfReportingComponentSuite.class.getAnnotation(org.junit.platform.suite.api.SelectPackages.class)
+                        .value()[0]);
+        assertEquals("atf.api.reporting",
+                AtfReportingIntegrationSuite.class.getAnnotation(org.junit.platform.suite.api.SelectPackages.class)
+                        .value()[0]);
+        assertEquals("atf.api.tests.api",
+                AtfReportingApiFixtureSuite.class.getAnnotation(org.junit.platform.suite.api.SelectPackages.class)
+                        .value()[0]);
+        assertEquals("atf.ui.tests.extent.e2e",
+                AtfReportingUiAuditSuite.class.getAnnotation(org.junit.platform.suite.api.SelectPackages.class)
+                        .value()[0]);
+    }
+
+    @Test
+    void matrixHasOneReasonAndOneDeclaredProofPerBoundary() {
+        assertEquals(MATRIX.size(), MATRIX.stream().map(Entry::seam).distinct().count());
+        assertEquals(MATRIX.size(), MATRIX.stream().map(Entry::className).distinct().count());
+        assertTrue(MATRIX.stream().allMatch(entry -> !entry.seam().isBlank()
+                        && !entry.className().isBlank()),
+                "every matrix row needs a readable reason and proof class");
     }
 
     private static Class<?> load(String name) {

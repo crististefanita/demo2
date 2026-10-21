@@ -3,6 +3,8 @@ import atf.api.reporting.console.AtfConsoleSink;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.ui.UiExtentReportSession;
 import atf.api.reporting.ui.contract.ReportUiContract;
+import atf.api.reporting.ui.UiExtentReportOptions;
+import atf.ui.tests.extent.support.config.environment.UiReportEnvironmentSnapshotFactory;
 
 
 import java.nio.file.Files;
@@ -16,9 +18,13 @@ public final class CategoryCardinalityReportFixtures {
     }
 
     public static Path publish(Path root, CategoryCardinalityFixture fixture) {
-        try (UiExtentReportSession session = UiExtentReportSession.openConfigured(
-                root, "categories-" + fixture.name().toLowerCase() + ".html",
-                AtfConsoleSink.noOp())) {
+        var options = UiExtentReportOptions.builder(root)
+                .fileName("categories-" + fixture.name().toLowerCase() + ".html")
+                .console(AtfConsoleSink.noOp())
+                .environment(UiReportEnvironmentSnapshotFactory.fixture(
+                        "Category cardinality", "generated category fixture"))
+                .build();
+        try (UiExtentReportSession session = UiExtentReportSession.openConfigured(options)) {
             var scenario = session.startScenario("CategoryCardinalityFixture",
                     "atf.ui.tests.extent.e2e.configurable", "generated category fixture",
                     fixture.tags());

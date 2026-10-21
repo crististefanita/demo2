@@ -2,14 +2,21 @@
 
 ## Verdict executiv
 
-**Scor de maturitate structurală: 88/100.** Contractul de layer, ownership-ul
-modulelor și traseul de onboarding sunt acum coerente. Singura limită rămasă
-este rafinarea semantică a zonelor `support`; nu există motiv pentru ștergeri
-speculative sau pentru mutarea mecanică a tuturor testelor în directoare noi.
+**Scor de maturitate structurală: 97/100.** Contractul de layer, ownership-ul
+modulelor, coeziunea de pachete, lizibilitatea sursei și guvernanța documentației
+trec gate-urile live. Hotspot-urile care depășeau pragul au fost split-uite pe
+boundary-uri semantice, iar invocațiile fully-qualified din testul de reporting
+au fost înlocuite cu importuri lizibile. Rămâne doar monitorizarea coeziunii
+viitoare; nu există motiv pentru ștergeri speculative sau mutări mecanice.
 
 Feedback-ul descrie codul live și păstrează numai gap-uri care pot schimba
 structura, testele sau contractele publice. Numărătorile exacte se obțin prin
 build și guard-uri, nu se păstrează ca jurnal în acest document.
+
+Revalidarea curentă confirmă `ArchitectureModuleBoundaryTest`,
+`ArchitectureOwnershipBoundaryTest`, `AtfPackageCohesionGovernanceTest`,
+`AtfSourceReadabilityGovernanceTest`, toate guard-urile de documentație și
+`WholeAtfGovernanceSuiteTest`.
 
 ## Contracte confirmate în live
 
@@ -153,12 +160,16 @@ scopul, owner-ul sau criteriul principal de acceptare.
 |---|---:|---|---|
 | `TEST-ARCH-07` | P3 | păstrează gruparea semantică a zonelor `support` și identifică eventuale subzone care depășesc limita de coeziune | fiecare mutare are owner, motiv observabil, test de boundary și zero ștergeri speculative |
 
-`AtfConsoleBridgeTest` declară layer-ul component și trece focused gate-ul.
-Adapterul este owner-uit de `atf-reporting-tests`, singurul composition root care
-consumă ambele porturi. Astfel `atf-console` și `atf-reporting` rămân
-production-independent, iar whole-ATF boundary nu trebuie să accepte o
-dependență inversă doar pentru conversia test-only.
+<details>
+<summary><strong>Închideri și reguli de redeschidere</strong></summary>
 
-Nu se redeschid item-urile închise pentru o schimbare de stil locală. Se redeschid
-doar la regresie reproductibilă, schimbare de ownership, consumer nou sau
-modificare de contract.
+- `TEST-ARCH-08` și `TEST-READ-01` sunt închise: split-urile
+  `ui.network`, `support.api` și `support.config.environment` sunt coezive,
+  iar guard-ul confirmă importuri normale;
+- `AtfConsoleBridgeTest` rămâne component test-only în
+  `atf-reporting-tests`; `atf-console` și `atf-reporting` nu primesc
+  dependency inversă;
+- item-urile închise se redeschid numai la regresie reproductibilă, schimbare
+  de ownership, consumer nou sau modificare de contract.
+
+</details>

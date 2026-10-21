@@ -4,6 +4,7 @@ import atf.api.reporting.contract.AtfReportPorts;
 import atf.api.reporting.configuration.AtfReportConfigurationLoader;
 import atf.api.reporting.configuration.ExtentReportConfiguration;
 import atf.api.reporting.configuration.ReportEnvironment;
+import atf.api.reporting.configuration.ReportEnvironmentSnapshot;
 import atf.api.reporting.semantic.AtfReportSemanticSnapshot;
 import atf.api.reporting.theme.AtfReportTheme;
 import atf.api.reporting.markup.AtfReportLabels;
@@ -72,6 +73,14 @@ public final class ExtentReportSession implements AtfReportPorts.Session, AutoCl
         tree = new ExtentReportTree(reports, settings, redactor, this::ensureOpen, console);
     }
 
+    /** Opens a session with allowlisted, typed Overview/System metadata. */
+    public ExtentReportSession(Path reportPath, ReportingSettings settings,
+                               SensitiveDataRedactor redactor, AtfConsoleSink console,
+                               ReportEnvironmentSnapshot systemInfo) {
+        this(reportPath, settings, redactor, console,
+                ReportEnvironment.with(systemInfo, redactor));
+    }
+
     /** Opens an Extent session using the discovered atf.yaml/atf.yml configuration. */
     public static ExtentReportSession openConfigured() {
         return openConfigured(AtfReportConfigurationLoader.load());
@@ -87,6 +96,16 @@ public final class ExtentReportSession implements AtfReportPorts.Session, AutoCl
         Objects.requireNonNull(configuration, "configuration");
         return new ExtentReportSession(configuration.resolveReportPath(Clock.systemDefaultZone()),
                 configuration.reportingSettings());
+    }
+
+    /** Opens a configured session with allowlisted, typed Overview/System metadata. */
+    public static ExtentReportSession openConfigured(ExtentReportConfiguration configuration,
+                                                     ReportEnvironmentSnapshot systemInfo) {
+        Objects.requireNonNull(configuration, "configuration");
+        return new ExtentReportSession(
+                configuration.resolveReportPath(Clock.systemDefaultZone()),
+                configuration.reportingSettings(), new SensitiveDataRedactor(),
+                AtfConsoleSink.noOp(), systemInfo);
     }
 
     @Override public Path reportPath() { return reportPath; }

@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import atf.api.reporting.ui.network.ReportNetworkInspector;
 
 /** Captures browser runtime failures and exposes known external bootstrap noise as reportable warnings. */
 public final class PracticeShopRuntimeDiagnostics {
@@ -96,6 +97,18 @@ public final class PracticeShopRuntimeDiagnostics {
                 .distinct()
                 .collect(Collectors.joining("; "));
         return target.isBlank() ? "unknown runtime diagnostic" : target;
+    }
+
+    /** Converts runtime facts to the generic reporting vocabulary without exposing the URL. */
+    public static List<ReportNetworkInspector.Diagnostic> toNetworkDiagnostics(
+            Collection<Diagnostic> diagnostics) {
+        if (diagnostics == null) return List.of();
+        return diagnostics.stream()
+                .filter(Objects::nonNull)
+                .map(diagnostic -> new ReportNetworkInspector.Diagnostic(
+                        diagnostic.source(), diagnostic.method(), diagnostic.route(),
+                        diagnostic.status(), diagnostic.message()))
+                .toList();
     }
 
     public List<String> unexpectedErrors() {

@@ -12,6 +12,16 @@ practiceShop:
   zoomPercent: 70
   validation:
     profile: ui-api
+    # Typed journey binding; omit the list to enable all checkpoints for UI_API.
+    apiEvidence: [product, login, cart, payment]
+  # Fail closed by default. To enable bounded read-only retries, raise
+  # maxAttempts and list only eligible operations below; mutating actions stay
+  # ineligible by construction.
+  retry:
+    maxAttempts: 1
+    backoff: PT0S
+    eligibleOperations: []
+    reason: bounded read-only UI retry
   api:
     endpoint: https://api.practicesoftwaretesting.com
     # The Practice Shop module does not own or consume an ATF mock catalog.
@@ -21,7 +31,7 @@ practiceShop:
     timeout: PT20S
   reports:
     ui: artifacts/reports/ui
-    api: artifacts/reports
+    api: artifacts/reports/api
   authenticatedE2eEnabled: false
   screenshotOnFailure: true
   # The external catalog rotates product ids; use auto for a stable name-based fixture.

@@ -36,6 +36,25 @@ Surse de aprofundare:
 - [`atf-test-kit`](../atf-test-kit/README.md) — meta-anotații și convenții de test;
 - [feedback Practice Shop](../docs/feedback/ATF_Practice_Shop_API_Screen_Pyramid_Feedback.md) — ToDo-uri și decizii dinamice.
 
+### Contract live și limite reale
+
+| Suprafață | Comportament curent | Interpretare |
+|---|---|---|
+| component/API | contracte typed pentru config, routes, JSON, status, mapping și evidence | matricea de variații se verifică fără browser |
+| guest E2E | journey `product → cart → payment` pe `LIVE_HTTP` | proof business activ și auditabil |
+| authenticated E2E/API | selectat prin adnotare și condiție typed; implicit `SKIP` fără fixture extern acceptat | `SKIP` este precondiție lipsă, nu PASS degradat |
+| retry Playwright | suport generic fail-closed există în `atf-ui`; YAML-ul Practice Shop declară explicit `maxAttempts`, `backoff`, `eligibleOperations` și `reason` | policy-ul implicit rămâne un singur attempt; numai operații read-only typed pot fi activate ulterior |
+| API evidence binding | `validation.apiEvidence` selectează checkpoint-uri typed (`product`, `login`, `cart`, `payment`); override-ul system property este acceptat | binding-ul fail-closed aparține consumerului; publisher-ul primește numai evidence selectat |
+| Overview → System | snapshot allowlist-uit, redacted și bounded; țintele și valorile efective sunt separate | nu se publică dump YAML, secrete sau path-uri temporare |
+| output | `artifacts/reports/ui` și `artifacts/reports/api` | rolurile UI/API nu se suprapun |
+
+Regulile stabile de mai sus sunt contractul consumerului. Feedback-ul păstrează
+numai limitele care pot redeschide contractul: fixture extern authenticated,
+identity bounded pentru diagnostice necorelate și proiecția canonicală a
+exchange-urilor multiple în inspectorul generic. Binding-ul per checkpoint,
+aggregate-ul nested și policy-ul fail-closed sunt contracte verificate; warning
+projection-ul consumerului este separat de ownership-ul generic.
+
 ## Harta internă a consumerului
 
 ```mermaid
@@ -155,6 +174,45 @@ src/test/java/atf/ui/tests/practiceshop
 
 </details>
 
+### Contractul unui test Practice Shop
+
+```text
+metadata + config → fixture → flow semantic → stare observată → evidence/verdict
+```
+
+- composition root-ul leagă configurația, contextul și flow-ul; nu reconstruiește
+  browser, raport, locatori sau transport;
+- `expected` vine din configurație/fixture, iar `actual` vine din UI, API sau DOM;
+- assertions-urile verifică efecte observate; nu se acceptă `expected == actual`,
+  `true` hardcodat sau URL validat prin fragment arbitrar;
+- fiecare journey E2E poate rula independent; un context partajat cere reset
+  explicit și ownership vizibil;
+- variațiile de status, body, headers, query și selector rămân în component/API
+  integration, nu sunt multiplicate în browser;
+- contractele HTML folosesc un helper semantic pentru structură, ordine și
+  redaction; `contains` rămâne doar pentru smoke text sau secrete interzise;
+- lifecycle-ul browserului, API clientului, raportului, screenshot-ului și
+  retry-ului aparține support/harness-ului, nu corpului testului;
+- selecția se face prin adnotare și configurație typed; nu se copiază metode
+  `isConfigured()` în fiecare composition root.
+
+<details>
+<summary><strong>Model minim pentru composition root</strong></summary>
+
+```text
+@AtfE2eTest
+test()
+  → load once
+  → open context once
+  → execute configured flow
+  → assert observed state
+  → support closes resources
+```
+
+Un test care conține detalii de renderer, directoare de raport, selectori,
+retry sau cleanup manual a depășit boundary-ul composition root-ului.
+</details>
+
 Contul nu este o condiție pentru journey-ul guest. Pentru authenticated, setup-ul
 API este precondiție și parola rămâne în afara actions, assertions, consolă și HTML.
 
@@ -203,7 +261,7 @@ practiceShop:
     timeout: PT20S
   reports:
     ui: artifacts/reports/ui
-    api: artifacts/reports
+    api: artifacts/reports/api
   authenticatedE2eEnabled: false
   screenshotOnFailure: true
   productName: "<configured-product>"
@@ -238,6 +296,14 @@ Reguli de configurare:
 
 - testele și page objects folosesc rute relative din `PracticeShopUiRoutes`;
 - `PracticeShopConfiguration.uri(...)` este singurul resolver `baseUrl + route`;
+- output-ul este separat pe tip de artifact și rămâne relativ la workspace:
+  ```text
+  atf/artifacts/reports/
+  ├── ui/   # rapoarte Extent produse de flow-urile Playwright
+  └── api/  # rapoarte Extent produse de flow-urile API
+  ```
+- `reports.ui` și `reports.api` nu se suprapun și nu primesc căi absolute din
+  YAML; loaderul le rezolvă la boundary-ul configurației;
 - ID-urile de produs și cart sunt dinamice și nu intră în enum-uri;
 - profile-ul este typed (`UI_API`, `UI_ONLY`), fără matrice de booleeni paraleli;
 - loaderul eșuează clar la URI, timeout, path sau combinație de precondiții invalidă.
@@ -413,17 +479,49 @@ flowchart LR
 ### Traceability contract pentru API în UI
 
 Fiecare exchange publicat în checkpoint păstrează metadata causală comună cu
-publisher-ul API: `EVENT ID`, `SEQUENCE`, `PHASE`, `ROLE`, `STEP ID`,
-`INITIATOR`, `CORRELATION`, `REQUEST SIGNATURE`, body digests, source,
-`EXPECTED` și `OBSERVED`. Signature-ul este calculat din method + safe target +
-digestul body-ului JSON canonicalizat; obiectele JSON sunt sortate, array-urile
-își păstrează ordinea, iar body absent este diferit de `{}`.
+publisher-ul API.
 
-`API diagnostics — unique request signatures` este numai proiecția compactă:
-arată separat `observations` și `unique signatures` cu count. Trace-ul ordonat și
-metadata fiecărui exchange rămân în disclosure-ul `Execution evidence`, astfel
-un request repetat nu este confundat cu un retry și un body diferit nu este
-grupat cu primul request doar pentru că ruta este aceeași.
+- `EVENT ID`, `SEQUENCE`, `PHASE`, `ROLE`, `STEP ID`, `INITIATOR`, `CORRELATION`;
+- `REQUEST SIGNATURE`, body digests, source, `EXPECTED`, `OBSERVED`;
+- signature = method + safe target + digestul body-ului JSON canonicalizat;
+- obiectele JSON sunt sortate, array-urile își păstrează ordinea, iar body absent
+  este diferit de `{}`.
+
+<details>
+<summary><strong>Aggregate-ul bounded al journey-ului</strong></summary>
+
+- `authentication`, `correlation`, `transport`, `signatures`, `diagnostics`;
+- signatures păstrează count și statusuri;
+- trace-ul ordonat și metadata fiecărui exchange rămân în `Execution evidence`;
+- request repetat ≠ retry, iar body diferit ≠ aceeași signature doar pentru că
+  ruta este aceeași.
+
+</details>
+
+<details>
+<summary><strong>Binding și proiecție HTML</strong></summary>
+
+- `PracticeShopApiEvidenceBinding` decide înaintea publicării ce checkpoint-uri
+  intră în journal;
+- profilul `UI_API` fără selecție activează checkpoint-urile known; valoarea
+  necunoscută fail-fast;
+- renderer-ul nu filtrează business evidence și nu reconstituie liste locale;
+- bridge-ul publică aggregate-ul într-un singur nod `TRACE` collapsed, cu
+  secțiuni nested, nu în `Overview → System`;
+- trace-ul trebuie să păstreze ierarhia vizibilă `pas Gherkin → API validation →
+  detalii collapsed`; `API validation` este copil semantic, nu un nou test sau
+  un verdict paralel al UI-ului;
+- trace-ul trebuie să reutilizeze și forma API canonicală per exchange:
+  `Request details` → `Response details` → `Execution evidence`; un tabel
+  comun `API 1/API 2` este doar un index insuficient pentru audit;
+- fiecare `Execution evidence` trebuie să fie legat vizibil de exchange-ul său;
+  titlul generic repetat nu este suficient când checkpoint-ul produce mai multe
+  request-uri;
+- `TRACE PARENT STEP` și `TRACE POSITION` sunt context al trace-ului, nu rânduri
+  repetate în response details; URL-ul complet rămâne vizibil fără wrapping
+  arbitrar în identificator.
+
+</details>
 
 Regula de citire este:
 
@@ -453,8 +551,9 @@ flowchart LR
 - publisher-ul API folosește același concept de sink pentru pași request/validation;
 - flow-urile nu dețin `PrintStream` și nu folosesc `println`;
 - consola nu decide verdictul și nu înlocuiește assertions sau HTML-ul;
-- `SHOP-CONSOLE-02` rămâne cross-module: porturile `atf-core` și
-  `atf-reporting` nu se unifică printr-un adapter duplicat local.
+- cross-module boundary: porturile `atf-core` și `atf-reporting` nu se unifică
+  printr-un adapter duplicat local; compatibilitatea rămâne test-only în
+  composition root-ul dedicat.
 
 </details>
 
@@ -490,23 +589,16 @@ Feedback-ul module-owned este registrul din
 README-ul păstrează contractele stabile; feedback-ul păstrează ToDo-urile care
 se pot schimba dinamic.
 
-<details>
-<summary><strong>ToDo-uri active după ultima reconciliere live</strong></summary>
-
-- `SHOP-CONSOLE-02` — cross-module: porturile console core/reporting au nevoie
-  de decizie ATF, nu de mapping duplicat în Practice Shop;
-- `SHOP-API-REAL-01/02` — business API live rămâne blocat de login-ul extern
-  `401`; component/mock poate demonstra contractul și randarea, dar nu poate
-  declara catalog → cart → payment PASS real;
-- `SHOP-NET-02` — mediu extern: warning-urile de bootstrap anonim rămân vizibile
-  până la mediu curat sau aprobare explicită de policy.
-
-Deciziile deja implementate și documentate aici includ: ownership-ul rutelor și
-selectorilor, screen contracts, audit observations, capture/select seams,
-vocabularul typed, provenance-ul transportului, lifecycle-ul E2E, contractul
-stateful al cart-ului la nivel component și limitarea numărului de journey-uri.
-
-</details>
+Feedback-ul păstrează limitele active și criteriile de redeschidere; README-ul
+păstrează numai contractele stabile. Deciziile deja implementate și documentate
+aici includ ownership-ul rutelor și selectorilor, screen contracts, audit
+observations, capture/select seams, vocabularul typed, provenance-ul
+transportului, lifecycle-ul E2E, contractul stateful al cart-ului la nivel
+component, assertions observate și limitarea numărului de journey-uri.
+Binding-ul API per checkpoint și aggregate-ul semantic nested al inspectorului
+sunt contracte stabile; reuse-ul structural per exchange și layout-ul URL-ului
+rămân limite de prezentare urmărite în feedback generic, nu logică business
+copiată în consumer.
 
 Nu se copiază în README:
 

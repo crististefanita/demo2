@@ -1,13 +1,16 @@
 package atf.api.tests.governance;
 
 import atf.api.core.config.module.AtfModuleIds;
+import atf.api.core.files.AtfFileTree;
+import atf.api.core.files.AtfJavaSourceInventory;
+import atf.api.core.files.AtfPathLocator;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -56,10 +59,7 @@ public final class AtfGovernanceTestSupport {
     }
 
     static boolean containsJavaFileNamed(Path root, String suffix) throws Exception {
-        if (!Files.isDirectory(root)) return false;
-        try (var files = Files.walk(root)) {
-            return files.anyMatch(path -> path.toString().endsWith(suffix));
-        }
+        return AtfFileTree.containsRegularFileEndingWith(root, suffix);
     }
 
     static void assertNoPackagePrefix(Path sourceRoot, String forbiddenPrefix)
@@ -77,38 +77,55 @@ public final class AtfGovernanceTestSupport {
 
     static Map<String, Integer> productionPackageCounts(Path root) throws Exception {
         Map<String, Integer> counts = new TreeMap<>();
-        Pattern declaration = Pattern.compile("(?m)^package\\s+([^;]+);");
         for (String module : AtfModuleIds.SOURCE_GOVERNED_MODULES) {
-            Path sourceRoot = root.resolve(module).resolve(
-                    module.equals(AtfModuleIds.TESTS) ? "src/main" : "src/main/java");
-            mergePackageCounts(sourceRoot, declaration, counts);
+            mergePackageCounts(AtfPathLocator.resolveModuleSourceRoot(
+                    root, module, false), counts);
         }
         return counts;
     }
 
     static Map<String, Integer> testPackageCounts(Path sourceRoot) throws Exception {
         Map<String, Integer> counts = new TreeMap<>();
-        mergePackageCounts(sourceRoot, Pattern.compile("(?m)^package\\s+([^;]+);"), counts);
+        mergePackageCounts(sourceRoot, counts);
         return counts;
     }
 
-    private static void mergePackageCounts(Path sourceRoot, Pattern declaration,
+    static Map<String, List<String>> packageClassInventory(Path sourceRoot) throws Exception {
+        Map<String, List<String>> inventory = new TreeMap<>();
+        mergePackageClassInventory(sourceRoot, inventory);
+        inventory.values().forEach(list -> list.sort(String::compareTo));
+        return inventory;
+    }
+
+    static Map<String, List<String>> productionPackageClassInventory(Path root) throws Exception {
+        Map<String, List<String>> inventory = new TreeMap<>();
+        for (String module : AtfModuleIds.SOURCE_GOVERNED_MODULES) {
+            mergePackageClassInventory(AtfPathLocator.resolveModuleSourceRoot(
+                    root, module, false), inventory);
+        }
+        inventory.values().forEach(list -> list.sort(String::compareTo));
+        return inventory;
+    }
+
+    private static void mergePackageClassInventory(Path sourceRoot,
+                                                    Map<String, List<String>> inventory) throws Exception {
+        if (!Files.isDirectory(sourceRoot)) return;
+        AtfJavaSourceInventory.packages(sourceRoot).forEach((packageName, files) ->
+                files.forEach(file -> inventory.computeIfAbsent(
+                                packageName, ignored -> new ArrayList<>())
+                        .add(file.getFileName().toString())));
+    }
+
+    private static void mergePackageCounts(Path sourceRoot,
                                            Map<String, Integer> counts) throws Exception {
         if (!Files.isDirectory(sourceRoot)) return;
-        try (var files = Files.walk(sourceRoot)) {
-            for (Path file : files.filter(path -> path.toString().endsWith(JAVA_SUFFIX)).toList()) {
-                var match = declaration.matcher(Files.readString(file));
-                if (match.find()) counts.merge(match.group(1), 1, Integer::sum);
-            }
-        }
+        AtfJavaSourceInventory.packages(sourceRoot).forEach((packageName, files) ->
+                counts.merge(packageName, files.size(), Integer::sum));
     }
 
     /** Resolves both conventional Maven roots and the legacy atf-tests layout. */
     static List<Path> sourceRoots(Path root, String module, boolean tests) {
-        String sourceSet = tests ? "src/test" : "src/main";
-        Path sourceSetRoot = root.resolve(module).resolve(sourceSet);
-        Path conventional = sourceSetRoot.resolve("java");
-        return Files.isDirectory(conventional) ? List.of(conventional) : List.of(sourceSetRoot);
+        return List.of(AtfPathLocator.resolveModuleSourceRoot(root, module, tests));
     }
 
     static void assertDependencyPresent(Path root, String module, String dependency)

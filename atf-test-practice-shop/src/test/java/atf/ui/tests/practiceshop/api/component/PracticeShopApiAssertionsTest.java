@@ -47,12 +47,34 @@ class PracticeShopApiAssertionsTest {
                 a.name().equals("API precondition · catalog search") && a.passed()));
     }
 
+    @Test
+    void loginWithoutCurrentUserDoesNotPassWhenTheObservedJsonTransportIsInvalid() {
+        var login = exchange(HttpMethod.POST.value(), PracticeShopApiRoutes.LOGIN,
+                PracticeShopApiHttpStatus.OK,
+                "{\"email\":\"shop@example.test\",\"password\":\"secret\"}",
+                "{}",
+                Map.of("content-type", atf.api.core.http.request.MediaTypes.APPLICATION_JSON,
+                        "content-length", "0"));
+
+        var assertions = PracticeShopApiAssertions.login(login, null, "Practice Shop User");
+
+        assertFalse(assertions.stream().anyMatch(a ->
+                a.name().equals("API session establishment") && a.passed()));
+    }
+
     private static PracticeShopApiNetworkJournal.Exchange exchange(String method, String path,
                                                                      PracticeShopApiHttpStatus status,
                                                                      String requestBody, String responseBody) {
+        return exchange(method, path, status, requestBody, responseBody,
+                Map.of("content-type", atf.api.core.http.request.MediaTypes.APPLICATION_JSON));
+    }
+
+    private static PracticeShopApiNetworkJournal.Exchange exchange(String method, String path,
+                                                                     PracticeShopApiHttpStatus status,
+                                                                     String requestBody, String responseBody,
+                                                                     Map<String, String> responseHeaders) {
         return new PracticeShopApiNetworkJournal.Exchange(method, path,
                 PracticeShopApiScenarioFixture.API_ENDPOINT + path, status.code(),
-                requestBody, responseBody, Map.of(),
-                Map.of("content-type", atf.api.core.http.request.MediaTypes.APPLICATION_JSON));
+                requestBody, responseBody, Map.of(), responseHeaders);
     }
 }

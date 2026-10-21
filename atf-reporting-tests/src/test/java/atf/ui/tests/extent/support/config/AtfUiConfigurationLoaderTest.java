@@ -33,6 +33,11 @@ class AtfUiConfigurationLoaderTest {
                     width: 1280
                     height: 720
                   zoomPercent: 70
+                  retry:
+                    maxAttempts: 3
+                    backoff: PT0S
+                    eligibleOperations: [wait-for-visible, wait-for-text]
+                    reason: report stabilization
                   report:
                     directory: artifacts/reports
                     filePrefix: report_
@@ -51,6 +56,10 @@ class AtfUiConfigurationLoaderTest {
         assertEquals("firefox", configuration.browser().browser());
         assertEquals(1280, configuration.browser().viewportWidth());
         assertEquals(70, configuration.browser().zoomPercent());
+        assertEquals(3, configuration.browser().retryPolicy().maxAttempts());
+        assertTrue(configuration.browser().retryPolicy()
+                .allows("Wait for visible", 1));
+        assertFalse(configuration.browser().retryPolicy().allows("Click", 1));
         assertEquals(root.resolve("artifacts/reports").toAbsolutePath().normalize(),
                 configuration.reportDirectory());
         assertEquals("report_", configuration.reportFilePrefix());

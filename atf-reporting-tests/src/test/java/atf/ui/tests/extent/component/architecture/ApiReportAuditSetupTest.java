@@ -1,6 +1,7 @@
 package atf.ui.tests.extent.component.architecture;
 import atf.api.testkit.AtfComponentTest;
 import atf.ui.tests.extent.support.api.ApiReportAuditSetup;
+import atf.ui.tests.extent.support.config.ApiReportEnvironmentSnapshotFactory;
 import atf.ui.tests.extent.support.data.UiTestData;
 
 import atf.api.ui.config.UiBrowserConfiguration;
@@ -48,5 +49,16 @@ class ApiReportAuditSetupTest {
             if (previous == null) System.clearProperty(UiTestData.API_FAMILIES_PROPERTY);
             else System.setProperty(UiTestData.API_FAMILIES_PROPERTY, previous);
         }
+    }
+
+    @Test
+    void apiPreconditionMetadataIsTypedAndBoundedAtItsCompositionBoundary() {
+        var snapshot = ApiReportEnvironmentSnapshotFactory.precondition(
+                ApiReportSetupDeclarations.UsersPosts.class, List.of("users", "posts"));
+
+        assertEquals("ACCEPTANCE", snapshot.displayValues().get("Environment"));
+        assertEquals("users, posts", snapshot.displayValues().get("Profile"));
+        assertEquals("atf-mock.yaml", snapshot.displayValues().get("Precondition"));
+        assertEquals("Extent HTML", snapshot.displayValues().get("Reporting"));
     }
 }

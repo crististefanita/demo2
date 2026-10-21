@@ -4,6 +4,7 @@ import atf.api.testkit.AtfComponentTest;
 import atf.ui.practiceshop.config.PracticeShopConfigurationLoader;
 import atf.ui.practiceshop.config.PracticeShopApiConfiguration;
 import atf.ui.practiceshop.config.PracticeShopApiPrecondition;
+import atf.ui.practiceshop.config.PracticeShopApiCheckpoint;
 import atf.ui.practiceshop.config.PracticeShopValidationProfile;
 import atf.ui.practiceshop.routes.PracticeShopUiRoutes;
 import org.junit.jupiter.api.Test;
@@ -30,10 +31,17 @@ class PracticeShopConfigurationTest {
         assertEquals("Romania", configuration.checkout().billing().country());
         assertEquals(70, configuration.browser().zoomPercent());
         assertTrue(configuration.browser().screenshotOnFailure());
+        assertEquals(1, configuration.uiRetry().maxAttempts());
+        assertFalse(configuration.uiRetry().enabled());
+        assertFalse(configuration.browser().retryPolicy().enabled());
         assertEquals(PracticeShopValidationProfile.UI_API, configuration.validationProfile());
         assertTrue(configuration.api().authenticatedPrecondition());
+        assertEquals(4, configuration.api().evidenceBinding().checkpoints().size());
+        assertTrue(configuration.api().evidenceBinding().includes(PracticeShopApiCheckpoint.PRODUCT));
+        assertTrue(configuration.api().evidenceBinding().includes(PracticeShopApiCheckpoint.PAYMENT));
         assertTrue(configuration.uiReportDirectory().toString().endsWith("artifacts\\reports\\ui"));
-        assertTrue(configuration.apiReportDirectory().toString().endsWith("artifacts\\reports"));
+        assertTrue(configuration.apiReportDirectory().toString().endsWith("artifacts\\reports\\api"));
+        assertFalse(configuration.uiReportDirectory().equals(configuration.apiReportDirectory()));
         assertFalse(configuration.authenticatedE2eAllowed());
         // The default target path is intentionally absent until a local/CI account is injected.
         assertTrue(configuration.accountFile().toString().contains("practice-software-testing-account.properties"));

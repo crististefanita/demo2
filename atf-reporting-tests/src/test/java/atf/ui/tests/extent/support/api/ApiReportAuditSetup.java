@@ -1,5 +1,6 @@
 package atf.ui.tests.extent.support.api;
 import atf.ui.tests.extent.support.config.ReportingTestResources;
+import atf.ui.tests.extent.support.config.ApiReportEnvironmentSnapshotFactory;
 import atf.api.core.config.source.ApiBootstrapConfigurationLoader;
 import atf.api.core.testing.api.ApiScenarioSelection;
 import atf.api.core.testing.api.ApiScenarioSetup;
@@ -13,6 +14,7 @@ import atf.api.mock.AtfMockConfiguration;
 import atf.api.mock.AtfMockTransport;
 
 import atf.api.reporting.extent.session.ExtentReportSession;
+import atf.api.reporting.configuration.AtfReportConfigurationLoader;
 import atf.api.reporting.support.CoreReportPortsAdapter;
 import atf.ui.tests.extent.support.config.UiConfiguration;
 import atf.ui.tests.extent.support.config.UiAuditSuiteConfiguration;
@@ -55,7 +57,10 @@ public class ApiReportAuditSetup {
         AtfMockTransport transport = ReportingTestResources.mockTransport();
         ApiModule api = acceptanceApi(transport);
         Path report;
-        try (ExtentReportSession session = ExtentReportSession.openConfigured()) {
+        var reportingConfiguration = AtfReportConfigurationLoader.load();
+        try (ExtentReportSession session = ExtentReportSession.openConfigured(
+                reportingConfiguration,
+                ApiReportEnvironmentSnapshotFactory.precondition(setupOwner, families))) {
             report = session.reportPath();
             ApiScenarioSetupCatalog.publish(CoreReportPortsAdapter.wrap(session), api,
                     new ApiScenarioLifecycleRunner(), families);
@@ -103,7 +108,10 @@ public class ApiReportAuditSetup {
         AtfMockTransport transport = ReportingTestResources.mockTransport();
         ApiModule api = acceptanceApi(transport);
         Path report;
-        try (ExtentReportSession session = ExtentReportSession.openConfigured()) {
+        var reportingConfiguration = AtfReportConfigurationLoader.load();
+        try (ExtentReportSession session = ExtentReportSession.openConfigured(
+                reportingConfiguration,
+                ApiReportEnvironmentSnapshotFactory.precondition(setupOwner, families))) {
             report = session.reportPath();
             ApiScenarioSetupCatalog.publishSelected(CoreReportPortsAdapter.wrap(session), api,
                     new ApiScenarioLifecycleRunner(), selectedTests);

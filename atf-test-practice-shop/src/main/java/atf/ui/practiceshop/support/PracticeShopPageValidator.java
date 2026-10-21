@@ -86,6 +86,13 @@ public final class PracticeShopPageValidator {
         return validateValues(page, pageObjectType, Map.of(control, expectedValue));
     }
 
+    /** Validates one semantic control without forcing an unrelated page contract. */
+    public AtfAssertion validateVisible(Page page, PracticeShopControl control) {
+        Objects.requireNonNull(page, "page");
+        Objects.requireNonNull(control, "control");
+        return visible(control, page);
+    }
+
     private AtfAssertion visible(PracticeShopControl control, Page page) {
         try {
             var locator = locators.control(page, control).locator();

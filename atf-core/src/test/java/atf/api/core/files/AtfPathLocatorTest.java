@@ -53,4 +53,35 @@ class AtfPathLocatorTest {
         assertEquals(sourceRoot, AtfPathLocator.locateAtfTestSourceRoot(
                 project.resolve("atf-reporting"), Path.of("atf", "ui", "tests")));
     }
+
+    @Test
+    void locatesModuleRootFromNestedWorkingDirectory() throws Exception {
+        Path project = Files.createDirectories(temp.resolve("project"));
+        Path module = Files.createDirectories(project.resolve("atf-test-practice-shop/src/main/java"));
+        Files.createDirectories(module.resolve("atf/ui/practiceshop"));
+
+        assertEquals(project.resolve("atf-test-practice-shop"), AtfPathLocator.locateModuleRoot(
+                module.resolve("atf/ui/practiceshop"), Path.of("atf-test-practice-shop"),
+                Path.of("src/main/java/atf/ui/practiceshop")));
+    }
+
+    @Test
+    void rejectsUnknownModuleRoot() throws Exception {
+        Path project = Files.createDirectories(temp.resolve("project"));
+
+        assertThrows(IllegalStateException.class, () -> AtfPathLocator.locateModuleRoot(
+                project, Path.of("missing-module"), Path.of("src/main/java")));
+    }
+
+    @Test
+    void resolvesConventionalAndLegacyModuleSourceRoots() throws Exception {
+        Path project = Files.createDirectories(temp.resolve("project"));
+        Path conventional = Files.createDirectories(project.resolve("reporting/src/main/java"));
+        Files.createDirectories(project.resolve("tests/src/test"));
+
+        assertEquals(conventional, AtfPathLocator.resolveModuleSourceRoot(
+                project, "reporting", false));
+        assertEquals(project.resolve("tests/src/test"), AtfPathLocator.resolveModuleSourceRoot(
+                project, "tests", true));
+    }
 }

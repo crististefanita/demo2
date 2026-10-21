@@ -175,17 +175,82 @@ Fiecare clasă declară layer-ul prin adnotare; package-ul exprimă domeniul și
 boundary-ul, nu nivelul de testare. Setup-ul, mock-ul și validatorii comuni
 rămân în `support`, ca o clasă nouă să compună scenariul fără copiere.
 
+Boundary-urile suportului sunt intenționat mici și verificabile: `support.api`
+ține selecția și publicarea precondiției API, `support.config` ține loader-ele,
+resursele și configurația UI, iar `support.config.environment` ține exclusiv
+snapshot factory-urile typed pentru Overview/System. Inspectorul de rețea este
+separat în `atf.api.reporting.ui.network`; nu se adaugă excepții de coeziune doar
+pentru a păstra clase fără legătură în același package. Guard-ul whole-ATF
+impune maximum opt clase pe package.
+
 `ReportingCoverageMatrixTest` este harta executabilă a seam-urilor publice:
 
 | Verificare | Dovadă obligatorie | Limită intenționată |
 |---|---|---|
 | coverage | fiecare seam are test `unit`, `component`, `integration` sau `e2e` | un seam nou fără dovadă lower-level e regresie de guvernanță |
-| audit semantic | `Overview`, `Categories`, `Fails`, `Screen validation` și projection | `ReportAuditSnapshot` rămâne renderer-neutral |
+| audit semantic | `Overview`, `Categories`, `Fails`, `Screen validation` și `ReportExecutionProjections` | `ReportAuditSnapshot` rămâne renderer-neutral; aceleași proiecții typed pot fi verificate fără browser |
 | convergență | JSON și visual sunt verificate împreună | browserul observă; regulile se verifică fără Playwright |
 | browser proof | `E2eSuiteBudgetArchitectureTest` plafonează la 8 clase `@AtfE2eTest` | orice clasă nouă cere justificare în feedback și modificarea bugetului |
 
-`ExtentReportingE2eSuite` este entry-point-ul unic pentru rularea E2E din IntelliJ;
-component și integration rămân nivelurile implicite pentru contractele noi.
+### Proof pentru inspectorul de journey
+
+Inspectorul de rețea se verifică în două trepte, fără a transforma E2E în owner
+al modelului:
+
+```mermaid
+flowchart LR
+    Evidence["typed exchanges + diagnostics"] -->|component| Aggregate["JourneyAggregate"]
+    Aggregate -->|integration| Publisher["Extent publisher"]
+    Publisher -->|browser proof| Render["collapsed HTML"]
+```
+
+<details>
+<summary><strong>Legendă — ce trebuie să treacă la fiecare nivel</strong></summary>
+
+- `ReportNetworkInspectorTest` verifică ordered facts, authentication,
+  correlation, transport counters, unique signatures și diagnostic dedupe,
+  inclusiv faptul că două semnale console/page necorelate nu sunt contopite doar
+  fiindcă method/route/status lipsesc;
+- component/integration publisher tests verifică faptul că body-urile rămân în
+  disclosures canonical și aggregate-ul nu primește credentiale sau mesaje
+  volatile;
+- publisher proof trebuie să verifice și shape-ul, nu numai prezența label-urilor:
+  pentru `0..N` exchange-uri, fiecare pereche request/response și execution
+  evidence trebuie să rămână scanabilă ca unitate API; un tabel comun cu prefixe
+  `API 1/API 2` nu este suficient;
+- UI trace proof trebuie să verifice ierarhia `Gherkin API trace → API validation
+  → disclosures`, cu `API validation` în același stil semantic ca `UI validation`;
+- execution disclosure-ul trebuie să fie identificabil pentru exchange-ul lui;
+  două apariții `Execution evidence · 1 attempts` fără context sunt ambigue chiar
+  dacă numărul de attempts este corect;
+- contractul de layout trebuie să păstreze URL-ul complet lizibil la viewport
+  îngust, fără break arbitrar în identificator și fără overflow;
+- browser/debug verifică numai structură vizibilă, expand/collapse, ordine și
+  navigare; nu este necesar pentru fiecare variație de method/status;
+- dacă renderer-ul publică fields flat în loc de disclosure-uri nested, modelul
+  semantic poate rămâne verde, dar publisher gate-ul trebuie să rămână roșu până
+  la corectarea proiecției;
+- testele HTML trebuie să selecteze zona semantică a inspectorului și să verifice
+  celule/atribute/ordine, nu să folosească `contains` global sau casing vendor.
+
+</details>
+
+Entry-point-urile selectabile direct din IntelliJ sunt separate pe layer:
+
+| Entry point | Include | Rol |
+|---|---|---|
+| `AtfReportingUnitSuite` | `unit` din `atf.api.reporting` | model, policy, parser, renderer seam și vocabular |
+| `AtfReportingComponentSuite` | `component` din reporting și UI extent | boundary HTML/CSS/JS, contracte și fixture-uri controlate |
+| `AtfReportingIntegrationSuite` | `integration` din `atf.api.reporting` | session, publication, replay și contracte de integrare ale librăriei |
+| `AtfReportingApiFixtureSuite` | `integration` din `atf.api.tests.api` | mock API → core → validation → reporting evidence, fără browser |
+| `AtfReportingUiAuditSuite` | `e2e` din `atf.ui.tests.extent.e2e` | audit browser/debug al artifactului Extent, cu owner UI explicit |
+| `ExtentReportingE2eSuite` | `e2e` din `atf.ui.tests.extent.e2e` | browser/debug, click-uri, disclosure și randare observabilă |
+
+Fiecare layer are un launcher dedicat și selectează numai package-ul lui. `ExtentReportingE2eSuite`
+rămâne entry-point-ul agregat pentru întregul E2E; `AtfReportingUiAuditSuite`
+este entry-point-ul îngust pentru auditul UI al reportingului. Astfel un run
+rapid nu pornește browserul, un run API fixture nu pornește UI, iar un run E2E
+nu ascunde failure-uri lower-level.
 
 ## Boundary-ul aplicațiilor consumatoare
 

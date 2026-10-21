@@ -96,7 +96,8 @@ public final class PracticeShopApiAssertions {
                         ? check("API session establishment", "login token establishes the UI session",
                         HttpMethod.POST.value() + " " + PracticeShopApiRoutes.LOGIN
                                 + " returned " + SUCCESS_STATUS.wireValue() + "; "
-                                + PracticeShopApiRoutes.CURRENT_USER + " was not emitted by this UI revision", true)
+                                + PracticeShopApiRoutes.CURRENT_USER + " was not emitted by this UI revision",
+                        validJsonTransport)
                         : check("API current-user response", displayName, compact(currentUserBody, 220),
                         currentUserMatches)));
         assertions.add(trace("login", login));

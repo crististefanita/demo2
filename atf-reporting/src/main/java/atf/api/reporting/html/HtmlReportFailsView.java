@@ -12,13 +12,10 @@ import static atf.api.reporting.html.HtmlReportMarkupSupport.escape;
 public final class HtmlReportFailsView {
     String render(ReportExecutionModel snapshot) {
         var html = new StringBuilder();
-        html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.SECTION,
-                        AtfReportHtmlVocabulary.idAttribute(
-                                AtfReportHtmlVocabulary.FallbackTab.FAILS.value()),
-                        AtfReportHtmlVocabulary.classAttribute(
-                                AtfReportHtmlVocabulary.CssClass.TAB_PANEL)))
-                .append(AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.H2,
-                        AtfReportLabels.FAILS))
+        html.append(HtmlReportFallbackViewSupport.sectionStart(
+                        AtfReportHtmlVocabulary.FallbackTab.FAILS))
+                .append(HtmlReportFallbackViewSupport.heading(
+                        AtfReportHtmlVocabulary.FallbackTab.FAILS))
                 .append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.DIV,
                         AtfReportHtmlVocabulary.classAttribute(
                                 AtfReportHtmlVocabulary.CssClass.FAIL_LIST)));
@@ -45,8 +42,7 @@ public final class HtmlReportFailsView {
         }
         return html.append(AtfReportHtmlVocabulary.closeTag(
                         AtfReportHtmlVocabulary.Tag.DIV))
-                .append(AtfReportHtmlVocabulary.closeTag(
-                        AtfReportHtmlVocabulary.Tag.SECTION))
+                .append(HtmlReportFallbackViewSupport.sectionEnd())
                 .toString();
     }
 }

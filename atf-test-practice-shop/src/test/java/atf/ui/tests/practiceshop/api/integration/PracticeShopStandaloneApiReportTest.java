@@ -18,10 +18,11 @@ import atf.ui.practiceshop.support.PracticeShopApiExecutionExchange;
 import atf.ui.practiceshop.support.PracticeShopApiReportPublisher;
 import atf.ui.practiceshop.support.PracticeShopApiReportValidation;
 import atf.ui.tests.practiceshop.api.support.PracticeShopApiReportMetadataFixture;
+import atf.ui.tests.practiceshop.support.PracticeShopReportHtmlTestSupport;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
+import atf.ui.tests.practiceshop.support.PracticeShopTestSupport;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,19 +37,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Tag("api")
 @AtfIntegrationTest
-@EnabledIf("isLiveConfigured")
+@PracticeShopTestSupport.RequiresLiveAuthenticatedApi
 class PracticeShopStandaloneApiReportTest {
     private static final String REPORT_PREFIX = "api-atf-practice-shop-standalone_";
     private static final String AUTHENTICATION_PHASE = "authentication";
     private static final String CATALOG_PHASE = "catalog";
     private static final String CART_PHASE = "cart";
     private static final String CHECKOUT_PHASE = "checkout";
-
-    static boolean isLiveConfigured() {
-        PracticeShopConfiguration configuration = PracticeShopConfigurationLoader.load();
-        return configuration.authenticatedE2eAllowed()
-                && configuration.api().mode() == atf.api.core.config.ApiTransportMode.LIVE;
-    }
 
     @Test
     @DisplayName("Practice Shop live API business flow publishes real HTTP evidence")
@@ -57,14 +52,14 @@ class PracticeShopStandaloneApiReportTest {
         PracticeShopCredentials credentials = PracticeShopCredentials.load(configuration.accountFile());
         PracticeShopPaymentMethod paymentMethod = PracticeShopPaymentMethod.from(
                 configuration.checkout().paymentMethod());
-        PracticeShopApiClient client = PracticeShopApiClient.live(configuration.api());
-        PracticeShopApiScreenFlow flow = new PracticeShopApiScreenFlow(client);
+        try (PracticeShopApiClient client = PracticeShopApiClient.live(configuration.api())) {
+            PracticeShopApiScreenFlow flow = new PracticeShopApiScreenFlow(client);
 
-        PracticeShopApiSession login = client.login(credentials);
+            PracticeShopApiSession login = client.login(credentials);
         if (!login.authenticated()) {
             publishLiveLoginFailure(configuration, login, credentials);
             assertTrue(login.authenticated(), "live API login precondition must be authenticated");
-            return;
+                return;
         }
         var catalog = flow.catalog().openProduct(configuration.productName());
         var cart = flow.cart().prepare(catalog.productId(), configuration.checkout().quantity());
@@ -115,17 +110,20 @@ class PracticeShopStandaloneApiReportTest {
                 PracticeShopApiReportMetadataFixture.LIVE_TAGS,
                 executions, validations, console);
 
-        assertTrue(Files.isRegularFile(report), "live API report must be written");
-        String html = Files.readString(report);
-        assertTrue(html.contains("LIVE / HTTP"), "report must disclose live provenance");
-        assertTrue(html.contains("Authentication business contract"));
-        assertTrue(html.contains("Catalog business contract"));
-        assertTrue(html.contains("Cart business contract"));
-        assertTrue(html.contains("Checkout business contract"));
-        assertTrue(html.contains("REQUEST JSON"));
-        assertTrue(html.contains("RESPONSE JSON"));
-        assertTrue(html.contains("Payment was successful") || html.contains("payment_method"));
-        assertTrue(html.contains(HttpMethod.POST.value()), "write operations must remain visible");
+            assertTrue(Files.isRegularFile(report), "live API report must be written");
+            String html = Files.readString(report);
+            PracticeShopReportHtmlTestSupport.requireText(html, "LIVE / HTTP", "live provenance");
+            for (String contract : List.of("Authentication business contract", "Catalog business contract",
+                    "Cart business contract", "Checkout business contract")) {
+                PracticeShopReportHtmlTestSupport.requireText(html, contract, "business validation");
+            }
+            PracticeShopReportHtmlTestSupport.requireText(html, "REQUEST JSON", "request body disclosure");
+            PracticeShopReportHtmlTestSupport.requireText(html, "RESPONSE JSON", "response body disclosure");
+            assertTrue(html.contains("Payment was successful") || html.contains("payment_method"),
+                    "payment business evidence must remain visible");
+            PracticeShopReportHtmlTestSupport.requireText(html, HttpMethod.POST.value(),
+                    "write operations must remain visible");
+        }
     }
 
     private static void publishLiveLoginFailure(PracticeShopConfiguration configuration,

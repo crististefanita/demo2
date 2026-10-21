@@ -4,6 +4,7 @@ import atf.api.reporting.inventory.ValidationSink;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.api.ReportModelAdapters;
 import atf.api.reporting.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.network.ReportNetworkInspector;
 import java.nio.file.Path;
 import java.util.Collection;
 
@@ -34,6 +35,8 @@ public final class AtfReportPorts {
         default void execution(ReportExecutionEvidence result) { }
         /** Compatibility seam for legacy core execution snapshots during migration. */
         default void execution(Object result) { execution(ReportModelAdapters.execution(result)); }
+        /** Adds one typed, renderer-neutral journey aggregate disclosure. */
+        default void networkAggregate(ReportNetworkInspector.JourneyAggregate aggregate) { }
         @Override Validation startValidation(String title);
         void complete(AtfReportStatus status); @Override void close();
     }

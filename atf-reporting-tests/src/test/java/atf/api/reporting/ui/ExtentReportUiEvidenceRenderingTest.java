@@ -128,6 +128,36 @@ class ExtentReportUiEvidenceRenderingTest {
     }
 
     @Test
+    void rendersAConfiguredReadOnlyRetryAsAnInlineInfoAction() throws Exception {
+        Path root = Files.createTempDirectory("atf-ui-retry-evidence-");
+        Path report = root.resolve("ui-retry-evidence.html");
+        try (var session = new ExtentReportSession(report)) {
+            var scenario = session.startScenario("UiTest", EXTENT_UI_TEST_PACKAGE,
+                    "bounded retry evidence", List.of("ui"));
+            var phase = scenario.startPhase("TEST BODY");
+            var step = phase.startRequest("THEN report stabilization completes", "", "");
+            step.uiActions(List.of(
+                    new AtfUiActionRecord(1, "Retry", "#test-view", "attempt 2 of 3",
+                            "retry scheduled: DOM stabilization", 0, AtfReportStatus.INFO),
+                    new AtfUiActionRecord(2, "Wait for visible", "#test-view", "state=Visible",
+                            "state reached", 7, AtfReportStatus.PASS)));
+            step.screenshot("Screen validation", ReportTestScreenshots.ONE_PIXEL_PNG);
+            step.complete(AtfReportStatus.PASS);
+            phase.complete(AtfReportStatus.PASS);
+            scenario.complete(AtfReportStatus.PASS);
+        }
+
+        String html = Files.readString(report);
+        assertAll(
+                () -> assertTrue(html.contains("Playwright action sequence (2 entries)")),
+                () -> assertTrue(html.contains("Retry")),
+                () -> assertTrue(html.contains("attempt 2 of 3")),
+                () -> assertTrue(html.contains("retry scheduled: DOM stabilization")),
+                () -> assertTrue(html.contains("role=\"img\" aria-label=\"Info\"")),
+                () -> assertTrue(html.contains("Wait for visible")));
+    }
+
+    @Test
     void rendersOneScreenshotReferenceAndOneResultEmojiPerActionWithoutDuplication() throws Exception {
         Path root = Files.createTempDirectory("atf-ui-deduplicated-evidence-");
         Path report = root.resolve("ui-deduplicated-evidence.html");

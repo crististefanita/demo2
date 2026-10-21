@@ -14,6 +14,7 @@ import atf.ui.practiceshop.support.PracticeShopApiReportPublisher;
 import atf.ui.tests.practiceshop.api.support.PracticeShopApiReportMetadataFixture;
 import atf.ui.tests.practiceshop.api.support.PracticeShopApiScenarioFixture;
 import atf.ui.tests.practiceshop.api.support.PracticeShopApiComponentFixture;
+import atf.ui.tests.practiceshop.support.PracticeShopReportHtmlTestSupport;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -64,28 +65,31 @@ class PracticeShopApiContractReportComponentTest {
 
         String html = Files.readString(report);
         assertTrue(Files.isRegularFile(report));
-        assertTrue(html.contains("REQUEST JSON"));
-        assertTrue(html.contains("RESPONSE JSON"));
-        assertTrue(html.contains("Execution evidence"));
-        assertTrue(html.contains(PracticeShopApiRoutes.PRODUCT_SEARCH));
-        assertTrue(html.contains(PracticeShopApiRoutes.PAYMENT_CHECK));
-        assertTrue(html.contains("POST /users/login — establish API session"));
-        assertTrue(html.contains("GET /products/search — find configured product"));
-        assertTrue(html.contains("GET /products/01product — read selected product"));
-        assertTrue(html.contains("POST /carts/01cart — add product to cart"));
-        assertTrue(html.contains("GET /carts/01cart — verify cart contents"));
-        assertTrue(html.contains("GET /postcode-lookup — resolve checkout address"));
-        assertTrue(html.contains("POST /payment/check — validate payment selection"));
-        assertFalse(html.contains("QUERY /products/search"));
-        assertTrue(html.contains("<td>OPERATION KIND</td>"));
-        assertTrue(html.contains("<td>ROUTE TEMPLATE</td>"));
-        assertTrue(html.contains("AUTH TYPE"));
-        assertTrue(html.contains("REQUEST HEADERS"));
-        assertTrue(html.contains("CONTENT TYPE"));
-        assertTrue(html.contains("RESPONSE HEADERS"));
-        assertFalse(html.contains("atf@example.test"));
-        assertFalse(html.contains("token-1"));
-        assertFalse(html.contains("\"secret\""));
+        PracticeShopReportHtmlTestSupport.requireText(html, "REQUEST JSON", "request body disclosure");
+        PracticeShopReportHtmlTestSupport.requireText(html, "RESPONSE JSON", "response body disclosure");
+        PracticeShopReportHtmlTestSupport.requireText(html, "Execution evidence", "execution disclosure");
+        PracticeShopReportHtmlTestSupport.requireText(html, PracticeShopApiRoutes.PRODUCT_SEARCH,
+                "catalog route");
+        PracticeShopReportHtmlTestSupport.requireText(html, PracticeShopApiRoutes.PAYMENT_CHECK,
+                "payment route");
+        PracticeShopReportHtmlTestSupport.requireInOrder(html, List.of(
+                "POST /users/login — establish API session",
+                "GET /products/search — find configured product",
+                "GET /products/01product — read selected product",
+                "POST /carts/01cart — add product to cart",
+                "GET /carts/01cart — verify cart contents",
+                "GET /postcode-lookup — resolve checkout address",
+                "POST /payment/check — validate payment selection"),
+                "business request order");
+        PracticeShopReportHtmlTestSupport.requireAbsent(html, "QUERY /products/search",
+                "semantic operation vocabulary must not regress");
+        for (String header : List.of("OPERATION KIND", "ROUTE TEMPLATE", "AUTH TYPE",
+                "REQUEST HEADERS", "CONTENT TYPE", "RESPONSE HEADERS")) {
+            PracticeShopReportHtmlTestSupport.requireExactCell(html, header, "API report table");
+        }
+        for (String secret : List.of("atf@example.test", "token-1", "\"secret\"")) {
+            PracticeShopReportHtmlTestSupport.requireAbsent(html, secret, "redaction contract");
+        }
     }
 
     private static void assertWriteRequestsHaveJson(List<ApiExecutionResult> executions) {

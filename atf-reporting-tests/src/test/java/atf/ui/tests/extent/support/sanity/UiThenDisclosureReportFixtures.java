@@ -3,6 +3,8 @@ import atf.api.reporting.console.AtfConsoleSink;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.ui.UiExtentReportSession;
 import atf.api.reporting.ui.contract.ReportUiContract;
+import atf.api.reporting.ui.UiExtentReportOptions;
+import atf.ui.tests.extent.support.config.environment.UiReportEnvironmentSnapshotFactory;
 
 
 import java.nio.file.Path;
@@ -20,7 +22,12 @@ public final class UiThenDisclosureReportFixtures {
 
     public static Path publishTeardown(Path root) {
         UiExtentReportSession session = UiExtentReportSession.openConfigured(
-                root, "then-ui-disclosure-sanity.html", AtfConsoleSink.noOp());
+                UiExtentReportOptions.builder(root)
+                        .fileName("then-ui-disclosure-sanity.html")
+                        .console(AtfConsoleSink.noOp())
+                        .environment(UiReportEnvironmentSnapshotFactory.fixture(
+                                "UI disclosure sanity", "teardown disclosure"))
+                        .build());
         Path report = session.reportPath();
         try (session) {
             var scenario = session.startScenario("UiThenDisclosureSanityTest",
@@ -36,7 +43,12 @@ public final class UiThenDisclosureReportFixtures {
 
     public static Path publishWithoutTeardown(Path root) {
         UiExtentReportSession session = UiExtentReportSession.openConfigured(
-                root, "ui-no-teardown-sanity.html", AtfConsoleSink.noOp());
+                UiExtentReportOptions.builder(root)
+                        .fileName("ui-no-teardown-sanity.html")
+                        .console(AtfConsoleSink.noOp())
+                        .environment(UiReportEnvironmentSnapshotFactory.fixture(
+                                "UI disclosure sanity", "without teardown"))
+                        .build());
         Path report = session.reportPath();
         try (session) {
             var scenario = session.startScenario("UiThenDisclosureSanityTest",

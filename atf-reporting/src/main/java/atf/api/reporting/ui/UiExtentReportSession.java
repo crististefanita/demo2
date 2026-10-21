@@ -1,5 +1,6 @@
 package atf.api.reporting.ui;
 
+import atf.api.reporting.ui.network.ReportNetworkInspector;
 import atf.api.reporting.console.AtfConsoleSink;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfGherkinKeyword;
@@ -10,12 +11,14 @@ import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.security.SensitiveDataRedactor;
 import atf.api.reporting.configuration.AtfReportConfigurationLoader;
 import atf.api.reporting.configuration.ExtentReportConfiguration;
+import atf.api.reporting.configuration.ReportEnvironmentSnapshot;
 import atf.api.reporting.extent.session.ExtentReportSession;
 import atf.api.reporting.ui.AtfUiActionRecord;
 
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -128,6 +131,22 @@ public final class UiExtentReportSession implements AutoCloseable {
                 .build());
     }
 
+    /** Opens a resolved UI report with allowlisted semantic System metadata. */
+    public static UiExtentReportSession openConfiguredResolved(Path outputDirectory,
+                                                                String resolvedFileName,
+                                                                AtfConsoleSink console,
+                                                                ReportEnvironmentSnapshot systemInfo) {
+        var configuration = AtfReportConfigurationLoader.load();
+        return open(configuration, UiExtentReportOptions.builder(outputDirectory)
+                .fileName(resolvedFileName)
+                .console(console)
+                .evidenceProfile(ReportEvidenceProfile.forScreenshotPolicy(
+                        configuration.screenshotPolicy()))
+                .environment(systemInfo)
+                .timestampEnabled(false)
+                .build());
+    }
+
     private static UiExtentReportSession open(ExtentReportConfiguration configuration,
                                               UiExtentReportOptions options) {
         var uiConfiguration = new ExtentReportConfiguration(
@@ -137,9 +156,13 @@ public final class UiExtentReportSession implements AutoCloseable {
                 configuration.reportingSettings(), configuration.enabled(),
                 options.evidenceProfile().screenshotPolicy());
         Path report = uiConfiguration.resolveReportPath(Clock.systemDefaultZone());
+        // Keep test identity in the Tests tree; Overview/System receives only
+        // operational metadata from the typed environment projection.
+        var systemInfo = new LinkedHashMap<String, String>(options.environment().systemDisplayValues());
+        systemInfo.putAll(options.systemInfo());
         return new UiExtentReportSession(new ExtentReportSession(report,
                 uiConfiguration.reportingSettings(), new SensitiveDataRedactor(), options.console(),
-                options.systemInfo()),
+                systemInfo),
                 options.evidenceProfile());
     }
 
@@ -245,6 +268,21 @@ public final class UiExtentReportSession implements AutoCloseable {
             lifecycle.networkInspector(title, evidence);
         }
 
+        /** Publishes ordered UI checkpoints plus their compact network projection. */
+        public void networkInspector(String title,
+                                     Collection<atf.api.reporting.model.ReportExecutionEvidence> evidence,
+                                     Collection<ReportNetworkInspector.Step> steps) {
+            lifecycle.networkInspector(title, evidence, steps);
+        }
+
+        /** Publishes the journey aggregate with deduplicated runtime diagnostics. */
+        public void networkInspector(String title,
+                                     Collection<atf.api.reporting.model.ReportExecutionEvidence> evidence,
+                                     Collection<ReportNetworkInspector.Step> steps,
+                                     Collection<ReportNetworkInspector.Diagnostic> diagnostics) {
+            lifecycle.networkInspector(title, evidence, steps, diagnostics);
+        }
+
         public void setup(String keyword, String title, String target,
                           Collection<AtfAssertion> assertions, AtfReportStatus status) {
             lifecycle.setup(keyword, title, target, assertions, status);
@@ -263,6 +301,19 @@ public final class UiExtentReportSession implements AutoCloseable {
         public void outcome(AtfGherkinKeyword keyword, String title, String target,
                             AtfReportStatus status) {
             lifecycle.outcome(keyword, title, target, status);
+        }
+
+        /** Publishes a non-visual browser/runtime diagnostic without a UI-validation label. */
+        public void diagnostic(AtfGherkinKeyword keyword, String title, String target,
+                               Collection<AtfAssertion> assertions, AtfReportStatus status) {
+            lifecycle.diagnostic(keyword, title, target, assertions, status);
+        }
+
+        /** Publishes API evidence as a causal sibling immediately after its UI checkpoint. */
+        public void apiTrace(AtfGherkinKeyword keyword, String title, String target,
+                             Collection<ReportExecutionEvidence> apiEvidence,
+                             AtfReportStatus status) {
+            lifecycle.apiTrace(keyword, title, target, apiEvidence, status);
         }
 
         public void screenValidation(String title, String target, String base64Png,

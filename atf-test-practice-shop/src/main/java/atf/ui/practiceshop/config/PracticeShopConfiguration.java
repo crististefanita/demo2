@@ -15,6 +15,7 @@ public record PracticeShopConfiguration(
         String productPath,
         PracticeShopCheckoutConfiguration checkout,
         UiBrowserConfiguration browser,
+        PracticeShopUiRetryConfiguration uiRetry,
         PracticeShopValidationProfile validationProfile,
         PracticeShopApiConfiguration api,
         Path uiReportDirectory,
@@ -29,6 +30,7 @@ public record PracticeShopConfiguration(
         productPath = required(productPath, "productPath");
         checkout = Objects.requireNonNull(checkout, "checkout");
         browser = Objects.requireNonNull(browser, "browser");
+        uiRetry = Objects.requireNonNull(uiRetry, "uiRetry");
         validationProfile = Objects.requireNonNull(validationProfile, "validationProfile");
         api = Objects.requireNonNull(api, "api");
         if (authenticatedE2eEnabled && !api.authenticatedPrecondition()) {
@@ -47,8 +49,22 @@ public record PracticeShopConfiguration(
                                      UiBrowserConfiguration browser,
                                      PracticeShopValidationProfile validationProfile) {
         this(baseUrl, accountFile, productName, productPath, checkout, browser,
-                validationProfile, PracticeShopApiConfiguration.defaults(),
-                Path.of("artifacts", "reports", "ui"), Path.of("artifacts", "reports"), false);
+                PracticeShopUiRetryConfiguration.none(), validationProfile,
+                PracticeShopApiConfiguration.defaults(),
+                Path.of("artifacts", "reports", "ui"), Path.of("artifacts", "reports", "api"), false);
+    }
+
+    /** Compatibility constructor for callers that already provide the complete pre-retry shape. */
+    public PracticeShopConfiguration(URI baseUrl, Path accountFile, String productName,
+                                     String productPath, PracticeShopCheckoutConfiguration checkout,
+                                     UiBrowserConfiguration browser,
+                                     PracticeShopValidationProfile validationProfile,
+                                     PracticeShopApiConfiguration api,
+                                     Path uiReportDirectory, Path apiReportDirectory,
+                                     boolean authenticatedE2eEnabled) {
+        this(baseUrl, accountFile, productName, productPath, checkout, browser,
+                PracticeShopUiRetryConfiguration.none(), validationProfile, api,
+                uiReportDirectory, apiReportDirectory, authenticatedE2eEnabled);
     }
 
     public boolean accountConfigured() {

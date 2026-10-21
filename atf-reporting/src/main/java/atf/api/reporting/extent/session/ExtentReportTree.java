@@ -10,6 +10,7 @@ import atf.api.reporting.evidence.ExtentEvidenceRenderer;
 import atf.api.reporting.extent.ExtentScenarioScope;
 import atf.api.reporting.markup.ExtentReportNodeSupport;
 import atf.api.reporting.model.ReportField;
+import atf.api.reporting.ui.network.ReportNetworkInspector;
 import atf.api.reporting.model.ReportJsonBody;
 import atf.api.reporting.model.ReportScreenshot;
 import atf.api.reporting.model.ReportTagNormalizer;
@@ -136,6 +137,11 @@ public final class ExtentReportTree {
 
     public void renderSetupEvidence(ExtentTest node, List<ReportField> details) {
         evidence.renderSetupEvidence(node, details);
+    }
+
+    public void renderNetworkAggregate(ExtentTest node,
+                                       ReportNetworkInspector.JourneyAggregate aggregate) {
+        evidence.renderNetworkAggregate(node, aggregate);
     }
 
     /** Publishes one renderer-neutral transport evidence block at the request boundary. */

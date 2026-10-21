@@ -67,6 +67,50 @@ public final class AtfPathLocator {
     }
 
     /**
+     * Locates a module below the first ancestor that contains the requested
+     * module path and a required relative marker below that module.
+     */
+    public static Path locateModuleRoot(Path start, Path moduleRelativePath,
+                                        Path requiredRelativePath) {
+        Path module = relativePath(moduleRelativePath, "moduleRelativePath");
+        Path required = relativePath(requiredRelativePath, "requiredRelativePath");
+        Path current = normalizeStart(start);
+        while (current != null) {
+            Path moduleRoot = current.resolve(module).normalize();
+            if (moduleRoot.getParent() != null
+                    && moduleRoot.getParent().startsWith(current)
+                    && Files.isDirectory(moduleRoot)
+                    && Files.isDirectory(moduleRoot.resolve(required))) {
+                return moduleRoot;
+            }
+            current = current.getParent();
+        }
+        throw new IllegalStateException("Cannot locate module root containing " + module
+                + " and marker " + required);
+    }
+
+    /**
+     * Resolves the conventional source-set root for a module without encoding
+     * any repository policy. Maven layouts use {@code src/main/java} and
+     * {@code src/test/java}; the legacy ATF test modules use {@code src/main}
+     * and {@code src/test} directly.
+     */
+    public static Path resolveModuleSourceRoot(Path projectRoot, String module,
+                                               boolean tests) {
+        Path root = Objects.requireNonNull(projectRoot, "projectRoot")
+                .toAbsolutePath().normalize();
+        if (!Files.isDirectory(root)) {
+            throw new IllegalArgumentException("projectRoot must be an existing directory: " + root);
+        }
+        if (module == null || module.isBlank() || module.contains("/") || module.contains("\\")) {
+            throw new IllegalArgumentException("module must be a non-blank module directory name");
+        }
+        Path sourceSet = root.resolve(module).resolve(tests ? "src/test" : "src/main");
+        Path conventional = sourceSet.resolve("java");
+        return Files.isDirectory(conventional) ? conventional : sourceSet;
+    }
+
+    /**
      * Locates an ATF test source root using the repository's supported module
      * layouts. Test code should consume this seam instead of repeating
      * user.dir traversal and module-specific candidate lists.

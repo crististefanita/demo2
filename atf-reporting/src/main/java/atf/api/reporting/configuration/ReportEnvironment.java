@@ -13,13 +13,10 @@ public final class ReportEnvironment {
     public static Map<String, String> defaults() {
         var metadata = new LinkedHashMap<String, String>();
         metadata.put("Environment", "LOCAL");
-        metadata.put("API base URL", "configured per ApiExecutor");
         metadata.put("Runtime", "Java " + System.getProperty("java.version", "unknown"));
         metadata.put("OS", System.getProperty("os.name", "unknown") + " "
                 + System.getProperty("os.version", "unknown"));
         metadata.put("Client", "ATF ApiTransport (configured per execution)");
-        metadata.put("Authentication", "configured per request");
-        metadata.put("Test package", "atf-tests");
         metadata.put("Reporting", "Extent · embedded offline HTML");
         return Collections.unmodifiableMap(metadata);
     }
@@ -40,5 +37,14 @@ public final class ReportEnvironment {
             });
         }
         return Collections.unmodifiableMap(metadata);
+    }
+
+    /**
+     * Publishes the typed allowlist through the same redaction boundary as
+     * legacy consumer metadata.
+     */
+    public static Map<String, String> with(ReportEnvironmentSnapshot snapshot,
+                                           SensitiveDataRedactor redactor) {
+        return with(snapshot == null ? Map.of() : snapshot.systemDisplayValues(), redactor);
     }
 }

@@ -7,6 +7,23 @@
 - Extent publică evidence-ul într-o formă lizibilă și navigabilă;
 - fiecare suprafață reutilizează aceeași identitate și aceeași semantică.
 
+### Overview/System — snapshot semantic
+
+- metadata de configurare se publică prin `ReportEnvironmentSnapshot` și
+  `ReportEnvironmentField`;
+- allowlist-ul este typed și grupat semantic pe runtime, ținte, browser, timp,
+  precondiție, network, retry, evidence și reporting;
+- valorile goale sunt ignorate, iar `ReportEnvironment` aplică redaction înainte
+  de publicare;
+- `Map<String,String>` rămâne numai compatibilitate pentru consumatori existenți;
+- nu se publică dump-ul YAML, credentiale, path-uri temporare sau identificatori
+  dinamici ca reguli normative.
+- `Suite`, `Test package`, `Flow`, `Fixture`, `Checkout` și payload-ul business
+  nu apar în `Overview/System`; identitatea testului aparține suprafeței `Tests`,
+  iar facts-urile schimbului aparțin disclosure-ului request/response/execution;
+- duratele vizibile sunt operaționale și umane (`20s`, `45s`); forma ISO și cheia
+  tehnică rămân cel mult în debugging colapsat.
+
 ## Ordinea suprafețelor
 
 Ordinea aprobată și rolul fiecărei suprafețe sunt vizibile într-un singur flux:
@@ -113,6 +130,20 @@ rendererul fallback:
   real de rânduri ale tabelului trace;
 - `Request details` conține method, URL/path, headers, params, auth și request
   body înainte de transport;
+- în trace-ul UI, aceleași câmpuri sunt prefixate doar cu `API n ·` pentru
+  corelarea mai multor exchange-uri; prefixul nu schimbă vocabularul și nu
+  autorizează un nivel diferit de detaliu;
+- pentru `0..N` exchange-uri, prefixul nu este suficient ca structură: fiecare
+  exchange trebuie să păstreze disclosure-ul API canonical
+  `Request details` → `Response details` → `Execution evidence`; metadata precum
+  `TRACE PARENT STEP` și `TRACE POSITION` aparține contextului trace-ului, nu
+  tabelului response;
+- în UI trace, acest spine este copilul semantic `API validation`, poziționat
+  între pasul Gherkin și disclosure-urile collapsed; `API validation` are stilul
+  și statusul unei `UI validation`, dar nu creează un test sau un verdict paralel;
+- când există mai multe exchange-uri, `Execution evidence` trebuie să păstreze
+  identitatea exchange-ului în disclosure-ul părinte sau în titlu; repetarea
+  unui titlu generic fără context nu este auditabilă;
 - `REQUEST JSON` și `RESPONSE JSON` există și pentru body absent, caz în care
   valoarea explicită este `null`;
 - `TRANSPORT PROVENANCE` vine din composition root: `ACCEPTANCE / MOCK` nu a
@@ -120,6 +151,10 @@ rendererul fallback:
   un apel;
 - `MANUAL REPLAY` este safe: acceptance este `NOT EXECUTABLE`, live publică un
   cURL redacted, iar operatorul completează credentialele din profil.
+- proiecția UI păstrează request headers relevante după filtrarea browser noise
+  și publică response headers numai când rămân stabile/relevante după aceeași
+  redaction policy; response headers volatile nu schimbă nivelul canonical al
+  raportului API direct.
 
 </details>
 
@@ -144,7 +179,10 @@ flowchart LR
 - JSON-ul și trace-ul sunt detalii locale ale request/response, iar retry,
   provenance, replay și assertions sunt detalii locale ale execuției;
 - `Request details`, `Response details` și `Execution evidence` sunt
-  disclosure-uri separate în artifact; schema le leagă printr-un spine compact;
+  disclosure-uri separate în artifact; schema le leagă printr-un spine compact.
+  Într-un UI trace cu mai multe exchange-uri, același spine se repetă per
+  exchange într-un singur sibling Gherkin; concatenarea tuturor rândurilor
+  într-un tabel comun `API 1/API 2` nu este contract canonical;
 - `TECHNICAL TRACE` descrie response context, nu înlocuiește response-ul;
 - provenance și replay-ul explică transportul, fără să pretindă că mock-ul a făcut trafic real;
 - assertions rămân legate de request-ul și validation-ul care le-au produs.
@@ -173,6 +211,14 @@ alte facts HTTP non-duplicative
 transportului. El păstrează URL-ul efectiv, durata response-ului, numărul de
 încercări, numărul de retry events și istoricul attempt-urilor. Este închis
 implicit și nu trebuie contopit cu `TECHNICAL TRACE`.
+
+Retry-ul Playwright are aceeași regulă de fail-closed, dar este o policy de UI
+separată de retry-ul transportului: `UiRetryPolicy` pornește cu un singur
+attempt și niciun operation eligibil. Configurarea poate enumera numai operații
+read-only (`navigate` și wait-uri), poate seta `maxAttempts`, `backoff` și un
+motiv bounded, iar fiecare reluare este un rând `Info` în secvența Playwright.
+`click`, `fill`, `select-option` și replay-ul întregului test nu sunt eligibile;
+failure-ul final rămâne verdictul acțiunii.
 
 Durata se afișează explicit ca `RESPONSE DURATION` în execution evidence și ca
 `N ms` pentru valori de până la `300 ms`, respectiv `N s` pentru valori peste
@@ -204,8 +250,9 @@ se derulează în interiorul blocului; pagina nu trebuie să dobândească scrol
 orizontal din cauza unui payload. Dacă payload-ul este mic, blocul rămâne
 compact; nu se impune o înălțime mare doar pentru uniformitate.
 Conținutul publicat este limitat după redaction prin
-`reporting.bodyMaxDisplayCharacters` (implicit `12000`); depășirea este marcată
-cu `… [truncated]`, iar scroll-ul intern rămâne activ.
+`reporting.bodyMaxDisplayCharacters` (implicit `100`); depășirea este marcată
+cu `… [truncated; showing first N of TOTAL chars]`, iar scroll-ul intern rămâne
+activ. Valoarea `0` dezactivează limita numai pentru body preview.
 
 Redacția se aplică la limita de publicare pentru ambele renderere. Detaliile
 request-ului și fazei, JSON-ul, URL-ul, retry history, cauza failure-ului și
@@ -507,7 +554,7 @@ Configurația minimală este:
 
 ```yaml
 reporting:
-  bodyMaxDisplayCharacters: 12000
+  bodyMaxDisplayCharacters: 100
   extent:
     outputDirectory: artifacts/reports
     fileName: ${REPORT_FILE_NAME}

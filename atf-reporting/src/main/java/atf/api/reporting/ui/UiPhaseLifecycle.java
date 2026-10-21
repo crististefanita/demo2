@@ -1,4 +1,6 @@
 package atf.api.reporting.ui;
+
+import atf.api.reporting.ui.network.ReportNetworkInspector;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.api.reporting.contract.AtfReportPorts;
@@ -79,6 +81,19 @@ public final class UiPhaseLifecycle implements AutoCloseable {
 
     void networkInspector(String title,
                           Collection<ReportExecutionEvidence> executionEvidence) {
+        networkInspector(title, executionEvidence, List.of());
+    }
+
+    void networkInspector(String title,
+                          Collection<ReportExecutionEvidence> executionEvidence,
+                          Collection<ReportNetworkInspector.Step> steps) {
+        networkInspector(title, executionEvidence, steps, List.of());
+    }
+
+    void networkInspector(String title,
+                          Collection<ReportExecutionEvidence> executionEvidence,
+                          Collection<ReportNetworkInspector.Step> steps,
+                          Collection<ReportNetworkInspector.Diagnostic> diagnostics) {
         ensureOpen();
         var request = delegate.startRequest(
                 title == null || title.isBlank() ? "API network inspector" : title.trim(),
@@ -86,8 +101,10 @@ public final class UiPhaseLifecycle implements AutoCloseable {
         try {
             request.detail("request.action", "API network inspector");
             request.detail("request.target", "ordered exchanges from the same UI browser session");
-            ReportNetworkInspector.fields(executionEvidence)
+            ReportNetworkInspector.fields(executionEvidence, steps, diagnostics).stream()
+                    .filter(field -> !field.name().startsWith("network.aggregate."))
                     .forEach(field -> request.detail(field.name(), field.value()));
+            request.networkAggregate(ReportNetworkInspector.aggregate(executionEvidence, steps, diagnostics));
             request.complete(AtfReportStatus.PASS);
         } finally {
             request.close();
@@ -101,6 +118,23 @@ public final class UiPhaseLifecycle implements AutoCloseable {
 
     void outcome(AtfGherkinKeyword keyword, String title, String target, AtfReportStatus status) {
         outcome(keyword.text(), title, target, status);
+    }
+
+    void diagnostic(String keyword, String title, String target,
+                    Collection<AtfAssertion> assertions, AtfReportStatus status) {
+        ensureOpen();
+        evidencePublisher.publishDiagnostic(keyword, title, target, assertions, status);
+    }
+
+    void diagnostic(AtfGherkinKeyword keyword, String title, String target,
+                    Collection<AtfAssertion> assertions, AtfReportStatus status) {
+        diagnostic(keyword.text(), title, target, assertions, status);
+    }
+
+    void apiTrace(AtfGherkinKeyword keyword, String title, String target,
+                  Collection<ReportExecutionEvidence> apiEvidence, AtfReportStatus status) {
+        ensureOpen();
+        evidencePublisher.publishApiTrace(keyword.text(), title, target, apiEvidence, status);
     }
 
     void screenValidation(String title, String target, String base64Png,

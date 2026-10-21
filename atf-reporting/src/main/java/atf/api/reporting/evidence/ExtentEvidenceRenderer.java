@@ -5,6 +5,7 @@ import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.configuration.ReportingSettings;
 import atf.api.reporting.security.SensitiveDataRedactor;
 import atf.api.reporting.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.network.ReportNetworkInspector;
 import atf.api.reporting.model.ReportField;
 import atf.api.reporting.model.ReportJsonBody;
 import atf.api.reporting.model.ReportScreenshot;
@@ -39,6 +40,11 @@ public final class ExtentEvidenceRenderer {
 
     public void renderSetupEvidence(ExtentTest node, List<ReportField> details) {
         transport.renderSetupEvidence(node, details);
+    }
+
+    public void renderNetworkAggregate(ExtentTest node,
+                                       ReportNetworkInspector.JourneyAggregate aggregate) {
+        transport.renderNetworkAggregate(node, aggregate);
     }
 
     public void renderExecution(ExtentTest node, ReportExecutionEvidence execution) {

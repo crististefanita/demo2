@@ -8,6 +8,7 @@ import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.model.ReportField;
 import atf.api.reporting.support.ApiReportTestUrls;
+import atf.api.reporting.ui.network.ReportNetworkInspector;
 
 import org.junit.jupiter.api.Test;
 
@@ -21,6 +22,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @AtfUnitTest
 class HtmlReportViewsTest {
+    @Test
+    void fallbackViewsShareTypedSectionIdsAndTabPanelShell() {
+        var document = new HtmlReportSemanticDocument();
+        var scenario = document.startScenario("ShellTests", "fallback shell", List.of("api"));
+        scenario.complete(AtfReportStatus.PASS);
+        var snapshot = document.snapshot();
+
+        String category = new HtmlReportCategoryView().render(snapshot);
+        String fails = new HtmlReportFailsView().render(snapshot);
+        String overview = new HtmlReportOverviewView().render(snapshot);
+
+        assertAll(
+                () -> assertTrue(category.contains("<section id=\"category\" class=\"tab-panel\">")),
+                () -> assertTrue(category.contains("<h2>Category</h2>")),
+                () -> assertTrue(fails.contains("<section id=\"fails\" class=\"tab-panel\">")),
+                () -> assertTrue(fails.contains("<h2>Fails</h2>")),
+                () -> assertTrue(overview.contains("<section id=\"overview\" class=\"tab-panel\">")),
+                () -> assertTrue(overview.contains("<h2>Overview</h2>")));
+    }
+
     @Test
     void projectionsReadTheSameSemanticDocumentWithoutRebuildingVerdicts() {
         var document = new HtmlReportSemanticDocument();
@@ -91,6 +112,24 @@ class HtmlReportViewsTest {
                 () -> assertTrue(html.contains("class=\"helm-api-classification technical\"")),
                 () -> assertTrue(html.contains("<th>FIELD</th><th>VALUE</th>")),
                 () -> assertTrue(html.contains("<td>URL</td><td>/users</td>")));
+    }
+
+    @Test
+    void fallbackRendersTheSameNestedNetworkAggregateAsExtent() {
+        var document = new HtmlReportSemanticDocument();
+        var scenario = document.startScenario("NetworkTests", "nested aggregate", List.of("ui", "api"));
+        var phase = scenario.addPhase("TEST BODY");
+        var request = phase.addRequest("API network inspector", "TRACE", "network");
+        request.networkAggregate(ReportNetworkInspector.aggregate(List.of(), List.of(), List.of()));
+        request.complete(AtfReportStatus.PASS);
+        phase.complete(AtfReportStatus.PASS);
+        scenario.complete(AtfReportStatus.PASS);
+
+        String html = new HtmlReportTestsView().render(document.snapshot());
+
+        assertAll(
+                () -> assertTrue(html.contains("Network aggregate")),
+                () -> assertFalse(html.contains("<details open")));
     }
 
     @Test

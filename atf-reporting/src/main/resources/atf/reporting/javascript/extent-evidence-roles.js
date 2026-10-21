@@ -11,7 +11,8 @@ function assignNodeRoles() {
       role = 'phase';
     else if (
       /^GET |^POST |^PUT |^PATCH |^DELETE |^HEAD /.test(upper) ||
-      /^(GIVEN|WHEN|THEN|AND|BUT)\s+/.test(upper)
+      /^(GIVEN|WHEN|THEN|AND|BUT)\s+/.test(upper) ||
+      /^TRACE\s+/.test(upper)
     )
       role = 'request';
     else if (/^VALIDATE[: ]/.test(upper) || upper.indexOf('VALIDATION') >= 0)

@@ -17,6 +17,8 @@ import atf.api.reporting.model.ReportExecutionModel;
 import atf.api.reporting.model.ReportField;
 import atf.api.reporting.model.ReportJsonBody;
 import atf.api.reporting.api.ReportModelAdapters;
+import atf.api.reporting.ui.network.ReportNetworkAggregateMarkup;
+import atf.api.reporting.ui.network.ReportNetworkInspector;
 
 import java.util.List;
 import java.util.Locale;
@@ -148,6 +150,11 @@ public final class HtmlReportEvidenceView {
                                     .map(entry -> List.of(entry.getKey(), entry.getValue())).toList())));
         }
         html.append(ReportEvidenceMarkup.disclosureEnd());
+    }
+
+    public void renderNetworkAggregate(StringBuilder html,
+                                       ReportNetworkInspector.JourneyAggregate aggregate) {
+        html.append(ReportNetworkAggregateMarkup.disclosure(aggregate));
     }
 
     /** Test/composition seam for legacy execution snapshots; typed production callers stay unchanged. */

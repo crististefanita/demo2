@@ -5,50 +5,46 @@ import atf.api.ui.config.UiScreenValidationConfiguration;
 import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.api.ui.playwright.UiScreenValidation;
 import atf.ui.practiceshop.config.PracticeShopConfiguration;
-import atf.ui.practiceshop.config.PracticeShopConfigurationLoader;
 import atf.ui.practiceshop.config.PracticeShopCredentials;
 import atf.ui.practiceshop.flow.PracticeShopAccountFlow;
 import atf.ui.practiceshop.flow.PracticeShopCatalogFlow;
 import atf.ui.practiceshop.locators.PracticeShopLocators;
+import atf.ui.practiceshop.pages.PracticeShopAccountPage;
+import atf.ui.practiceshop.pages.PracticeShopProductPage;
 import atf.ui.practiceshop.support.PracticeShopE2eContext;
-import atf.ui.practiceshop.routes.PracticeShopUiRoutes;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import atf.ui.practiceshop.support.PracticeShopPageValidator;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
-
-import java.util.List;
+import atf.ui.tests.practiceshop.support.PracticeShopTestSupport;
 
 import static atf.api.reporting.audit.ReportAuditChecks.check;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** External smoke slice: one reusable account, two high-value journeys. */
-@EnabledIf("isConfigured")
+@PracticeShopTestSupport.RequiresAuthenticatedFixture
 @AtfE2eTest
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Execution(ExecutionMode.SAME_THREAD)
 @DisplayName("Practice Shop external account and catalog flows")
 class PracticeShopAccountAndCatalogE2eTest {
-    private static PracticeShopConfiguration configuration;
+    private PracticeShopConfiguration configuration;
     private PracticeShopCredentials credentials;
     private PracticeShopE2eContext context;
+    private PracticeShopTestSupport.E2eHarness harness;
     private final PracticeShopLocators locators = new PracticeShopLocators();
 
-    static boolean isConfigured() { return PracticeShopConfigurationLoader.load().authenticatedE2eAllowed(); }
-
-    @BeforeAll
+    @BeforeEach
     void open() {
-        configuration = PracticeShopConfigurationLoader.load();
+        harness = PracticeShopTestSupport.openE2e();
+        configuration = harness.configuration();
         credentials = PracticeShopCredentials.load(configuration.accountFile());
-        context = PracticeShopE2eContext.open(configuration);
+        context = harness.context();
     }
 
-    @AfterAll
-    void close() { if (context != null) context.close(); }
+    @AfterEach
+    void close() { if (harness != null) harness.close(); }
 
     @Test
     @DisplayName("Signed-in account remains reusable across the external suite")
@@ -64,11 +60,10 @@ class PracticeShopAccountAndCatalogE2eTest {
             UiScreenValidation.Evidence evidence = UiScreenValidation.capture(
                     context.page(), UiScreenValidationConfiguration.defaults(),
                     "signed-in account page");
-            scenario.pass(context.page(), actions, evidence, List.of(
-                    check("Account route", PracticeShopUiRoutes.ACCOUNT, context.page().url(),
-                            context.page().url().contains(PracticeShopUiRoutes.ACCOUNT)),
-                    check("Account identity", "My account", "My account", true),
-                    check("Credential redaction", "password absent from public action evidence", "password absent", true)));
+            var assertions = new PracticeShopPageValidator(locators)
+                    .validate(context.page(), PracticeShopAccountPage.class)
+                    .assertions();
+            scenario.pass(context.page(), actions, evidence, assertions);
         });
     }
 
@@ -88,11 +83,12 @@ class PracticeShopAccountAndCatalogE2eTest {
             UiScreenValidation.Evidence evidence = UiScreenValidation.capture(
                     context.page(), UiScreenValidationConfiguration.defaults(),
                     "configured product detail");
-            scenario.pass(context.page(), actions, evidence, List.of(
-                    check("Product identity", configuration.productName(), configuration.productName(), true),
-                    check("Product route", configuration.productPathExpectation(), context.page().url(),
-                            configuration.matchesProductPath(java.net.URI.create(context.page().url()).getPath())),
-                    check("Authenticated journey", "account login precedes catalog inspection", "login → search → product", true)));
+            var assertions = new java.util.ArrayList<>(new PracticeShopPageValidator(locators)
+                    .validate(context.page(), PracticeShopProductPage.class, configuration.productName())
+                    .assertions());
+            assertions.add(check("Product route", configuration.productPathExpectation(), context.page().url(),
+                    configuration.matchesProductPath(java.net.URI.create(context.page().url()).getPath())));
+            scenario.pass(context.page(), actions, evidence, assertions);
         });
     }
 }

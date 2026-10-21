@@ -3,6 +3,8 @@ package atf.api.reporting.model;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.model.projection.ReportExecutionProjections;
+import atf.api.reporting.ui.network.ReportNetworkInspector;
 
 import java.util.List;
 import java.util.Objects;
@@ -20,46 +22,23 @@ public record ReportExecutionModel(List<Scenario> scenarios) {
     }
 
     public Overview overview() {
-        return new Overview(
-                scenarios.size(),
-                scenarios.stream().filter(scenario -> scenario.status() == AtfReportStatus.PASS).count(),
-                scenarios.stream().filter(scenario -> scenario.status() == AtfReportStatus.FAIL).count(),
-                scenarios.stream().filter(scenario -> scenario.status() == AtfReportStatus.SKIP).count());
+        return projections().overview();
     }
 
     public Categories categories() {
-        return new Categories(scenarios.stream()
-                .flatMap(scenario -> scenario.tags().stream())
-                .distinct()
-                .sorted()
-                .toList());
+        return projections().categories();
     }
 
     public Failures failures() {
-        var failures = new java.util.ArrayList<Failure>();
-        for (var scenario : scenarios) {
-            for (var phase : scenario.phases()) {
-                collectFailures(failures, scenario, phase.children());
-            }
-        }
-        return new Failures(failures);
+        return projections().failures();
     }
 
-    private static void collectFailures(List<Failure> failures, Scenario scenario,
-                                        List<Node> nodes) {
-        for (var node : nodes) {
-            if (node instanceof Request request) {
-                collectFailures(failures, scenario, request.children());
-            } else if (node instanceof Validation validation) {
-                for (var assertion : validation.assertions()) {
-                    if (assertion.resultStatus() == AtfReportStatus.FAIL
-                            || (!assertion.passed()
-                            && validation.status() == AtfReportStatus.FAIL)) {
-                        failures.add(new Failure(scenario.id(), assertion.name(), assertion.actual()));
-                    }
-                }
-            }
-        }
+    /**
+     * Derives all renderer-neutral secondary views from this exact scenario
+     * population. The existing accessors remain compatibility facades.
+     */
+    public ReportExecutionProjections projections() {
+        return ReportExecutionProjections.project(scenarios);
     }
 
     public record Overview(long tests, long passed, long failed, long skipped) {
@@ -128,13 +107,23 @@ public record ReportExecutionModel(List<Scenario> scenarios) {
 
     public record Request(String title, String method, String path,
                           List<ReportField> details, List<ReportJsonBody> json,
-                          ReportExecutionEvidence execution, List<Node> children,
-                          AtfReportStatus status, int uiActionCount, int screenshotCount) implements Node {
+                          List<ReportExecutionEvidence> executions, List<Node> children,
+                          AtfReportStatus status, int uiActionCount, int screenshotCount,
+                          ReportNetworkInspector.JourneyAggregate networkAggregate) implements Node {
         public Request(String title, String method, String path,
                        List<ReportField> details, List<ReportJsonBody> json,
                        ReportExecutionEvidence execution, List<Node> children,
                        AtfReportStatus status) {
-            this(title, method, path, details, json, execution, children, status, 0, 0);
+            this(title, method, path, details, json,
+                    execution == null ? List.of() : List.of(execution), children, status, 0, 0);
+        }
+
+        public Request(String title, String method, String path,
+                       List<ReportField> details, List<ReportJsonBody> json,
+                       List<ReportExecutionEvidence> executions, List<Node> children,
+                       AtfReportStatus status, int uiActionCount, int screenshotCount) {
+            this(title, method, path, details, json, executions, children, status,
+                    uiActionCount, screenshotCount, null);
         }
 
         public Request {
@@ -143,11 +132,20 @@ public record ReportExecutionModel(List<Scenario> scenarios) {
             path = path == null ? "" : path;
             details = List.copyOf(Objects.requireNonNull(details, "details"));
             json = List.copyOf(Objects.requireNonNull(json, "json"));
+            executions = List.copyOf(Objects.requireNonNull(executions, "executions"));
             children = List.copyOf(Objects.requireNonNull(children, "children"));
             status = Objects.requireNonNull(status, "status");
+            networkAggregate = networkAggregate == null ? null : new ReportNetworkInspector.JourneyAggregate(
+                    networkAggregate.authentication(), networkAggregate.correlation(),
+                    networkAggregate.transport(), networkAggregate.signatures(), networkAggregate.diagnostics());
             if (uiActionCount < 0 || screenshotCount < 0) {
                 throw new IllegalArgumentException("Evidence counts must be non-negative");
             }
+        }
+
+        /** Compatibility view for single-execution consumers. */
+        public ReportExecutionEvidence execution() {
+            return executions.isEmpty() ? null : executions.get(executions.size() - 1);
         }
     }
 

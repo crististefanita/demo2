@@ -26,9 +26,10 @@ class StaticHtmlScreenshotAdapterTest {
         try (var session = new HtmlReportSession(report)) {
             var scenario = session.startScenario("StaticReportContract", "render browser proof",
                     List.of("reporting", "browser"));
-            scenario.startPhase("TEST BODY")
-                    .startRequest("GET /static-report", "GET", ApiReportTestUrls.example("/static-report"))
+            var phase = scenario.startPhase("TEST BODY");
+            phase.startRequest("GET /static-report", "GET", ApiReportTestUrls.example("/static-report"))
                     .complete(AtfReportStatus.PASS);
+            phase.complete(AtfReportStatus.PASS);
             scenario.complete(AtfReportStatus.PASS);
         }
 

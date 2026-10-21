@@ -8,6 +8,7 @@ import atf.api.reporting.artifact.ReportArtifactInspector;
 import atf.api.reporting.artifact.ReportArtifactIdentity;
 import atf.api.reporting.ui.UiExtentReportSession;
 import atf.ui.tests.extent.support.config.UiConfiguration;
+import atf.ui.tests.extent.support.config.environment.UiReportEnvironmentSnapshotFactory;
 import atf.api.ui.config.UiScreenValidationConfiguration;
 import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.api.ui.playwright.PlaywrightUiSession;
@@ -82,7 +83,9 @@ public final class ReportAuditContext implements AutoCloseable {
                 atf.api.core.reporting.console.AtfConsoleSink.noOp();
         UiExtentReportSession audit = UiExtentReportSession.openConfiguredResolved(
                 configuration.reportDirectory(), auditFileName,
-                reportConsole);
+                reportConsole,
+                UiReportEnvironmentSnapshotFactory.audit(configuration,
+                        "Extent UI audit", "artifact inspection"));
         DebugUiServer debugUi = null;
         PlaywrightUiSession browser = null;
         try {

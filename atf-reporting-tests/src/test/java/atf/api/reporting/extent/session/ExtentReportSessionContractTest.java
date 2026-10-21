@@ -13,6 +13,11 @@ import atf.api.core.http.response.RetryEvent;
 import atf.api.core.http.transport.ApiTransport;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.configuration.ReportEnvironmentField;
+import atf.api.reporting.configuration.ReportEnvironmentSnapshot;
+import atf.api.reporting.configuration.ReportingSettings;
+import atf.api.reporting.console.AtfConsoleSink;
+import atf.api.reporting.security.SensitiveDataRedactor;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
@@ -25,6 +30,31 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @AtfUnitTest
 class ExtentReportSessionContractTest {
+    @Test
+    void typedEnvironmentSnapshotIsPublishedRedactedAndWithoutArbitraryKeys() throws Exception {
+        Path report = TestReportPaths.report("extent-typed-environment.html");
+        var environment = ReportEnvironmentSnapshot.builder()
+                .put(ReportEnvironmentField.ENVIRONMENT, "LOCAL")
+                .put(ReportEnvironmentField.UI_TIMEOUT, "20 s")
+                .put(ReportEnvironmentField.AUTHENTICATION, "Bearer raw-report-token")
+                .build();
+        try (var session = new ExtentReportSession(report,
+                ReportingSettings.defaults(),
+                new SensitiveDataRedactor(),
+                AtfConsoleSink.noOp(), environment)) {
+            var scenario = session.startScenario("EnvironmentTests", "typed metadata", List.of("reporting"));
+            scenario.complete(AtfReportStatus.PASS);
+        }
+
+        String html = Files.readString(report);
+        assertAll(
+                 () -> assertTrue(html.contains("UI action timeout")),
+                () -> assertTrue(html.contains("20 s")),
+                () -> assertTrue(html.contains("***REDACTED***")),
+                () -> assertFalse(html.contains("raw-report-token")),
+                () -> assertFalse(html.contains("raw.yaml.key")));
+    }
+
     private static final String USERS_PATH = MockRoutePaths.USERS;
     private static final String USER_ONE_PATH = MockRoutePaths.userById("1");
     private static final String UNKNOWN_USER_PATH = MockRoutePaths.userById("999");
@@ -199,7 +229,7 @@ class ExtentReportSessionContractTest {
                 () -> assertTrue(html.contains(".dark .test-contents pre.code-block")),
                 () -> assertTrue(html.contains(".dark .card-header")),
                 () -> assertTrue(html.contains("System/Environment")),
-                () -> assertTrue(html.contains("API base URL")),
+                 () -> assertTrue(html.contains("Runtime")),
                 () -> assertTrue(html.contains("ATF ApiTransport (configured per execution)")),
                 () -> assertTrue(html.contains("Extent · embedded offline HTML")),
                 () -> assertTrue(html.contains(".card:has(>.card-body #grandchild-analysis)")),

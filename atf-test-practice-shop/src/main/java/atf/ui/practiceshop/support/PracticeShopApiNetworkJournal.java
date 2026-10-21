@@ -12,6 +12,8 @@ import atf.ui.practiceshop.api.PracticeShopApiRoutes;
 import atf.ui.practiceshop.config.PracticeShopApiConfiguration;
 import atf.ui.practiceshop.config.PracticeShopCredentials;
 import atf.ui.practiceshop.config.PracticeShopValidationProfile;
+import atf.ui.practiceshop.config.PracticeShopApiCheckpoint;
+import atf.ui.practiceshop.config.PracticeShopApiEvidenceBinding;
 import com.microsoft.playwright.Page;
 
 import java.util.ArrayList;
@@ -25,7 +27,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.EnumMap;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 /**
  * Captures only the Practice Shop API traffic produced by the same UI session.
@@ -34,24 +39,34 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public final class PracticeShopApiNetworkJournal {
     private final PracticeShopValidationProfile profile;
+    private final PracticeShopApiEvidenceBinding evidenceBinding;
     private final PracticeShopApiTrafficCapture trafficCapture = new PracticeShopApiTrafficCapture();
     private final List<Exchange> exchanges = new ArrayList<>();
     private final AtomicLong sequence = new AtomicLong();
-    private List<ReportExecutionEvidence> lastProductEvidence = List.of();
-    private List<ReportExecutionEvidence> lastCartEvidence = List.of();
-    private List<ReportExecutionEvidence> lastPaymentEvidence = List.of();
-    private List<ReportExecutionEvidence> lastLoginEvidence = List.of();
+    private final EnumMap<PracticeShopApiCheckpoint, List<ReportExecutionEvidence>> evidenceByCheckpoint =
+            new EnumMap<>(PracticeShopApiCheckpoint.class);
     private String productId;
 
     public PracticeShopApiNetworkJournal(PracticeShopValidationProfile profile) {
+        this(profile, PracticeShopApiEvidenceBinding.forProfile(profile, null));
+    }
+
+    public PracticeShopApiNetworkJournal(PracticeShopValidationProfile profile,
+                                         PracticeShopApiEvidenceBinding evidenceBinding) {
         this.profile = Objects.requireNonNull(profile, "profile");
+        this.evidenceBinding = Objects.requireNonNull(evidenceBinding, "evidenceBinding");
     }
 
     public void attach(Page page) {
         Objects.requireNonNull(page, "page");
-        if (!profile.apiEvidenceRequired()) return;
-        page.onResponse(response -> trafficCapture.capture(response).ifPresent(exchange ->
-                exchanges.add(exchange.withTrace(sequence.incrementAndGet(), Instant.now(), phase(exchange.path())))));
+        if (!hasEnabledCheckpoint()) return;
+        page.onResponse(response -> trafficCapture.capture(response).ifPresent(this::recordCapturedExchange));
+    }
+
+    /** Internal composition seam for deterministic component tests; browser capture remains the live path. */
+    void recordCapturedExchange(Exchange exchange) {
+        Objects.requireNonNull(exchange, "exchange");
+        exchanges.add(exchange.withTrace(sequence.incrementAndGet(), Instant.now(), phase(exchange.path())));
     }
 
     /** API precondition for the product-page purchase action. */
@@ -73,7 +88,7 @@ public final class PracticeShopApiNetworkJournal {
     public List<AtfAssertion> loginConfirmed(String displayName,
                                              PracticeShopApiConfiguration apiConfiguration,
                                              PracticeShopCredentials credentials) {
-        if (!profile.apiEvidenceRequired()) return List.of();
+        if (!enabled(PracticeShopApiCheckpoint.LOGIN)) return List.of();
         Exchange login = PracticeShopApiExchangeSelector.latest(
                 exchanges, HttpMethod.POST.value(), PracticeShopApiRoutes.LOGIN,
                 exchange -> exchange.status() == 200);
@@ -81,10 +96,10 @@ public final class PracticeShopApiNetworkJournal {
         Exchange currentUser = PracticeShopApiExchangeSelector.latestOptional(
                 exchanges, HttpMethod.GET.value(), PracticeShopApiRoutes.CURRENT_USER,
                 exchange -> exchange.status() == 200);
-        lastLoginEvidence = currentUser == null
+        store(PracticeShopApiCheckpoint.LOGIN, currentUser == null
                 ? List.of(PracticeShopApiEvidenceMapper.toExecution(login))
                 : List.of(PracticeShopApiEvidenceMapper.toExecution(login),
-                        PracticeShopApiEvidenceMapper.toExecution(currentUser));
+                        PracticeShopApiEvidenceMapper.toExecution(currentUser)));
         return PracticeShopApiAssertions.login(login, currentUser, displayName);
     }
 
@@ -141,7 +156,7 @@ public final class PracticeShopApiNetworkJournal {
      * several cards with the same display name.
      */
     public List<AtfAssertion> productReady(String productName, String selectedProductPath) {
-        if (!profile.apiEvidenceRequired()) return List.of();
+        if (!enabled(PracticeShopApiCheckpoint.PRODUCT)) return List.of();
         Exchange search = PracticeShopApiExchangeSelector.latest(
                 exchanges, PracticeShopApiOperation.SEARCH,
                 exchange -> exchange.status() == 200);
@@ -153,14 +168,14 @@ public final class PracticeShopApiNetworkJournal {
         Exchange detail = PracticeShopApiExchangeSelector.latest(exchanges, HttpMethod.GET.value(), productPath,
                 exchange -> exchange.status() == 200
                         && exchange.path().equals(productPath));
-        lastProductEvidence = List.of(PracticeShopApiEvidenceMapper.toExecution(search),
-                PracticeShopApiEvidenceMapper.toExecution(detail));
+        store(PracticeShopApiCheckpoint.PRODUCT, List.of(PracticeShopApiEvidenceMapper.toExecution(search),
+                PracticeShopApiEvidenceMapper.toExecution(detail)));
         return PracticeShopApiAssertions.product(search, detail, productName, productId);
     }
 
     /** API confirmation after the UI adds the configured quantity to the cart. */
     public List<AtfAssertion> cartReady(int quantity) {
-        if (!profile.apiEvidenceRequired()) return List.of();
+        if (!enabled(PracticeShopApiCheckpoint.CART)) return List.of();
         if (productId == null || productId.isBlank()) {
             throw new IllegalStateException("Product API precondition was not established before cart validation");
         }
@@ -169,18 +184,18 @@ public final class PracticeShopApiNetworkJournal {
                 && exchange.requestBody().contains(productId));
         Exchange read = PracticeShopApiExchangeSelector.latest(
                 exchanges, HttpMethod.GET.value(), add.path(), exchange -> exchange.status() == 200);
-        lastCartEvidence = List.of(PracticeShopApiEvidenceMapper.toExecution(add),
-                PracticeShopApiEvidenceMapper.toExecution(read));
+        store(PracticeShopApiCheckpoint.CART, List.of(PracticeShopApiEvidenceMapper.toExecution(add),
+                PracticeShopApiEvidenceMapper.toExecution(read)));
         return PracticeShopApiAssertions.cart(add, read, productId, quantity);
     }
 
     /** API confirmation after the UI submits the configured payment method. */
     public List<AtfAssertion> paymentConfirmed(String paymentMethod) {
-        if (!profile.apiEvidenceRequired()) return List.of();
+        if (!enabled(PracticeShopApiCheckpoint.PAYMENT)) return List.of();
         Exchange payment = PracticeShopApiExchangeSelector.latest(
                 exchanges, HttpMethod.POST.value(), PracticeShopApiRoutes.PAYMENT_CHECK,
                 exchange -> exchange.status() == 200);
-        lastPaymentEvidence = List.of(PracticeShopApiEvidenceMapper.toExecution(payment));
+        store(PracticeShopApiCheckpoint.PAYMENT, List.of(PracticeShopApiEvidenceMapper.toExecution(payment)));
         return PracticeShopApiAssertions.payment(payment, paymentMethod);
     }
 
@@ -191,11 +206,50 @@ public final class PracticeShopApiNetworkJournal {
                 .map(PracticeShopApiEvidenceMapper::toExecution)
                 .toList();
     }
-    public List<ReportExecutionEvidence> productEvidence() { return lastProductEvidence; }
-    public List<ReportExecutionEvidence> loginEvidence() { return lastLoginEvidence; }
-    public List<ReportExecutionEvidence> cartEvidence() { return lastCartEvidence; }
-    public List<ReportExecutionEvidence> paymentEvidence() { return lastPaymentEvidence; }
+
+    /**
+     * Returns only exchanges owned by the configured, successfully evaluated
+     * API checkpoints. The selection belongs to this consumer composition
+     * boundary; the reporting renderer must remain unaware of Practice Shop
+     * business concepts and must never receive unbound browser traffic.
+     */
+    public List<ReportExecutionEvidence> selectedEvidence() {
+        if (!profile.apiEvidenceRequired() || evidenceBinding.checkpoints().isEmpty()) {
+            return List.of();
+        }
+        List<ReportExecutionEvidence> selected = evidenceByCheckpoint.values().stream()
+                .flatMap(List::stream)
+                .toList();
+        if (selected.isEmpty()) return List.of();
+
+        Set<String> selectedEventIds = selected.stream()
+                .map(ReportExecutionEvidence::trace)
+                .filter(Objects::nonNull)
+                .map(trace -> trace.eventId())
+                .filter(eventId -> eventId != null && !eventId.isBlank())
+                .collect(Collectors.toSet());
+        return allEvidence().stream()
+                .filter(evidence -> selectedEventIds.contains(evidence.trace().eventId())
+                        || selected.contains(evidence))
+                .toList();
+    }
+
+    public List<ReportExecutionEvidence> evidence(PracticeShopApiCheckpoint checkpoint) {
+        return evidenceByCheckpoint.getOrDefault(Objects.requireNonNull(checkpoint, "checkpoint"), List.of());
+    }
     public String productId() { return productId; }
+
+    private boolean enabled(PracticeShopApiCheckpoint checkpoint) {
+        return profile.apiEvidenceRequired() && evidenceBinding.includes(checkpoint);
+    }
+
+    private boolean hasEnabledCheckpoint() {
+        return profile.apiEvidenceRequired() && !evidenceBinding.checkpoints().isEmpty();
+    }
+
+    private void store(PracticeShopApiCheckpoint checkpoint, List<ReportExecutionEvidence> evidence) {
+        if (enabled(checkpoint)) evidenceByCheckpoint.put(checkpoint, List.copyOf(evidence));
+    }
 
     private static String phase(String path) {
         if (path == null) return "unknown";

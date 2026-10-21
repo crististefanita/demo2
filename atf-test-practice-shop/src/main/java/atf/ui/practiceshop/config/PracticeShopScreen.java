@@ -6,6 +6,7 @@ public enum PracticeShopScreen {
     PRODUCT,
     CART,
     GUEST_CHECKOUT,
+    AUTHENTICATED_CHECKOUT,
     BILLING,
     PAYMENT,
     CONFIRMATION,

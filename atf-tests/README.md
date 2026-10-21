@@ -36,7 +36,7 @@ flowchart LR
 | reactor, POM și dependency direction | `atf-tests` | nu modifică production code |
 | source/package ownership și module placement | `ArchitectureModuleBoundaryTest`, `ArchitectureOwnershipBoundaryTest` | nu deține selectorii unei aplicații |
 | documentație relocabilă și surse coerente | `governance.documentation.*`, `AtfSourceReadabilityGovernanceTest` | nu validează conținutul unui singur consumer |
-| ownership de constante și coeziune de package | `ConstantsOwnershipGovernanceTest`, `AtfPackageCohesionGovernanceTest` | excepțiile trebuie să fie explicite |
+| ownership de constante și coeziune de package | `ConstantsOwnershipGovernanceTest`, `AtfPackageCohesionGovernanceTest` | maximum 8 clase/pachet; excepțiile trebuie să fie explicite |
 | Practice Shop purchase journey | `atf-test-practice-shop` | nu se copiază aici |
 | reporting contract/API/UI composition | `atf-reporting-tests` | nu se mută în governance |
 
@@ -73,7 +73,8 @@ testelor de reporting în acest modul:
 - `ArchitectureOwnershipBoundaryTest` — placement-ul modulelor, package roots,
   ownership-ul reporting/UI și absența duplicărilor;
 - `AtfPackageCohesionGovernanceTest` — coeziunea package-urilor de producție și
-  test, cu excepții revizuite explicit;
+  test; pragul este de maximum opt clase, iar diagnosticul listează clasele
+  concrete pentru orice hotspot nou sau excepție devenită stale;
 - `AtfSourceReadabilityGovernanceTest` — importuri duplicate și invocații
   fully-qualified care ascund intenția testului;
 - `ConstantsOwnershipGovernanceTest` — vocabularul de protocol, rute și

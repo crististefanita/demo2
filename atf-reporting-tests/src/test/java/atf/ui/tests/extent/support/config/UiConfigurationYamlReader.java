@@ -2,6 +2,8 @@ package atf.ui.tests.extent.support.config;
 
 import atf.api.ui.config.UiBrowserConfiguration;
 import atf.api.ui.config.UiScreenValidationConfiguration;
+import atf.api.ui.config.UiRetryOperation;
+import atf.api.ui.config.UiRetryPolicy;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,6 +17,7 @@ import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.EnumSet;
 import java.util.stream.StreamSupport;
 
 /**
@@ -64,7 +67,29 @@ final class UiConfigurationYamlReader {
                 integer(viewport, "height", 900, "ui.viewport.height"),
                 integer(ui, "zoomPercent", UiBrowserConfiguration.DEFAULT_ZOOM_PERCENT,
                         "ui.zoomPercent"),
-                bool(ui, "screenshotOnFailure", true));
+                bool(ui, "screenshotOnFailure", true),
+                retryPolicy(ui));
+    }
+
+    private static UiRetryPolicy retryPolicy(JsonNode ui) {
+        JsonNode retry = ui.path("retry");
+        List<UiRetryOperation> operations = new java.util.ArrayList<>();
+        JsonNode configured = retry.path("eligibleOperations");
+        if (configured.isArray()) {
+            StreamSupport.stream(configured.spliterator(), false).forEach(node -> {
+                if (!node.isTextual() || node.asText().isBlank()) {
+                    throw new IllegalStateException(
+                            "ATF UI retry operations must be text: ui.retry.eligibleOperations");
+                }
+                operations.add(UiRetryOperation.from(node.asText()));
+            });
+        }
+        return new UiRetryPolicy(
+                integer(retry, "maxAttempts", UiRetryPolicy.DEFAULT_MAX_ATTEMPTS,
+                        "ui.retry.maxAttempts"),
+                duration(retry, "backoff", UiRetryPolicy.DEFAULT_BACKOFF),
+                operations.isEmpty() ? EnumSet.noneOf(UiRetryOperation.class) : EnumSet.copyOf(operations),
+                text(retry, "reason", UiRetryPolicy.DEFAULT_REASON));
     }
 
     private static Path reportDirectory(JsonNode ui, Path base) {

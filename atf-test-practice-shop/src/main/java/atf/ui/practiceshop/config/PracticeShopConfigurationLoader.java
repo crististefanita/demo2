@@ -1,6 +1,8 @@
 package atf.ui.practiceshop.config;
 
 import atf.api.ui.config.UiBrowserConfiguration;
+import atf.api.ui.config.UiRetryOperation;
+import atf.api.ui.config.UiRetryPolicy;
 import atf.api.core.config.ApiTransportMode;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,6 +14,10 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.EnumSet;
+import java.util.Set;
+import java.util.Collection;
+import java.util.stream.StreamSupport;
 
 /** YAML-first setup with explicit process overrides for local/CI account reuse. */
 public final class PracticeShopConfigurationLoader {
@@ -21,13 +27,30 @@ public final class PracticeShopConfigurationLoader {
     private PracticeShopConfigurationLoader() { }
 
     public static PracticeShopConfiguration load() {
-        Path account = Path.of(System.getProperty("user.dir", "."))
-                .resolve("target/practice-software-testing-account.properties");
         try (var stream = openConfiguration()) {
             if (stream == null) {
                 throw new IllegalStateException("Missing " + RESOURCE
                         + "; practiceShop.baseUrl must be supplied by the module YAML");
             }
+            return load(stream);
+        } catch (IOException | RuntimeException error) {
+            throw new IllegalStateException("Cannot load " + RESOURCE, error);
+        }
+    }
+
+    /** Loads an explicit YAML file for component tests and controlled launches. */
+    public static PracticeShopConfiguration load(Path configurationFile) {
+        try (InputStream stream = Files.newInputStream(configurationFile)) {
+            return load(stream);
+        } catch (IOException | RuntimeException error) {
+            throw new IllegalStateException("Cannot load Practice Shop configuration: " + configurationFile,
+                    error);
+        }
+    }
+
+    private static PracticeShopConfiguration load(InputStream stream) throws IOException {
+            Path account = Path.of(System.getProperty("user.dir", "."))
+                    .resolve("target/practice-software-testing-account.properties");
             JsonNode root = YAML.readTree(stream).path("practiceShop");
             URI base = URI.create(requiredText(root, "baseUrl"));
             Path configuredAccount = resolvePath(text(root, "accountFile", account.toString()));
@@ -35,12 +58,15 @@ public final class PracticeShopConfigurationLoader {
             String path = text(root, "productPath", PracticeShopConfiguration.DYNAMIC_PRODUCT_PATH);
             PracticeShopValidationProfile validationProfile = PracticeShopValidationProfile.from(
                     text(root.path("validation"), "profile", "ui-api"));
+            PracticeShopApiEvidenceBinding evidenceBinding = apiEvidenceBinding(
+                    root.path("validation"), validationProfile);
+            PracticeShopUiRetryConfiguration uiRetry = retry(root.path("retry"));
             JsonNode api = root.path("api");
             PracticeShopApiConfiguration apiConfiguration = new PracticeShopApiConfiguration(
                     URI.create(text(api, "endpoint", PracticeShopApiConfiguration.defaults().endpoint().toString())),
                     ApiTransportMode.parse(text(api, "mode", "acceptance")),
                     PracticeShopApiPrecondition.from(text(api, "precondition", "authenticated")),
-                    duration(api, "timeout", Duration.ofSeconds(20)));
+                    duration(api, "timeout", Duration.ofSeconds(20)), evidenceBinding);
             JsonNode checkout = root.path("checkout");
             JsonNode guest = checkout.path("guest");
             JsonNode billing = checkout.path("billing");
@@ -60,7 +86,7 @@ public final class PracticeShopConfigurationLoader {
                             text(checkout, "paymentMethod", "Cash on Delivery"));
             JsonNode reports = root.path("reports");
             Path uiReports = resolveDirectory(text(reports, "ui", "artifacts/reports/ui"));
-            Path apiReports = resolveDirectory(text(reports, "api", "artifacts/reports"));
+            Path apiReports = resolveDirectory(text(reports, "api", "artifacts/reports/api"));
             boolean authenticatedE2e = bool(root, "authenticatedE2eEnabled", false);
             return override(new PracticeShopConfiguration(base, configuredAccount, product, path,
                     checkoutConfiguration,
@@ -70,11 +96,57 @@ public final class PracticeShopConfigurationLoader {
                             integer(root.path("viewport"), "width", 1440),
                             integer(root.path("viewport"), "height", 1000),
                             integer(root, "zoomPercent", 100),
-                            bool(root, "screenshotOnFailure", true)), validationProfile,
+                            bool(root, "screenshotOnFailure", true),
+                            uiRetry.policy()), uiRetry, validationProfile,
                     apiConfiguration, uiReports, apiReports, authenticatedE2e));
-        } catch (IOException | RuntimeException error) {
-            throw new IllegalStateException("Cannot load " + RESOURCE, error);
+    }
+
+    private static PracticeShopUiRetryConfiguration retry(JsonNode retry) {
+        int maxAttempts = positiveInteger(retry, "maxAttempts", UiRetryPolicy.DEFAULT_MAX_ATTEMPTS,
+                "practiceShop.retry.maxAttempts");
+        Set<UiRetryOperation> operations = retryOperations(retry);
+        return new PracticeShopUiRetryConfiguration(maxAttempts,
+                duration(retry, "backoff", UiRetryPolicy.DEFAULT_BACKOFF),
+                operations, text(retry, "reason", UiRetryPolicy.DEFAULT_REASON));
+    }
+
+    private static Set<UiRetryOperation> retryOperations(JsonNode retry) {
+        JsonNode configured = retry.path("eligibleOperations");
+        if (configured.isMissingNode() || configured.isNull()) return Set.of();
+        if (!configured.isArray()) {
+            throw new IllegalArgumentException(
+                    "Configuration key practiceShop.retry.eligibleOperations must be an array");
         }
+        EnumSet<UiRetryOperation> operations = EnumSet.noneOf(UiRetryOperation.class);
+        StreamSupport.stream(configured.spliterator(), false).forEach(node -> {
+            if (!node.isTextual() || node.asText().isBlank()) {
+                throw new IllegalArgumentException(
+                        "Configuration key practiceShop.retry.eligibleOperations must contain text values");
+            }
+            operations.add(UiRetryOperation.from(node.asText()));
+        });
+        return operations;
+    }
+
+    private static PracticeShopApiEvidenceBinding apiEvidenceBinding(
+            JsonNode validation, PracticeShopValidationProfile profile) {
+        JsonNode configured = validation.path("apiEvidence");
+        if (configured.isMissingNode() || configured.isNull()) {
+            return PracticeShopApiEvidenceBinding.forProfile(profile, null);
+        }
+        if (!configured.isArray()) {
+            throw new IllegalArgumentException(
+                    "Configuration key practiceShop.validation.apiEvidence must be an array");
+        }
+        EnumSet<PracticeShopApiCheckpoint> checkpoints = EnumSet.noneOf(PracticeShopApiCheckpoint.class);
+        for (JsonNode node : configured) {
+            if (!node.isTextual() || node.asText().isBlank()) {
+                throw new IllegalArgumentException(
+                        "Configuration key practiceShop.validation.apiEvidence must contain text values");
+            }
+            checkpoints.add(PracticeShopApiCheckpoint.from(node.asText()));
+        }
+        return PracticeShopApiEvidenceBinding.forProfile(profile, checkpoints);
     }
 
     /**
@@ -104,6 +176,11 @@ public final class PracticeShopConfigurationLoader {
         String product = System.getProperty("atf.practice.product-name", base.productName());
         String productPath = System.getProperty("atf.practice.product-path", base.productPath());
         String profile = System.getProperty("atf.practice.validation-profile", base.validationProfile().name());
+        PracticeShopValidationProfile validationProfile = PracticeShopValidationProfile.from(profile);
+        String checkpoints = System.getProperty("atf.practice.api-evidence-checkpoints", "");
+        PracticeShopApiEvidenceBinding evidenceBinding = checkpoints.isBlank()
+                ? base.api().evidenceBinding()
+                : PracticeShopApiEvidenceBinding.fromCsv(validationProfile, checkpoints);
         String apiEndpoint = System.getProperty("atf.practice.api-endpoint", base.api().endpoint().toString());
         String apiMode = System.getProperty("atf.practice.api-mode", base.api().mode().name());
         String apiPrecondition = System.getProperty("atf.practice.api-precondition",
@@ -118,11 +195,11 @@ public final class PracticeShopConfigurationLoader {
         UiBrowserConfiguration browser = new UiBrowserConfiguration(uri, base.browser().browser(),
                 base.browser().headless(), base.browser().timeout(), base.browser().navigationTimeout(),
                 base.browser().viewportWidth(), base.browser().viewportHeight(), base.browser().zoomPercent(),
-                base.browser().screenshotOnFailure());
+                base.browser().screenshotOnFailure(), base.browser().retryPolicy());
         return new PracticeShopConfiguration(uri, accountFile, product, productPath,
-                base.checkout(), browser, PracticeShopValidationProfile.from(profile),
+                base.checkout(), browser, base.uiRetry(), validationProfile,
                 new PracticeShopApiConfiguration(URI.create(apiEndpoint), ApiTransportMode.parse(apiMode),
-                        PracticeShopApiPrecondition.from(apiPrecondition), base.api().timeout()),
+                        PracticeShopApiPrecondition.from(apiPrecondition), base.api().timeout(), evidenceBinding),
                 resolveDirectory(uiReports), resolveDirectory(apiReports), authenticatedE2e);
     }
 
@@ -175,6 +252,14 @@ public final class PracticeShopConfigurationLoader {
     private static int integer(JsonNode parent, String key, int fallback) {
         JsonNode value = parent.path(key);
         return value.canConvertToInt() && value.intValue() > 0 ? value.intValue() : fallback;
+    }
+
+    private static int positiveInteger(JsonNode parent, String key, int fallback, String path) {
+        JsonNode value = parent.path(key);
+        if (value.isMissingNode() || value.isNull()) return fallback;
+        if (value.canConvertToInt() && value.intValue() > 0) return value.intValue();
+        throw new IllegalArgumentException("Configuration key " + path
+                + " must be a positive integer");
     }
 
     private static Duration duration(JsonNode parent, String key, Duration fallback) {

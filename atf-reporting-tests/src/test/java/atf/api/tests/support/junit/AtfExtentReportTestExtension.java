@@ -2,6 +2,8 @@ package atf.api.tests.support.junit;
 
 import atf.api.core.reporting.contract.AtfReportStatus;
 import atf.api.reporting.configuration.AtfReportConfigurationLoader;
+import atf.api.reporting.configuration.ReportEnvironmentField;
+import atf.api.reporting.configuration.ReportEnvironmentSnapshot;
 import atf.api.reporting.extent.session.ExtentReportSession;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -27,7 +29,8 @@ public final class AtfExtentReportTestExtension implements BeforeAllCallback,
     public void beforeAll(ExtensionContext context) {
         var config = AtfReportConfigurationLoader.load();
         if (config.enabled()) {
-            context.getStore(NAMESPACE).put(SESSION, ExtentReportSession.openConfigured(config));
+            context.getStore(NAMESPACE).put(SESSION,
+                    ExtentReportSession.openConfigured(config, environment(context)));
         }
     }
 
@@ -65,5 +68,23 @@ public final class AtfExtentReportTestExtension implements BeforeAllCallback,
         if (packageName.endsWith(".posts")) return "posts";
         if (packageName.endsWith(".lifecycle")) return "lifecycle";
         return "api";
+    }
+
+    private static ReportEnvironmentSnapshot environment(ExtensionContext context) {
+        Class<?> testClass = context.getRequiredTestClass();
+        String resource = resourceTag(testClass.getPackageName());
+        return ReportEnvironmentSnapshot.builder()
+                .put(ReportEnvironmentField.ENVIRONMENT, "ACCEPTANCE")
+                .put(ReportEnvironmentField.TEST_PACKAGE, testClass.getPackageName())
+                .put(ReportEnvironmentField.SUITE, "API contract tests")
+                .put(ReportEnvironmentField.PROFILE, resource)
+                .put(ReportEnvironmentField.TRANSPORT_MODE, "ACCEPTANCE")
+                .put(ReportEnvironmentField.PRECONDITION, "atf-mock.yaml")
+                .put(ReportEnvironmentField.FLOW, "API request/response contract")
+                .put(ReportEnvironmentField.FIXTURE, "atf-reporting-tests")
+                .put(ReportEnvironmentField.API_EVIDENCE, "request + response + execution")
+                .put(ReportEnvironmentField.REPORTING, "Extent HTML")
+                .put(ReportEnvironmentField.REPORT_ARTIFACT, "API contract artifact")
+                .build();
     }
 }

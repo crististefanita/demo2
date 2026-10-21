@@ -10,6 +10,7 @@ import atf.api.reporting.model.ReportField;
 import atf.api.reporting.model.ReportJsonBody;
 import atf.api.reporting.model.ReportScreenshot;
 import atf.api.reporting.semantic.AtfReportSemanticRecorder;
+import atf.api.reporting.ui.network.ReportNetworkInspector;
 
 import atf.api.reporting.ui.AtfUiActionRecord;
 import atf.api.reporting.ui.AtfUiEvidenceSource;
@@ -29,7 +30,8 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
     private final List<AtfUiActionRecord> uiActions = new ArrayList<>();
     private final ReportStatusAggregator statuses = new ReportStatusAggregator();
     private final AtfReportSemanticRecorder.RequestHandle semantic;
-    private ReportExecutionEvidence execution;
+    private final List<ReportExecutionEvidence> executions = new ArrayList<>();
+    private ReportNetworkInspector.JourneyAggregate networkAggregate;
     private int openValidations;
     private boolean closed;
 
@@ -74,8 +76,15 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
     }
 
     @Override public void execution(ReportExecutionEvidence result) {
-        execution = result;
-        semantic.execution();
+        if (result != null) {
+            executions.add(result);
+            semantic.execution();
+        }
+    }
+
+    @Override public void networkAggregate(ReportNetworkInspector.JourneyAggregate aggregate) {
+        networkAggregate = aggregate;
+        semantic.detail("network.aggregate");
     }
 
     @Override public void complete(AtfReportStatus status) {
@@ -88,7 +97,8 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
         } else {
             tree.renderRequestDetails(request, details, json);
             tree.renderResponseDetails(request, details, json);
-            tree.renderExecution(request, execution);
+            tree.renderNetworkAggregate(request, networkAggregate);
+            executions.forEach(execution -> tree.renderExecution(request, execution));
             tree.renderUiActions(request, uiActions, screenshots);
             if (uiActions.stream().noneMatch(action -> action.source() == AtfUiEvidenceSource.ACTION)) {
                 tree.renderScreenshots(request, screenshots);

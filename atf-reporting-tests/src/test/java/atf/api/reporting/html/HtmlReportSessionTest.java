@@ -156,7 +156,7 @@ class HtmlReportSessionTest {
                 () -> assertTrue(html.contains("class=\"response-json-body\"")),
                 () -> assertTrue(html.contains("class=\"json-code\"")),
                 () -> assertTrue(html.contains("max-height:360px;overflow:auto")),
-                () -> assertTrue(html.contains("… [truncated]")),
+                () -> assertTrue(html.contains("… [truncated; showing first 18 of ")),
                 () -> assertFalse(html.contains("012345678901234567890123456789\"}")));
     }
 

@@ -9,6 +9,8 @@ import atf.ui.practiceshop.pages.PracticeShopCartPage;
 import atf.ui.practiceshop.pages.PracticeShopConfirmationPage;
 import atf.ui.practiceshop.pages.PracticeShopGuestCheckoutPage;
 import atf.ui.practiceshop.pages.PracticeShopPaymentPage;
+import atf.ui.practiceshop.support.PracticeShopPageValidationResult;
+import atf.ui.practiceshop.config.PracticeShopApiCheckpoint;
 
 import java.util.List;
 import java.util.Map;
@@ -38,7 +40,7 @@ final class PracticeShopCheckoutPurchaseStage {
                                 line.productName().contains(configuration.productName())),
                         check("Cart quantity", Integer.toString(configuration.checkout().quantity()), line.quantity(),
                                 Integer.toString(configuration.checkout().quantity()).equals(line.quantity()))),
-                context.apiNetwork().cartEvidence())
+                context.apiNetwork().evidence(PracticeShopApiCheckpoint.CART))
                 .withAdditionalAssertions(cartApiAssertions)
                 .withAdditionalAssertions(context.purchaseScreenValidator().cart(page)));
         cart.proceed();
@@ -46,14 +48,17 @@ final class PracticeShopCheckoutPurchaseStage {
         if (authenticated) {
             actions.waitForText(page, locators.pageBody(page), "already logged in",
                     "authenticated checkout setup is displayed");
+            String observedCheckoutBody = actions.expectText(locators.pageBody(page), "already logged in");
+            String observedIdentity = observedCheckoutBody.contains("already logged in")
+                    ? "already logged in" : observedCheckoutBody;
             context.publish(context.checkpoint(AtfGherkinKeyword.AND,
                     "authenticated checkout recognizes the signed-in customer",
-                    new atf.ui.practiceshop.support.PracticeShopPageValidationResult(
-                            PracticeShopScreen.GUEST_CHECKOUT,
-                            List.of(new AtfAssertion("Checkout identity", "signed-in customer",
-                                    "already logged in", true))),
-                    List.of(new AtfAssertion("Guest checkout bypass", "guest identity is not requested",
-                            "authenticated checkout continues directly to billing", true)), List.of()));
+                    new PracticeShopPageValidationResult(
+                            PracticeShopScreen.AUTHENTICATED_CHECKOUT,
+                            List.of(new AtfAssertion("Checkout identity", "already logged in",
+                                    observedIdentity, observedIdentity.contains("already logged in")))),
+                    List.of(context.pageValidator().validateVisible(
+                            page, PracticeShopControl.AUTHENTICATED_PROCEED)), List.of()));
             actions.click(locators.authenticatedProceed(page), "authenticated customer proceeds to billing");
         } else {
             PracticeShopGuestCheckoutPage guest = new PracticeShopGuestCheckoutPage(page, locators, actions);
@@ -65,8 +70,7 @@ final class PracticeShopCheckoutPurchaseStage {
                             PracticeShopControl.GUEST_EMAIL, guestIdentity.email(),
                             PracticeShopControl.GUEST_FIRST_NAME, guestIdentity.firstName(),
                             PracticeShopControl.GUEST_LAST_NAME, guestIdentity.lastName())),
-                    List.of(new AtfAssertion("Guest form", "ready for submission",
-                            "guest identity fields are populated", true)), List.of())
+                    List.of(), List.of())
                     .withAdditionalAssertions(context.purchaseScreenValidator().guestCheckout(page)));
             guest.submitIdentity();
             guest.proceedToBilling();
@@ -83,18 +87,18 @@ final class PracticeShopCheckoutPurchaseStage {
                         PracticeShopControl.STREET, address.street(),
                         PracticeShopControl.CITY, address.city(),
                         PracticeShopControl.STATE, address.state())),
-                List.of(new AtfAssertion("Billing form", "country and address fields completed",
-                        "billing address is ready for payment", true)), List.of())
+                List.of(), List.of())
                 .withAdditionalAssertions(context.purchaseScreenValidator().billing(page)));
         billing.proceedToPayment();
 
         PracticeShopPaymentPage payment = new PracticeShopPaymentPage(page, locators, actions);
-        payment.chooseMethod(configuration.checkout().paymentMethod());
+        String observedPaymentMethod = payment.chooseMethod(configuration.checkout().paymentMethod());
         context.publish(context.checkpoint(AtfGherkinKeyword.AND,
                 "payment form displays the configured demo method",
                 context.pageValidator().validate(page, PracticeShopPaymentPage.class),
                 List.of(check("Payment method", configuration.checkout().paymentMethod(),
-                        configuration.checkout().paymentMethod(), true)), List.of())
+                        observedPaymentMethod,
+                        configuration.checkout().paymentMethod().equals(observedPaymentMethod))), List.of())
                 .withAdditionalAssertions(context.purchaseScreenValidator().payment(page)));
         String confirmation = payment.confirm();
         var paymentApiAssertions = context.apiNetwork().paymentConfirmed(
@@ -104,7 +108,7 @@ final class PracticeShopCheckoutPurchaseStage {
                 context.pageValidator().validate(page, PracticeShopConfirmationPage.class),
                 List.of(check("Payment confirmation", "Payment was successful", confirmation,
                         confirmation.contains("Payment was successful"))),
-                context.apiNetwork().paymentEvidence())
+                context.apiNetwork().evidence(PracticeShopApiCheckpoint.PAYMENT))
                 .withAdditionalAssertions(paymentApiAssertions)
                 .withAdditionalAssertions(context.purchaseScreenValidator().confirmation(page)));
         return new PracticeShopPurchaseFlow.PurchaseResult(line.productName(), line.quantity(),

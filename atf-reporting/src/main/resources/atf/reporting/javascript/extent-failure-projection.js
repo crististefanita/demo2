@@ -137,7 +137,7 @@ function failureRow(record, index) {
     ctx = failureContextFor(item, record.assertionRow);
   ctx.owner = owner;
   var row = document.createElement('div');
-  row.className = 'test-item atf-failure';
+  row.className = 'test-item atf-failure fail-row';
   row.setAttribute('status', 'fail');
   row.setAttribute('data-atf-test-id', id);
   row.setAttribute('data-atf-scenario-index', scenarioIndex);
@@ -156,7 +156,7 @@ function failureRow(record, index) {
     esc(name) +
     '</p><p class="text-sm">' +
     esc(owner) +
-    '</p></div><div class="test-status"><span class="badge log badge-danger">Fail</span></div>';
+    '</p></div><div class="test-status"><span class="badge log badge-danger status status-fail">Fail</span></div>';
   row.addEventListener('click', function () {
     selectFailure(index);
   });
@@ -168,7 +168,7 @@ function renderFails() {
   var records = sortFailureRecords(failureRecords());
   resetFailureProjection();
   if (!records.length) {
-    host.innerHTML = '<div class="atf-fails-empty">No failed tests.</div>';
+    host.innerHTML = '<div class="atf-fails-empty empty atf-empty-state">No failed tests.</div>';
     return;
   }
   records.forEach(function (record, index) {

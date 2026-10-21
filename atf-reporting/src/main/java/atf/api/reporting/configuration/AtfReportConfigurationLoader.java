@@ -67,7 +67,7 @@ public final class AtfReportConfigurationLoader {
             JsonNode extent = reporting.path("extent");
             int assertionLimit = integer(reporting, "assertionMaxDisplayCharacters",
                     ReportingSettings.DEFAULT_ASSERTION_MAX_DISPLAY_CHARACTERS);
-            int bodyLimit = integer(reporting, "bodyMaxDisplayCharacters",
+            int bodyLimit = nonNegativeInteger(reporting, "bodyMaxDisplayCharacters",
                     ReportingSettings.DEFAULT_BODY_MAX_DISPLAY_CHARACTERS);
             var reportingSettings = new ReportingSettings(assertionLimit, bodyLimit);
             String outputDirectory = text(extent, "outputDirectory", "target");
@@ -150,6 +150,16 @@ public final class AtfReportConfigurationLoader {
             if (parsed > 0) return parsed;
         }
         throw new IllegalStateException("ATF report configuration value must be a positive integer: reporting." + name);
+    }
+
+    private static int nonNegativeInteger(JsonNode parent, String name, int defaultValue) {
+        JsonNode value = parent.path(name);
+        if (value.isMissingNode() || value.isNull()) return defaultValue;
+        if (value.canConvertToInt()) {
+            int parsed = value.intValue();
+            if (parsed >= 0) return parsed;
+        }
+        throw new IllegalStateException("ATF report configuration value must be zero or a positive integer: reporting." + name);
     }
 
     private static ReportScreenshotPolicy screenshotPolicy(JsonNode extent) {

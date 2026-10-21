@@ -11,14 +11,13 @@ import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportPorts;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.extent.session.ExtentReportSession;
+import atf.api.reporting.ui.network.ReportNetworkInspector;
 import atf.ui.practiceshop.api.PracticeShopApiOperation;
 import atf.ui.practiceshop.api.PracticeShopApiHttpStatus;
 import atf.ui.practiceshop.api.PracticeShopApiRoutes;
 
 import java.nio.file.Path;
 import java.util.List;
-import java.util.LinkedHashMap;
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.Objects;
 
@@ -222,22 +221,18 @@ public final class PracticeShopApiReportPublisher {
         var node = phase.startRequest("API diagnostics — unique request signatures",
                 "TRACE", "api-trace");
         try {
-            Map<String, List<String>> groups = new LinkedHashMap<>();
+            List<atf.api.reporting.model.ReportExecutionEvidence> evidence = new java.util.ArrayList<>();
             long sequence = 0;
             for (ApiExecutionResult execution : executions) {
-                var exchange = PracticeShopApiExecutionExchange.from(execution, ++sequence,
-                        phaseFor(execution.request().path()));
-                groups.computeIfAbsent(exchange.signature(), ignored -> new ArrayList<>())
-                        .add(exchange.method() + " " + exchange.path() + " → " + exchange.status());
+                evidence.add(PracticeShopApiEvidenceMapper.toExecution(execution, ++sequence,
+                        phaseFor(execution.request().path()), "BusinessFlow", phaseFor(execution.request().path()),
+                        PracticeShopApiOperation.reportTitle(execution.request().method(), execution.request().path()),
+                        execution.provenance().reportLabel(), "2xx response with JSON contract",
+                        "status=" + execution.response().status()));
             }
             node.detail("trace.contract", "logical signature = method + safe URL + canonical JSON body digest");
             node.detail("trace.observations", Integer.toString(executions.size()));
-            node.detail("trace.unique.signatures", Integer.toString(groups.size()));
-            int index = 0;
-            for (Map.Entry<String, List<String>> entry : groups.entrySet()) {
-                node.detail("signature." + (++index), "count=" + entry.getValue().size()
-                        + "; " + entry.getKey() + "; observations=" + entry.getValue());
-            }
+            node.networkAggregate(ReportNetworkInspector.aggregate(evidence, List.of(), List.of()));
             node.complete(AtfReportStatus.PASS);
         } finally {
             node.close();

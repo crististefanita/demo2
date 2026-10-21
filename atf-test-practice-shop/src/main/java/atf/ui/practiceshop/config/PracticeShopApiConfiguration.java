@@ -11,13 +11,22 @@ public record PracticeShopApiConfiguration(
         URI endpoint,
         ApiTransportMode mode,
         PracticeShopApiPrecondition precondition,
-        Duration timeout) {
+        Duration timeout,
+        PracticeShopApiEvidenceBinding evidenceBinding) {
+
+    /** Compatibility constructor for callers that do not customize checkpoints. */
+    public PracticeShopApiConfiguration(URI endpoint, ApiTransportMode mode,
+                                        PracticeShopApiPrecondition precondition,
+                                        Duration timeout) {
+        this(endpoint, mode, precondition, timeout, PracticeShopApiEvidenceBinding.all());
+    }
 
     public PracticeShopApiConfiguration {
         endpoint = Objects.requireNonNull(endpoint, "endpoint");
         mode = Objects.requireNonNull(mode, "mode");
         precondition = Objects.requireNonNull(precondition, "precondition");
         timeout = Objects.requireNonNull(timeout, "timeout");
+        evidenceBinding = Objects.requireNonNull(evidenceBinding, "evidenceBinding");
         if (!endpoint.isAbsolute() || endpoint.getHost() == null) {
             throw new IllegalArgumentException("API endpoint must be an absolute URI");
         }
@@ -31,7 +40,7 @@ public record PracticeShopApiConfiguration(
                 URI.create("https://api.practicesoftwaretesting.com"),
                 ApiTransportMode.ACCEPTANCE,
                 PracticeShopApiPrecondition.AUTHENTICATED,
-                Duration.ofSeconds(20));
+                Duration.ofSeconds(20), PracticeShopApiEvidenceBinding.all());
     }
 
     public boolean authenticatedPrecondition() {

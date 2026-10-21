@@ -1,14 +1,14 @@
 package atf.ui.tests.practiceshop.component;
 
+import atf.api.core.files.AtfFileTree;
+import atf.api.core.files.AtfPathLocator;
 import atf.api.testkit.AtfComponentTest;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -49,20 +49,18 @@ class PracticeShopArchitectureTest {
 
     @Test
     void reusableApplicationSupportDoesNotRemainUnderTheTestSourcePackage() throws IOException {
-        Path testRoot = locateModuleRoot().resolve("src/test/java/atf/ui/tests/practiceshop");
-        try (Stream<Path> files = Files.walk(testRoot)) {
-            files.filter(Files::isRegularFile)
-                    .filter(path -> path.toString().endsWith(".java"))
-                    .forEach(path -> {
-                        String fileName = path.getFileName().toString();
-                        assertFalse(fileName.endsWith("Page.java") || fileName.endsWith("Flow.java")
-                                        || fileName.equals("PracticeShopLocators.java")
-                                        || fileName.equals("PracticeShopE2eContext.java"),
-                                "reusable support must live under src/main/java: " + path);
-                    assertTrue(fileName.endsWith("Test.java") || fileName.endsWith("TestSupport.java")
-                                    || fileName.endsWith("Fixture.java"),
-                            "test source must be a test or an explicitly test-scoped helper: " + path);
-                    });
+        Path moduleRoot = locateModuleRoot();
+        for (Path path : AtfFileTree.regularFiles(
+                moduleRoot.resolve("src/test/java/atf/ui/tests/practiceshop"),
+                List.of(Path.of(".")), path -> path.getFileName().toString().endsWith(".java"))) {
+            String fileName = path.getFileName().toString();
+            assertFalse(fileName.endsWith("Page.java") || fileName.endsWith("Flow.java")
+                            || fileName.equals("PracticeShopLocators.java")
+                            || fileName.equals("PracticeShopE2eContext.java"),
+                    "reusable support must live under src/main/java: " + path);
+            assertTrue(fileName.endsWith("Test.java") || fileName.endsWith("TestSupport.java")
+                            || fileName.endsWith("Fixture.java"),
+                    "test source must be a test or an explicitly test-scoped helper: " + path);
         }
     }
 
@@ -80,33 +78,67 @@ class PracticeShopArchitectureTest {
         }
     }
 
-    private List<Path> sourceFiles(Path moduleRoot) throws IOException {
-        List<Path> files = new ArrayList<>();
-        List<Path> roots = List.of(
-                moduleRoot.resolve("src/main/java/atf/ui/practiceshop"),
-                moduleRoot.resolve("src/test/java/atf/ui/tests/practiceshop"));
-        for (Path root : roots) {
-            try (Stream<Path> walked = Files.walk(root)) {
-                walked.filter(Files::isRegularFile)
-                        .filter(path -> !path.getFileName().toString().equals("PracticeShopArchitectureTest.java"))
-                        .filter(path -> !path.toString().replace('\\', '/')
-                                .contains("/src/main/java/atf/ui/practiceshop/locators/"))
-                        .filter(path -> path.toString().endsWith(".java"))
-                        .forEach(files::add);
-            }
+    @Test
+    void endToEndAssertionsMustUseObservedValues() throws IOException {
+        Path e2eRoot = locateModuleRoot().resolve("src/test/java/atf/ui/tests/practiceshop/e2e");
+        for (Path path : AtfFileTree.regularFiles(e2eRoot, List.of(Path.of(".")),
+                candidate -> candidate.getFileName().toString().endsWith(".java"))) {
+            assertObservedVerdicts(path, "E2E");
         }
-        return files;
+    }
+
+    @Test
+    void reusableFlowAndEvidenceAssertionsMustUseObservedValues() throws IOException {
+        Path moduleRoot = locateModuleRoot();
+        for (Path path : AtfFileTree.regularFiles(moduleRoot,
+                List.of(Path.of("src/main/java/atf/ui/practiceshop/flow"),
+                        Path.of("src/main/java/atf/ui/practiceshop/support")),
+                candidate -> candidate.getFileName().toString().endsWith(".java"))) {
+            assertObservedVerdicts(path, "reusable Practice Shop support");
+        }
+    }
+
+    @Test
+    void multiJourneyE2eClassCreatesAnIsolatedBrowserContextPerTest() throws IOException {
+        Path source = locateModuleRoot().resolve(
+                "src/test/java/atf/ui/tests/practiceshop/e2e/PracticeShopAccountAndCatalogE2eTest.java");
+        String text = Files.readString(source);
+        assertTrue(text.contains("@BeforeEach"), "multi-journey E2E must open context per test");
+        assertTrue(text.contains("@AfterEach"), "multi-journey E2E must close context per test");
+        assertFalse(text.contains("@TestInstance"), "multi-journey E2E must not share PER_CLASS state");
+        assertFalse(text.contains("@BeforeAll"), "multi-journey E2E must not open a suite browser");
+    }
+
+    private void assertObservedVerdicts(Path path, String layer) throws IOException {
+        String source = Files.readString(path);
+        assertFalse(source.matches("(?s).*\\bcheck\\([^;]*,\\s*true\\s*\\).*"),
+                layer + " check must derive its verdict from an observed value: " + path);
+        assertFalse(source.matches("(?s).*new\\s+AtfAssertion\\([^;]*,\\s*true\\s*\\).*"),
+                layer + " assertion must derive its verdict from an observed value: " + path);
+        if (layer.equals("E2E")) {
+            assertFalse(source.contains("configuration.productName(), configuration.productName()"),
+                    "E2E product assertion must not compare a value with itself: " + path);
+            assertFalse(source.contains("\"My account\", \"My account\""),
+                    "E2E account assertion must not compare a value with itself: " + path);
+        }
+    }
+
+    private List<Path> sourceFiles(Path moduleRoot) throws IOException {
+        Path locators = moduleRoot.resolve("src/main/java/atf/ui/practiceshop/locators")
+                .toAbsolutePath().normalize();
+        return AtfFileTree.regularFiles(moduleRoot,
+                List.of(Path.of("src/main/java/atf/ui/practiceshop"),
+                        Path.of("src/test/java/atf/ui/tests/practiceshop")),
+                path -> path.getFileName().toString().endsWith(".java")
+                        && !path.getFileName().toString().equals("PracticeShopArchitectureTest.java")
+                        && !path.toAbsolutePath().normalize().startsWith(locators));
     }
 
     private static Path locateModuleRoot() {
-        Path current = Path.of(System.getProperty("user.dir", "."))
-                .toAbsolutePath().normalize();
-        while (current != null) {
-            Path candidate = current.resolve("atf-test-practice-shop");
-            if (Files.isDirectory(candidate.resolve("src/main/java/atf/ui/practiceshop"))) return candidate;
-            current = current.getParent();
-        }
-        throw new IllegalStateException("Cannot locate Practice Shop module root");
+        return AtfPathLocator.locateModuleRoot(
+                Path.of(System.getProperty("user.dir", ".")),
+                Path.of("atf-test-practice-shop"),
+                Path.of("src/main/java/atf/ui/practiceshop"));
     }
 }
 

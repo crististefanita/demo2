@@ -6,6 +6,7 @@ import atf.api.reporting.console.AtfConsoleSink;
 import atf.api.reporting.contract.AtfReportPorts;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.network.ReportNetworkInspector;
 import atf.api.reporting.html.HtmlReportSemanticDocument;
 import atf.api.reporting.semantic.AtfReportSemanticRecorder;
 
@@ -17,6 +18,7 @@ public final class HtmlReportRequestScope implements AtfReportPorts.Request {
     private final String consoleName;
     private final AtfReportSemanticRecorder.RequestHandle semantic;
     private final AtfConsoleSink console;
+    private ReportNetworkInspector.JourneyAggregate networkAggregate;
     private final long startedAt = System.nanoTime();
     private boolean closed;
 
@@ -46,6 +48,13 @@ public final class HtmlReportRequestScope implements AtfReportPorts.Request {
     public void execution(ReportExecutionEvidence result) {
         model.execution(result);
         semantic.execution();
+    }
+
+    @Override
+    public void networkAggregate(ReportNetworkInspector.JourneyAggregate aggregate) {
+        networkAggregate = aggregate;
+        semantic.detail("network.aggregate");
+        model.networkAggregate(aggregate);
     }
 
     @Override

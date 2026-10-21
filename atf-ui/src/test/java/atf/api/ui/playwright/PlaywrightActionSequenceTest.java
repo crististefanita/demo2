@@ -3,6 +3,8 @@ import atf.api.testkit.AtfComponentTest;
 
 import atf.api.core.reporting.contract.AtfReportStatus;
 import atf.api.core.ui.AtfUiEvidenceSource;
+import atf.api.ui.config.UiRetryOperation;
+import atf.api.ui.config.UiRetryPolicy;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
@@ -140,5 +142,42 @@ class PlaywrightActionSequenceTest {
         assertEquals("Click", events.get(0).operation());
         assertEquals("#nav-test", events.get(0).target());
         assertEquals(AtfReportStatus.PASS, events.get(0).status());
+    }
+
+    @Test
+    void retriesOnlyTheConfiguredReadOnlyActionAndPublishesAnInfoRow() {
+        var recorder = new UiActionRecorder();
+        recorder.setRetryPolicy(new UiRetryPolicy(2, Duration.ZERO,
+                java.util.Set.of(UiRetryOperation.WAIT_FOR_VISIBLE), "DOM stabilization"));
+        int[] attempts = {0};
+
+        String result = recorder.run("Wait for visible", "#test-view", "state=Visible", () -> {
+            if (attempts[0]++ == 0) throw new IllegalStateException("transient state");
+            return "state reached";
+        });
+
+        assertEquals("state reached", result);
+        assertEquals(3, recorder.snapshot().size());
+        assertEquals("Retry attempt", recorder.snapshot().get(0).operation());
+        assertEquals(AtfReportStatus.INFO, recorder.snapshot().get(0).status());
+        assertTrue(recorder.snapshot().get(0).observed().contains("transient state"));
+        assertEquals("Retry", recorder.snapshot().get(1).operation());
+        assertEquals(AtfReportStatus.INFO, recorder.snapshot().get(1).status());
+        assertEquals("Wait for visible", recorder.snapshot().get(2).operation());
+        assertEquals(AtfReportStatus.PASS, recorder.snapshot().get(2).status());
+    }
+
+    @Test
+    void retryPolicyDoesNotReplayMutatingActions() {
+        var recorder = new UiActionRecorder();
+        recorder.setRetryPolicy(UiRetryPolicy.readOnly(3, Duration.ZERO));
+
+        assertThrows(IllegalStateException.class,
+                () -> recorder.run("Click", "#submit", "dialog opens", () -> {
+                    throw new IllegalStateException("click failed");
+                }));
+
+        assertEquals(1, recorder.snapshot().size());
+        assertEquals("Click", recorder.snapshot().getFirst().operation());
     }
 }

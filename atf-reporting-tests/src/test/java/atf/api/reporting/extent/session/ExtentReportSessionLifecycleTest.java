@@ -39,7 +39,7 @@ class ExtentReportSessionLifecycleTest {
             assertAll(
                     () -> assertTrue(html.contains("response-json-body")),
                     () -> assertTrue(html.contains("helm-scroll-block-body")),
-                    () -> assertTrue(html.contains("… [truncated]")),
+                    () -> assertTrue(html.contains("… [truncated; showing first 40 of ")),
                     () -> assertTrue(html.contains("***REDACTED***")),
                     () -> assertFalse(html.contains("raw-token")),
                     () -> assertFalse(html.contains("012345678901234567890123456789\"}")));

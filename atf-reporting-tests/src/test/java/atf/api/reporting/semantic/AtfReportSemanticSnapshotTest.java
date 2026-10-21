@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @AtfUnitTest
@@ -72,6 +73,48 @@ class AtfReportSemanticSnapshotTest {
         assertThrowsUnsupported(snapshot.classes());
         assertThrowsUnsupported(snapshot.classes().getFirst().scenarios());
         assertThrowsUnsupported(snapshot.classes().getFirst().scenarios().getFirst().phases());
+    }
+
+    @Test
+    void lifecycleMutationProducesIndependentImmutableSnapshots() {
+        var lifecycle = new AtfReportSemanticLifecycle();
+        var scenario = lifecycle.startScenario("Tests", "atf.api", "scenario", List.of("api"));
+        var phase = scenario.startPhase("TEST BODY");
+        var request = phase.startRequest("read", "GET", "/users/1");
+
+        var beforeValidation = lifecycle.snapshot();
+        assertEquals(0, beforeValidation.validationCount());
+
+        var validation = request.startValidation("Validate response");
+        validation.assertions(List.of(new AtfAssertion("status", "200", "200", true)));
+        validation.complete(AtfReportStatus.PASS);
+        request.complete(AtfReportStatus.PASS);
+        phase.complete(AtfReportStatus.PASS);
+        scenario.complete(AtfReportStatus.PASS);
+
+        var afterValidation = lifecycle.snapshot();
+        assertEquals(0, beforeValidation.validationCount());
+        assertEquals(1, afterValidation.validationCount());
+        assertEquals(AtfReportStatus.PASS,
+                afterValidation.classes().getFirst().status());
+    }
+
+    @Test
+    void lifecycleRejectsMutationAfterAParentOrChildScopeIsComplete() {
+        var recorder = new AtfReportSemanticRecorder();
+        var scenario = recorder.startScenario("Tests", "atf.api", "scenario", List.of("api"));
+        var phase = scenario.startPhase("TEST BODY");
+        var request = phase.startRequest("read", "GET", "/users/1");
+        var validation = request.startValidation("Validate response");
+        validation.complete(AtfReportStatus.PASS);
+        request.complete(AtfReportStatus.PASS);
+        phase.complete(AtfReportStatus.PASS);
+        scenario.complete(AtfReportStatus.PASS);
+
+        assertThrows(IllegalStateException.class, () -> scenario.startPhase("TEARDOWN"));
+        assertThrows(IllegalStateException.class, () -> phase.startRequest("late", "GET", "/late"));
+        assertThrows(IllegalStateException.class, () -> request.json("late JSON"));
+        assertThrows(IllegalStateException.class, () -> validation.complete(AtfReportStatus.PASS));
     }
 
     private static void publish(AtfReportPorts.Session session) {

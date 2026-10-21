@@ -35,6 +35,17 @@ class ReportEvidenceJsonFormatterTest {
                 new SensitiveDataRedactor(),
                 new ReportingSettings(240, 12));
 
-        assertTrue(display.endsWith("… [truncated]"));
+        assertTrue(display.contains("… [truncated; showing first 12 of "));
+    }
+
+    @Test
+    void zeroBodyLimitPublishesTheCompleteRedactedBody() {
+        String display = ReportEvidenceJsonFormatter.displayBody(
+                new ReportJsonBody("RESPONSE JSON", "{\"payload\":\"0123456789\"}"),
+                new SensitiveDataRedactor(),
+                new ReportingSettings(240, ReportingSettings.DISABLE_BODY_DISPLAY_LIMIT));
+
+        assertTrue(display.contains("\"payload\" : \"0123456789\""));
+        assertFalse(display.contains("truncated"));
     }
 }

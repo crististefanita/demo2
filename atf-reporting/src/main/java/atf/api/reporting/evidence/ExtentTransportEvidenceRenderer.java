@@ -15,6 +15,8 @@ import atf.api.reporting.model.ReportField;
 import atf.api.reporting.model.ReportJsonBody;
 import atf.api.reporting.model.ReportCheck;
 import atf.api.reporting.model.ReportScreenshot;
+import atf.api.reporting.ui.network.ReportNetworkAggregateMarkup;
+import atf.api.reporting.ui.network.ReportNetworkInspector;
 
 import atf.api.reporting.configuration.ReportingSettings;
 import atf.api.reporting.security.SensitiveDataRedactor;
@@ -96,6 +98,12 @@ public final class ExtentTransportEvidenceRenderer {
         } else {
             node.info(markup);
         }
+    }
+
+    void renderNetworkAggregate(ExtentTest node,
+                                ReportNetworkInspector.JourneyAggregate aggregate) {
+        String markup = ReportNetworkAggregateMarkup.disclosure(aggregate);
+        if (!markup.isBlank()) node.info(markup);
     }
 
     private ReportCheck setupCheck(String value) {

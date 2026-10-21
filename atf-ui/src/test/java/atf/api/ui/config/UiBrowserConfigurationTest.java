@@ -21,6 +21,7 @@ class UiBrowserConfigurationTest {
         assertEquals(UiBrowserConfiguration.DEFAULT_ZOOM_PERCENT, configuration.zoomPercent());
         assertEquals(Duration.ofSeconds(10), configuration.timeout());
         assertEquals(true, configuration.screenshotOnFailure());
+        assertEquals(UiRetryPolicy.none(), configuration.retryPolicy());
     }
 
     @Test

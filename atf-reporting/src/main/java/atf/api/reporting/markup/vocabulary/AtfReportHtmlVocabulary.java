@@ -406,7 +406,7 @@ public final class AtfReportHtmlVocabulary {
     }
 
     public static String attribute(Attribute attribute, String value) {
-        return attribute.value() + "=\"" + escape(value) + "\"";
+        return attribute.value() + "=\"" + escapeAttribute(value) + "\"";
     }
 
     public static String attribute(Attribute attribute, AttributeValue value) {
@@ -488,5 +488,10 @@ public final class AtfReportHtmlVocabulary {
                 .replace("<", "&lt;")
                 .replace(">", "&gt;")
                 .replace("'", "&#39;");
+    }
+
+    /** Double-quoted attributes do not require apostrophe encoding. */
+    private static String escapeAttribute(String value) {
+        return escape(value).replace("&#39;", "'");
     }
 }
