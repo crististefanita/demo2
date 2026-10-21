@@ -6,8 +6,9 @@
 modulelor, coeziunea de pachete, lizibilitatea sursei și guvernanța documentației
 trec gate-urile live. Hotspot-urile care depășeau pragul au fost split-uite pe
 boundary-uri semantice, iar invocațiile fully-qualified din testul de reporting
-au fost înlocuite cu importuri lizibile. Rămâne doar monitorizarea coeziunii
-viitoare; nu există motiv pentru ștergeri speculative sau mutări mecanice.
+au fost înlocuite cu importuri lizibile. `TEST-ARCH-07` este închis; rămâne doar
+monitorizarea coeziunii viitoare, fără ToDo local activ și fără motiv pentru
+ștergeri speculative sau mutări mecanice.
 
 Feedback-ul descrie codul live și păstrează numai gap-uri care pot schimba
 structura, testele sau contractele publice. Numărătorile exacte se obțin prin

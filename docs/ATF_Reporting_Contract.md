@@ -167,6 +167,9 @@ rendererul fallback:
   assertions și echivalentele API/UI; nu există înălțimi hardcodate per
   renderer. Blocurile JSON/code sunt payload panes, nu tabele, și își păstrează
   limita compactă proprie;
+- la viewport-uri înguste (`≤991px`), Overview începe după rail-ul fix de
+  navigare (`70px`) și ocupă doar spațiul rămas; layout-ul desktop păstrează
+  indentarea existentă;
 - când există mai multe exchange-uri, `Execution evidence` trebuie să păstreze
   identitatea exchange-ului în disclosure-ul părinte sau în titlu; repetarea
   unui titlu generic fără context nu este auditabilă;
@@ -459,14 +462,6 @@ flowchart LR
     Tests -->|indexează| Fails["Fails<br/>failure index"]
 ```
 
-Un scenariu `WARNING` rămâne diagnostic, dar intră în totalurile pass-like din
-Overview:
-
-- `Tests Passed`, sumarul `Tests`/`Steps` și procentele: `PASS + WARNING`;
-- graficele, categoriile, badge-urile și linia `warnings`: păstrează `WARNING`
-  distinct, fără a-l converti în `PASS`;
-- `Fails`: indexează numai failure-uri reale, nu warning-uri.
-
 <details>
 <summary><strong>Legendă — agregare fără duplicare</strong></summary>
 
@@ -484,6 +479,14 @@ Regulile de randare pentru cardul scenariului sunt:
 - regula rămâne valabilă pentru nume lungi, tag-uri multiple și durata în `ms`.
 
 </details>
+
+Un scenariu `WARNING` rămâne diagnostic, dar intră în totalurile pass-like din
+Overview:
+
+- `Tests Passed`, sumarul `Tests`/`Steps` și procentele: `PASS + WARNING`;
+- graficele, categoriile, badge-urile și linia `warnings` păstrează `WARNING`
+  distinct, fără a-l converti în `PASS`;
+- `Fails` indexează numai failure-uri reale, nu warning-uri.
 
 ## Vizual și autonom
 

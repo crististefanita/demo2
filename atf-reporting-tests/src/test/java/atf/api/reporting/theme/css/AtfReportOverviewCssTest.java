@@ -51,4 +51,15 @@ class AtfReportOverviewCssTest {
                         "overview precedence must remain after execution-page rules"),
                 () -> assertTrue(theme.contains(AtfReportOverviewCss.categoryStatus())));
     }
+
+    @Test
+    void narrowOverviewUsesTheSpaceRemainingAfterTheFixedNavigationRail() {
+        String layout = AtfReportOverviewCss.layout();
+
+        assertAll(
+                () -> assertTrue(layout.contains(".dashboard-view{padding:21px!important}")),
+                () -> assertTrue(layout.contains("@media (max-width:991px)")),
+                () -> assertTrue(layout.contains("margin-left:70px!important")),
+                () -> assertTrue(layout.contains("width:auto!important")));
+    }
 }

@@ -19,6 +19,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import static atf.api.reporting.ui.ExtentReportUiEvidenceTestSupport.EXTENT_UI_TEST_PACKAGE;
 import static atf.api.reporting.contract.AtfGherkinKeyword.AND;
@@ -413,6 +414,10 @@ class ExtentReportUiEvidencePublishingTest {
         }
 
         String html = Files.readString(report).toLowerCase();
+        long alignedAggregateRows = Pattern.compile(
+                "<tr class=\"event-row\">(?:(?!</tr>).)*<span class=\"badge log info-bg\">info</span>"
+                        + "(?:(?!</tr>).)*<details class=\"step-detail network-aggregate-section",
+                Pattern.DOTALL).matcher(html).results().count();
         assertAll(
                 () -> assertTrue(html.contains("api network inspector")),
                 () -> assertTrue(html.indexOf("network aggregate · 1 exchanges")
@@ -425,6 +430,8 @@ class ExtentReportUiEvidencePublishingTest {
                 () -> assertTrue(html.contains("technical diagnostics · 1")),
                 () -> assertTrue(html.contains("network-signatures")),
                 () -> assertTrue(html.contains("network-diagnostics")),
+                () -> assertEquals(5, alignedAggregateRows,
+                        "each inspector section must own an INFO badge in its Status/Details event row"),
                 () -> assertTrue(html.contains("response details · 4 fields")),
                 () -> assertFalse(html.contains("network ui step")),
                 () -> assertFalse(html.contains("network exchange")),

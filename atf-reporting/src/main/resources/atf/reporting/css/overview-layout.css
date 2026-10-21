@@ -2,6 +2,14 @@
 .dashboard-view {
   padding: 21px !important;
 }
+.dashboard-view {
+  width: auto !important;
+}
+@media (max-width: 991px) {
+  .dashboard-view {
+    margin-left: 70px !important;
+  }
+}
 .dashboard-view .card-body h3 {
   margin-bottom: 7px !important;
 }
@@ -85,8 +93,7 @@
 .atf-secondary-overview > summary:hover {
   background: var(--atf-secondary-heading-bg-hover) !important;
 }
-.atf-secondary-overview:not([open]) > :not(summary),
-.atf-secondary-overview[open] > :not(summary) {
+.atf-secondary-overview:not([open]) > :not(summary) {
   display: none !important;
 }
 .atf-secondary-overview[open] > :not(summary) {

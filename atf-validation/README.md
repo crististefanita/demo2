@@ -64,6 +64,10 @@ Direcția este intenționată:
 | `ValidationTable` | agregă assertions într-o singură colecție | layout-ul tabelului |
 | `ResponseContractReporter` | leagă evaluarea de `ValidationSink` | implementarea sink-ului |
 | `SchemaResourceResolver` | rezolvă schema din rădăcini declarate fără traversal | filesystem global sau raportare |
+| `AiEvaluationCase` + `AiFieldExpectation` | expected versionat, independent de output, cu reguli typed | apelarea unui model, grounding sau business rules |
+| `AiEvaluationEvaluator` + `AiEvaluationPolicy` | comparații typed, score ponderat, threshold explicit și hard-fail critic | provider AI, renderer sau workflow review |
+| `AiInvocationEvidence` | clasifică real/mock/fallback/unknown și păstrează referințe opace request/response/output | payload, prompt, token, credential sau invocation efectivă |
+| `AiEvaluationResult` + `AiFieldComparison` | verdict, hard-fails cu expected/observed/reason/evidence reference | snapshot lifecycle complet și proiecție raport |
 
 `ResponseContract` nu mai conține mecanica fiecărei reguli. `ResponseContractRuleSet`
 producește definiții compozabile (`identity`, `title`, `ResponseValidationRule`),
@@ -149,6 +153,18 @@ Testele modulului protejează separat:
 - publicarea printr-un fake `ValidationSink`, fără Extent;
 - rezolvarea sigură a schemelor și respingerea traversal-ului;
 - închiderea scope-ului și publicarea failure-ului când evaluarea aruncă.
+- evaluatorul AI pur: expected versionat, comparații typed, missing/invented și
+  output nedeclarat, hard-fail critic, threshold configurabil și agregare
+  ponderată; fără provider, browser sau renderer.
+
+Evaluarea AI este un increment separat în pachetul `atf.api.validation.ai`:
+
+- evaluează output furnizat de consumer; nu face invocation;
+- numai `REAL_AI` cu referințe complete poate primi quality score;
+- mock, fallback și unknown permit testarea comparatorului, fără AI quality score;
+- grounding per câmp și snapshot lifecycle complet sunt încă deschise;
+- limitele și criteriile de închidere sunt în
+  [`README_AI_Evaluation.md`](../docs/feedback/README_AI_Evaluation.md).
 
 Testele sunt ratchet tests: când un contract eșuează, se repară
 implementarea, nu se relaxează assertion-ul pentru a face build-ul verde.

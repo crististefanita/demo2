@@ -2,6 +2,10 @@
 
 ## Verdict curent
 
+**Status: două ToDo-uri locale active (`REP-UX-TABLE-03/04`).** Limita conexă
+`SHOP-API-REAL-01` aparține consumerului Practice Shop și nu este backlog sau
+defect al librăriei de reporting.
+
 - `atf-reporting` este librăria standalone pentru model semantic, evidence și
   publicare Extent/HTML;
 - `atf-reporting-tests` este consumerul și composition root-ul pentru unit,
@@ -25,32 +29,81 @@
   în failure;
 - recalibrarea finală păstrează inspectorul ca nod synthetic unic și mută
   `Network aggregate · N exchanges` într-un copil real al inspectorului; numai
-  acest copil deține secțiunile typed. `Unique request signatures` și
-  `Technical diagnostics` folosesc acum tokenii comuni pentru summary-uri de
-  2×, collapsed implicit, fără request-uri duplicate sau schimbări de verdict;
-- `REP-NET-07` și `REP-UX-TABLE-02` sunt închise: component proof-ul CSS/markup
-  și MCP fresh confirmă inspectorul nested, summary-uri 2× cu glyph inline,
-  collapsed implicit, viewport vertical bounded cu header sticky în Extent și
-  fallback, precum și screenshot în afara viewport-ului action. Nu s-au
-  schimbat orchestration-ul E2E, deduplicarea, cardinalitatea, verdictul sau
-  conținutul canonical al exchange-ului.
-- feedback nou cristalizat și închis: toate tabelele cu scroll vertical folosesc
-  aceeași geometrie ca `System/Environment`, printr-un singur token
+  acest copil deține secțiunile typed. Dovezile vechi au acceptat summary-uri
+  de 2× pentru anumite zone; noua cerință vizuală `REP-UX-TABLE-04` cere
+  explicit densitate compactă pentru zonele enumerate mai jos, fără să schimbe
+  structura semantică, deduplicarea sau verdictul;
+- `REP-NET-07` și `REP-UX-TABLE-02` au închis contractele structurale inițiale:
+  inspector nested, glyph inline, collapsed implicit, viewport vertical
+  bounded/header sticky și screenshot-ul în afara viewport-ului action. Această
+  închidere nu mai este dovadă pentru densitatea summary-urilor vizate de noul
+  ToDo `REP-UX-TABLE-04`.
+- contract structural implementat pentru tabele: toate tabelele cu scroll
+  vertical folosesc aceeași geometrie ca `System/Environment`, printr-un singur token
   `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT` / `--atf-table-scroll-height`;
   diferențele de 340/500px între suprafețe nu mai sunt permise. Regula include
   Overview/Category, tag audit, Playwright action, audit, assertions și
-  echivalentele API/UI; JSON/code panes rămân separat bounded.
+  echivalentele API/UI; JSON/code panes rămân separat bounded. Închiderea
+  vizuală a `REP-UX-TABLE-03` este redeschisă până la proba pe raportul fresh.
 - Politica browser performance rămâne separată de fixture-ul component:
   bugetul acceptă variația bounded a scheduler-ului pentru artifactul generat,
   dar păstrează frontieră explicită pentru long tasks și este verificat prin
   fixture component plus gate browser.
 - suportul generic se dovedește mai întâi cu input typed și imagini mock;
+- verificarea component a selecției API configurabile este închisă: colecțiile
+  exacte sunt proiectate renderer-neutral în owneri, titluri și statusuri, fără
+  browser și fără a popula așteptările din DOM;
 - E2E rămâne proof de interacțiune și randare, nu mecanismul implicit de
   acoperire;
 - contractul stabil este în [`atf-reporting/README.md`](../../atf-reporting/README.md),
   [`atf-reporting-tests/README.md`](../../atf-reporting-tests/README.md) și
   [`ATF_Reporting_Contract.md`](../ATF_Reporting_Contract.md);
 - acest fișier păstrează numai limite, decizii și criterii de redeschidere.
+
+## ToDo-uri active — plafonarea tabelelor și densitatea disclosures
+
+### `REP-UX-TABLE-03` — reconfirmare vizuală a plafonului pentru tabele lungi
+
+Codul are tokenul comun `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT` (`500px`) și
+reguli `max-height`/`overflow-y:auto`; testele statice protejează contractul
+CSS. Totuși, dovada de randare înregistrată anterior nu este suficientă pentru
+a închide observația pe raportul cel mai recent. Până la verificarea fresh,
+statusul este **deschis pentru proof vizual**, nu „implementare lipsă”.
+
+**Criteriu:** în Extent și fallback, un tabel sub plafon rămâne compact, iar
+unul peste plafon este limitat la `500px`, poate fi derulat până la ultimul rând,
+își păstrează header-ul sticky și nu provoacă overflow orizontal la viewport
+normal și îngust. Măsurarea trebuie să compare `clientHeight` cu plafonul și
+`scrollHeight` cu `clientHeight`; simpla prezență a regulii CSS nu este proof.
+
+### `REP-UX-TABLE-04` — densitate compactă pentru evidence disclosures
+
+Capturile furnizate arată două probleme vizuale corelate, în suprafețe distincte:
+
+| Suprafață | Observație | Contract cerut |
+|---|---|---|
+| `TEST BODY → Screen validation` | `Playwright action sequence`, `Audit observations` și `Assertions` ocupă summary-uri înalte și lasă prea mult spațiu între zone | aceeași geometrie compactă ca `Request details`, `Response details` și `Execution evidence`; păstrează ordinea, glyph-ul `+` inline și badge-ul `Info` centrat |
+| Inspectorul API, zona finală | `Unique request signatures` și `Technical diagnostics` au prea multă înălțime/spațiu vertical între disclosure rows | ritm compact și consecvent cu disclosure-urile API precedente; fără rânduri sau margini verticale decorative |
+
+Codul curent explică discrepanța: `AtfReportThemeTokens` definește tokenul
+standard de `34px` și tokenul tall de `68px`; CSS-ul atribuie tokenul tall
+zonelor UI enumerate și secțiunilor API finale, iar testul CSS cere în prezent
+această alegere. `ScreenValidationSectionExtractor` verifică doar că topurile
+zonelor sunt ordonate, în timp ce `ScreenValidationSectionValidator` raportează
+criteriul ca „ordered and gap-free”. Prin urmare, lipsesc atât contractul de
+densitate dorit, cât și verificarea efectivă a distanței/înălțimii randate.
+
+**Criterii de închidere:**
+
+- testul component/CSS și raportul randat confirmă summary-uri compacte de
+  `34px` (nu `68px`), fără spațiu excesiv, la viewport normal/îngust și în
+  Extent/fallback;
+- se păstrează collapse-ul, ordinea acțiuni → observații → assertions, glyph-ul
+  `+` inline și badge-ul `Info` aliniat; fără overflow sau separatoare;
+- browser test-ul măsoară înălțimea și distanța dintre zone, nu doar ordinea
+  topurilor; pentru API verifică toate secțiunile aggregate, inclusiv ultimele
+  două;
+- feedback-ul nu păstrează numele sau calea unui raport generat.
 
 ## Boundary-ul verificat
 
@@ -101,12 +154,18 @@ numai când codul, testele sau un guard produc o dovadă nouă.
 | proiecție Extent/HTML | 98 | forma API directă este reutilizată per exchange sub `API validation`, nodul este atașat aceluiași card Gherkin ca validarea UI, iar evidence-ul tehnic folosește rail/header comun; URL-urile păstrează wrapping controlat, iar digestul intern rămâne bounded | `ExtentReportUiEvidencePublishingTest`, `HtmlReportViewsTest`, `ExtentReportInteractionContractTest`, `AtfReportThemeTokensTest`, fresh UI HTML |
 | collapse/expand determinism | 98 | toate tranzițiile trec prin `setDisclosureState`; panelul, flag-ul `data-atf-*-open`, `aria-expanded` și glyph-ul sunt sincronizate, iar închiderea scenariului resetează descendenții | component/interaction tests + fresh guest E2E artifact după rebuild: close → delayed normalize → reopen |
 | UI startup și interaction performance | 94 | scheduler-ul de readiness este idempotent, ferestrele duplicate de timer sunt coalesced, observerii filtrează burst-urile fără noduri relevante, iar asset-ul separat `extent-navigation-performance.js` publică snapshot-ul diagnostic; bugetul typed component/browser și fixture-ul standard+narrow sunt impuse pe raportul fresh | `ExtentReportRuntimeNavigationComponentTest`, `ReportRuntimePerformanceComponentTest`, `ReportRuntimePerformanceBrowserProbe`, `extent-navigation-performance.js`, fresh MCP HTML |
-| **scor global** | **95** | foundation-ul standalone, trace-ul single-node și determinismul disclosure-urilor sunt solide; există încă simplificări interne minore, iar fixture-ul authenticated este o limită separată a consumerului | combinația de mai sus |
+| **scor global** | **92** | fundația standalone și trace-ul single-node sunt solide, dar plafonarea pe conținut lung și densitatea summary-urilor așteaptă fresh visual proof | combinația de mai sus |
 
-Recalibrare pe codul și build-ul live: scorurile rămân `95` global și `94`
-pentru interaction performance. Full-suite-ul curat nu justifică o penalizare
-de build, iar dovezile fresh pentru `REP-NET-07` și `REP-UX-TABLE-02` sunt acum
-închise; limita authenticated externă a consumerului rămâne deschisă separat.
+Recalibrare pe codul și testele din source tree:
+
+- scorul este `92/100` global și `94/100` pentru interaction performance;
+- scorurile descriu maturitatea contractelor, nu rezultatul unui build curent;
+- `REP-NET-07` și `REP-UX-TABLE-02` închid structura și comportamentul inițial,
+  nu densitatea compactă nouă din `REP-UX-TABLE-04`;
+- `REP-UX-TABLE-03` rămâne deschis până la măsurarea unui tabel lung într-un
+  raport fresh;
+- limita authenticated externă aparține consumerului Practice Shop, nu
+  librăriei de reporting.
 
 ## Exploratory report audit — contractul curent
 
@@ -127,9 +186,10 @@ de build, iar dovezile fresh pentru `REP-NET-07` și `REP-UX-TABLE-02` sunt acum
 ### Revalidare după sincronizarea codului live
 
 - Poarta completă a consumerului reporting a trecut într-un staging exclusiv,
-  apoi a trecut din nou incremental după sincronizarea surselor: fiecare run a
-  executat `530` teste, zero failure/error și trei skip-uri explicite.
-  `SelectedApiTestsReportUiTest` trece `7/7`, iar fixture-urile se încarcă.
+  apoi a trecut din nou incremental după sincronizarea surselor; aceste rulări
+  au izolat coliziunea Maven pe `target`. Count-ul și verdictul fiecărui run se
+  verifică în output-ul Maven corespunzător, nu se păstrează ca stare permanentă.
+  `SelectedApiTestsReportUiTest` și fixture-urile au proof-uri dedicate.
 - `REP-BUILD-02` este închis ca finding de workflow: `NoClassDefFoundError`
   din checkout-ul partajat a coincis cu build-uri Maven concurente pe același
   `target`; problema nu s-a reprodus în cele două rulări izolate. Regula stabilă
@@ -150,14 +210,10 @@ validatorul browser.
 
 ### Finding reparat — `WARNING` nu mai produce `0 tests` în Overview
 
-Regula stabilă este în
-[contractul de raportare](../ATF_Reporting_Contract.md#overview-și-agregări).
-`ExtentReportInteractionContractTest` verifică `WARNING` în totalurile
-pass-like, dar distinct în bucket-ul diagnostic. Raportul guest E2E confirmă
-`Tests Passed = 1`, `Tests Failed = 0`, `1 warnings` și `No failed tests.`;
-criteriul de redeschidere este o divergență reproductibilă între Overview,
-Categories și Fails. Fixture-ul authenticated rămâne limită separată a
-consumerului (`SHOP-API-REAL-01`).
+- Regula stabilă este în [contractul de raportare](../ATF_Reporting_Contract.md#overview-și-agregări).
+- `ExtentReportInteractionContractTest` păstrează `WARNING` distinct în bucket-ul diagnostic și în totalurile pass-like.
+- Guest E2E confirmă `Tests Passed = 1`, `Tests Failed = 0`, `1 warnings` și `No failed tests.`
+- Se redeschide la divergență reproductibilă între Overview, Categories și Fails; fixture-ul authenticated este limita separată `SHOP-API-REAL-01`.
 
 ### Disclosure stability — proof în browser
 
@@ -250,7 +306,7 @@ flowchart LR
 ```
 
 <details>
-<summary><strong>Legendă — ce este închis și ce rămâne activ</strong></summary>
+<summary><strong>Legendă — boundary-ul checkpoint-ului, exchange-urilor și inspectorului</strong></summary>
 
 - `REP-TRACE-01` rămâne închis pentru cauzalitate, sequence și parity lower-level;
   consumer proof-ul confirmă și atașarea vizuală la același checkpoint Gherkin;
@@ -323,6 +379,7 @@ iar testele de mai jos sunt dovada executabilă.
 | `REP-EVID-07` | disclosure component test și browser proof | normalizarea evidence este idempotentă; request/response/execution rămân împreună |
 | `REP-AUDIT-08` | `ReportAuditSnapshot` și validatorii puri | Overview, Categories, Fails, Screen, JSON și visual projection au reguli separate |
 | `REP-COVERAGE-08` | `ReportingCoverageMatrixTest` | fiecare seam public înregistrat cere o dovadă lower-level identificabilă |
+| `REP-CONFIG-COMP-01` | `ApiScenarioManifestTest` + `ReportingCoverageMatrixTest` | ✅ închis: cazuri component data-driven verifică selecția exactă (unic pozitiv, warning + POST, un test lifecycle cu mai multe rezultate), păstrarea ownerilor/ordinii/statusurilor în proiecție și respingerea scenariilor suplimentare sau a statusurilor divergente; fixture-ul typed probează PASS/SKIP/FAIL/WARNING, fără a pretinde că API catalog-ul actual execută un scenariu SKIP |
 | `REP-E2E-08` | `E2eSuiteBudgetArchitectureTest` | plafonul de 8 clase și entry-point-ul E2E sunt guvernate |
 | `REP-SIZE-01` | `ReportAssetSizeBudget`, `ReportAssetSizeInventoryTest` | baseline explicit pentru bundle-ul CSS/JavaScript native și publicat, cu limite pe format |
 | `REP-UX-PERF-01`, `REP-UX-PERF-02`, `REP-EVID-08-STRESS` | `ReportRuntimePerformanceComponentTest`, `ReportRuntimePerformanceBrowserProbe`, `SelectedApiTestsReportUiTest`, `UiReportStyleValidator`, `ReportAuditContext` și gate responsive configurabil | lifecycle/counters typed, bugetul performance și fixture-ul standard+narrow sunt închise; aceeași matrice verifică minimum șase secțiuni, expandări, JSON/evidence, overflow, separatori, imagini și diagnostice |
@@ -339,8 +396,8 @@ iar testele de mai jos sunt dovada executabilă.
 | `REP-TRACE-02` | `UiEvidencePublisher`, `EvidenceTableFormatter`, `ApiManualReplayProjectionTest` și publisher tests | parity-ul de vocabular, redaction, browser-noise filtering, replay și execution evidence este închis; compoziția consumer este verificată separat prin `REP-TRACE-03` |
 | `REP-NET-03` | `ReportNetworkInspector.JourneyAggregate`, `ReportNetworkInspectorTest` | modelul typed agregă authentication, correlation, transport, signatures și diagnostics; fields sunt bounded și credential-free |
 | `REP-NET-04` | `ReportNetworkAggregateMarkup`, `ReportNetworkInspectorTest`, `HtmlReportViewsTest` și fresh MCP HTML | Extent și fallback publică același inspector collapsed cu `Authentication evidence`, `Scenario correlation`, `Transport counters`, `Unique request signatures` și `Technical diagnostics`; `Response details` păstrează numai indexul bounded (4 fields), iar Gherkin-ul și request-urile nu sunt amestecate sau copiate în fields flat; semnăturile sunt carduri compacte, deduplicate, cu method/route/status/count/auth/source/phase; `network.aggregate.*` nu este expus ca tabel flat |
-| `REP-NET-06` | `ExtentRequestScope`, `ReportNetworkAggregateMarkup`, `ExtentReportUiEvidencePublishingTest`, `ReportAssetSizeInventoryTest` și fresh MCP HTML | ✅ închis: inspectorul are copil real `Network aggregate · N exchanges`, cu aceeași geometrie de subpas; secțiunile `Unique request signatures` și `Technical diagnostics` au summary de 2×, iar agregarea rămâne typed, deduplicate și fără duplicarea exchange-urilor |
-| `REP-NET-07` | `evidence-table.css`, `evidence-stack.css`, `AtfReportThemeTokensTest`, `AtfReportEvidenceCssTest`, `ReportNetworkInspectorTest` și fresh MCP/Chromium | ✅ închis: tokenul este `68px` față de summary-ul standard `34px`, CSS-ul aplică aceeași familie de disclosure, markup-ul este collapsed implicit, iar proof-ul fresh confirmă expand/collapse fără overflow sau schimbare de semantică |
+| `REP-NET-06` | `ExtentRequestScope`, `ReportNetworkAggregateMarkup`, `ExtentReportUiEvidencePublishingTest`, `ReportAssetSizeInventoryTest` și fresh MCP HTML | ✅ închis structural: inspectorul are copil real `Network aggregate · N exchanges`, cu aceeași geometrie de subpas; agregarea rămâne typed, deduplicată și fără duplicarea exchange-urilor. Densitatea summary-urilor finale este reevaluată separat în `REP-UX-TABLE-04` |
+| `REP-NET-07` | `ReportNetworkAggregateMarkup`, `ExtentTransportEvidenceRenderer`, `evidence-table.css`, `AtfReportEvidenceCssTest`, `ReportNetworkInspectorTest`, `HtmlReportViewsTest` și `ExtentReportUiEvidencePublishingTest` | ✅ închis structural: fiecare secțiune a aggregate-ului are propriul rând `Info / Details`, astfel badge-ul nu mai pare asociat arbitrar ultimei secțiuni; spacing-ul și înălțimea summary-urilor finale sunt în ToDo-ul activ `REP-UX-TABLE-04` |
 | `REP-AUTH-02` | `ReportNetworkInspector.AuthenticationObservation`, `ReportNetworkInspectorTest` și UI publishing contract | auth este agregat determinist după method/source/status/count, fără credentiale; semantica rămâne „observed”, nu validarea tokenului |
 | `REP-DIAGNOSTIC-02` | `ReportNetworkInspector.DiagnosticObservation`, `ReportNetworkInspectorTest` | response și console corelate pentru aceeași semnătură method/route/status sunt un singur observation cu `count` și `sources`; mesajele volatile nu sunt copiate în summary, iar semnalele necorelate folosesc token-uri bounded `UNBOUND-n` |
 | `REP-RENDER-09` | `ReportRendererParityTest`, `ReportAssetContractTest`, `ExtentReportCategoryMarkupTest`, `HtmlReportViewsTest` | fallback și Extent folosesc tokenii comuni pentru failure rows, status și category empty-state; seam-urile vendor rămân explicit allowlist-uite |
@@ -350,13 +407,14 @@ iar testele de mai jos sunt dovada executabilă.
 | `REP-SUITE-01` | `AtfReportingUnitSuite`, `AtfReportingComponentSuite`, `AtfReportingIntegrationSuite`, `AtfReportingApiFixtureSuite`, `AtfReportingUiAuditSuite` și `ReportingCoverageMatrixTest` | fiecare layer reporting are launcher dedicat, cu package și tag explicit; plafonul E2E rămâne neschimbat |
 | `REP-API-BIND-01` | `PracticeShopApiCheckpoint`, `PracticeShopApiEvidenceBinding`, `PracticeShopConfigurationLoader`, `PracticeShopApiEvidenceBindingTest`, `PracticeShopApiNetworkJournalTest` și fresh Practice Shop E2E/MCP | binding-ul typed și configurabil per checkpoint/journey este citit din YAML/override, jurnalul păstrează `evidence(checkpoint)`, iar agregarea publică doar `selectedEvidence()`; renderer-ul primește numai contractul generic |
 | `REP-DIAGNOSTIC-04` | `ReportNetworkInspectorTest`, `ExtentReportUiEvidencePublishingTest` și `ReportNetworkAggregateMarkup` | semnalele necorelate folosesc identity exactă numai intern, sunt separate când mesajele diferă, repetările reale au count comun, iar HTML-ul afișează doar token-uri bounded `UNBOUND-n`, fără mesaj brut și fără SHA digest |
-| `REP-TRACE-03` | `ExtentReportUiEvidencePublishingTest` (10 teste, inclusiv combined node și retry), `HtmlReportViewsTest`, `ExtentReportInteractionContractTest` și fresh UI E2E/MCP | ✅ închis: `PracticeShopE2eContext.checkpoint(...)` atașează `API validation` la checkpoint-ul Gherkin existent; fresh proof-ul arată un singur titlu semantic, copii `UI validation`/`API validation`, fiecare exchange o singură dată și retry-ul în `Execution evidence` |
+| `REP-TRACE-03` | `ExtentReportUiEvidencePublishingTest`, `HtmlReportViewsTest`, `ExtentReportInteractionContractTest` și fresh UI E2E/MCP | ✅ închis: `PracticeShopE2eContext.checkpoint(...)` atașează `API validation` la checkpoint-ul Gherkin existent; fresh proof-ul arată un singur titlu semantic, copii `UI validation`/`API validation`, fiecare exchange o singură dată și retry-ul în `Execution evidence` |
 | `REP-STYLE-01` | `ExtentReportRuntimeScriptTest`, `AtfReportThemeTokensTest`, `ExtentReportUiEvidencePublishingTest` și fresh UI artifact verificat prin MCP | ✅ închis: `Runtime diagnostic`, `API network inspector — ordered UI journey` și copiii tehnici folosesc aceeași familie vizuală de accent; `Warning`/`Pass` rămân statusuri distincte, iar inspectorul nu este reinterpretat ca UI validation |
 | `REP-EVID-08` | `AtfReportMarkup`, `evidence-table.css`, `HtmlReportViewsTest`, `ExtentReportInteractionContractTest` și fresh UI E2E/MCP | URL value cells au wrapping controlat semantic; valoarea completă rămâne în Extent/fallback, iar browser proof-ul confirmă lipsa overflow-ului la lățimea suportată |
 | `REP-TRACE-04` | `ReportRequestSignature`, `ReportTraceMetadataRenderingTest`, `ReportNetworkInspectorTest`, `ExtentReportAssetsTest`, publisher-ul Practice Shop și fresh API/UI MCP HTML | digestul rămâne identitate internă pentru grouping/deduplicare; HTML-ul public proiectează doar `body=present|absent`, `internal digest hidden` și referințe locale `screenshot-n`; nu apar hash-uri brute în trace, assertions sau ancorele screenshot |
 | `REP-UX-TABLE-01` | `ValidationTableLayoutComponentTest`, `SelectedApiTestsReportUiTest` și poarta completă `atf-reporting-tests` | ✅ închis: layout-ul evidence este scoped/dirty, folosește fingerprint + cache/diff, reacționează incremental prin `ResizeObserver` sau `requestAnimationFrame`, iar testele acoperă hidden→visible, resize și open/close fără recalculare globală inutilă |
-| `REP-UX-TABLE-02` | `AtfReportThemeTokens`, `evidence-stack.css`, `fallback.css`, `ExtentUiActionRenderer`, `ExtentUiObservationRenderer`, `ExtentUiAssertionRenderer`, `HtmlReportEvidenceView`, `AtfReportEvidenceCssTest` și fresh MCP | ✅ închis: action/audit/assertion și inspectorul network reutilizează summary-ul 2× și viewport-ul vertical bounded cu header sticky în ambele renderere; screenshot-ul rămâne în afara viewport-ului action, fără modificări E2E |
-| `REP-UX-TABLE-03` | `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT`, `ReportAssetCompactorTest`, `AtfReportEvidenceCssTest`, `AtfReportOverviewCssTest` și raport fresh inspectat în browser | ✅ închis: token unic de `500px`; compactorul păstrează spațiul semantic din selectorul descendent `card :is(...)`, astfel wrapperul din `Tests` primește efectiv `max-height:500px`, `overflow-y:auto` și header sticky. La 846px, tabelul scurt rămâne compact și pagina nu are overflow orizontal; System păstrează înălțimea fixă. |
+| `REP-UX-TABLE-02` | `AtfReportThemeTokens`, `evidence-stack.css`, `fallback.css`, `ExtentUiActionRenderer`, `ExtentUiObservationRenderer`, `ExtentUiAssertionRenderer`, `HtmlReportEvidenceView`, `AtfReportEvidenceCssTest` și fresh MCP | ✅ închis pentru contractul structural inițial: viewport bounded/header sticky și screenshot-ul în afara viewport-ului action; ținta de densitate pentru summary-urile UI/API este supersedată și urmărită în `REP-UX-TABLE-04` |
+| `REP-UX-TABLE-03` | `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT`, `ReportAssetCompactorTest`, `AtfReportEvidenceCssTest`, `AtfReportOverviewCssTest` și raport fresh inspectat în browser | **proof structural închis; proof vizual redeschis:** token unic de `500px` și `max-height`/`overflow-y:auto` există, dar cel mai recent raport nu a fost reconfirmat aici pentru conținut lung, ultimul rând și header sticky la lățime normală/îngustă. |
+| `REP-UX-OVERVIEW-04` | `AtfReportOverviewCssTest` și fresh guest E2E inspectat la `846px`/`1440px` | ✅ închis: la `846px`, Overview este offset-at după rail-ul fix de `70px`; la `1440px`, indentarea desktop rămâne neschimbată. Cardurile sunt lizibile, System păstrează viewport-ul de `500px`, iar `scrollWidth <= clientWidth` la ambele lățimi. |
 | `REP-CONSUMER-01` | `ReportEnvironmentSnapshot`, `ReportTraceMetadata`, `AtfReportPorts` și `ReportTraceMetadataRenderingTest` | ✅ închis: un consumer nou injectează configurația typed per run și trace-ul typed per exchange în raportul Extent; allowlist-ul System și redaction-ul sunt verificate pe artifactul produs |
 | `REP-CAPTURE-01` | `ReportEvidenceProfileTest`, `ReportEvidenceProfileIntegrationTest`, `PracticeShopScreenshotPolicyTest`, `PracticeShopBrowserCaptureProviderTest`, `PracticeShopReportSystemMetadataTest` și fresh guest E2E/MCP | ✅ închis: providerul browser typed este reutilizat pe sesiune; policy-ul filtrează înainte de captură, provenance și payload-ul PNG sunt verificate; Overview proiectează policy-ul efectiv (`each-checkpoint`), nu o etichetă dedusă din booleanul legacy, iar linkurile 📷 deschid imaginile în viewer |
 
@@ -365,9 +423,13 @@ iar testele de mai jos sunt dovada executabilă.
 - Închise prin dovezile de mai sus: `REP-RENDER-09`, `REP-MODEL-01`,
   `REP-TEST-08`, `REP-OVERVIEW-02`, `REP-NET-03`, `REP-NET-04`, `REP-NET-06`,
   `REP-AUTH-02`, `REP-DIAGNOSTIC-02`, `REP-DIAGNOSTIC-04`, `REP-NET-07`,
-  `REP-API-BIND-01`, `REP-CAPTURE-01`, `REP-EVID-08`, `REP-UX-TABLE-02`,
-  `REP-UX-TABLE-03` și
+  `REP-API-BIND-01`, `REP-CAPTURE-01`, `REP-EVID-08`, `REP-UX-TABLE-02` și
   `REP-UX-TOGGLE-01`.
+- `REP-UX-TABLE-03/04` sunt ToDo-urile locale active: primul așteaptă
+  reconfirmarea tabelului lung plafonat/scrollabil; al doilea cere densitate
+  compactă pentru summary-urile UI/API. Închiderile anterioare `REP-NET-06/07` și
+  `REP-UX-TABLE-02` rămân istorice doar pentru structura, alinierea și
+  comportamentul lor inițial.
 - Structura `REP-TRACE-03` este închisă prin testele lower-level și fresh UI proof;
   se redeschide numai dacă o rulare nouă produce două carduri Gherkin pentru aceeași
   intenție sau pierde copilul `API validation`.
@@ -406,7 +468,7 @@ iar testele de mai jos sunt dovada executabilă.
 Limită externă asociată raportării:
 
 - `SHOP-API-REAL-01` aparține consumerului extern și rămâne blocat până la
-  fixture-ul authenticated non-placeholder.
+  opt-in explicit și dovada autentificării în mediul țintă.
 - `REP-CAPTURE-01` este închis prin providerul typed reutilizat în
   `PracticeShopE2eContext`: policy-ul este aplicat înainte de captura
   browserului, sursa declarată coincide cu providerul, iar payload-ul absent sau
@@ -543,8 +605,8 @@ privire și nu se repetă în `TEST BODY`.
   rerun E2E și verificare vizuală.
 
 `REP-REVIEW-01` este regulă de întreținere, nu gap de production: orice claim
-nou trebuie să indice o clasă, un test sau un guard; un run izolat nu închide un
-ToDo.
+nou trebuie să indice o clasă, un test sau un guard; un run izolat nu substituie
+dovada reproductibilă a contractului.
 
 ## Contracte live — shell-ul Category și verificarea de markup
 

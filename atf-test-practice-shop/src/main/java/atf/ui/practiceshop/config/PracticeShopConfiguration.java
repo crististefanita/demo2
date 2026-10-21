@@ -68,7 +68,13 @@ public record PracticeShopConfiguration(
     }
 
     public boolean accountConfigured() {
-        return java.nio.file.Files.isRegularFile(accountFile);
+        if (!java.nio.file.Files.isRegularFile(accountFile)) return false;
+        try {
+            return PracticeShopCredentials.load(accountFile).hasLiveAccountCandidate();
+        } catch (IllegalArgumentException | IllegalStateException invalidFixture) {
+            // An unreadable, incomplete or reserved-domain fixture must fail closed.
+            return false;
+        }
     }
 
     public boolean authenticatedE2eAllowed() {

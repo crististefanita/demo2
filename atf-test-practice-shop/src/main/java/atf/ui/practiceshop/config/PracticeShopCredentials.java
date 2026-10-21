@@ -4,12 +4,17 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.Set;
 
 /** External account material. Password is intentionally never exposed by toString. */
 public record PracticeShopCredentials(String email, String password,
                                       String firstName, String lastName) {
+    private static final Set<String> RESERVED_EMAIL_DOMAINS = Set.of(
+            "example.com", "example.net", "example.org", "test", "invalid", "localhost", "example");
+
     public PracticeShopCredentials {
         email = required(email, "email");
         password = required(password, "password");
@@ -31,6 +36,21 @@ public record PracticeShopCredentials(String email, String password,
     }
 
     public String displayName() { return firstName + " " + lastName; }
+
+    /**
+     * Rejects obvious documentation/test addresses before an opt-in can send
+     * credentials to the external Practice Shop service. This is only a local
+     * safety check; a successful live login remains the proof of validity.
+     */
+    public boolean hasLiveAccountCandidate() {
+        String normalizedEmail = email.toLowerCase(Locale.ROOT);
+        int separator = normalizedEmail.lastIndexOf('@');
+        if (separator <= 0 || separator == normalizedEmail.length() - 1) return false;
+
+        String domain = normalizedEmail.substring(separator + 1);
+        return RESERVED_EMAIL_DOMAINS.stream().noneMatch(reservedDomain ->
+                domain.equals(reservedDomain) || domain.endsWith("." + reservedDomain));
+    }
 
     @Override
     public String toString() {

@@ -108,8 +108,8 @@ public final class ExtentTransportEvidenceRenderer {
 
     void renderNetworkAggregateSubstep(ExtentTest node,
                                        ReportNetworkInspector.JourneyAggregate aggregate) {
-        String markup = ReportNetworkAggregateMarkup.substepBody(aggregate);
-        if (!markup.isBlank()) node.info(markup);
+        ReportNetworkAggregateMarkup.substepSections(aggregate)
+                .forEach(node::info);
     }
 
     private ReportCheck setupCheck(String value) {

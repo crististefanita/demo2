@@ -8,6 +8,10 @@ import atf.ui.practiceshop.config.PracticeShopApiCheckpoint;
 import atf.ui.practiceshop.config.PracticeShopValidationProfile;
 import atf.ui.practiceshop.routes.PracticeShopUiRoutes;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -43,7 +47,9 @@ class PracticeShopConfigurationTest {
         assertTrue(configuration.apiReportDirectory().toString().endsWith("artifacts\\reports\\api"));
         assertFalse(configuration.uiReportDirectory().equals(configuration.apiReportDirectory()));
         assertFalse(configuration.authenticatedE2eAllowed());
-        // The default target path is intentionally absent until a local/CI account is injected.
+        assertFalse(configuration.accountConfigured(),
+                "a tracked example.com fixture must never enable an authenticated live run");
+        // The external account path remains configurable without committing a real account.
         assertTrue(configuration.accountFile().toString().contains("practice-software-testing-account.properties"));
     }
 
@@ -69,8 +75,28 @@ class PracticeShopConfigurationTest {
                 configuration().uiReportDirectory(), configuration().apiReportDirectory(), true));
     }
 
+    @Test
+    void authenticatedGateRequiresReadableNonReservedAccountCandidate(@TempDir Path temp) throws Exception {
+        var base = configuration();
+        Path example = temp.resolve("example.properties");
+        Files.writeString(example, "email=customer@example.com\npassword=secret\n");
+        Path externalCandidate = temp.resolve("external.properties");
+        Files.writeString(externalCandidate,
+                "email=customer@practicesoftwaretesting.com\npassword=secret\n");
+
+        assertFalse(withAccountFile(base, example).authenticatedE2eAllowed());
+        assertTrue(withAccountFile(base, externalCandidate).authenticatedE2eAllowed());
+    }
+
     private static atf.ui.practiceshop.config.PracticeShopConfiguration configuration() {
         return PracticeShopConfigurationLoader.load();
+    }
+
+    private static atf.ui.practiceshop.config.PracticeShopConfiguration withAccountFile(
+            atf.ui.practiceshop.config.PracticeShopConfiguration base, Path accountFile) {
+        return new atf.ui.practiceshop.config.PracticeShopConfiguration(base.baseUrl(), accountFile,
+                base.productName(), base.productPath(), base.checkout(), base.browser(), base.uiRetry(),
+                base.validationProfile(), base.api(), base.uiReportDirectory(), base.apiReportDirectory(), true);
     }
 }
 

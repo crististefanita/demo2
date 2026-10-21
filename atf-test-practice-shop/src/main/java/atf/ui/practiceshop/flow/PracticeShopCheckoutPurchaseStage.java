@@ -1,6 +1,5 @@
 package atf.ui.practiceshop.flow;
 
-import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.ui.practiceshop.config.PracticeShopScreen;
 import atf.ui.practiceshop.locators.PracticeShopControl;
@@ -46,19 +45,13 @@ final class PracticeShopCheckoutPurchaseStage {
         cart.proceed();
 
         if (authenticated) {
-            actions.waitForText(page, locators.pageBody(page), "already logged in",
-                    "authenticated checkout setup is displayed");
-            String observedCheckoutBody = actions.expectText(locators.pageBody(page), "already logged in");
-            String observedIdentity = observedCheckoutBody.contains("already logged in")
-                    ? "already logged in" : observedCheckoutBody;
+            actions.waitForVisible(locators.authenticatedProceed(page));
             context.publish(context.checkpoint(AtfGherkinKeyword.AND,
-                    "authenticated checkout recognizes the signed-in customer",
+                    "authenticated checkout exposes the signed-in proceed action",
                     new PracticeShopPageValidationResult(
                             PracticeShopScreen.AUTHENTICATED_CHECKOUT,
-                            List.of(new AtfAssertion("Checkout identity", "already logged in",
-                                    observedIdentity, observedIdentity.contains("already logged in")))),
-                    List.of(context.pageValidator().validateVisible(
-                            page, PracticeShopControl.AUTHENTICATED_PROCEED)), List.of()));
+                            context.purchaseScreenValidator().authenticatedCheckout(page)),
+                    List.of(), List.of()));
             actions.click(locators.authenticatedProceed(page), "authenticated customer proceeds to billing");
         } else {
             PracticeShopGuestCheckoutPage guest = new PracticeShopGuestCheckoutPage(page, locators, actions);

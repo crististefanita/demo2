@@ -26,8 +26,10 @@
 - titlul trace-ului este pasul Gherkin exact; URL-ul nu este prefixat în titlu,
   iar headerele browserului și response headers volatile sunt filtrate din
   proiecția UI compactă;
-- guest product → cart → payment este acoperit prin `LIVE_HTTP`; dovada
-  authenticated rămâne dependentă de un fixture extern acceptat;
+- guest product → cart → payment este acoperit prin `LIVE_HTTP`; un run
+  authenticated fresh confirmă login/current-user și purchase confirmation;
+  auditul vizual al artifactului rămâne în feedback-ul Practice Shop, nu în
+  contractul de traceability;
 - calibrarea vizuală se face pe un raport guest proaspăt regenerat după
   recompilarea reporting și Practice Shop; un nume datat nu este contract;
 - feedback-ul păstrează numai limitele care pot redeschide contractul, nu un
@@ -75,12 +77,12 @@ intenționat vizibile și nu sunt ascunse de un run guest verde.
 | request/response evidence | 98 | status, headers, auth redacted, body și indisponibilitatea explicită sunt typed și vizibile în disclosure-urile canonical ale exchange-ului |
 | UI → API cauzalitate | 98 | cauzalitatea, continuation order și topologia single-node sunt confirmate în raportul regenerat: același checkpoint deține `UI validation` și `API validation` |
 | network inspector de journey | 99 | `JourneyAggregate` rămâne index nested bounded; `API network inspector` are copilul real `Network aggregate · N exchanges`, iar UI trace-ul publică separat forma canonicală request/response/execution pentru fiecare exchange sub `API validation`, fără duplicare |
-| precondiții și cleanup | 93 | lifecycle-ul și guest precondition sunt demonstrate; business authenticated rămâne dependent de mediu |
+| precondiții și cleanup | 96 | lifecycle-ul și precondițiile guest/authenticated au proof live; cleanup și izolarea rămân în contractele locale de lifecycle |
 | unique signatures | 99 | grupurile deterministe cu count și status sunt corecte, copilul aggregate este unic, iar summary-ul este proiectat la 2× și collapsed implicit; proof-ul fresh de randare/interacțiune închide `REP-NET-07`; cardul trace păstrează exchange-urile distincte înainte de indexare |
 | runtime diagnostics | 92 | aggregate-ul dedupează response/console corelate, iar consumerul publică o singură assertion per semnătură cu count/sources; semnalele console/page fără facts folosesc identity internă exactă și token-uri bounded, conform contractului închis `REP-DIAGNOSTIC-04` |
 | API binding configurabil | 96 | `PracticeShopApiEvidenceBinding` și `PracticeShopApiCheckpoint` mută selecția în YAML/override typed; journal-ul expune `evidence(checkpoint)` și fresh System confirmă binding-ul efectiv |
 | proiecție Extent/HTML | 98 | `API validation` și disclosure-urile request/response/execution per exchange sunt verificate lower-level și vizibile sub același checkpoint Gherkin; URL-ul complet are wrapping controlat, iar fresh UI proof-ul confirmă forma fără duplicarea cardului Gherkin |
-| **scor global** | **95** | ledger-ul, binding-ul și exchange-ul canonical sunt solide, iar topologia single-node este dovedită; authenticated rămâne separat blocat extern |
+| **scor global** | **96** | ledger-ul, binding-ul, exchange-ul canonical și business journey-ul authenticated au proof; randarea raportului este urmărită separat de feedback-ul Practice Shop |
 
 ## Recalibrare live — două proiecții care nu trebuie confundate
 
@@ -138,9 +140,9 @@ flowchart LR
 | `REP-DIAGNOSTIC-02` | `DiagnosticObservation`, `ReportNetworkInspectorTest` și `ExtentReportUiEvidencePublishingTest` | response și console pentru aceeași rută/status sunt o singură observație cu count și sources; semnalele distincte rămân separate |
 | `REP-NET-04` | `ReportNetworkAggregateMarkup`, `ReportNetworkInspectorTest`, `HtmlReportViewsTest` și fresh MCP/Chromium | inspectorul journey este collapsed și nested în ambele renderere, cu cele cinci secțiuni typed; `Response details` rămâne doar indexul bounded, `Scenario correlation` deține pașii Gherkin, iar `Unique request signatures` deține request-urile deduplicate; nu există copiere flat `network.aggregate.*` sau repetarea aceleiași propoziții |
 | `REP-NET-06` | `ExtentRequestScope`, `ReportNetworkAggregateMarkup`, `ExtentReportUiEvidencePublishingTest` și fresh MCP/Chromium | ✅ închis: `Network aggregate · N exchanges` este un singur copil real al inspectorului; `Unique request signatures` și `Technical diagnostics` au summary-uri 2× mai înalte, cu aceeași familie CSS și fără request-uri repetate |
-| `REP-NET-07` | `evidence-table.css`, `evidence-stack.css`, `AtfReportThemeTokensTest`, `AtfReportEvidenceCssTest` și fresh MCP/Chromium | ✅ închis: summary-urile `Unique request signatures` și `Technical diagnostics` folosesc `68px` față de standardul `34px`, rămân collapsed implicit și păstrează aceeași familie CSS fără overflow sau duplicarea exchange-urilor |
+| `REP-NET-07` | `ReportNetworkAggregateMarkup`, `ExtentTransportEvidenceRenderer`, CSS contract tests și Extent/fallback rendering tests | ✅ închis structural: fiecare secțiune are propriul rând `Info / Details`, iar `Unique request signatures` și `Technical diagnostics` rămân collapsed cu summary de `68px` față de standardul `34px`; fresh browser proof pentru această ajustare nu a fost disponibil |
 | `REP-UX-TABLE-02` | `AtfReportThemeTokens`, `evidence-stack.css`, `fallback.css`, renderer-ele UI, component tests și fresh MCP | ✅ închis: `Playwright action sequence`, `Audit observations` și `Assertions` folosesc aceeași geometrie de summary 2× și viewport vertical bounded cu header sticky; proof-ul responsive confirmă nesting-ul, glyph-ul inline și lipsa overflow-ului |
-| `REP-UX-TABLE-03` | `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT`, `AtfReportThemeTokensTest`, `AtfReportEvidenceCssTest`, `AtfReportOverviewCssTest` și rendererele Extent/fallback | ✅ închis: toate tabelele scrollabile folosesc viewport-ul comun al `System/Environment` (`500px` curent), inclusiv Overview/Category, tag audit, action/audit/assertion și API/UI evidence; tokenul este unic, iar header-ele rămân sticky |
+| `REP-UX-TABLE-03` | `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT`, `AtfReportThemeTokensTest`, `AtfReportEvidenceCssTest`, `AtfReportOverviewCssTest` și rendererele Extent/fallback | **structural închis; visual proof redeschis:** toate tabelele au tokenul comun (`500px`) și scroll CSS; `ATF_Reporting_Feedback.md` cere să reconfirme în raport fresh conținutul lung, scroll până la ultimul rând și header sticky la viewport normal/îngust |
 | `SHOP-DIAGNOSTIC-03` | `Scenario.warningDiagnostics`, `PracticeShopRuntimeDiagnosticsTest` și guest E2E | warning-ul consumerului grupează response/console într-o singură assertion per semnătură, cu count/sources observabile |
 | JSON semantic | `PracticeShopJsonEvidence` și typed fields | body-urile sunt parse-uite ca structură, nu căutate prin substring |
 | replay local | mock-backed integration | replay-ul verifică transportul și contractul local fără să pretindă business live |
@@ -154,6 +156,9 @@ flowchart LR
 Rândurile „activabil” sunt condiții de regresie, nu itemi deschiși. Singura
 limită externă din această listă este `SHOP-API-REAL-01`, deținută de Practice
 Shop; nu se numără de două ori ca gap de traceability.
+Feedback-ul rămâne în monitorizare fără ToDo local activ; redeschiderea cere o
+regresie reproductibilă a contractului enumerat, nu o posibilă extensie sau un
+artifact izolat.
 
 | Situație | Status | Criteriu |
 |---|---|---|
@@ -166,7 +171,7 @@ Shop; nu se numără de două ori ca gap de traceability.
 | diagnostic runtime duplicat | activabil | redeschide numai dacă aceeași semnătură observată prin response și console revine ca assertions repetate, în loc de count + sources |
 | diagnostic necorelat contopit | activabil | două console/page signals distincte primesc aceeași cheie goală și apar ca un singur observation cu count agregat |
 | binding API regresat la listă globală | activabil | `PracticeShopApiEvidenceBinding` sau YAML-ul per checkpoint este ignorat, iar consumerul reintroduce liste locale ori agregă traffic ne-selectat |
-| authenticated login/catalog/cart/payment fără sesiune validă | blocat extern | fixture non-placeholder, flag activ, login/current-user `200` și journey business verificat prin `LIVE_HTTP` |
+| authenticated login/catalog/cart/payment fără sesiune validă | activabil | fresh run cu `authenticatedE2eEnabled=true` și fixture acceptat observă login/current-user `200` și journey până la payment confirmation; redeschide la regresie reproductibilă |
 
 `REP-EVID-08` este închis generic prin publisher, renderer parity și browser
 proof. `REP-TRACE-03` este închis pentru forma single-node observată în fresh UI

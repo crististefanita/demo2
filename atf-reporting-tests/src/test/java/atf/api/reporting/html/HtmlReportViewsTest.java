@@ -17,6 +17,7 @@ import java.time.Duration;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -131,6 +132,10 @@ class HtmlReportViewsTest {
                 () -> assertTrue(html.contains("Network aggregate")),
                 () -> assertTrue(html.contains("network-aggregate-substep")),
                 () -> assertTrue(html.contains("data-atf-node-role=\"network-aggregate\"")),
+                () -> assertTrue(html.contains("network-aggregate-sections")),
+                () -> assertTrue(html.contains("<th class=\"status-col\">Status</th><th class=\"details-col\">Details</th>")),
+                () -> assertEquals(5, html.split("network-aggregate-section-row", -1).length - 1),
+                () -> assertEquals(5, html.split("status-info", -1).length - 1),
                 () -> assertFalse(html.contains("<details open")));
     }
 

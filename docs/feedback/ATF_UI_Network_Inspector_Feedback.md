@@ -2,11 +2,11 @@
 
 ## Verdict curent
 
-**PARTIAL — vertical slice, request-failed, settlement consumer proof și custom
-capture guard implementate; mutation retry rămâne design-only.**
+**IMPLEMENTAT — observație bounded, request-failed și settlement consumer proof.
+Retry-ul generic al mutațiilor este exclus prin design.**
 
 **Maturitate inspector: 88/100.** Cursorul pre-acțiune exclude read-back-ul
-vechi, dar nu dovedește identity/payload sau idempotency pentru replay.
+vechi; retry-ul de acțiune este limitat la operații read-only.
 
 ATF Java are acum un boundary generic pentru observații de rețea Playwright:
 opt-in, host allowlist, observații typed și redacted, auth method/source,
@@ -17,11 +17,31 @@ Inspectorul nu este agent, nu execută prompturi, nu calculează verdicturi și 
 repetă acțiuni de browser. `README_AI_Evaluation.md` rămâne ownerul cerințelor
 pentru AI evaluation și `atf-reporting` rămâne renderer-neutral.
 
-## ToDo activ
+## Contract de siguranță pentru mutații
 
-| ID | Owner | Limită | Criteriu de închidere |
-|---|---|---|---|
-| `UI-NET-11` | `atf-ui` + consumer | Mutation retry este design-only; cursorul temporal exclude un GET anterior acțiunii, dar nu dovedește identitatea payload-ului ori siguranța replay-ului. | Identity și payload stabile, idempotency verificată și test negativ pentru absența replay-ului implicit. |
+`UI-NET-11` este închis ca decizie de arhitectură:
+
+- ATF nu reia automat mutații Playwright și nu oferă mutation retry generic;
+- `UiRetryOperation` conține numai acțiuni read-only; politica fail-closed nu
+  poate configura `Click` sau `Submit`;
+- settlement-ul așteaptă response/read-back și nu execută din nou acțiunea;
+- `requestSignature` grupează observații. Digestul folosește body redacted și
+  bounded, iar query-ul este ascuns; nu reprezintă payload identity și nu
+  dovedește idempotency.
+
+Un retry specific unui consumer ar necesita toate condițiile de mai jos înainte
+de implementare:
+
+- identity stabilă a operației și a resursei afectate;
+- payload complet asociat încercării, cu comparație sigură care nu publică date
+  secrete și nu se bazează pe preview-ul bounded;
+- contract server-side de idempotency, inclusiv comportamentul la duplicat și
+  timeout ambiguu;
+- opt-in explicit al consumerului și test negativ care dovedește că lipsa
+  contractului nu produce replay.
+
+Aceste condiții sunt criterii pentru o posibilă facilitate separată, nu un ToDo
+pentru inspectorul generic.
 
 Contractul stabil este în [README-ul `atf-ui`](../../atf-ui/README.md),
 [README-ul Practice Shop](../../atf-test-practice-shop/README.md) și
@@ -29,7 +49,7 @@ Contractul stabil este în [README-ul `atf-ui`](../../atf-ui/README.md),
 este în `atf-test-practice-shop/src/test/resources/atf-practice-shop.yaml`.
 
 <details>
-<summary><strong>Închideri verificate — UI-NET-01..10 și 12..17</strong></summary>
+<summary><strong>Închideri verificate — UI-NET-01..17</strong></summary>
 
 | ID | Cerință | Stare | Dovadă / limită |
 |---|---|---|---|
@@ -43,6 +63,7 @@ este în `atf-test-practice-shop/src/test/resources/atf-practice-shop.yaml`.
 | `UI-NET-08` | request/response/execution folosesc forma API canonicală | ✅ | fiecare exchange are disclosures locale; retry history aparține `Execution evidence` |
 | `UI-NET-09` | settlement-ul este bounded, configurabil și exclude read-back-uri anterioare acțiunii | ✅ | `UiNetworkSettlementPolicy`; `observationCursor()` + `awaitAfter(...)` resping GET-ul stale, iar wait-ul refuză politica disabled |
 | `UI-NET-10` | inspectorul nu face replay automat | ✅ | replay-ul mutației este în afara boundary-ului și cere contract de idempotency |
+| `UI-NET-11` | mutation retry generic este exclus | ✅ | `UiRetryOperation` enumeră numai operații read-only; `UiRetryPolicyTest` respinge `Click`, iar `PlaywrightActionSequenceTest.retryPolicyDoesNotReplayMutatingActions` verifică un singur attempt |
 | `UI-NET-12` | un retry al aceluiași request rămâne un singur exchange | ✅ | count/attempt history locală; nu se creează `API n` duplicat |
 | `UI-NET-13` | observațiile pot fi consumate plug-and-play de alt consumer | ✅ | `UiNetworkInspector` este independent de Extent, business routes și assertions |
 | `UI-NET-14` | network inspectorul nu se confundă cu UI/API validation | ✅ | inspectorul aggregate este technical evidence; verdictul rămâne la checkpoint/validator |
@@ -56,33 +77,24 @@ un verdict business `FAIL`.
 
 </details>
 
-## Dovadă curentă
+## Dovada păstrată în source tree
 
-- `UiNetworkInspectionConfigurationTest`: 10 teste verzi; inclusiv listenerul
-  `onRequestFailed`, redactarea URL/headers/body/motiv, custom capture
-  resanitization/bounding și detach la închidere;
-- `ReportNetworkInspectorTest`: 6 teste verzi;
-- `PracticeShopApiNetworkJournalTest`: 5 teste verzi; failure-ul trece prin
-  adapter, cu motiv și source păstrate, inclusiv fără checkpoint reușit;
-- `ExtentReportUiEvidencePublishingTest`: 11 teste verzi; HTML-ul failure-ului
-  arată scenariul și exchange-ul `Warning` chiar după `complete(PASS)`,
-  `Unavailable`, motivul și niciun `RESPONSE JSON` fictiv;
-- `PracticeShopUiNetworkSettlementComponentTest`: compactarea consecutivă,
-  read-back bounded după cursor, GET stale exclus și timeout fără replay;
-- după adăugarea cursorului temporal, gate-ul focalizat în staging extern a
-  trecut cu 10 teste `atf-ui` și 4 teste de settlement Practice Shop, fără
-  failures/errors; acest proof nu activează mutation retry;
-- Pentru acest fix s-au rerulat probele focalizate (10 UI + 5 Practice Shop +
-  17 reporting, toate verzi), apoi suita completă în staging extern (530 teste,
-  0 failure, 0 error, 3 skip-uri explicite);
-- raport fresh verificat prin Playwright: readiness/performance true,
-  `scrollWidth == clientWidth`, zero `<hr>`, exchange-uri nested, disclosures
-  `Request details → Response details → Execution evidence`, auth și transport
-  redacted/bounded. Raportul live nu este dovada ramurii `request-failed`;
-  aceasta este acoperită de probele deterministe de mai sus.
+Contractele sunt urmărite prin `UiNetworkInspectionConfigurationTest`,
+`ReportNetworkInspectorTest`, `PracticeShopApiNetworkJournalTest`,
+`ExtentReportUiEvidencePublishingTest` și
+`PracticeShopUiNetworkSettlementComponentTest`. Acestea acoperă resanitizarea,
+redaction/bounding, request-failed fără response inventat, settlement după
+cursor și absența replay-ului la timeout.
 
-## Limite active
+Artifactul browser poate dovedi numai randarea și interacțiunea observate în acel
+run; nu dovedește singur ramura `request-failed` sau siguranța retry-ului.
+Numărătorile și rezultatele de execuție se citesc din raportul fresh al gate-ului,
+nu se păstrează aici ca stare permanentă.
 
-Mutation retry se poate activa numai după proof-ul `UI-NET-11`; inspectorul nu
-face replay implicit. `UI-NET-17` se redeschide doar dacă storage-ul,
-subscriberul sau raportul poate primi din nou observația brută a caller-ului.
+## Status monitorizat și criterii de redeschidere
+
+Nu există ToDo activ. Decizia curentă rămâne no-replay pentru mutation retry
+generic; orice extensie consumer-owned trebuie să satisfacă separat contractul
+de siguranță de mai sus înainte de replay.
+`UI-NET-17` se redeschide doar dacă storage-ul, subscriberul sau raportul poate
+primi din nou observația brută a caller-ului.

@@ -3,6 +3,7 @@ package atf.api.reporting.ui.network;
 import atf.api.reporting.evidence.ReportEvidenceTable;
 import atf.api.reporting.evidence.markup.ReportEvidenceMarkup;
 import atf.api.reporting.api.ReportRequestSignature;
+import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.markup.AtfReportMarkup;
 import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
 
@@ -45,35 +46,82 @@ public final class ReportNetworkAggregateMarkup {
      * second disclosure while retaining the same renderer-neutral evidence.</p>
      */
     public static String substepBody(ReportNetworkInspector.JourneyAggregate aggregate) {
-        return aggregate == null ? "" : sections(aggregate);
+        return aggregate == null ? "" : sectionTable(substepSections(aggregate));
     }
 
     private static String sections(ReportNetworkInspector.JourneyAggregate aggregate) {
-        StringBuilder sections = new StringBuilder();
-        sections.append(section(AUTHENTICATION, aggregate.authentication().size(),
-                ReportEvidenceTable.of(
-                        List.of("METHOD", "SOURCE", "STATUS", "COUNT"),
-                        aggregate.authentication().stream()
-                                .map(item -> List.of(item.method(), item.source(),
-                                        item.status() < 0 ? "Unavailable" : Integer.toString(item.status()),
-                                        Integer.toString(item.count())))
-                                .toList())));
-        sections.append(section(CORRELATION, aggregate.correlation().size(),
-                ReportEvidenceTable.of(
-                        List.of("KEYWORD", "STEP", "EXCHANGES", "ASSERTIONS", "RESULT"),
-                        aggregate.correlation().stream()
-                                .map(item -> List.of(item.keyword(), item.title(),
-                                        Integer.toString(item.exchangeCount()),
-                                        Integer.toString(item.assertionCount()),
-                                        item.passed() ? "PASS" : "FAIL"))
-                                .toList())));
-        sections.append(section(TRANSPORT, 1,
-                transportMetrics(aggregate.transport())));
-        sections.append(section(SIGNATURES, aggregate.signatures().size(),
-                signatureCards(aggregate.signatures()), "network-signatures"));
-        sections.append(section(DIAGNOSTICS, aggregate.diagnostics().size(),
-                diagnosticCards(aggregate.diagnostics()), "network-diagnostics"));
-        return sections.toString();
+        return sectionTable(substepSections(aggregate));
+    }
+
+    /**
+     * One collapsed disclosure per inspector section. Extent emits each as
+     * its own INFO event row; fallback HTML wraps the same disclosures in the
+     * equivalent Status/Details table so each status aligns with its section.
+     */
+    public static List<String> substepSections(
+            ReportNetworkInspector.JourneyAggregate aggregate) {
+        if (aggregate == null) return List.of();
+        return List.of(
+                section(AUTHENTICATION, aggregate.authentication().size(),
+                        ReportEvidenceTable.of(
+                                List.of("METHOD", "SOURCE", "STATUS", "COUNT"),
+                                aggregate.authentication().stream()
+                                        .map(item -> List.of(item.method(), item.source(),
+                                                item.status() < 0 ? "Unavailable" : Integer.toString(item.status()),
+                                                Integer.toString(item.count())))
+                                        .toList())),
+                section(CORRELATION, aggregate.correlation().size(),
+                        ReportEvidenceTable.of(
+                                List.of("KEYWORD", "STEP", "EXCHANGES", "ASSERTIONS", "RESULT"),
+                                aggregate.correlation().stream()
+                                        .map(item -> List.of(item.keyword(), item.title(),
+                                                Integer.toString(item.exchangeCount()),
+                                                Integer.toString(item.assertionCount()),
+                                                item.passed() ? "PASS" : "FAIL"))
+                                        .toList())),
+                section(TRANSPORT, 1, transportMetrics(aggregate.transport())),
+                section(SIGNATURES, aggregate.signatures().size(),
+                        signatureCards(aggregate.signatures()), "network-signatures"),
+                section(DIAGNOSTICS, aggregate.diagnostics().size(),
+                        diagnosticCards(aggregate.diagnostics()), "network-diagnostics"));
+    }
+
+    private static String sectionTable(List<String> disclosures) {
+        StringBuilder table = new StringBuilder(AtfReportHtmlVocabulary.openTag(
+                AtfReportHtmlVocabulary.Tag.TABLE,
+                AtfReportHtmlVocabulary.classAttribute("table", "table-sm",
+                        "network-aggregate-sections")));
+        table.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.THEAD))
+                .append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TR))
+                .append(headerCell("Status", "status-col"))
+                .append(headerCell("Details", "details-col"))
+                .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TR))
+                .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.THEAD))
+                .append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TBODY));
+        for (String disclosure : disclosures) {
+            table.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TR,
+                            AtfReportHtmlVocabulary.classAttribute("event-row",
+                                    "network-aggregate-section-row")))
+                    .append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TD,
+                            AtfReportHtmlVocabulary.classAttribute("status-col")))
+                    .append(ReportEvidenceMarkup.statusBadge(AtfReportStatus.INFO))
+                    .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TD))
+                    .append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TD,
+                            AtfReportHtmlVocabulary.classAttribute("details-col")))
+                    .append(disclosure)
+                    .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TD))
+                    .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TR));
+        }
+        return table.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TBODY))
+                .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TABLE))
+                .toString();
+    }
+
+    private static String headerCell(String label, String cssClass) {
+        return AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TH,
+                        AtfReportHtmlVocabulary.classAttribute(cssClass))
+                + escape(label)
+                + AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TH);
     }
 
     private static String section(String title, int count, String body) {

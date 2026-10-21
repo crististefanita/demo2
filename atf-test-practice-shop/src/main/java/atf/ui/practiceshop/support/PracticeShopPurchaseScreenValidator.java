@@ -32,6 +32,12 @@ public final class PracticeShopPurchaseScreenValidator {
                         PracticeShopControl.CART_PROCEED));
     }
 
+    public List<AtfAssertion> authenticatedCheckout(Page page) {
+        return concat(
+                List.of(components.rendered(page, PracticeShopControl.AUTHENTICATED_PROCEED)),
+                List.of(components.interactive(page, PracticeShopControl.AUTHENTICATED_PROCEED)));
+    }
+
     public List<AtfAssertion> guestCheckout(Page page) {
         return concat(
                 components.rendered(page, PracticeShopControl.GUEST_TAB, PracticeShopControl.GUEST_EMAIL,

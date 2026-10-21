@@ -7,6 +7,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -32,6 +33,21 @@ class PracticeShopCredentialsTest {
         Files.writeString(file, "email=customer@example.test\nfirstName=ATF\nlastName=E2E\n");
 
         assertThrows(IllegalArgumentException.class, () -> PracticeShopCredentials.load(file));
+    }
+
+    @Test
+    void distinguishesReservedExampleAddressesFromLiveAccountCandidates(@TempDir Path temp) throws Exception {
+        Path externalCandidate = temp.resolve("external.properties");
+        Files.writeString(externalCandidate,
+                "email=customer@practicesoftwaretesting.com\npassword=secret\n");
+
+        for (String email : List.of("customer@example.com", "customer@nested.example.org",
+                "customer@example.test", "customer@example.invalid", "customer@localhost")) {
+            Path example = temp.resolve(email.replaceAll("[^a-zA-Z0-9]", "_") + ".properties");
+            Files.writeString(example, "email=" + email + "\npassword=secret\n");
+            assertFalse(PracticeShopCredentials.load(example).hasLiveAccountCandidate(), email);
+        }
+        assertTrue(PracticeShopCredentials.load(externalCandidate).hasLiveAccountCandidate());
     }
 }
 

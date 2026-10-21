@@ -50,8 +50,8 @@ flowchart LR
 | `atf-console` focused gate | ✅ PASS | bridge-ul are test component și round-trip-ul vocabularului este verificat |
 | whole-ATF governance | ✅ PASS | `AtfPackageCohesionGovernanceTest` confirmă maximum 8 clase pe pachet după split-urile `ui.network`, `support.api` și `support.config.environment`; `AtfSourceReadabilityGovernanceTest` confirmă importuri normale |
 | reporting consumer gate | ✅ PASS | publisher-ul, renderer-ele Extent/fallback și retry-ul per exchange trec; fresh MCP/Chromium confirmă un singur checkpoint Gherkin cu `UI validation` și `API validation` ca copii frați, iar exchange-urile rămân nested și unice |
-| reporting în staging exclusiv | ✅ PASS | rulare inițială și rerun incremental: fiecare 530 teste, 0 failure/error, 3 skip-uri; artifactele UI/API au proof browser separat |
-| shared scroll-table geometry | ✅ PASS | token unic `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT`; regresia compactorului protejează selectorul descendent `card :is(...)`. Raportul fresh confirmă în `Tests` plafonul de `500px`, scroll vertical, header sticky și lipsa overflow-ului orizontal la viewport îngust; System rămâne fix la `500px`. |
+| reporting în staging exclusiv | ✅ PASS la ultima dovadă înregistrată | rulările exclusive și incrementale au separat coliziunea pe `target`; count-ul și verdictul fiecărui run se verifică în output-ul Maven curent, nu se tratează ca proprietate permanentă a feedback-ului |
+| shared scroll-table geometry | ⚠️ structură PASS; fresh visual proof pending | token unic `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT` și regulile `max-height`/`overflow-y:auto` există. `REP-UX-TABLE-03` rămâne deschis până când raportul cel mai recent dovedește pe conținut lung plafonul de `500px`, scroll până la ultimul rând, header sticky și lipsa overflow-ului la viewport îngust; System rămâne fix la `500px`. |
 
 Eșecurile de classloading din checkout-ul partajat au coincis cu build-uri
 Maven concurente pe același `target`. Același reactor a trecut de două ori,
@@ -71,39 +71,50 @@ activ.
 
 | Prioritate | ID | Owner | Limită | Criteriu de închidere |
 |---|---|---|---|---|
-| P0 | `SHOP-API-REAL-01` | Practice Shop + mediu extern | fixture placeholder și `authenticatedE2eEnabled=false`; authenticated tests sunt skip | fixture non-placeholder, flag activ, login/current-user `200`, apoi journey live complet |
-| P2 | `SHOP-TEST-READ-02` | Practice Shop test composition | trei E2E repetă lifecycle/context; testul guest încă include orchestration diagnostică | mută numai infrastructura în support; purchase E2E păstrează product → cart → checkout → billing → payment → confirmation și `THEN` final observat; failure-path + guest E2E + architecture guard |
-| P2 | `UI-NET-11` | `atf-ui` + consumer adapters | read-back-ul de după acțiune are acum cursor temporal, dar mutation retry rămâne design-only | identity/payload proof și idempotency pentru retry activ, fără replay implicit |
+| P0 | `SHOP-API-REAL-01` | Practice Shop + artifact | ✅ business proof fresh `1/1`: login/current-user 200, checkout autenticat, billing și payment confirmation observată; nu s-a reutilizat contul blocat | inspectează vizual artifactul fresh în MCP/ATF Debug (acțiuni, exchange-uri JSON, screenshots, randare); apoi promovează numai artifactul verificat în `artifacts/reports/ui` |
+| P1 | `REP-UX-TABLE-03` | `atf-reporting` + `atf-reporting-tests` | tokenul comun `500px` și CSS-ul `max-height/overflow-y:auto` există, dar plafonarea și scroll-ul nu au fost reconfirmate pe cel mai recent raport randat | pe raport fresh, dovedește tabel scurt fără scroll inutil, tabel peste plafon cu `clientHeight` limitat și `scrollHeight > clientHeight`, header sticky și acces la ultimul rând; verifică Extent/fallback la viewport normal și îngust |
+| P1 | `REP-UX-TABLE-04` | `atf-reporting` + `atf-reporting-tests` | summary-urile din `Screen validation` și disclosure-urile API finale (`Unique request signatures`, `Technical diagnostics`) au înălțime/spațiere excesivă; contractul vechi testează explicit stilul tall, iar extractorul verifică ordinea, nu gap-ul | aduce toate aceste zone la geometria compactă comună `Request details` / `Response details` / `Execution evidence`; verifică înălțimea și gap-ul randat în component și MCP/Chromium, la viewport normal/îngust și Extent/fallback, păstrând glyph inline, badge alignment și fără overflow/separatoare |
 
-`TEST-ARCH-07` este închis prin guard-ul de coeziune și rămâne în
-`ATF_Test_Architecture_Feedback.md`. `REP-BUILD-02`, `UI-NET-17`,
-`REP-CAPTURE-01`, `REP-UX-TABLE-01`, `REP-UX-PERF-01`, `REP-UX-PERF-02`,
-`REP-EVID-08-STRESS`, `REP-NET-07`, `REP-UX-TABLE-02` și `REP-UX-TABLE-03`
-sunt închise și rămân în istoricul de închideri al ownerului. Diagnosticul de
-performanță rămâne separat de verdictul business; se redeschide doar la o
-regresie verificată a gate-ului.
+### Închideri confirmate
+
+- `SHOP-TEST-READ-02`: lifecycle test-only, failure-path, guest și authenticated E2E până la purchase-confirmation sunt verificate; artifactul authenticated încă așteaptă audit vizual MCP.
+- `SHOP-AUTH-08`: preflight-ul local respinge fixture-uri cu domenii demonstrative; testele verifică gate-ul și calea pentru fixture extern, fără a valida autentificarea remote.
+- `UI-NET-11`: contractul read-only și lipsa replay-ului generic sunt verificate; extensiile consumer-owned rămân în feedback-ul UI inspector.
+- `TEST-ARCH-07`: guard-ul de coeziune este dovada de închidere; istoricul rămâne în `ATF_Test_Architecture_Feedback.md`.
+- Reporting gates închise: `REP-BUILD-02`, `REP-CONFIG-COMP-01`, `UI-NET-17`, `REP-CAPTURE-01`, `REP-UX-TABLE-01`, `REP-UX-PERF-01/02`, `REP-EVID-08-STRESS`, `REP-NET-07`, `REP-UX-TABLE-02` și `REP-UX-OVERVIEW-04`; verificarea fresh a plafonului de tabel și densitatea summary-urilor rămân active în `REP-UX-TABLE-03/04`.
+- Performanța rămâne separată de verdictul business și se redeschide numai la regresia gate-ului.
 
 ### Ordine de adresare a documentelor de feedback
 
-Scorul de mai jos este **prioritatea următoarei intervenții** (0–100), nu
-maturitatea produsului: impact (40), gap deschis (30), posibilitate de lucru
-acum (20), datorie editorială/duplicare (10). Un item blocat extern nu devine
-implementabil doar pentru că este P0.
+- Scorul este **prioritatea/răspândirea gap-ului** (0–100), nu maturitatea:
+  impact (40), gap deschis (30), posibilitate de lucru acum (20), datorie
+  editorială/duplicare (10).
+- Tabelul este ordonat descrescător după scor; prioritatea nu garantează că
+  intervenția se poate executa imediat.
+- Practice Shop rămâne P0 numai pentru auditul vizual al raportului fresh;
+  purchase-ul authenticated a fost dovedit cu un fixture seeded distinct. Contul
+  blocat anterior nu se reutilizează.
+- Până la verificarea MCP a artifactului, intervențiile independente continuă
+  în Reporting, apoi AI evaluation.
 
 | Ordine | Document | Scor prioritate | Următoarea intervenție |
 |---:|---|---:|---|
-| 1 | [Practice Shop](ATF_Practice_Shop_API_Screen_Pyramid_Feedback.md) | 82 | scurtează infrastructura testului, nu flow-ul până la purchase confirmation; `SHOP-API-REAL-01` așteaptă fixture valid extern |
-| 2 | [AI evaluation](README_AI_Evaluation.md) | 78 | comprimat la decizia de pilot și proof-uri; design-only, fără a pretinde implementare AI |
-| 3 | [UI network inspector](ATF_UI_Network_Inspector_Feedback.md) | 54 | `UI-NET-11` numai după identity/payload și idempotency proof; cursorul singur nu autorizează replay |
-| 4 | [Reporting](ATF_Reporting_Feedback.md) | 36 | monitorizare de regresie și reducerea istoricului; niciun ToDo local activ |
-| 5 | [Request traceability](ATF_Request_Traceability_Feedback.md) | 32 | monitorizare single-node/renderer parity; limita authenticated este deținută de Practice Shop |
-| 6 | [Test architecture](ATF_Test_Architecture_Feedback.md) | 28 | guard-urile rămân verzi; `TEST-ARCH-07` este închis, fără mutare preventivă |
-| 7 | [Acest registru](README.md) | 26 | sincronizare a statusurilor și scorurilor, nu backlog paralel |
+| 1 | [Practice Shop](ATF_Practice_Shop_API_Screen_Pyramid_Feedback.md) | 97 | P0 business închis prin run authenticated fresh; următorul gate este auditul vizual MCP al artifactului exact înainte de promovarea în rapoartele live |
+| 2 | [Reporting](ATF_Reporting_Feedback.md) | 70 | verifică plafonul `500px` pe conținut lung și compactează summary-urile `68px` la standardul `34px`; lipsesc dovezi fresh de randare pentru ambele |
+| 3 | [AI evaluation](README_AI_Evaluation.md) | 61 | comparatorul și contractul typed de invocation provenance sunt implementate; următoarea limită: grounding per field, semantic snapshot și evidence ledger înainte de reporting |
+| 4 | [Request traceability](ATF_Request_Traceability_Feedback.md) | 32 | monitorizare; login și business journey authenticated au proof live, auditul vizual rămâne în backlog-ul Practice Shop |
+| 5 | [Acest registru](README.md) | 26 | monitorizare și sincronizare a statusurilor/scorurilor pe baza codului și guard-urilor; fără backlog paralel |
+| 6 | [Test architecture](ATF_Test_Architecture_Feedback.md) | 24 | monitorizare; guard-urile trec, `TEST-ARCH-07` este închis; redeschidere numai la regresie |
+| 7 | [UI network inspector](ATF_UI_Network_Inspector_Feedback.md) | 20 | fără ToDo activ; no-replay este decizia curentă; redeschidere numai la încălcarea contractului, iar extensia consumer-owned cere contract separat de idempotency |
 
-Scorurile de maturitate rămân distincte: reporting `95`, traceability `95`,
-Practice Shop `93`, structură teste `97`, inspector UI `88`; AI evaluation
-implementată `12` și workflow agentic `31`. Nu le creștem pentru teste verzi
-care nu dovedesc gap-ul respectiv.
+Scorurile de maturitate rămân distincte de prioritățile tabelului: reporting
+`92/100`, traceability `96/100`, Practice Shop `97/100`, structură teste
+`97/100`, inspector UI `88/100`; AI evaluation implementată `28/100` și
+workflow agentic `31/100`. Scorul AI reflectă evaluatorul determinist și
+contractul typed de invocation provenance din `atf-validation` (15/15 teste
+țintite trecute). Nu există încă invocare reală de model, grounding per field,
+evidence ledger sau integrare în raport; aceste limite țin scorul implementării
+la `28/100`.
 
 ### Dovadă exploratorie recentă — trace composition și toggle stability
 
@@ -157,28 +168,29 @@ nu se hardcodează în feedback și nu se păstrează un raport generat ca exemp
 | `REP-FORMAT-01` | source multiline versus publication compactată |
 | `REP-SIZE-01` | `ReportAssetSizeBudget` și `ReportAssetSizeInventoryTest`; baseline explicit pentru asset bundle-ul CSS/JavaScript |
 | `REP-EVID-08-STRESS` | ✅ închis: `SelectedApiTestsReportUiTest`, `UiReportStyleValidator`, `ReportAuditContext` și `ReportRuntimePerformanceBrowserProbe` verifică minimum șase semnături la standard+narrow, expandări controlate, evidence JSON, glyph inline și overflow/diagnostics |
-| `REP-NET-07`, `REP-UX-TABLE-02` | ✅ închise: component CSS/markup proof și MCP fresh pe Practice Shop confirmă inspectorul nested, summary-uri 2×, collapsed implicit, viewport vertical bounded, header sticky, screenshot în afara viewport-ului action și zero duplicate/overflow |
+| `REP-NET-07`, `REP-UX-TABLE-02` | ✅ închise pentru scope-ul structural inițial: inspector nested, collapsed implicit, viewport bounded, header sticky și screenshot-ul în afara viewport-ului action; densitatea summary-urilor UI/API este urmărită separat de `REP-UX-TABLE-04` |
 | `REP-CONSUMER-01` | ✅ închis: `ReportEnvironmentSnapshot` per run și `ReportTraceMetadata` per exchange sunt contracte typed publice; `ReportTraceMetadataRenderingTest` verifică un consumer sintetic, System allowlist și redaction |
 | `REP-VOCAB-01` | `AtfReportHtmlVocabulary` și contractele de markup; tokenii production sunt typed, iar `toggleView` este seam vendor explicit |
 | `REP-BODY-01` | `ReportingSettings`, `ExtentReportNodeSupport` și testele formatter/config/Extent/HTML; default `100`, `0` dezactivează limita, marker `first N of TOTAL` |
 | `REP-LOCATOR-01` | `ReportUiLocatorsTest` și ports din `support/locators`; fațada este compatibilitate publică, iar ownership-ul selectorilor este vertical/coeziv |
 | `REP-ASSET-08` | manifest, owner, format, ordine și namespace |
 | `REP-BUILD-01` | standalone discovery allowlist-uit |
-| `REP-BUILD-02` | două rulări `mvn -o -pl atf-reporting-tests -am test` în staging exclusiv, inclusiv incremental, au trecut cu 530/0/0/3; coliziunea pe `target` din checkout-ul partajat nu este defect de reporting |
+| `REP-BUILD-02` | două rulări exclusive, inclusiv incremental, au izolat coliziunea pe `target` din checkout-ul partajat; aceasta nu este defect de reporting. Numărul de teste și rezultatul fiecărui run aparțin output-ului Maven, nu registrului permanent. |
 | `REP-BOUNDARY-01` | architecture ownership și POM guards |
 | `CORE-FILES-01` | `atf-core.files.AtfPathLocator.locateModuleRoot`, `AtfFileTree.regularFiles`, `AtfPathLocatorTest`, `AtfFileTreeTest` și `PracticeShopArchitectureTest`; consumerul nu mai reimplementează root discovery sau file traversal |
 | `SHOP-API-SCREEN-01..10` | screen flows, journal, assertions și evidence mapper |
 | `SHOP-CONFIG-02`, `SHOP-ROUTE-04..05` | host și rute relative; output UI/API separat în `artifacts/reports/ui` și `artifacts/reports/api` |
 | `SHOP-UI-VALIDATION-01..04` | page contracts și validator component |
 | `SHOP-MIX-01..03` | `UiPhaseLifecycle` + guest E2E proof: selecția, ordinea cauzală și forma single-node sunt verificate; checkpoint-ul are `UI validation` + `API validation` în același nod |
-| `SHOP-AUTH-01..07` | registration, fixture loading, login și authenticated purchase implementate; live proof pending până la fixture non-placeholder |
+| `SHOP-AUTH-01..07` | controlul semantic checkout este verificat; run authenticated fresh `1/1` confirmă login/current-user, billing și `Payment was successful`; auditul vizual al artifactului este încă deschis |
 | `SHOP-ARCH-11..13` | runtime/main versus test-only support |
 | `SHOP-REPORT-FAILURE-01` | failure projection în `Fails` |
 | `SHOP-CONSOLE-01` | sink configurat injectat la composition root |
 | `SHOP-CONSOLE-02` | `atf-reporting-tests/.../AtfConsoleBridgeTest`; adapter test-only, fără mapping în Practice Shop sau dependency production inversă |
-| `SHOP-API-REAL-02` | guest live product/cart/payment assertions și Payment success verificate prin `LIVE_HTTP`; authenticated standalone rămâne separat în `SHOP-API-REAL-01` |
+| `SHOP-API-REAL-02` | guest live product/cart/payment prin `LIVE_HTTP`; proof-ul authenticated este închis la nivel business de `SHOP-API-REAL-01` (login/current-user 200, `POST /payment/check 200`, confirmation observată); vizualul artifactului rămâne gate separat |
 | `SHOP-API-TRACE-01` | screen flow + network journal: request/response, status, transport, retry, trace și signature rămân legate de checkpoint-ul care le-a cauzat; ordinea de prezentare este verificată prin `UI validation → API validation → Exchange` |
 | `SHOP-NET-03` | `UiNetworkInspector`, `PracticeShopUiNetworkSettlementFixture`, `PracticeShopUiNetworkSettlementComponentTest` și `UiNetworkInspectionConfigurationTest` — compactare consecutivă, read-back bounded după cursorul pre-acțiune, GET vechi exclus și timeout fără replay |
+| `UI-NET-11` | `UiRetryOperation`, `UiRetryPolicyTest` și `PlaywrightActionSequenceTest.retryPolicyDoesNotReplayMutatingActions` — retry generic limitat la operații read-only; identity/payload/idempotency sunt condiții pentru orice extensie consumer-owned explicită |
 | `UI-NET-15/16/17` | `UiNetworkInspector`, `UiNetworkObservation`, `UiNetworkInspectionConfigurationTest`, `PracticeShopApiNetworkJournalTest` și `ReportTraceMetadata` — request-failed explicit, alias injectat doar la adapter și custom capture resanitizat înainte de storage/subscriber |
 | `REP-CAPTURE-01` | `ReportEvidenceProfileTest`, `ReportEvidenceProfileIntegrationTest`, `PracticeShopScreenshotPolicyTest`, `PracticeShopBrowserCaptureProviderTest`, `PracticeShopReportSystemMetadataTest` și guest E2E/MCP — provider browser typed reutilizat, policy filtrată înainte de captură, provenance verificată, iar Overview și capturile inline reflectă aceeași policy efectivă |
 | `REP-RENDER-09`, `REP-MODEL-01`, `REP-TEST-08`, `REP-OVERVIEW-02` | `ReportRendererParityTest`, `AtfReportSemanticSnapshotTest`, `ReportingCoverageMatrixTest`, `ReportEnvironmentSnapshotTest` și guard-urile existente; parity, lifecycle guards, matrix proof și System allowlist sunt verificate |
@@ -195,8 +207,9 @@ nu se hardcodează în feedback și nu se păstrează un raport generat ca exemp
 | `SHOP-REPORT-SYSTEM-01` | `PracticeShopReportSystemMetadataTest` + MCP/Chromium proof: Overview/System păstrează configurația bounded/redacted și separă explicit precondiția API configurată de precondiția journey-ului UI |
 | `SHOP-REPORT-SYSTEM-02` | `PracticeShopReportSystemMetadata` + component test: `Overview/System` publică numai configurație operațională allowlist-uită; nu publică `Suite`, `Test package`, `Flow`, `Fixture` sau `Checkout`, iar duratele sunt umane (`20s`, `45s`) |
 
-| `SHOP-E2E-ROOT-01` | `PracticeShopTestSupport.openE2e()` și `E2eHarness` centralizează configurația, contextul și locatorii; testele E2E rămân compoziții business scurte |
-| `SHOP-E2E-ISOLATION-01` | cele trei E2E folosesc `BeforeEach/AfterEach`, fără `PER_CLASS`/`BeforeAll`; `PracticeShopArchitectureTest` verifică izolarea contextului per test |
+| `SHOP-E2E-ROOT-01` | `PracticeShopE2eTestSupport.E2eExtension` și `E2eHarness` centralizează configurația, contextul și locatorii; testele E2E rămân compoziții business scurte |
+| `SHOP-E2E-ISOLATION-01` | `@WithE2eHarness` oferă un context separat fiecărei metode; `PracticeShopArchitectureTest` interzice lifecycle duplicat, `PER_CLASS` și browser partajat |
+| `SHOP-TEST-READ-02` | `PracticeShopE2eTestSupport` păstrează compozițiile concise fără să scurteze journey-ul: guest și authenticated purchase ajung la confirmation live; raportul authenticated fresh așteaptă audit vizual MCP |
 | `SHOP-HTML-CONTRACT-01` | `PracticeShopReportHtmlTestSupport` verifică semantic text, celule exacte, ordine și absență; contractele report nu mai depind de un singur `html.contains(...)` pentru fiecare regulă |
 | `SHOP-TEST-LIFECYCLE-01` | `PracticeShopApiClient implements AutoCloseable`, close-ul curăță bearer state și respinge utilizarea ulterioară; integration tests folosesc try-with-resources |
 | `SHOP-TEST-DSL-01` | `PracticeShopTestSupport` oferă adnotări/condiții typed pentru authenticated fixture și live API; gating-ul nu mai este copiat prin metode locale `isConfigured()` |

@@ -65,9 +65,9 @@ practiceShop:
       city: Bucharest
       state: Bucharest
     paymentMethod: Cash on Delivery
-  # This deliberately reusable demo account is a test fixture owned by this
-  # module. The password is never copied into ATF evidence or logs.
-  # Override with -Datf.practice.account-file=<external-properties-file> in CI.
+  # Plaintext demo-only credentials for the public Practice Software Testing
+  # training application. Never reuse this fixture for production or real users.
+  # Replace the account if the external demo service locks or retires it.
   accountFile: atf-test-practice-shop/src/test/resources/practice-software-testing-account.properties
 
 

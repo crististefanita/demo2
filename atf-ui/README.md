@@ -179,7 +179,7 @@ fără un response inventat.
 | Contract | Owner |
 |---|---|
 | stream-ul raw și colapsarea doar a semnăturilor consecutive pentru prezentare | `atf-ui` |
-| așteptarea bounded printr-o settlement policy explicită, fără retry de acțiune | `atf-ui` |
+| așteptarea bounded printr-o settlement policy explicită, fără retry/replay de acțiune | `atf-ui` |
 | aliasul de serviciu, corelarea cu checkpoint-ul și verdictul business | consumerul |
 | cardurile HTML și sumarul agregat | `atf-reporting` |
 
@@ -197,6 +197,19 @@ Read-back după acțiune:
   nu poate satisface settlement-ul curent;
 - limită: cursorul garantează ordinea, nu payload identity sau idempotency;
   `await(...)` caută în tot jurnalul, iar nicio metodă nu repetă mutația.
+
+Contractul de retry Playwright:
+
+- `UiRetryOperation` permite numai operații read-only; click, submit și alte
+  mutații nu sunt configurabile și nu primesc al doilea attempt;
+- retry-ul business-specific aparține consumerului și cere identity stabilă,
+  payload complet asociat și garanție server-side de idempotency;
+- `requestSignature` grupează observații și folosește body redacted/bounded; nu
+  reprezintă payload identity pentru replay;
+- request observation și cursor temporal nu dovedesc idempotency.
+
+Detaliul și criteriile de extindere sunt în
+[`ATF_UI_Network_Inspector_Feedback.md`](../docs/feedback/ATF_UI_Network_Inspector_Feedback.md).
 
 ## Ce nu se pune în `atf-ui`
 

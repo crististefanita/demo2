@@ -42,17 +42,28 @@ Surse de aprofundare:
 |---|---|---|
 | component/API | contracte typed pentru config, routes, JSON, status, mapping și evidence | matricea de variații se verifică fără browser |
 | guest E2E | journey `product → cart → payment` pe `LIVE_HTTP` | proof business activ și auditabil |
-| authenticated E2E/API | selectat prin adnotare și condiție typed; implicit `SKIP` fără fixture extern acceptat | `SKIP` este precondiție lipsă, nu PASS degradat |
+| authenticated E2E/API | selectat prin adnotare și condiție typed; configurația curentă îl dezactivează explicit | `SKIP` este precondiție/opt-in lipsă, nu PASS degradat; fișierul existent nu dovedește autentificarea live |
 | retry Playwright | suport generic fail-closed există în `atf-ui`; YAML-ul Practice Shop declară explicit `maxAttempts`, `backoff`, `eligibleOperations` și `reason` | policy-ul implicit rămâne un singur attempt; numai operații read-only typed pot fi activate ulterior |
 | API evidence binding | `validation.apiEvidence` selectează checkpoint-uri typed (`product`, `login`, `cart`, `payment`); override-ul system property este acceptat | binding-ul fail-closed aparține consumerului; publisher-ul primește numai evidence selectat |
 | Overview → System | snapshot allowlist-uit, redacted și bounded; țintele și valorile efective sunt separate | nu se publică dump YAML, secrete sau path-uri temporare |
 | output | `artifacts/reports/ui` și `artifacts/reports/api` | rolurile UI/API nu se suprapun |
 
-Regulile stabile de mai sus sunt contractul consumerului. Binding-ul per
-checkpoint, aggregate-ul nested, identitatea bounded a diagnosticelor
-necorelate și exchange-urile canonicale multiple sunt verificate. Feedback-ul
-păstrează limitele încă active: fixture-ul extern authenticated și contractul
-de identity/payload necesar înaintea oricărui retry activ al mutațiilor.
+Contracte și limite curente:
+
+- binding-ul per checkpoint, aggregate-ul nested, diagnosticele bounded și
+  exchange-urile canonicale multiple sunt verificate;
+- `authenticatedE2eEnabled` este `false` în configurația curentă; existența
+  fișierului de cont nu dovedește că autentificarea este validă în mediul țintă;
+  preflight-ul respinge domeniile rezervate `example`, `example.com`,
+  `example.net`, `example.org`, `.test`, `.invalid` și `.localhost` (inclusiv
+  subdomeniile), dar nu validează parola sau contul remote;
+- un fișier privat poate fi selectat prin `-Datf.practice.account-file` sau
+  `ATF_PRACTICE_ACCOUNT_FILE`; această cale este disponibilă, dar nu constituie
+  dovadă că un cont provisionat a fost furnizat ori autentificat;
+- authenticated E2E/API rămân `SKIP` până la opt-in explicit și dovada
+  login/current-user reușită;
+- retry-ul generic al mutațiilor este exclus de `atf-ui`; Practice Shop nu reia
+  click-ul, submit-ul sau purchase-ul după timeout.
 
 ### Network inspector UI — observație opt-in
 
@@ -97,12 +108,13 @@ implicit:
 
 - cursorul este capturat înainte de acțiune; read-back-ul bounded caută numai
   observații ulterioare prin `awaitAfter(...)` și nu repetă acțiunea;
-- replay-ul cere un contract de idempotency deținut de consumer;
+- inspectorul nu reia mutații, indiferent de timeout sau de observația capturată;
 - `PracticeShopUiNetworkSettlementFixture` acoperă read-back-ul idempotent,
   excluderea unui GET anterior acțiunii, compactarea response-urilor
   consecutive și timeout-ul fără replay sau false-green;
-- retry-ul activ al mutațiilor Playwright rămâne separat, fail-closed și
-  neimplementat implicit.
+- o viitoare facilitate consumer-owned ar cere separat identity stabilă,
+  payload complet asociat și idempotency garantată de server; această facilitate
+  nu este activată în Practice Shop.
 
 Detaliile și limitele active sunt centralizate în
 [`ATF_UI_Network_Inspector_Feedback.md`](../docs/feedback/ATF_UI_Network_Inspector_Feedback.md).
@@ -143,6 +155,7 @@ flowchart LR
 | flow-uri | `PracticeShop*Flow` și stage-urile purchase | business order, fără detalii de renderer |
 | API evidence | journal + capture + selector + mapper | orchestration, selecție și publicare separate |
 | lifecycle | `PracticeShopE2eContext` / publisher | testele nu gestionează manual raportul |
+| scanări de arhitectură | `AtfPathLocator` + `AtfFileTree` din `atf-core` | root discovery și file traversal sunt reutilizate; filtrele include/exclude specifice consumerului rămân lângă guard-ul Practice Shop |
 
 Packaging-ul este intenționat:
 
@@ -201,6 +214,11 @@ Principiul de selecție:
 | authenticated purchase | `PracticeShopAuthenticatedPurchaseE2eTest` | `authenticatedE2eEnabled` + precondiție `authenticated` + account fixture |
 | account/catalog smoke | `PracticeShopAccountAndCatalogE2eTest` | aceeași activare explicită; smoke slice separat |
 
+- `@WithE2eHarness` injectează harness-ul ca parametru metodei de test.
+- Extensia JUnit creează configurația, contextul, browserul și locatorii per metodă, apoi închide contextul și raportul la teardown.
+- `harness.run(title, overview, journey -> ...)` gestionează lifecycle-ul scenariului și publicarea failure-ului.
+- Testul păstrează flow-ul business și assertions observate; dacă teardown-ul eșuează, eroarea se atașează ca `suppressed`, iar failure-ul business rămâne principal.
+
 Scurtarea composition root-urilor nu scurtează journey-ul de purchase:
 
 - guest E2E păstrează în aceeași rulare `product → cart → checkout → billing
@@ -208,7 +226,13 @@ Scurtarea composition root-urilor nu scurtează journey-ul de purchase:
   is displayed for the completed purchase`, mesajul observat `Payment was
   successful` și evidence-ul API aferent;
 - authenticated purchase păstrează același final după login-ul configurat;
-  fără fixture extern valid rămâne `SKIP`, nu dovadă de achiziție reușită;
+  configurația din repository îl ține implicit `SKIP`, dar opt-in-ul cu fixture
+  seeded distinct a fost verificat live până la purchase confirmation. Setup-ul
+  trebuie să valideze login-ul real, nu doar existența fișierului de cont;
+- checkout-ul authenticated identifică butonul semantic de continuare
+  (`AUTHENTICATED_PROCEED`) și verifică starea lui observată; textul generic al
+  body-ului nu este contract de UI, fiindcă extractorul poate omite conținutul
+  din afara tabelului;
 - numai lifecycle-ul, wiring-ul și publicarea diagnosticelor se pot muta în
   support; pașii business și assertions finale nu se elimină și nu se
   înlocuiesc cu un smoke de cart/catalog.
@@ -354,7 +378,7 @@ practiceShop:
 | `api.precondition` | `anonymous` sau `authenticated`; authenticated E2E nu pornește fără precondiția potrivită |
 | `productPath` | `auto` acceptă numai ruta `/product/*`; o rută exactă e fail-fast dacă nu există |
 | `screenshotOnFailure` | switch legacy mapat de `PracticeShopScreenshotPolicy` la `ReportEvidenceProfile`: `true` → `EACH_CHECKPOINT`, `false` → `FAILURE_ONLY`; providerul Playwright este apelat numai când policy permite captura |
-| `accountFile` | fixture extern/opțional pentru setup autentificat; nu este copiat în evidence |
+| `accountFile` | cale configurabilă pentru setup autentificat; existența fișierului nu validează contul în mediul live și credentialele nu sunt copiate în evidence |
 
 Reguli de configurare:
 
