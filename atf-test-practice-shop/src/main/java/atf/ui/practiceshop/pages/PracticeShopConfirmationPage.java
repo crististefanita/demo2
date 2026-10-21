@@ -10,7 +10,7 @@ import com.microsoft.playwright.Page;
 
 /** Final payment confirmation boundary, kept separate from payment input. */
 @PracticeShopPageContract(screen = PracticeShopScreen.CONFIRMATION, route = PracticeShopUiRoutes.CHECKOUT,
-        requiredControls = {PracticeShopControl.PAYMENT_SUCCESS}, bodyMarker = "Payment was successful")
+        requiredControls = {PracticeShopControl.ORDER_CONFIRMATION}, bodyMarker = "Thanks for your order!")
 public final class PracticeShopConfirmationPage {
     private final Page page;
     private final PracticeShopLocators locators;
@@ -21,9 +21,10 @@ public final class PracticeShopConfirmationPage {
         this.page = page; this.locators = locators; this.actions = actions;
     }
 
-    public String assertLoaded() {
-        actions.waitForText(page, locators.paymentSuccess(page), "Payment was successful",
-                "payment confirmation is displayed");
-        return actions.expectText(locators.paymentSuccess(page), "Payment was successful");
+    public String confirmOrder() {
+        actions.click(locators.confirmOrder(page), "demo order is submitted");
+        actions.waitForText(page, locators.orderConfirmation(page), "Thanks for your order!",
+                "completed order confirmation is displayed");
+        return actions.expectText(locators.orderConfirmation(page), "Thanks for your order!");
     }
 }

@@ -148,6 +148,32 @@ public final class PracticeShopApiAssertions {
                 trace("payment", payment));
     }
 
+    public static List<AtfAssertion> order(PracticeShopApiNetworkJournal.Exchange order,
+                                           String uiConfirmation) {
+        JsonNode response = PracticeShopJsonEvidence.parse(order.responseBody());
+        String invoice = response == null ? "" : response.path(
+                PracticeShopApiJsonField.INVOICE_NUMBER.wireValue()).asText("");
+        JsonNode total = response == null ? null : response.get(PracticeShopApiJsonField.TOTAL.wireValue());
+        boolean positiveTotal = total != null && total.isNumber() && total.decimalValue().signum() > 0;
+        return List.of(
+                check("API response · order creation", "2xx application/json",
+                        order == null ? "missing" : order.summary(), order != null
+                                && PracticeShopApiHttpStatus.isSuccess(order.status()) && order.isJsonResponse()),
+                check("API response JSON · order identity", "order id and invoice number are present",
+                        response == null ? compact(order.responseBody(), 240)
+                                : "id=" + response.path(PracticeShopApiJsonField.ID.wireValue()).asText("")
+                                + ", invoice=" + invoice,
+                        response != null
+                                && !response.path(PracticeShopApiJsonField.ID.wireValue()).asText("").isBlank()
+                                && !invoice.isBlank()),
+                check("UI/API order correlation", "invoice number from order creation request is shown in confirmation",
+                        "invoice=" + invoice + "; UI=" + compact(uiConfirmation, 220),
+                        !invoice.isBlank() && uiConfirmation != null && uiConfirmation.contains(invoice)),
+                check("API response JSON · order total", "total is greater than zero",
+                        total == null ? "missing" : total.asText(), positiveTotal),
+                trace("order creation", order));
+    }
+
     private static AtfAssertion trace(String label, PracticeShopApiNetworkJournal.Exchange exchange) {
         boolean present = exchange != null && !exchange.signature().isBlank();
         String observed = exchange == null ? "missing" : "sequence="

@@ -13,7 +13,7 @@ practiceShop:
   validation:
     profile: ui-api
     # Typed journey binding; omit the list to enable all checkpoints for UI_API.
-    apiEvidence: [product, login, cart, payment]
+    apiEvidence: [product, login, cart, payment, order]
   # Opt-in browser boundary. It observes only the configured API host, keeps
   # bodies bounded/redacted and feeds the existing API network inspector; it
   # never creates verdicts or replays a mutating browser action.
@@ -67,9 +67,9 @@ practiceShop:
       city: Bucharest
       state: Bucharest
     paymentMethod: Cash on Delivery
-  # Account properties are external input. The default configuration points
-  # to target/ and does not read a credential file from this resource directory.
-  # For an explicitly opted-in run, use -Datf.practice.account-file or
-  # ATF_PRACTICE_ACCOUNT_FILE with a private file outside the repository.
+  # This is a disposable synthetic demo fixture owned by this module. It is
+  # intentionally explicit so authenticated live proof is reproducible.
+  # Do not reuse this pattern for production credentials.
+  accountFile: atf-test-practice-shop/src/test/resources/practice-software-testing-account.properties
 
 

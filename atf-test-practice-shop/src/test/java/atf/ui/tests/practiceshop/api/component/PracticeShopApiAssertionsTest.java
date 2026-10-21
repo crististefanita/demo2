@@ -62,6 +62,22 @@ class PracticeShopApiAssertionsTest {
                 a.name().equals("API session establishment") && a.passed()));
     }
 
+    @Test
+    void orderRequiresServerInvoiceToMatchTheVisibleOrderConfirmation() {
+        var order = exchange(HttpMethod.POST.value(), PracticeShopApiRoutes.GUEST_INVOICE_CREATE,
+                PracticeShopApiHttpStatus.OK, "{}",
+                "{\"id\":\"order-1\",\"invoice_number\":\"INV-2026000007\",\"total\":24.02}");
+
+        var passing = PracticeShopApiAssertions.order(order,
+                "Thanks for your order! Your invoice number is INV-2026000007.");
+        var mismatched = PracticeShopApiAssertions.order(order,
+                "Thanks for your order! Your invoice number is INV-OTHER.");
+
+        assertTrue(passing.stream().allMatch(a -> a.passed()));
+        assertFalse(mismatched.stream().filter(a -> a.name().equals("UI/API order correlation"))
+                .findFirst().orElseThrow().passed());
+    }
+
     private static PracticeShopApiNetworkJournal.Exchange exchange(String method, String path,
                                                                      PracticeShopApiHttpStatus status,
                                                                      String requestBody, String responseBody) {

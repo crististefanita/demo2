@@ -55,7 +55,9 @@ class AtfReportEvidenceCssTest {
                         "#test-view .test-content-detail .card[data-atf-scenario-id] > .card-header > .card-title > a.node")),
                 () -> assertTrue(theme.contains("white-space:normal!important;overflow:visible!important;")),
                 () -> assertTrue(theme.contains(".atf-ui-action-table td:nth-child(5){width:14%!important;white-space:normal!important;overflow-wrap:anywhere!important}")),
-                () -> assertTrue(theme.contains(".atf-ui-action-table td:nth-child(6){width:12%!important;white-space:normal!important;overflow-wrap:anywhere!important}")));
+                () -> assertTrue(theme.contains(".atf-ui-action-table td:nth-child(6){width:12%!important;white-space:normal!important;overflow-wrap:anywhere!important}")),
+                () -> assertTrue(theme.contains("body .atf-ui-action-table td:nth-child(6){width:17%!important;min-width:36px!important;white-space:normal!important;overflow-wrap:anywhere!important}")),
+                () -> assertTrue(theme.contains("body .atf-ui-action-table .atf-ui-action-result{max-width:100%!important;font-size:8px!important;line-height:1!important}")));
     }
 
     @Test
@@ -237,10 +239,16 @@ class AtfReportEvidenceCssTest {
                         "Overview/System table bodies must use the shared viewport token"),
                 () -> assertTrue(theme.contains(".atf-tag-scroll{height:var(--atf-table-scroll-height)!important"),
                         "tag audit tables must use the shared viewport token"),
+                () -> assertTrue(theme.contains(
+                                ".atf-secondary-body.network-aggregate-scroll{height:var(--atf-table-scroll-height)!important"),
+                        "network signature and diagnostic lists must use the shared viewport token"),
                 () -> assertTrue(theme.contains("max-height:var(--atf-table-scroll-height)!important"),
                         "Extent action/audit/assertion tables must use the shared viewport token"),
                 () -> assertTrue(fallback.contains(".atf-ui-action-table-wrap,.atf-validation-table-wrap{max-height:var(--atf-table-scroll-height)"),
                         "fallback action and validation tables must use the shared viewport token"),
+                () -> assertTrue(fallback.contains(
+                                ".atf-secondary-body.network-aggregate-scroll{height:var(--atf-table-scroll-height)"),
+                        "fallback network lists must use the shared viewport token"),
                 () -> assertFalse(theme.contains("height:500px!important"),
                         "the viewport must be configured through the common CSS token"),
                 () -> assertFalse(theme.contains("max-height:500px!important"),

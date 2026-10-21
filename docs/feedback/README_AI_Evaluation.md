@@ -15,7 +15,7 @@ guvernanță care trebuie validate înaintea implementării.
   testate în `atf-validation`; package cohesion este închisă prin split semantic;
   provider, run-level evidence ledger, reporting, review/state și workflow agentic
   rămân neimplementate.
-- verificare curentă: `AiEvaluationEvaluatorTest` — 19 teste, 0 failure,
+- verificare live (21 octombrie 2026): `AiEvaluationEvaluatorTest` — 19 teste, 0 failure,
   0 error, 0 skipped (`mvn -pl atf-validation -am "-Dtest=AiEvaluationEvaluatorTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`).
 
 ## 1. Scop și limită
@@ -1400,7 +1400,7 @@ copiate nume, payload-uri sau reguli de business din Voyage.
 2. negative matrix: missing, invented, unsupported source, wrong intent
 3. ~~invocation evidence: real/mock/fallback/unknown~~ **implementat**, fără provider
 4. verdict: score + hard-fail precedence — **implementat pentru comparatorul generic**
-5. immutable AI snapshot, fără renderer
+5. ~~snapshot AI immutable, fără renderer~~ **implementat și verificat** (`AiEvaluationSnapshot`, cu invocation și grounding observations)
 6. un checkpoint semantic cu UI/API/AI siblings
 7. Extent/fallback projection și parity contract
 8. regression delta și agent handoff

@@ -108,6 +108,26 @@ verificări care au ca subiect compoziția reporting. Nu duplică guard-uri de
 reactor și nu validează README-urile întregului proiect; acestea sunt executate
 central prin [`WholeAtfGovernanceSuiteTest`](../atf-tests/README.md#suita-whole-atf-și-reziduul-de-compatibilitate).
 
+### Selecția scenariilor pentru un raport API
+
+`@ApiScenarioSetup(tests = ...)` declară metodele API exacte care aparțin
+artifactului; resolver-ul verifică această selecție înaintea colecțiilor mai
+largi. Dacă adnotarea nu declară metode exacte, ordinea de fallback este:
+proprietatea JVM cu familii API, proprietatea de suite, familiile din adnotare,
+apoi configurația YAML. Astfel, un raport selectat nu învață ownerii/scenariile
+așteptate din DOM-ul rezultat.
+
+| Contract | Proof component | Limită |
+|---|---|---|
+| selecția exactă și proiecția semantică | `ApiScenarioManifestTest` | verifică owner, titluri, statusuri, ordine și respinge scenarii nealese față de fallback-ul YAML |
+| precedence-ul setup-ului și fallback-urilor | `ApiReportAuditSetupTest` | verifică override-ul JVM peste declarația cu familii; comparația negativă JVM vs. `tests = ...` nu este încă directă |
+| transportul mock și lifecycle-ul | `MockApiReportIntegrationTest`, `ApiScenarioLifecycleRunnerTest` | aceste proof-uri nu formează încă un singur test de la selecția exactă până la publisher și artifact semantic |
+
+Limitele rămân explicite: testul direct pentru precedence-ul metodelor exacte
+față de override-ul JVM și proba compusă până la publisher/artifact semantic
+sunt încă deschise în feedback. Contractul implementat este documentat aici;
+testele existente acoperă doar fiecare ramură separat.
+
 <details>
 <summary><strong>Niveluri de testare și independență</strong></summary>
 

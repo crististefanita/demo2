@@ -2,6 +2,7 @@ package atf.ui.practiceshop.locators;
 
 import atf.api.ui.playwright.AtfLocator;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.options.AriaRole;
 
 import java.util.Objects;
 
@@ -67,7 +68,7 @@ public final class PracticeShopLocators {
     private static final String PAYMENT_METHOD = "select[data-test='payment-method']";
     private static final String PAYMENT_METHOD_SELECTED_OPTION =
             PAYMENT_METHOD + " option:checked";
-    private static final String FINISH = "button[data-test='finish']";
+    private static final String PAYMENT_CHECK = "button[data-test='finish']";
     private static final String ACCOUNT_HEADING = "h1";
     private static final String PAYMENT_SUCCESS =
             "xpath=//*[contains(normalize-space(text()), 'Payment was successful')]";
@@ -149,8 +150,17 @@ public final class PracticeShopLocators {
     public AtfLocator selectedPaymentMethod(Page page) {
         return css(page, PAYMENT_METHOD_SELECTED_OPTION);
     }
-    public AtfLocator finish(Page page) { return css(page, FINISH); }
+    public AtfLocator paymentCheck(Page page) { return css(page, PAYMENT_CHECK); }
     public AtfLocator paymentSuccess(Page page) { return css(page, PAYMENT_SUCCESS); }
+    public AtfLocator confirmOrder(Page page) {
+        return new AtfLocator(page.getByRole(AriaRole.BUTTON,
+                new Page.GetByRoleOptions().setName("Confirm").setExact(true)),
+                "role=button[name='Confirm']");
+    }
+    public AtfLocator orderConfirmation(Page page) {
+        String selector = "xpath=//*[contains(normalize-space(text()), 'Thanks for your order!')]";
+        return new AtfLocator(page.locator(selector), selector);
+    }
     /** Resolves a semantic control for annotation-driven page validation. */
     public AtfLocator control(Page page, PracticeShopControl control) {
         Objects.requireNonNull(control, "control");
@@ -211,8 +221,10 @@ public final class PracticeShopLocators {
             case STATE -> state(page);
             case BILLING_PROCEED -> billingProceed(page);
             case PAYMENT_METHOD -> paymentMethod(page);
-            case FINISH -> finish(page);
+            case PAYMENT_CHECK -> paymentCheck(page);
             case PAYMENT_SUCCESS -> paymentSuccess(page);
+            case CONFIRM_ORDER -> confirmOrder(page);
+            case ORDER_CONFIRMATION -> orderConfirmation(page);
             case ACCOUNT_MARKER -> accountHeading(page);
         };
     }

@@ -44,7 +44,7 @@ Surse de aprofundare:
 | guest E2E | journey `product → cart → payment` pe `LIVE_HTTP` | proof business activ și auditabil |
 | authenticated E2E/API | selectat prin adnotare și condiție typed; configurația curentă îl dezactivează explicit | `SKIP` este precondiție/opt-in lipsă, nu PASS degradat; fișierul existent nu dovedește autentificarea live |
 | retry Playwright | suport generic fail-closed există în `atf-ui`; YAML-ul Practice Shop declară explicit `maxAttempts`, `backoff`, `eligibleOperations` și `reason` | policy-ul implicit rămâne un singur attempt; numai operații read-only typed pot fi activate ulterior |
-| API evidence binding | `validation.apiEvidence` selectează checkpoint-uri typed (`product`, `login`, `cart`, `payment`); override-ul system property este acceptat | binding-ul fail-closed aparține consumerului; publisher-ul primește numai evidence selectat |
+| API evidence binding | `validation.apiEvidence` selectează checkpoint-uri typed (`product`, `login`, `cart`, `payment`, `order`); override-ul system property este acceptat | binding-ul fail-closed aparține consumerului; publisher-ul primește numai evidence selectat |
 | Overview → System | snapshot allowlist-uit, redacted și bounded pentru configurația operațională globală; țintele și valorile efective sunt separate | nu se publică dump YAML, secrete, path-uri temporare, suite/test identity sau precondiția/fixture state specifică unui journey UI |
 | output | `artifacts/reports/ui` și `artifacts/reports/api` | rolurile UI/API nu se suprapun |
 
@@ -52,20 +52,22 @@ Contracte și limite curente:
 
 - binding-ul per checkpoint, aggregate-ul nested, diagnosticele bounded și
   exchange-urile canonicale multiple sunt verificate;
-- `authenticatedE2eEnabled` este `false` în configurația curentă; configurația
-  implicită nu citește contul din `src/test/resources`, iar calea implicită este
-  un fișier opțional în `target/`; existența lui nu dovedește autentificarea;
-  preflight-ul respinge domeniile rezervate `example`, `example.com`,
+- `authenticatedE2eEnabled` este `false` în configurația curentă. Fixture-ul
+  sintetic este deținut de modul în
+  `src/test/resources/practice-software-testing-account.properties`; loader-ul
+  și configurația typed acceptă numai această zonă de ownership. Existența și
+  validitatea fixture-ului permit setup-ul, dar nu dovedesc autentificarea live;
+- `-Datf.practice.account-file` și `ATF_PRACTICE_ACCOUNT_FILE` pot selecta
+  fixture-ul numai în interiorul `src/test/resources`; căile externe sunt
+  respinse. Preflight-ul respinge domeniile rezervate `example`, `example.com`,
   `example.net`, `example.org`, `.test`, `.invalid` și `.localhost` (inclusiv
-  subdomeniile), dar nu validează parola sau contul remote;
-- un fișier privat, aflat în afara repository-ului, poate fi selectat prin
-  `-Datf.practice.account-file` sau `ATF_PRACTICE_ACCOUNT_FILE`; această cale
-  este disponibilă, dar nu constituie dovadă că un cont provisionat a fost
-  furnizat ori autentificat;
-- fișierele de cont nu sunt fixture-uri classpath: loader-ul respinge căi din
-  `src/test/resources`, iar default-ul rămâne fișierul opțional din `target/`;
+  subdomeniile), dar nu validează contul remote;
 - authenticated E2E/API rămân `SKIP` până la opt-in explicit și dovada
   login/current-user reușită;
+- `Account fixture policy` verifică ownership-ul și redaction-ul independent de
+  journey. `Account setup` descrie folosirea per-rulare: guest-ul poate avea
+  fixture-ul disponibil fără să-l consume, iar lipsa lui este permisă; flow-ul
+  authenticated îl cere și îl încarcă;
 - retry-ul generic al mutațiilor este exclus de `atf-ui`; Practice Shop nu reia
   click-ul, submit-ul sau purchase-ul după timeout.
 
@@ -106,6 +108,24 @@ Un request eșuat înainte de response rămâne evidence explicită: status
 Practice Shop poate atașa un alias de serviciu, dar host allowlist-ul și
 semnătura generică rămân neschimbate. Inspectorul publică un `Warning`
 diagnostic; numai assertion-ul business stabilește verdictul testului.
+
+Clasificarea warning-urilor runtime este intenționat strictă și specifică
+consumerului:
+
+- în journey-ul guest, numai răspunsul observat `GET /users/me → 401` este
+  semnalul de autentificare așteptat; el rămâne vizibil ca warning, fără să
+  devină pas Gherkin sintetic sau să înlocuiască assertions de purchase;
+- la bootstrap-ul authenticated, același răspuns anonim și erorile de consolă
+  recunoscute explicit pentru `cart_items`, `unauthorized` sau `401` pot fi
+  publicate ca warning; erorile de consolă/pagină fără această semnătură rămân
+  failure;
+- un scenariu poate avea status `WARNING` deși assertions business trec.
+  Warning-ul descrie zgomot runtime extern cunoscut, nu validează login-ul,
+  checkout-ul sau comanda.
+
+Regula este verificată fără browser de
+`PracticeShopGuestResilienceTest`; matching-ul se bazează pe diagnosticul
+structurat, nu pe text liber pentru ramura guest.
 
 Settlement-ul pentru acțiuni care modifică serverul este separat și dezactivat
 implicit:
@@ -227,9 +247,10 @@ Principiul de selecție:
 Scurtarea composition root-urilor nu scurtează journey-ul de purchase:
 
 - guest E2E păstrează în aceeași rulare `product → cart → checkout → billing
-  → payment → confirmation`, cu checkpoint-ul final `THEN payment confirmation
-  is displayed for the completed purchase`, mesajul observat `Payment was
-  successful` și evidence-ul API aferent;
+  → payment check → order confirmation`; `POST /payment/check` validează metoda
+  selectată, dar nu creează comanda. Utilizatorul confirmă explicit comanda;
+  checkpoint-ul final verifică mesajul și factura din UI corelate cu răspunsul
+  `201 POST /invoices/guest`;
 - authenticated purchase păstrează același final după login-ul configurat;
   configurația din repository îl ține implicit `SKIP`, dar opt-in-ul cu fixture
   seeded distinct a fost verificat live până la purchase confirmation. Setup-ul
@@ -245,7 +266,9 @@ Scurtarea composition root-urilor nu scurtează journey-ul de purchase:
 <details>
 <summary><strong>Legendă — rezultate E2E și structură test-kit</strong></summary>
 
-- guest purchase poate publica `PASS` sau `WARNING` pentru ramuri guest
+- guest purchase poate publica `PASS` sau `WARNING` pentru ramuri guest;
+  semnalele cunoscute rămân în network inspector și influențează verdictul
+  scenariului, fără a deveni pași Gherkin sintetici
   cunoscute și auditabile;
 - authenticated purchase poate publica `PASS` sau `WARNING` pentru semnale
   externe declarate; diagnosticul necunoscut rămâne `FAIL`;
@@ -359,7 +382,7 @@ practiceShop:
   screenshotOnFailure: true
   productName: "<configured-product>"
   productPath: auto
-  accountFile: "<external-account-properties>"
+  accountFile: atf-test-practice-shop/src/test/resources/practice-software-testing-account.properties
   checkout:
     quantity: 1
     guest:
@@ -383,7 +406,7 @@ practiceShop:
 | `api.precondition` | `anonymous` sau `authenticated`; authenticated E2E nu pornește fără precondiția potrivită |
 | `productPath` | `auto` acceptă numai ruta `/product/*`; o rută exactă e fail-fast dacă nu există |
 | `screenshotOnFailure` | switch legacy mapat de `PracticeShopScreenshotPolicy` la `ReportEvidenceProfile`: `true` → `EACH_CHECKPOINT`, `false` → `FAILURE_ONLY`; providerul Playwright este apelat numai când policy permite captura |
-| `accountFile` | cale configurabilă pentru setup autentificat; existența fișierului nu validează contul în mediul live și credentialele nu sunt copiate în evidence |
+| `accountFile` | fixture sintetic owned în `src/test/resources`; căile externe sunt respinse; disponibilitatea nu dovedește autentificarea live și credentialele nu ajung în evidence |
 
 Reguli de configurare:
 
@@ -502,7 +525,7 @@ Rutele live sunt grupate pe intenție, nu repetate în fiecare test:
 | auth | `POST /users/login`, `GET /users/me` |
 | catalog | `GET /products/search`, `GET /products/{id}`, `GET /categories` |
 | cart | `POST /carts`, `GET /carts/{id}`, update quantity, remove product |
-| checkout | `GET /postcode-lookup`, `POST /payment/check` |
+| checkout | `GET /postcode-lookup`, `POST /payment/check`, `POST /invoices/guest` |
 
 </details>
 

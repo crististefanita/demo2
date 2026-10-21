@@ -86,6 +86,7 @@ public record PracticeShopConfiguration(
     }
 
     public boolean accountConfigured() {
+        if (!accountPolicy().accepts(accountFile)) return false;
         if (!java.nio.file.Files.isRegularFile(accountFile)) return false;
         try {
             return PracticeShopCredentials.load(accountFile).hasLiveAccountCandidate();
@@ -97,6 +98,11 @@ public record PracticeShopConfiguration(
 
     public boolean authenticatedE2eAllowed() {
         return authenticatedE2eEnabled && accountConfigured();
+    }
+
+    /** The module-owned synthetic fixture is the only supported live-auth source. */
+    public PracticeShopAccountFixturePolicy accountPolicy() {
+        return PracticeShopAccountFixturePolicy.SOURCE_TEST_RESOURCE;
     }
 
     public URI uri(String path) {

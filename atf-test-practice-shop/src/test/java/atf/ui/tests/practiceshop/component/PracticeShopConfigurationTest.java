@@ -1,12 +1,13 @@
 package atf.ui.tests.practiceshop.component;
 
 import atf.api.testkit.AtfComponentTest;
-import atf.ui.practiceshop.config.PracticeShopConfigurationLoader;
+import atf.ui.practiceshop.config.PracticeShopAccountFixturePolicy;
+import atf.ui.practiceshop.config.PracticeShopApiCheckpoint;
 import atf.ui.practiceshop.config.PracticeShopApiConfiguration;
 import atf.ui.practiceshop.config.PracticeShopApiPrecondition;
-import atf.ui.practiceshop.config.PracticeShopApiCheckpoint;
-import atf.ui.practiceshop.config.PracticeShopValidationProfile;
+import atf.ui.practiceshop.config.PracticeShopConfigurationLoader;
 import atf.ui.practiceshop.config.PracticeShopReportConfiguration;
+import atf.ui.practiceshop.config.PracticeShopValidationProfile;
 import atf.ui.practiceshop.routes.PracticeShopUiRoutes;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -16,13 +17,13 @@ import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @AtfComponentTest
 class PracticeShopConfigurationTest {
     @Test
-    void yamlDefinesExternalJourneyAndDefaultsCredentialsOutsideSourceResources() {
+    void yamlDefinesOwnedJourneyAndSyntheticFixtureInSourceResources() {
         var configuration = PracticeShopConfigurationLoader.load();
 
         assertTrue(configuration.baseUrl().isAbsolute());
@@ -41,18 +42,22 @@ class PracticeShopConfigurationTest {
         assertFalse(configuration.browser().retryPolicy().enabled());
         assertEquals(PracticeShopValidationProfile.UI_API, configuration.validationProfile());
         assertTrue(configuration.api().authenticatedPrecondition());
-        assertEquals(4, configuration.api().evidenceBinding().checkpoints().size());
+        assertEquals(5, configuration.api().evidenceBinding().checkpoints().size());
         assertTrue(configuration.api().evidenceBinding().includes(PracticeShopApiCheckpoint.PRODUCT));
         assertTrue(configuration.api().evidenceBinding().includes(PracticeShopApiCheckpoint.PAYMENT));
+        assertTrue(configuration.api().evidenceBinding().includes(PracticeShopApiCheckpoint.ORDER));
         assertTrue(configuration.uiReportDirectory().toString().endsWith("artifacts\\reports\\ui"));
         assertTrue(configuration.apiReportDirectory().toString().endsWith("artifacts\\reports\\api"));
         assertFalse(configuration.uiReportDirectory().equals(configuration.apiReportDirectory()));
         assertFalse(configuration.authenticatedE2eEnabled());
         assertFalse(configuration.authenticatedE2eAllowed());
+        assertEquals(PracticeShopAccountFixturePolicy.SOURCE_TEST_RESOURCE, configuration.accountPolicy());
+        assertTrue(configuration.accountPolicy().expectedEvidence().contains("synthetic source"));
+        assertTrue(configuration.accountConfigured());
         assertEquals(PracticeShopReportConfiguration.DEFAULT_SYSTEM_BODY_PREVIEW_CHARACTERS,
                 configuration.reporting().systemBodyPreviewCharacters());
-        assertEquals("target", configuration.accountFile().getParent().getFileName().toString(),
-                "credentials must default outside tracked source resources");
+        assertEquals("resources", configuration.accountFile().getParent().getFileName().toString(),
+                "the authenticated fixture is intentionally owned by test resources");
         assertEquals("practice-software-testing-account.properties",
                 configuration.accountFile().getFileName().toString());
     }
@@ -80,32 +85,49 @@ class PracticeShopConfigurationTest {
     }
 
     @Test
-    void authenticatedGateRequiresReadableNonReservedAccountCandidate(@TempDir Path temp) throws Exception {
+    void authenticatedGateRequiresReadableSourceFixture(@TempDir Path temp) throws Exception {
         var base = configuration();
-        Path example = temp.resolve("example.properties");
-        Files.writeString(example, "email=customer@example.com\npassword=secret\n");
-        Path externalCandidate = temp.resolve("external.properties");
-        Files.writeString(externalCandidate,
+        Path nonFixture = temp.resolve("external.properties");
+        Files.writeString(nonFixture,
+                "email=customer@practicesoftwaretesting.com\npassword=secret\n");
+        Path sourceFixture = temp.resolve("src/test/resources/account.properties");
+        Files.createDirectories(sourceFixture.getParent());
+        Files.writeString(sourceFixture,
                 "email=customer@practicesoftwaretesting.com\npassword=secret\n");
 
-        assertFalse(withAccountFile(base, example).authenticatedE2eAllowed());
-        assertTrue(withAccountFile(base, externalCandidate).authenticatedE2eAllowed());
+        assertFalse(withAccountFile(base, nonFixture).authenticatedE2eAllowed());
+        assertTrue(withAccountFile(base, sourceFixture).authenticatedE2eAllowed());
     }
 
     @Test
-    void rejectsAccountFilesInsideSourceTestResources(@TempDir Path temp) {
+    void rejectsAnExternalAccountOverride(@TempDir Path temp) {
         String property = "atf.practice.account-file";
         String previous = System.getProperty(property);
-        System.setProperty(property, temp.resolve("src/test/resources/account.properties").toString());
+        System.setProperty(property, temp.resolve("external.properties").toString());
         try {
             IllegalStateException failure = assertThrows(IllegalStateException.class,
                     PracticeShopConfigurationLoader::load);
             assertTrue(failure.getCause() instanceof IllegalArgumentException);
-            assertTrue(failure.getCause().getMessage().contains("source test resources"));
+            assertTrue(failure.getCause().getMessage().contains("src/test/resources"));
         } finally {
             if (previous == null) System.clearProperty(property);
             else System.setProperty(property, previous);
         }
+    }
+
+    @Test
+    void directConfigurationAcceptsTheOwnedSourceResourceFixture(@TempDir Path temp) throws Exception {
+        var base = configuration();
+        Path sourceFixture = temp.resolve("src/test/resources/account.properties");
+        Files.createDirectories(sourceFixture.getParent());
+        Files.writeString(sourceFixture,
+                "email=customer@practicesoftwaretesting.com\npassword=secret\n");
+
+        var configured = withAccountFile(base, sourceFixture);
+
+        assertTrue(configured.accountConfigured(),
+                "the typed direct configuration must honor the same source fixture policy");
+        assertTrue(configured.authenticatedE2eAllowed());
     }
 
     @Test
@@ -125,5 +147,3 @@ class PracticeShopConfigurationTest {
                 base.validationProfile(), base.api(), base.uiReportDirectory(), base.apiReportDirectory(), true);
     }
 }
-
-

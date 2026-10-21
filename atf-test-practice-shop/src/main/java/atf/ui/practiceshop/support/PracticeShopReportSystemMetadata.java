@@ -18,14 +18,28 @@ public final class PracticeShopReportSystemMetadata {
     }
 
     public static Map<String, String> from(PracticeShopConfiguration configuration) {
-        return from(configuration, ReportingSettings.defaults());
+        return snapshot(configuration).systemDisplayValues();
     }
 
     /** Builds the allowlisted form consumed by the reporting composition root. */
+    public static ReportEnvironmentSnapshot snapshot(PracticeShopConfiguration configuration) {
+        if (configuration == null) return ReportEnvironmentSnapshot.empty();
+        return snapshotValues(configuration).build();
+    }
+
+    /**
+     * Compatibility overload for composition roots that also own generic
+     * reporting settings. The System preview is deliberately read only from
+     * the consumer policy, never from the Request/Response JSON limit.
+     */
     public static ReportEnvironmentSnapshot snapshot(PracticeShopConfiguration configuration,
                                                      ReportingSettings reportingSettings) {
-        if (configuration == null) return ReportEnvironmentSnapshot.empty();
         if (reportingSettings == null) throw new NullPointerException("reportingSettings");
+        return snapshot(configuration);
+    }
+
+    private static ReportEnvironmentSnapshot.Builder snapshotValues(
+            PracticeShopConfiguration configuration) {
         return ReportEnvironmentSnapshot.builder()
                 .put(ReportEnvironmentField.ENVIRONMENT,
                         System.getProperty(ENVIRONMENT_PROPERTY, "LOCAL"))
@@ -74,14 +88,13 @@ public final class PracticeShopReportSystemMetadata {
                                 ? "Live HTTP evidence when observed"
                                 : "Fixture transport boundary")
                 .put(ReportEnvironmentField.REPORTING,
-                        "Extent offline HTML · UI/API output roles separated")
-                .build();
+                        "Extent offline HTML · UI/API output roles separated");
     }
 
     /**
-     * Builds the consumer snapshot with the effective reporting body bound.
-     * The overload keeps the pure component contract convenient while the E2E
-     * composition root can publish the exact value loaded from {@code atf.yaml}.
+     * Builds the consumer snapshot with the System preview policy bound.
+     * The overload keeps the pure component contract convenient while generic
+     * Request/Response JSON settings remain owned by {@code atf-reporting}.
      */
     public static Map<String, String> from(PracticeShopConfiguration configuration,
                                            ReportingSettings reportingSettings) {

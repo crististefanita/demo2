@@ -58,8 +58,10 @@ public enum PracticeShopControl {
     STATE("billing state input"),
     BILLING_PROCEED("billing proceed button"),
     PAYMENT_METHOD("payment method select"),
-    FINISH("payment finish button"),
+    PAYMENT_CHECK("payment check button"),
     PAYMENT_SUCCESS("payment success message"),
+    CONFIRM_ORDER("confirm order button"),
+    ORDER_CONFIRMATION("order confirmation"),
     ACCOUNT_MARKER("account marker");
 
     private final String label;

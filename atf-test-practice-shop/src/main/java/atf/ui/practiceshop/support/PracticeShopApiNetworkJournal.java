@@ -6,6 +6,7 @@ import atf.api.reporting.api.ReportRequestSignature;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.core.http.request.HttpMethod;
 import atf.ui.practiceshop.api.PracticeShopApiOperation;
+import atf.ui.practiceshop.api.PracticeShopApiHttpStatus;
 import atf.ui.practiceshop.api.PracticeShopApiAuthType;
 import atf.ui.practiceshop.api.PracticeShopApiRequestFactory;
 import atf.ui.practiceshop.api.PracticeShopApiRoutes;
@@ -228,6 +229,16 @@ public final class PracticeShopApiNetworkJournal {
         return PracticeShopApiAssertions.payment(payment, paymentMethod);
     }
 
+    /** API confirmation for the order created by the final UI confirmation action. */
+    public List<AtfAssertion> orderCreated(String uiConfirmation) {
+        if (!enabled(PracticeShopApiCheckpoint.ORDER)) return List.of();
+        Exchange order = PracticeShopApiExchangeSelector.latest(
+                exchanges, PracticeShopApiOperation.ORDER_CREATE,
+                exchange -> PracticeShopApiHttpStatus.isSuccess(exchange.status()));
+        store(PracticeShopApiCheckpoint.ORDER, List.of(toEvidence(order)));
+        return PracticeShopApiAssertions.order(order, uiConfirmation);
+    }
+
     public List<Exchange> exchanges() { return List.copyOf(exchanges); }
     /** Returns the complete ordered browser network trace for the journey-level inspector. */
     public List<ReportExecutionEvidence> allEvidence() {
@@ -307,7 +318,9 @@ public final class PracticeShopApiNetworkJournal {
                 || path.startsWith(PracticeShopApiRoutes.PRODUCTS)) return "catalog";
         if (path.startsWith(PracticeShopApiRoutes.CARTS)) return "cart";
         if (path.startsWith(PracticeShopApiRoutes.PAYMENT_CHECK)
-                || path.startsWith(PracticeShopApiRoutes.POSTCODE_LOOKUP)) return "checkout";
+                || path.startsWith(PracticeShopApiRoutes.POSTCODE_LOOKUP)
+                || path.equals(PracticeShopApiRoutes.INVOICE_CREATE)
+                || path.equals(PracticeShopApiRoutes.GUEST_INVOICE_CREATE)) return "checkout";
         return "unknown";
     }
 

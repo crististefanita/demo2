@@ -20,9 +20,10 @@ class PracticeShopApiEvidenceBindingTest {
         var all = PracticeShopApiEvidenceBinding.forProfile(PracticeShopValidationProfile.UI_API, null);
         var none = PracticeShopApiEvidenceBinding.forProfile(PracticeShopValidationProfile.UI_ONLY, null);
 
-        assertEquals("cart, login, payment, product", all.displayValue());
+        assertEquals("cart, login, order, payment, product", all.displayValue());
         assertTrue(all.includes(PracticeShopApiCheckpoint.PRODUCT));
         assertTrue(all.includes(PracticeShopApiCheckpoint.PAYMENT));
+        assertTrue(all.includes(PracticeShopApiCheckpoint.ORDER));
         assertFalse(none.includes(PracticeShopApiCheckpoint.PRODUCT));
         assertEquals("", none.displayValue());
     }

@@ -18,7 +18,7 @@ class PracticeShopPurchaseE2eTest {
     @DisplayName("Configured guest can complete a demo purchase")
     void configuredGuestCanCompletePurchase(PracticeShopE2eTestSupport.E2eHarness harness) {
         harness.run("Purchase flow",
-                "the configured guest adds a product, completes billing and confirms payment", journey -> {
+                "the configured guest adds a product, completes billing and confirms the order", journey -> {
                     new PracticeShopPurchaseFlow(journey.locators()).purchaseConfiguredProduct(
                             journey.page(), journey.actions(), journey.configuration(),
                             journey::checkpoint, journey.apiNetwork());

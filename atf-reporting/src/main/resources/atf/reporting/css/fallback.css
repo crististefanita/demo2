@@ -164,6 +164,15 @@ summary {
   display: flex;
   align-items: center;
 }
+.atf-secondary-body.network-aggregate-scroll {
+  height: var(--atf-table-scroll-height);
+  max-height: var(--atf-table-scroll-height);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  box-sizing: border-box;
+}
 .atf-ui-action-table-wrap,
 .atf-validation-table-wrap {
   max-height: var(--atf-table-scroll-height);

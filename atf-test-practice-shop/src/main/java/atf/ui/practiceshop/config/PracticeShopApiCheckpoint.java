@@ -11,7 +11,8 @@ public enum PracticeShopApiCheckpoint {
     PRODUCT("product"),
     LOGIN("login"),
     CART("cart"),
-    PAYMENT("payment");
+    PAYMENT("payment"),
+    ORDER("order");
 
     private final String key;
 
@@ -31,6 +32,6 @@ public enum PracticeShopApiCheckpoint {
             }
         }
         throw new IllegalArgumentException("Unsupported Practice Shop API evidence checkpoint: " + value
-                + ". Expected product, login, cart or payment");
+                + ". Expected product, login, cart, payment or order");
     }
 }

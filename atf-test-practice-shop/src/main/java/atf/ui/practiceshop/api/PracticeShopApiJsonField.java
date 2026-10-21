@@ -14,6 +14,8 @@ public enum PracticeShopApiJsonField {
     CATEGORY("category"),
     IN_STOCK("in_stock"),
     MESSAGE("message"),
+    INVOICE_NUMBER("invoice_number"),
+    TOTAL("total"),
     RESULT("result"),
     POSTCODE("postcode"),
     CART_ITEMS("cart_items"),

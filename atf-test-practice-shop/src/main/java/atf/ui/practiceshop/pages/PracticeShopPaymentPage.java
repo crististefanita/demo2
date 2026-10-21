@@ -10,7 +10,7 @@ import com.microsoft.playwright.Page;
 
 /** Payment page object; the demo payment method is configuration, not a test literal. */
 @PracticeShopPageContract(screen = PracticeShopScreen.PAYMENT, route = PracticeShopUiRoutes.CHECKOUT,
-        requiredControls = {PracticeShopControl.PAYMENT_METHOD, PracticeShopControl.FINISH})
+        requiredControls = {PracticeShopControl.PAYMENT_METHOD, PracticeShopControl.PAYMENT_CHECK})
 public final class PracticeShopPaymentPage {
     private final Page page;
     private final PracticeShopLocators locators;
@@ -31,8 +31,8 @@ public final class PracticeShopPaymentPage {
                 "selected payment method is observed");
     }
 
-    public String confirm() {
-        actions.click(locators.finish(page), "payment is confirmed");
+    public String checkPayment() {
+        actions.click(locators.paymentCheck(page), "configured payment method is checked");
         actions.waitForText(page, locators.paymentSuccess(page), "Payment was successful",
                 "payment success confirmation is displayed");
         return actions.expectText(locators.paymentSuccess(page), "Payment was successful");

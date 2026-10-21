@@ -64,10 +64,11 @@ Direcția este intenționată:
 | `ValidationTable` | agregă assertions într-o singură colecție | layout-ul tabelului |
 | `ResponseContractReporter` | leagă evaluarea de `ValidationSink` | implementarea sink-ului |
 | `SchemaResourceResolver` | rezolvă schema din rădăcini declarate fără traversal | filesystem global sau raportare |
-| `AiEvaluationCase` + `AiFieldExpectation` | expected versionat, independent de output, cu reguli typed | apelarea unui model, grounding sau business rules |
+| `AiEvaluationCase` + `AiFieldExpectation` | expected versionat, independent de output; fiecare field poate declara o cerință typed de grounding | apelarea unui model, output-ul observat sau decizia consumerului asupra expected-ului business |
 | `AiEvaluationEvaluator` + `AiEvaluationPolicy` | comparații typed, score ponderat, threshold explicit și hard-fail critic | provider AI, renderer sau workflow review |
 | `AiInvocationEvidence` | clasifică real/mock/fallback/unknown și păstrează referințe opace request/response/output | payload, prompt, token, credential sau invocation efectivă |
-| `AiEvaluationSnapshot` + `AiFieldComparison` | snapshot complet cu policy, timestamp, verdict și hard-fails cu expected/observed/reason/evidence reference | grounding per field, evidence ledger și proiecție raport |
+| `ai.grounding`: `AiGroundingRequirement`, `AiSourceReference`, `AiGroundingObservation` | allowlist de source IDs și verdict per field fără a copia payload-ul sursei | ambiguitate/run-level ledger sau reporting |
+| `AiEvaluationSnapshot` + `AiFieldComparison` | snapshot immutable `COMPLETE` cu policy, timestamp, invocation, comparații, observații de grounding și hard-fails cu expected/observed/reason/evidence reference | run-level evidence ledger și proiecție raport |
 
 `ResponseContract` nu mai conține mecanica fiecărei reguli. `ResponseContractRuleSet`
 producește definiții compozabile (`identity`, `title`, `ResponseValidationRule`),
@@ -162,7 +163,8 @@ Evaluarea AI este un increment separat în pachetul `atf.api.validation.ai`:
 - evaluează output furnizat de consumer; nu face invocation;
 - numai `REAL_AI` cu referințe complete poate primi quality score;
 - mock, fallback și unknown permit testarea comparatorului, fără AI quality score;
-- grounding per câmp și evidence ledger sunt încă deschise;
+- grounding per câmp este implementat și testat; run-level evidence ledger,
+  corelarea lifecycle-ului și proiecția de raport sunt încă deschise;
 - limitele și criteriile de închidere sunt în
   [`README_AI_Evaluation.md`](../docs/feedback/README_AI_Evaluation.md).
 

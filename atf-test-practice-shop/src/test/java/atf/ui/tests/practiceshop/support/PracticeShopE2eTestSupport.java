@@ -152,13 +152,8 @@ public final class PracticeShopE2eTestSupport {
             PracticeShopRuntimeDiagnostics diagnostics = runtimeDiagnostics();
             var warnings = diagnostics.expectedGuestWarnings();
             diagnostics.assertClean();
-            var expected = diagnostics.structuredDiagnostics().stream()
-                    .filter(PracticeShopRuntimeDiagnostics::isExpectedGuestSignal).toList();
-            if (!expected.isEmpty()) {
-                scenario.warningDiagnostics("known guest API/runtime branch is visible as a warning",
-                        diagnostics.expectedGuestWarningTarget(),
-                        PracticeShopRuntimeDiagnostics.toNetworkDiagnostics(expected));
-            }
+            // Expected guest signals remain in the network-inspector diagnostics and
+            // affect the scenario status; they are not synthetic business/Gherkin steps.
             scenario.complete(warnings.isEmpty() ? AtfReportStatus.PASS : AtfReportStatus.WARNING);
         }
 

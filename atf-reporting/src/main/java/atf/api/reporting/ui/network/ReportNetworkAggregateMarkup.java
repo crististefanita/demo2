@@ -158,7 +158,8 @@ public final class ReportNetworkAggregateMarkup {
     }
 
     private static String signatureCards(List<ReportNetworkInspector.SignatureObservation> signatures) {
-        StringBuilder html = new StringBuilder(open("atf-secondary-body network-signature-list"));
+        StringBuilder html = new StringBuilder(open(
+                "atf-secondary-body network-aggregate-scroll network-signature-list"));
         for (var item : signatures) {
             html.append(open("atf-secondary-metric network-signature-card"));
             html.append(open("network-signature-heading"));
@@ -184,7 +185,8 @@ public final class ReportNetworkAggregateMarkup {
     }
 
     private static String diagnosticCards(List<ReportNetworkInspector.DiagnosticObservation> diagnostics) {
-        StringBuilder html = new StringBuilder(open("atf-secondary-body network-diagnostic-list"));
+        StringBuilder html = new StringBuilder(open(
+                "atf-secondary-body network-aggregate-scroll network-diagnostic-list"));
         for (var item : diagnostics) {
             html.append(open("atf-secondary-metric network-diagnostic-card"));
             html.append(open("network-diagnostic-heading"));

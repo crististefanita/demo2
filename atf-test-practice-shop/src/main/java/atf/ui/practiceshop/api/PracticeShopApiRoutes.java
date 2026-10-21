@@ -14,6 +14,8 @@ public final class PracticeShopApiRoutes {
     public static final String CATEGORIES = "/categories";
     public static final String POSTCODE_LOOKUP = "/postcode-lookup";
     public static final String PAYMENT_CHECK = "/payment/check";
+    public static final String INVOICE_CREATE = "/invoices";
+    public static final String GUEST_INVOICE_CREATE = INVOICE_CREATE + "/guest";
 
     private PracticeShopApiRoutes() { }
 

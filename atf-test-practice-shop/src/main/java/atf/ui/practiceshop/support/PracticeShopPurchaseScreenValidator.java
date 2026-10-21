@@ -59,12 +59,16 @@ public final class PracticeShopPurchaseScreenValidator {
 
     public List<AtfAssertion> payment(Page page) {
         return concat(
-                components.rendered(page, PracticeShopControl.PAYMENT_METHOD, PracticeShopControl.FINISH),
-                components.interactive(page, PracticeShopControl.PAYMENT_METHOD, PracticeShopControl.FINISH));
+                components.rendered(page, PracticeShopControl.PAYMENT_METHOD, PracticeShopControl.PAYMENT_CHECK),
+                components.interactive(page, PracticeShopControl.PAYMENT_METHOD, PracticeShopControl.PAYMENT_CHECK));
     }
 
-    public List<AtfAssertion> confirmation(Page page) {
+    public List<AtfAssertion> paymentChecked(Page page) {
         return List.of(components.rendered(page, PracticeShopControl.PAYMENT_SUCCESS));
+    }
+
+    public List<AtfAssertion> orderConfirmation(Page page) {
+        return List.of(components.rendered(page, PracticeShopControl.ORDER_CONFIRMATION));
     }
 
     @SafeVarargs

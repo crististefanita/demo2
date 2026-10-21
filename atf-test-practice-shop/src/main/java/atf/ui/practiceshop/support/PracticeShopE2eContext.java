@@ -104,7 +104,7 @@ public final class PracticeShopE2eContext implements AutoCloseable {
                 reportClass, "atf.ui.tests.practiceshop",
                 overview, List.of("ui", "e2e", "external", "practice-shop"));
         var setup = scenario.startPhase("SETUP");
-        List<AtfAssertion> setupAssertions = setupAssertions();
+        List<AtfAssertion> setupAssertions = setupAssertions(configuration);
         AtfReportStatus setupStatus = setupAssertions.stream().allMatch(AtfAssertion::passed)
                 ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
         boolean authenticated = configuration.authenticatedE2eAllowed();
@@ -112,19 +112,24 @@ public final class PracticeShopE2eContext implements AutoCloseable {
                 authenticated
                         ? "the pre-registered Practice Shop account fixture is loaded"
                         : "the typed guest checkout configuration is ready",
-                authenticated ? "practice-software-testing-account.properties" : "YAML checkout inputs",
+                authenticated ? configuration.accountPolicy().evidenceTarget() : "YAML checkout inputs",
                 setupAssertions, setupStatus);
         setup.complete(setupStatus);
         return new Scenario(scenario, title);
     }
 
-    private List<AtfAssertion> setupAssertions() {
+    static List<AtfAssertion> setupAssertions(PracticeShopConfiguration configuration) {
         boolean accountConfigured = configuration.accountConfigured();
         boolean authenticated = configuration.authenticatedE2eAllowed();
         String selectedMode = authenticated ? "authenticated" : "guest";
         String expectedMode = configuration.authenticatedE2eEnabled() && accountConfigured
                 ? "authenticated" : "guest";
         String profile = configuration.validationProfile().name().toLowerCase().replace('_', '-');
+        var accountPolicy = configuration.accountPolicy();
+        boolean policyAccepted = accountPolicy.accepts(configuration.accountFile());
+        String observedPolicy = policyAccepted
+                ? accountPolicy.displayName() + "; credentials redacted"
+                : "fixture path outside module-owned src/test/resources";
         return List.of(
                 new AtfAssertion("Checkout mode", expectedMode + " checkout is selected",
                         selectedMode + " checkout; authenticatedE2eEnabled="
@@ -135,8 +140,12 @@ public final class PracticeShopE2eContext implements AutoCloseable {
                         authenticated ? "pre-registered account file is available" : "not required for guest journey",
                         authenticated
                                 ? (accountConfigured ? "account file available; credentials redacted" : "account file missing")
-                                : "guest journey; account file optional",
+                                : accountPolicy.observedEvidence(accountConfigured, false),
                         !authenticated || accountConfigured),
+                new AtfAssertion("Account fixture policy",
+                        accountPolicy.expectedEvidence(),
+                        observedPolicy,
+                        policyAccepted),
                 new AtfAssertion("API evidence profile", "ui-api or ui-only", profile,
                         "ui-api".equals(profile) || "ui-only".equals(profile)));
     }

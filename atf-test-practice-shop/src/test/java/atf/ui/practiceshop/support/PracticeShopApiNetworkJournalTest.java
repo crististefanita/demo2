@@ -55,6 +55,38 @@ class PracticeShopApiNetworkJournalTest {
     }
 
     @Test
+    void orderEvidenceIsSelectedOnlyAtTheFinalOrderCheckpoint() {
+        var journal = new PracticeShopApiNetworkJournal(PracticeShopValidationProfile.UI_API,
+                PracticeShopApiEvidenceBinding.fromCsv(PracticeShopValidationProfile.UI_API, "order"));
+        journal.recordCapturedExchange(exchange("POST", PracticeShopApiRoutes.GUEST_INVOICE_CREATE, "{}",
+                "{\"id\":\"order-1\",\"invoice_number\":\"INV-1\",\"total\":24.02}"));
+
+        var assertions = journal.orderCreated("Thanks for your order! Invoice INV-1");
+
+        assertTrue(assertions.stream().allMatch(assertion -> assertion.passed()));
+        assertEquals(List.of("/invoices/guest"), journal.evidence(PracticeShopApiCheckpoint.ORDER).stream()
+                .map(evidence -> evidence.request().path()).toList());
+        assertEquals("checkout", journal.evidence(PracticeShopApiCheckpoint.ORDER).getFirst()
+                .trace().phase());
+    }
+
+    @Test
+    void authenticatedOrderRouteIsSelectedByTheSameBusinessOperation() {
+        var journal = new PracticeShopApiNetworkJournal(PracticeShopValidationProfile.UI_API,
+                PracticeShopApiEvidenceBinding.fromCsv(PracticeShopValidationProfile.UI_API, "order"));
+        journal.recordCapturedExchange(exchange("POST", PracticeShopApiRoutes.INVOICE_CREATE, "{}",
+                "{\"id\":\"order-2\",\"invoice_number\":\"INV-2\",\"total\":24.02}"));
+
+        var assertions = journal.orderCreated("Thanks for your order! Invoice INV-2");
+
+        assertTrue(assertions.stream().allMatch(assertion -> assertion.passed()));
+        assertEquals(List.of(PracticeShopApiRoutes.INVOICE_CREATE), journal.evidence(PracticeShopApiCheckpoint.ORDER).stream()
+                .map(evidence -> evidence.request().path()).toList());
+        assertEquals("checkout", journal.evidence(PracticeShopApiCheckpoint.ORDER).getFirst()
+                .trace().phase());
+    }
+
+    @Test
     void genericInspectorAuthClassificationSurvivesTheConsumerEvidenceAdapter() {
         var exchange = exchange("GET", "/orders", "", "{}")
                 .withObservedAuthMethod("bearer");

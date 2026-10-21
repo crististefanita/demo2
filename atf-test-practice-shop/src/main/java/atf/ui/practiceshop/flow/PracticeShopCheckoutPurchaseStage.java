@@ -93,17 +93,32 @@ final class PracticeShopCheckoutPurchaseStage {
                         observedPaymentMethod,
                         configuration.checkout().paymentMethod().equals(observedPaymentMethod))), List.of())
                 .withAdditionalAssertions(context.purchaseScreenValidator().payment(page)));
-        String confirmation = payment.confirm();
+        String paymentConfirmation = payment.checkPayment();
         var paymentApiAssertions = context.apiNetwork().paymentConfirmed(
                 configuration.checkout().paymentMethod());
-        context.publish(context.checkpoint(AtfGherkinKeyword.THEN,
-                "payment confirmation is displayed for the completed purchase",
-                context.pageValidator().validate(page, PracticeShopConfirmationPage.class),
-                List.of(check("Payment confirmation", "Payment was successful", confirmation,
-                        confirmation.contains("Payment was successful"))),
+        context.publish(context.checkpoint(AtfGherkinKeyword.WHEN,
+                "payment check accepts the configured demo method",
+                new PracticeShopPageValidationResult(PracticeShopScreen.PAYMENT,
+                        List.of(context.pageValidator().validateVisible(page, PracticeShopControl.PAYMENT_SUCCESS))),
+                List.of(check("Payment check", "Payment was successful", paymentConfirmation,
+                        paymentConfirmation.contains("Payment was successful"))),
                 context.apiNetwork().evidence(PracticeShopApiCheckpoint.PAYMENT))
                 .withAdditionalAssertions(paymentApiAssertions)
-                .withAdditionalAssertions(context.purchaseScreenValidator().confirmation(page)));
+                .withAdditionalAssertions(context.purchaseScreenValidator().paymentChecked(page)));
+
+        PracticeShopConfirmationPage orderConfirmationPage =
+                new PracticeShopConfirmationPage(page, locators, actions);
+        String confirmation = orderConfirmationPage.confirmOrder();
+        var orderApiAssertions = context.apiNetwork().orderCreated(confirmation);
+        context.publish(context.checkpoint(AtfGherkinKeyword.THEN,
+                "order confirmation is displayed for the completed purchase",
+                context.pageValidator().validate(page, PracticeShopConfirmationPage.class),
+                List.of(check("Order confirmation", "Thanks for your order! and invoice number",
+                        confirmation, confirmation.contains("Thanks for your order!")
+                                && confirmation.contains("INV-"))),
+                context.apiNetwork().evidence(PracticeShopApiCheckpoint.ORDER))
+                .withAdditionalAssertions(orderApiAssertions)
+                .withAdditionalAssertions(context.purchaseScreenValidator().orderConfirmation(page)));
         return new PracticeShopPurchaseFlow.PurchaseResult(line.productName(), line.quantity(),
                 configuration.checkout().paymentMethod(), confirmation);
     }

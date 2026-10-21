@@ -24,6 +24,8 @@ public enum PracticeShopApiOperation {
             "resolve checkout address", PracticeShopApiRoutes.POSTCODE_LOOKUP),
     PAYMENT_CHECK(HttpMethod.POST, PracticeShopApiRoutes.PAYMENT_CHECK,
             "validate payment selection", PracticeShopApiRoutes.PAYMENT_CHECK),
+    ORDER_CREATE(HttpMethod.POST, PracticeShopApiRoutes.INVOICE_CREATE,
+            "create order", PracticeShopApiRoutes.INVOICE_CREATE),
     UNKNOWN(null, "", "API request", "");
 
     private static final String OBSERVED_QUERY_METHOD = "QUERY";
@@ -68,6 +70,9 @@ public enum PracticeShopApiOperation {
         return switch (this) {
             case LOGIN, SEARCH, CART_CREATE, POSTCODE_LOOKUP, PAYMENT_CHECK ->
                     actualPath.equals(routePrefix) || actualPath.startsWith(routePrefix + "?");
+            case ORDER_CREATE -> actualPath.equals(PracticeShopApiRoutes.INVOICE_CREATE)
+                    || actualPath.equals(PracticeShopApiRoutes.GUEST_INVOICE_CREATE)
+                    || actualPath.startsWith(PracticeShopApiRoutes.INVOICE_CREATE + "?");
             case PRODUCT_DETAIL -> actualPath.startsWith(routePrefix)
                     && !actualPath.equals(PracticeShopApiRoutes.PRODUCT_COLLECTION)
                     && !actualPath.startsWith(PracticeShopApiRoutes.PRODUCT_SEARCH);

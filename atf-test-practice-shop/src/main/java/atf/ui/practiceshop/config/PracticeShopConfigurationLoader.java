@@ -22,7 +22,7 @@ import java.util.Collection;
 import java.util.stream.StreamSupport;
 import java.util.LinkedHashSet;
 
-/** YAML-first setup with explicit process overrides for local/CI account reuse. */
+/** YAML-first setup with an explicit module-owned demo account fixture. */
 public final class PracticeShopConfigurationLoader {
     public static final String RESOURCE = "atf-practice-shop.yaml";
     private static final ObjectMapper YAML = new ObjectMapper(new YAMLFactory());
@@ -52,8 +52,8 @@ public final class PracticeShopConfigurationLoader {
     }
 
     private static PracticeShopConfiguration load(InputStream stream) throws IOException {
-            Path account = Path.of(System.getProperty("user.dir", "."))
-                    .resolve("target/practice-software-testing-account.properties");
+            Path account = Path.of("atf-test-practice-shop", "src", "test", "resources",
+                    "practice-software-testing-account.properties");
             JsonNode root = YAML.readTree(stream).path("practiceShop");
             URI base = URI.create(requiredText(root, "baseUrl"));
             Path configuredAccount = accountPath(text(root, "accountFile", account.toString()));
@@ -294,14 +294,7 @@ public final class PracticeShopConfigurationLoader {
 
     private static Path accountPath(String configured) {
         Path path = resolvePath(configured);
-        for (int index = 0; index + 2 < path.getNameCount(); index++) {
-            if (path.getName(index).toString().equalsIgnoreCase("src")
-                    && path.getName(index + 1).toString().equalsIgnoreCase("test")
-                    && path.getName(index + 2).toString().equalsIgnoreCase("resources")) {
-                throw new IllegalArgumentException("Practice Shop account files must be external; "
-                        + "source test resources cannot contain account credentials");
-            }
-        }
+        PracticeShopAccountFixturePolicy.SOURCE_TEST_RESOURCE.validate(path);
         return path;
     }
 

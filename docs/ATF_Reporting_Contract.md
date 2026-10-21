@@ -25,6 +25,12 @@
   (`UI journey precondition`) aparține tot suprafeței `Tests`, nu allowlist-ului
   System; `Precondition` din System rămâne numai un setting operațional global,
   precum modul de autentificare configurat;
+- preview-ul de body din System este metadata informativă: limita sa este
+  configurată și deținută de consumer, iar raportul afișează limita și locul
+  unde se găsește evidence-ul complet, nu conținutul body-ului. Această politică
+  este distinctă de `reporting.bodyMaxDisplayCharacters` pentru JSON-ul
+  Request/Response și de `networkInspector.maxBodyPreviewCharacters` pentru
+  observațiile de network;
 - duratele vizibile sunt operaționale și umane (`20s`, `45s`); forma ISO și cheia
   tehnică rămân cel mult în debugging colapsat.
 
@@ -318,7 +324,7 @@ Request JSON și Response JSON sunt blocuri de cod autonome. Liniile se rup sau
 se derulează în interiorul blocului; pagina nu trebuie să dobândească scroll
 orizontal din cauza unui payload. Dacă payload-ul este mic, blocul rămâne
 compact; nu se impune o înălțime mare doar pentru uniformitate.
-Conținutul publicat este limitat după redaction prin
+Body-urile JSON Request/Response sunt limitate după redaction prin
 `reporting.bodyMaxDisplayCharacters` (implicit `100`); depășirea este marcată
 cu `… [truncated; showing first N of TOTAL chars]`, iar scroll-ul intern rămâne
 activ. Valoarea `0` dezactivează limita numai pentru body preview.

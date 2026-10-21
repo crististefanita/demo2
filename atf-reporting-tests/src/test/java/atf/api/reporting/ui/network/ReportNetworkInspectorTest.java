@@ -151,6 +151,10 @@ class ReportNetworkInspectorTest {
                 () -> assertTrue(html.contains("network-signature-card")),
                 () -> assertTrue(html.contains("network-signatures")),
                 () -> assertTrue(html.contains("network-diagnostics")),
+                 () -> assertTrue(html.contains(
+                         "atf-secondary-body network-aggregate-scroll network-signature-list")),
+                 () -> assertTrue(html.contains(
+                         "atf-secondary-body network-aggregate-scroll network-diagnostic-list")),
                 () -> assertFalse(html.contains("network.aggregate.authentication")),
                 () -> assertFalse(html.contains("<details open")));
     }
