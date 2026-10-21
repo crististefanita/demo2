@@ -3,7 +3,7 @@ practiceShop:
   # paths from PracticeShopUiRoutes and resolve them through typed configuration.
   baseUrl: https://practicesoftwaretesting.com
   browser: chromium
-  headless: true
+  headless: false
   timeout: PT20S
   navigationTimeout: PT45S
   viewport:

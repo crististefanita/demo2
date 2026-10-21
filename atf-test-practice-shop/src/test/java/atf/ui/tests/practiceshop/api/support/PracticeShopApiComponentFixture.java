@@ -58,15 +58,6 @@ public final class PracticeShopApiComponentFixture {
                     invalid ? PracticeShopApiScenarioFixture.UNAUTHORIZED_BODY
                             : PracticeShopApiScenarioFixture.LOGIN_TOKEN_BODY, url);
         }
-        if (is(request, HttpMethod.GET, PracticeShopApiRoutes.CURRENT_USER)) {
-            boolean hasBearerHeader = request.headers().entrySet().stream()
-                    .anyMatch(entry -> HttpHeader.AUTHORIZATION.value().equalsIgnoreCase(entry.getKey())
-                            && entry.getValue() != null && !entry.getValue().isBlank());
-            return json(hasBearerHeader ? PracticeShopApiHttpStatus.OK
-                            : PracticeShopApiHttpStatus.UNAUTHORIZED,
-                    hasBearerHeader ? PracticeShopApiScenarioFixture.CURRENT_USER_BODY
-                            : PracticeShopApiScenarioFixture.UNAUTHORIZED_BODY, url);
-        }
         if (is(request, PracticeShopApiOperation.SEARCH, PracticeShopApiRoutes.PRODUCT_SEARCH)) {
             return json(PracticeShopApiHttpStatus.OK, PracticeShopApiScenarioFixture.PRODUCT_SEARCH_BODY, url);
         }

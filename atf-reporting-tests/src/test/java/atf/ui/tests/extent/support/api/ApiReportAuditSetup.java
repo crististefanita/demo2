@@ -40,20 +40,28 @@ public class ApiReportAuditSetup {
     public Result generate(Class<?> setupOwner, UiConfiguration configuration) {
         Objects.requireNonNull(setupOwner, "setupOwner");
         Objects.requireNonNull(configuration, "configuration");
-        return generate(setupOwner, configuration, families(setupOwner, configuration));
+        return generate(setupOwner, configuration, selection(setupOwner, configuration));
     }
 
-    /** Generates from an already resolved immutable spec without re-reading its source. */
+    /** Explicit family input is authoritative and does not re-read class annotations. */
     public Result generate(Class<?> setupOwner, UiConfiguration configuration,
                            Collection<String> selectedFamilies) {
         Objects.requireNonNull(setupOwner, "setupOwner");
         Objects.requireNonNull(configuration, "configuration");
-        List<ApiScenarioSelection> selectedTests = selectedTests(setupOwner);
-        if (!selectedTests.isEmpty()) {
-            return generateSelected(setupOwner, configuration, selectedTests);
+        return generate(setupOwner, configuration,
+                new Selection(parseFamilies(String.join(",", selectedFamilies),
+                        "UiReportAuditSpec.apiFamilies"), List.of()));
+    }
+
+    /** Generates exactly one previously resolved family or exact-test selection. */
+    public Result generate(Class<?> setupOwner, UiConfiguration configuration, Selection selection) {
+        Objects.requireNonNull(setupOwner, "setupOwner");
+        Objects.requireNonNull(configuration, "configuration");
+        Objects.requireNonNull(selection, "selection");
+        if (!selection.selectedTests().isEmpty()) {
+            return generateSelected(setupOwner, selection.families(), selection.selectedTests());
         }
-        List<String> families = parseFamilies(String.join(",", selectedFamilies),
-                "UiReportAuditSpec.apiFamilies");
+        List<String> families = selection.families();
         AtfMockTransport transport = ReportingTestResources.mockTransport();
         ApiModule api = acceptanceApi(transport);
         Path report;
@@ -72,39 +80,59 @@ public class ApiReportAuditSetup {
                 ApiScenarioManifest.from(families, transport.configuration()), List.of());
     }
 
-    /**
-     * Resolves one reusable API collection. Manual JVM selection has the
-     * highest precedence, followed by the test declaration and YAML.
-     */
+    /** Resolves one reusable API selection through the documented precedence. */
     public static List<String> families(Class<?> setupOwner, UiConfiguration configuration) {
-        List<ApiScenarioSelection> selectedTests = selectedTests(setupOwner);
-        if (!selectedTests.isEmpty()) {
-            return ApiScenarioSetupCatalog.familiesFor(selectedTests);
+        return selection(setupOwner, configuration).families();
+    }
+
+    /** Resolves one collection with explicit JVM overrides before exact tests and YAML. */
+    public static Selection selection(Class<?> setupOwner, UiConfiguration configuration) {
+        return selection(setupOwner, configuration,
+                System.getProperty(UiTestData.API_FAMILIES_PROPERTY),
+                System.getProperty(UiTestData.AUDIT_SUITE_PROPERTY));
+    }
+
+    /** Resolves a selection with explicit overrides; {@code null} means no override. */
+    public static Selection selection(Class<?> setupOwner, UiConfiguration configuration,
+                                      String familyOverride, String suiteOverride) {
+        Objects.requireNonNull(setupOwner, "setupOwner");
+        Objects.requireNonNull(configuration, "configuration");
+        if (familyOverride != null) {
+            return new Selection(parseFamilies(familyOverride, UiTestData.API_FAMILIES_PROPERTY), List.of());
         }
-        String manual = System.getProperty(UiTestData.API_FAMILIES_PROPERTY);
-        if (manual != null) return parseFamilies(manual, UiTestData.API_FAMILIES_PROPERTY);
-        String suite = System.getProperty(UiTestData.AUDIT_SUITE_PROPERTY);
-        if (suite != null && !suite.isBlank()) {
-            return parseFamilies(suiteFamilies(suite, configuration), UiTestData.AUDIT_SUITE_PROPERTY);
+        if (suiteOverride != null && !suiteOverride.isBlank()) {
+            return new Selection(parseFamilies(suiteFamilies(suiteOverride, configuration),
+                    UiTestData.AUDIT_SUITE_PROPERTY), List.of());
+        }
+        List<ApiScenarioSelection> selectedTests = declaredTests(setupOwner);
+        if (!selectedTests.isEmpty()) {
+            return new Selection(ApiScenarioSetupCatalog.familiesFor(selectedTests), selectedTests);
         }
         ApiScenarioSetup declaration = setupOwner.getAnnotation(ApiScenarioSetup.class);
         if (declaration == null || declaration.families().length == 0) {
-            return configuration.apiScenarioFamilies();
+            return new Selection(configuration.apiScenarioFamilies(), List.of());
         }
-        return parseFamilies(String.join(",", declaration.families()), "@ApiScenarioSetup.families");
+        return new Selection(parseFamilies(String.join(",", declaration.families()),
+                "@ApiScenarioSetup.families"), List.of());
     }
 
-    /** Resolves exact annotation references before any family or YAML fallback. */
+    /** Returns exact annotation tests only when no higher-precedence JVM override exists. */
     public static List<ApiScenarioSelection> selectedTests(Class<?> setupOwner) {
         Objects.requireNonNull(setupOwner, "setupOwner");
+        if (System.getProperty(UiTestData.API_FAMILIES_PROPERTY) != null) return List.of();
+        String suite = System.getProperty(UiTestData.AUDIT_SUITE_PROPERTY);
+        if (suite != null && !suite.isBlank()) return List.of();
+        return declaredTests(setupOwner);
+    }
+
+    private static List<ApiScenarioSelection> declaredTests(Class<?> setupOwner) {
         ApiScenarioSetup declaration = setupOwner.getAnnotation(ApiScenarioSetup.class);
         if (declaration == null || declaration.tests().length == 0) return List.of();
         return ApiScenarioSetupCatalog.resolve(declaration.tests());
     }
 
-    private Result generateSelected(Class<?> setupOwner, UiConfiguration configuration,
+    private Result generateSelected(Class<?> setupOwner, List<String> families,
                                     List<ApiScenarioSelection> selectedTests) {
-        List<String> families = ApiScenarioSetupCatalog.familiesFor(selectedTests);
         AtfMockTransport transport = ReportingTestResources.mockTransport();
         ApiModule api = acceptanceApi(transport);
         Path report;
@@ -176,6 +204,16 @@ public class ApiReportAuditSetup {
             families = List.copyOf(Objects.requireNonNull(families, "families"));
             manifest = Objects.requireNonNull(manifest, "manifest");
             selectedTests = List.copyOf(Objects.requireNonNull(selectedTests, "selectedTests"));
+        }
+    }
+
+    public record Selection(List<String> families, List<ApiScenarioSelection> selectedTests) {
+        public Selection {
+            families = List.copyOf(Objects.requireNonNull(families, "families"));
+            selectedTests = List.copyOf(Objects.requireNonNull(selectedTests, "selectedTests"));
+            if (families.isEmpty()) {
+                throw new IllegalArgumentException("A resolved API selection must contain a family");
+            }
         }
     }
 }

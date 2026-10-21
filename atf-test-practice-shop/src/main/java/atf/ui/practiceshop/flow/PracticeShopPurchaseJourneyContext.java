@@ -12,6 +12,7 @@ import atf.ui.practiceshop.support.PracticeShopHomeScreenValidator;
 import atf.ui.practiceshop.support.PracticeShopPageValidationResult;
 import atf.ui.practiceshop.support.PracticeShopPageValidator;
 import atf.ui.practiceshop.support.PracticeShopPurchaseCheckpoint;
+import atf.ui.practiceshop.support.PracticeShopPurchaseTraceStep;
 import atf.ui.practiceshop.support.PracticeShopPurchaseScreenValidator;
 import com.microsoft.playwright.Page;
 
@@ -69,6 +70,13 @@ final class PracticeShopPurchaseJourneyContext {
         return new PracticeShopPurchaseCheckpoint(keyword, title, validation.assertions())
                 .withAdditionalAssertions(additional)
                 .withApiEvidence(api);
+    }
+
+    PracticeShopPurchaseCheckpoint checkpoint(PracticeShopPurchaseTraceStep step,
+                                              PracticeShopPageValidationResult validation,
+                                              List<AtfAssertion> additional,
+                                              List<ReportExecutionEvidence> api) {
+        return checkpoint(step.keyword(), step.title(), validation, additional, api);
     }
 
     void publish(PracticeShopPurchaseCheckpoint checkpoint) {

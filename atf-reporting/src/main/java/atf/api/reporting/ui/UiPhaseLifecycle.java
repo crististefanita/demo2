@@ -103,6 +103,7 @@ public final class UiPhaseLifecycle implements AutoCloseable {
                           Collection<ReportNetworkInspector.Step> steps,
                           Collection<ReportNetworkInspector.Diagnostic> diagnostics) {
         ensureOpen();
+        if (isEmpty(executionEvidence) && isEmpty(diagnostics)) return;
         var request = delegate.startRequest(
                 title == null || title.isBlank() ? "API network inspector" : title.trim(),
                 "TRACE", "network");
@@ -122,6 +123,10 @@ public final class UiPhaseLifecycle implements AutoCloseable {
         } finally {
             request.close();
         }
+    }
+
+    private static boolean isEmpty(Collection<?> values) {
+        return values == null || values.isEmpty();
     }
 
     void outcome(String keyword, String title, String target, AtfReportStatus status) {

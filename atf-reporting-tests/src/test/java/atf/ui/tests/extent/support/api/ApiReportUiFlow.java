@@ -143,6 +143,7 @@ public final class ApiReportUiFlow {
                     expandCard(request);
                     expandValidationCards(request);
                     expandRequestEvidence(request);
+                    expandRequestChildren(request);
                     count++;
                 }
             }
@@ -204,6 +205,17 @@ public final class ApiReportUiFlow {
         }
     }
 
+    /** Opens renderer-owned child nodes such as the request's Network aggregate card. */
+    private void expandRequestChildren(Locator request) {
+        Locator headers = locators.nodeHeaders(request);
+        for (int index = 0; index < headers.count(); index++) {
+            Locator header = headers.nth(index);
+            if (!header.isVisible()) continue;
+            Locator child = locators.cardForNode(header);
+            if (child.isVisible()) expandCard(child);
+        }
+    }
+
     private boolean expandCard(Locator card) {
         Locator header = locators.nodeHeader(card);
         if (header.count() == 0 || !header.isVisible()
@@ -228,11 +240,15 @@ public final class ApiReportUiFlow {
     }
 
     private void expand(Locator control, atf.api.ui.playwright.AtfLocator action, String expected) {
-        if (control.count() == 0 || !control.isVisible()) return;
-        if (!"true".equals(control.getAttribute("aria-expanded"))) {
-            audit.actions().focus(action, "disclosure is focused before opening");
-            audit.actions().click(action, expected);
-            audit.actions().waitForDisclosureOpen(action.locator().page(), action,
+        if (control.count() == 0) return;
+        Locator firstControl = control.first();
+        var firstAction = new atf.api.ui.playwright.AtfLocator(action.locator().first(),
+                action.selector() + " >> nth=0");
+        if (!firstControl.isVisible()) return;
+        if (!"true".equals(firstControl.getAttribute("aria-expanded"))) {
+            audit.actions().focus(firstAction, "disclosure is focused before opening");
+            audit.actions().click(firstAction, expected);
+            audit.actions().waitForDisclosureOpen(firstAction.locator().page(), firstAction,
                     expected + " is ready");
         }
     }

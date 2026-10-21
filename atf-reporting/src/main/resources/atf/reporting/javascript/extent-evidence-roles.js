@@ -8,6 +8,8 @@ function assignNodeRoles() {
     if (!card || isScenarioCard(card)) return;
     var upper = title.toUpperCase(),
       role = '';
+    if (/^NETWORK AGGREGATE\b/.test(upper))
+      card.setAttribute('data-atf-network-aggregate', 'true');
     if (upper === 'SETUP' || upper === 'TEST BODY' || upper === 'TEARDOWN')
       role = 'phase';
     else if (

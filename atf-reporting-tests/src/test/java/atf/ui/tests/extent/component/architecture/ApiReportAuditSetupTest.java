@@ -52,6 +52,18 @@ class ApiReportAuditSetupTest {
     }
 
     @Test
+    void manualJvmFamilyOverrideTakesPrecedenceOverExactTestDeclaration() {
+        var selection = ApiReportAuditSetup.selection(
+                ApiReportSetupDeclarations.ExactPostCreate.class,
+                UiConfiguration.defaults(Path.of("target/api-setup-test")),
+                UiTestData.REQUESTS_FAMILY + "," + UiTestData.HEADERS_FAMILY, null);
+
+        assertEquals(List.of(UiTestData.REQUESTS_FAMILY, UiTestData.HEADERS_FAMILY),
+                selection.families());
+        assertEquals(List.of(), selection.selectedTests());
+    }
+
+    @Test
     void apiPreconditionMetadataIsTypedAndBoundedAtItsCompositionBoundary() {
         var snapshot = ApiReportEnvironmentSnapshotFactory.precondition(
                 ApiReportSetupDeclarations.UsersPosts.class, List.of("users", "posts"));

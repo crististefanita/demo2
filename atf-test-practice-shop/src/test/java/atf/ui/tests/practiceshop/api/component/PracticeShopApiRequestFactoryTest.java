@@ -21,7 +21,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -61,17 +60,6 @@ class PracticeShopApiRequestFactoryTest {
         assertNotNull(body);
         assertEquals(method.wireValue(),
                 body.path(PracticeShopApiJsonField.PAYMENT_METHOD.wireValue()).asText());
-    }
-
-    @Test
-    void authenticatedScreenRequestsCarryBearerButAnonymousRequestsDoNot() {
-        ApiRequest anonymous = requests.currentUser("");
-        ApiRequest authenticated = requests.currentUser(PracticeShopApiScenarioFixture.AUTH_TOKEN);
-
-        assertEquals(Map.of(), anonymous.headers());
-        assertEquals("Bearer " + PracticeShopApiScenarioFixture.AUTH_TOKEN,
-                authenticated.headers().get(HttpHeader.AUTHORIZATION.value()));
-        assertEquals(PracticeShopApiAuthProfile.BEARER.wireValue(), authenticated.authProfile());
     }
 
     @Test

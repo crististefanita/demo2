@@ -226,7 +226,7 @@ TestCase
 | UI evidence | `SETUP` este setup; `Screen validation` este în `TEST BODY` după acțiuni și observații |
 | layout | `＋/−` este inline înaintea propoziției; cele trei zone de validation sunt surori, fără `<hr>` decorativ |
 | responsive evidence | până la breakpoint-ul de lucru (`1300px`), action tables se redimensionează și împachetează conținutul fără scrollbar orizontal; padding-ul lateral al wrapperului este eliminat semantic, nu prin crop | 
-| scrollable tables | toate tabelele scrollabile folosesc `--atf-table-scroll-height`, derivat din `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT` și egal cu viewport-ul `System/Environment` (`500px` curent); header-ul rămâne sticky, iar JSON/code panes nu intră în acest contract |
+| scrollable tables | wrapper-ele folosesc `height:auto` și `max-height:var(--atf-table-scroll-height)`, derivat din `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT` (`500px` curent); short content nu rezervă spațiu gol, long content derulează sub header sticky, iar JSON/code panes nu intră în acest contract |
 | action number | fiecare acțiune afișează `#n` într-un token dedicat, `atf-ui-action-number`, compact (`inline-block`/`max-content`); nu se reutilizează clasa extensibilă `atf-ui-action-sequence` |
 | screenshot | link inline cu emoji-ul curent; payload Base64 pentru prima apariție sau referință locală bounded (`screenshot-n`) pentru o stare deduplicată; fingerprint-ul rămâne intern și nu este afișat în locul linkului |
 | action table | acțiunile relevante includ `getText`/text extraction; timpul apare numai pentru acțiuni |
@@ -261,10 +261,12 @@ UI checkpoint
 - `Execution evidence · 1 attempts` nu poate rămâne un titlu repetat fără
   context: exchange-ul trebuie identificat prin disclosure-ul părinte sau printr-un
   label semantic per exchange;
-- `Runtime diagnostic` și `API network inspector — ordered UI journey` aparțin
-  aceleiași familii vizuale de evidence tehnică: rail-ul și header-ul folosesc
-  accentul tehnic comun, iar badge-ul păstrează statusul real (`Warning`, `Pass`);
-  inspectorul nu devine astfel o validare UI și diagnosticul nu devine failure;
+- diagnosticările runtime, dacă un consumer trebuie să le expună, aparțin
+  evidence-ului tehnic și nu creează un pas Gherkin de business;
+- `API network inspector` conține numai exchange-uri API și checkpoint-urile
+  lor cauzale; erorile runtime neașteptate rămân failure evidence, nu API evidence;
+- nodurile tehnice folosesc accentul vizual comun, dar nu inventează un verdict
+  sau un status pentru un exchange;
 - copiii tehnici ai acestor noduri moștenesc aceeași familie vizuală, fără să
   primească un verdict artificial sau un card Gherkin nou;
 - proiecția UI folosește aceeași semantică și redaction policy ca raportul API
@@ -327,15 +329,22 @@ flowchart LR
 
 </details>
 
-În implementarea generică, bridge-ul publică aggregate-ul într-un singur nod
-collapsed `TRACE`, cu disclosure-uri nested pentru auth, correlation, transport,
-signatures și diagnostics. Pentru checkpoint-uri cu mai multe exchange-uri,
-pipeline-ul lower-level păstrează `API validation → Exchange → request →
-response → execution`, fără JSON duplicat; retry-ul rămâne în execution
-evidence-ul aceluiași exchange. Compoziția consumerului trebuie să atașeze
-acest validation la același nod Gherkin cu `UI validation`; dacă apare un card
-Gherkin duplicat, contractul este neconform și este urmărit în feedback-ul activ
-`REP-TRACE-03`.
+Contractul de trace se citește astfel:
+
+- bridge-ul generic publică aggregate-ul într-un singur nod collapsed `TRACE`,
+  cu disclosure-uri nested pentru auth, correlation, transport, signatures și
+  diagnostics;
+- pentru checkpoint-uri cu mai multe exchange-uri, pipeline-ul lower-level
+  păstrează `API validation → Exchange → request → response → execution`, fără
+  JSON duplicat; retry-ul rămâne în evidence-ul aceluiași exchange;
+- consumerul atașează API validation la același nod Gherkin cu `UI validation`;
+  un diagnostic runtime nu introduce o propoziție Gherkin suplimentară.
+
+Contractul este verificat de testul component
+[`keepsUiAndApiValidationUnderOneGherkinCheckpoint`](../atf-reporting-tests/src/test/java/atf/api/reporting/ui/ExtentReportUiEvidencePublishingTest.java):
+titlul Gherkin apare o singură dată, iar validările UI/API și exchange evidence
+coexistă sub acel checkpoint. Un card Gherkin duplicat este regresie a acestui
+contract, nu un ToDo activ.
 
 ## Structura producției
 
@@ -385,12 +394,19 @@ Evidence interaction/table/disclosure/stack și fallback theme folosesc aceeași
 graniță. Navigarea HTML publicată nu mai include `onclick` inline; linkurile cu
 hash sunt contractul static, iar controllerul nativ le activează prin hash.
 
-Geometria disclosure-urilor de evidence este un contract comun, nu o alegere
-per componentă: API exchange/aggregate și UI action/observations/assertions
-folosesc `AtfReportThemeTokens` pentru summary-ul `34px`, padding-ul `9px 12px`
-și line-height-ul comun în Extent și fallback. Nu se adaugă excepții înalte
-pentru o singură familie; `500px` este viewport separat pentru tabele lungi, nu
-înălțimea summary-ului.
+Geometria disclosure-urilor este un contract comun în Extent și fallback:
+summary-urile obișnuite API/UI folosesc `34px`, padding-ul `9px 12px` și
+line-height-ul comun; cele două summary-uri de agregare API (`Unique request
+signatures`, `Technical diagnostics`) folosesc excepția explicită de `68px`,
+prin `AtfReportThemeTokens.EVIDENCE_AGGREGATE_SUMMARY_HEIGHT`. Excepția este
+semantică și limitată la agregate, nu se aplică exchange-urilor sau evidence-ului
+UI.
+
+Viewport-ul tabelului este un contract separat: `TABLE_SCROLL_HEIGHT` (`500px`)
+este plafonul comun, publicat ca `--atf-table-scroll-height`. Wrapper-ele au
+`height:auto` și `max-height` comun, astfel conținutul scurt nu rezervă spațiu
+gol, iar conținutul lung derulează în interiorul aceluiași plafon. Header-ele
+rămân sticky; contractul acoperă Overview, audit, UI evidence și agregatele API.
 
 </details>
 

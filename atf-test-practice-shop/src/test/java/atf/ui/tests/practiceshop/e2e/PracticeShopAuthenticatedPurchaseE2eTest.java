@@ -31,9 +31,7 @@ class PracticeShopAuthenticatedPurchaseE2eTest {
             var credentials = PracticeShopCredentials.load(journey.configuration().accountFile());
             new PracticeShopAccountFlow(journey.locators()).loginAndAssertAccount(
                     journey.page(), journey.actions(), journey.configuration(), credentials);
-            var loginAssertions = journey.apiNetwork().loginConfirmed(credentials.displayName(),
-                    journey.configuration().api(), credentials);
-            journey.runtimeDiagnostics().markAuthenticatedSetup();
+            var loginAssertions = journey.apiNetwork().loginConfirmed(journey.configuration().api(), credentials);
             journey.checkpoint(new PracticeShopPurchaseCheckpoint(AtfGherkinKeyword.GIVEN,
                             "reusable account login establishes the authenticated checkout precondition",
                             new PracticeShopPageValidator(journey.locators())
@@ -41,6 +39,7 @@ class PracticeShopAuthenticatedPurchaseE2eTest {
                                     .assertions())
                             .withAdditionalAssertions(loginAssertions)
                             .withApiEvidence(journey.apiNetwork().evidence(PracticeShopApiCheckpoint.LOGIN)));
+            journey.authenticatedSessionEstablished();
 
             new PracticeShopPurchaseFlow(journey.locators()).purchaseConfiguredProductAuthenticated(
                     journey.page(), journey.actions(), journey.configuration(),

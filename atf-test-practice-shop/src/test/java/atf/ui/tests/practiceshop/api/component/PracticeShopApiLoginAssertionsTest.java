@@ -28,7 +28,7 @@ class PracticeShopApiLoginAssertionsTest {
                 Map.of("content-type", MediaTypes.APPLICATION_JSON), Map.of(
                 "content-type", MediaTypes.APPLICATION_JSON, "content-length", "384"));
 
-        var assertions = PracticeShopApiAssertions.login(login, null, "ATF PracticeShop");
+        var assertions = PracticeShopApiAssertions.login(login);
 
         assertTrue(assertions.stream().allMatch(assertion -> assertion.passed()),
                 () -> assertions.toString());

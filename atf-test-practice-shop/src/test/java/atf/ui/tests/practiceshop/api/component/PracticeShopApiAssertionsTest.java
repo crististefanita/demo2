@@ -48,7 +48,7 @@ class PracticeShopApiAssertionsTest {
     }
 
     @Test
-    void loginWithoutCurrentUserDoesNotPassWhenTheObservedJsonTransportIsInvalid() {
+    void loginDoesNotPassWhenTheObservedJsonTransportIsInvalid() {
         var login = exchange(HttpMethod.POST.value(), PracticeShopApiRoutes.LOGIN,
                 PracticeShopApiHttpStatus.OK,
                 "{\"email\":\"shop@example.test\",\"password\":\"secret\"}",
@@ -56,10 +56,10 @@ class PracticeShopApiAssertionsTest {
                 Map.of("content-type", atf.api.core.http.request.MediaTypes.APPLICATION_JSON,
                         "content-length", "0"));
 
-        var assertions = PracticeShopApiAssertions.login(login, null, "Practice Shop User");
+        var assertions = PracticeShopApiAssertions.login(login);
 
         assertFalse(assertions.stream().anyMatch(a ->
-                a.name().equals("API session establishment") && a.passed()));
+                a.name().equals("API login response JSON") && a.passed()));
     }
 
     @Test

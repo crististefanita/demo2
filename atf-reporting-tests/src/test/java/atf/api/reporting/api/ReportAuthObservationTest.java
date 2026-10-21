@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ReportAuthObservationTest {
     @Test
     void classifiesTypedProfileWithoutExposingCredentialValues() {
-        var request = new ReportRequest("GET", "/users/me", Map.of(),
+        var request = new ReportRequest("GET", "/session", Map.of(),
                 Map.of(), "bearer-token-profile", "");
 
         var observation = request.authObservation();

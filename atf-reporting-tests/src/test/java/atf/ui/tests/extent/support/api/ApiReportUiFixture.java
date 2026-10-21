@@ -32,10 +32,11 @@ public final class ApiReportUiFixture implements AutoCloseable {
                                           String auditSuffix, List<String> tags,
                                           String setupDescription, String failureTitle,
                                           String failureTarget) {
+        ApiReportAuditSetup.Selection selection = ApiReportAuditSetup.selection(owner, configuration);
         UiReportAuditSpec spec = UiReportAuditSpec.legacy(auditSuffix,
-                ApiReportAuditSetup.families(owner, configuration), tags,
+                selection.families(), tags,
                 setupDescription, failureTitle, failureTarget);
-        return new ApiReportUiFixture(UiReportAuditFixture.open(owner, configuration, spec));
+        return new ApiReportUiFixture(UiReportAuditFixture.open(owner, configuration, spec, selection));
     }
 
     public ApiReportAuditSetup.Result setup() { return delegate.setup(); }

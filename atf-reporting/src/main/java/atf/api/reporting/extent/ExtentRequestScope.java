@@ -10,6 +10,7 @@ import atf.api.reporting.model.ReportField;
 import atf.api.reporting.model.ReportJsonBody;
 import atf.api.reporting.model.ReportScreenshot;
 import atf.api.reporting.semantic.AtfReportSemanticRecorder;
+import atf.api.reporting.ui.network.ReportNetworkAggregateMarkup;
 import atf.api.reporting.ui.network.ReportNetworkInspector;
 
 import atf.api.reporting.ui.AtfUiActionRecord;
@@ -95,7 +96,7 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
 
     @Override public void networkAggregate(ReportNetworkInspector.JourneyAggregate aggregate) {
         networkAggregate = aggregate;
-        if (aggregate != null && networkAggregateNode == null) {
+        if (ReportNetworkAggregateMarkup.hasContent(aggregate) && networkAggregateNode == null) {
             networkAggregateNode = request.createNode(
                     "Network aggregate · " + aggregate.observations() + " exchanges");
             tree.markStarted(networkAggregateNode);

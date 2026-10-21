@@ -55,7 +55,7 @@
   background: transparent !important;
 }
 .atf-tag-scroll {
-  height: var(--atf-table-scroll-height) !important;
+  height: auto !important;
   max-height: var(--atf-table-scroll-height) !important;
   overflow-x: hidden !important;
   overflow-y: auto !important;

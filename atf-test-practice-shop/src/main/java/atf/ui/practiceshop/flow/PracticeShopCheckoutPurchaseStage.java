@@ -1,6 +1,5 @@
 package atf.ui.practiceshop.flow;
 
-import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.ui.practiceshop.config.PracticeShopScreen;
 import atf.ui.practiceshop.locators.PracticeShopControl;
 import atf.ui.practiceshop.pages.PracticeShopBillingPage;
@@ -10,6 +9,7 @@ import atf.ui.practiceshop.pages.PracticeShopGuestCheckoutPage;
 import atf.ui.practiceshop.pages.PracticeShopPaymentPage;
 import atf.ui.practiceshop.support.PracticeShopPageValidationResult;
 import atf.ui.practiceshop.config.PracticeShopApiCheckpoint;
+import atf.ui.practiceshop.support.PracticeShopPurchaseTraceStep;
 
 import java.util.List;
 import java.util.Map;
@@ -29,8 +29,7 @@ final class PracticeShopCheckoutPurchaseStage {
         cart.open(configuration);
         PracticeShopCartPage.CartLine line = cart.assertConfiguredLine(configuration);
         var cartApiAssertions = context.apiNetwork().cartReady(configuration.checkout().quantity());
-        context.publish(context.checkpoint(AtfGherkinKeyword.WHEN,
-                "cart displays the configured product with the requested quantity",
+        context.publish(context.checkpoint(PracticeShopPurchaseTraceStep.CART,
                 context.pageValidator().validateValues(page, PracticeShopCartPage.class,
                         Map.of(PracticeShopControl.CART_PRODUCT_QUANTITY,
                                 Integer.toString(configuration.checkout().quantity()))),
@@ -46,8 +45,7 @@ final class PracticeShopCheckoutPurchaseStage {
 
         if (authenticated) {
             actions.waitForVisible(locators.authenticatedProceed(page));
-            context.publish(context.checkpoint(AtfGherkinKeyword.AND,
-                    "authenticated checkout exposes the signed-in proceed action",
+            context.publish(context.checkpoint(PracticeShopPurchaseTraceStep.AUTHENTICATED_CHECKOUT,
                     new PracticeShopPageValidationResult(
                             PracticeShopScreen.AUTHENTICATED_CHECKOUT,
                             context.purchaseScreenValidator().authenticatedCheckout(page)),
@@ -57,8 +55,7 @@ final class PracticeShopCheckoutPurchaseStage {
             PracticeShopGuestCheckoutPage guest = new PracticeShopGuestCheckoutPage(page, locators, actions);
             var guestIdentity = configuration.checkout().guest();
             guest.fillIdentity(guestIdentity);
-            context.publish(context.checkpoint(AtfGherkinKeyword.AND,
-                    "guest checkout form contains the configured identity",
+            context.publish(context.checkpoint(PracticeShopPurchaseTraceStep.GUEST_CHECKOUT,
                     context.pageValidator().validateValues(page, PracticeShopGuestCheckoutPage.class, Map.of(
                             PracticeShopControl.GUEST_EMAIL, guestIdentity.email(),
                             PracticeShopControl.GUEST_FIRST_NAME, guestIdentity.firstName(),
@@ -72,9 +69,9 @@ final class PracticeShopCheckoutPurchaseStage {
         PracticeShopBillingPage billing = new PracticeShopBillingPage(page, locators, actions);
         billing.fill(configuration.checkout().billing());
         var address = configuration.checkout().billing();
-        context.publish(context.checkpoint(AtfGherkinKeyword.AND,
-                "billing form is completed with the configured address",
+        context.publish(context.checkpoint(PracticeShopPurchaseTraceStep.BILLING,
                 context.pageValidator().validateValues(page, PracticeShopBillingPage.class, Map.of(
+                        PracticeShopControl.COUNTRY, address.country(),
                         PracticeShopControl.POSTAL_CODE, address.postalCode(),
                         PracticeShopControl.HOUSE_NUMBER, address.houseNumber(),
                         PracticeShopControl.STREET, address.street(),
@@ -86,8 +83,7 @@ final class PracticeShopCheckoutPurchaseStage {
 
         PracticeShopPaymentPage payment = new PracticeShopPaymentPage(page, locators, actions);
         String observedPaymentMethod = payment.chooseMethod(configuration.checkout().paymentMethod());
-        context.publish(context.checkpoint(AtfGherkinKeyword.AND,
-                "payment form displays the configured demo method",
+        context.publish(context.checkpoint(PracticeShopPurchaseTraceStep.PAYMENT_METHOD,
                 context.pageValidator().validate(page, PracticeShopPaymentPage.class),
                 List.of(check("Payment method", configuration.checkout().paymentMethod(),
                         observedPaymentMethod,
@@ -96,8 +92,7 @@ final class PracticeShopCheckoutPurchaseStage {
         String paymentConfirmation = payment.checkPayment();
         var paymentApiAssertions = context.apiNetwork().paymentConfirmed(
                 configuration.checkout().paymentMethod());
-        context.publish(context.checkpoint(AtfGherkinKeyword.WHEN,
-                "payment check accepts the configured demo method",
+        context.publish(context.checkpoint(PracticeShopPurchaseTraceStep.PAYMENT_CHECK,
                 new PracticeShopPageValidationResult(PracticeShopScreen.PAYMENT,
                         List.of(context.pageValidator().validateVisible(page, PracticeShopControl.PAYMENT_SUCCESS))),
                 List.of(check("Payment check", "Payment was successful", paymentConfirmation,
@@ -110,8 +105,7 @@ final class PracticeShopCheckoutPurchaseStage {
                 new PracticeShopConfirmationPage(page, locators, actions);
         String confirmation = orderConfirmationPage.confirmOrder();
         var orderApiAssertions = context.apiNetwork().orderCreated(confirmation);
-        context.publish(context.checkpoint(AtfGherkinKeyword.THEN,
-                "order confirmation is displayed for the completed purchase",
+        context.publish(context.checkpoint(PracticeShopPurchaseTraceStep.ORDER_CONFIRMATION,
                 context.pageValidator().validate(page, PracticeShopConfirmationPage.class),
                 List.of(check("Order confirmation", "Thanks for your order! and invoice number",
                         confirmation, confirmation.contains("Thanks for your order!")

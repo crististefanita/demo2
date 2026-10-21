@@ -89,6 +89,20 @@ class AtfReportEvidenceCssTest {
                         "aggregate sections must use the same status lane as standard report evidence"),
                 () -> assertTrue(css.contains(".network-aggregate-sections>tbody>tr>td.details-col{padding:0!important;vertical-align:middle!important"),
                         "aggregate disclosures must align in the shared details lane"),
+                () -> assertTrue(css.contains(".card[data-atf-network-aggregate='true'] .card-body>.table{width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important}"),
+                        "Extent aggregate cards must retain a fixed two-column table at narrow viewports"),
+                () -> assertTrue(css.contains(".card[data-atf-network-aggregate='true'] .card-body>.table>tbody>tr.event-row>td:first-child{width:var(--atf-evidence-status-column-width)!important"),
+                        "Extent aggregate status cells must stay in the fixed status lane"),
+                () -> assertTrue(css.contains(".card[data-atf-network-aggregate='true'] .card-body>.table>tbody>tr.event-row>td:nth-child(2){display:none!important}"),
+                        "Extent aggregate timestamps must remain hidden without consuming a layout lane"),
+                () -> assertTrue(css.contains(".card[data-atf-network-aggregate='true'] .card-body>.table>tbody>tr.event-row>td:last-child{width:auto!important"),
+                        "Extent aggregate details must consume the remaining visible width"),
+                () -> assertTrue(css.contains("width:calc(100% - var(--atf-evidence-status-column-width))!important;min-width:calc(100% - var(--atf-evidence-status-column-width))!important"),
+                        "Extent aggregate details must keep a usable width when the browser applies the narrow breakpoint"),
+                () -> assertTrue(css.contains(".card[data-atf-network-aggregate='true'] .card-body>.table>tbody>tr.event-row{height:auto!important}"),
+                        "Extent aggregate rows must remain content-sized after responsive normalization"),
+                () -> assertTrue(css.contains("@media (max-width:700px){.test-view .test-content-detail .card[data-atf-network-aggregate='true'] .card-body>.table{table-layout:auto!important}"),
+                        "the extreme narrow breakpoint must let the aggregate header and details share the available lane"),
                 () -> assertTrue(css.contains("max-height:var(--atf-table-scroll-height)!important"),
                         "long evidence tables must use the shared System/Environment viewport"),
                 () -> assertTrue(css.contains("overflow-y:auto!important"),
@@ -190,7 +204,7 @@ class AtfReportEvidenceCssTest {
     }
 
     @Test
-    void uiAndNetworkDisclosuresShareCompactApiSummaryGeometryInBothRenderers() {
+    void aggregateDisclosuresOverrideCompactGeometryInBothRenderers() {
         String extent = AtfReportTheme.css();
         String fallback = AtfReportTheme.fallbackCss();
         CssContractSupport extentCss = CssContractSupport.of(extent);
@@ -200,8 +214,14 @@ class AtfReportEvidenceCssTest {
         assertAll(
                 () -> assertTrue(extentCss.contains(".step-detail > summary"),
                         "API exchange and aggregate disclosures must retain the shared summary contract"),
-                () -> assertTrue(extentCss.contains("height:var(--atf-evidence-summary-height)!important")),
+                () -> assertTrue(extentCss.contains("height:var(--atf-evidence-summary-height)!important"),
+                        "ordinary API/UI evidence keeps the compact 34px geometry"),
                 () -> assertTrue(extentCss.contains("padding:var(--atf-evidence-summary-padding)!important")),
+                () -> assertTrue(extentCss.contains("details.step-detail.network-signatures > summary"),
+                        "API aggregates override the more-specific compact request disclosure rule"),
+                () -> assertTrue(extentCss.contains("details.step-detail.network-diagnostics > summary")),
+                () -> assertTrue(extentCss.contains(
+                        "height:var(--atf-evidence-aggregate-summary-height)!important")),
                 () -> assertTrue(extentCss.contains("line-height:var(--atf-evidence-summary-line-height)!important")),
                 () -> assertTrue(extentCss.contains("details.atf-ui-action-sequence > summary")),
                 () -> assertTrue(extentCss.contains("details.atf-ui-observations > summary")),
@@ -213,8 +233,11 @@ class AtfReportEvidenceCssTest {
                 () -> assertTrue(fallbackCss.contains("padding:var(--atf-evidence-summary-padding)")),
                 () -> assertTrue(fallbackCss.contains(":is(.atf-ui-action-sequence,.atf-ui-observations,details.assertion-evidence,.network-signatures,.network-diagnostics)>summary"),
                         "fallback API aggregates and UI evidence must share one disclosure rule"),
+                () -> assertTrue(fallbackCss.contains(
+                        "height:var(--atf-evidence-aggregate-summary-height)")),
                 () -> assertFalse(fallback.contains("evidence-tall-summary")),
                 () -> assertTrue(tokens.contains("--atf-evidence-summary-height:34px")),
+                () -> assertTrue(tokens.contains("--atf-evidence-aggregate-summary-height:68px")),
                 () -> assertTrue(tokens.contains("--atf-evidence-summary-padding:9px 12px")));
     }
 
@@ -235,20 +258,23 @@ class AtfReportEvidenceCssTest {
 
         assertAll(
                 () -> assertTrue(theme.contains(".dashboard-view .category-container>.card>.card-body")),
-                () -> assertTrue(theme.contains("height:var(--atf-table-scroll-height)!important"),
-                        "Overview/System table bodies must use the shared viewport token"),
-                () -> assertTrue(theme.contains(".atf-tag-scroll{height:var(--atf-table-scroll-height)!important"),
-                        "tag audit tables must use the shared viewport token"),
                 () -> assertTrue(theme.contains(
-                                ".atf-secondary-body.network-aggregate-scroll{height:var(--atf-table-scroll-height)!important"),
-                        "network signature and diagnostic lists must use the shared viewport token"),
+                                ".dashboard-view .category-container>.card>.card-body,.dashboard-view .sysenv-container>.card>.card-body{height:auto!important;max-height:var(--atf-table-scroll-height)!important"),
+                        "short Overview/System tables must stay content-sized under the shared viewport cap"),
+                () -> assertTrue(theme.contains(
+                                ".atf-tag-scroll{height:auto!important;max-height:var(--atf-table-scroll-height)!important"),
+                        "short tag audit tables must stay content-sized under the shared viewport cap"),
+                () -> assertTrue(theme.contains(
+                                ".atf-secondary-body.network-aggregate-scroll{height:auto!important;max-height:var(--atf-table-scroll-height)!important"),
+                        "short network aggregate lists must stay content-sized under the shared viewport cap"),
                 () -> assertTrue(theme.contains("max-height:var(--atf-table-scroll-height)!important"),
                         "Extent action/audit/assertion tables must use the shared viewport token"),
-                () -> assertTrue(fallback.contains(".atf-ui-action-table-wrap,.atf-validation-table-wrap{max-height:var(--atf-table-scroll-height)"),
+                () -> assertTrue(fallback.contains(
+                                ".atf-ui-action-table-wrap,.atf-validation-table-wrap{max-height:var(--atf-table-scroll-height)"),
                         "fallback action and validation tables must use the shared viewport token"),
                 () -> assertTrue(fallback.contains(
-                                ".atf-secondary-body.network-aggregate-scroll{height:var(--atf-table-scroll-height)"),
-                        "fallback network lists must use the shared viewport token"),
+                                ".atf-secondary-body.network-aggregate-scroll{height:auto;max-height:var(--atf-table-scroll-height)"),
+                        "short fallback network lists must stay content-sized under the shared viewport cap"),
                 () -> assertFalse(theme.contains("height:500px!important"),
                         "the viewport must be configured through the common CSS token"),
                 () -> assertFalse(theme.contains("max-height:500px!important"),

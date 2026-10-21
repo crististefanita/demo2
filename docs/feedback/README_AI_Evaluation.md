@@ -7,6 +7,11 @@ AI-assisted care propune schimbări și AI evaluation care evaluează output-ul 
 Este destinat echipei ATF Java și stabilește contracte, dovezi și guard-uri de
 guvernanță care trebuie validate înaintea implementării.
 
+Acesta este documentul unic pentru cerințele AI și pentru feedback-ul comparativ
+derivat din ATF1 și suita .NET de referință. Nu există un al doilea contract
+normativ: secțiunile 34–42 păstrează auditul live, deciziile de adoptare,
+limitele de copiere și ordinea de implementare.
+
 - owner: ATF Java, cu validare în `atf-tests`;
 - scope: evaluare AI, creare asistată de teste și handoff auditabil;
 - out of scope: securitate, secrete, CLI și metodologia completă a ATF1;
@@ -17,6 +22,10 @@ guvernanță care trebuie validate înaintea implementării.
   rămân neimplementate.
 - verificare live (21 octombrie 2026): `AiEvaluationEvaluatorTest` — 19 teste, 0 failure,
   0 error, 0 skipped (`mvn -pl atf-validation -am "-Dtest=AiEvaluationEvaluatorTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`).
+
+Regula de integrare este chirurgicală: se preiau contracte observabile, ownership,
+deduplicare, evidence și guard-uri; nu se copiază business-ul, scorurile,
+orchestratorul runtime sau ceremonia de package/run din sursele de comparație.
 
 ## 1. Scop și limită
 

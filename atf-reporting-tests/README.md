@@ -120,13 +120,13 @@ așteptate din DOM-ul rezultat.
 | Contract | Proof component | Limită |
 |---|---|---|
 | selecția exactă și proiecția semantică | `ApiScenarioManifestTest` | verifică owner, titluri, statusuri, ordine și respinge scenarii nealese față de fallback-ul YAML |
-| precedence-ul setup-ului și fallback-urilor | `ApiReportAuditSetupTest` | verifică override-ul JVM peste declarația cu familii; comparația negativă JVM vs. `tests = ...` nu este încă directă |
-| transportul mock și lifecycle-ul | `MockApiReportIntegrationTest`, `ApiScenarioLifecycleRunnerTest` | aceste proof-uri nu formează încă un singur test de la selecția exactă până la publisher și artifact semantic |
+| precedence-ul setup-ului și fallback-urilor | `ApiReportAuditSetupTest` | verifică direct că override-ul JVM pentru familii are prioritate față de `tests = ...`, apoi verifică fallback-urile de suite, adnotare și YAML |
+| selecție exactă → mock/lifecycle → publisher | `ApiSelectionMockPublisherComponentTest` | verifică răspunsul JSON al mock-ului, request/response/execution evidence în artifact și excluderea scenariilor nealese; selecția invalidă este respinsă înainte de publicare |
 
-Limitele rămân explicite: testul direct pentru precedence-ul metodelor exacte
-față de override-ul JVM și proba compusă până la publisher/artifact semantic
-sunt încă deschise în feedback. Contractul implementat este documentat aici;
-testele existente acoperă doar fiecare ramură separat.
+Aceste proof-uri sunt complementare: manifestul verifică proiecția, resolver-ul
+verifică precedence-ul, iar testul compus dovedește verticala până la artifact.
+`SelectedApiTestsReportUiTest` rămâne separat pentru interacțiunea de browser;
+nu este folosit ca substitut pentru contractele lower-level.
 
 <details>
 <summary><strong>Niveluri de testare și independență</strong></summary>
@@ -219,22 +219,24 @@ impune maximum opt clase pe package.
 ### Responsive render gate
 
 `SelectedApiTestsReportUiTest` este entry-point-ul configurabil pentru raportul
-Extent generat. Un run de componentă verifică static vocabularul, CSS-ul și
-asset-urile; gate-ul E2E verifică raportul real la viewport-ul configurat, inclusiv
-un profil îngust. Pentru fiecare profil trebuie păstrate aceleași invariants:
+Extent generat. `CategoryCardinalityBrowserFixtureTest` este browser gate-ul
+dinamic: verifică 0/1/multe categorii și măsoară fixtures autentice UI și API
+pentru conținut scurt/lung, la viewport-ul configurat și la `591px`. Raportul de
+audit se publică prin `ReportAuditContext` / ATF Debug.
 
-- minimum șase semnături de secțiune și disclosure-uri collapsed la sosire;
-- `SETUP → TEST BODY → Screen validation`, request/response JSON și
-  `Execution evidence` expandabile;
-- glyph-ul `＋/−` inline înaintea propoziției, fără `<hr>` sau separator
-  decorativ;
-- fiecare tabel scrollabil — `System/Environment`, `Category/Overview`, tag
-  audit, Playwright actions, audit observations, assertions și API/UI evidence —
-  folosește aceeași înălțime `--atf-table-scroll-height` ca
-  `System/Environment`; tokenul este definit o singură dată în
-  `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT`, iar header-ul rămâne sticky;
-- `scrollWidth <= clientWidth`, imagini necorupte și zero console/page/request
-  diagnostics colectate de `ReportAuditContext`.
+Invarianturile browser sunt:
+
+- în toate cele șapte suprafețe (Overview categories, System/Environment, tag
+  audit, Playwright actions, Audit/Assertions, Unique request signatures,
+  Technical diagnostics), `scrollWidth <= clientWidth`, `max-height` folosește
+  plafonul comun `500px`, iar conținutul scurt rămâne natural, fără înălțime goală;
+- pentru conținut lung, ultimul rând rămâne accesibil, header-ul tabelului rămâne
+  sticky, iar viewport-ul nu depășește plafonul comun;
+- summary-urile de agregare API măsoară `68px` și sunt collapsed implicit;
+- nu apar erori browser console/page/request în rapoartele UI și API măsurate;
+- raportul păstrează secțiunile, disclosure-urile collapsed la sosire,
+  `SETUP → TEST BODY → Screen validation`, request/response JSON și glyph-ul
+  `＋/−` inline înaintea propoziției, fără `<hr>` decorativ.
 
 Artifactele sunt output de run și nu se copiază în README. Sursa `.js`/`.css`
 rămâne formatată în `atf-reporting/src/main/resources`; numai copia publicată în

@@ -98,15 +98,15 @@ class ReportNetworkInspectorTest {
 
     @Test
     void exposesTypedAggregateFactsAndDeduplicatesCrossSourceDiagnostics() {
-        var response = evidence("E5", 5, "checkout", "GET", "/users/me", 401,
+        var response = evidence("E5", 5, "checkout", "GET", "/session", 401,
                 "", "{\"message\":\"Unauthorized\"}");
         var console = new ReportNetworkInspector.Diagnostic(
-                "console", "GET", "/users/me", 401, "Unauthorized bootstrap");
+                "console", "GET", "/session", 401, "Unauthorized response");
         var network = new ReportNetworkInspector.Diagnostic(
-                "response", "GET", "/users/me", 401, "HTTP 401");
+                "response", "GET", "/session", 401, "HTTP 401");
         var aggregate = ReportNetworkInspector.aggregate(List.of(response), List.of(
-                ReportNetworkInspector.Step.from("WHEN", "guest bootstrap is observed",
-                        List.of(new AtfAssertion("Guest branch", "401", "401", true)), List.of(response))),
+                ReportNetworkInspector.Step.from("WHEN", "session response is observed",
+                        List.of(new AtfAssertion("Session response", "401", "401", true)), List.of(response))),
                 List.of(network, console));
 
         String projection = ReportNetworkInspector.fields(List.of(response), List.of(),
@@ -141,22 +141,70 @@ class ReportNetworkInspectorTest {
                 () -> assertTrue(html.contains("Network aggregate · 1 exchanges")),
                 () -> assertTrue(html.contains("Authentication evidence · 1")),
                 () -> assertTrue(html.contains("Scenario correlation · 1")),
-                () -> assertTrue(html.contains("Transport counters · 1")),
+                () -> assertTrue(html.contains("Transport counters")),
+                () -> assertFalse(html.contains("Transport counters · 1")),
                 () -> assertTrue(html.contains("Unique request signatures · 1")),
-                () -> assertTrue(html.contains("Technical diagnostics · 0")),
+                () -> assertFalse(html.contains("Technical diagnostics · 0")),
                 () -> assertTrue(html.contains("network-aggregate-sections")),
                 () -> assertTrue(html.contains("<th class=\"status-col\">Status</th><th class=\"details-col\">Details</th>")),
-                () -> assertEquals(5, html.split("network-aggregate-section-row", -1).length - 1),
-                () -> assertEquals(5, html.split("status-info", -1).length - 1),
+                () -> assertEquals(4, html.split("network-aggregate-section-row", -1).length - 1),
+                () -> assertEquals(4, html.split("status-info", -1).length - 1),
                 () -> assertTrue(html.contains("network-signature-card")),
                 () -> assertTrue(html.contains("network-signatures")),
-                () -> assertTrue(html.contains("network-diagnostics")),
+                () -> assertFalse(html.contains("network-diagnostics")),
                  () -> assertTrue(html.contains(
                          "atf-secondary-body network-aggregate-scroll network-signature-list")),
-                 () -> assertTrue(html.contains(
-                         "atf-secondary-body network-aggregate-scroll network-diagnostic-list")),
+                () -> assertFalse(html.contains(
+                        "atf-secondary-body network-aggregate-scroll network-diagnostic-list")),
                 () -> assertFalse(html.contains("network.aggregate.authentication")),
                 () -> assertFalse(html.contains("<details open")));
+    }
+
+    @Test
+    void omitsEmptyAggregateAndRendersOnlyPopulatedSections() {
+        var empty = ReportNetworkInspector.aggregate(List.of(), List.of(), List.of());
+        var diagnostic = new ReportNetworkInspector.Diagnostic(
+                "console", "", "", -1, "browser console signal");
+        var diagnosticsOnly = ReportNetworkInspector.aggregate(List.of(), List.of(), List.of(diagnostic));
+
+        String emptyDisclosure = ReportNetworkAggregateMarkup.disclosure(empty);
+        String emptyBody = ReportNetworkAggregateMarkup.substepBody(empty);
+        List<String> partialSections = ReportNetworkAggregateMarkup.substepSections(diagnosticsOnly);
+
+        assertAll(
+                () -> assertTrue(emptyDisclosure.isBlank()),
+                () -> assertTrue(emptyBody.isBlank()),
+                () -> assertTrue(ReportNetworkAggregateMarkup.substepSections(empty).isEmpty()),
+                () -> assertFalse(partialSections.isEmpty()),
+                () -> assertEquals(1, partialSections.size()),
+                () -> assertTrue(partialSections.get(0).contains("Technical diagnostics · 1")),
+                () -> assertFalse(partialSections.get(0).contains("Authentication evidence · 0")),
+                () -> assertFalse(partialSections.get(0).contains("Transport counters · 1")));
+    }
+
+    @Test
+    void rendersSevenExchangeJourneyWithConsistentNonEmptySectionLabels() {
+        int[] statuses = {200, 201, 401, 200, 201, 401, 200};
+        var exchanges = java.util.stream.IntStream.range(0, statuses.length)
+                .mapToObj(index -> evidence("J" + index, index + 1L, "journey", "GET",
+                        "/resource/" + index, statuses[index], "", "{}"))
+                .toList();
+        var steps = java.util.stream.IntStream.range(0, 11)
+                .mapToObj(index -> ReportNetworkInspector.Step.from("WHEN",
+                        "checkpoint " + (index + 1), List.of(), List.of()))
+                .toList();
+        var aggregate = ReportNetworkInspector.aggregate(exchanges, steps, List.of());
+        String html = ReportNetworkAggregateMarkup.disclosure(aggregate);
+
+        assertAll(
+                () -> assertTrue(html.contains("Network aggregate · 7 exchanges")),
+                () -> assertTrue(html.contains("Authentication evidence · 3")),
+                () -> assertTrue(html.contains("Scenario correlation · 11")),
+                () -> assertTrue(html.contains("Transport counters")),
+                () -> assertFalse(html.contains("Transport counters · 1")),
+                () -> assertTrue(html.contains("Unique request signatures · 7")),
+                () -> assertFalse(html.contains("Technical diagnostics")),
+                () -> assertEquals(4, ReportNetworkAggregateMarkup.substepSections(aggregate).size()));
     }
 
     @Test
@@ -183,6 +231,8 @@ class ReportNetworkInspectorTest {
                         .noneMatch(field -> field.name().startsWith("network.aggregate."))),
                 () -> assertTrue(html.contains("UNBOUND-1")),
                 () -> assertTrue(html.contains("UNBOUND-2")),
+                () -> assertTrue(html.contains("Technical diagnostics · 2")),
+                () -> assertTrue(html.contains("network-diagnostics")),
                 () -> assertTrue(html.contains("Unbound browser diagnostic")),
                 () -> assertFalse(html.contains("<td></td>")),
                 () -> assertFalse(html.contains("<td>-1</td>")),

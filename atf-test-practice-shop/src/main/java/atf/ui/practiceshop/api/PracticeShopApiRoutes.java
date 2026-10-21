@@ -3,7 +3,6 @@ package atf.ui.practiceshop.api;
 /** API route vocabulary observed from the Practice Shop application. */
 public final class PracticeShopApiRoutes {
     public static final String LOGIN = "/users/login";
-    public static final String CURRENT_USER = "/users/me";
     public static final String PRODUCT_SEARCH = "/products/search";
     public static final String PRODUCTS = "/products/";
     public static final String PRODUCT_COLLECTION = "/products";

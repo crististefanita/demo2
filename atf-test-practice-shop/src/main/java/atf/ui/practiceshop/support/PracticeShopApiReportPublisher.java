@@ -317,8 +317,7 @@ public final class PracticeShopApiReportPublisher {
 
     private static String phaseFor(String path) {
         if (path == null) return "unknown";
-        if (path.startsWith(PracticeShopApiRoutes.LOGIN)
-                || path.startsWith(PracticeShopApiRoutes.CURRENT_USER)) return "authentication";
+        if (path.startsWith(PracticeShopApiRoutes.LOGIN)) return "authentication";
         if (path.startsWith(PracticeShopApiRoutes.PRODUCTS)
                 || path.startsWith(PracticeShopApiRoutes.PRODUCT_COLLECTION)) return "catalog";
         if (path.startsWith(PracticeShopApiRoutes.CARTS)) return "cart";

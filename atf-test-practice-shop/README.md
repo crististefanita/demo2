@@ -7,7 +7,7 @@
 - composition roots și teste în `src/test`;
 - `atf-reporting` consumat ca bibliotecă standalone;
 - `atf-console` folosit ca proiecție diagnostică, nu ca verdict;
-- journey-uri E2E puține, cu variații mutate în component și API integration.
+- journey-uri E2E puține; variațiile rămân în component și API integration.
 
 ```mermaid
 flowchart LR
@@ -34,18 +34,18 @@ Surse de aprofundare:
 - [`atf-reporting`](../atf-reporting/README.md) — biblioteca de raportare;
 - [`atf-console`](../atf-console/README.md) — diagnostic runtime;
 - [`atf-test-kit`](../atf-test-kit/README.md) — meta-anotații și convenții de test;
-- [feedback Practice Shop](../docs/feedback/ATF_Practice_Shop_API_Screen_Pyramid_Feedback.md) — ToDo-uri și decizii dinamice.
+- [bune practici de documentație](../docs/README_Atf_DocumentationBestPractices.md) — stil și guvernanță README.
 
 ### Contract live și limite reale
 
 | Suprafață | Comportament curent | Interpretare |
 |---|---|---|
 | component/API | contracte typed pentru config, routes, JSON, status, mapping și evidence | matricea de variații se verifică fără browser |
-| guest E2E | journey `product → cart → payment` pe `LIVE_HTTP` | proof business activ și auditabil |
+| guest E2E | purchase complet `product → cart → checkout → billing → payment → confirmation` | proof business prin starea UI și exchange-urile live observate |
 | authenticated E2E/API | selectat prin adnotare și condiție typed; configurația curentă îl dezactivează explicit | `SKIP` este precondiție/opt-in lipsă, nu PASS degradat; fișierul existent nu dovedește autentificarea live |
 | retry Playwright | suport generic fail-closed există în `atf-ui`; YAML-ul Practice Shop declară explicit `maxAttempts`, `backoff`, `eligibleOperations` și `reason` | policy-ul implicit rămâne un singur attempt; numai operații read-only typed pot fi activate ulterior |
 | API evidence binding | `validation.apiEvidence` selectează checkpoint-uri typed (`product`, `login`, `cart`, `payment`, `order`); override-ul system property este acceptat | binding-ul fail-closed aparține consumerului; publisher-ul primește numai evidence selectat |
-| Overview → System | snapshot allowlist-uit, redacted și bounded pentru configurația operațională globală; țintele și valorile efective sunt separate | nu se publică dump YAML, secrete, path-uri temporare, suite/test identity sau precondiția/fixture state specifică unui journey UI |
+| Overview → System | snapshot allowlist-uit, redacted și bounded; API precondition și starea de configurare UI sunt rezumate separat | nu se publică dump YAML, secrete, path-uri locale, identitatea suitei/testului, pași sau date de checkout |
 | output | `artifacts/reports/ui` și `artifacts/reports/api` | rolurile UI/API nu se suprapun |
 
 Contracte și limite curente:
@@ -63,7 +63,7 @@ Contracte și limite curente:
   `example.net`, `example.org`, `.test`, `.invalid` și `.localhost` (inclusiv
   subdomeniile), dar nu validează contul remote;
 - authenticated E2E/API rămân `SKIP` până la opt-in explicit și dovada
-  login/current-user reușită;
+  login reușită;
 - `Account fixture policy` verifică ownership-ul și redaction-ul independent de
   journey. `Account setup` descrie folosirea per-rulare: guest-ul poate avea
   fixture-ul disponibil fără să-l consume, iar lipsa lui este permisă; flow-ul
@@ -71,10 +71,11 @@ Contracte și limite curente:
 - retry-ul generic al mutațiilor este exclus de `atf-ui`; Practice Shop nu reia
   click-ul, submit-ul sau purchase-ul după timeout.
 
-### Network inspector UI — observație opt-in
+### Network inspector UI — configurabil, fără replay
 
-Practice Shop folosește boundary-ul generic din `atf-ui`, nu un listener local
-suplimentar în test:
+Practice Shop folosește inspectorul generic din `atf-ui`, nu un listener local
+în test. Configurația urmărită îl activează pentru profilul `ui-api`; `ui-only`
+nu publică API evidence.
 
 ```text
 Playwright response / request-failed
@@ -103,29 +104,33 @@ singur nod tehnic collapsed; nu se repetă propoziția Gherkin pentru UI și API
 `observations()` este lossless pentru audit, iar stream-ul de prezentare
 colapsează numai semnăturile consecutive.
 
-Un request eșuat înainte de response rămâne evidence explicită: status
-`Unavailable`, motiv bounded, fără `RESPONSE JSON` inventat. Adapterul
-Practice Shop poate atașa un alias de serviciu, dar host allowlist-ul și
-semnătura generică rămân neschimbate. Inspectorul publică un `Warning`
-diagnostic; numai assertion-ul business stabilește verdictul testului.
+- Un request eșuat înainte de response rămâne evidence explicită: status
+  `Unavailable`, motiv bounded, fără `RESPONSE JSON` inventat.
+- Adapterul Practice Shop poate atașa un alias de serviciu; host allowlist-ul
+  și semnătura generică rămân neschimbate.
+- Inspectorul publică numai exchange-urile relevante contractelor configurate;
+  probele ambientale de sesiune ale aplicației externe nu sunt evidence ATF.
+- `assertClean()` face testul să eșueze pentru erori runtime neașteptate;
+  două excepții bootstrap rămân însă în cod și sunt tracked ca cleanup, nu ca
+  politică de business.
 
-Clasificarea warning-urilor runtime este intenționat strictă și specifică
-consumerului:
+Runtime-ul și API-ul au roluri separate:
 
-- în journey-ul guest, numai răspunsul observat `GET /users/me → 401` este
-  semnalul de autentificare așteptat; el rămâne vizibil ca warning, fără să
-  devină pas Gherkin sintetic sau să înlocuiască assertions de purchase;
-- la bootstrap-ul authenticated, același răspuns anonim și erorile de consolă
-  recunoscute explicit pentru `cart_items`, `unauthorized` sau `401` pot fi
-  publicate ca warning; erorile de consolă/pagină fără această semnătură rămân
-  failure;
-- un scenariu poate avea status `WARNING` deși assertions business trec.
-  Warning-ul descrie zgomot runtime extern cunoscut, nu validează login-ul,
-  checkout-ul sau comanda.
+- probele ambientale de sesiune ale aplicației externe nu sunt contract API;
+  aplicația le poate iniția, iar consumerul nu le publică drept evidence;
+- inspectorul de journey primește numai exchange-uri API și checkpoint-urile
+  lor; nu conține diagnostice browser ca pași sau copii ai unui pas Gherkin;
+- erorile runtime neașteptate rămân failure; codul încă suprimă 401 înainte de
+  sesiunea autentificată dovedită și mesajul `cart_items`. Eliminarea excepțiilor
+  este urmărită în [feedback-ul E2E](../docs/feedback/ATF_Practice_Shop_E2E_Feedback.md);
+- diagnosticele nu devin pași Gherkin, `API validation` sau warning-uri de
+  business; raportul MCP curent arată `Technical diagnostics · 0`;
+- guest și authenticated purchase publică `PASS` după validarea journey-ului și
+  `assertClean()`; diagnosticele runtime nu adaugă pași sintetici și nu
+  retrogradează scenariul la `WARNING`.
 
-Regula este verificată fără browser de
-`PracticeShopGuestResilienceTest`; matching-ul se bazează pe diagnosticul
-structurat, nu pe text liber pentru ramura guest.
+Excluderea de evidence și agregarea runtime sunt verificate fără browser de
+`PracticeShopApiNetworkJournalTest` și `PracticeShopRuntimeDiagnosticsTest`.
 
 Settlement-ul pentru acțiuni care modifică serverul este separat și dezactivat
 implicit:
@@ -239,6 +244,55 @@ Principiul de selecție:
 | authenticated purchase | `PracticeShopAuthenticatedPurchaseE2eTest` | `authenticatedE2eEnabled` + precondiție `authenticated` + account fixture |
 | account/catalog smoke | `PracticeShopAccountAndCatalogE2eTest` | aceeași activare explicită; smoke slice separat |
 
+Testele autentificate rămân intenționat ignorate fără opt-in și un fixture valid.
+Instrucțiunile de rulare manuală sunt colapsate:
+
+<details>
+<summary>Rulare manuală autentificată — IntelliJ / Maven</summary>
+
+Ambele clase reutilizează același cont de test deja înregistrat; suite-ul nu
+creează conturi noi la fiecare rulare. Înainte de prima rulare, înregistrează
+un cont dedicat pe Practice Shop și păstrează datele numai în fișierul local
+ignorat de Git:
+
+```text
+atf-test-practice-shop/src/test/resources/practice-software-testing-account.local.properties
+```
+
+Formatul fișierului:
+
+```properties
+email=<registered-test-account-email>
+password=<registered-test-account-password>
+firstName=<first-name>
+lastName=<last-name>
+```
+
+Pentru IntelliJ, selectează ambele clase
+`PracticeShopAccountAndCatalogE2eTest` și
+`PracticeShopAuthenticatedPurchaseE2eTest`; adaugă în **VM options**:
+
+```text
+-Datf.practice.authenticated-e2e=true
+-Datf.practice.account-file=atf-test-practice-shop/src/test/resources/practice-software-testing-account.local.properties
+```
+
+Comanda Maven de mai jos rulează ambele clase:
+
+```text
+mvn -pl atf-test-practice-shop -am "-Dtest=PracticeShopAccountAndCatalogE2eTest,PracticeShopAuthenticatedPurchaseE2eTest" "-Dsurefire.failIfNoSpecifiedTests=false" "-Datf.practice.authenticated-e2e=true" "-Datf.practice.account-file=atf-test-practice-shop/src/test/resources/practice-software-testing-account.local.properties" test
+```
+
+Fișierul local trebuie să conțină un cont înregistrat, eligibil pentru login
+live; existența lui singură nu garantează autentificarea. Este acceptat numai în
+`src/test/resources`, iar sufixul `.local.properties` este exclus din Git. Nu
+introduce credențiale reale în `practice-software-testing-account.properties`:
+acel fixture este urmărit de Git. În IntelliJ, **Working directory** trebuie să
+fie root-ul repository-ului. Testele efectuează login live; purchase E2E poate
+crea o comandă de test în aplicația demo.
+
+</details>
+
 - `@WithE2eHarness` injectează harness-ul ca parametru metodei de test.
 - Extensia JUnit creează configurația, contextul, browserul și locatorii per metodă, apoi închide contextul și raportul la teardown.
 - `harness.run(title, overview, journey -> ...)` gestionează lifecycle-ul scenariului și publicarea failure-ului.
@@ -251,10 +305,8 @@ Scurtarea composition root-urilor nu scurtează journey-ul de purchase:
   selectată, dar nu creează comanda. Utilizatorul confirmă explicit comanda;
   checkpoint-ul final verifică mesajul și factura din UI corelate cu răspunsul
   `201 POST /invoices/guest`;
-- authenticated purchase păstrează același final după login-ul configurat;
-  configurația din repository îl ține implicit `SKIP`, dar opt-in-ul cu fixture
-  seeded distinct a fost verificat live până la purchase confirmation. Setup-ul
-  trebuie să valideze login-ul real, nu doar existența fișierului de cont;
+- authenticated purchase cere opt-in, fixture acceptat de policy și login
+  confirmat; păstrează același flow complet până la confirmarea comenzii;
 - checkout-ul authenticated identifică butonul semantic de continuare
   (`AUTHENTICATED_PROCEED`) și verifică starea lui observată; textul generic al
   body-ului nu este contract de UI, fiindcă extractorul poate omite conținutul
@@ -263,15 +315,48 @@ Scurtarea composition root-urilor nu scurtează journey-ul de purchase:
   support; pașii business și assertions finale nu se elimină și nu se
   înlocuiesc cu un smoke de cart/catalog.
 
+### Contractul Gherkin al purchase journey
+
+Keyword-urile și titlurile statice sunt deținute de enum-ul consumerului
+`PracticeShopPurchaseTraceStep`; datele dinamice (produs, cantitate, rută și
+exchange-uri) rămân în evidence. Renderer-ul generic nu rescrie pașii
+Practice Shop.
+
+| Ordine | Checkpoint guest | Keyword |
+|---:|---|---|
+| 1 | catalog home — navigation, branding, banner | `GIVEN` |
+| 2 | filtre catalog | `AND` |
+| 3 | product grid | `AND` |
+| 4 | product page | `AND` |
+| 5 | cart și cantitatea cerută | `WHEN` |
+| 6 | guest checkout | `AND` |
+| 7 | billing | `AND` |
+| 8 | payment method | `AND` |
+| 9 | payment check | `AND` |
+| 10 | order confirmation | `THEN` |
+
+- Secvența guest este `1 GIVEN → 1 WHEN → 7 AND → 1 THEN`.
+- `SETUP` este separat de `TEST BODY`; nu intră în cei zece checkpoint-uri.
+- `UI validation`, `API validation` și network aggregate nu creează pași Gherkin suplimentari; UI/API sunt copii ai aceluiași checkpoint.
+- `AUTHENTICATED_CHECKOUT` aparține ramurii authenticated, în afara acestei cardinalități guest.
+
+Regresia locală a vocabularului rulează fără browser sau trafic extern:
+
+```text
+mvn -pl atf-test-practice-shop -am "-Dtest=PracticeShopPurchaseTraceStepTest,PracticeShopRuntimeDiagnosticsTest,PracticeShopApiNetworkJournalTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+E2E-ul guest verifică wiring-ul și ordinea efectiv publicată într-un raport
+fresh; nu înlocuiește testul component și nu extinde această regulă la alți
+consumatori.
+
 <details>
 <summary><strong>Legendă — rezultate E2E și structură test-kit</strong></summary>
 
-- guest purchase poate publica `PASS` sau `WARNING` pentru ramuri guest;
-  semnalele cunoscute rămân în network inspector și influențează verdictul
-  scenariului, fără a deveni pași Gherkin sintetici
-  cunoscute și auditabile;
-- authenticated purchase poate publica `PASS` sau `WARNING` pentru semnale
-  externe declarate; diagnosticul necunoscut rămâne `FAIL`;
+- guest și authenticated purchase publică `PASS` după business complet și fără
+  erori runtime neașteptate; probele ambientale sunt în afara inspectorului;
+- erorile neașteptate rămân `FAIL`; bootstrap-ul extern cunoscut nu generează
+  warning de scenariu sau pas Gherkin suplimentar;
 - integration și journey-urile autentificate inactive sunt `SKIP`, nu `PASS`;
 - `component` păstrează matricea de status/body/query; E2E păstrează doar
   journey-uri cu valoare de wiring și randare;
@@ -283,7 +368,7 @@ src/test/java/atf/ui/tests/practiceshop
 ├── component/          config, routes, locators, contracts, diagnostics
 ├── api/
 │   ├── component/      request, status, JSON, mapping, publisher
-│   ├── integration/    un flow live opt-in
+│   ├── integration/    API live opt-in flows
 │   └── support/        fixture-uri și transport local
 └── e2e/                guest și authenticated composition roots
 ```
@@ -364,49 +449,87 @@ flowchart LR
 practiceShop:
   baseUrl: "<ui-base-url>"
   browser: chromium
-  headless: true
+  headless: false
   timeout: PT20S
   navigationTimeout: PT45S
+  viewport:
+    width: 1440
+    height: 1000
   zoomPercent: 70
   validation:
     profile: ui-api
+    apiEvidence: [product, login, cart, payment, order]
+  networkInspector:
+    enabled: true
+    allowedHosts: [api.practicesoftwaretesting.com]
+    maxObservations: 256
+    maxBodyPreviewCharacters: 12000
+    collapseConsecutiveSignatures: true
+    settlement:
+      enabled: false
+      timeout: PT10S
+      pollInterval: PT0.1S
+  retry:
+    maxAttempts: 1
+    backoff: PT0S
+    eligibleOperations: []
+    reason: bounded read-only UI retry
   api:
     endpoint: "<api-endpoint>"
-    mode: acceptance
-    precondition: anonymous
+    mode: live
+    precondition: authenticated
     timeout: PT20S
   reports:
     ui: artifacts/reports/ui
     api: artifacts/reports/api
+  reporting:
+    systemBodyPreviewCharacters: 100
   authenticatedE2eEnabled: false
   screenshotOnFailure: true
-  productName: "<configured-product>"
-  productPath: auto
-  accountFile: atf-test-practice-shop/src/test/resources/practice-software-testing-account.properties
-  checkout:
-    quantity: 1
-    guest:
-      email: "<guest-email>"
-      firstName: "<first-name>"
-      lastName: "<last-name>"
-    billing:
-      country: "<country>"
-      postalCode: "<postal-code>"
-      houseNumber: "<house-number>"
-      street: "<street>"
-      city: "<city>"
-      state: "<state>"
-    paymentMethod: "<supported-payment-method>"
 ```
+
+Fragmentul reflectă policy-ul urmărit în YAML; endpoint-urile și datele de
+checkout sunt configurate separat și nu sunt necesare pentru a înțelege aceste
+limite.
 
 | Configurație | Semnificație |
 |---|---|
-| `validation.profile` | `ui-api` publică API evidence; `ui-only` păstrează fallback-ul strict vizual |
-| `api.mode` | `acceptance` pentru transport determinist; `live` numai la boundary explicit |
-| `api.precondition` | `anonymous` sau `authenticated`; authenticated E2E nu pornește fără precondiția potrivită |
+| `validation.profile` / `apiEvidence` | `ui-api` publică exchange-urile selectate la checkpoint; `ui-only` oprește capture subscription și API evidence în raportul E2E |
+| `api.mode` | `live` folosește HTTP real; testele component injectează transport determinist direct, nu simulează live prin YAML |
+| `api.precondition` | condiția API configurată este independentă de browser; repo-ul o setează la `authenticated`, dar `authenticatedE2eEnabled: false` lasă purchase-ul UI implicit guest |
+| `networkInspector` | capturează numai host-urile permise; preview-ul de 12.000 caractere este pentru checkpoint evidence, nu pentru Overview/System |
+| `retry` | un singur attempt și nicio operație eligibilă; mutațiile UI nu sunt reluate |
+| `reporting.systemBodyPreviewCharacters` | limitează la 100 caractere preview-ul de body din System; disclosure-urile de evidence au limita lor separată |
+| `reports.ui` / `reports.api` | directoare relative distincte pentru artifactele UI și API |
 | `productPath` | `auto` acceptă numai ruta `/product/*`; o rută exactă e fail-fast dacă nu există |
-| `screenshotOnFailure` | switch legacy mapat de `PracticeShopScreenshotPolicy` la `ReportEvidenceProfile`: `true` → `EACH_CHECKPOINT`, `false` → `FAILURE_ONLY`; providerul Playwright este apelat numai când policy permite captura |
+| `screenshotOnFailure` | switch legacy mapat de `PracticeShopScreenshotPolicy`: `true` → `EACH_CHECKPOINT`, `false` → `FAILURE_ONLY`; `FINAL_ONLY` nu este încă configurabil în acest consumer |
 | `accountFile` | fixture sintetic owned în `src/test/resources`; căile externe sunt respinse; disponibilitatea nu dovedește autentificarea live și credentialele nu ajung în evidence |
+
+Pentru un raport E2E UI-only, profilul YAML este:
+
+```yaml
+practiceShop:
+  validation:
+    profile: ui-only
+```
+
+- `ui-only` publică UI evidence fără `API validation` sau network aggregate;
+- traficul browserului către aplicație continuă normal — profilul nu blochează
+  request-uri și nu schimbă testele API standalone;
+- `ui-api` publică exchange-urile din `validation.apiEvidence`.
+
+Flow presentation pentru Practice Shop:
+
+- `ReportEvidenceFlowMode.UNIFIED_FLOW` există ca metadata, dar nu colapsează
+  nodurile Extent;
+- `FINAL_ONLY` există în reporting generic, însă consumerul îl mapează încă prin
+  booleanul legacy `screenshotOnFailure`;
+- configurarea unui singur business step și a unei capturi finale este urmărită
+  în [Practice Shop E2E Feedback](../docs/feedback/ATF_Practice_Shop_E2E_Feedback.md).
+
+`api.precondition` descrie setup-ul API, nu autentificarea sesiunii din browser.
+Precondiția API configurată nu transformă guest purchase într-un journey UI
+autentificat.
 
 Reguli de configurare:
 
@@ -479,6 +602,9 @@ Reguli pentru selectors:
   cu nume parțial, indisponibil sau cu alt contract de cumpărare;
 - clasele CSS generate, textul parțial și XPath-ul ambiguu nu sunt fallback-uri;
 - valorile dinamice inserate în CSS trec prin `PracticeShopCssEscaper`;
+- țara de billing acceptă numele sau codul opțiunii configurate, apoi selectează
+  după label-ul vizibil; `PracticeShopCountryOptionTest` protejează potrivirea și
+  diagnosticul care păstrează numele împreună cu codul;
 - `PracticeShopArchitectureTest` apără boundary-ul și scanează și package-ul `component`.
 
 ### Validare pe checkpoint
@@ -522,7 +648,7 @@ Rutele live sunt grupate pe intenție, nu repetate în fiecare test:
 
 | Domeniu | Contracte |
 |---|---|
-| auth | `POST /users/login`, `GET /users/me` |
+| auth | `POST /users/login` |
 | catalog | `GET /products/search`, `GET /products/{id}`, `GET /categories` |
 | cart | `POST /carts`, `GET /carts/{id}`, update quantity, remove product |
 | checkout | `GET /postcode-lookup`, `POST /payment/check`, `POST /invoices/guest` |
@@ -554,11 +680,11 @@ se publică numai evidence-ul exchange-ului real și testul se oprește; nu se
 continuă cu cart/payment simulate. Rularea explicită este:
 
 ```text
-mvn -pl atf-test-practice-shop -am test -Dtest=atf.ui.tests.practiceshop.api.integration.PracticeShopStandaloneApiReportTest -Datf.practice.authenticated-e2e=true -Datf.practice.api-mode=live
+mvn -pl atf-test-practice-shop -am "-Dtest=PracticeShopStandaloneApiReportTest" "-Dsurefire.failIfNoSpecifiedTests=false" "-Datf.practice.authenticated-e2e=true" "-Datf.practice.api-mode=live" test
 ```
 
-Raportul live trebuie explorat în MCP/Chromium headless pe `Tests`, `Fails`
-și `Overview`; un run cu `401` este evidence de precondiție externă eșuată,
+Raportul live se verifică în MCP pe `Tests`, `Fails` și `Overview`, folosind un
+artifact proaspăt și configurația rulării; un `401` este evidence de precondiție externă eșuată,
 nu un PASS degradat și nu un motiv pentru a activa mock-ul.
 În cazul unui failure UI real, `atf-reporting` proiectează în `Fails` cardul
 `Failure evidence` și cauza concretă înaintea unei validări semantice verzi;
@@ -717,39 +843,21 @@ Reguli:
 
 ## Feedback și evoluție controlată
 
-Feedback-ul module-owned este registrul din
-[`ATF_Practice_Shop_API_Screen_Pyramid_Feedback.md`](../docs/feedback/ATF_Practice_Shop_API_Screen_Pyramid_Feedback.md).
-README-ul păstrează contractele stabile; feedback-ul păstrează ToDo-urile care
-se pot schimba dinamic.
+Registrul [feedback ATF](../docs/feedback/README.md) indexează gap-urile active.
+[Practice Shop E2E Feedback](../docs/feedback/ATF_Practice_Shop_E2E_Feedback.md)
+deține numai parity-ul încă deschis dintre configurația live și artifactul verificat.
 
-Feedback-ul păstrează limitele active și criteriile de redeschidere; README-ul
-păstrează numai contractele stabile. Deciziile deja implementate și documentate
-aici sunt:
+Reguli de păstrare și redeschidere:
 
-- ownership-ul rutelor și selectorilor, screen contracts și audit observations;
-- capture/select seams, vocabularul typed și provenance-ul transportului;
-- lifecycle-ul E2E, contractul stateful al cart-ului și assertions observate;
-- limitarea numărului de journey-uri și binding-ul API per checkpoint;
-- aggregate-ul semantic nested al inspectorului, cu reuse structural per exchange
-  verificat lower-level.
+- contractele implementate rămân în acest README; feedback-ul păstrează numai
+  gap-ul activ și criteriul lui de închidere;
+- checkpoint-ul are o singură propoziție Gherkin cu validări UI/API copil; o
+  duplicare în raport redeschide contractul, nu justifică logică locală de renderer;
+- artifactul este probă numai pentru build-ul și configurația din care a fost
+  generat; un gap de randare/integrare cere testul relevant și artifact proaspăt.
 
-Topologia vizibilă rămâne obligatoriu `un singur Gherkin → UI validation și API
-validation`. Dacă raportul afișează două propoziții identice, feedback-ul
-redeschide contractul; consumerul nu copiază logică de renderer pentru a ascunde
-problema.
-
-Un artifact UI este auditabil numai dacă a fost regenerat după compilarea
-versiunii de reporting verificată. Un raport mai vechi poate păstra markup sau
-digesturi dintr-un renderer anterior și nu poate închide ori redeschide singur un
-ToDo; dovada canonicală este combinația `component/integration tests + fresh
-E2E artifact`.
-
-Nu se copiază în README:
-
-- timestamp-uri de rulare;
-- numărători istorice de teste;
-- linkuri către artifacte generate;
-- capturi sau rapoarte care nu sunt păstrate ca sursă normativă.
+Pentru regula completă privind artifacte și conținut normativ, vezi
+[bunele practici de documentație ATF](../docs/README_Atf_DocumentationBestPractices.md).
 
 ## Gates
 
@@ -761,8 +869,17 @@ mvn -pl atf-test-practice-shop -am "-Dtest=PracticeShopConfigurationTest,Practic
 
 E2E selectat:
 
+Rularea folosește aplicația externă și finalizează o comandă demo; nu o folosi
+ca înlocuitor pentru gate-urile locale component sau de guvernanță.
+
 ```text
-mvn -pl atf-test-practice-shop -am "-Dtest=PracticeShopPurchaseE2eTest" test
+mvn -pl atf-test-practice-shop -am "-Dtest=PracticeShopPurchaseE2eTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Guvernanța documentației pentru țintele `@DocumentationTarget`:
+
+```text
+mvn -pl atf-tests -am "-Dtest=DocumentationTargetGovernanceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
 Reguli de rulare:

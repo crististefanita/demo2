@@ -43,9 +43,6 @@ class PracticeShopApiContractVariantTest {
                         PracticeShopApiScenarioFixture.UNAUTHORIZED_BODY,
                         (ApiRequestSupplier) () -> REQUESTS.login(
                                 PracticeShopApiScenarioFixture.invalidCredentials())),
-                Arguments.of("anonymous current user is rejected", PracticeShopApiHttpStatus.UNAUTHORIZED,
-                        PracticeShopApiScenarioFixture.UNAUTHORIZED_BODY,
-                        (ApiRequestSupplier) () -> REQUESTS.currentUser("")),
                 Arguments.of("missing product is not found", PracticeShopApiHttpStatus.NOT_FOUND,
                         PracticeShopApiScenarioFixture.NOT_FOUND_BODY,
                         (ApiRequestSupplier) () -> REQUESTS.product(

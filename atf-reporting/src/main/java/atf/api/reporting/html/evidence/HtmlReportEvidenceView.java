@@ -162,7 +162,7 @@ public final class HtmlReportEvidenceView {
 
     public void renderNetworkAggregateSubstep(StringBuilder html,
                                               ReportNetworkInspector.JourneyAggregate aggregate) {
-        if (aggregate == null) return;
+        if (!ReportNetworkAggregateMarkup.hasContent(aggregate)) return;
         html.append(openTag(DIV, classAttribute(VALIDATION.value(), "network-aggregate-substep"),
                         attribute(NODE_ROLE, "network-aggregate")))
                 .append(openTag(DIV, classAttribute(NODE_TITLE)))

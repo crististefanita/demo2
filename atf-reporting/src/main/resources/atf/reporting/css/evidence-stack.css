@@ -402,6 +402,25 @@
   > summary {
   border-bottom: 0 !important;
 }
+
+/* Aggregate disclosures deliberately opt out of the compact request-evidence height. */
+.test-view
+  .test-content-detail
+  .card[data-atf-node-role='request']
+  details.step-detail.network-signatures
+  > summary,
+.test-view
+  .test-content-detail
+  .card[data-atf-node-role='request']
+  details.step-detail.network-diagnostics
+  > summary {
+  box-sizing: border-box !important;
+  height: var(--atf-evidence-aggregate-summary-height) !important;
+  min-height: var(--atf-evidence-aggregate-summary-height) !important;
+  max-height: var(--atf-evidence-aggregate-summary-height) !important;
+  white-space: normal !important;
+  align-items: center !important;
+}
 @media (max-width: 1300px) {
   .test-view
     .test-content-detail
@@ -548,6 +567,128 @@
   top: 0 !important;
   z-index: 2 !important;
   background: var(--atf-panel-2) !important;
+}
+
+/*
+ * The Extent renderer keeps Network aggregate sections as native event rows.
+ * At the narrow breakpoint the generic evidence rule makes every event cell
+ * 100% wide; after Timestamp is hidden, Status and Details then occupy two
+ * off-screen lanes and the visible rows acquire artificial vertical gaps.
+ * Restore the semantic two-column contract for this card only.
+ */
+.test-view
+  .test-content-detail
+  .card[data-atf-network-aggregate='true']
+  .card-body
+  > .table {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  table-layout: fixed !important;
+}
+.test-view
+  .test-content-detail
+  .card[data-atf-network-aggregate='true']
+  .card-body
+  > .table
+  > thead
+  > tr
+  > th.status-col,
+.test-view
+  .test-content-detail
+  .card[data-atf-network-aggregate='true']
+  .card-body
+  > .table
+  > tbody
+  > tr.event-row
+  > td:first-child {
+  width: var(--atf-evidence-status-column-width) !important;
+  min-width: var(--atf-evidence-status-column-width) !important;
+  max-width: var(--atf-evidence-status-column-width) !important;
+  box-sizing: border-box !important;
+  display: table-cell !important;
+  vertical-align: middle !important;
+}
+.test-view
+  .test-content-detail
+  .card[data-atf-network-aggregate='true']
+  .card-body
+  > .table
+  > thead
+  > tr
+  > th.timestamp-col,
+.test-view
+  .test-content-detail
+  .card[data-atf-network-aggregate='true']
+  .card-body
+  > .table
+  > tbody
+  > tr.event-row
+  > td:nth-child(2) {
+  display: none !important;
+}
+.test-view
+  .test-content-detail
+  .card[data-atf-network-aggregate='true']
+  .card-body
+  > .table
+  > thead
+  > tr
+  > th.details-col,
+.test-view
+  .test-content-detail
+  .card[data-atf-network-aggregate='true']
+  .card-body
+  > .table
+  > tbody
+  > tr.event-row
+  > td:last-child {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
+  display: table-cell !important;
+  vertical-align: middle !important;
+  overflow-wrap: anywhere !important;
+  width: calc(100% - var(--atf-evidence-status-column-width)) !important;
+  min-width: calc(100% - var(--atf-evidence-status-column-width)) !important;
+}
+.test-view
+  .test-content-detail
+  .card[data-atf-network-aggregate='true']
+  .card-body
+  > .table
+  > tbody
+  > tr.event-row {
+  height: auto !important;
+}
+@media (max-width: 700px) {
+  .test-view
+    .test-content-detail
+    .card[data-atf-network-aggregate='true']
+    .card-body
+    > .table {
+    table-layout: auto !important;
+  }
+  .test-view
+    .test-content-detail
+    .card[data-atf-network-aggregate='true']
+    .card-body
+    > .table
+    > thead
+    > tr
+    > th.details-col,
+  .test-view
+    .test-content-detail
+    .card[data-atf-network-aggregate='true']
+    .card-body
+    > .table
+    > tbody
+    > tr.event-row
+    > td:last-child {
+    width: auto !important;
+    min-width: 0 !important;
+  }
 }
 
 /*

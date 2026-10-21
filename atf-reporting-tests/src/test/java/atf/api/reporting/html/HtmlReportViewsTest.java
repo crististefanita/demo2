@@ -116,7 +116,7 @@ class HtmlReportViewsTest {
     }
 
     @Test
-    void fallbackRendersTheSameNestedNetworkAggregateAsExtent() {
+    void fallbackOmitsAnEmptyNetworkAggregateLikeExtent() {
         var document = new HtmlReportSemanticDocument();
         var scenario = document.startScenario("NetworkTests", "nested aggregate", List.of("ui", "api"));
         var phase = scenario.addPhase("TEST BODY");
@@ -129,13 +129,10 @@ class HtmlReportViewsTest {
         String html = new HtmlReportTestsView().render(document.snapshot());
 
         assertAll(
-                () -> assertTrue(html.contains("Network aggregate")),
-                () -> assertTrue(html.contains("network-aggregate-substep")),
-                () -> assertTrue(html.contains("data-atf-node-role=\"network-aggregate\"")),
-                () -> assertTrue(html.contains("network-aggregate-sections")),
-                () -> assertTrue(html.contains("<th class=\"status-col\">Status</th><th class=\"details-col\">Details</th>")),
-                () -> assertEquals(5, html.split("network-aggregate-section-row", -1).length - 1),
-                () -> assertEquals(5, html.split("status-info", -1).length - 1),
+                () -> assertFalse(html.contains("Network aggregate")),
+                () -> assertFalse(html.contains("network-aggregate-substep")),
+                () -> assertFalse(html.contains("network-aggregate-sections")),
+                () -> assertEquals(0, html.split("network-aggregate-section-row", -1).length - 1),
                 () -> assertFalse(html.contains("<details open")));
     }
 

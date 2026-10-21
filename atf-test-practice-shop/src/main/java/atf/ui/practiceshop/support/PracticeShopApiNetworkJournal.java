@@ -90,6 +90,7 @@ public final class PracticeShopApiNetworkJournal {
     /** Internal composition seam for deterministic component tests; browser capture remains the live path. */
     void recordCapturedExchange(Exchange exchange) {
         Objects.requireNonNull(exchange, "exchange");
+        if (!PracticeShopApiTrafficCapture.isPublishable(exchange.method(), exchange.path())) return;
         exchanges.add(exchange.withTrace(sequence.incrementAndGet(), Instant.now(), phase(exchange.path())));
     }
 
@@ -108,31 +109,21 @@ public final class PracticeShopApiNetworkJournal {
     }
 
     /** API confirmation for the login setup that precedes an authenticated UI flow. */
-    public List<AtfAssertion> loginConfirmed(String displayName) {
-        return loginConfirmed(displayName, null, null);
-    }
-
     /**
      * Confirms the browser login and keeps deterministic JSON in the report when
      * Chromium releases the compressed CORS login payload before it can be read.
      * Recovery is limited to the idempotent login exchange; the browser exchange
      * remains the canonical trace and no cart/payment request is replayed.
      */
-    public List<AtfAssertion> loginConfirmed(String displayName,
-                                             PracticeShopApiConfiguration apiConfiguration,
+    public List<AtfAssertion> loginConfirmed(PracticeShopApiConfiguration apiConfiguration,
                                              PracticeShopCredentials credentials) {
         if (!enabled(PracticeShopApiCheckpoint.LOGIN)) return List.of();
         Exchange login = PracticeShopApiExchangeSelector.latest(
                 exchanges, HttpMethod.POST.value(), PracticeShopApiRoutes.LOGIN,
                 exchange -> exchange.status() == 200);
         login = recoverLoginBody(login, apiConfiguration, credentials);
-        Exchange currentUser = PracticeShopApiExchangeSelector.latestOptional(
-                exchanges, HttpMethod.GET.value(), PracticeShopApiRoutes.CURRENT_USER,
-                exchange -> exchange.status() == 200);
-        store(PracticeShopApiCheckpoint.LOGIN, currentUser == null
-                ? List.of(toEvidence(login))
-                : List.of(toEvidence(login), toEvidence(currentUser)));
-        return PracticeShopApiAssertions.login(login, currentUser, displayName);
+        store(PracticeShopApiCheckpoint.LOGIN, List.of(toEvidence(login)));
+        return PracticeShopApiAssertions.login(login);
     }
 
     private static Exchange recoverLoginBody(Exchange login,
@@ -311,8 +302,7 @@ public final class PracticeShopApiNetworkJournal {
 
     private static String phase(String path) {
         if (path == null) return "unknown";
-        if (path.startsWith(PracticeShopApiRoutes.LOGIN)
-                || path.startsWith(PracticeShopApiRoutes.CURRENT_USER)) return "authentication";
+        if (path.startsWith(PracticeShopApiRoutes.LOGIN)) return "authentication";
         if (path.startsWith(PracticeShopApiRoutes.PRODUCT_SEARCH)
                 || path.startsWith(PracticeShopApiRoutes.PRODUCT_COLLECTION)
                 || path.startsWith(PracticeShopApiRoutes.PRODUCTS)) return "catalog";

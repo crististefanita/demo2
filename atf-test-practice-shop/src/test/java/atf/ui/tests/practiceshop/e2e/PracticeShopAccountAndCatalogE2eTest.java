@@ -34,7 +34,7 @@ class PracticeShopAccountAndCatalogE2eTest {
             var credentials = PracticeShopCredentials.load(journey.configuration().accountFile());
             new PracticeShopAccountFlow(journey.locators()).loginAndAssertAccount(
                     journey.page(), journey.actions(), journey.configuration(), credentials);
-            journey.runtimeDiagnostics().markAuthenticatedSetup();
+            journey.authenticatedSessionEstablished();
             var assertions = new PracticeShopPageValidator(journey.locators())
                     .validate(journey.page(), PracticeShopAccountPage.class)
                     .assertions();
@@ -50,7 +50,7 @@ class PracticeShopAccountAndCatalogE2eTest {
             var credentials = PracticeShopCredentials.load(journey.configuration().accountFile());
             new PracticeShopAccountFlow(journey.locators()).loginAndAssertAccount(
                     journey.page(), journey.actions(), journey.configuration(), credentials);
-            journey.runtimeDiagnostics().markAuthenticatedSetup();
+            journey.authenticatedSessionEstablished();
             new PracticeShopCatalogFlow(journey.locators()).searchAndOpenConfiguredProduct(
                     journey.page(), journey.actions(), journey.configuration());
             var assertions = new ArrayList<>(new PracticeShopPageValidator(journey.locators())

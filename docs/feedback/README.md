@@ -10,34 +10,48 @@ run și istoricul screenshot-urilor nu sunt backlog.
 
 Scorurile sunt priorități de intervenție, nu scoruri de calitate: impact
 (40), gap deschis (30), posibilitate de lucru acum (20), datorie editorială
-(10). Recalibrare după inspecția codului, testelor și artifactelor disponibile
-la 21 octombrie 2026; scorul mare înseamnă că domeniul trebuie adresat mai
-devreme.
+(10). Se recalculează numai după compararea feedback-ului cu implementarea,
+testele și artifactele relevante; scorul mare înseamnă că domeniul trebuie
+adresat mai devreme.
 
 | Ordine | Owner feedback | Impact /40 | Gap /30 | Lucrabil acum /20 | Datorie doc. /10 | Scor | Ce mai trebuie făcut |
 |---:|---|---:|---:|---:|---:|---:|---|
-| 1 | [Reporting](ATF_Reporting_Feedback.md) | 37 | 23 | 18 | 6 | **84** | măsurători browser pentru viewport-ul comun, summary-urile aggregate 2× și o probă integrată API selection → mock/lifecycle → publisher |
-| 2 | [AI evaluation](README_AI_Evaluation.md) | 34 | 26 | 12 | 6 | **78** | grounding ambiguity/run ledger, review-state, reporting parity, regression delta și publication path; grounding per field, snapshot-ul immutable și package cohesion sunt deja demonstrate |
-| 3 | [Practice Shop](ATF_Practice_Shop_API_Screen_Pyramid_Feedback.md) | 24 | 18 | 19 | 7 | **68** | uniformizează keyword-urile trace-ului business la un `GIVEN`, un `WHEN`, checkpoint-uri `AND` și un `THEN` final; păstrează ordinea/evidence UI+API și verifică raport fresh |
+| 1 | [AI evaluation](README_AI_Evaluation.md) | 34 | 26 | 12 | 6 | **78** | grounding ambiguity/run ledger, review-state, reporting parity, regression delta și publication path; grounding per field, snapshot-ul immutable și package cohesion sunt deja demonstrate |
+| 2 | [ATF Reporting](ATF_Reporting_Feedback.md) · `REP-UX-FLOW-01` | 31 | 23 | 14 | 5 | **73** | `UNIFIED_FLOW` este metadata; rendererul nu transformă checkpoint-urile într-un singur flow Gherkin |
+| 3 | [Practice Shop E2E](ATF_Practice_Shop_E2E_Feedback.md) · `SHOP-E2E-PRESENTATION-01` | 29 | 20 | 12 | 5 | **66** | leagă YAML-ul de `ui-only` / `ui-api`, flow-ul unificat și screenshot-ul final-only; validează comportamentul raportat |
+| 4 | [Practice Shop E2E](ATF_Practice_Shop_E2E_Feedback.md) · `SHOP-E2E-BOUNDARY-01` | 26 | 18 | 13 | 5 | **62** | elimină excepțiile guest/bootstrap specifice rutei și mesajului; capturează doar exchange-urile contractuale selectate |
 
-Față de scorurile anterioare, Reporting scade cu 2 puncte pentru că precedence-ul
-API este acum documentat și limitat la gap-ul de test direct/compoziție; AI scade
-cu 1 punct de datorie editorială după alinierea README-ului owner la grounding-ul
-și snapshot-ul deja implementate. Scorul de implementare AI rămâne 50/100; cele
-două scoruri de mai sus sunt numai priorități de lucru.
+Starea pe domenii:
+
+- Practice Shop: raportul MCP proaspăt al purchase-ului pe codul curent este
+  `PASS`, cu zero warnings și zero technical diagnostics; System arată `headed`,
+  conform YAML-ului. Trace-ul păstrează checkpoint-urile Gherkin și cele 7
+  exchange-uri selectate.
+- Practice Shop: profilul `ui-only` există și oprește captura/publicarea API
+  în consumer. Nu blochează request-urile normale ale aplicației testate. Nu
+  există încă o probă de raport E2E pentru această ramură sau setarea consumerului
+  pentru flow Gherkin unificat + screenshot `final-only`.
+- Reporting: tabelele scrollabile, summary-urile API și trace-ul cu evidence
+  UI/API ca frați sunt închise. `UNIFIED_FLOW` rămâne metadata și nu schimbă
+  arborele Extent; contractul de colapsare a pașilor este activ.
+- Practice Shop: collectorul și testele păstrează excepții guest/bootstrap
+  specifice. Ele nu apar în raportul curent, dar cleanup-ul cerut rămâne deschis.
+- AI evaluation rămâne deschis; scorurile sunt priorități de lucru, nu scoruri
+  de calitate a produsului.
 
 Feedback-ul ownerului este sursa criteriului de acceptare și a dovezii cerute.
 Rândurile de mai sus sunt doar indexul lucrului rămas; nu duplică istoricul sau
 contractele deja implementate.
 
-## Fără ToDo activ
+## Contracte stabile, fără gap structural
 
 | Domeniu | Stare | Documentație oficială |
 |---|---|---|
 | Arhitectura testelor și matricea module × layer | fără ToDo; redeschidere numai la regresie | [ATF Testing Guide](../ATF_Testing_Guide.md), [ATF Code Best Practices](../README_Atf_CodeBestPractices.md) |
-| Trace per checkpoint, inspector aggregate și stabilitatea disclosure-urilor | fără ToDo local; gap-urile de tabel/renderer sunt deținute de Reporting | [ATF Reporting Contract](../ATF_Reporting_Contract.md), [ATF Testing Guide](../ATF_Testing_Guide.md) |
+| Trace per checkpoint, inspector aggregate și stabilitatea disclosure-urilor | fără ToDo activ; redeschidere numai la regresie | [ATF Reporting Contract](../ATF_Reporting_Contract.md), [ATF Testing Guide](../ATF_Testing_Guide.md) |
+| Reporting: tabele scrollabile, summary-uri API și setup-ul exact până la publisher | fără ToDo activ; redeschidere numai la regresie | [ATF Reporting Contract](../ATF_Reporting_Contract.md), [ATF Reporting README](../../atf-reporting/README.md), [ATF Reporting Tests README](../../atf-reporting-tests/README.md) |
 | Inspector UI și politica fără replay | fără ToDo; redeschidere numai la încălcarea contractului | [ATF UI README](../../atf-ui/README.md), [Practice Shop README](../../atf-test-practice-shop/README.md) |
-| Practice Shop purchase trace | ToDo activ `SHOP-GHERKIN-DISPLAY-01`, prioritate 68; policy-ul fixture-ului și setup-ul guest sunt închise | [Practice Shop feedback](ATF_Practice_Shop_API_Screen_Pyramid_Feedback.md) |
+| Practice Shop purchase trace | contractul Gherkin/UI/API și alinierea raportului proaspăt cu YAML-ul sunt închise; prezentarea configurabilă și cleanup-ul bootstrap rămân active | [Practice Shop README](../../atf-test-practice-shop/README.md), [Practice Shop E2E Feedback](ATF_Practice_Shop_E2E_Feedback.md) |
 
 Scorurile acestor domenii nu mai apar în ordinea de lucru cât timp nu există un
 gap activ. Contractele închise rămân în README-urile ownerilor și în testele

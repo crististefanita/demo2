@@ -3,23 +3,18 @@ package atf.ui.practiceshop.support;
 import com.microsoft.playwright.ConsoleMessage;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Response;
-import atf.api.core.http.request.HttpMethod;
-import atf.ui.practiceshop.api.PracticeShopApiRoutes;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.stream.Collectors;
-import atf.api.reporting.ui.network.ReportNetworkInspector;
 
-/** Captures browser runtime failures and exposes known external bootstrap noise as reportable warnings. */
+/** Captures browser runtime failures while excluding non-contract ambient session probes. */
 public final class PracticeShopRuntimeDiagnostics {
     private final List<Diagnostic> diagnostics = new ArrayList<>();
-    private final List<Diagnostic> toleratedSetupDiagnostics = new ArrayList<>();
     private Diagnostic lastUnauthorizedResponse;
-    private boolean authenticatedSetupEstablished;
+    private boolean lastUnauthorizedResponseSuppressed;
+    private int authenticatedBoundary = -1;
 
     public void attach(Page page) {
         Objects.requireNonNull(page, "page");
@@ -30,92 +25,23 @@ public final class PracticeShopRuntimeDiagnostics {
 
     public List<String> errors() { return diagnostics.stream().map(Diagnostic::toString).toList(); }
 
-    public List<Diagnostic> structuredDiagnostics() { return List.copyOf(diagnostics); }
-
-    /**
-     * Records the authenticated checkpoint. The checkpoint itself is still a
-     * hard UI/API assertion; known anonymous bootstrap diagnostics remain
-     * visible as warnings because the external application can emit them
-     * asynchronously after the login request has completed.
-     */
-    public void markAuthenticatedSetup() {
-        if (authenticatedSetupEstablished) return;
-        authenticatedSetupEstablished = true;
-        diagnostics.stream()
-                .filter(PracticeShopRuntimeDiagnostics::isExpectedAuthenticatedSetupSignal)
-                .filter(diagnostic -> !toleratedSetupDiagnostics.contains(diagnostic))
-                .forEach(toleratedSetupDiagnostics::add);
-    }
-
-    public List<String> toleratedSetupWarnings() {
-        return toleratedSetupDiagnostics.stream().map(Diagnostic::toString).distinct().toList();
-    }
-
-    /** All known external bootstrap signals, kept visible for report publication. */
-    public List<String> expectedRuntimeWarnings() {
-        return diagnostics.stream()
-                .filter(PracticeShopRuntimeDiagnostics::isExpectedAuthenticatedSetupSignal)
-                .map(Diagnostic::toString)
-                .distinct()
-                .toList();
-    }
-
-    public List<String> expectedGuestWarnings() {
-        // A browser can report the same guest branch repeatedly while the page retries.
-        // Keep the report actionable: one assertion per distinct known signal.
-        return diagnostics.stream()
-                .filter(PracticeShopRuntimeDiagnostics::isExpectedGuestSignal)
-                .map(Diagnostic::toString)
-                .distinct()
-                .toList();
-    }
-
-    /**
-     * Compact report target for the known guest branch. The report action must
-     * point to the network fact that caused the warning, not to the page that
-     * happened to be open when the diagnostic was published.
-     */
-    public String expectedGuestWarningTarget() {
-        return warningTarget(diagnostics.stream()
-                .filter(PracticeShopRuntimeDiagnostics::isExpectedGuestSignal)
-                .toList());
-    }
-
-    /** Compact report target for known authenticated-bootstrap diagnostics. */
-    public String expectedRuntimeWarningTarget() {
-        return warningTarget(diagnostics.stream()
-                .filter(PracticeShopRuntimeDiagnostics::isExpectedAuthenticatedSetupSignal)
-                .toList());
-    }
-
-    /** Pure formatter kept public so the target contract can be tested without a browser. */
-    public static String warningTarget(Collection<Diagnostic> diagnostics) {
-        if (diagnostics == null || diagnostics.isEmpty()) return "none";
-        String target = diagnostics.stream()
-                .filter(Objects::nonNull)
-                .map(PracticeShopRuntimeDiagnostics::compactTarget)
-                .distinct()
-                .collect(Collectors.joining("; "));
-        return target.isBlank() ? "unknown runtime diagnostic" : target;
-    }
-
-    /** Converts runtime facts to the generic reporting vocabulary without exposing the URL. */
-    public static List<ReportNetworkInspector.Diagnostic> toNetworkDiagnostics(
-            Collection<Diagnostic> diagnostics) {
-        if (diagnostics == null) return List.of();
-        return diagnostics.stream()
-                .filter(Objects::nonNull)
-                .map(diagnostic -> new ReportNetworkInspector.Diagnostic(
-                        diagnostic.source(), diagnostic.method(), diagnostic.route(),
-                        diagnostic.status(), diagnostic.message()))
-                .toList();
+    /** Marks the point after the browser has proved a real authenticated account session. */
+    public void markAuthenticated() {
+        authenticatedBoundary = diagnostics.size();
     }
 
     public List<String> unexpectedErrors() {
-        return diagnostics.stream().filter(error -> !isExpectedGuestSignal(error)
-                        && !isExpectedAuthenticatedSetupSignal(error)
-                        && !toleratedSetupDiagnostics.contains(error))
-                .map(Diagnostic::toString).toList();
+        List<String> unexpected = new ArrayList<>();
+        for (int index = 0; index < diagnostics.size(); index++) {
+            Diagnostic diagnostic = diagnostics.get(index);
+            boolean knownCartBootstrap = isKnownCartBootstrapSignal(diagnostic);
+            boolean knownAnonymousUnauthorized = authenticatedBoundary >= 0
+                    && index < authenticatedBoundary && isUnauthorizedBootstrapSignal(diagnostic);
+            if (!knownCartBootstrap && !knownAnonymousUnauthorized) {
+                unexpected.add(diagnostic.toString());
+            }
+        }
+        return List.copyOf(unexpected);
     }
 
     public void assertClean() {
@@ -124,66 +50,56 @@ public final class PracticeShopRuntimeDiagnostics {
         }
     }
 
-    private static String compactTarget(Diagnostic diagnostic) {
-        if (!diagnostic.method().isBlank() && !diagnostic.route().isBlank()) {
-            return diagnostic.method().toUpperCase(Locale.ROOT) + " " + diagnostic.route()
-                    + " → " + (diagnostic.status() < 0 ? "n/a" : diagnostic.status());
-        }
-        return diagnostic.source().toLowerCase(Locale.ROOT) + " diagnostic";
-    }
-
-    /**
-     * A browser diagnostic is expected only when the network facts identify the
-     * guest current-user call. Message text is intentionally never sufficient.
-     */
-    public static boolean isExpectedGuestSignal(Diagnostic diagnostic) {
-        return diagnostic != null
-                && diagnostic.status() == 401
-                && HttpMethod.GET.value().equalsIgnoreCase(diagnostic.method())
-                && PracticeShopApiRoutes.CURRENT_USER.equals(diagnostic.route());
-    }
-
-    /**
-     * Known external bootstrap signal. It is not silently ignored: callers
-     * publish it as a warning, while unrelated runtime errors still fail.
-     */
-    public static boolean isExpectedAuthenticatedSetupSignal(Diagnostic diagnostic) {
-        if (diagnostic == null) return false;
-        if (isExpectedGuestSignal(diagnostic)) return true;
-        String message = diagnostic.message().toLowerCase(Locale.ROOT);
-        return diagnostic.status() < 0
-                && "console".equalsIgnoreCase(diagnostic.source())
-                && (message.contains("cart_items")
-                || message.contains("unauthorized")
-                || message.contains("401"));
-    }
-
-    /** Kept for source compatibility; an unstructured message is never trusted. */
-    public static boolean isExpectedGuestSignal(String ignoredMessage) { return false; }
-
     private void captureResponse(Response response) {
         if (response == null || response.status() != 401) return;
         String url = response.url();
         String route = route(url);
         var request = response.request();
         String method = request == null ? "" : request.method();
+        if (!PracticeShopApiTrafficCapture.isPublishable(method, route)) {
+            lastUnauthorizedResponse = null;
+            lastUnauthorizedResponseSuppressed = true;
+            return;
+        }
         Diagnostic diagnostic = new Diagnostic("response", method, url,
                 route, response.status(), "HTTP 401");
-        diagnostics.add(diagnostic);
         lastUnauthorizedResponse = diagnostic;
+        lastUnauthorizedResponseSuppressed = false;
+        diagnostics.add(diagnostic);
     }
 
     private void captureConsole(ConsoleMessage message) {
         if (!"error".equalsIgnoreCase(message.type())) return;
         String text = message.text();
-        Diagnostic related = text != null && text.contains("401") ? lastUnauthorizedResponse : null;
+        boolean unauthorizedSignal = isUnauthorizedSignal(text);
+        Diagnostic related = unauthorizedSignal ? lastUnauthorizedResponse : null;
         if (related != null) {
             diagnostics.add(new Diagnostic("console", related.method(), related.url(), related.route(),
                     related.status(), text));
+            lastUnauthorizedResponse = null;
+        } else if (unauthorizedSignal && lastUnauthorizedResponseSuppressed) {
+            lastUnauthorizedResponseSuppressed = false;
         } else {
             diagnostics.add(new Diagnostic("console", "", "", "", -1,
                     text == null ? "console error" : text));
         }
+    }
+
+    private static boolean isUnauthorizedSignal(String text) {
+        if (text == null) return false;
+        String normalized = text.toLowerCase(Locale.ROOT);
+        return normalized.contains("401") || normalized.contains("unauthorized");
+    }
+
+    private static boolean isUnauthorizedBootstrapSignal(Diagnostic diagnostic) {
+        String message = diagnostic.message().toLowerCase(Locale.ROOT);
+        return message.contains("401") || message.contains("unauthorized");
+    }
+
+    private static boolean isKnownCartBootstrapSignal(Diagnostic diagnostic) {
+        String message = diagnostic.message().toLowerCase(Locale.ROOT);
+        return message.contains("cannot read properties of null")
+                && message.contains("cart_items");
     }
 
     private void capturePageError(String message) {

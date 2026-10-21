@@ -86,10 +86,6 @@ public final class PracticeShopApiClient implements AutoCloseable {
         return new PracticeShopApiSession(token, result);
     }
 
-    public ApiExecutionResult currentUser() {
-        ensureOpen();
-        return execute(requests.currentUser(bearerToken));
-    }
     public PracticeShopApiRequestFactory requests() { return requests; }
     public URI endpoint() { return endpoint; }
     public String bearerToken() { return bearerToken; }

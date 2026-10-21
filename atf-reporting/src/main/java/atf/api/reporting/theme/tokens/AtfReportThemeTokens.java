@@ -31,6 +31,8 @@ public final class AtfReportThemeTokens {
     public static final String EVIDENCE_SUMMARY_PADDING = "9px 12px";
     public static final String EVIDENCE_SUMMARY_LINE_HEIGHT = "16px";
     public static final String EVIDENCE_SUMMARY_HEIGHT = "34px";
+    /** Two-line technical aggregate summaries get exactly twice the compact baseline. */
+    public static final String EVIDENCE_AGGREGATE_SUMMARY_HEIGHT = "68px";
     /** One bounded viewport for every scrollable report table, matching System/Environment. */
     public static final String TABLE_SCROLL_HEIGHT = "500px";
     /** Source-compatible semantic aliases; the value remains owned by TABLE_SCROLL_HEIGHT. */
@@ -112,6 +114,7 @@ public final class AtfReportThemeTokens {
                 variable("evidence-summary-padding", EVIDENCE_SUMMARY_PADDING),
                 variable("evidence-summary-line-height", EVIDENCE_SUMMARY_LINE_HEIGHT),
                 variable("evidence-summary-height", EVIDENCE_SUMMARY_HEIGHT),
+                variable("evidence-aggregate-summary-height", EVIDENCE_AGGREGATE_SUMMARY_HEIGHT),
                 variable("table-scroll-height", TABLE_SCROLL_HEIGHT),
                 variable("evidence-table-scroll-height", TABLE_SCROLL_HEIGHT),
                 variable("evidence-radius", EVIDENCE_RADIUS),

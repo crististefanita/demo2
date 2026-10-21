@@ -27,7 +27,6 @@ public final class PracticeShopApiScenarioFixture {
     public static final int FIRST_PAGE = 1;
     public static final int FILTER_PAGE = 2;
     public static final boolean FILTER_RENTAL = false;
-    public static final String AUTH_TOKEN = "token-value";
     public static final String MISSING_PRODUCT_ID = "missing-product";
     public static final String COUNTRY = "RO";
     public static final String POSTCODE = "010101";
@@ -36,7 +35,6 @@ public final class PracticeShopApiScenarioFixture {
     public static final String NOT_FOUND_BODY = "{\"message\":\"Not found\"}";
     public static final String PAYMENT_SUCCESS_BODY = "{\"message\":\"Payment was successful\"}";
     public static final String LOGIN_TOKEN_BODY = "{\"access_token\":\"token-1\"}";
-    public static final String CURRENT_USER_BODY = "{\"first_name\":\"ATF\",\"last_name\":\"Practice\"}";
     public static final String PRODUCT_SEARCH_BODY =
             "{\"data\":[{\"id\":\"01product\",\"name\":\"Combination Pliers\"}]}";
     public static final String PRODUCT_COLLECTION_BODY =

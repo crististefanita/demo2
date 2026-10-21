@@ -29,10 +29,6 @@ public final class PracticeShopApiRequestFactory {
                 NO_AUTH);
     }
 
-    public ApiRequest currentUser(String bearerToken) {
-        return get(PracticeShopApiRoutes.CURRENT_USER, bearerToken);
-    }
-
     public ApiRequest search(String productName) {
         return query(HttpMethod.GET.value(), PracticeShopApiRoutes.PRODUCT_SEARCH,
                 Map.of(PracticeShopApiQueryParameter.SEARCH.wireValue(), required(productName, "product name")),

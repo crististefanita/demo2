@@ -59,6 +59,7 @@ public final class PracticeShopLocators {
     private static final String GUEST_PROCEED = "button[data-test='proceed-2-guest']";
     private static final String AUTHENTICATED_PROCEED = "button[data-test='proceed-2']";
     private static final String COUNTRY = "select[data-test='country']";
+    private static final String COUNTRY_SELECTED_OPTION = COUNTRY + " option:checked";
     private static final String POSTAL_CODE = "input[data-test='postal_code']";
     private static final String HOUSE_NUMBER = "input[data-test='house_number']";
     private static final String STREET = "input[data-test='street']";
@@ -140,6 +141,7 @@ public final class PracticeShopLocators {
     public AtfLocator guestProceed(Page page) { return css(page, GUEST_PROCEED); }
     public AtfLocator authenticatedProceed(Page page) { return css(page, AUTHENTICATED_PROCEED); }
     public AtfLocator country(Page page) { return css(page, COUNTRY); }
+    public AtfLocator selectedCountry(Page page) { return css(page, COUNTRY_SELECTED_OPTION); }
     public AtfLocator postalCode(Page page) { return css(page, POSTAL_CODE); }
     public AtfLocator houseNumber(Page page) { return css(page, HOUSE_NUMBER); }
     public AtfLocator street(Page page) { return css(page, STREET); }

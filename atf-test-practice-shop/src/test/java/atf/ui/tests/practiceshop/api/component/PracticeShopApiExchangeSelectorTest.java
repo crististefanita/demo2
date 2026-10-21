@@ -34,19 +34,6 @@ class PracticeShopApiExchangeSelectorTest {
     }
 
     @Test
-    void optionalSelectionDoesNotInventAnExchangeWhenThePredicateDoesNotMatch() {
-        var exchange = exchange(HttpMethod.GET.value(), PracticeShopApiRoutes.CURRENT_USER,
-                PracticeShopApiHttpStatus.UNAUTHORIZED, "unauthorized");
-
-        assertNull(PracticeShopApiExchangeSelector.latestOptional(
-                List.of(exchange), HttpMethod.GET.value(), PracticeShopApiRoutes.CURRENT_USER,
-                item -> PracticeShopApiHttpStatus.OK.matches(item.status())));
-        assertThrows(IllegalStateException.class, () -> PracticeShopApiExchangeSelector.latest(
-                List.of(exchange), HttpMethod.GET.value(), PracticeShopApiRoutes.CURRENT_USER,
-                item -> PracticeShopApiHttpStatus.OK.matches(item.status())));
-    }
-
-    @Test
     void operationSelectionAcceptsObservedQueryAliasForCatalogSearch() {
         var observed = exchange("QUERY", PracticeShopApiRoutes.PRODUCT_SEARCH,
                 PracticeShopApiHttpStatus.OK, "search-result");

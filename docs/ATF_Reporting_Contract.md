@@ -151,11 +151,11 @@ rendererul fallback:
 - în UI trace, acest spine este copilul semantic `API validation`, poziționat
   între pasul Gherkin și disclosure-urile collapsed; `API validation` are stilul
   și statusul unei `UI validation`, dar nu creează un test sau un verdict paralel;
-- `Runtime diagnostic` și `API network inspector — ordered UI journey`, inclusiv
-  copiii lor tehnici, folosesc aceeași familie vizuală de evidence (accent rail
-  și header); statusul rămâne însă semantic pentru fiecare nod (`Warning` sau
-  `Pass`), astfel încât stilul comun nu schimbă verdictul și nu creează o
-  validare UI artificială;
+- diagnosticele runtime pot apărea numai ca disclosure tehnic explicit separat;
+  nu devin pași Gherkin, validări de business sau exchange-uri API;
+- un inspector configurat API-only primește exchange-urile contractuale și
+  checkpoint-urile cauzale; semnalele browser nelegate rămân la gate-ul runtime
+  al consumerului, nu în aggregate-ul API și nu în verdictul unui pas business;
 - inspectorul de rețea este un nod synthetic unic, iar `Network aggregate · N
   exchanges` este copilul său real; copilul deține disclosure-urile typed pentru
   auth, correlation, transport, unique signatures și diagnostics, fără să
@@ -171,14 +171,16 @@ rendererul fallback:
   vertical bounded și scrollabil, cu header sticky; wrapper-ul este comun
   rendererelor Extent și fallback și nu mută screenshot-ul în viewport-ul
   tabelului;
-- toate tabelele care pot derula vertical folosesc aceeași înălțime de viewport
-  ca `Overview → System/Environment`: tokenul unic
+- toate tabelele care pot derula vertical folosesc același plafon de viewport ca
+  `Overview → System/Environment`: tokenul unic
   `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT` (`500px` în profilul curent),
-  publicat ca `--atf-table-scroll-height`. Regula acoperă System/Environment,
-  Category/Overview, tag audit, Playwright action, audit observations,
-  assertions și echivalentele API/UI; nu există înălțimi hardcodate per
-  renderer. Blocurile JSON/code sunt payload panes, nu tabele, și își păstrează
-  limita compactă proprie;
+  publicat ca `--atf-table-scroll-height`. Wrapper-ul folosește `height:auto` și
+  `max-height`, ca un tabel scurt să nu rezerve spațiu gol, iar unul lung să
+  deruleze până la ultimul rând cu header sticky. Regula acoperă
+  System/Environment, Category/Overview, tag audit, Playwright action, audit
+  observations, assertions și echivalentele API/UI; nu există înălțimi
+  hardcodate per renderer. Blocurile JSON/code sunt payload panes, nu tabele,
+  și își păstrează limita compactă proprie;
 - la viewport-uri înguste (`≤991px`), Overview începe după rail-ul fix de
   navigare (`70px`) și ocupă doar spațiul rămas; layout-ul desktop păstrează
   indentarea existentă;

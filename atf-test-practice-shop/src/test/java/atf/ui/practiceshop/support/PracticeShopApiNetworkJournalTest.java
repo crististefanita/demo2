@@ -37,21 +37,25 @@ class PracticeShopApiNetworkJournalTest {
         journal.productReady("Widget", null);
 
         var selected = journal.selectedEvidence();
-        assertEquals(List.of("E2", "E3"), selected.stream()
+        assertEquals(List.of("E1", "E2"), selected.stream()
                 .map(evidence -> evidence.trace().eventId()).toList());
         assertTrue(selected.stream().allMatch(evidence ->
                 evidence.request().path().startsWith("/products")));
-        assertEquals(3, journal.allEvidence().size());
-        assertFalse(selected.stream().anyMatch(evidence -> "/users/me".equals(evidence.request().path())));
+        assertEquals(2, journal.allEvidence().size());
     }
 
     @Test
-    void selectedEvidenceIsEmptyUntilAConfiguredCheckpointProducesEvidence() {
+    void ambientSessionProbeNeverEntersTheJournalOrReportEvidence() {
         var journal = new PracticeShopApiNetworkJournal(PracticeShopValidationProfile.UI_API,
                 PracticeShopApiEvidenceBinding.fromCsv(PracticeShopValidationProfile.UI_API, "product"));
         journal.recordCapturedExchange(exchange("GET", "/users/me", "{}", "{}"));
 
         assertTrue(journal.selectedEvidence().isEmpty());
+        assertTrue(journal.allEvidence().isEmpty());
+        assertTrue(journal.inspectorEvidence().isEmpty());
+        assertFalse(PracticeShopApiTrafficCapture.isPublishable("GET", "/users/me?source=bootstrap"));
+        assertTrue(PracticeShopApiTrafficCapture.isPublishable("GET", "/payment/check"));
+        assertTrue(PracticeShopApiTrafficCapture.isPublishable("POST", "/users/login"));
     }
 
     @Test

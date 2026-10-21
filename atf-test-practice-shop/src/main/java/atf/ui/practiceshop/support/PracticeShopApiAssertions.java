@@ -2,7 +2,6 @@ package atf.ui.practiceshop.support;
 
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.api.ReportRequestSignature;
-import atf.api.core.http.request.HttpMethod;
 import atf.api.core.http.request.MediaTypes;
 import atf.ui.practiceshop.api.PracticeShopApiOperation;
 import atf.ui.practiceshop.api.PracticeShopApiHttpStatus;
@@ -11,7 +10,6 @@ import atf.ui.practiceshop.api.PracticeShopApiQueryParameter;
 import atf.ui.practiceshop.api.PracticeShopApiRoutes;
 import com.fasterxml.jackson.databind.JsonNode;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static atf.api.reporting.audit.ReportAuditChecks.check;
@@ -65,9 +63,7 @@ public final class PracticeShopApiAssertions {
                 trace("product detail", detail));
     }
 
-    public static List<AtfAssertion> login(PracticeShopApiNetworkJournal.Exchange login,
-                                    PracticeShopApiNetworkJournal.Exchange currentUser,
-                                    String displayName) {
+    public static List<AtfAssertion> login(PracticeShopApiNetworkJournal.Exchange login) {
         String loginResponseBody = login.responseBody();
         JsonNode loginJson = PracticeShopJsonEvidence.parse(loginResponseBody);
         boolean readableTokenJson = loginJson != null && hasTextField(loginJson,
@@ -77,11 +73,7 @@ public final class PracticeShopApiAssertions {
         boolean validJsonTransport = SUCCESS_STATUS.matches(login.status())
                 && login.isJsonResponse()
                 && (readableTokenJson || positiveContentLength(login));
-        String currentUserBody = currentUser == null ? "" : currentUser.responseBody();
-        boolean currentUserMatches = currentUser != null
-                && SUCCESS_STATUS.matches(currentUser.status())
-                && currentUserBody.contains(displayName.split(" ", 2)[0]);
-        List<AtfAssertion> assertions = new ArrayList<>(List.of(
+        return List.of(
                 check("API login status", SUCCESS_STATUS.wireValue(), Integer.toString(login.status()),
                         SUCCESS_STATUS.matches(login.status())),
                 check("API login request JSON", "email and password fields are sent",
@@ -93,17 +85,7 @@ public final class PracticeShopApiAssertions {
                                 : "body unavailable to Playwright transport; content-type=" + login.contentType()
                                 + ", content-length=" + header(login, "content-length"),
                         validJsonTransport),
-                currentUser == null
-                        ? check("API session establishment", "login token establishes the UI session",
-                        HttpMethod.POST.value() + " " + PracticeShopApiRoutes.LOGIN
-                                + " returned " + SUCCESS_STATUS.wireValue() + "; "
-                                + PracticeShopApiRoutes.CURRENT_USER + " was not emitted by this UI revision",
-                        validJsonTransport)
-                        : check("API current-user response", displayName, compact(currentUserBody, 220),
-                        currentUserMatches)));
-        assertions.add(trace("login", login));
-        if (currentUser != null) assertions.add(trace("current user", currentUser));
-        return List.copyOf(assertions);
+                trace("login", login));
     }
 
     public static List<AtfAssertion> cart(PracticeShopApiNetworkJournal.Exchange add,

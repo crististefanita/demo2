@@ -7,6 +7,7 @@ import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.markup.AtfReportMarkup;
 import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,10 +33,11 @@ public final class ReportNetworkAggregateMarkup {
     private ReportNetworkAggregateMarkup() { }
 
     public static String disclosure(ReportNetworkInspector.JourneyAggregate aggregate) {
-        if (aggregate == null) return "";
+        List<String> sections = substepSections(aggregate);
+        if (sections.isEmpty()) return "";
         return ReportEvidenceMarkup.disclosure(NETWORK_AGGREGATE,
                 NETWORK_AGGREGATE_TITLE + " · " + aggregate.observations() + " exchanges",
-                sections(aggregate));
+                sectionTable(sections));
     }
 
     /**
@@ -46,11 +48,13 @@ public final class ReportNetworkAggregateMarkup {
      * second disclosure while retaining the same renderer-neutral evidence.</p>
      */
     public static String substepBody(ReportNetworkInspector.JourneyAggregate aggregate) {
-        return aggregate == null ? "" : sectionTable(substepSections(aggregate));
+        List<String> sections = substepSections(aggregate);
+        return sections.isEmpty() ? "" : sectionTable(sections);
     }
 
-    private static String sections(ReportNetworkInspector.JourneyAggregate aggregate) {
-        return sectionTable(substepSections(aggregate));
+    /** One visibility rule shared by Extent and fallback HTML renderers. */
+    public static boolean hasContent(ReportNetworkInspector.JourneyAggregate aggregate) {
+        return aggregate != null && !substepSections(aggregate).isEmpty();
     }
 
     /**
@@ -61,7 +65,8 @@ public final class ReportNetworkAggregateMarkup {
     public static List<String> substepSections(
             ReportNetworkInspector.JourneyAggregate aggregate) {
         if (aggregate == null) return List.of();
-        return List.of(
+        List<String> sections = new ArrayList<>();
+        if (!aggregate.authentication().isEmpty()) sections.add(
                 section(AUTHENTICATION, aggregate.authentication().size(),
                         ReportEvidenceTable.of(
                                 List.of("METHOD", "SOURCE", "STATUS", "COUNT"),
@@ -69,7 +74,8 @@ public final class ReportNetworkAggregateMarkup {
                                         .map(item -> List.of(item.method(), item.source(),
                                                 item.status() < 0 ? "Unavailable" : Integer.toString(item.status()),
                                                 Integer.toString(item.count())))
-                                        .toList())),
+                                        .toList())));
+        if (!aggregate.correlation().isEmpty()) sections.add(
                 section(CORRELATION, aggregate.correlation().size(),
                         ReportEvidenceTable.of(
                                 List.of("KEYWORD", "STEP", "EXCHANGES", "ASSERTIONS", "RESULT"),
@@ -78,12 +84,23 @@ public final class ReportNetworkAggregateMarkup {
                                                 Integer.toString(item.exchangeCount()),
                                                 Integer.toString(item.assertionCount()),
                                                 item.passed() ? "PASS" : "FAIL"))
-                                        .toList())),
-                section(TRANSPORT, 1, transportMetrics(aggregate.transport())),
+                                        .toList())));
+        if (hasTransportActivity(aggregate.transport())) {
+            sections.add(section(TRANSPORT, transportMetrics(aggregate.transport())));
+        }
+        if (!aggregate.signatures().isEmpty()) sections.add(
                 section(SIGNATURES, aggregate.signatures().size(),
-                        signatureCards(aggregate.signatures()), "network-signatures"),
+                        signatureCards(aggregate.signatures()), "network-signatures"));
+        if (!aggregate.diagnostics().isEmpty()) sections.add(
                 section(DIAGNOSTICS, aggregate.diagnostics().size(),
                         diagnosticCards(aggregate.diagnostics()), "network-diagnostics"));
+        return List.copyOf(sections);
+    }
+
+    private static boolean hasTransportActivity(ReportNetworkInspector.TransportCounters transport) {
+        return transport.observations() > 0 || transport.successful() > 0 || transport.failed() > 0
+                || transport.attempts() > 0 || transport.retries() > 0 || transport.live() > 0
+                || transport.mock() > 0 || transport.unknown() > 0;
     }
 
     private static String sectionTable(List<String> disclosures) {
@@ -135,6 +152,10 @@ public final class ReportNetworkAggregateMarkup {
         return ReportEvidenceMarkup.disclosure(kind,
                 title + " · " + count,
                 body);
+    }
+
+    private static String section(String title, String body) {
+        return ReportEvidenceMarkup.disclosure(NETWORK_AGGREGATE_SECTION, title, body);
     }
 
     private static String section(String title, int count, ReportEvidenceTable table) {

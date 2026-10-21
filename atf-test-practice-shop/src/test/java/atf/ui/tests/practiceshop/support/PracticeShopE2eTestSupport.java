@@ -140,6 +140,9 @@ public final class PracticeShopE2eTestSupport {
         public PracticeShopApiNetworkJournal apiNetwork() { return context().apiNetwork(); }
         public PracticeShopRuntimeDiagnostics runtimeDiagnostics() { return context().runtimeDiagnostics(); }
 
+        /** Called only after the account page proves the authenticated browser session. */
+        public void authenticatedSessionEstablished() { runtimeDiagnostics().markAuthenticated(); }
+
         public void checkpoint(PracticeShopPurchaseCheckpoint checkpoint) {
             scenario.checkpoint(page(), actions, checkpoint);
         }
@@ -150,27 +153,14 @@ public final class PracticeShopE2eTestSupport {
 
         public void completeGuestPurchase() {
             PracticeShopRuntimeDiagnostics diagnostics = runtimeDiagnostics();
-            var warnings = diagnostics.expectedGuestWarnings();
             diagnostics.assertClean();
-            // Expected guest signals remain in the network-inspector diagnostics and
-            // affect the scenario status; they are not synthetic business/Gherkin steps.
-            scenario.complete(warnings.isEmpty() ? AtfReportStatus.PASS : AtfReportStatus.WARNING);
+            scenario.complete(AtfReportStatus.PASS);
         }
 
         public void completeAuthenticatedPurchase() {
             PracticeShopRuntimeDiagnostics diagnostics = runtimeDiagnostics();
             diagnostics.assertClean();
-            var warnings = diagnostics.expectedRuntimeWarnings();
-            if (warnings.isEmpty()) {
-                scenario.complete();
-                return;
-            }
-            var expected = diagnostics.structuredDiagnostics().stream()
-                    .filter(PracticeShopRuntimeDiagnostics::isExpectedAuthenticatedSetupSignal).toList();
-            scenario.warningDiagnostics("known external bootstrap diagnostics are visible",
-                    diagnostics.expectedRuntimeWarningTarget(),
-                    PracticeShopRuntimeDiagnostics.toNetworkDiagnostics(expected));
-            scenario.complete(AtfReportStatus.WARNING);
+            scenario.complete(AtfReportStatus.PASS);
         }
     }
 }

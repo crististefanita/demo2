@@ -164,8 +164,15 @@ summary {
   display: flex;
   align-items: center;
 }
+details.network-signatures > summary,
+details.network-diagnostics > summary {
+  height: var(--atf-evidence-aggregate-summary-height);
+  min-height: var(--atf-evidence-aggregate-summary-height);
+  max-height: var(--atf-evidence-aggregate-summary-height);
+  white-space: normal;
+}
 .atf-secondary-body.network-aggregate-scroll {
-  height: var(--atf-table-scroll-height);
+  height: auto;
   max-height: var(--atf-table-scroll-height);
   overflow-x: hidden;
   overflow-y: auto;

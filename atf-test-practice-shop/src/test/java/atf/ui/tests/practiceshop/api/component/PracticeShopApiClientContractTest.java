@@ -57,41 +57,26 @@ class PracticeShopApiClientContractTest {
     }
 
     @Test
-    void successfulLoginProducesReusableSessionForCurrentUserPrecondition() {
+    void successfulLoginProducesReusableAuthenticatedSession() {
         var client = PracticeShopApiComponentFixture.client();
 
         var session = client.login(PracticeShopApiScenarioFixture.validCredentials());
-        var currentUser = client.currentUser();
 
         assertTrue(session.authenticated());
         assertEquals(PracticeShopApiHttpStatus.OK.code(), session.loginResult().response().status());
-        assertEquals(PracticeShopApiHttpStatus.OK.code(), currentUser.response().status());
-        assertEquals(PracticeShopApiScenarioFixture.CURRENT_USER_BODY, currentUser.response().body());
     }
 
     @Test
-    void invalidLoginClearsPreviousBearerBeforeCurrentUserIsCalled() {
+    void invalidLoginClearsPreviousBearer() {
         var client = PracticeShopApiComponentFixture.client();
 
         client.login(PracticeShopApiScenarioFixture.validCredentials());
         var invalidSession = client.login(PracticeShopApiScenarioFixture.invalidCredentials());
-        var currentUser = client.currentUser();
 
         assertFalse(invalidSession.authenticated());
         assertEquals(PracticeShopApiHttpStatus.UNAUTHORIZED.code(),
                 invalidSession.loginResult().response().status());
-        assertEquals(PracticeShopApiHttpStatus.UNAUTHORIZED.code(), currentUser.response().status());
-        assertEquals(PracticeShopApiScenarioFixture.UNAUTHORIZED_BODY, currentUser.response().body());
-    }
-
-    @Test
-    void anonymousCurrentUserReturnsStructuredUnauthorizedJson() {
-        var client = PracticeShopApiComponentFixture.client();
-
-        var currentUser = client.currentUser();
-
-        assertEquals(PracticeShopApiHttpStatus.UNAUTHORIZED.code(), currentUser.response().status());
-        assertEquals(PracticeShopApiScenarioFixture.UNAUTHORIZED_BODY, currentUser.response().body());
+        assertEquals("", client.bearerToken());
     }
 
     @Test
@@ -103,7 +88,7 @@ class PracticeShopApiClientContractTest {
 
         assertEquals("", client.bearerToken());
         assertThrows(IllegalStateException.class,
-                () -> client.currentUser());
+                () -> client.login(PracticeShopApiScenarioFixture.validCredentials()));
     }
 
     private static ApiTransport jsonTransport(String responseBody) {

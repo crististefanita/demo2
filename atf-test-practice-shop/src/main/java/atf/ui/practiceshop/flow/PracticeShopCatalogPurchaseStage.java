@@ -1,9 +1,9 @@
 package atf.ui.practiceshop.flow;
 
-import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.ui.practiceshop.pages.PracticeShopHomePage;
 import atf.ui.practiceshop.pages.PracticeShopProductPage;
 import atf.ui.practiceshop.config.PracticeShopApiCheckpoint;
+import atf.ui.practiceshop.support.PracticeShopPurchaseTraceStep;
 
 import java.util.List;
 
@@ -21,8 +21,7 @@ final class PracticeShopCatalogPurchaseStage {
         home.open(configuration);
         context.assertVisible(locators.homeNavigation(page), locators.homeBrand(page),
                 locators.homeBanner(page));
-        context.publish(context.checkpoint(AtfGherkinKeyword.GIVEN,
-                "catalog home structure displays navigation, branding and banner",
+        context.publish(context.checkpoint(PracticeShopPurchaseTraceStep.CATALOG_HOME,
                 context.homeScreenValidator().structure(page),
                 context.homeScreenValidator().structureStyle(page), List.of()));
 
@@ -30,15 +29,13 @@ final class PracticeShopCatalogPurchaseStage {
                 locators.searchQuery(page), locators.homeSearchReset(page),
                 locators.homeSearchSubmit(page), locators.homeCategoryFilters(page),
                 locators.homeBrandFilters(page), locators.homeEcoFilter(page));
-        context.publish(context.checkpoint(AtfGherkinKeyword.AND,
-                "catalog home filters expose sorting, price, search and category controls",
+        context.publish(context.checkpoint(PracticeShopPurchaseTraceStep.HOME_FILTERS,
                 context.homeScreenValidator().filters(page),
                 context.homeScreenValidator().filterIntegrity(page), List.of()));
 
         context.assertVisible(locators.homeProductGrid(page), locators.homeProductNames(page),
                 locators.homeProductImages(page), locators.homePagination(page), locators.homeFooter(page));
-        context.publish(context.checkpoint(AtfGherkinKeyword.AND,
-                "catalog home renders product cards, pagination and footer",
+        context.publish(context.checkpoint(PracticeShopPurchaseTraceStep.HOME_PRODUCT_GRID,
                 context.homeScreenValidator().productGrid(page),
                 context.homeScreenValidator().productGridIntegrity(page), List.of()));
 
@@ -64,8 +61,7 @@ final class PracticeShopCatalogPurchaseStage {
         String productName = product.assertLoaded(configuration);
         var productApiAssertions = context.apiNetwork().productReady(
                 configuration.productName(), selectedProductPath);
-        context.publish(context.checkpoint(AtfGherkinKeyword.GIVEN,
-                "product page displays the configured product and ready-to-buy fields",
+        context.publish(context.checkpoint(PracticeShopPurchaseTraceStep.PRODUCT_PAGE,
                 context.pageValidator().validate(page, PracticeShopProductPage.class,
                         configuration.productName()),
                 List.of(

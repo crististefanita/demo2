@@ -26,11 +26,15 @@ class PracticeShopReportSystemMetadataTest {
 
         assertAll(
                 () -> assertTrue(values.contains("chromium")),
-                () -> assertTrue(values.contains("headless")),
+                () -> assertTrue(values.contains("headed")),
+                () -> assertTrue(metadata.get(ReportEnvironmentField.BROWSER.label())
+                        .contains(" · headed · viewport 1440 × 1000"),
+                        "System/Browser must reflect the current headed YAML profile and viewport"),
                 () -> assertTrue(values.contains("zoom 70%")),
                 () -> assertTrue(values.contains("UI + API evidence")),
                 () -> assertTrue(values.contains("Transport mode=LIVE HTTP")),
-                () -> assertTrue(values.contains("Precondition=API authentication: authenticated")),
+                () -> assertTrue(values.contains("Precondition=API precondition (configured): authenticated"
+                        + " · UI journey: guest checkout configuration ready")),
                 () -> assertFalse(values.contains("UI journey precondition")),
                 () -> assertTrue(values.contains("UI action timeout=20s")),
                 () -> assertTrue(values.contains("Page navigation timeout=45s")),

@@ -28,6 +28,8 @@ import java.util.List;
 /** Owns the browser/report lifecycle for one external Practice Shop suite. */
 public final class PracticeShopE2eContext implements AutoCloseable {
     private static final DateTimeFormatter STAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss-SSS");
+    private static final String NETWORK_INSPECTOR_SUMMARY_TITLE =
+            "API network inspector — journey summary";
     private final PracticeShopConfiguration configuration;
     private final UiExtentReportSession report;
     private final PlaywrightUiSession browser;
@@ -246,31 +248,6 @@ public final class PracticeShopE2eContext implements AutoCloseable {
             complete = true;
         }
 
-        public void warning(String title, String target, Collection<AtfAssertion> assertions) {
-            body.diagnostic(AtfGherkinKeyword.AND, title, target, assertions,
-                    AtfReportStatus.WARNING);
-        }
-
-        /**
-         * Publishes one assertion per deduplicated runtime signature. The
-         * aggregate remains the canonical source for count/sources, so a
-         * response plus console observation is not rendered as two identical
-         * warning rows.
-         */
-        public void warningDiagnostics(String title, String target,
-                                       Collection<ReportNetworkInspector.Diagnostic> diagnostics) {
-            var aggregate = ReportNetworkInspector.aggregate(List.of(), List.of(), diagnostics);
-            var assertions = aggregate.diagnostics().stream()
-                    .map(diagnostic -> new AtfAssertion(
-                            "Runtime diagnostic",
-                            diagnostic.method() + " " + diagnostic.route() + " → " + diagnostic.status()
-                                    + " observed",
-                            "count=" + diagnostic.count() + "; sources=" + diagnostic.sources(),
-                            true))
-                    .toList();
-            warning(title, target, assertions);
-        }
-
         public void fail(Page page, PlaywrightActionSequence actions, Throwable failure) {
             if (complete) return;
             try {
@@ -312,12 +289,8 @@ public final class PracticeShopE2eContext implements AutoCloseable {
 
         private void publishNetworkInspector() {
             if (networkInspectorPublished || !configuration.validationProfile().apiEvidenceRequired()) return;
-            body.networkInspector("API network inspector — ordered UI journey", apiNetwork.inspectorEvidence(),
-                    networkSteps, runtimeDiagnostics.structuredDiagnostics().stream()
-                            .map(diagnostic -> new ReportNetworkInspector.Diagnostic(
-                                    diagnostic.source(), diagnostic.method(), diagnostic.route(),
-                                    diagnostic.status(), diagnostic.message()))
-                            .toList());
+            body.networkInspector(NETWORK_INSPECTOR_SUMMARY_TITLE, apiNetwork.inspectorEvidence(),
+                    networkSteps);
             networkInspectorPublished = true;
         }
     }

@@ -1,5 +1,6 @@
 package atf.ui.practiceshop.support;
 
+import atf.api.core.http.request.HttpMethod;
 import com.microsoft.playwright.Response;
 
 import java.util.Optional;
@@ -7,11 +8,16 @@ import java.util.Optional;
 /** Captures and sanitizes one Practice Shop HTTP response from the current UI session. */
 final class PracticeShopApiTrafficCapture {
     private static final String API_HOST = "api.practicesoftwaretesting.com";
+    private static final String UNPUBLISHED_SESSION_PATH = "/users/me";
 
     Optional<PracticeShopApiNetworkJournal.Exchange> capture(Response response) {
         if (response == null) return Optional.empty();
         var request = response.request();
         if (request == null || !isPracticeShopApi(request.url())) {
+            return Optional.empty();
+        }
+        String path = path(request.url());
+        if (!isPublishable(request.method(), path)) {
             return Optional.empty();
         }
         String responseBody;
@@ -30,7 +36,7 @@ final class PracticeShopApiTrafficCapture {
                     "Chromium response body", unavailable);
         }
         return Optional.of(new PracticeShopApiNetworkJournal.Exchange(
-                request.method(), path(request.url()), request.url(), response.status(),
+                request.method(), path, request.url(), response.status(),
                 PracticeShopApiEvidenceMapper.redactJson(request.postData()), responseBody,
                 PracticeShopJsonEvidence.redactHeaders(request.headers()),
                 PracticeShopJsonEvidence.redactHeaders(response.headers())));
@@ -47,5 +53,11 @@ final class PracticeShopApiTrafficCapture {
     private static String path(String url) {
         java.net.URI uri = java.net.URI.create(url);
         return uri.getRawPath() + (uri.getRawQuery() == null ? "" : "?" + uri.getRawQuery());
+    }
+
+    static boolean isPublishable(String method, String path) {
+        String route = path == null ? "" : path.split("[?#]", 2)[0];
+        return !(HttpMethod.GET.value().equalsIgnoreCase(method)
+                && UNPUBLISHED_SESSION_PATH.equals(route));
     }
 }

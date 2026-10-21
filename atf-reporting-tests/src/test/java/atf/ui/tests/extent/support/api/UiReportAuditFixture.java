@@ -46,11 +46,19 @@ public final class UiReportAuditFixture implements AutoCloseable {
 
     public static UiReportAuditFixture open(Class<?> owner, UiConfiguration configuration,
                                             UiReportAuditSpec spec) {
+        return open(owner, configuration, spec,
+                new ApiReportAuditSetup.Selection(spec.apiFamilies(), java.util.List.of()));
+    }
+
+    public static UiReportAuditFixture open(Class<?> owner, UiConfiguration configuration,
+                                            UiReportAuditSpec spec,
+                                            ApiReportAuditSetup.Selection selection) {
         Objects.requireNonNull(owner, "owner");
         Objects.requireNonNull(configuration, "configuration");
         Objects.requireNonNull(spec, "spec");
+        Objects.requireNonNull(selection, "selection");
         ApiReportAuditSetup.Result setup = new ApiReportAuditSetup()
-                .generate(owner, configuration, spec.apiFamilies());
+                .generate(owner, configuration, selection);
         ReportAuditContext context = ReportAuditContext.open(configuration,
                 ReportAuditInputs.generated(setup.report()).resolve(configuration), spec.id());
         UiAuditFlow audit = new UiAuditFlow(context, configuration,

@@ -51,12 +51,9 @@ public final class PracticeShopReportSystemMetadata {
                 .put(ReportEnvironmentField.TRANSPORT_MODE,
                         configuration.api().mode() == ApiTransportMode.LIVE ? "LIVE HTTP" : "FIXTURE")
                 .put(ReportEnvironmentField.PRECONDITION,
-                        "API authentication: "
-                                + configuration.api().precondition().name().toLowerCase())
+                        precondition(configuration))
                 .put(ReportEnvironmentField.UI_JOURNEY_PRECONDITION,
-                        configuration.authenticatedE2eAllowed()
-                                ? "authenticated checkout account fixture loaded"
-                                : "guest checkout configuration ready")
+                        journeyPrecondition(configuration))
                 .put(ReportEnvironmentField.API_EVIDENCE,
                         configuration.validationProfile().apiEvidenceRequired()
                                 ? "enabled at checkpoints: "
@@ -111,6 +108,18 @@ public final class PracticeShopReportSystemMetadata {
     private static String profile(PracticeShopConfiguration configuration) {
         return configuration.validationProfile().apiEvidenceRequired()
                 ? "UI + API evidence" : "UI evidence";
+    }
+
+    private static String precondition(PracticeShopConfiguration configuration) {
+        return "API precondition (configured): "
+                + configuration.api().precondition().name().toLowerCase()
+                + " · UI journey: " + journeyPrecondition(configuration);
+    }
+
+    private static String journeyPrecondition(PracticeShopConfiguration configuration) {
+        return configuration.authenticatedE2eAllowed()
+                ? "authenticated checkout account fixture loaded"
+                : "guest checkout configuration ready";
     }
 
     private static String humanDuration(Duration duration) {

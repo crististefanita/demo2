@@ -118,6 +118,12 @@ public final class PracticeShopPageValidator {
 
     private AtfAssertion value(PracticeShopControl control, Page page, String expected) {
         try {
+            if (control == PracticeShopControl.COUNTRY) {
+                var selected = locators.selectedCountry(page).locator();
+                var option = new PracticeShopCountryOption(selected.getAttribute("value"),
+                        selected.getAttribute("label"), selected.innerText());
+                return assertion(control.label(), expected, option.displayValue(), option.matches(expected));
+            }
             String actual = locators.control(page, control).locator().inputValue();
             return assertion(control.label(), expected, actual, expected.equals(actual));
         } catch (RuntimeException error) {

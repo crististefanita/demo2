@@ -90,7 +90,7 @@ class PracticeShopStandaloneApiReportTest {
                 checkout.payment(), 8, CHECKOUT_PHASE);
         List<PracticeShopApiReportValidation> validations = List.of(
                 new PracticeShopApiReportValidation("Authentication business contract",
-                        PracticeShopApiAssertions.login(loginExchange, null, credentials.displayName())),
+                        PracticeShopApiAssertions.login(loginExchange)),
                 new PracticeShopApiReportValidation("Catalog business contract",
                         PracticeShopApiAssertions.product(searchExchange, detailExchange,
                                 configuration.productName(), catalog.productId())),
@@ -132,7 +132,7 @@ class PracticeShopStandaloneApiReportTest {
         var exchange = PracticeShopApiExecutionExchange.from(login.loginResult(), 1, AUTHENTICATION_PHASE);
         List<PracticeShopApiReportValidation> validations = List.of(
                 new PracticeShopApiReportValidation("Authentication business contract",
-                        PracticeShopApiAssertions.login(exchange, null, credentials.displayName())));
+                        PracticeShopApiAssertions.login(exchange)));
         Path reportPath = configuration.apiReportDirectory().resolve(
                 REPORT_PREFIX + Instant.now().toString().replace(":", "-") + ".html");
         Path report = PracticeShopApiReportPublisher.publishLiveStandalone(reportPath,

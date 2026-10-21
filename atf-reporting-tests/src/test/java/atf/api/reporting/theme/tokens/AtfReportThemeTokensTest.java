@@ -59,8 +59,12 @@ class AtfReportThemeTokensTest {
                 () -> assertTrue(tokens.contains("--atf-evidence-status-column-width:52px")),
                 () -> assertTrue(tokens.contains("--atf-evidence-summary-padding:9px 12px")),
                 () -> assertTrue(tokens.contains("--atf-evidence-summary-height:34px")),
-                () -> assertFalse(tokens.contains("--atf-evidence-tall-summary-"),
-                        "all evidence disclosures share the compact summary geometry"),
+                () -> assertTrue(tokens.contains("--atf-evidence-aggregate-summary-height:68px")),
+                () -> assertEquals(2 * Integer.parseInt(AtfReportThemeTokens.EVIDENCE_SUMMARY_HEIGHT
+                                .replace("px", "")),
+                        Integer.parseInt(AtfReportThemeTokens.EVIDENCE_AGGREGATE_SUMMARY_HEIGHT
+                                .replace("px", "")),
+                        "aggregate summaries must remain exactly twice the compact baseline"),
                 () -> assertTrue(tokens.contains("--atf-table-scroll-height:500px")),
                 () -> assertTrue(tokens.contains("--atf-evidence-table-scroll-height:500px")),
                 () -> assertTrue(tokens.contains("--atf-audit-scroll-height:500px")),
