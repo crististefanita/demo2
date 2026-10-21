@@ -67,7 +67,7 @@ Direcția este intenționată:
 | `AiEvaluationCase` + `AiFieldExpectation` | expected versionat, independent de output, cu reguli typed | apelarea unui model, grounding sau business rules |
 | `AiEvaluationEvaluator` + `AiEvaluationPolicy` | comparații typed, score ponderat, threshold explicit și hard-fail critic | provider AI, renderer sau workflow review |
 | `AiInvocationEvidence` | clasifică real/mock/fallback/unknown și păstrează referințe opace request/response/output | payload, prompt, token, credential sau invocation efectivă |
-| `AiEvaluationResult` + `AiFieldComparison` | verdict, hard-fails cu expected/observed/reason/evidence reference | snapshot lifecycle complet și proiecție raport |
+| `AiEvaluationSnapshot` + `AiFieldComparison` | snapshot complet cu policy, timestamp, verdict și hard-fails cu expected/observed/reason/evidence reference | grounding per field, evidence ledger și proiecție raport |
 
 `ResponseContract` nu mai conține mecanica fiecărei reguli. `ResponseContractRuleSet`
 producește definiții compozabile (`identity`, `title`, `ResponseValidationRule`),
@@ -162,7 +162,7 @@ Evaluarea AI este un increment separat în pachetul `atf.api.validation.ai`:
 - evaluează output furnizat de consumer; nu face invocation;
 - numai `REAL_AI` cu referințe complete poate primi quality score;
 - mock, fallback și unknown permit testarea comparatorului, fără AI quality score;
-- grounding per câmp și snapshot lifecycle complet sunt încă deschise;
+- grounding per câmp și evidence ledger sunt încă deschise;
 - limitele și criteriile de închidere sunt în
   [`README_AI_Evaluation.md`](../docs/feedback/README_AI_Evaluation.md).
 

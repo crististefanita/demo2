@@ -447,6 +447,14 @@ Invariante:
 
 Test obligatoriu: mutația după `complete` este refuzată ca failure de lifecycle.
 
+**Slice implementat în `atf-validation`:** evaluatorul expune numai snapshot
+`COMPLETE`, construit prin factory intern după terminarea comparațiilor. Snapshot-ul
+păstrează case/version/input reference, verdict, score eligibility, policy,
+timestamp de completare, invocation evidence, comparisons și hard-fails; colecțiile
+sunt copii imutabile. Nu există stare intermediară publică sau mutator după
+completare. Evidence index extins, trace metadata și grounding per field rămân
+gaps distincte, nu sunt deduse din acest snapshot.
+
 ## 12. Integrarea cu lifecycle-ul ATF
 
 ```text
@@ -675,8 +683,9 @@ configurabil pe caz.
 
 **Parțial implementat:** invocation evidence typed distinge real/mock/fallback/
 unknown; referințele request/response/output sunt opace și mock/fallback nu
-primesc quality score. Lipsesc grounding per field, evidence ledger și semantic
-snapshot cu lifecycle `complete`.
+primesc quality score. Snapshot-ul evaluatorului este immutable și `COMPLETE`.
+Lipsesc grounding per field, evidence ledger extins și integrarea cu lifecycle-ul
+unui run/raport.
 
 **Dovadă:** integration cu provider/mock și validation ledger.
 
@@ -710,7 +719,7 @@ Review/state/read-back numai pentru efectele observabile.
 | `AI-EVAL-05` | review/state | action și tranziții evaluate separat |
 | `AI-EVAL-06` | invocation/fallback | **contract implementat:** real/mock/fallback/unknown; numai REAL_AI cu evidence completă poate produce score; lifecycle integration încă lipsește |
 | `AI-EVAL-07` | hard-fail precedence | **probat pentru critical missing/invented/source contradiction și output nedeclarat:** `FAIL` domină score; catalogul AI complet și scenariile business încă lipsesc |
-| `AI-EVAL-08` | semantic snapshot | immutability și renderer neutrality |
+| `AI-EVAL-08` | semantic snapshot | **slice evaluator implementat:** snapshot immutable `COMPLETE`, cu policy/time și evaluarea integrală; evidence index extins, trace metadata și integrarea run lifecycle rămân deschise |
 | `AI-EVAL-09` | reporting parity | Extent/fallback aceeași semantică |
 | `AI-EVAL-10` | regression delta | comparație semantică între snapshot-uri |
 | `AI-EVAL-11` | coverage governance | fiecare seam public are proof class |
@@ -1289,11 +1298,11 @@ se adaugă într-un singur „overall” decorativ.
 | Completitudinea designului din acest README | **94/100** | contracte typed, expected/observed, evidence, grounding, review/state, score, hard-fail, snapshot, regression și workflow agentic | designul nu este încă executabil ca vertical slice |
 | Fundamentul ATF Java pentru evidence/reporting | **87/100** | request/response, retry history, provenance, auth observations, semantic snapshot și renderer-neutral projection | vocabularul este generic, nu AI-specific |
 | Validator generic reutilizabil | **66/100** | `ValidationEvaluator`, `ValidationTable`, validatori de contract API și comparator AI tipat | evaluatorul AI rămâne separat de rubricile business și de reporting |
-| AI evaluation implementată în ATF Java | **28/100** | modurile sigure de comparație, source presence, hard-fails și invocation/evidence sunt executabile și testate | grounding per field, snapshot lifecycle, evidence ledger și proiecție raport lipsesc |
+| AI evaluation implementată în ATF Java | **28/100** | comparatorul, hard-fails, invocation evidence și snapshot-ul `COMPLETE` sunt executabile și testate | grounding per field, evidence ledger și proiecție raport lipsesc |
 | AI-assisted workflow governance | **31/100** | există guvernanță whole-ATF, documentație, ownership și proof gates | nu există încă proposal/handoff/feedback contract pentru agent |
 | Potrivirea principiilor ATF1 pentru adoptare | **86/100** | cold baseline, claim → proof → artifact, handoff, anti-copy și separarea orchestrator/execution/reporting sunt direct transferabile | nu trebuie importată economia de runs/slots ca runtime ATF |
 | Potrivirea pattern-urilor .NET pentru adoptare | **92/100** | read models typed, field decisions, retry contract, evidence policy, auth evidence și ownership unic | modelele sunt business-specific și trebuie transpuse, nu copiate |
-| Readiness pentru primul pilot AI | **74/100** | evaluatorul typed, matricea missing/invented și contractul invocation/fallback permit un pilot fără provider integrat | lipsesc grounding per field, snapshot lifecycle, raportare și cazuri business negative |
+| Readiness pentru primul pilot AI | **74/100** | evaluatorul typed, snapshot complet, matricea missing/invented și contractul invocation/fallback permit un pilot fără provider integrat | lipsesc grounding per field, publication path și cazuri business negative |
 
 **Concluzie:** ATF Java are un evaluator deterministic cu invocation provenance,
 dar nu un vertical slice AI end-to-end: codul nu invocă modelul, nu dovedește
@@ -1311,7 +1320,7 @@ frumos sau transportul `LIVE_HTTP` nu demonstrează evaluare AI.
 | review și state transitions | există lifecycle/report status și consumeri UI, nu contract AI pentru review obligatoriu și tranziții permise | **22/100** |
 | invocation mode și fallback | `AiInvocationEvidence` distinge `REAL_AI`, `MOCK_MODEL`, `EXPLICIT_FALLBACK`, `UNKNOWN`; numai real cu references complete poate primi quality score | **74/100** |
 | score și hard-fail precedence | threshold, mismatch critic, missing/invented/undeclared rule IDs și `FAIL` independent de score sunt testate | **74/100** |
-| snapshot semantic renderer-neutral | `AtfReportSemanticSnapshot` este immutable ca date și nu conține HTML/CSS/Extent; nu include încă snapshot AI sau `complete` lifecycle | **72/100** |
+| snapshot semantic renderer-neutral | `AiEvaluationSnapshot` păstrează rezultatul complet immutable, policy și completion time; grounding/evidence index și run-level trace încă lipsesc | **82/100** |
 | lifecycle și checkpoint unic | UI/API au phase lifecycle și evidence publisher; AI validation nu este încă un sibling semantic real al UI/API | **36/100** |
 | Extent/fallback parity | există semantic snapshot comun pentru raportare și fallback; nu există proiecție AI | **52/100** |
 | regression semantic delta | există snapshot și audit de raport, nu comparator AI pentru changed fields/grounding/review/invocation | **26/100** |
@@ -1335,11 +1344,12 @@ Reutilizabile fără a introduce semantică AI în reporting:
   repository-wide, nu pentru scoring business AI.
 
 Codul live conține acum `AiEvaluationCase`, `AiFieldExpectation`,
-`AiFieldComparison`, `AiEvaluationEvaluator`, `AiEvaluationResult` și
+`AiFieldComparison`, `AiEvaluationEvaluator`, `AiEvaluationSnapshot` și
 `AiInvocationEvidence` în `atf-validation`. Invocation evidence păstrează numai
-referințe opace. Grounding per field, snapshot lifecycle, reporting și agent
-handoff lipsesc; restul capitolelor rămâne contract țintă, nu inventar al
-implementării complete.
+referințe opace. Snapshot-ul AI este creat direct în starea `COMPLETE`, include
+policy/timestamp și este immutable. Grounding per field, evidence ledger extins,
+reporting și agent handoff lipsesc; restul capitolelor rămâne contract țintă, nu
+inventar al implementării complete.
 
 ### 34.4 Ce adoptăm din ATF1
 
@@ -1393,13 +1403,12 @@ provider AI.
 ### 34.7 Limite de închidere pentru următoarea etapă
 
 Scorul implementării AI rămâne plafonat la **28/100** până când există vertical
-slice-ul semantic și de lifecycle. Plafonul nu mai depinde de comparatorul
-generic sau de probele invocation, deja implementate. Pragurile următoare sunt:
+slice-ul semantic cu grounding și evidence ledger. Comparatorul, probele
+invocation și snapshot-ul complet al evaluatorului sunt implementate. Pragurile
+următoare sunt:
 
-- snapshot semantic AI immutable, cu lifecycle `complete` și test de mutație;
 - source reference per field și probe `SUPPORTED` / `UNSUPPORTED` / `AMBIGUOUS`;
-- diagnostic de mismatch cu `ruleId`, field, expected, observed și evidence
-  reference în snapshot-ul semantic;
+- evidence index/run correlation stabil în snapshot-ul semantic și publish boundary;
 - component/integration tests care leagă invocation, grounding, snapshot și
   verdict pentru cazuri nominale și negative;
 - catalogul de reason/hard-fail și cazuri business negative versionate.
@@ -1761,16 +1770,16 @@ Java ATF1. Ele rămân scoruri de readiness, nu scoruri de produs.
 | transferabilitatea pattern-urilor .NET | **92/100** | typed read models, fixture boundaries, retry identity, auth redaction și evidence ownership sunt reale și testate | modele business-specific, nu evaluator generic |
 | transferabilitatea disciplinei ATF1 | **86/100** | cold reread, proof chain, lifecycle adapters, run/package separation și publication audit sunt coerente | prompturile nu sunt contracte runtime |
 | fundația ATF Java pentru evidence/reporting | **87/100** | snapshot semantic, retry/provenance/auth și renderer parity sunt implementate | evaluatorul AI nu este încă legat de snapshot/reporting |
-| AI evaluation implementată | **28/100** | comparații typed, source eligibility, hard-fail și invocation evidence au cod și teste | grounding per field, snapshot lifecycle, evidence ledger și reporting lipsesc |
+| AI evaluation implementată | **28/100** | comparații typed, source eligibility, hard-fail, invocation evidence și snapshot `COMPLETE` au cod și teste | grounding per field, evidence ledger și reporting lipsesc |
 | governance pentru workflow agentic | **31/100** | există whole-ATF governance și documentation gates | proposal/handoff/feedback nu sunt încă executabile |
 | readiness pentru modul agentic | **25/100** | boundary-ul poate fi proiectat fără contaminarea reporting-ului | modulul, config-ul și gates sunt doar design |
 | network inspector UI — vertical slice | **88/100** | response/request-failed și custom capture trec prin allowlist și resanitizare/bounding înainte de storage/subscriber; signature, aggregate și settlement bounded au teste, iar retry-ul UI este limitat la operații read-only | mutation retry/replay generic este exclus intenționat |
 | readiness pentru primul pilot AI | **74/100** | comparatorul și fixture matrix pot verifica invocation/fallback fără provider real | lipsesc grounding, snapshot lifecycle și publication path |
 
 Regula de calibrare: pattern-ul bun ridică **readiness-ul de design**, nu
-**maturitatea implementării**. Scorul de 28/100 reflectă comparatorul, hard-fail
-și invocation provenance demonstrate; rămâne plafonat până la snapshot/evidence
-lifecycle și criteriile rămase din secțiunea 34.7.
+**maturitatea implementării**. Scorul de 28/100 reflectă comparatorul, hard-fail,
+invocation provenance și snapshot-ul complet; rămâne plafonat până la grounding,
+evidence ledger și criteriile rămase din secțiunea 34.7.
 
 ## 42. Concluzie pentru decizia curentă
 

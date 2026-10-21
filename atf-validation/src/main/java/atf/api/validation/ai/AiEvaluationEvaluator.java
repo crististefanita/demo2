@@ -27,15 +27,15 @@ public final class AiEvaluationEvaluator {
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
-    public AiEvaluationResult evaluate(AiEvaluationCase evaluationCase, Map<String, ?> observedFields) {
+    public AiEvaluationSnapshot evaluate(AiEvaluationCase evaluationCase, Map<String, ?> observedFields) {
         Objects.requireNonNull(observedFields, "observedFields");
         return evaluate(evaluationCase, observedFields,
                 new AiInvocationEvidence(AiInvocationEvidence.Mode.UNKNOWN, null, null, null,
                         !observedFields.isEmpty(), null, null, List.of()));
     }
 
-    public AiEvaluationResult evaluate(AiEvaluationCase evaluationCase, Map<String, ?> observedFields,
-                                       AiInvocationEvidence invocation) {
+    public AiEvaluationSnapshot evaluate(AiEvaluationCase evaluationCase, Map<String, ?> observedFields,
+                                         AiInvocationEvidence invocation) {
         Objects.requireNonNull(evaluationCase, "evaluationCase");
         Objects.requireNonNull(observedFields, "observedFields");
         Objects.requireNonNull(invocation, "invocation");
