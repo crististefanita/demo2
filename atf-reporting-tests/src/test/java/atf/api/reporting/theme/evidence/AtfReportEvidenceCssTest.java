@@ -168,6 +168,16 @@ class AtfReportEvidenceCssTest {
     }
 
     @Test
+    void publishedScrollViewportSelectorKeepsDescendantCombinator() {
+        String css = AtfReportEvidenceCss.css();
+        String selector = ".card[data-atf-node-role='validation'] "
+                + ":is(.atf-ui-action-table-wrap,.atf-validation-table-wrap)";
+
+        assertTrue(css.contains(selector + "{max-height:var(--atf-table-scroll-height)!important"),
+                "the published rule must select evidence wrappers beneath validation cards");
+    }
+
+    @Test
     void everyScrollableTableFamilyUsesTheSystemEnvironmentViewport() {
         String theme = AtfReportTheme.css();
         String fallback = AtfReportTheme.fallbackCss();

@@ -51,7 +51,7 @@ flowchart LR
 | whole-ATF governance | ✅ PASS | `AtfPackageCohesionGovernanceTest` confirmă maximum 8 clase pe pachet după split-urile `ui.network`, `support.api` și `support.config.environment`; `AtfSourceReadabilityGovernanceTest` confirmă importuri normale |
 | reporting consumer gate | ✅ PASS | publisher-ul, renderer-ele Extent/fallback și retry-ul per exchange trec; fresh MCP/Chromium confirmă un singur checkpoint Gherkin cu `UI validation` și `API validation` ca copii frați, iar exchange-urile rămân nested și unice |
 | reporting în staging exclusiv | ✅ PASS | rulare inițială și rerun incremental: fiecare 530 teste, 0 failure/error, 3 skip-uri; artifactele UI/API au proof browser separat |
-| shared scroll-table geometry | ✅ PASS | toate tabelele scrollabile folosesc tokenul unic `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT` / `--atf-table-scroll-height`, egal cu viewport-ul `System/Environment`; guard-urile Extent/fallback acoperă Overview, tag audit, action, audit, assertion și API/UI evidence |
+| shared scroll-table geometry | ✅ PASS | token unic `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT`; regresia compactorului protejează selectorul descendent `card :is(...)`. Raportul fresh confirmă în `Tests` plafonul de `500px`, scroll vertical, header sticky și lipsa overflow-ului orizontal la viewport îngust; System rămâne fix la `500px`. |
 
 Eșecurile de classloading din checkout-ul partajat au coincis cu build-uri
 Maven concurente pe același `target`. Același reactor a trecut de două ori,
@@ -59,37 +59,51 @@ inclusiv incremental, într-un staging exclusiv; `REP-BUILD-02` este închis ca
 finding de execuție, iar regula anti-coliziune este în
 [`ATF_Build_And_Execution_Safety.md`](../ATF_Build_And_Execution_Safety.md).
 
-### Finding reparat în registrul feedback
+### Finding închis — `WARNING` în Overview
 
-`WARNING` rămâne un statut distinct și auditabil, dar este inclus în totalul
-pass-like al Overview (`Tests Passed`, cardurile `Tests`/`Steps` și procentele
-lor). În acest fel, un diagnostic warning nu mai produce `0 tests` într-un run
-fără failure.
-
-Verificarea și dovada rămân separate:
-
-- graficele, categoriile, badge-ul și linia `warnings` păstrează semnalul
-  original;
-- `ExtentReportInteractionContractTest` protejează contractul;
-- rerunul E2E a confirmat `Tests Passed = 1`, `Tests Failed = 0`, `1 test
-  classes passed`, `1 steps passed`, `1 warnings` în Overview/Categories și
-  `No failed tests.` în Fails;
-- `SETUP`/`TEST BODY`, `UI validation`/`API validation`, request/response JSON
-  pretty, `LIVE / HTTP`, `scrollWidth <= clientWidth` și zero `<hr>` au fost
-  verificate manual pe același artifact.
+Regula `PASS + WARNING` pentru totalurile pass-like este în
+[contractul de raportare](../ATF_Reporting_Contract.md#overview-și-agregări).
+`ExtentReportInteractionContractTest` și raportul guest E2E confirmă totalul
+corect, warning-ul încă vizibil și `No failed tests.` în Fails; nu este ToDo
+activ.
 
 ## ToDo active
 
 | Prioritate | ID | Owner | Limită | Criteriu de închidere |
 |---|---|---|---|---|
 | P0 | `SHOP-API-REAL-01` | Practice Shop + mediu extern | fixture placeholder și `authenticatedE2eEnabled=false`; authenticated tests sunt skip | fixture non-placeholder, flag activ, login/current-user `200`, apoi journey live complet |
-| P2 | `UI-NET-11` | `atf-ui` + consumer adapters | mutation retry rămâne intenționat design-only până la identity/payload proof; request-failed și aliasul consumer sunt închise | identity/payload proof pentru retry activ, fără replay implicit |
-| P3 | `TEST-ARCH-07` | `atf-tests` | suportul poate avea subzone greu de navigat | mutare numai cu owner, motiv și boundary test |
+| P2 | `SHOP-TEST-READ-02` | Practice Shop test composition | trei E2E repetă lifecycle/context; testul guest încă include orchestration diagnostică | mută numai infrastructura în support; purchase E2E păstrează product → cart → checkout → billing → payment → confirmation și `THEN` final observat; failure-path + guest E2E + architecture guard |
+| P2 | `UI-NET-11` | `atf-ui` + consumer adapters | read-back-ul de după acțiune are acum cursor temporal, dar mutation retry rămâne design-only | identity/payload proof și idempotency pentru retry activ, fără replay implicit |
 
-`REP-BUILD-02`, `UI-NET-17`, `REP-CAPTURE-01`, `REP-UX-TABLE-01`, `REP-UX-PERF-01`, `REP-UX-PERF-02` și
-`REP-EVID-08-STRESS`, `REP-NET-07`, `REP-UX-TABLE-02` și `REP-UX-TABLE-03` sunt închise și rămân în istoricul de închideri din
-`ATF_Reporting_Feedback.md`. Diagnosticul de performanță rămâne separat de
-verdictul business; se redeschide doar la o regresie verificată a gate-ului.
+`TEST-ARCH-07` este închis prin guard-ul de coeziune și rămâne în
+`ATF_Test_Architecture_Feedback.md`. `REP-BUILD-02`, `UI-NET-17`,
+`REP-CAPTURE-01`, `REP-UX-TABLE-01`, `REP-UX-PERF-01`, `REP-UX-PERF-02`,
+`REP-EVID-08-STRESS`, `REP-NET-07`, `REP-UX-TABLE-02` și `REP-UX-TABLE-03`
+sunt închise și rămân în istoricul de închideri al ownerului. Diagnosticul de
+performanță rămâne separat de verdictul business; se redeschide doar la o
+regresie verificată a gate-ului.
+
+### Ordine de adresare a documentelor de feedback
+
+Scorul de mai jos este **prioritatea următoarei intervenții** (0–100), nu
+maturitatea produsului: impact (40), gap deschis (30), posibilitate de lucru
+acum (20), datorie editorială/duplicare (10). Un item blocat extern nu devine
+implementabil doar pentru că este P0.
+
+| Ordine | Document | Scor prioritate | Următoarea intervenție |
+|---:|---|---:|---|
+| 1 | [Practice Shop](ATF_Practice_Shop_API_Screen_Pyramid_Feedback.md) | 82 | scurtează infrastructura testului, nu flow-ul până la purchase confirmation; `SHOP-API-REAL-01` așteaptă fixture valid extern |
+| 2 | [AI evaluation](README_AI_Evaluation.md) | 78 | comprimat la decizia de pilot și proof-uri; design-only, fără a pretinde implementare AI |
+| 3 | [UI network inspector](ATF_UI_Network_Inspector_Feedback.md) | 54 | `UI-NET-11` numai după identity/payload și idempotency proof; cursorul singur nu autorizează replay |
+| 4 | [Reporting](ATF_Reporting_Feedback.md) | 36 | monitorizare de regresie și reducerea istoricului; niciun ToDo local activ |
+| 5 | [Request traceability](ATF_Request_Traceability_Feedback.md) | 32 | monitorizare single-node/renderer parity; limita authenticated este deținută de Practice Shop |
+| 6 | [Test architecture](ATF_Test_Architecture_Feedback.md) | 28 | guard-urile rămân verzi; `TEST-ARCH-07` este închis, fără mutare preventivă |
+| 7 | [Acest registru](README.md) | 26 | sincronizare a statusurilor și scorurilor, nu backlog paralel |
+
+Scorurile de maturitate rămân distincte: reporting `95`, traceability `95`,
+Practice Shop `93`, structură teste `97`, inspector UI `88`; AI evaluation
+implementată `12` și workflow agentic `31`. Nu le creștem pentru teste verzi
+care nu dovedesc gap-ul respectiv.
 
 ### Dovadă exploratorie recentă — trace composition și toggle stability
 
@@ -164,7 +178,7 @@ nu se hardcodează în feedback și nu se păstrează un raport generat ca exemp
 | `SHOP-CONSOLE-02` | `atf-reporting-tests/.../AtfConsoleBridgeTest`; adapter test-only, fără mapping în Practice Shop sau dependency production inversă |
 | `SHOP-API-REAL-02` | guest live product/cart/payment assertions și Payment success verificate prin `LIVE_HTTP`; authenticated standalone rămâne separat în `SHOP-API-REAL-01` |
 | `SHOP-API-TRACE-01` | screen flow + network journal: request/response, status, transport, retry, trace și signature rămân legate de checkpoint-ul care le-a cauzat; ordinea de prezentare este verificată prin `UI validation → API validation → Exchange` |
-| `SHOP-NET-03` | `UiNetworkInspector`, `PracticeShopUiNetworkSettlementFixture`, `PracticeShopUiNetworkSettlementComponentTest` și `UiNetworkInspectionConfigurationTest` — compactare consecutivă, read-back bounded și timeout fără replay |
+| `SHOP-NET-03` | `UiNetworkInspector`, `PracticeShopUiNetworkSettlementFixture`, `PracticeShopUiNetworkSettlementComponentTest` și `UiNetworkInspectionConfigurationTest` — compactare consecutivă, read-back bounded după cursorul pre-acțiune, GET vechi exclus și timeout fără replay |
 | `UI-NET-15/16/17` | `UiNetworkInspector`, `UiNetworkObservation`, `UiNetworkInspectionConfigurationTest`, `PracticeShopApiNetworkJournalTest` și `ReportTraceMetadata` — request-failed explicit, alias injectat doar la adapter și custom capture resanitizat înainte de storage/subscriber |
 | `REP-CAPTURE-01` | `ReportEvidenceProfileTest`, `ReportEvidenceProfileIntegrationTest`, `PracticeShopScreenshotPolicyTest`, `PracticeShopBrowserCaptureProviderTest`, `PracticeShopReportSystemMetadataTest` și guest E2E/MCP — provider browser typed reutilizat, policy filtrată înainte de captură, provenance verificată, iar Overview și capturile inline reflectă aceeași policy efectivă |
 | `REP-RENDER-09`, `REP-MODEL-01`, `REP-TEST-08`, `REP-OVERVIEW-02` | `ReportRendererParityTest`, `AtfReportSemanticSnapshotTest`, `ReportingCoverageMatrixTest`, `ReportEnvironmentSnapshotTest` și guard-urile existente; parity, lifecycle guards, matrix proof și System allowlist sunt verificate |

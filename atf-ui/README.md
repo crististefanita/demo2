@@ -190,6 +190,14 @@ service și signature sunt reconstruite sau limitate. Testul negativ pentru
 input creat de caller protejează acest boundary; criteriul de redeschidere este
 în [`ATF_UI_Network_Inspector_Feedback.md`](../docs/feedback/ATF_UI_Network_Inspector_Feedback.md).
 
+Read-back după acțiune:
+
+- înainte de acțiune: capturează `observationCursor()`;
+- după acțiune: folosește `awaitAfter(cursor, predicate, timeout)`; un GET vechi
+  nu poate satisface settlement-ul curent;
+- limită: cursorul garantează ordinea, nu payload identity sau idempotency;
+  `await(...)` caută în tot jurnalul, iar nicio metodă nu repetă mutația.
+
 ## Ce nu se pune în `atf-ui`
 
 - teste JUnit sau colecții API;

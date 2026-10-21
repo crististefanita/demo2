@@ -5,6 +5,9 @@
 **PARTIAL — vertical slice, request-failed, settlement consumer proof și custom
 capture guard implementate; mutation retry rămâne design-only.**
 
+**Maturitate inspector: 88/100.** Cursorul pre-acțiune exclude read-back-ul
+vechi, dar nu dovedește identity/payload sau idempotency pentru replay.
+
 ATF Java are acum un boundary generic pentru observații de rețea Playwright:
 opt-in, host allowlist, observații typed și redacted, auth method/source,
 signature counts, body preview bounded și settlement bounded. Practice Shop îl
@@ -18,7 +21,7 @@ pentru AI evaluation și `atf-reporting` rămâne renderer-neutral.
 
 | ID | Owner | Limită | Criteriu de închidere |
 |---|---|---|---|
-| `UI-NET-11` | `atf-ui` + consumer | Mutation retry este design-only; read-back-ul bounded nu dovedește că replay-ul este sigur. | Identity și payload stabile, idempotency verificată și test negativ pentru absența replay-ului implicit. |
+| `UI-NET-11` | `atf-ui` + consumer | Mutation retry este design-only; cursorul temporal exclude un GET anterior acțiunii, dar nu dovedește identitatea payload-ului ori siguranța replay-ului. | Identity și payload stabile, idempotency verificată și test negativ pentru absența replay-ului implicit. |
 
 Contractul stabil este în [README-ul `atf-ui`](../../atf-ui/README.md),
 [README-ul Practice Shop](../../atf-test-practice-shop/README.md) și
@@ -38,7 +41,7 @@ este în `atf-test-practice-shop/src/test/resources/atf-practice-shop.yaml`.
 | `UI-NET-06` | body-ul este bounded și prezentarea nu multiplică request-ul | ✅ | `maxBodyPreviewCharacters`, `presentationObservations()` și signature counts |
 | `UI-NET-07` | API evidence se leagă de pasul UI care a cauzat-o | ✅ | Practice Shop păstrează un checkpoint Gherkin, cu `UI validation` și `API validation` ca siblings |
 | `UI-NET-08` | request/response/execution folosesc forma API canonicală | ✅ | fiecare exchange are disclosures locale; retry history aparține `Execution evidence` |
-| `UI-NET-09` | settlement-ul este bounded și configurabil | ✅ | `UiNetworkSettlementPolicy`; wait-ul refuză politica disabled |
+| `UI-NET-09` | settlement-ul este bounded, configurabil și exclude read-back-uri anterioare acțiunii | ✅ | `UiNetworkSettlementPolicy`; `observationCursor()` + `awaitAfter(...)` resping GET-ul stale, iar wait-ul refuză politica disabled |
 | `UI-NET-10` | inspectorul nu face replay automat | ✅ | replay-ul mutației este în afara boundary-ului și cere contract de idempotency |
 | `UI-NET-12` | un retry al aceluiași request rămâne un singur exchange | ✅ | count/attempt history locală; nu se creează `API n` duplicat |
 | `UI-NET-13` | observațiile pot fi consumate plug-and-play de alt consumer | ✅ | `UiNetworkInspector` este independent de Extent, business routes și assertions |
@@ -65,7 +68,10 @@ un verdict business `FAIL`.
   arată scenariul și exchange-ul `Warning` chiar după `complete(PASS)`,
   `Unavailable`, motivul și niciun `RESPONSE JSON` fictiv;
 - `PracticeShopUiNetworkSettlementComponentTest`: compactarea consecutivă,
-  read-back bounded și timeout fără replay;
+  read-back bounded după cursor, GET stale exclus și timeout fără replay;
+- după adăugarea cursorului temporal, gate-ul focalizat în staging extern a
+  trecut cu 10 teste `atf-ui` și 4 teste de settlement Practice Shop, fără
+  failures/errors; acest proof nu activează mutation retry;
 - Pentru acest fix s-au rerulat probele focalizate (10 UI + 5 Practice Shop +
   17 reporting, toate verzi), apoi suita completă în staging extern (530 teste,
   0 failure, 0 error, 3 skip-uri explicite);

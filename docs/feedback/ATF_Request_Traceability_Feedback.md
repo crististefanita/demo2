@@ -9,8 +9,7 @@
   `UI validation` și `API validation`;
 - diagnosticul guest are seam semantic separat: `Runtime diagnostic`, nu
   `UI validation`;
-- request, response și execution rămân canonical în cardul API; inspectorul
-  final este doar sumar compact și nu dublează JSON-ul;
+- request, response și execution rămân canonical în cardul API;
 - inspectorul final este un sumar compact, colapsabil și renderer-neutral; el
   publică nested `Authentication evidence`, `Scenario correlation`, `Transport
   counters`, `Unique request signatures` și `Technical diagnostics`, fără să
@@ -150,7 +149,11 @@ flowchart LR
 | `REP-TRACE-04` | `ReportRequestSignature`, `ReportTraceMetadataRenderingTest`, `ReportNetworkInspectorTest`, `ExtentReportAssetsTest` și fresh API/UI MCP | digestul folosit pentru identitate și fingerprint-ul de deduplicare rămân interne; trace-ul HTML afișează doar `body=present|absent`, markerul bounded `internal digest hidden` și linkuri locale `screenshot-n` |
 | `REP-CONSUMER-01` | `ReportEnvironmentSnapshot`, `ReportTraceMetadata`, `AtfReportPorts` și `ReportTraceMetadataRenderingTest` | ✅ închis: un consumer sintetic livrează snapshot-ul per run și trace-ul per exchange prin contractele publice, fără business logic în renderer; System este allowlist-uit și credentialele sunt redacted |
 
-## Limite active și criterii de redeschidere
+## Criterii de redeschidere — fără ToDo local activ
+
+Rândurile „activabil” sunt condiții de regresie, nu itemi deschiși. Singura
+limită externă din această listă este `SHOP-API-REAL-01`, deținută de Practice
+Shop; nu se numără de două ori ca gap de traceability.
 
 | Situație | Status | Criteriu |
 |---|---|---|

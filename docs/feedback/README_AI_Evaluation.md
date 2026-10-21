@@ -1684,54 +1684,13 @@ este agent, evaluator AI și nu decide verdictul business.
 
 ### 40.1 Vertical slice implementat — network observation pentru UI
 
-Analiza live a suitei .NET și a Practice Shop a cristalizat o primă capacitate
-reutilizabilă, fără semantică AI:
+Observarea bounded/redacted a traficului UI este implementată, dar nu este AI.
 
-```text
-Playwright response
-        → UiNetworkObservation typed + redacted
-        → consumer adapter / journal
-        → UI checkpoint API validation
-        → Request / Response / Execution evidence
-        → journey aggregate: auth + signatures + diagnostics
-```
-
-| Boundary | Implementare ATF Java | Contract verificat |
-|---|---|---|
-| opt-in și allowlist | `UiNetworkInspectionConfiguration` | inspectorul este dezactivat implicit și acceptă numai host-uri explicite |
-| observație browser | `UiNetworkInspector` + `UiNetworkObservation` | method, safe path, status, auth method/source, service, mechanism, redacted + bounded body preview și signature |
-| așteptare read-back | `UiNetworkSettlementPolicy` | wait bounded și configurabil; nu face replay automat și nu folosește sleep arbitrar |
-| ownership | `PlaywrightUiSession` | un singur response listener generic; consumerul adaptează observația, nu reporting-ul |
-| Practice Shop | `PracticeShopApiNetworkJournal.attach(...)` | journal-ul existent primește observația typed fără listener duplicat |
-| proiecție | `ReportNetworkInspector` / `ReportNetworkAggregateMarkup` | aggregate-ul publică service și mechanism, iar request-ul rămâne redacted |
-
-Configurația live este explicită și plug-and-play:
-
-```yaml
-networkInspector:
-  enabled: true
-  allowedHosts: [api.practicesoftwaretesting.com]
-  maxObservations: 256
-  maxBodyPreviewCharacters: 12000
-  collapseConsecutiveSignatures: true
-  settlement:
-    enabled: false
-    timeout: PT10S
-    pollInterval: PT0.1S
-```
-
-| Stream / policy | Comportament controlat |
-|---|---|
-| `observations()` | trace lossless pentru audit |
-| `presentationObservations()` | colapsează numai semnăturile consecutive |
-| retry | același request rămâne un exchange; count și attempt history rămân în evidence |
-| settlement | consumer-owned, bounded și refuzat când este disabled |
-| action replay | nu este executat de inspector; cere `SubmissionRetryContract` și idempotency proof |
-
-Această vertical slice nu ridică scorul `AI evaluation`: nu există provider,
-prompt, `AiEvaluationCase`, grounding sau quality score. Ea pregătește doar
-boundary-ul observabil pentru un viitor pilot fără să contamineze `atf-core`,
-`atf-reporting` sau testele business.
+- ownerul contractului: [`atf-ui/README.md`](../../atf-ui/README.md);
+- gap-ul `UI-NET-11`: [`ATF_UI_Network_Inspector_Feedback.md`](ATF_UI_Network_Inspector_Feedback.md);
+- limita: cursorul dovedește ordinea, nu idempotency sau replay sigur;
+- scorul AI evaluation nu crește: lipsesc cazul AI typed, grounding,
+  invocation evidence și quality score.
 
 ### Respingem explicit
 

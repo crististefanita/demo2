@@ -19,7 +19,8 @@ public final class EvidenceSectionValidator {
                                 + " + " + snapshot.executionTableCount(),
                         snapshot.tablesVisible() && snapshot.requestTableCount() > 0
                                 && snapshot.responseTableCount() > 0 && snapshot.executionTableCount() > 0),
-                ReportAuditChecks.check("JSON evidence present", "request and response bodies",
+                ReportAuditChecks.check("JSON evidence present",
+                        "explicit request/response JSON (null = no payload)",
                         json.requestBody() + " / " + json.responseBody(),
                         json.requestBody() != null && !json.requestBody().isBlank()
                                 && json.responseBody() != null && !json.responseBody().isBlank())));

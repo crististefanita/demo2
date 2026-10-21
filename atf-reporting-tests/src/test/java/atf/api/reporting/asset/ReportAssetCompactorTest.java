@@ -63,6 +63,17 @@ class ReportAssetCompactorTest {
     }
 
     @Test
+    void preservesDescendantBeforePseudoClassDuringCssPublication() {
+        String source = ".card[data-atf-node-role='validation'] :is(.wrap,.audit) "
+                + "{ max-height: var(--atf-table-scroll-height); }";
+
+        assertEquals(
+                ".card[data-atf-node-role='validation'] :is(.wrap,.audit)"
+                        + "{max-height:var(--atf-table-scroll-height)}",
+                compactor.compact(ReportAsset.FALLBACK_CSS, source));
+    }
+
+    @Test
     void loaderSeparatesReadableSourceFromPublicationCopy() {
         ReportAssetLoader loader = new ReportAssetLoader();
 

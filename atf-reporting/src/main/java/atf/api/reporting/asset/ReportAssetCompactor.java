@@ -157,6 +157,11 @@ public final class ReportAssetCompactor {
     }
 
     private boolean isCssWhitespaceRemovable(char previous, char next) {
+        // `card :is(...)` is a descendant selector; joining it to `card:is(...)`
+        // changes which element must match and can silently disable a CSS rule.
+        if (next == ':' && !isCssCombinator(previous) && !isCssBoundary(previous)) {
+            return false;
+        }
         if (next == '!' || previous == '!') {
             return true;
         }

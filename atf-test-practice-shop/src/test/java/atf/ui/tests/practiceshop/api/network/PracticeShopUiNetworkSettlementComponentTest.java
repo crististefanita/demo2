@@ -42,12 +42,13 @@ class PracticeShopUiNetworkSettlementComponentTest {
         try (var inspector = PracticeShopUiNetworkSettlementFixture.inspector();
              var scheduler = Executors.newSingleThreadScheduledExecutor()) {
             AtomicInteger mutationAttempts = new AtomicInteger(1);
+            int beforeMutation = inspector.observationCursor();
             inspector.capture(PracticeShopUiNetworkSettlementFixture.mutation(1, 1));
             scheduler.schedule(() -> inspector.capture(
                     PracticeShopUiNetworkSettlementFixture.readBack(2, 1)),
                     20, TimeUnit.MILLISECONDS);
 
-            Optional<?> readBack = inspector.await(observation ->
+            Optional<?> readBack = inspector.awaitAfter(beforeMutation, observation ->
                             PracticeShopUiNetworkSettlementFixture.CART_PATH.equals(observation.path())
                                     && "GET".equals(observation.method())
                                     && PracticeShopJsonEvidence.parse(observation.responseBody())
@@ -64,9 +65,10 @@ class PracticeShopUiNetworkSettlementComponentTest {
     void expiredReadBackIsEmptyAndCannotBecomeFalseGreenThroughReplay() {
         try (var inspector = PracticeShopUiNetworkSettlementFixture.inspector()) {
             AtomicInteger mutationAttempts = new AtomicInteger(1);
+            int beforeMutation = inspector.observationCursor();
             inspector.capture(PracticeShopUiNetworkSettlementFixture.mutation(1, 1));
 
-            Optional<?> readBack = inspector.await(observation ->
+            Optional<?> readBack = inspector.awaitAfter(beforeMutation, observation ->
                             PracticeShopUiNetworkSettlementFixture.CART_PATH.equals(observation.path())
                                     && "GET".equals(observation.method()),
                     Duration.ofMillis(20));
@@ -74,6 +76,26 @@ class PracticeShopUiNetworkSettlementComponentTest {
             assertTrue(readBack.isEmpty());
             assertEquals(1, mutationAttempts.get(),
                     "timeout is observable; no implicit mutation replay is allowed");
+        }
+    }
+
+    @Test
+    void readBackFromBeforeTheMutationCannotSatisfySettlement() {
+        try (var inspector = PracticeShopUiNetworkSettlementFixture.inspector()) {
+            inspector.capture(PracticeShopUiNetworkSettlementFixture.readBack(1, 1));
+            int beforeMutation = inspector.observationCursor();
+            inspector.capture(PracticeShopUiNetworkSettlementFixture.mutation(2, 1));
+
+            var premature = inspector.awaitAfter(beforeMutation,
+                    observation -> PracticeShopUiNetworkSettlementFixture.CART_PATH.equals(observation.path())
+                            && "GET".equals(observation.method()), Duration.ofMillis(20));
+
+            assertTrue(premature.isEmpty(), "a matching pre-action GET is stale evidence");
+            inspector.capture(PracticeShopUiNetworkSettlementFixture.readBack(3, 1));
+            var current = inspector.awaitAfter(beforeMutation,
+                    observation -> PracticeShopUiNetworkSettlementFixture.CART_PATH.equals(observation.path())
+                            && "GET".equals(observation.method()), Duration.ofMillis(20));
+            assertEquals(3, current.orElseThrow().sequence());
         }
     }
 }

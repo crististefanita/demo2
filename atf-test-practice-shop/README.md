@@ -95,11 +95,12 @@ diagnostic; numai assertion-ul business stabilește verdictul testului.
 Settlement-ul pentru acțiuni care modifică serverul este separat și dezactivat
 implicit:
 
-- wait-ul bounded așteaptă un response sau un read-back; nu repetă acțiunea;
+- cursorul este capturat înainte de acțiune; read-back-ul bounded caută numai
+  observații ulterioare prin `awaitAfter(...)` și nu repetă acțiunea;
 - replay-ul cere un contract de idempotency deținut de consumer;
 - `PracticeShopUiNetworkSettlementFixture` acoperă read-back-ul idempotent,
-  compactarea response-urilor consecutive și timeout-ul fără replay sau
-  false-green;
+  excluderea unui GET anterior acțiunii, compactarea response-urilor
+  consecutive și timeout-ul fără replay sau false-green;
 - retry-ul activ al mutațiilor Playwright rămâne separat, fail-closed și
   neimplementat implicit.
 
@@ -199,6 +200,18 @@ Principiul de selecție:
 | guest purchase | `PracticeShopPurchaseE2eTest` | implicit pentru configurația UI validă |
 | authenticated purchase | `PracticeShopAuthenticatedPurchaseE2eTest` | `authenticatedE2eEnabled` + precondiție `authenticated` + account fixture |
 | account/catalog smoke | `PracticeShopAccountAndCatalogE2eTest` | aceeași activare explicită; smoke slice separat |
+
+Scurtarea composition root-urilor nu scurtează journey-ul de purchase:
+
+- guest E2E păstrează în aceeași rulare `product → cart → checkout → billing
+  → payment → confirmation`, cu checkpoint-ul final `THEN payment confirmation
+  is displayed for the completed purchase`, mesajul observat `Payment was
+  successful` și evidence-ul API aferent;
+- authenticated purchase păstrează același final după login-ul configurat;
+  fără fixture extern valid rămâne `SKIP`, nu dovadă de achiziție reușită;
+- numai lifecycle-ul, wiring-ul și publicarea diagnosticelor se pot muta în
+  support; pașii business și assertions finale nu se elimină și nu se
+  înlocuiesc cu un smoke de cart/catalog.
 
 <details>
 <summary><strong>Legendă — rezultate E2E și structură test-kit</strong></summary>
@@ -713,7 +726,8 @@ Reguli de rulare:
 
 - schimbă mai întâi ownerul semantic: route, locator, enum, config sau support;
 - adaugă test component înainte de integrare și integrare înainte de E2E;
-- păstrează testele E2E ca composition roots scurte și configurabile;
+- păstrează composition roots E2E scurte și configurabile, dar flow-ul de
+  purchase complet până la confirmarea observată;
 - actualizează feedback-ul pentru deciziile dinamice, nu transforma README-ul în jurnal;
 - dacă o decizie devine stabilă, mută esența în secțiunea relevantă și marchează
   ToDo-ul în feedback numai după dovadă.

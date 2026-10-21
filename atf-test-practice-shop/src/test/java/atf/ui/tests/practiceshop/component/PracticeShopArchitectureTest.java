@@ -100,13 +100,19 @@ class PracticeShopArchitectureTest {
 
     @Test
     void multiJourneyE2eClassCreatesAnIsolatedBrowserContextPerTest() throws IOException {
-        Path source = locateModuleRoot().resolve(
-                "src/test/java/atf/ui/tests/practiceshop/e2e/PracticeShopAccountAndCatalogE2eTest.java");
-        String text = Files.readString(source);
-        assertTrue(text.contains("@BeforeEach"), "multi-journey E2E must open context per test");
-        assertTrue(text.contains("@AfterEach"), "multi-journey E2E must close context per test");
-        assertFalse(text.contains("@TestInstance"), "multi-journey E2E must not share PER_CLASS state");
-        assertFalse(text.contains("@BeforeAll"), "multi-journey E2E must not open a suite browser");
+        Path root = locateModuleRoot().resolve("src/test/java/atf/ui/tests/practiceshop/e2e");
+        for (String name : List.of("PracticeShopPurchaseE2eTest", "PracticeShopAuthenticatedPurchaseE2eTest",
+                "PracticeShopAccountAndCatalogE2eTest")) {
+            String text = Files.readString(root.resolve(name + ".java"));
+            assertTrue(text.contains("@PracticeShopE2eTestSupport.WithE2eHarness"),
+                    name + " must use the per-method browser/report extension");
+            assertTrue(text.contains("PracticeShopE2eTestSupport.E2eHarness harness"),
+                    name + " must receive its isolated harness as a method parameter");
+            assertFalse(text.contains("@BeforeEach") || text.contains("@AfterEach"),
+                    name + " must not duplicate the extension lifecycle");
+            assertFalse(text.contains("@TestInstance") || text.contains("@BeforeAll"),
+                    name + " must not share a suite browser");
+        }
     }
 
     private void assertObservedVerdicts(Path path, String layer) throws IOException {

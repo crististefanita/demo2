@@ -8,6 +8,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @AtfUnitTest
 class CategoriesAndEvidenceSectionValidatorTest {
@@ -32,5 +33,28 @@ class CategoriesAndEvidenceSectionValidatorTest {
                 "{\"id\":1}", List.of());
         var snapshot = new ReportAuditSnapshot.RequestEvidence(true, 1, 1, 1, json);
         assertTrue(new EvidenceSectionValidator().validate(snapshot).valid());
+    }
+
+    @Test
+    void explicitNullExplainsBodylessRequestWithoutClaimingAPayload() {
+        var json = new ReportAuditSnapshot.JsonEvidence("null", "{\"id\":1}", List.of());
+        var snapshot = new ReportAuditSnapshot.RequestEvidence(true, 1, 1, 1, json);
+        var result = new EvidenceSectionValidator().validate(snapshot);
+
+        assertTrue(result.valid());
+        assertEquals("explicit request/response JSON (null = no payload)",
+                result.assertions().stream().filter(item -> item.name().equals("JSON evidence present"))
+                        .findFirst().orElseThrow().expected());
+        assertEquals("valid JSON document (null = no payload)",
+                result.assertions().stream().filter(item -> item.name().equals("Request JSON"))
+                        .findFirst().orElseThrow().expected());
+    }
+
+    @Test
+    void missingRequestEvidenceIsNotEquivalentToExplicitNull() {
+        var json = new ReportAuditSnapshot.JsonEvidence("", "{\"id\":1}", List.of());
+        var snapshot = new ReportAuditSnapshot.RequestEvidence(true, 1, 1, 1, json);
+
+        assertFalse(new EvidenceSectionValidator().validate(snapshot).valid());
     }
 }

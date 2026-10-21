@@ -3,8 +3,6 @@ package atf.ui.tests.practiceshop.support;
 import atf.api.core.config.ApiTransportMode;
 import atf.ui.practiceshop.config.PracticeShopConfiguration;
 import atf.ui.practiceshop.config.PracticeShopConfigurationLoader;
-import atf.ui.practiceshop.locators.PracticeShopLocators;
-import atf.ui.practiceshop.support.PracticeShopE2eContext;
 import org.junit.jupiter.api.extension.ConditionEvaluationResult;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -35,27 +33,6 @@ public final class PracticeShopTestSupport {
     @Retention(RetentionPolicy.RUNTIME)
     @ExtendWith(LiveAuthenticatedApiCondition.class)
     public @interface RequiresLiveAuthenticatedApi { }
-
-    /** Opens the complete E2E composition root once for one JUnit test method. */
-    public static E2eHarness openE2e() {
-        PracticeShopConfiguration configuration = PracticeShopConfigurationLoader.load();
-        return new E2eHarness(configuration, PracticeShopE2eContext.open(configuration),
-                new PracticeShopLocators());
-    }
-
-    public record E2eHarness(PracticeShopConfiguration configuration,
-                             PracticeShopE2eContext context,
-                             PracticeShopLocators locators) implements AutoCloseable {
-        public E2eHarness {
-            if (configuration == null || context == null || locators == null) {
-                throw new IllegalArgumentException("Practice Shop E2E harness members are required");
-            }
-        }
-
-        @Override public void close() {
-            context.close();
-        }
-    }
 
     public static final class AuthenticatedFixtureCondition implements ExecutionCondition {
         @Override

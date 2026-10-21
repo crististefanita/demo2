@@ -459,6 +459,14 @@ flowchart LR
     Tests -->|indexează| Fails["Fails<br/>failure index"]
 ```
 
+Un scenariu `WARNING` rămâne diagnostic, dar intră în totalurile pass-like din
+Overview:
+
+- `Tests Passed`, sumarul `Tests`/`Steps` și procentele: `PASS + WARNING`;
+- graficele, categoriile, badge-urile și linia `warnings`: păstrează `WARNING`
+  distinct, fără a-l converti în `PASS`;
+- `Fails`: indexează numai failure-uri reale, nu warning-uri.
+
 <details>
 <summary><strong>Legendă — agregare fără duplicare</strong></summary>
 

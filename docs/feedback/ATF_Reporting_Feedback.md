@@ -150,40 +150,16 @@ validatorul browser.
 
 ### Finding reparat — `WARNING` nu mai produce `0 tests` în Overview
 
-- **Cauza:** agregarea nativă Extent păstrează corect scenariul ca `Warning`,
-  dar sumarul Overview număra numai `PASS`; de aceea un run cu pași efectiv
-  trecuți și un diagnostic warning afișa `0 Tests Passed`, `0 test classes
-  passed` și `0 steps passed`.
-- **Contractul corect:** `PASS + WARNING` este totalul **pass-like** pentru
-  headline-ul `Tests Passed`, cardurile `Tests`/`Steps` și procentele lor;
-  warning-ul rămâne separat, vizibil în grafice, categorii, badge-uri și linia
-  `warnings`. Un warning nu devine `PASS` și nu este ascuns ca failure.
-- **Fix:** `extent-overview-audit.js` folosește `passLikeCount(...)` și un
-  singur helper pentru footer-ele `Tests` și `Steps`, cu aceeași regulă și
-  fără duplicare de calcul.
-- **Dovadă lower-level:**
-  `ExtentReportInteractionContractTest.overviewCountsWarningsAsPassLikeWithoutHidingTheWarningBucket`
-  publică un raport cu status `WARNING` și protejează headline-ul, cele două
-  carduri și bucket-ul warning.
-- **Dovadă browser executată pe rerunul E2E proaspăt:** MCP arată `Tests Passed
-  = 1`, `Tests Failed = 0`, `1 test classes passed` și `1 steps passed`, în timp
-  ce `1 warnings` rămâne vizibil în Overview și Categories. Tab-ul Fails arată
-  `No failed tests.`; warning-ul este deci păstrat ca semnal auditabil, dar nu
-  mai golește totalurile pass-like și nu este reinterpretat ca failure.
-- **Gate de randare:** scenariul este expandabil în `SETUP` și `TEST BODY`, iar
-  `API validation → Exchange 1 → Request details / Response details /
-  Execution evidence` afișează request/response JSON pretty, HTTP 200,
-  transport LIVE/HTTP și replay-ul manual. În MCP, `scrollWidth <= clientWidth`
-  și `hr = 0`; raportul este lăsat deschis pentru inspecție.
+Regula stabilă este în
+[contractul de raportare](../ATF_Reporting_Contract.md#overview-și-agregări).
+`ExtentReportInteractionContractTest` verifică `WARNING` în totalurile
+pass-like, dar distinct în bucket-ul diagnostic. Raportul guest E2E confirmă
+`Tests Passed = 1`, `Tests Failed = 0`, `1 warnings` și `No failed tests.`;
+criteriul de redeschidere este o divergență reproductibilă între Overview,
+Categories și Fails. Fixture-ul authenticated rămâne limită separată a
+consumerului (`SHOP-API-REAL-01`).
 
-Limite rămase după acest gate:
-
-- `REP-UX-PERF-01`, `REP-UX-PERF-02` și `REP-EVID-08-STRESS` sunt închise prin
-  component/browser gates: fixture-ul configurabil rulează la viewport standard
-  și responsive, păstrează minimum șase semnături, verifică expandările,
-  JSON/evidence, overflow, separatori, imagini și diagnosticele browserului;
-- `SHOP-API-REAL-01`: authenticated fixture-ul extern rămâne placeholder și
-  `authenticatedE2eEnabled=false`.
+### Disclosure stability — proof în browser
 
 ```mermaid
 sequenceDiagram
@@ -221,6 +197,7 @@ sequenceDiagram
 | redeschiderea scenariului este deterministică | ✅ scenariul revine `open=true`, iar copiii rămân închiși până la click explicit |
 | disclosure-uri `Playwright action sequence`, `Audit observations`, `Assertions` | ✅ expandate succesiv în copiii disponibili; părintele a rămas deschis |
 | exchange API auditabil | ✅ `GET /products/search — Exchange 1` deschis manual; `Request details` (8 fields), `Response details` (4 fields), `Execution evidence` (1 attempt), request/response JSON pretty, HTTP 200 și trace live vizibile |
+| semantică JSON fără payload | ✅ `null` explicit rămâne JSON valid pentru un request fără body; textul assertion-ului spune `null = no payload`, iar evidence lipsă (șir gol) rămâne invalidă. Probe unitare pentru ambele cazuri în `CategoriesAndEvidenceSectionValidatorTest`. |
 | JSON evidence inventory | ✅ 9 request JSON blocks și 15 response JSON blocks în artifactul fresh |
 | console/page errors | ✅ 0 |
 | overflow la viewport 1280 | ✅ `scrollWidth=clientWidth=bodyScrollWidth=1280` |
@@ -379,7 +356,7 @@ iar testele de mai jos sunt dovada executabilă.
 | `REP-TRACE-04` | `ReportRequestSignature`, `ReportTraceMetadataRenderingTest`, `ReportNetworkInspectorTest`, `ExtentReportAssetsTest`, publisher-ul Practice Shop și fresh API/UI MCP HTML | digestul rămâne identitate internă pentru grouping/deduplicare; HTML-ul public proiectează doar `body=present|absent`, `internal digest hidden` și referințe locale `screenshot-n`; nu apar hash-uri brute în trace, assertions sau ancorele screenshot |
 | `REP-UX-TABLE-01` | `ValidationTableLayoutComponentTest`, `SelectedApiTestsReportUiTest` și poarta completă `atf-reporting-tests` | ✅ închis: layout-ul evidence este scoped/dirty, folosește fingerprint + cache/diff, reacționează incremental prin `ResizeObserver` sau `requestAnimationFrame`, iar testele acoperă hidden→visible, resize și open/close fără recalculare globală inutilă |
 | `REP-UX-TABLE-02` | `AtfReportThemeTokens`, `evidence-stack.css`, `fallback.css`, `ExtentUiActionRenderer`, `ExtentUiObservationRenderer`, `ExtentUiAssertionRenderer`, `HtmlReportEvidenceView`, `AtfReportEvidenceCssTest` și fresh MCP | ✅ închis: action/audit/assertion și inspectorul network reutilizează summary-ul 2× și viewport-ul vertical bounded cu header sticky în ambele renderere; screenshot-ul rămâne în afara viewport-ului action, fără modificări E2E |
-| `REP-UX-TABLE-03` | `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT`, `AtfReportThemeTokensTest`, `AtfReportEvidenceCssTest`, `AtfReportOverviewCssTest`, `overview-category-tables.css`, `overview-tag-audit.css`, `evidence-stack.css` și `fallback.css` | ✅ închis: orice tabel scrollabil folosește viewport-ul unic al `System/Environment` (`500px` curent), cu sticky header; nu există literal per renderer, iar Extent/fallback sunt aliniate |
+| `REP-UX-TABLE-03` | `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT`, `ReportAssetCompactorTest`, `AtfReportEvidenceCssTest`, `AtfReportOverviewCssTest` și raport fresh inspectat în browser | ✅ închis: token unic de `500px`; compactorul păstrează spațiul semantic din selectorul descendent `card :is(...)`, astfel wrapperul din `Tests` primește efectiv `max-height:500px`, `overflow-y:auto` și header sticky. La 846px, tabelul scurt rămâne compact și pagina nu are overflow orizontal; System păstrează înălțimea fixă. |
 | `REP-CONSUMER-01` | `ReportEnvironmentSnapshot`, `ReportTraceMetadata`, `AtfReportPorts` și `ReportTraceMetadataRenderingTest` | ✅ închis: un consumer nou injectează configurația typed per run și trace-ul typed per exchange în raportul Extent; allowlist-ul System și redaction-ul sunt verificate pe artifactul produs |
 | `REP-CAPTURE-01` | `ReportEvidenceProfileTest`, `ReportEvidenceProfileIntegrationTest`, `PracticeShopScreenshotPolicyTest`, `PracticeShopBrowserCaptureProviderTest`, `PracticeShopReportSystemMetadataTest` și fresh guest E2E/MCP | ✅ închis: providerul browser typed este reutilizat pe sesiune; policy-ul filtrează înainte de captură, provenance și payload-ul PNG sunt verificate; Overview proiectează policy-ul efectiv (`each-checkpoint`), nu o etichetă dedusă din booleanul legacy, iar linkurile 📷 deschid imaginile în viewer |
 

@@ -92,6 +92,11 @@ public final class UiNetworkInspector implements AutoCloseable {
         return List.copyOf(observations);
     }
 
+    /** Capture this cursor before a UI action to exclude earlier read-backs. */
+    public int observationCursor() {
+        return observations.size();
+    }
+
     /**
      * Returns the compact presentation stream while keeping raw observations
      * available for audit and signature counts. Consecutive identical
@@ -119,20 +124,30 @@ public final class UiNetworkInspector implements AutoCloseable {
         return Collections.unmodifiableMap(new LinkedHashMap<>(counts));
     }
 
-    /** Waits for a matching observed response without polling the browser with sleeps. */
+    /** Searches the entire journal; use {@link #awaitAfter} for action read-back. */
     public Optional<UiNetworkObservation> await(Predicate<UiNetworkObservation> predicate,
                                                  Duration timeout) {
+        return awaitAfter(0, predicate, timeout);
+    }
+
+    /** Waits only for observations captured after a cursor taken before the action. */
+    public Optional<UiNetworkObservation> awaitAfter(int cursor,
+                                                     Predicate<UiNetworkObservation> predicate,
+                                                     Duration timeout) {
         Objects.requireNonNull(predicate, "predicate");
         if (!configuration.settlementPolicy().enabled()) {
             throw new IllegalStateException(
                     "UI network settlement is disabled; enable it explicitly before awaiting read-back");
+        }
+        if (cursor < 0 || cursor > observations.size()) {
+            throw new IllegalArgumentException("UI network observation cursor is outside this journal");
         }
         Duration effective = timeout == null ? configuration.settlementPolicy().timeout() : timeout;
         if (effective.isZero() || effective.isNegative()) {
             throw new IllegalArgumentException("ui.network.await timeout must be positive");
         }
         long deadline = System.nanoTime() + effective.toNanos();
-        int inspected = 0;
+        int inspected = cursor;
         while (System.nanoTime() < deadline) {
             List<UiNetworkObservation> current = observations();
             for (int index = inspected; index < current.size(); index++) {

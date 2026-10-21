@@ -52,17 +52,17 @@ de business.
 | console wiring | 97 | Practice Shop consumă `atf-console` prin composition boundary; nu există mapping sau scriere directă în consumer |
 | E2E discipline | 97 | guest și authenticated sunt journey-uri distincte; variațiile rămân component/API integration, iar contextul este per test |
 | Test assertion trust | 96 | verdicturile provin din DOM, config și network observate; guard-ul respinge literal-`true`, iar contractele HTML folosesc helper semantic |
-| E2E composition quality | 98 | `E2eHarness` centralizează configurația, contextul și locatorii; `checkpoint(...)` compune UI și API în același nod semantic, iar `apiTrace(...)` rămâne doar calea explicită standalone |
-| Test readability/OOP | 97 | flow-urile sunt business-oriented, lifecycle-ul este explicit și support-ul are boundary-uri clare; evidence multi-exchange păstrează aceeași formă canonicală ca API direct |
+| E2E composition quality | 92 | `E2eHarness` centralizează construcția, iar `checkpoint(...)` compune UI/API într-un nod; cele trei clase E2E repetă însă adaptarea `BeforeEach`/`AfterEach`, câmpurile de context și inițializarea scenariului |
+| Test readability/OOP | 88 | flow-urile sunt semantice și assertions observate, dar corpurile testelor încă includ setup, ramuri de diagnostic și finalizare a raportului; intenția business nu este mereu vizibilă în câteva linii |
 | Plug-and-play test selection | 96 | adnotările și condițiile typed selectează fixture-ul authenticated/live fără metode `isConfigured()` duplicate |
 | live business proof | 82 | guest product → cart → payment este verificat prin `LIVE_HTTP`; login/catalog/cart/payment authenticated rămâne blocat de fixture extern |
-| **scor consumer** | **95** | contractul guest, binding-ul typed, proiecția per exchange și topologia single-node sunt confirmate pe codul live, suitele verzi și artifactul regenerat; limita principală rămasă este fixture-ul authenticated extern care rămâne explicit skip |
+| **scor consumer** | **93** | contractul guest și proiecția single-node sunt verificate; nota reflectă acum atât fixture-ul authenticated extern, cât și zgomotul rămas în composition roots E2E |
 
-Dovada live curentă este `111` teste, `0` failure/error și `5` skip-uri
-explicite (`mvn -pl atf-test-practice-shop -am test`). Scorul consumer rămâne
-`95`: settlement/read-back, capturarea request-failed și intercalarea UI/API
-sunt verificate, dar fixture-ul authenticated extern nu este încă o dovadă de
-business. Numărul de teste nu ridică singur scorul.
+Dovada live curentă este `112` teste, `0` failure/error și `5` skip-uri
+explicite (`mvn -pl atf-test-practice-shop -am test`). Scorul consumer este
+`93`: settlement/read-back cu cursor temporal, capturarea request-failed și
+intercalarea UI/API sunt verificate, dar fixture-ul extern și lizibilitatea
+orchestration-ului E2E rămân limite distincte. Un run verde nu le închide.
 
 ## Închideri promovate în README-ul ownerului
 
@@ -153,7 +153,8 @@ flowchart LR
   este regresie de lifecycle, nu stil acceptat;
 - `PracticeShopE2eContext` rămâne boundary-ul runtime, iar construction root-ul
   de test este separat în `PracticeShopTestSupport`; următorul refactor opțional
-  este o extensie JUnit dacă mai apare un al treilea consumer E2E.
+  trebuie să reducă duplicarea celor trei clase E2E existente, fără să mute
+  verdictul sau semantica business într-o extensie JUnit.
 
 </details>
 
@@ -215,6 +216,7 @@ Reguli de calitate:
 | ID | Owner | Limită actuală | Criteriu de închidere |
 |---|---|---|---|
 | `SHOP-API-REAL-01` | Practice Shop + mediu extern | fixture-ul local este placeholder, `authenticatedE2eEnabled=false`, iar login-ul live nu este dovadă de sesiune validă | fixture extern non-placeholder, `authenticatedE2eEnabled=true`, testele authenticated și standalone API nu mai sunt skip, login/current-user `200`, apoi rerun `LIVE_HTTP` cu login → catalog → cart → payment |
+| `SHOP-TEST-READ-02` | Practice Shop test composition | cele trei clase E2E repetă `BeforeEach`/`AfterEach`, câmpurile de harness/context/locators și setup-ul scenariului; testul guest conține și filtrare/finalizare diagnostică | extrage numai lifecycle-ul și publicarea diagnostică reutilizabile; guest și authenticated purchase păstrează flow-ul complet product → cart → checkout → billing → payment → confirmation, checkpoint-ul final `THEN` cu mesaj observat și evidence API; teste negative pentru cleanup/failure, rerun guest E2E și architecture guard |
 
 <details>
 <summary><strong>Interpretare și limite de redeschidere</strong></summary>
@@ -265,8 +267,10 @@ E2E
 - integration test dovedește boundary-ul de transport și este opt-in;
 - E2E dovedește orchestration-ul, nu fiecare endpoint în parte;
 - screenshot policy și flow mode sunt configurate typed, nu prin flag-uri ad-hoc;
-- network inspectorul este selectat prin `validation.profile` typed, fără boolean
-  separat; retry policy-ul Playwright rămâne de configurat explicit la ownerul UI;
+- `validation.profile` și `validation.apiEvidence` selectează checkpoint-urile API;
+  inspectorul browser este opt-in separat prin `networkInspector.enabled`;
+  retry policy-ul Playwright este declarat în YAML, implicit o singură încercare fără
+  operații eligibile;
 - screenshot-urile pot fi per checkpoint, final-only sau none, dar cardinalitatea
   trebuie verificată fără browser înainte de journey;
 - `atf-reporting-tests` este ownerul dovezii generice; Practice Shop este doar

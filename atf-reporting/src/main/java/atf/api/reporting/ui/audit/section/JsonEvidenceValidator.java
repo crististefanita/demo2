@@ -16,9 +16,9 @@ public final class JsonEvidenceValidator {
     public ValidationResult validate(ReportAuditSnapshot.JsonEvidence snapshot) {
         Objects.requireNonNull(snapshot, "snapshot");
         List<atf.api.reporting.contract.AtfAssertion> assertions = new ArrayList<>();
-        assertions.add(ReportAuditChecks.check("Request JSON", "valid JSON document",
+        assertions.add(ReportAuditChecks.check("Request JSON", "valid JSON document (null = no payload)",
                 snapshot.requestBody(), validJson(snapshot.requestBody())));
-        assertions.add(ReportAuditChecks.check("Response JSON", "valid JSON document",
+        assertions.add(ReportAuditChecks.check("Response JSON", "valid JSON document (null = no payload)",
                 snapshot.responseBody(), validJson(snapshot.responseBody())));
         assertions.add(ReportAuditChecks.check("Extraction violations", "0",
                 snapshot.violations().toString(), snapshot.violations().isEmpty()));

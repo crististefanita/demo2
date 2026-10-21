@@ -154,16 +154,21 @@ Regula comună pentru root README, owner docs și feedback este:
 `<summary>` trebuie să descrie explicit conținutul ascuns. Nu se ascund
 scopul, owner-ul sau criteriul principal de acceptare.
 
-## ToDo-uri active
+## Limite de redeschidere
 
-| ID | Prioritate | ToDo | Criteriu de închidere |
-|---|---:|---|---|
-| `TEST-ARCH-07` | P3 | păstrează gruparea semantică a zonelor `support` și identifică eventuale subzone care depășesc limita de coeziune | fiecare mutare are owner, motiv observabil, test de boundary și zero ștergeri speculative |
+`TEST-ARCH-07` este închis ca item de monitorizare:
+
+- subpachetele `support` nu depășesc pragul de opt clase;
+- `AtfPackageCohesionGovernanceTest` verifică toate source set-urile de test,
+  fără excepții pentru ele; gate-ul whole-ATF a trecut în staging extern;
+- redeschidere numai la depășirea pragului sau la două responsabilități
+  distincte observabile, cu owner, motiv și boundary test;
+- nicio mutare preventivă doar pentru o matrice vizuală.
 
 <details>
 <summary><strong>Închideri și reguli de redeschidere</strong></summary>
 
-- `TEST-ARCH-08` și `TEST-READ-01` sunt închise: split-urile
+- `TEST-ARCH-07`, `TEST-ARCH-08` și `TEST-READ-01` sunt închise: split-urile
   `ui.network`, `support.api` și `support.config.environment` sunt coezive,
   iar guard-ul confirmă importuri normale;
 - `AtfConsoleBridgeTest` rămâne component test-only în
