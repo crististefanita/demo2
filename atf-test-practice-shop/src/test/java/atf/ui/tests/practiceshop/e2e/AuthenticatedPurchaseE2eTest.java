@@ -16,7 +16,7 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
         registrationProfile = PracticeShopTestSupport.RegistrationProfileMode.SYNTHETIC)
 @PracticeShopTestSupport.AllowsRegistrationPerRun
 @AtfE2eTest
-@PracticeShopE2eTestSupport.WithE2eHarness(authenticatedSetupScreenshot = true)
+@PracticeShopE2eTestSupport.WithE2eHarness
 @Execution(ExecutionMode.SAME_THREAD)
 @DisplayName("Authenticated purchase flow")
 class AuthenticatedPurchaseE2eTest {

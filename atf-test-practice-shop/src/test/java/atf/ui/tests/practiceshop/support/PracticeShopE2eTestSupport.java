@@ -97,7 +97,6 @@ public final class PracticeShopE2eTestSupport {
             context.getStore(NAMESPACE).put(HARNESS_KEY, new E2eResource(
                     new E2eHarness(configuration, browser, new PracticeShopLocators(),
                             context.getRequiredTestClass().getSimpleName(), accountSetup, registrationProfile,
-                            harness != null && harness.authenticatedSetupScreenshot(),
                             context.getRoot().getUniqueId() + "::"
                                     + context.getRequiredTestClass().getName())));
         }
@@ -199,13 +198,12 @@ public final class PracticeShopE2eTestSupport {
                              String reportClass,
                              PracticeShopTestSupport.AccountSetupMode accountSetupMode,
                              Path registrationProfileFile,
-                             boolean authenticatedSetupScreenshot,
                              String accountRunScope) implements AutoCloseable {
         public E2eHarness(PracticeShopConfiguration configuration,
                           PracticeShopE2eContext context,
                           PracticeShopLocators locators, String reportClass) {
             this(configuration, context, locators, reportClass,
-                    PracticeShopTestSupport.AccountSetupMode.REUSE_FIXTURE, null, false, "standalone");
+                    PracticeShopTestSupport.AccountSetupMode.REUSE_FIXTURE, null, "standalone");
         }
 
         public E2eHarness {
@@ -277,11 +275,6 @@ public final class PracticeShopE2eTestSupport {
         public PracticeShopTestSupport.AccountSetupMode accountSetupMode() { return harness.accountSetupMode(); }
         public Path registrationProfileFile() { return harness.registrationProfileFile(); }
         public String accountRunScope() { return harness.accountRunScope(); }
-        public ReportScreenshot authenticatedAccountScreenScreenshot() {
-            return harness.authenticatedSetupScreenshot()
-                    ? harness.context().captureBrowserViewport("Authenticated account — full browser screen")
-                    : null;
-        }
         public void checkpoint(AtfGherkinKeyword keyword, String title, Collection<AtfAssertion> assertions,
                                Collection<atf.api.reporting.model.ReportExecutionEvidence> apiEvidence) {
             checkpoint(keyword, title, assertions, apiEvidence, null);

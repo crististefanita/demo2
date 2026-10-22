@@ -64,6 +64,7 @@ class PracticeShopE2eTestSupportTest {
                 "atf.ui.tests.practiceshop.e2e.NewAccountPurchaseE2eTest");
         var newAccountPurchaseHarness = newAccountPurchaseClass
                 .getAnnotation(PracticeShopE2eTestSupport.WithE2eHarness.class);
+        assertTrue(newAccountPurchaseHarness.authenticatedSetupScreenshot());
         assertEquals(ReportScreenshotPolicy.EACH_CHECKPOINT,
                 PracticeShopE2eTestSupport.reportProfile(PracticeShopConfigurationLoader.load(),
                         newAccountPurchaseHarness).screenshotPolicy());
@@ -86,6 +87,7 @@ class PracticeShopE2eTestSupportTest {
         assertEquals(ReportScreenshotPolicy.EACH_CHECKPOINT,
                 PracticeShopE2eTestSupport.reportProfile(PracticeShopConfigurationLoader.load(),
                         authenticatedHarness).screenshotPolicy());
+        assertTrue(authenticatedHarness.authenticatedSetupScreenshot());
         assertEquals(PracticeShopTestSupport.AccountSetupMode.REGISTER_PER_RUN, authenticated.accountSetup());
         assertEquals(PracticeShopTestSupport.RegistrationProfileMode.SYNTHETIC,
                 authenticated.registrationProfile());

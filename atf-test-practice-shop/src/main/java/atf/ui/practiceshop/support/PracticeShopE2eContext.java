@@ -106,11 +106,6 @@ public final class PracticeShopE2eContext implements AutoCloseable {
                 .orElse(null);
     }
 
-    /** Captures the visible browser viewport directly, independent of terminal screenshot policy. */
-    public ReportScreenshot captureBrowserViewport(String title) {
-        return browserCaptureProvider.capture(title, page().url());
-    }
-
     public Scenario scenario(String title, String overview) {
         return scenario("PracticeShopE2eTest", title, overview);
     }
