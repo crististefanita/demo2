@@ -5,7 +5,7 @@ reguli de cod sau reguli editoriale; trimite către documentul care deține
 fiecare contract. Contractele stabile sunt protejate de testele și guard-urile
 lor, iar feedback-ul rămâne registrul dinamic al gap-urilor.
 
-## Overall
+## Pe scurt
 
 Regulile se împart în trei proprietari: cod și arhitectură, documentație și
 feedback dinamic. Fiecare regulă stabilă are un singur owner și o dovadă

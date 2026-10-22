@@ -70,9 +70,10 @@ public final class UiEvidencePublisher {
     }
 
     /**
-     * Publishes lifecycle/setup evidence without misclassifying it as a UI
-     * validation. Setup proves that the input artifact is available; the
-     * browser assertions belong to the TEST BODY Screen validation card.
+     * Publishes precondition checks under SETUP. The compact setup table
+     * summarizes readiness; captured UI actions and selected API exchanges
+     * remain separate evidence under the same checkpoint. Setup evidence is
+     * not UI or screen validation; screen assertions belong to TEST BODY.
      */
     void publishSetup(String keyword, String title, String target,
                       Collection<AtfAssertion> assertions, AtfReportStatus status) {
@@ -83,6 +84,15 @@ public final class UiEvidencePublisher {
                       Collection<AtfAssertion> assertions,
                       Collection<AtfUiActionRecord> actions,
                       Collection<ReportExecutionEvidence> apiEvidence,
+                      AtfReportStatus status) {
+        publishSetup(keyword, title, target, assertions, actions, apiEvidence, null, status);
+    }
+
+    void publishSetup(String keyword, String title, String target,
+                      Collection<AtfAssertion> assertions,
+                      Collection<AtfUiActionRecord> actions,
+                      Collection<ReportExecutionEvidence> apiEvidence,
+                      atf.api.reporting.model.ReportScreenshot screenshot,
                       AtfReportStatus status) {
         String stepTitle = stepTitle(keyword, title);
         var request = phase.startRequest(stepTitle, "", "");
@@ -104,6 +114,7 @@ public final class UiEvidencePublisher {
                 }
             }
             if (actions != null && !actions.isEmpty()) request.uiActions(actions);
+            if (screenshot != null) request.screenshot(screenshot.title(), screenshot.base64Png());
             AtfReportStatus effectiveStatus = defaultStatus(status, AtfReportStatus.PASS);
             if (hasApiEvidence(apiEvidence)) {
                 if (apiEvidence.stream().anyMatch(evidence -> evidence != null

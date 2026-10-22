@@ -4,7 +4,7 @@ Acest document este owner-ul regulilor pentru README-uri, diagrame, tabele,
 legende, linkuri și feedback. Regulile de cod, OOP și testare sunt în
 [README_Atf_CodeBestPractices.md](README_Atf_CodeBestPractices.md).
 
-## Overall — ce trebuie să obțină un README
+## Pe scurt — ce trebuie să ofere un README
 
 Un README bun este o hartă navigabilă a unui contract, nu un jurnal de lucru și
 nu o copie a codului. Primul ecran trebuie să fie suficient pentru orientare;
@@ -43,7 +43,7 @@ fonturi injectate în fiecare document:
   README-urile și documentele normative Markdown desemnate, precum
   `docs/ATF_Architecture.md`; explică dinamic fișierul, linia, regula și remedierea.
 
-## Ownership și promovarea feedback-ului
+## Responsabilitatea documentelor și promovarea feedback-ului
 
 Documentația stabilă și feedback-ul au ritmuri diferite. README-ul ownerului
 descrie contractul validat; feedback-ul se schimbă dinamic pe măsură ce apar
@@ -123,7 +123,7 @@ Ordinea nu este o explicație despre „cum să citești” proiectul; este o re
 de compoziție pentru ca documentul să poată fi parcurs natural:
 
 1. **Titlu clar** — spune ce boundary sau rezultat descrie documentul;
-2. **Overall** — două-trei idei despre scop, owner și limită;
+2. **Pe scurt** — două-trei idei despre scop, proprietar și limite;
 3. **Dovada principală** — bullets, o schemă sau un tabel scurt;
 4. **Legendă imediată** — dacă există diagramă, unica legendă aferentă urmează
    imediat după ea;
@@ -160,7 +160,8 @@ Pattern-ul obligatoriu este:
 întrebare → orientare scurtă → diagramă → legendă colapsată → contract → proof
 ```
 
-Preferința de stil:
+<details>
+<summary>Preferința de stil</summary>
 
 - `LR` este orientarea preferată pentru flowchart-urile noi când modulele,
   ownership-ul, pipeline-ul sau dependența se citesc natural stânga → dreapta;
@@ -214,6 +215,8 @@ Preferința de stil:
 - culorile nu sunt singura formă de diferențiere;
 - clasele, metodele și valorile care nu schimbă orientarea rămân în README-ul
   ownerului sau în tabelul colapsat.
+
+</details>
 
 ### Criteriul formal pentru o excepție `TB`
 
@@ -298,7 +301,28 @@ O legendă bună explică nodurile, săgețile, limitele și tabelul colapsat al
 aceleiași diagrame. Nu repetă mecanic textul vizibil și nu devine al doilea
 document de arhitectură.
 
-## Root overview și click-through către owneri
+### Documentarea dovezilor în funcție de scop
+
+Când un README descrie un raport, fiecare fapt trebuie pus în zona care îi
+exprimă sensul. Folosește o singură schemă canonică și trimite la owner pentru
+detalii, în loc să copiezi arborele complet în fiecare modul:
+
+| Fapt documentat | Zonă canonică | Evită |
+|---|---|---|
+| precondiție sau fixture pregătit | `SETUP` → `Setup evidence` | `Overview / System` ori un pas de business inventat |
+| observație din browser | `UI validation` a checkpoint-ului Gherkin | amestecarea verdictului UI cu verdictul transportului |
+| request/response și retry | `API validation` → exchange-ul său | trace plat, duplicat sau pas Gherkin separat |
+| rezultat al journey-ului | propoziția Gherkin care afirmă rezultatul | repetarea aceleiași propoziții pentru UI și API |
+| sumar de network | un aggregate terminal, dacă este cerut | a doua listă de request-uri sau payload repetat |
+
+`SETUP` poate include o pregătire cu efect extern dacă este selectată explicit;
+`Setup evidence` rezumă check-urile, iar acțiunile și exchange-urile rămân dovezi
+tehnice separate sub checkpoint-ul cauzal. Într-un pas mixt, `UI validation` și
+`API validation` sunt frați ai aceleiași propoziții Gherkin. Contractul complet
+este deținut de [ATF Reporting Contract](ATF_Reporting_Contract.md); README-ul
+consumerului explică numai modul său de configurare.
+
+## Prezentarea proiectului și legături către proprietarii documentației
 
 Root-ul trebuie să fie self-explanatory ca overview al produsului, dar nu trebuie
 să conțină contractele interne ale tuturor modulelor.
@@ -316,7 +340,7 @@ Linkurile din root trebuie să răspundă natural la „unde aprofundez?” și 
 introducă o a doua versiune a aceleiași hărți. O referință bună are o etichetă
 semantică și o întrebare clară, nu doar un path.
 
-## Naming, linkuri și durabilitate
+## Denumiri, linkuri și durabilitate
 
 README-ul unui modul rămâne `README.md`. Documentele descriptive folosesc
 `ATF_<PascalCase>` sau `README_Atf_<PascalCase>`: acronimul poate apărea în
@@ -375,7 +399,7 @@ să concureze cu README-urile stabile.
 - [ ] conflictul sau drift-ul live/staging devine feedback auditabil, nu
       overwrite implicit.
 
-## Definition of done
+## Criterii de finalizare
 
 - [ ] primul ecran este self-explanatory;
 - [ ] titlul și orientarea spun întrebarea documentului;

@@ -3,7 +3,7 @@
 `atf-test-kit` este contractul transversal, strict test-only, pentru toate
 modulele ATF. Nu conține renderer, mock transport, browser sau cod de producție.
 
-## Overall
+## Pe scurt
 
 ```mermaid
 flowchart LR
@@ -45,14 +45,14 @@ Fiecare clasă executabilă declară exact un nivel:
 - regula este fail-closed: o clasă fără nivel sau cu mai multe niveluri oprește
   build-ul.
 
-### Gate-uri de compoziție
+### Verificări de compoziție
 
 - `AtfModuleTest`/`AtfModuleTestCondition` rămân specifice suitei
   `atf-reporting-tests`, în `atf.api.reporting.test`;
 - un modul lipsă poate produce `SKIPPED` prin gate-ul dedicat;
 - kit-ul nu introduce o booleană UI paralelă.
 
-### Boundary pentru extensii viitoare
+### Limite de responsabilitate pentru extensii viitoare
 
 - contractul generic pentru flow mode, screenshot policy și capture source este în
   [`docs/ATF_Evidence_Capture_Contract.md`](../docs/ATF_Evidence_Capture_Contract.md);
@@ -60,7 +60,7 @@ Fiecare clasă executabilă declară exact un nivel:
   și un gate lower-level;
 - politica publisherului și flow-urile Practice Shop rămân în ownerii lor.
 
-## Boundary
+## Limite de responsabilitate
 
 ```text
 module tests → atf-test-kit (test scope)

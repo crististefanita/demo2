@@ -11,7 +11,7 @@ Acest director este indexul contractelor stabile ale ATF Java.
 Documentele descriu framework-ul și ownerii lui, nu un run sau un artifact
 particular.
 
-## Overall
+## Pe scurt
 
 | Nivel | Documente | Întrebarea la care răspund |
 |---|---|---|
@@ -51,6 +51,19 @@ flowchart LR
 </details>
 
 ## Ordinea recomandată de lectură
+
+| Scop | Documente de pornire |
+|---|---|
+| Orientare și ownership | [Arhitectură](ATF_Architecture.md) · [README root](../README.md) |
+| Scriere și stratificarea testelor | [Ghid de testare](ATF_Testing_Guide.md) · [Ghid API](ATF_Api_Test_Guide.md) · [Bune practici de cod](README_Atf_CodeBestPractices.md) |
+| Reporting și evidence | [Contract reporting](ATF_Reporting_Contract.md) · [Contract evidence](ATF_Evidence_Capture_Contract.md) · [README reporting](../atf-reporting/README.md) |
+| Consumatori și guvernanță | [Practice Shop](../atf-test-practice-shop/README.md) · [ATF Tests](../atf-tests/README.md) · [registrul feedback](feedback/README.md) |
+| Contribuție și operare | [Siguranța build-ului](ATF_Build_And_Execution_Safety.md) · [Bune practici ATF](README_Atf_BestPractices.md) · [Bune practici documentație](README_Atf_DocumentationBestPractices.md) |
+
+Indexul complet și ordinea detaliată rămân disponibile la cerere:
+
+<details>
+<summary>Ordinea completă de lectură și toate documentele</summary>
 
 1. [ATF_Architecture.md](ATF_Architecture.md) — module, dependențe și responsabilități.
 2. [../atf-core/README.md](../atf-core/README.md) — kernelul neutru, porturile
@@ -93,44 +106,29 @@ flowchart LR
 20. [feedback/README.md](feedback/README.md) — ToDo active, criterii de închidere
     și registrul de ownership pentru API, UI și reporting.
 
-## Responsabilități și aprofundare
+</details>
 
-Indexul nu dublează harta modulelor. Pentru relații, ownership și boundary-uri,
-continuă în [ATF_Architecture.md](ATF_Architecture.md).
-
-- raportarea Extent: [ATF_Reporting_Contract.md](ATF_Reporting_Contract.md);
-- evidence transversal: [ATF_Evidence_Capture_Contract.md](ATF_Evidence_Capture_Contract.md);
-- build și sync: [ATF_Build_And_Execution_Safety.md](ATF_Build_And_Execution_Safety.md);
-- test API: [ATF_Api_Test_Guide.md](ATF_Api_Test_Guide.md);
-- alegerea layer-ului și proof-ul unei schimbări: [ATF_Testing_Guide.md](ATF_Testing_Guide.md);
-- reguli editoriale: [README_Atf_DocumentationBestPractices.md](README_Atf_DocumentationBestPractices.md);
-- gap-uri dinamice: [feedback/README.md](feedback/README.md).
-
-Harta modulelor rămâne într-un singur owner vizual; indexul oferă navigare,
-nu o a doua versiune a aceleiași diagrame.
+Harta modulelor are un singur owner: [ATF_Architecture.md](ATF_Architecture.md).
+Acest index oferă doar trasee de lectură și trimiteri către contractele detaliate.
 
 ## Regula de lucru pentru orice schimbare
 
-Înainte de refactorizare se sincronizează contextul live, apoi se lucrează
-într-un staging unic și separat. Fiecare increment trebuie să treacă prin
-testele relevante, să genereze un artifact nou și să fie verificat prin click-uri
-în TAB MCP înainte de orice sincronizare selectivă înapoi. Procesele și rulările
-existente nu se opresc, iar output-urile generate nu se copiază în surse.
+```text
+cod și feedback live → staging separat → teste relevante → audit artifact/UI → promovare selectivă
+```
 
-Ordinea obligatorie și criteriile detaliate sunt în
-[ATF_Build_And_Execution_Safety.md](ATF_Build_And_Execution_Safety.md) și
-[README_Atf_BestPractices.md](README_Atf_BestPractices.md).
+Păstrează rulările existente; nu copia artefactele generate în surse.
+Detaliile operaționale sunt în
+[ATF_Build_And_Execution_Safety.md](ATF_Build_And_Execution_Safety.md).
 
-Lucrările încă neînchise sunt păstrate în [feedback/README.md](feedback/README.md)
-și în documentul activ pe responsabilitate. Analizele datate cu toate ToDo-urile
-închise sunt arhivate în afara proiectului, nu sunt surse normative. Deciziile
-închise sunt reflectate direct în README-urile ownerilor și în teste; feedback-ul
-activ rămâne concentrat pe riscurile și pașii care mai trebuie validați.
+| Stare | Locul normativ |
+|---|---|
+| Contract stabil | README-ul ownerului și testele sale |
+| Gap încă deschis | [registrul de feedback](feedback/README.md) și documentul ownerului |
+| Analiză închisă sau datată | În afara documentației normative |
 
-Testele aplicațiilor nu se documentează în README-ul de reporting. De exemplu,
-Practice Shop și configurația sa sunt în `atf-test-practice-shop/src/test`; un viitor
-consumator poate folosi `atf-reporting` dintr-un jar fără să importe
-`atf-reporting-tests`.
+Testele aplicației rămân la consumer. Astfel, `atf-reporting` poate fi folosit
+ca JAR fără dependență de `atf-reporting-tests`.
 
 ### Regula de promovare
 
@@ -156,7 +154,7 @@ consumator poate folosi `atf-reporting` dintr-un jar fără să importe
 - Orice schimbare vizuală sau de navigare se verifică în artifactul HTML și,
   când este relevant, prin interacțiune în TAB MCP.
 
-### Gate obligatoriu pentru raportul UI randat
+### Verificare obligatorie pentru raportul UI randat
 
 Orice schimbare de clasă mare, CSS, markup, disclosure sau evidence urmează
 aceeași probă, indiferent dacă raportul este produs dinamic sau auditat static:

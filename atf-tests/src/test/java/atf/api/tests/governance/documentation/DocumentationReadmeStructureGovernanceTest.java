@@ -18,7 +18,7 @@ import static atf.api.tests.governance.AtfGovernanceTestSupport.locateProjectRoo
 @AtfComponentTest
 public class DocumentationReadmeStructureGovernanceTest {
     private static final Pattern H1 = Pattern.compile("^#\\s+[^#].*$");
-    private static final Pattern H2_OVERALL = Pattern.compile("^##\\s+Overall\\b.*$",
+    private static final Pattern H2_ORIENTATION = Pattern.compile("^##\\s+Pe scurt\\b.*$",
             Pattern.CASE_INSENSITIVE);
     private static final Pattern DETAILS_OPEN = Pattern.compile("^\\s*<details(?:\\s|>)",
             Pattern.CASE_INSENSITIVE);
@@ -44,7 +44,7 @@ public class DocumentationReadmeStructureGovernanceTest {
                          List<DocumentationGovernanceSupport.Violation> violations) {
         try {
             List<String> lines = Files.readAllLines(path);
-            inspectTitleAndOverall(path, root, lines, violations);
+            inspectTitleAndOrientation(path, root, lines, violations);
             inspectDetails(path, root, lines, violations);
             inspectLocalLinks(path, root, lines, violations);
         } catch (Exception error) {
@@ -56,8 +56,8 @@ public class DocumentationReadmeStructureGovernanceTest {
         }
     }
 
-    private static void inspectTitleAndOverall(Path path, Path root, List<String> lines,
-                                               List<DocumentationGovernanceSupport.Violation> violations) {
+    private static void inspectTitleAndOrientation(Path path, Path root, List<String> lines,
+                                                   List<DocumentationGovernanceSupport.Violation> violations) {
         List<Integer> titles = matchingLines(lines, H1);
         if (titles.size() != 1) {
             violations.add(DocumentationGovernanceSupport.violation(
@@ -67,12 +67,12 @@ public class DocumentationReadmeStructureGovernanceTest {
                     "keep one `# ...` title and convert additional top-level titles to `## ...`"));
         }
         if (!path.equals(root.resolve("README.md").toAbsolutePath().normalize())
-                && matchingLines(lines, H2_OVERALL).isEmpty()) {
+                && matchingLines(lines, H2_ORIENTATION).isEmpty()) {
             violations.add(DocumentationGovernanceSupport.violation(
                     "DOC-README-OVERALL", root, path, 1,
-                    "owner README has no `## Overall` orientation section",
-                    "module and docs READMEs expose scope, owner and limit before deep detail",
-                    "add a concise `## Overall` section before diagrams, tables or implementation detail"));
+                    "README-ul nu are secțiunea de orientare `## Pe scurt`",
+                    "README-urile modulelor și ale documentației prezintă scopul, proprietarul și limitele înaintea detaliilor",
+                    "adaugă o secțiune concisă `## Pe scurt` înaintea diagramelor, tabelelor sau detaliilor de implementare"));
         }
     }
 

@@ -4,7 +4,7 @@ ATF Java este împărțit în module cu responsabilități distincte. Direcția
 dependențelor este de la scenarii spre infrastructură; infrastructura nu
 cunoaște rutele sau intenția unui test de produs.
 
-## Overall
+## Pe scurt
 
 | Boundary | Owner | Contract stabil | Gate executabil |
 |---|---|---|---|
@@ -82,7 +82,7 @@ integration/e2e și guard-ul global, fără să intre în classpath-ul de produc
 read-only; faptul că este pornit de teste sau IntelliJ nu îl transformă într-o
 dependență de runtime a rendererului.
 
-### Platformă reutilizabilă versus composition root
+### Platforma reutilizabilă față de punctul de compunere
 
 Contractele generice care nu au nevoie de JUnit, filesystem, YAML sau browser
 stau în modulele de jos. `atf-core` oferă contractul neutru pentru selecția
@@ -143,7 +143,7 @@ aplicații reale aparține în modulul consumer, de exemplu `atf-test-practice-s
 Un serviciu real este testat doar printr-un scenariu
 explicit opt-in; nu este implicit în niciunul dintre aceste niveluri.
 
-## Boundary-ul testelor API și al auditului UI
+## Limitele de responsabilitate ale testelor API și auditului UI
 
 `atf.api.tests.api` este exclusiv pentru teste API: resurse, request-uri,
 headere, contracte, scenarii stateful și lifecycle. Nu poate importa browser,
@@ -219,8 +219,14 @@ Regulile pentru smoke E2E sunt:
 
 Regula pentru `SETUP` este:
 
-- publică doar tabelul compact `Setup evidence` (`CHECK / EXPECTED / ACTUAL / RESULT`);
-- nu este request/response și nu este `UI validation`;
+- publică un tabel compact `Setup evidence` (`CHECK / EXPECTED / ACTUAL / RESULT`)
+  pentru precondiții și starea pregătirii; tabelul nu înlocuiește evidence-ul
+  tehnic;
+- dacă setup-ul produce exchange-uri reale și profilul le colectează, acestea
+  rămân `API validation` sub același checkpoint `SETUP`, cu request, response
+  și execution evidence canonicală;
+- acțiunile de pregătire nu devin `UI validation`, iar setup-ul nu primește
+  `Screen validation`;
 - `Screen validation` există numai în `TEST BODY`, după acțiunile reale de browser.
 
 ## Fluxul unei cereri
@@ -551,7 +557,7 @@ interne și nu devine dependent de lifecycle.
 
 </details>
 
-## Lifecycle și ownership
+## Ciclu de viață și responsabilități
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "16px"}, "themeCSS": ".edgeLabel p { font-size: 13px; line-height: 1.1; margin: 0; padding: 0 2px; }", "flowchart": {"nodeSpacing": 16, "rankSpacing": 48, "padding": 4}}}%%

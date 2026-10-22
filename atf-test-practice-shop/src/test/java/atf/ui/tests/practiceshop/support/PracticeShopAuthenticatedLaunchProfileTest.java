@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @AtfComponentTest
@@ -24,8 +25,8 @@ class PracticeShopAuthenticatedLaunchProfileTest {
 
     @Test
     void eachAuthenticatedClassResolvesItsOwnIntelliJProfileWithoutVmOverrides() throws Exception {
-        assertAuthenticatedProfile("atf.ui.tests.practiceshop.e2e.PracticeShopAccountAndCatalogE2eTest");
-        assertAuthenticatedProfile("atf.ui.tests.practiceshop.e2e.PracticeShopAuthenticatedPurchaseE2eTest");
+        assertAuthenticatedProfile("atf.ui.tests.practiceshop.e2e.NewAccountPurchaseE2eTest");
+        assertAuthenticatedProfile("atf.ui.tests.practiceshop.e2e.AuthenticatedPurchaseE2eTest");
     }
 
     @Test
@@ -84,21 +85,44 @@ class PracticeShopAuthenticatedLaunchProfileTest {
     @Test
     void registrationCapabilityIsAnExplicitClassContract() throws ClassNotFoundException {
         Class<?> purchase = Class.forName(
-                "atf.ui.tests.practiceshop.e2e.PracticeShopAuthenticatedPurchaseE2eTest");
+                "atf.ui.tests.practiceshop.e2e.AuthenticatedPurchaseE2eTest");
         var purchaseProfile = purchase.getAnnotation(PracticeShopTestSupport.AuthenticatedE2e.class);
 
         assertTrue(purchase.isAnnotationPresent(PracticeShopTestSupport.AllowsRegistrationPerRun.class));
         assertEquals(PracticeShopTestSupport.AccountSetupMode.REGISTER_PER_RUN,
                 purchaseProfile.accountSetup());
-        Class<?> accountAndCatalog = Class.forName(
-                "atf.ui.tests.practiceshop.e2e.PracticeShopAccountAndCatalogE2eTest");
-        var accountProfile = accountAndCatalog.getAnnotation(PracticeShopTestSupport.AuthenticatedE2e.class);
-        assertTrue(accountAndCatalog.isAnnotationPresent(
+        assertEquals(PracticeShopTestSupport.RegistrationProfileMode.SYNTHETIC,
+                purchaseProfile.registrationProfile());
+        Class<?> newAccountPurchase = Class.forName(
+                "atf.ui.tests.practiceshop.e2e.NewAccountPurchaseE2eTest");
+        var accountProfile = newAccountPurchase.getAnnotation(PracticeShopTestSupport.AuthenticatedE2e.class);
+        assertTrue(newAccountPurchase.isAnnotationPresent(
                 PracticeShopTestSupport.AllowsRegistrationPerRun.class));
         assertEquals(PracticeShopTestSupport.AccountSetupMode.REGISTER_PER_RUN,
                 accountProfile.accountSetup());
+        assertEquals(PracticeShopTestSupport.RegistrationProfileMode.SYNTHETIC,
+                accountProfile.registrationProfile());
+        assertNull(PracticeShopTestSupport.authenticatedSetupSkipReason(newAccountPurchase,
+                PracticeShopTestSupport.configurationFor(newAccountPurchase)));
         assertFalse(NonPurchaseAuthenticatedTest.class.isAnnotationPresent(
                 PracticeShopTestSupport.AllowsRegistrationPerRun.class));
+    }
+
+    @Test
+    void bothAuthenticatedPurchaseClassesExposeOneBusinessScenario() throws ClassNotFoundException {
+        for (String className : new String[]{
+                "atf.ui.tests.practiceshop.e2e.NewAccountPurchaseE2eTest",
+                "atf.ui.tests.practiceshop.e2e.AuthenticatedPurchaseE2eTest"}) {
+            Class<?> testClass = Class.forName(className);
+            long scenarios = java.util.Arrays.stream(testClass.getDeclaredMethods())
+                    .filter(method -> method.isAnnotationPresent(org.junit.jupiter.api.Test.class))
+                    .count();
+
+            assertEquals(1, scenarios, testClass.getSimpleName()
+                    + " must report one complete purchase scenario after setup");
+            assertTrue(testClass.getSimpleName().contains("Purchase"),
+                    "E2E class names must identify the purchase business outcome");
+        }
     }
 
     @Test

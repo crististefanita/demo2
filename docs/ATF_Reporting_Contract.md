@@ -1,41 +1,68 @@
 # Contractul de raportare Extent pentru ATF Java
 
-## Overall
+## Pe scurt
 
 - raportul reprezintă execuția; nu creează un al doilea verdict;
 - runnerul și evaluatorul de contract rămân autoritățile rezultatului;
 - Extent publică evidence-ul într-o formă lizibilă și navigabilă;
 - fiecare suprafață reutilizează aceeași identitate și aceeași semantică.
 
-### Overview/System — snapshot semantic
+### Overview/System — instantaneu semantic
 
-- metadata de configurare se publică prin `ReportEnvironmentSnapshot` și
-  `ReportEnvironmentField`;
-- allowlist-ul este typed și clasificat semantic pe `Run`, `Targets`, `Browser`,
-  `Time`, `Flow`, `Auth`, `Network`, `Evidence` și `Reporting`; clasificarea
-  este metadata de vocabular, iar `Overview/System` rămâne o listă plată label/value;
-- `Client` este metadata operațională opțională din grupul `Browser`, iar
-  `Suite`, `Test package`, `Flow` și `Fixture` rămân în afara proiecției System;
-- valorile goale sunt ignorate, iar `ReportEnvironment` aplică redaction înainte
-  de publicare;
-- `Map<String,String>` rămâne numai compatibilitate pentru consumatori existenți;
-- nu se publică dump-ul YAML, credentiale, path-uri temporare sau identificatori
-  dinamici ca reguli normative.
-- `Suite`, `Test package`, `Flow`, `Fixture`, `Checkout` și payload-ul business
-  nu apar în `Overview/System`; identitatea testului aparține suprafeței `Tests`,
-  iar facts-urile schimbului aparțin disclosure-ului request/response/execution;
-- orice precondiție de journey sau stare de fixture specifică unui scenariu
-  (`UI journey precondition`) aparține tot suprafeței `Tests`, nu allowlist-ului
-  System; `Precondition` din System rămâne numai un setting operațional global,
-  precum modul de autentificare configurat;
-- preview-ul de body din System este metadata informativă: limita sa este
-  configurată și deținută de consumer, iar raportul afișează limita și locul
-  unde se găsește evidence-ul complet, nu conținutul body-ului. Această politică
-  este distinctă de `reporting.bodyMaxDisplayCharacters` pentru JSON-ul
-  Request/Response și de `networkInspector.maxBodyPreviewCharacters` pentru
-  observațiile de network;
-- duratele vizibile sunt operaționale și umane (`20s`, `45s`); forma ISO și cheia
-  tehnică rămân cel mult în debugging colapsat.
+System răspunde la o singură întrebare: **cu ce setări operaționale a rulat acest
+raport?** Este un rezumat plat, nu un al doilea loc pentru identitatea testului
+sau pentru dovezile execuției.
+
+```mermaid
+flowchart LR
+    Config[Configurația efectivă] -->|mapează| Snapshot[Snapshot typed]
+    Snapshot -->|allowlist| Safe[Valori permise]
+    Safe -->|redactează| System[Overview / System<br/>label · value]
+    Identity[Identitate + context de scenariu] -->|aparține| Tests[Tests]
+    Exchange[Request · response · retry] -->|aparține| Evidence[Dovezile pasului]
+```
+
+<details>
+<summary><strong>Legendă — ce aparține fiecărei suprafețe</strong></summary>
+
+- `Snapshot` păstrează setări typed; allowlist-ul și redaction-ul preced publicarea;
+- `System` este rezumatul operațional, în format plat `label · value`;
+- identitatea și rezultatele scenariilor merg în `Tests`, iar datele transportului
+  rămân lângă exchange-ul care le-a produs.
+
+</details>
+
+| System include — dacă este relevant | System exclude — are deja un owner |
+|---|---|
+| Environment, profil și build | Suite, test package și identitatea scenariului → `Tests` |
+| Host-uri și mod de transport | Flow, fixture și precondiție specifică journey-ului → `Tests` |
+| Browser, viewport și timeout-uri lizibile | Checkout și alte date business → pașii de test |
+| Authentication mode, retry/network settings | Request, response, retry history și payload → evidence-ul exchange-ului |
+| Reporting, screenshot policy și limite de preview | Secrete, YAML brut, căi locale și identificatori instabili → nu se publică |
+
+- `ReportEnvironmentField` definește vocabularul typed și categoriile semantice;
+- `ReportEnvironmentSnapshot` ignoră valorile goale și filtrează câmpurile
+  invizibile în System;
+- `ReportEnvironment` aplică redaction la boundary-ul de publicare;
+- `Client` este metadata operațională opțională;
+- categoriile (`Run`, `Targets`, `Browser`, `Time`, `Flow`, `Auth`, `Network`,
+  `Evidence`, `Reporting`) nu devin grupuri sau headere vizuale în tabel.
+
+<details>
+<summary><strong>Detalii — boundary, formatare și compatibilitate</strong></summary>
+
+- `Precondition` în System descrie numai un setting operațional global; starea
+  pregătită pentru un anumit journey rămâne în `Tests`;
+- `Body preview` afișează limita configurată și locul evidence-ului complet, nu
+  conținutul body-ului. Este distinct de limita JSON-ului Request/Response și de
+  preview-ul observațiilor Network Inspector;
+- duratele sunt afișate în unități umane (`20s`, `45s`), nu ca valori ISO opace;
+- `Map<String,String>` rămâne doar pentru compatibilitatea consumatorilor
+  existenți; codul nou folosește snapshot-ul typed;
+- snapshot-ul System descrie configurația efectivă, nu înlocuiește evidence-ul
+  observat și nu deduce valori din YAML brut, nume de test sau payload business.
+
+</details>
 
 ## Ordinea suprafețelor
 
@@ -107,20 +134,29 @@ Reguli de ownership:
 4. faza nu repetă failure-ul deja detaliat în tabel;
 5. scenariul arată verdictul agregat, nu duplică evidence-ul fiecărei faze.
 
-## Evidence-ul de setup
+## Dovezile configurării inițiale
 
-`SETUP` publică doar disponibilitatea unui artifact read-only pentru auditul UI.
-Pentru `evidence.type=report-setup`, contractul este:
+`SETUP` deține precondițiile și achiziția/verificarea fixture-ului; nu este
+rezervat doar inputurilor read-only. Un consumer poate selecta explicit o
+operație de pregătire cu efect extern, precum înregistrarea unui cont, înainte
+de `TEST BODY`. Contractul raportului separă rezumatul verificărilor de
+dovezile transportului:
 
 - un singur bloc `Setup evidence`;
 - tabelul `CHECK | EXPECTED | ACTUAL | RESULT`;
-- numai check-uri de input și rezultatul lor;
-- fără request/response, JSON de transport, `UI validation` sau `Screen validation`;
-- `API request evidence` și `TEST BODY` → `Screen validation` rămân ownerilor lor.
+- check-urile rezumă sursa selectată, rezultatul setup-ului și pregătirea pentru
+  faza următoare; tabelul nu dublează request/response sau JSON-ul transportului;
+- acțiunile UI și exchange-urile API reale rămân dovezi distincte ale aceluiași
+  checkpoint `SETUP`; când API evidence este selectată, `API validation` păstrează
+  structura canonică `Exchange → Request → Response → Execution`;
+- setup-ul nu este `UI validation` sau `Screen validation`; aceasta din urmă
+  aparține `TEST BODY`, după acțiunile și observațiile de business;
+- transportul nu produce un checkpoint Gherkin duplicat și nu schimbă singur
+  verdictul business.
 
-## Evidence-ul unui request
+## Dovezile unei cereri
 
-### Label-uri canonice
+### Etichete canonice
 
 Tab-ul `Tests` este sursa vizibilă de adevăr pentru denumirile evidence-ului.
 Aceleași label-uri trebuie păstrate în `Category`, `Fails`, `Overview` și în
@@ -345,7 +381,7 @@ input-ul primit de la transport sau de la validator.
 
 </details>
 
-## Tabelul agregat de assertions
+## Tabelul agregat de aserțiuni
 
 Toate verificările pentru același response apar într-o singură structură:
 
@@ -383,7 +419,7 @@ flowchart LR
 
 </details>
 
-### Layout adaptiv pentru assertions
+### Aranjare adaptivă pentru aserțiuni
 
 <details>
 <summary><strong>Detalii — layout adaptiv și payload-uri lungi</strong></summary>
@@ -399,7 +435,7 @@ coloană dominantă primește lățimea dominantă.
 
 </details>
 
-### Layout pentru evidence `FIELD | VALUE`
+### Aranjare pentru dovezile `FIELD | VALUE`
 
 În tabelele key/value din trace și din detaliile request/response:
 
@@ -432,7 +468,7 @@ flowchart LR
 - **Open in Tests**: navighează la nodul original, fără să schimbe verdictul sau ownership-ul evidence-ului.
 - **Evidence complet**: request/response JSON, trace, response details și assertions rămân în `Tests`.
 
-### Failure semantics pentru lifecycle API
+### Semantica eșecului în ciclul de viață API
 
 Un raport API poate fi `Fail` intenționat atunci când fixture-ul negativ verifică
 vizibilitatea unui contract respins. Acest verdict nu se confundă cu un failure
@@ -471,7 +507,7 @@ artifact offline poate afișa un view gol deși datele există în document.
 
 </details>
 
-## Overview și agregări
+## Prezentare generală și agregări
 
 ```mermaid
 flowchart LR
@@ -550,7 +586,7 @@ culoare semantică.
 
 </details>
 
-### Header metadata: durată, deep-link și controale
+### Metadatele antetului: durată, link direct și controale
 
 <details>
 <summary><strong>Detalii — metadata și controale</strong></summary>
@@ -587,7 +623,7 @@ Artifactul final trebuie să fie un singur HTML autonom:
 
 </details>
 
-### Disclosure stability — proof în browser
+### Stabilitatea secțiunilor expandabile — verificare în browser
 
 Disclosure-urile formează un arbore de stare, nu controale independente:
 

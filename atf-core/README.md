@@ -4,7 +4,7 @@
 abstracții reutilizabile, fără să decidă cum este orchestrat un scenariu sau
 cum este randat un raport.
 
-## Overall
+## Pe scurt
 
 | Deține | Consumatori | Limită |
 |---|---|---|
@@ -54,7 +54,7 @@ candidate, fie când testul pornește din directorul modulului, fie din reactor.
 Validarea respinge căi absolute și traversal; caller-ul declară explicit layout-ul
 acceptat în loc să reproducă bucla de ancestor-walk în fiecare test.
 
-## Lifecycle generic reutilizabil
+## Ciclu de viață generic și reutilizabil
 
 `atf-core/src/main/java/atf/api/core/lifecycle` deține mecanica neutră a unui
 scenariu: `ApiScenarioPlan`, `ApiScenarioLifecycleRunner`,
@@ -80,7 +80,7 @@ curent, `atf-reporting` rămâne standalone și nu depinde de core. Un lifecycle
 nou se adaugă în core numai dacă rămâne endpoint-neutral
 și este acoperit de teste unitare fără browser sau transport real.
 
-## Cohesiune și ownership pentru vocabularul HTTP
+## Coeziune și responsabilitate pentru vocabularul HTTP
 
 Pachetele de producție din core respectă maximum 8 clase: `http.request` deține
 forma request-ului (`ApiRequest`, `ApiPathTemplate`, `ApiRoute`, `ApiUrlBuilder`,
@@ -146,7 +146,7 @@ Un port trebuie să fie mic, semantic și
 testabil cu fake-uri în memorie.
 
 Configurația consumată de execuție este typed și immutable în core. Când un
-consumer are nevoie de integrare plug-and-play, `config.source` citește o
+  aplicația consumatoare are nevoie de integrare plug-and-play, `config.source` citește o
 singură dată YAML/proprietăți/env și produce exact același snapshot validat;
 loaderul nu intră în transport. Astfel
 un test paralel nu poate schimba timeout-ul, retry-ul, auth-ul sau politica de

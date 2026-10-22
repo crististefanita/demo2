@@ -1,11 +1,11 @@
-# ATF Validation — contracte independente de renderer
+# ATF Validation — contracte independente de motorul de randare
 
 `atf-validation` este modulul care transformă un `ApiResponse` și un contract
 de response într-o decizie verificabilă și într-un set de assertions publicabil.
 Este un JAR reutilizabil: nu face HTTP, nu cunoaște Extent și nu construiește
 HTML/CSS.
 
-## Overall
+## Pe scurt
 
 | Input | Decision | Output |
 |---|---|---|

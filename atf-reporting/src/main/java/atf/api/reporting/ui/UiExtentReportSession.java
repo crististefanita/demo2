@@ -6,6 +6,7 @@ import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.model.ReportExecutionEvidence;
+import atf.api.reporting.model.ReportScreenshot;
 import atf.api.reporting.evidence.profile.ReportEvidenceProfile;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.security.SensitiveDataRedactor;
@@ -313,6 +314,25 @@ public final class UiExtentReportSession implements AutoCloseable {
         public void setup(AtfGherkinKeyword keyword, String title, String target,
                           Collection<AtfAssertion> assertions, AtfReportStatus status) {
             lifecycle.setup(keyword, title, target, assertions, status);
+        }
+
+        /** Publishes structured setup checks together with sanitized UI/API evidence. */
+        public void setup(AtfGherkinKeyword keyword, String title, String target,
+                          Collection<AtfAssertion> assertions,
+                          Collection<AtfUiActionRecord> actions,
+                          Collection<ReportExecutionEvidence> apiEvidence,
+                          AtfReportStatus status) {
+            lifecycle.setup(keyword, title, target, assertions, actions, apiEvidence, status);
+        }
+
+        /** Publishes optional sanitized screenshot evidence after the setup action table. */
+        public void setup(AtfGherkinKeyword keyword, String title, String target,
+                          Collection<AtfAssertion> assertions,
+                          Collection<AtfUiActionRecord> actions,
+                          Collection<ReportExecutionEvidence> apiEvidence,
+                          ReportScreenshot screenshot,
+                          AtfReportStatus status) {
+            lifecycle.setup(keyword, title, target, assertions, actions, apiEvidence, screenshot, status);
         }
 
         public void outcome(String keyword, String title, String target,

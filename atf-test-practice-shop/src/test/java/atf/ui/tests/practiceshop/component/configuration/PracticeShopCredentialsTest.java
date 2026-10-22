@@ -1,0 +1,56 @@
+package atf.ui.tests.practiceshop.component.configuration;
+
+import atf.api.testkit.AtfComponentTest;
+import atf.ui.practiceshop.config.PracticeShopCredentials;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@AtfComponentTest
+class PracticeShopCredentialsTest {
+    @Test
+    void loadsCredentialsAndNeverRedactsPasswordIntoToString(@TempDir Path temp) throws Exception {
+        Path file = temp.resolve("account.properties");
+        Files.writeString(file, "email=customer@example.test\npassword=Secret!123\nfirstName=ATF\nlastName=E2E\n");
+
+        PracticeShopCredentials credentials = PracticeShopCredentials.load(file);
+
+        assertTrue(credentials.email().contains("@"));
+        assertTrue(credentials.displayName().equals("ATF E2E"));
+        assertFalse(credentials.toString().contains("Secret!123"));
+        assertFalse(credentials.toString().contains(credentials.email()));
+        assertFalse(credentials.toString().contains(credentials.displayName()));
+    }
+
+    @Test
+    void rejectsMissingPasswordInsteadOfStartingAnAmbiguousExternalRun(@TempDir Path temp) throws Exception {
+        Path file = temp.resolve("account.properties");
+        Files.writeString(file, "email=customer@example.test\nfirstName=ATF\nlastName=E2E\n");
+
+        assertThrows(IllegalArgumentException.class, () -> PracticeShopCredentials.load(file));
+    }
+
+    @Test
+    void distinguishesReservedExampleAddressesFromLiveAccountCandidates(@TempDir Path temp) throws Exception {
+        Path externalCandidate = temp.resolve("external.properties");
+        Files.writeString(externalCandidate,
+                "email=customer@practicesoftwaretesting.com\npassword=secret\n");
+
+        for (String email : List.of("customer@example.com", "customer@nested.example.org",
+                "customer@example.test", "customer@example.invalid", "customer@localhost")) {
+            Path example = temp.resolve(email.replaceAll("[^a-zA-Z0-9]", "_") + ".properties");
+            Files.writeString(example, "email=" + email + "\npassword=secret\n");
+            assertFalse(PracticeShopCredentials.load(example).hasLiveAccountCandidate(), email);
+        }
+        assertTrue(PracticeShopCredentials.load(externalCandidate).hasLiveAccountCandidate());
+    }
+}
+
+

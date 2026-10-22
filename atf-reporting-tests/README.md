@@ -1,6 +1,6 @@
-# ATF Reporting Tests — composition izolată pentru librăria reporting
+# ATF Reporting Tests — compoziție izolată pentru biblioteca de raportare
 
-## Overall
+## Pe scurt
 
 `atf-reporting-tests` este modulul specializat exclusiv în verificarea
 `atf-reporting` ca librărie: îi probează contractele prin setup API/mock,
@@ -35,7 +35,7 @@ flowchart LR
 | testele Practice Shop | `atf-test-practice-shop` | reporting jar, UI și setup-ul aplicației |
 | guvernanță whole-ATF | `atf-tests` | nu deține teste de aplicație |
 
-## Regula de boundary
+## Regula limitelor de responsabilitate
 
 `atf-reporting` trebuie să treacă singur:
 
@@ -93,7 +93,7 @@ Contractul este verificat pe două seam-uri:
 | reporting fallback/Extent | `HtmlReportComponentContractTest` și `ExtentReportSessionContractTest` validează titlul publicat în artifact |
 | consumer Practice Shop | `PracticeShopApiOperationTest` și `PracticeShopStandaloneApiReportTest` validează method/path/intent, absența `QUERY`, operation kind și route template |
 
-## Ordinea testelor și ownership-ul guard-urilor
+## Ordinea testelor și responsabilitatea protecțiilor
 
 1. `atf-reporting` — unit/component pentru model, renderer, artifact și CSS/JS;
 2. `atf-reporting-tests` — component pentru compoziția controlată mock →
@@ -147,7 +147,7 @@ nu este folosit ca substitut pentru contractele lower-level.
 
 </details>
 
-## Captură generică — suport verificat înaintea consumerului
+## Capturare generică — suport verificat înaintea modulului consumator
 
 Contractul transversal pentru flow mode, screenshot policy și capture source este
 în [`docs/ATF_Evidence_Capture_Contract.md`](../docs/ATF_Evidence_Capture_Contract.md).
@@ -189,7 +189,7 @@ flowchart LR
   Grouping-ul aparține lifecycle/publisher-ului din `atf-reporting`; alegerea modului
   pentru o adnotare de consumer rămâne responsabilitatea acelui consumer.
 
-## Matricea integration și boundary-ul verificat
+## Matricea de integrare și limitele verificate
 
 Integration tests rămân grupate după boundary-ul observat, nu după numele
 modulului consumat:
@@ -200,28 +200,34 @@ modulului consumat:
 | reporting API | `MockApiReportIntegrationTest`, `ApiReportArtifactAuditTest`, `ApiManualReplayTest` | fixture API → renderer/publisher → artifact și replay |
 | UI composition | `SelectedApiTestsReportUiTest`, `StaticUiExtentReportContractTest` | artifact → ATF Debug/Playwright → DOM/CSS/disclosure |
 
+`StaticUiExtentReportContractTest` include verificările `SCREEN_VALIDATION` și
+`INLINE_SCREENSHOT`; inputul trebuie să aibă evidence de screenshot conform
+policy-ului declarat. Un raport cu `Screenshot policy = Disabled` nu este input
+pentru acest screenshot gate și nu se interpretează ca defect al rendererului.
+
 Fiecare clasă declară layer-ul prin adnotare; package-ul exprimă domeniul și
 boundary-ul, nu nivelul de testare. Setup-ul, mock-ul și validatorii comuni
 rămân în `support`, ca o clasă nouă să compună scenariul fără copiere.
 
-Boundary-urile suportului sunt intenționat mici și verificabile: `support.api`
-ține selecția și publicarea precondiției API, `support.config` ține loader-ele,
-resursele și configurația UI, iar `support.config.environment` ține exclusiv
-snapshot factory-urile typed pentru Overview/System. Inspectorul de rețea este
-separat în `atf.api.reporting.ui.network`; nu se adaugă excepții de coeziune doar
-pentru a păstra clase fără legătură în același package. Guard-ul whole-ATF
-impune maximum opt clase pe package.
+Boundary-urile suportului rămân mici și verificabile:
+
+- `support.api` ține selecția și publicarea precondiției API;
+- `support.config` ține loader-ele, resursele și configurația UI;
+- `support.config.environment` deține snapshot factory-urile typed pentru Overview/System;
+- Network Inspector aparține `atf.api.reporting.ui.network`; nu se adaugă excepții de coeziune pentru clase fără legătură;
+- guard-ul whole-ATF limitează fiecare package la maximum opt clase.
 
 `ReportingCoverageMatrixTest` este harta executabilă a seam-urilor publice:
 
 | Verificare | Dovadă obligatorie | Limită intenționată |
 |---|---|---|
 | coverage | fiecare seam are test `unit`, `component`, `integration` sau `e2e` | un seam nou fără dovadă lower-level e regresie de guvernanță |
+| Network Inspector | `ReportNetworkInspectorTest` (`unit`) pentru proiecție/markup; `NetworkInspectorSummaryRoleTest` (`component`) pentru rolul și ordinea summary-ului; `ExtentReportUiEvidencePublishingTest` (`unit`) pentru publicarea aggregate-ului | matricea cere clasele, metodele executabile și adnotările ATF; publicarea rămâne proof separat |
 | audit semantic | `Overview`, `Categories`, `Fails`, `Screen validation` și `ReportExecutionProjections` | `ReportAuditSnapshot` rămâne renderer-neutral; aceleași proiecții typed pot fi verificate fără browser |
 | convergență | JSON și visual sunt verificate împreună | browserul observă; regulile se verifică fără Playwright |
 | browser proof | `E2eSuiteBudgetArchitectureTest` plafonează la 8 clase `@AtfE2eTest` | orice clasă nouă cere justificare în feedback și modificarea bugetului |
 
-### Responsive render gate
+### Verificarea randării responsive
 
 `SelectedApiTestsReportUiTest` este entry-point-ul configurabil pentru raportul
 Extent generat. `CategoryCardinalityBrowserFixtureTest` este browser gate-ul
@@ -252,7 +258,7 @@ rămâne formatată în `atf-reporting/src/main/resources`; numai copia publicat
 HTML este compactată de `ReportAssetCompactor`. Astfel testele component pot
 verifica fragmentele native, iar browserul verifică efectul compoziției finale.
 
-### Proof pentru inspectorul de journey
+### Dovezi pentru inspectorul fluxului
 
 Inspectorul de rețea se verifică în două trepte, fără a transforma E2E în owner
 al modelului:
@@ -269,7 +275,13 @@ flowchart LR
 
 - `ReportNetworkInspectorTest` verifică ordered facts, authentication,
   correlation, transport counters, unique signatures și deduplicarea
-  diagnosticelor derivate din exchange-uri HTTP eșuate;
+  diagnosticelor derivate din exchange-uri HTTP eșuate; testul unit verifică și
+  markup-ul nested, inclusiv aggregate gol/parțial;
+- `NetworkInspectorSummaryRoleTest` este proof-ul component pentru rolul de
+  summary, ordinea în flow și toate mode-urile de evidence;
+- `ExtentReportUiEvidencePublishingTest` rămâne proof separat pentru publicarea
+  aggregate-ului în artifactul Extent; schimbarea lui nu înlocuiește proiecția
+  unit sau contractul component de renderer;
 - component/integration publisher tests verifică faptul că body-urile rămân în
   disclosures canonical și aggregate-ul nu primește credentiale sau mesaje
   volatile;
@@ -320,7 +332,7 @@ nu ascunde failure-uri lower-level.
 - pentru `NoClassDefFoundError` în IntelliJ, verifică modulele `atf-reporting` și `atf-reporting-tests` și dependency graph-ul testului; nu duplica sau muta clasa pentru a compensa un model IDE stale;
 - reproduce întâi cu testul forked `ReportStagingWorkspaceTest` în reactorul Maven.
 
-## Boundary-ul aplicațiilor consumatoare
+## Limitele de responsabilitate ale aplicațiilor consumatoare
 
 `atf-reporting-tests` nu deține adaptere de aplicație. Practice Shop este izolat
 în modulul dedicat:

@@ -5,7 +5,7 @@ unui HTML deja generat. Nu generează raportul, nu îl modifică și nu conține
 teste executabile. Publică numai pe `127.0.0.1` directorul care conține
 artifactul ales și tipărește URL-ul care trebuie deschis în Playwright/TAB MCP.
 
-## Overall
+## Pe scurt
 
 | Pas | Owner | Rezultat |
 |---:|---|---|
@@ -71,7 +71,7 @@ taburile, filtrele, nodurile expandabile, DOM-ul, console errors, network și
 randarea. Serverul rămâne activ până la `Ctrl+C`; `--port 0` alege automat un
 port liber și permite rulări paralele în directoare diferite.
 
-## Gate pentru raport static sau dinamic
+## Verificare pentru raport static sau dinamic
 
 ATF Debug UI este ultima verificare interactivă, nu un simplu server de fișiere.
 Pentru un raport `GENERATED_API`, se deschide mai întâi raportul API generat de

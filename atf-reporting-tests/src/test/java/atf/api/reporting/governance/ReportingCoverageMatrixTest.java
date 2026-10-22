@@ -4,9 +4,14 @@ import atf.api.testkit.AtfComponentTest;
 import atf.api.testkit.AtfE2eTest;
 import atf.api.testkit.AtfIntegrationTest;
 import atf.api.testkit.AtfUnitTest;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestFactory;
+import org.junit.jupiter.api.TestTemplate;
+import org.junit.jupiter.params.ParameterizedTest;
 
 import java.lang.annotation.Annotation;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -15,6 +20,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** Keeps the reporting seam-to-test-level matrix executable and reviewable. */
 @AtfComponentTest
 class ReportingCoverageMatrixTest {
+    private static final Entry NETWORK_INSPECTOR_PROJECTION = entry(
+            "Network Inspector projection and aggregate markup",
+            "atf.api.reporting.ui.network.ReportNetworkInspectorTest",
+            AtfUnitTest.class);
+    private static final Entry NETWORK_INSPECTOR_RENDERING = entry(
+            "Network Inspector rendered summary role",
+            "atf.api.reporting.ui.network.NetworkInspectorSummaryRoleTest",
+            AtfComponentTest.class);
+    private static final Entry NETWORK_INSPECTOR_PUBLICATION = entry(
+            "Network Inspector aggregate publication",
+            "atf.api.reporting.ui.ExtentReportUiEvidencePublishingTest",
+            AtfUnitTest.class);
+
     private static final List<Entry> MATRIX = List.of(
             entry("execution projections", "atf.api.reporting.model.ReportExecutionProjectionTest",
                     AtfUnitTest.class),
@@ -80,6 +98,9 @@ class ReportingCoverageMatrixTest {
                     AtfUnitTest.class),
             entry("mock API integration", "atf.api.reporting.api.contract.MockApiReportIntegrationTest",
                     AtfIntegrationTest.class),
+            NETWORK_INSPECTOR_PROJECTION,
+            NETWORK_INSPECTOR_RENDERING,
+            NETWORK_INSPECTOR_PUBLICATION,
             entry("static UI browser proof",
                     "atf.ui.tests.extent.e2e.uireport.StaticUiExtentReportContractTest",
                     AtfE2eTest.class));
@@ -88,10 +109,23 @@ class ReportingCoverageMatrixTest {
     void everyPublishedBoundaryHasAnExplicitLowerLevelProof() {
         for (Entry entry : MATRIX) {
             Class<?> testClass = load(entry.className());
+            assertTrue(hasExecutableTestMethod(testClass),
+                    () -> entry.seam() + " must retain an executable JUnit test method: "
+                            + entry.className());
             assertTrue(entry.annotation().isAssignableFrom(annotationType(testClass)),
                     () -> entry.seam() + " must be marked with " + entry.annotation().getSimpleName()
                             + ": " + entry.className());
         }
+    }
+
+    @Test
+    void networkInspectorProofsCannotBeRemovedFromTheCoverageMatrix() {
+        assertTrue(MATRIX.contains(NETWORK_INSPECTOR_PROJECTION),
+                "Network Inspector projection/markup needs its unit proof in the matrix");
+        assertTrue(MATRIX.contains(NETWORK_INSPECTOR_RENDERING),
+                "Network Inspector summary rendering needs its component proof in the matrix");
+        assertTrue(MATRIX.contains(NETWORK_INSPECTOR_PUBLICATION),
+                "Network Inspector aggregate publication must remain a separate proof");
     }
 
     @Test
@@ -136,6 +170,15 @@ class ReportingCoverageMatrixTest {
         if (testClass.isAnnotationPresent(AtfIntegrationTest.class)) return AtfIntegrationTest.class;
         if (testClass.isAnnotationPresent(AtfE2eTest.class)) return AtfE2eTest.class;
         throw new AssertionError("Coverage proof has no ATF layer annotation: " + testClass.getName());
+    }
+
+    private static boolean hasExecutableTestMethod(Class<?> testClass) {
+        return Arrays.stream(testClass.getDeclaredMethods()).anyMatch(method ->
+                method.isAnnotationPresent(Test.class)
+                        || method.isAnnotationPresent(TestFactory.class)
+                        || method.isAnnotationPresent(TestTemplate.class)
+                        || method.isAnnotationPresent(RepeatedTest.class)
+                        || method.isAnnotationPresent(ParameterizedTest.class));
     }
 
     private static Entry entry(String seam, String className,

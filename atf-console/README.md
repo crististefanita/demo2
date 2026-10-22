@@ -4,7 +4,7 @@
 consolă pentru evenimentele neutre ATF. Nu produce HTML, nu cunoaște
 ExtentReports și nu calculează verdicturi.
 
-## Overall
+## Pe scurt
 
 | Intrare | Output | Limită |
 |---|---|---|
@@ -31,7 +31,7 @@ flowchart LR
 - muchia punctată este o limită: consola nu deține rendererul atf-reporting.
 </details>
 
-## Boundary
+## Limite de responsabilitate
 
 ```text
 atf-core       definește AtfConsoleEvent și AtfConsoleSink
@@ -48,7 +48,7 @@ atf-reporting  produce numai artifacte HTML/Extent
 - detaliile sunt opt-in prin `reporting.console.detailsEnabled`;
 - consola nu modifică statusul și nu cauzează un test.
 
-### Owner-ul stream-urilor
+### Responsabilitatea asupra fluxurilor de ieșire
 
 - `atf-console` deține singur referințele la `System.out`/`System.err` și
   singurul `println` din proiecția de consolă;

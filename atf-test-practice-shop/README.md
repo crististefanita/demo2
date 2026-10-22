@@ -1,6 +1,6 @@
-# ATF Test Practice Shop — consumer plug-and-play
+# ATF Test Practice Shop — modul consumator plug-and-play
 
-## Overall
+## Pe scurt
 
 - consumer configurabil pentru UI și API-ul Practice Software Testing;
 - runtime reutilizabil în `src/main`;
@@ -36,13 +36,13 @@ Surse de aprofundare:
 - [`atf-test-kit`](../atf-test-kit/README.md) — meta-anotații și convenții de test;
 - [bune practici de documentație](../docs/README_Atf_DocumentationBestPractices.md) — stil și guvernanță README.
 
-### Contract live și limite reale
+### Contractul implementat și limitele reale
 
 | Suprafață | Comportament curent | Interpretare |
 |---|---|---|
 | component/API | contracte typed pentru config, routes, JSON, status, mapping și evidence | matricea de variații se verifică fără browser |
 | guest E2E | purchase complet `product → cart → checkout → billing → payment → confirmation` | proof business prin starea UI și exchange-urile live observate |
-| authenticated E2E/API | `@AuthenticatedE2e` folosește implicit `REUSE_FIXTURE`; purchase și account/catalog aleg explicit `REGISTER_PER_RUN` | preflight-ul validează profilul local înainte de browser; `SETUP` înregistrează contul o singură dată per class-run, confirmă login-ul pentru fiecare test, iar `TEST BODY` începe numai după succes |
+| authenticated E2E/API | `AuthenticatedPurchaseE2eTest` și `NewAccountPurchaseE2eTest` selectează ambele `REGISTER_PER_RUN + SYNTHETIC` | fiecare înregistrează și autentifică un cont sintetic în `SETUP`, apoi finalizează purchase-ul E2E; ambele pot fi rulate individual din IntelliJ |
 | retry Playwright | suport generic fail-closed există în `atf-ui`; YAML-ul Practice Shop declară explicit `maxAttempts`, `backoff`, `eligibleOperations` și `reason` | policy-ul implicit rămâne un singur attempt; numai operații read-only typed pot fi activate ulterior |
 | API evidence binding | `validation.apiEvidence` selectează checkpoint-uri typed (`product`, `registration`, `login`, `cart`, `payment`, `order`); override-ul system property este acceptat | binding-ul fail-closed aparține consumerului; publisher-ul primește numai evidence selectat |
 | Overview → System | snapshot allowlist-uit, redacted și bounded; API precondition și starea de configurare UI sunt rezumate separat | nu se publică dump YAML, secrete, path-uri locale, identitatea suitei/testului, pași sau date de checkout |
@@ -72,7 +72,7 @@ Contracte și limite curente:
 - retry-ul generic al mutațiilor este exclus de `atf-ui`; Practice Shop nu reia
   click-ul, submit-ul sau purchase-ul după timeout.
 
-### Network inspector UI — configurabil, fără replay
+### Inspectorul de rețea UI — configurabil, fără retrimiterea cererilor
 
 Practice Shop folosește inspectorul generic din `atf-ui`, nu un listener local
 în test. Configurația urmărită îl activează pentru profilul `ui-api`; `ui-only`
@@ -187,7 +187,7 @@ flowchart LR
 
 </details>
 
-### Boundary-uri și ownership
+### Limite de responsabilitate și proprietari
 
 | Zonă | Owner live | Regula de mentenanță |
 |---|---|---|
@@ -252,30 +252,33 @@ Principiul de selecție:
 
 ### E2E configurabile
 
-| Journey | Clasă | Activare |
+| Flux | Clasă | Activare |
 |---|---|---|
-| guest purchase cu UI + API | `PracticeShopPurchaseE2eTest` | profil explicit `UI_API`; publică evidence UI și exchange-urile API selectate în YAML |
-| guest purchase UI-only | `PracticeShopPurchaseUiOnlyE2eTest` | profil explicit `UI_ONLY`; publică exclusiv evidence UI, fără API validation sau network aggregate |
-| guest purchase UI-only, un singur flow | `PracticeShopPurchaseUiOnlySingleFlowE2eTest` | profil `UI_ONLY` + prezentare `UNIFIED_FLOW`; un singur rând Gherkin, un tabel agregat de acțiuni Playwright și o singură captură finală |
-| authenticated purchase | `PracticeShopAuthenticatedPurchaseE2eTest` | selectare individuală; clasa alege explicit `REGISTER_PER_RUN`; `SETUP` creează și autentifică un cont înaintea purchase-ului complet, care poate crea o comandă demo |
-| account/catalog smoke | `PracticeShopAccountAndCatalogE2eTest` | selectare individuală; `REGISTER_PER_RUN`; un cont nou este creat o singură dată per class-run și reutilizat pentru login-ul fiecărei metode; nu creează comandă |
+| Achiziție ca vizitator, UI + API | `PurchaseE2eTest` | profil explicit `UI_API`; publică dovezile UI și schimburile API selectate în YAML |
+| Achiziție ca vizitator, doar UI | `UiOnlyPurchaseE2eTest` | profil explicit `UI_ONLY`; publică numai dovezile UI, fără validare API sau agregarea traficului |
+| Achiziție ca vizitator, doar UI, un singur flux | `UiOnlySingleFlowPurchaseE2eTest` | profil `UI_ONLY` + prezentare `UNIFIED_FLOW`; un singur rând Gherkin, acțiuni agregate și capturi după fiecare tabel Playwright conform YAML-ului |
+| Achiziție cu un cont sintetic nou | `NewAccountPurchaseE2eTest` | `SETUP` creează și autentifică un cont sintetic; `TEST BODY` finalizează achiziția |
+| A doua achiziție autentificată independentă | `AuthenticatedPurchaseE2eTest` | creează și autentifică propriul cont sintetic, apoi rulează același purchase complet pentru o dovadă E2E independentă |
 
 - `@WithE2eHarness(profile = UI_ONLY | UI_API)` selectează profilul în testul
   lansat din IntelliJ, fără VM options.
-- `PracticeShopPurchaseE2eTest` fixează `UI_API`, iar
-  `PracticeShopPurchaseUiOnlyE2eTest` fixează `UI_ONLY`; lansarea ambelor repetă
+- `PurchaseE2eTest` fixează `UI_API`, iar
+  `UiOnlyPurchaseE2eTest` fixează `UI_ONLY`; lansarea ambelor repetă
   purchase-ul demo.
 - Pentru o singură rulare, folosește valoarea din adnotarea clasei; nu deduce
   profilul din YAML și nu schimba profilul global.
 - Ambele moduri lasă traficul browserului să continue normal. `UI_ONLY` oprește
   numai capturarea/publicarea API evidence.
 
-`PracticeShopAccountAndCatalogE2eTest` folosește acum același setup explicit de
-cont ca purchase-ul autentificat. `SETUP` înregistrează contul la primul test al
-class-run-ului, confirmă răspunsul de înregistrare și autentifică sesiunea;
-metoda următoare reutilizează credențialele generate și dovedește din nou login-ul.
-Astfel, `TEST BODY` rămâne concentrat pe account assertions sau catalog, fără
-crearea/login-ul contului ascunse în pașii business.
+Cele două E2E autentificate au aceeași structură și creează fiecare un cont nou:
+
+| Parte | Contract |
+|---|---|
+| Profil | `SYNTHETIC`: email unic pe `atf.invalid` și parolă generată la rulare |
+| `SETUP` | înregistrare și autentificare confirmată înainte de journey |
+| `TEST BODY` | purchase complet până la confirmarea comenzii |
+| Sesiuni | `NewAccountPurchaseE2eTest` și `AuthenticatedPurchaseE2eTest` folosesc conturi independente |
+| Limită probată | cache-ul are scope la class-run, dar o singură metodă per clasă nu demonstrează reutilizarea între metode |
 
 Separă patru axe care nu trebuie să schimbe flow-ul de business:
 
@@ -283,41 +286,50 @@ Separă patru axe care nu trebuie să schimbe flow-ul de business:
 |---|---|---|
 | Validare | profile typed `UI_ONLY` / `UI_API` prin `@WithE2eHarness`; clasele guest actuale sunt presetate | funcționalitatea există; profilul se selectează explicit pe clasa E2E, independent de presentation și capturi |
 | Forma raportului | `reportFlow = CONFIGURED`, `SCREEN_CHECKPOINTS` sau `UNIFIED_FLOW` în `@WithE2eHarness`; implicit moștenește profilul configurat | layout-ul efectiv apare în Overview → System → `UI evidence layout` |
-| Capturi | `screenshots = CONFIGURED` moștenește YAML-ul; adnotarea poate selecta independent `EACH_CHECKPOINT`, `FINAL_ONLY`, `FAILURE_ONLY`, `FINAL_AND_FAILURE` sau `NONE` | politica efectivă apare în Overview → System → `Screenshot policy`; `REGISTER_PER_RUN` o forțează la `NONE` pentru a proteja identitatea |
-| Pași UI intermediari | `atf-reporting` suportă `INCLUDED_COLLAPSED` și `SUMMARY_ONLY` prin `ReportEvidenceProfile`; adnotarea Shop nu expune încă alegerea | adnotarea trebuie să permită selectarea typed a modului, fără a elimina validările și fără un nod Gherkin per click |
+| Capturi | `reporting.screenshotPolicy` din YAML este singura politică; implicit `each-checkpoint` | fiecare tabel Playwright nevid din `SETUP` și `TEST BODY` primește captura stării rezultate; controalele de formular sunt mascate; `none` dezactivează capturile, fără să elimine acțiunile sau aserțiunile |
+| Pași UI intermediari | `@WithE2eHarness(actionDetails = CONFIGURED \| INCLUDED_COLLAPSED \| SUMMARY_ONLY)` selectează disclosure-ul fără să schimbe capturarea acțiunilor | `CONFIGURED` păstrează profilul compus; `INCLUDED_COLLAPSED` este default-ul sigur; niciun mod nu schimbă validările, verdictul sau arborele Gherkin |
 
-- Profilul UI/API, granularitatea raportului și politica screenshot se setează
-  independent în adnotarea clasei lansate din IntelliJ; `CONFIGURED` păstrează
-  default-ul YAML. Overview → System afișează valorile efective după rezolvarea
-  adnotării peste configurație, nu doar valorile brute YAML.
-- Rendererul generic păstrează aceleași acțiuni și verdicturi în ambele moduri;
-  gap-ul rămas este doar expunerea selecției prin `@WithE2eHarness` și testarea
-  mapării consumerului.
-- Acțiunile, aserțiunile, request-urile și rezultatul purchase-ului rămân
-  identice când se schimbă numai forma evidence-ului.
-- `UI_API` publică exchange-urile selectate; `UI_ONLY` nu le publică, dar nu
-  blochează request-urile reale ale browserului.
+Regula invariantă: **configurația schimbă proiecția evidence-ului, nu journey-ul**.
+Profilul, forma raportului și disclosure-ul se aleg independent prin adnotare;
+politica screenshot-urilor vine exclusiv din YAML, iar `Overview → System` arată
+valoarea efectivă. Acțiunile, aserțiunile, request-urile și verdictul rămân aceleași;
+`UI_ONLY` oprește publicarea API evidence, nu traficul real al browserului.
 
-Testele autentificate rămân intenționat ignorate când preflight-ul nu găsește
-fixture-ul reutilizabil sau profilul de înregistrare cerut de adnotare.
-Instrucțiunile de rulare manuală sunt colapsate:
+Selecția curentă: ambele purchase E2E autentificate folosesc
+`REGISTER_PER_RUN + SYNTHETIC`; `REUSE_FIXTURE` este o alternativă documentată,
+dar nu este folosită de aceste două clase. Pașii manuali sunt colapsați:
 
 <details>
 <summary>Setup autentificat: fixture reutilizat sau cont nou — IntelliJ / Maven</summary>
 
 `@AuthenticatedE2e` oferă două politici explicite. Default-ul sigur este
-`REUSE_FIXTURE`; `REGISTER_PER_RUN` este selectat explicit de
-`PracticeShopAuthenticatedPurchaseE2eTest` și `PracticeShopAccountAndCatalogE2eTest`:
+`REUSE_FIXTURE`, dar niciun E2E din inventarul actual nu îl selectează. Ambele
+E2E autentificate de purchase folosesc `REGISTER_PER_RUN + SYNTHETIC`; un exemplu
+pentru profilul local rămâne disponibil mai jos, dar nu este exercitat de o clasă
+E2E curentă:
 
 ```java
 @PracticeShopTestSupport.AuthenticatedE2e(
     accountSetup = PracticeShopTestSupport.AccountSetupMode.REGISTER_PER_RUN,
+    registrationProfile = PracticeShopTestSupport.RegistrationProfileMode.SYNTHETIC)
+```
+
+Profilul sintetic este limitat la demo-ul Practice Software Testing: generează
+un email unic pe domeniul non-livrabil `atf.invalid`, o parolă aleatoare și date
+de test. Nu folosește mailbox, cont pre-creat, credențiale locale sau date reale.
+Nu îl reutiliza pentru producție ori alte aplicații.
+
+Pentru flow-ul de purchase care folosește un domeniu controlat de owner:
+
+```java
+@PracticeShopTestSupport.AuthenticatedE2e(
+    accountSetup = PracticeShopTestSupport.AccountSetupMode.REGISTER_PER_RUN,
+    registrationProfile = PracticeShopTestSupport.RegistrationProfileMode.LOCAL,
     registrationProfileFile = "atf-test-practice-shop/src/test/resources/"
         + "practice-software-testing-registration.local.properties")
 ```
 
-Account/catalog și authenticated purchase declară ambele marker-ul
-`@AllowsRegistrationPerRun`; testul de contract verifică modul selectat și
+Ambele clase declară marker-ul `@AllowsRegistrationPerRun`; testul de contract verifică modul selectat și
 oprește extinderea accidentală a capabilității către alte clase autentificate.
 
 ### `REUSE_FIXTURE`
@@ -338,7 +350,7 @@ firstName=<first-name>
 lastName=<last-name>
 ```
 
-### `REGISTER_PER_RUN`
+### `REGISTER_PER_RUN` + `LOCAL`
 
 Copiază [exemplul de profil](src/test/resources/practice-software-testing-registration.example.properties)
 în fișierul local ignorat de Git:
@@ -353,43 +365,36 @@ demonstrative cu date sintetice acceptate de aplicație; nu pune secrete în
 adnotare, YAML sau surse urmărite de Git. Preflight-ul validează profilul
 înainte de browser și nu afișează valorile.
 
-Flow-ul raportat separă explicit pregătirea contului de autentificare. Pentru
-account/catalog, doar account assertions și căutarea produsului rămân în
-`TEST BODY`; purchase-ul începe după același setup:
+Flow-ul raportat separă explicit pregătirea contului de autentificare. În ambele
+teste, purchase-ul începe numai după setup-ul complet:
 
 ```text
 SETUP
-GIVEN account registered       # un singur submit + răspuns POST observat
-AND account signed in           # login UI + sesiune confirmată în My account/API
-  └─ numai după PASS → TEST BODY: account/catalog sau purchase, conform clasei
+├─ GIVEN account source ready
+│  ├─ REUSE_FIXTURE → selectează contul existent
+│  ├─ REGISTER_PER_RUN → creează un cont o dată per class-run
+│  └─ Details → Setup evidence; API validation dacă este selectată
+├─ AND authenticated session confirmed
+│  └─ Details → Setup evidence; API validation dacă este selectată
+└─ PASS → TEST BODY: purchase complet până la confirmarea comenzii
 ```
 
-În modul `REGISTER_PER_RUN`, formularul se trimite o singură dată și raportul
-publică subpașii `GIVEN` (înregistrare confirmată) și `AND` (cont autentificat).
-Cu `REUSE_FIXTURE`, `GIVEN` selectează fixture-ul local, iar `AND` dovedește
-login-ul. TEST BODY nu pornește până când pagina `My account` și exchange-ul de
-login confirmă sesiunea. `UI_API` publică exchange-urile observate la
-checkpoint-urile `registration` și `login`; payload-urile de identitate, adresă
-și contact sunt redactate. `UI_ONLY` nu publică evidence API, dar păstrează
-verificarea UI și statusul 2xx al răspunsului browserului de submit ca aserțiune
-în `GIVEN`. În `UI_API`, aserțiunea vine din journal-ul checkpoint-ului, fără
-duplicarea răspunsului.
+| Checkpoint / boundary | Ce demonstrează | Ce apare în raport |
+|---|---|---|
+| `GIVEN` — cont pregătit | înregistrare unică sau selectarea fixture-ului | **Setup evidence**: `CHECK / EXPECTED / ACTUAL / RESULT`, acțiuni redactate și API validation dacă profilul este `UI_API` |
+| `AND` — sesiune autentificată | pagina `My account` și exchange-ul de login confirmă sesiunea | **Setup evidence** separat; `TEST BODY` nu începe înainte de succes |
+| `UI_API` | exchange-urile `registration` și `login` sunt publicate o singură dată | payload-urile de identitate, adresă și contact sunt redactate |
+| `UI_ONLY` | request-urile reale continuă, dar API evidence nu se publică | UI și statusul 2xx al submit-ului rămân verificate; răspunsul nu este duplicat în journal |
 
-În formularul de înregistrare, ATF selectează țara și introduce codul poștal și
-numărul casei, apoi așteaptă până când aplicația completează strada, orașul și
-statul. Valorile finale din profilul local sunt aplicate după lookup, astfel
-încât rezultatul să fie determinist chiar dacă sugestia aplicației diferă de
-datele sintetice configurate. Fiecare valoare personală introdusă este redactată
-din action evidence; acțiunea reală rămâne executată în browser. Submit-ul este
-unic și confirmat prin răspunsul observat plus journal-ul API, iar eșecul
-confirmării oprește setup-ul înainte de login.
+Formularul alege țara, codul poștal și numărul casei; aplicația completează
+strada, orașul și statul. Profilul local aplică valorile finale după lookup,
+iar action evidence redactează datele personale.
 
-Înregistrarea este o mutație externă persistentă: ATF nu șterge contul și nu
-reîncearcă submit-ul dacă rezultatul este incert. O rulare nouă folosește un
-`runId` nou și poate crea încă un cont; după timeout/failure verifică mai întâi
-starea pe site înainte de rerun. Capturile de ecran sunt dezactivate automat în
-`REGISTER_PER_RUN` pentru a nu publica datele completate; acțiunile și
-assertions rămân în `SETUP`.
+**Siguranța mutației:** submit-ul de înregistrare se execută o singură dată;
+ATF nu șterge contul și nu reîncearcă un rezultat incert. Eșecul confirmării
+oprește setup-ul înainte de login. O rulare nouă poate crea un alt cont, deci
+după timeout/failure se verifică mai întâi starea remote. Capturile sunt oprite
+automat pentru `REGISTER_PER_RUN`; acțiunile și aserțiunile rămân în `SETUP`.
 
 Nu folosi `practice-software-testing-account.properties`: este fixture-ul
 urmărit de Git.
@@ -397,15 +402,17 @@ urmărit de Git.
 Fiecare clasă este lansabilă individual din IntelliJ, fără VM options și fără
 selectarea celeilalte clase. `@AuthenticatedE2e` aplică browser headed la zoom
 70%, API live și precondiția authenticated. În `REUSE_FIXTURE`, fixture-ul local
-trebuie să fie valid; în `REGISTER_PER_RUN`, profilul local trebuie să fie
-complet. Altfel JUnit face skip cu instrucțiune sigură, fără valori secrete.
+trebuie să fie valid; în `REGISTER_PER_RUN` + `LOCAL`, profilul trebuie să fie
+complet. `SYNTHETIC` nu cere fișier local. Altfel JUnit face skip cu instrucțiune
+sigură, fără valori secrete.
 
 Din IntelliJ, rămâi cu **Working directory** la root-ul repository-ului și
 rulează una dintre clase:
 
-- `PracticeShopAccountAndCatalogE2eTest` — cont creat în SETUP, apoi account
-  assertions și smoke de catalog cu sesiunea autentificată;
-- `PracticeShopAuthenticatedPurchaseE2eTest` — login și purchase complet.
+- `NewAccountPurchaseE2eTest` — cont sintetic creat și autentificat în SETUP,
+  apoi purchase complet;
+- `AuthenticatedPurchaseE2eTest` — cont sintetic nou, autentificat în SETUP,
+  apoi purchase complet.
 
 Înainte de rulările IntelliJ, importă root `pom.xml` ca proiect Maven și execută
 **Reload All Maven Projects**; configurația trebuie să folosească modulul
@@ -416,16 +423,16 @@ reactorul Maven, înainte de a modifica codul reporting.
 Echivalentul Maven, din root:
 
 ```text
-mvn -pl atf-test-practice-shop -am "-Dtest=PracticeShopAccountAndCatalogE2eTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -pl atf-test-practice-shop -am "-Dtest=NewAccountPurchaseE2eTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
 ```text
-mvn -pl atf-test-practice-shop -am "-Dtest=PracticeShopAuthenticatedPurchaseE2eTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -pl atf-test-practice-shop -am "-Dtest=AuthenticatedPurchaseE2eTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
-Ambele rapoarte UI sunt scrise în `artifacts/reports/ui`. Account/catalog nu
-creează o comandă; authenticated purchase confirmă comanda demo și are efect
-extern. Rulează-l doar când accepți crearea acelei comenzi.
+Ambele rapoarte UI sunt scrise în `artifacts/reports/ui`. Ambele scenarii
+autentificate creează conturi demo și finalizează comenzi; rulează-le numai când
+accepți aceste efecte externe.
 
 Existența fixture-ului nu dovedește că acel cont este încă activ: login-ul live
 din `SETUP` este verificarea finală. Nu pune credențiale sau date personale în
@@ -457,7 +464,7 @@ Scurtarea composition root-urilor nu scurtează journey-ul de purchase:
   support; pașii business și assertions finale nu se elimină și nu se
   înlocuiesc cu un smoke de cart/catalog.
 
-### Contractul Gherkin al purchase journey
+### Contractul Gherkin al fluxului de achiziție
 
 Keyword-urile și titlurile statice sunt deținute de enum-ul consumerului
 `PracticeShopPurchaseTraceStep`; datele dinamice (produs, cantitate, rută și
@@ -477,7 +484,7 @@ Practice Shop.
 | 9 | payment check | `AND` |
 | 10 | order confirmation | `THEN` |
 
-- Secvența guest este `1 GIVEN → 1 WHEN → 7 AND → 1 THEN`.
+- Secvența pentru vizitator este `1 GIVEN → 1 WHEN → 7 AND → 1 THEN`.
 - `SETUP` este separat de `TEST BODY`; nu intră în cei zece checkpoint-uri.
 - `UI validation`, `API validation` și network aggregate nu creează pași Gherkin suplimentari; UI/API sunt copii ai aceluiași checkpoint.
 - `AUTHENTICATED_CHECKOUT` aparține ramurii authenticated, în afara acestei cardinalități guest.
@@ -507,9 +514,19 @@ consumatori.
 
 ```text
 src/test/java/atf/ui/tests/practiceshop
-├── component/          config, routes, locators, and business contracts
+├── component/
+│   ├── architecture/   boundary-uri și reguli ale suitei
+│   ├── catalog/        selecție produs, pagini și rute
+│   ├── configuration/  config, credentials și politici UI
+│   ├── evidence/       API/UI evidence, observații și metadata
+│   ├── purchase/       checkpoint-uri și pași de purchase
+│   └── validation/     profile și diagnostics de validare
 ├── api/
-│   ├── component/      request, status, JSON, mapping, publisher
+│   ├── component/
+│   │   ├── auth/       contracte de autentificare
+│   │   ├── contract/   routes, request factory și variante de contract
+│   │   ├── exchange/   operații, assertions și fluxuri de exchange
+│   │   └── reporting/  evidence, redaction și publicarea raportului
 │   ├── integration/    API live opt-in flows
 │   └── support/        fixture-uri și transport local
 └── e2e/                guest și authenticated composition roots
@@ -626,8 +643,8 @@ practiceShop:
     api: artifacts/reports/api
   reporting:
     systemBodyPreviewCharacters: 100
+    screenshotPolicy: each-checkpoint
   authenticatedE2eEnabled: false
-  screenshotOnFailure: true
 ```
 
 Fragmentul reflectă policy-ul urmărit în YAML; endpoint-urile și datele de
@@ -644,7 +661,7 @@ limite.
 | `reporting.systemBodyPreviewCharacters` | limitează la 100 caractere preview-ul de body din System; disclosure-urile de evidence au limita lor separată |
 | `reports.ui` / `reports.api` | directoare relative distincte pentru artifactele UI și API |
 | `productPath` | `auto` acceptă numai ruta `/product/*`; o rută exactă e fail-fast dacă nu există |
-| `screenshotOnFailure` | fallback legacy din YAML: `true` → `EACH_CHECKPOINT`, `false` → `FAILURE_ONLY`; `@WithE2eHarness.screenshots` poate suprascrie typed această valoare cu orice policy, inclusiv `FINAL_ONLY`, `FINAL_AND_FAILURE` sau `NONE` |
+| `reporting.screenshotPolicy` | singura politică activă: `each-checkpoint` (implicit și valoarea recomandată), `final-only`, `failure-only`, `final-and-failure` sau `none`; doar YAML poate restrânge capturile. Cheia legacy `screenshotOnFailure` este folosită numai când politica typed lipsește: `true` → `each-checkpoint`, `false` → `failure-only` |
 | `accountFile` | fixture sintetic owned în `src/test/resources`; căile externe sunt respinse; disponibilitatea nu dovedește autentificarea live și credentialele nu ajung în evidence |
 
 Exemplele guest presetate fixează profilul în adnotarea clasei (`UI_API` sau
@@ -660,12 +677,12 @@ practiceShop:
 
 - `ui-only` publică UI evidence fără `API validation` sau network aggregate
   pentru clasele care folosesc profilul `CONFIGURED`; clasa
-  `PracticeShopPurchaseUiOnlyE2eTest` impune același profil explicit;
+`UiOnlyPurchaseE2eTest` impune același profil explicit;
 - traficul browserului către aplicație continuă normal — profilul nu blochează
   request-uri și nu schimbă testele API standalone;
 - `ui-api` publică exchange-urile din `validation.apiEvidence`.
 
-`PracticeShopPurchaseE2eTest` impune `UI_API`, deci publică validările UI și
+`PurchaseE2eTest` impune `UI_API`, deci publică validările UI și
 exchange-urile API configurate chiar dacă profilul global este `ui-only`.
 
 Flow presentation pentru Practice Shop:
@@ -673,8 +690,8 @@ Flow presentation pentru Practice Shop:
 - `atf-reporting` implementează `UNIFIED_FLOW`: un singur request Gherkin,
   validare UI agregată și API validation sibling; `SCREEN_CHECKPOINTS` păstrează
   comportamentul independent per checkpoint;
-- `@WithE2eHarness.reportFlow` și `.screenshots` selectează independent forma
-  flow-ului și captura; valoarea `CONFIGURED` moștenește configurația YAML;
+- `@WithE2eHarness.reportFlow` selectează forma flow-ului; captura nu poate fi
+  suprascrisă prin adnotări și respectă întotdeauna `reporting.screenshotPolicy`;
 - `PracticeShopPurchaseFlow` continuă să emită checkpoint-uri în ambele moduri;
   `UNIFIED_FLOW` le agregă în raport, nu transformă click-urile în pași Gherkin
   și nu sare peste acțiunile intermediare;
@@ -684,9 +701,9 @@ Flow presentation pentru Practice Shop:
   suprafețe, nu în System. Setările endpoint/transport/precondiție/timeout,
   inspector și body preview apar numai pentru `UI_API`; `UI_ONLY` nu listează
   configurații API inactive și identifică clientul real ca `Playwright browser`.
-- alegerea modului de disclosure Playwright este suportată generic, dar selectorul
-  adnotării Shop este urmărit în
-  [Practice Shop E2E Feedback](../docs/feedback/ATF_Practice_Shop_E2E_Feedback.md).
+- alegerea modului de disclosure Playwright este suportată generic și selectabilă
+  per clasă prin `@WithE2eHarness(actionDetails = ...)`; testul component verifică
+  rezolvarea profilului, fără lansarea browserului.
 
 `api.precondition` descrie setup-ul API, nu autentificarea sesiunii din browser.
 Precondiția API configurată nu transformă guest purchase într-un journey UI
@@ -714,7 +731,7 @@ Reguli de configurare:
   screenshot only`), nu valori brute YAML sau enum-uri; astfel metadatele
   descriu exact evidence-ul publicat.
 
-## Contracte UI și selectors
+## Contracte UI și selectori
 
 ```mermaid
 flowchart LR
@@ -773,10 +790,44 @@ Purchase-ul guest păstrează un număr mic de teste și mai multe dovezi locale
 - HOME poate fi împărțit semantic în structură, filtre și product grid;
 - PRODUCT, CART, GUEST, BILLING, PAYMENT și CONFIRMATION rămân checkpoint-uri
   complete, fără fragmentare artificială;
-- fiecare checkpoint publică assertions, acțiuni, audit observations și screenshot
-  conform configurației;
+- fiecare checkpoint cu acțiuni Playwright publică tabelul de acțiuni urmat de
+  screenshot-ul stării rezultate; același contract se aplică în `SETUP` și în
+  `TEST BODY`, indiferent că flow-ul este UI-only sau UI/API;
+- checkpoint-urile fără acțiuni nu primesc o imagine artificială; captura finală
+  este guvernată de aceeași politică YAML;
+- screenshot-urile maschează `input`, `textarea`, `select` și câmpurile
+  `[contenteditable]`, astfel încât dovezile autentificate să nu expună
+  credențiale sau date introduse în formulare;
 - `fill → validate → submit` este regula pentru formulare;
 - un control apărut după submit se validează în checkpoint-ul următor, nu retroactiv.
+
+### Screen validation și captura terminală
+
+- `PracticeShopE2eContext.pass(...)` capturează punctul `FINAL` conform YAML-ului
+  și publică `Screen validation` numai când există PNG valid; dacă YAML-ul
+  dezactivează captura, publică validarea `THEN` fără a pretinde că există
+  evidence vizual; auditul de ecran este o observație, nu o acțiune Playwright.
+- `UiOnlySingleFlowPurchaseE2eTest` folosește această cale după aserțiunea de
+  confirmare. Acțiunile reale rămân în checkpoint-urile anterioare, iar captura
+  surprinde starea finală.
+- `NewAccountPurchaseE2eTest` și `AuthenticatedPurchaseE2eTest` apelează
+  `journey.completePurchase(result)`: acesta verifică confirmarea observată și
+  publică `Screen validation` cu captura `FINAL` când politica YAML o permite.
+  Capturile de setup și purchase urmează aceeași politică configurată; nici
+  adnotarea testului, nici profilul contului nu le pot dezactiva.
+- Validarea terminală este read-only; nu adăuga acțiuni Playwright artificiale.
+  Registration/login rămân în `SETUP`, iar acțiunile purchase rămân la
+  checkpoint-urile unde s-au executat.
+- Flow-urile autentificate curente sunt `AuthenticatedPurchaseE2eTest` și
+  `NewAccountPurchaseE2eTest`: setup-ul creează contul sintetic și confirmă
+  autentificarea înainte de journey-ul complet de purchase. Nu există o cerință
+  activă pentru o clasă account/catalog separată; reconcilierea este păstrată în
+  [Practice Shop E2E Feedback](../docs/feedback/ATF_Practice_Shop_E2E_Feedback.md).
+- Orice raport folosit la acceptare trebuie generat după codul curent și verificat
+  în MCP: un singur pas Gherkin final, acțiunile numai acolo unde au fost
+  executate, captură efectivă după fiecare tabel Playwright când politica YAML
+  permite, fără PII. Policy-ul din
+  System sau un test component nu dovedește singur capturarea.
 
 În profilul `UI_ONLY`, billing-ul urmează contractul vizibil al aplicației:
 raportul indică țara, codul poștal și numărul introduse, apoi așteaptă lookup-ul
@@ -792,7 +843,7 @@ valorile explicite ale fixture-ului. Raportul trebuie să distingă sugestia
 lookup-ului de valorile finale observate, fără să prezinte date dinamice drept
 constante.
 
-## API screen flow și evidence
+## Fluxul API prin interfață și dovezi
 
 ```mermaid
 flowchart LR
@@ -874,7 +925,7 @@ nu un PASS degradat și nu un motiv pentru a activa mock-ul.
 Practice Shop nu adaugă assertions artificiale pentru a influența această
 proiecție.
 
-### API evidence în UI
+### Dovezi API în UI
 
 ```mermaid
 flowchart LR
@@ -915,7 +966,7 @@ flowchart LR
 
 </details>
 
-### Traceability contract pentru API în UI
+### Contract de trasabilitate pentru API în UI
 
 Fiecare exchange publicat în checkpoint păstrează metadata causală comună cu
 publisher-ul API.
@@ -1031,15 +1082,20 @@ Reguli:
 ## Feedback și evoluție controlată
 
 Registrul [feedback ATF](../docs/feedback/README.md) indexează gap-urile active.
-- Gap-urile E2E rămase sunt selectorul consumer pentru detaliile Playwright și
-  proba live a setup-ului autentificat;
-  starea și criteriile sunt în [Practice Shop E2E Feedback](../docs/feedback/ATF_Practice_Shop_E2E_Feedback.md).
-- `PracticeShopAuthenticatedPurchaseE2eTest` optează pentru înregistrare per
-  rulare și publică în `SETUP` `GIVEN` (cont creat) și `AND` (login confirmat);
-  `TEST BODY` începe numai după succes.
-- Account/catalog și authenticated purchase folosesc același setup de înregistrare
-  per class-run, cu pași Gherkin separați pentru cont și login; validarea live
-  cere profil local cu domeniu de email controlat.
+- Selectorul per-clasă pentru disclosure-ul acțiunilor Playwright există prin
+  `@WithE2eHarness(actionDetails = ...)`; nu mai este un gap activ.
+- Nu există un gap activ pentru flow-urile autentificate: `AuthenticatedPurchaseE2eTest`
+  și `NewAccountPurchaseE2eTest` sunt configurabile prin adnotări și execută
+  registration/login în `SETUP`, urmate de purchase-ul complet. Numele și
+  comportamentul curent sunt reconciliate în
+  [Practice Shop E2E Feedback](../docs/feedback/ATF_Practice_Shop_E2E_Feedback.md);
+  asemănarea lor nu implică o cerință account/catalog lipsă.
+- `NewAccountPurchaseE2eTest` și `AuthenticatedPurchaseE2eTest` publică în
+  `SETUP` `GIVEN` (cont creat) și `AND` (login confirmat); `TEST BODY` începe
+  numai după succes și continuă până la confirmarea comenzii.
+- Cache-ul de cont are scope la class-run, dar ambele clase E2E au în prezent o
+  singură metodă și aceeași configurare sintetică; nu există încă probă E2E de
+  reutilizare între metode sau de izolare între două moduri distincte.
 
 Reguli de păstrare și redeschidere:
 
@@ -1053,7 +1109,7 @@ Reguli de păstrare și redeschidere:
 Pentru regula completă privind artifacte și conținut normativ, vezi
 [bunele practici de documentație ATF](../docs/README_Atf_DocumentationBestPractices.md).
 
-## Gates
+## Verificări automate
 
 Component/API gate:
 
@@ -1067,21 +1123,21 @@ Rularea folosește aplicația externă și finalizează o comandă demo; nu o fo
 ca înlocuitor pentru gate-urile locale component sau de guvernanță.
 
 ```text
-mvn -pl atf-test-practice-shop -am "-Dtest=PracticeShopPurchaseE2eTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -pl atf-test-practice-shop -am "-Dtest=PurchaseE2eTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
 Varianta UI-only, cu același journey de business și fără publicare/captură de
 evidence API:
 
 ```text
-mvn -pl atf-test-practice-shop -am "-Dtest=PracticeShopPurchaseUiOnlyE2eTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -pl atf-test-practice-shop -am "-Dtest=UiOnlyPurchaseE2eTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
 Pentru un raport condensat într-un singur flow (UI-only, fără copii API,
 un singur tabel de acțiuni și captura stării finale):
 
 ```text
-mvn -pl atf-test-practice-shop -am "-Dtest=PracticeShopPurchaseUiOnlySingleFlowE2eTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -pl atf-test-practice-shop -am "-Dtest=UiOnlySingleFlowPurchaseE2eTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
 Ambele teste finalizează o comandă demo. Pentru a proba că profilurile clasei
@@ -1090,7 +1146,7 @@ au prioritate și peste o setare globală `ui-only`, rulează-le împreună cu
 API validation și network inspector, iar cel UI-only trebuie să le omită.
 
 ```text
-mvn -pl atf-test-practice-shop -am "-Dtest=PracticeShopPurchaseUiOnlyE2eTest,PracticeShopPurchaseE2eTest" "-Dsurefire.failIfNoSpecifiedTests=false" "-Datf.practice.validation-profile=ui-only" test
+mvn -pl atf-test-practice-shop -am "-Dtest=UiOnlyPurchaseE2eTest,PurchaseE2eTest" "-Dsurefire.failIfNoSpecifiedTests=false" "-Datf.practice.validation-profile=ui-only" test
 ```
 
 Guvernanța documentației pentru țintele `@DocumentationTarget`:

@@ -109,7 +109,7 @@ public final class PracticeShopReportSystemMetadata {
 
     private static ReportEvidenceProfile configuredEvidenceProfile(
             PracticeShopConfiguration configuration) {
-        return PracticeShopScreenshotPolicy.profile(configuration.browser().screenshotOnFailure());
+        return PracticeShopScreenshotPolicy.profile(configuration.reporting().screenshotPolicy());
     }
 
     private static String evidenceLayout(ReportEvidenceFlowMode flowMode) {

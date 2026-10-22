@@ -4,7 +4,7 @@
 Înlocuiește portul `ApiTransport` fără DNS, TLS, socket sau server local și
 produce un `ApiResponse` reproductibil pentru fiecare request configurat.
 
-## Overall
+## Pe scurt
 
 - **Input**: catalog de rute din `atf-mock.yaml` sau configurație built-in;
 - **Matching**: metodă, path, profil de autentificare, query, headere și body;
@@ -121,7 +121,7 @@ mock:
 - `status` trebuie să fie în intervalul HTTP `100..599`;
 - body-ul rămâne textul care va fi livrat în `ApiResponse`.
 
-## Matching și prioritatea rutelor
+## Potrivirea și prioritatea rutelor
 
 ```mermaid
 flowchart LR
@@ -156,7 +156,7 @@ flowchart LR
 | request body | JSON valid/non-gol pentru POST/PUT | `MockRequestBodyMode` + `MockRoute` |
 | fallback | status explicit, implicit 500 | `AtfMockConfiguration` |
 
-### Matching variat prin YAML
+### Potrivire configurabilă prin YAML
 
 ```yaml
 mock:
@@ -187,7 +187,7 @@ mock:
 - un expected request body poate fi comparat structural, nu doar textual.
 </details>
 
-## Vocabular și ownership
+## Vocabular și responsabilități
 
 Valorile stabile trebuie să aibă un owner semantic. Nu introducem un bucket
 global de constante și nu copiem endpoint-uri între module.
@@ -206,7 +206,7 @@ dinamice prin `ApiPathTemplate`. Nu este catalog de endpoint-uri live și nu
 trebuie mutat în `atf-core` sau în reporting doar pentru că este reutilizat de
 teste.
 
-## Utilizare în composition root
+## Utilizare în punctul de compunere al aplicației
 
 Consumerul decide explicit dacă folosește defaults sau un catalog propriu:
 

@@ -1,6 +1,6 @@
-# ATF Evidence Capture — contract transversal pentru capturi configurabile
+# ATF — contract transversal pentru capturarea configurabilă a dovezilor
 
-## Overall
+## Pe scurt
 
 - soluție generică pentru evidence vizual și tehnic;
 - reutilizabilă pentru orice consumer UI, nu pentru un singur site;
@@ -44,7 +44,7 @@ flowchart LR
 
 </details>
 
-## Axe de evidence independente
+## Dimensiuni independente ale dovezilor
 
 | Axă | Întrebarea | Valori de contract | Owner conceptual |
 |---|---|---|---|
@@ -59,7 +59,8 @@ poate păstra `EACH_CHECKPOINT` fără să schimbe rendererul. `action details m
 schimbă numai disclosure-ul acțiunilor: nu filtrează capturarea și nu schimbă
 asserțiile ori verdictul.
 
-### Starea live
+<details>
+<summary><strong>Starea live</strong></summary>
 
 - **existent**: `atf-reporting` deține `ReportScreenshotPolicy`, modelul screenshot,
   session lifecycle și publication sink;
@@ -94,11 +95,13 @@ asserțiile ori verdictul.
   deține grouping-ul generic. Practice Shop doar mapează config-ul propriu și nu
   conține reguli de publisher;
 
+</details>
+
 Policy-ul de publicare existent rămâne API public al librăriei reporting. Contractul
 transversal este evidențiat separat pentru a putea fi reutilizat ulterior de un
 test-kit sau de o bibliotecă de compoziție, fără a confunda publisherul cu executorul.
 
-## Ownership și boundary
+## Responsabilități și limite
 
 ```mermaid
 flowchart LR

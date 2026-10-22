@@ -1,6 +1,6 @@
-# ATF Testing Guide — straturi, ownership și dovadă
+# Ghid de testare ATF — straturi, responsabilități și dovezi
 
-## Overall
+## Pe scurt
 
 Ghidul explică unde aparține un test, cum alegem cel mai mic nivel care poate
 dovedi comportamentul și cum trecem de la o verificare locală la proof de
@@ -46,7 +46,7 @@ loader-ele și adapters rămân auxiliare; metoda de test deține assertion-ul �
 clasa executabilă declară exact o adnotare `@AtfUnitTest`, `@AtfComponentTest`,
 `@AtfIntegrationTest` sau `@AtfE2eTest`.
 
-## Matricea detaliată module × layer
+## Matricea detaliată module × nivel de testare
 
 Celulele arată doar nivelurile care există în suitele executabile curente.
 `—` nu cere crearea unei suite sau a unui director artificial.
@@ -95,7 +95,37 @@ necesare navigării și nu înlocuiește request/response details. Pentru owneru
 consumer, configurație și lifecycle, continuă în README-ul Practice Shop; pentru
 renderer, markup și disclosure, continuă în README-ul `atf-reporting-tests`.
 
-### Disclosure stability — proof în browser
+### Precondiții E2E și `SETUP`
+
+Pregătirea contului, sesiunii sau fixture-ului este separată de acțiunea de
+business. O declarație typed selectează sursa; setup-ul trebuie să treacă înainte
+ca `TEST BODY` să înceapă.
+
+```text
+SETUP
+├─ GIVEN <sursă / precondiție pregătită>
+│  ├─ Setup evidence: CHECK / EXPECTED / ACTUAL / RESULT
+│  └─ API validation → exchange canonical (numai dacă este selectat)
+├─ AND <precondiție confirmată>
+└─ PASS → TEST BODY
+   └─ o propoziție Gherkin → UI validation + API validation (frați)
+```
+
+- `Setup evidence` explică ce a fost selectat, ce s-a observat și dacă faza
+  următoare poate porni; nu este substitut pentru request/response;
+- `REUSE_FIXTURE` trebuie să spună că fixture-ul a fost selectat, nu că s-a
+  creat un cont nou; orice mod de creare trebuie să fie explicit;
+- o mutație externă incertă nu se reexecută automat fără un contract de
+  idempotency; reutilizarea unei resurse are scope declarat și testat la acel
+  scope;
+- `UI validation` și `API validation` exprimă dovezi diferite pentru aceeași
+  propoziție de business; nu dubla titlul Gherkin pentru a le separa;
+- diagnosticele runtime nu devin pași Gherkin și nu schimbă verdictul business.
+
+Forma raportului și ownership-ul fiecărei dovezi sunt normative în
+[ATF Reporting Contract](ATF_Reporting_Contract.md#evidence-ul-de-setup).
+
+### Stabilitatea secțiunilor expandabile — verificare în browser
 
 Stabilitatea se probează ca tranziție de stare a arborelui, nu doar prin
 prezența textului în HTML:
@@ -171,7 +201,7 @@ cu ATF Debug/TAB MCP, conform gate-ului din
 [bunele practici](README_Atf_BestPractices.md). Numele artifactului sau un run
 vechi nu devin dovadă permanentă.
 
-## Definition of done
+## Criterii de finalizare
 
 - [ ] testul este plasat în modulul ownerului și declară un singur layer;
 - [ ] nivelul ales este cel mai mic care poate dovedi cerința;

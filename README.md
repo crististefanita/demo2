@@ -2,7 +2,7 @@
 
 `API determinist → validare semantică → raport Extent → audit UI`
 
-## ATF Java — overview executiv
+## ATF Java — prezentare executivă
 
 ATF Java este platforma care leagă execuția deterministă a testelor API de
 validarea semantică, publicarea artefactului Extent și auditul UI al rezultatului.

@@ -1,6 +1,6 @@
 # ATF Tests — guvernanță whole-reactor
 
-## Overall
+## Pe scurt
 
 - `atf-tests` este modulul de control al proiectului ATF;
 - verifică reactorul, boundary-urile Maven/source și gate-urile de arhitectură;
@@ -36,7 +36,7 @@ flowchart LR
 | reactor, POM și dependency direction | `atf-tests` | nu modifică production code |
 | source/package ownership și module placement | `ArchitectureModuleBoundaryTest`, `ArchitectureOwnershipBoundaryTest` | nu deține selectorii unei aplicații |
 | documentație relocabilă și surse coerente | `governance.documentation.*`, `AtfSourceReadabilityGovernanceTest` | nu validează conținutul unui singur consumer |
-| ownership de constante și coeziune de package | `ConstantsOwnershipGovernanceTest`, `AtfPackageCohesionGovernanceTest` | maximum 8 clase/pachet; excepțiile trebuie să fie explicite |
+| ownership de constante și coeziune de package | `ConstantsOwnershipGovernanceTest`, `AtfPackageCohesionGovernanceTest` | maximum 8 clase/pachet în producție și în source-set-urile de test ale tuturor modulelor din reactor; excepțiile trebuie să fie explicite |
 | Practice Shop purchase journey | `atf-test-practice-shop` | nu se copiază aici |
 | reporting contract/API/UI composition | `atf-reporting-tests` | nu se mută în governance |
 
@@ -72,9 +72,11 @@ testelor de reporting în acest modul:
   `atf-execution`;
 - `ArchitectureOwnershipBoundaryTest` — placement-ul modulelor, package roots,
   ownership-ul reporting/UI și absența duplicărilor;
-- `AtfPackageCohesionGovernanceTest` — coeziunea package-urilor de producție și
-  test; pragul este de maximum opt clase, iar diagnosticul listează clasele
-  concrete pentru orice hotspot nou sau excepție devenită stale;
+- `AtfPackageCohesionGovernanceTest` — coeziunea package-urilor de producție
+  guvernate și a source-set-urilor de test din fiecare modul al reactorului,
+  inclusiv `atf-test-practice-shop`, `atf-test-kit` și `atf-reporting-tests`;
+  pragul este de maximum opt clase, iar diagnosticul identifică modulul,
+  package-ul și clasele concrete pentru orice hotspot nou sau excepție stale;
 - `AtfSourceReadabilityGovernanceTest` — importuri duplicate și invocații
   fully-qualified care ascund intenția testului;
 - `ConstantsOwnershipGovernanceTest` — vocabularul de protocol, rute și
@@ -82,7 +84,7 @@ testelor de reporting în acest modul:
 - `governance.documentation.DynamicPathDocumentationArchitectureTest` — documentație
   relocabilă, fără căi de mașină sau nume de artifact generate concret;
 - `governance.documentation.DocumentationReadmeStructureGovernanceTest` — un titlu,
-  orientare `Overall`, `<details>` echilibrate și linkuri locale rezolvabile în
+  secțiune de orientare `Pe scurt`, `<details>` echilibrate și linkuri locale rezolvabile în
   toate README-urile și în `docs/ATF_Architecture.md`;
 - `governance.documentation.DocumentationStyleGovernanceTest` — stil semantic ATF:
   fence-uri tipizate, headings fără salturi, bullets `-` și fără font/CSS/HTML
@@ -138,7 +140,7 @@ repository; păstrează doar boundary-ul API/UI propriu compoziției reporting.
 
 </details>
 
-## Module consumer separate
+## Module consumatoare separate
 
 Testarea site-ului `https://practicesoftwaretesting.com` este izolată în
 `atf-test-practice-shop`. Acolo sunt YAML-ul, configurația checkout-ului,
@@ -173,7 +175,7 @@ verifică aplicația externă, aparține modulului Practice Shop.
 mvn -pl atf-tests -am "-Dtest=WholeAtfGovernanceSuiteTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 mvn -pl atf-tests -am test
 mvn -pl atf-test-practice-shop -am -Dtest=PracticeShopArchitectureTest,PracticeShopConfigurationTest,PracticeShopCheckoutConfigurationTest test
-mvn -pl atf-test-practice-shop -am -Dtest=PracticeShopPurchaseE2eTest test
+mvn -pl atf-test-practice-shop -am "-Dtest=PurchaseE2eTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
 Build-urile se fac într-un staging extern (`${ATF_STAGING_ROOT}/...`), fără a
@@ -182,7 +184,7 @@ live și reconcilierea modificărilor paralele; nu se copiază `target`, `artifa
 sau cache-uri peste live. Procedura normativă este
 [`docs/ATF_Build_And_Execution_Safety.md`](../docs/ATF_Build_And_Execution_Safety.md).
 
-## Regula de ownership
+## Regula responsabilităților
 
 ```text
 whole reactor / module graph / architecture gates → atf-tests

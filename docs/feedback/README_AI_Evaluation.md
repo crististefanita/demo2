@@ -1,6 +1,6 @@
 # ATF Java — cerințe chirurgicale pentru AI evaluation
 
-## Overall
+## Pe scurt
 
 Acest document este feedback normativ pentru două capabilități distincte: workflow-ul
 AI-assisted care propune schimbări și AI evaluation care evaluează output-ul observat.
@@ -18,8 +18,9 @@ limitele de copiere și ordinea de implementare.
 - implementat: comparator field-level, missing/invented critical,
   invocation/evidence, grounding per field și snapshot-ul immutable `COMPLETE`;
 - închis: package cohesion prin separarea semantică a responsabilităților;
-- rămas: provider, run-level evidence ledger, reporting, review/state și workflow
-  agentic.
+- rămas: clasificarea efectivă `AMBIGUOUS` (valoarea există în enum, dar
+  evaluatorul nu o produce și nu are test negativ), provider, run-level evidence
+  ledger, reporting, review/state și workflow agentic.
 
 Regula de integrare este chirurgicală: se preiau contracte observabile, ownership,
 deduplicare, evidence și guard-uri; nu se copiază business-ul, scorurile,
@@ -94,7 +95,7 @@ Orice `PASS`, `FAIL`, `WARNING`, `SKIP` sau verdict AI special are:
 
 Verdictele fără cauză sunt diagnostice, nu dovezi.
 
-### R-03 — Scorul nu ascunde hard-fail-ul
+### R-03 — Scorul nu ascunde eșecul critic
 
 Un caz cu scor 98 poate fi `FAIL` dacă are un hard-fail. Score-ul este agregare;
 hard-fail-ul este regulă de acceptare.
@@ -136,7 +137,7 @@ AiEvaluationCase
 `caseId` identifică scenariul semantic. `caseVersion` identifică așteptarea
 aprobată. O schimbare de expected fără schimbarea versiunii este drift.
 
-### 4.2 Input reference
+### 4.2 Referința de intrare
 
 Inputul este referit printr-un identificator de fixture controlat, nu prin path
 local, nume de artifact sau timestamp.
@@ -148,7 +149,7 @@ Input reference trebuie să răspundă la:
 - ce date erau intenționat absente;
 - ce versiune de fixture a fost folosită.
 
-### 4.3 Expected intent
+### 4.3 Intenția așteptată
 
 Intentul este enum sau vocabulary typed, nu text liber:
 
@@ -161,7 +162,7 @@ Evaluatorul distinge intent greșit, review greșit și state final greșit.
 
 ## 5. Contractul câmpurilor așteptate
 
-### 5.1 Field expectation
+### 5.1 Așteptări pentru câmpuri
 
 ```text
 AiFieldExpectation
@@ -222,7 +223,7 @@ SOURCE_UNSUPPORTED
 Implementarea produce comparații immutable cu expected/observed, sursa declarată,
 reason code și referința opacă la output. Mesajul de assertion nu este contract.
 
-## 6. Missing information și non-invenție
+## 6. Informații lipsă și interdicția de a inventa
 
 Evaluatorul distinge:
 
@@ -255,7 +256,7 @@ cu source present și field suplimentar nedeclarat în output. Ultimul produce
 `UNDECLARED_OUTPUT_FIELD` și hard-fail implicit; o politică explicită îl poate
 tolera, dar comparația rămâne mismatch și reduce score-ul.
 
-## 7. Grounding și source references
+## 7. Fundamentare și referințe la surse
 
 ### 7.1 Contract
 
@@ -303,7 +304,7 @@ promptul și credentialele nu pot intra în aceste tipuri.
 
 ## 8. Review și workflow state
 
-### 8.1 Review action
+### 8.1 Acțiunea de revizuire
 
 ```text
 AiReviewExpectation
@@ -317,7 +318,7 @@ AiReviewExpectation
 Acțiuni: `ACCEPT`, `REJECT`, `REQUEST_MORE_INFORMATION`, `ESCALATE`,
 `NO_REVIEW`.
 
-### 8.2 State transition
+### 8.2 Tranziția de stare
 
 ```text
 AiStateObservation
@@ -338,7 +339,7 @@ Un state final corect nu repară o tranziție intermediară invalidă.
 - persistence failure este separat de model failure;
 - retry-ul tehnic nu este o nouă decizie AI.
 
-## 9. Invocation și fallback
+## 9. Apelarea modelului și soluția de rezervă
 
 ### 9.1 Contract
 
@@ -380,9 +381,9 @@ Output valid fără invocation evidence se clasifică explicit:
 SILENT_FALLBACK | MISSING_INVOCATION_EVIDENCE | UNCLASSIFIED_OUTPUT
 ```
 
-## 10. Scoring și hard-fail policy
+## 10. Punctaj și politica eșecurilor critice
 
-### 10.1 Rubrică default
+### 10.1 Rubrică implicită
 
 | Criteriu | Puncte |
 |---|---:|
@@ -397,7 +398,7 @@ SILENT_FALLBACK | MISSING_INVOCATION_EVIDENCE | UNCLASSIFIED_OUTPUT
 
 Scoring policy este identificată prin `scoringPolicyId` și versionată.
 
-### 10.2 Hard-fail catalog
+### 10.2 Catalogul eșecurilor critice
 
 | Code | Condiție |
 |---|---|
@@ -437,7 +438,7 @@ INCOMPLETE_EVIDENCE > HARD_FAIL > FAIL > TRIAGE_REQUIRED
 
 `SKIP` rămâne stare distinctă și nu intră în rata de succes.
 
-## 11. Snapshot semantic și immutability
+## 11. Instantaneu semantic și imuabilitate
 
 Evaluatorul produce un `AiEvaluationSnapshot` immutable după închiderea cazului.
 
@@ -470,7 +471,7 @@ Invariante:
 | Imutabilitate | copii defensive; fixed-clock și mutation tests |
 | Rămâne deschis | evidence index/run correlation extins, trace metadata și lifecycle integration |
 
-## 12. Integrarea cu lifecycle-ul ATF
+## 12. Integrarea cu ciclul de viață ATF
 
 ```text
 SETUP
@@ -502,7 +503,7 @@ altă secțiune.
 
 ## 13. Raportare și proiecții
 
-### Overview
+### Secțiunea Overview din raport
 
 Afișează agregat:
 
@@ -514,7 +515,7 @@ Afișează agregat:
 - missing-evidence count;
 - regression count.
 
-### Test detail
+### Detaliile testului
 
 Pentru fiecare caz sunt navigabile:
 
@@ -535,7 +536,7 @@ Pentru fiecare caz sunt navigabile:
 Fiecare failure critic este individual și navigabil. Extent și fallback sunt
 comparate prin snapshot semantic, nu prin string equality HTML.
 
-## 14. Regression comparison
+## 14. Compararea regresiilor
 
 Identitatea baseline-ului este:
 
@@ -567,7 +568,7 @@ Reguli:
 - `SKIP → PASS` nu este improvement fără evidence validă;
 - `REAL_AI → FALLBACK` este regresie de invocation indiferent de output.
 
-## 15. Arhitectură și ownership
+## 15. Arhitectură și responsabilități
 
 | Contract | Owner | Interdicție |
 |---|---|---|
@@ -626,7 +627,7 @@ Numai când există comportament vizibil:
 - evidence disclosure-urile sunt navigabile;
 - nu există duplicare UI/API/AI validation.
 
-### Architecture
+### Arhitectură
 
 - evaluatorul nu importă rendererul;
 - rendererul nu importă providerul AI;
@@ -635,7 +636,7 @@ Numai când există comportament vizibil:
 - fiecare public seam are proof class;
 - snapshot-ul este renderer-neutral.
 
-## 17. Failure taxonomy
+## 17. Taxonomia eșecurilor
 
 | Categorie | Semnificație | Separare obligatorie |
 |---|---|---|
@@ -695,7 +696,7 @@ configurabil pe caz.
 
 **Dovadă:** unit/component, fără browser și fără renderer.
 
-### Incrementul 2 — snapshot și evidence
+### Incrementul 2 — instantaneu și dovezi
 
 **Parțial implementat:** invocation evidence typed distinge real/mock/fallback/
 unknown; referințele request/response/output sunt opace și mock/fallback nu
@@ -729,7 +730,7 @@ Review/state/read-back numai pentru efectele observabile.
 
 | ID | Cerință lipsă | Criteriu de închidere |
 |---|---|---|
-| `AI-EVAL-04` | grounding | **implementat per field:** allowlist de source IDs, `SUPPORTED`, `UNSUPPORTED`, `MISSING_REFERENCE` și hard-fail pentru field critic; `AMBIGUOUS` și run ledger rămân deschise |
+| `AI-EVAL-04` | grounding | **implementat per field:** allowlist de source IDs, `SUPPORTED`, `UNSUPPORTED`, `MISSING_REFERENCE` și hard-fail pentru field critic; `AMBIGUOUS` este doar reprezentabil în enum, nu produs de evaluator și fără test negativ; run ledger rămâne deschis |
 | `AI-EVAL-05` | review/state | action și tranziții evaluate separat |
 | `AI-EVAL-06` | invocation/fallback | **contract implementat:** real/mock/fallback/unknown; numai REAL_AI cu evidence completă poate produce score; lifecycle integration încă lipsește |
 | `AI-EVAL-07` | hard-fail precedence | **probat pentru critical missing/invented/source contradiction și output nedeclarat:** `FAIL` domină score; catalogul AI complet și scenariile business încă lipsesc |
@@ -1215,7 +1216,7 @@ de governance și un feedback contract, nu un agent complet.
 Se validează vocabulary-ul, ownerii, severity și câmpurile obligatorii ale
 proposal/handoff/feedback. Niciun test nou de produs.
 
-### Etapa B — governance proof
+### Etapa B — dovada de guvernanță
 
 Se proiectează câteva fixture-uri artificiale care demonstrează că guard-urile
 detectează owner greșit, layer prea larg, literal verdict, evidence lipsă și
@@ -1284,7 +1285,6 @@ metodologie paralelă.
 - [`ATF_Architecture.md`](../ATF_Architecture.md)
 - [`ATF_Evidence_Capture_Contract.md`](../ATF_Evidence_Capture_Contract.md)
 - [`ATF_Reporting_Contract.md`](../ATF_Reporting_Contract.md)
-- [`ATF_Reporting_Feedback.md`](ATF_Reporting_Feedback.md)
 - [`ATF_Testing_Guide.md`](../ATF_Testing_Guide.md)
 - [`atf-ui/README.md`](../../atf-ui/README.md)
 
@@ -1310,7 +1310,7 @@ se adaugă într-un singur „overall” decorativ.
 | Completitudinea designului din acest README | **94/100** | contracte typed, expected/observed, evidence, grounding, review/state, score, hard-fail, snapshot, regression și workflow agentic | designul nu este încă executabil ca vertical slice |
 | Fundamentul ATF Java pentru evidence/reporting | **87/100** | request/response, retry history, provenance, auth observations, semantic snapshot și renderer-neutral projection | vocabularul este generic, nu AI-specific |
 | Validator generic reutilizabil | **66/100** | `ValidationEvaluator`, `ValidationTable`, validatori de contract API și comparator AI tipat | evaluatorul AI rămâne separat de rubricile business și de reporting |
-| AI evaluation implementată în ATF Java | **50/100** | comparatorul, hard-fails, invocation evidence, grounding per field, snapshot-ul `COMPLETE` și package cohesion sunt executabile și testate | provider real, evidence ledger și proiecție raport lipsesc |
+| AI evaluation implementată în ATF Java | **50/100** | comparatorul, hard-fails, invocation evidence, grounding per field, snapshot-ul `COMPLETE` și package cohesion sunt executabile și testate | clasificarea `AMBIGUOUS`, provider real, evidence ledger și proiecție raport lipsesc |
 | AI-assisted workflow governance | **31/100** | există guvernanță whole-ATF, documentație, ownership și proof gates | nu există încă proposal/handoff/feedback contract pentru agent |
 | Potrivirea principiilor ATF1 pentru adoptare | **86/100** | cold baseline, claim → proof → artifact, handoff, anti-copy și separarea orchestrator/execution/reporting sunt direct transferabile | nu trebuie importată economia de runs/slots ca runtime ATF |
 | Potrivirea pattern-urilor .NET pentru adoptare | **92/100** | read models typed, field decisions, retry contract, evidence policy, auth evidence și ownership unic | modelele sunt business-specific și trebuie transpuse, nu copiate |
@@ -1321,14 +1321,14 @@ dar nu un vertical slice AI end-to-end: codul nu invocă modelul, nu dovedește
 grounding la nivel de run și nu publică un snapshot AI în raport. Un raport Extent
 frumos sau transportul `LIVE_HTTP` nu demonstrează evaluare AI.
 
-### 34.2 Cerință versus cod live
+### 34.2 Cerință față de codul curent
 
 | Cerință din README | Cod observat live | Score |
 |---|---|---:|
 | expected separat de observed | `AiEvaluationCase` versionat și immutable se construiește separat de harta observed | **65/100** |
 | field-level typed comparison | opt moduri sigure, type/reason codes, weight, critical, source presence și output extra detectat implicit; regex restrâns este deferred | **86/100** |
 | missing information și non-invention | missing/invented critical, source/expected contradiction și undeclared output au probe negative; grounding critical este evaluat separat | **86/100** |
-| grounding și source references | allowlist per field, reference opac și probe `SUPPORTED` / `UNSUPPORTED` / `MISSING_REFERENCE` sunt implementate; ambiguitatea și run ledger lipsesc | **58/100** |
+| grounding și source references | allowlist per field, reference opac și probe `SUPPORTED` / `UNSUPPORTED` / `MISSING_REFERENCE` sunt implementate; `AMBIGUOUS` există numai ca valoare enum, fără clasificare în evaluator sau test; run ledger lipsește | **58/100** |
 | review și state transitions | există lifecycle/report status și consumeri UI, nu contract AI pentru review obligatoriu și tranziții permise | **22/100** |
 | invocation mode și fallback | `AiInvocationEvidence` distinge `REAL_AI`, `MOCK_MODEL`, `EXPLICIT_FALLBACK`, `UNKNOWN`; numai real cu references complete poate primi quality score | **74/100** |
 | score și hard-fail precedence | threshold, mismatch critic, missing/invented/undeclared rule IDs și `FAIL` independent de score sunt testate | **74/100** |
@@ -1422,7 +1422,8 @@ provider AI.
 
 Scorul implementării AI este **50/100**: evaluatorul typed, invocation
 provenance, grounding per field și snapshot-ul complet immutable au trecut
-testele, iar package cohesion este guvernată explicit; însă nu există încă run-level evidence ledger sau publication path. Pragurile
+testele, iar package cohesion este guvernată explicit; însă clasificarea
+`AMBIGUOUS`, run-level evidence ledger și publication path lipsesc. Pragurile
 următoare sunt:
 
 - run-level evidence index/correlation și probă `AMBIGUOUS`;
@@ -1757,7 +1758,7 @@ Observarea bounded/redacted a traficului UI este implementată, dar nu este AI.
 - limita: cursorul dovedește ordinea, nu idempotency sau replay sigur;
 - AI evaluation este o capabilitate separată și nu este demonstrată de inspector.
 
-### 40.2 Vertical slice implementat — comparator AI și invocation evidence
+### 40.2 Felie verticală implementată — comparator AI și dovezi despre apel
 
 - owner: `atf-validation/src/main/java/atf/api/validation/ai`;
 - expected versionat rămâne separat de observed; opt moduri sigure de comparație
@@ -1791,7 +1792,7 @@ Java ATF1. Ele rămân scoruri de readiness, nu scoruri de produs.
 | transferabilitatea pattern-urilor .NET | **92/100** | typed read models, fixture boundaries, retry identity, auth redaction și evidence ownership sunt reale și testate | modele business-specific, nu evaluator generic |
 | transferabilitatea disciplinei ATF1 | **86/100** | cold reread, proof chain, lifecycle adapters, run/package separation și publication audit sunt coerente | prompturile nu sunt contracte runtime |
 | fundația ATF Java pentru evidence/reporting | **87/100** | snapshot semantic, retry/provenance/auth și renderer parity sunt implementate | evaluatorul AI nu este încă legat de snapshot/reporting |
-| AI evaluation implementată | **50/100** | comparații typed, source eligibility/grounding, hard-fail, invocation evidence, snapshot `COMPLETE` și package cohesion au cod și teste | provider real, evidence ledger și reporting lipsesc |
+| AI evaluation implementată | **50/100** | comparații typed, source eligibility/grounding, hard-fail, invocation evidence, snapshot `COMPLETE` și package cohesion au cod și teste | `AMBIGUOUS` nu este clasificat de evaluator; provider real, evidence ledger și reporting lipsesc |
 | governance pentru workflow agentic | **31/100** | există whole-ATF governance și documentation gates | proposal/handoff/feedback nu sunt încă executabile |
 | readiness pentru modul agentic | **25/100** | boundary-ul poate fi proiectat fără contaminarea reporting-ului | modulul, config-ul și gates sunt doar design |
 | network inspector UI — vertical slice | **88/100** | response/request-failed și custom capture trec prin allowlist și resanitizare/bounding înainte de storage/subscriber; signature, aggregate și settlement bounded au teste, iar retry-ul UI este limitat la operații read-only | mutation retry/replay generic este exclus intenționat |
@@ -1822,7 +1823,7 @@ pentru replay generic. Dacă un consumer cere retry business-specific, înaintea
 oricărui cod trebuie să prezinte identity completă a payload-ului, garanția
 server-side de idempotency și un test negativ pentru timeout ambiguu.
 
-`atf-agent-test-kit` rămâne design-only. AI evaluation are comparatorul,
+ `atf-agent-test-kit` rămâne doar la nivel de proiectare. Evaluarea AI are comparatorul,
 invocation evidence, grounding per field și snapshot-ul evaluatorului typed; nu
 oferă încă run-level evidence ledger, raportare sau workflow agentic. Network observation este
 implementată pentru response/failure evidence și settlement bounded; replay-ul

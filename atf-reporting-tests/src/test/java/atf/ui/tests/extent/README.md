@@ -1,11 +1,11 @@
-# Extent UI test kit
+# Kit de testare UI pentru Extent
 
 Acest modul testează rendererul Extent produs de ATF. Nu testează aplicația
 UI și nu introduce teste de API de business. API-ul este folosit aici doar ca
 setup declarativ, atunci când trebuie generat un raport pe care îl inspectăm
 read-only în browser.
 
-## Overall
+## Pe scurt
 
 | Input | Flow | Evidence |
 |---|---|---|
@@ -45,7 +45,7 @@ Un `*Test` care deschide raportul sau folosește `Page` aparține lui `e2e`.
 Un flow, locator, fixture, inspector sau dynamic engine aparține lui
 `support`. `component` nu are voie să devină un depozit pentru helper-e.
 
-## Setup API versus validare UI
+## Pregătirea prin API față de validarea UI
 
 Un raport API generat din `atf-mock.yaml` este o precondiție read-only pentru
 testele UI, nu o validare de ecran. Înainte de browser se verifică în component
@@ -75,7 +75,7 @@ Acesta este singurul README al test-kit-ului Extent. Pachetele
 documentate mai jos, împreună cu regulile comune, pentru ca arhitectura să fie
 citită într-un singur loc și să nu apară documentație divergentă.
 
-## Overview versus pași de validare
+## Prezentarea generală față de pașii de validare
 
 Titlul fiecărei secțiuni este produs de `ExtentSectionGherkin` și este folosit
 identic de dynamic test și de Extent. Titlul este un overview normal și concis:
@@ -218,7 +218,7 @@ Extent assertion / evidence
   randat. E2E/static contract + Browser MCP confirmă vizual aceeași geometrie
   la viewport normal și îngust.
 
-### Failure report
+### Raport de eșec
 
 `UiFailureReportContractTest` folosește un fixture negativ controlat pentru a
 verifica faptul că un failure este localizabil prin ierarhie, fără dublări și
@@ -251,7 +251,7 @@ Contractul failure este schematic:
 Aceste contracte sunt documentate aici deoarece sunt responsabilități distincte
 ale test-kit-ului, nu pentru că ar necesita câte un README de pachet.
 
-## Configurație deținută de `atf-reporting`
+## Configurație gestionată de `atf-reporting`
 
 `atf-reporting-tests/src/test/resources/atf-reporting-ui.yaml` este configurația UI
 internă pentru contractele acestui modul. Secțiunea `ui:` a fost scoasă din
@@ -354,7 +354,7 @@ folosește browserul Windows real. Verdictul nu este complet până când HTML-u
 nu este deschis, tab-urile sunt inspectate, screenshot-urile sunt vizibile,
 nu există overflow orizontal, iar consola nu raportează erori.
 
-## Contract de randare verificat
+## Contract de randare verificată
 
 Testele E2E trebuie să publice propoziții scurte, dar explicite: `GIVEN` pentru
 setup/input, `WHEN` pentru acțiunea Playwright și `THEN` pentru verdictul de
@@ -389,7 +389,7 @@ să apară sub `TEST BODY` și să numească tab-ul/suprafața verificată.
   sincronizare controlată în codul live și verificare vizuală a unui raport
   proaspăt.
 
-## Contract E2E pentru Tags
+## Contract E2E pentru etichete
 
 `ReportNavigationAggregationFlowTest` este flow-ul configurabil pentru filtrarea
 dinamică a tab-ului `Tests`. El trebuie să dovedească în raport, nu doar în cod,
@@ -407,7 +407,7 @@ Pentru fiecare execuție se verifică:
 - detaliile complete în tabelul de audit;
 - artifactul final deschis în ATF Debug/browser MCP înainte de promovare.
 
-## Boundary pentru UI evidence și providerii reporting
+## Limitele de responsabilitate pentru dovezile UI și furnizorii de raportare
 
 Regula transversală pentru captură configurabilă este în
 [documentul dedicat](../../../../../../../../docs/ATF_Evidence_Capture_Contract.md).
@@ -569,7 +569,7 @@ obligatorie neexecutată.
   `data-atf-screenshot-ref` și să ducă la un PNG canonic valid care se poate
   deschide.
 
-#### 3. Contractul API și al evidence-ului (când este aplicabil)
+#### 3. Contractul API și al dovezilor (când se aplică)
 
 - ☐ request-ul și response-ul JSON sunt afișate ca evidence separată, inclusiv
   body JSON, headers/status și provenance mock;
@@ -664,11 +664,11 @@ action sequence`, `Audit observations`, `Assertions` — astfel încât pasul s�
 auditabil dintr-o singură vedere. La închiderea scenariului, toate disclosure-
 urile revin colapsate; component testele verifică separat și această revenire.
 
-### Retry UI: policy publică, fail-closed
+### Reîncercări UI: politică publică, oprire implicită la incertitudine
 
 Retry-ul Playwright este policy de acțiune, nu replay de test. `UiRetryPolicy`
 are implicit un singur attempt și niciun operation eligibil. YAML poate activa
-doar operații read-only enumerate (`navigate`, `wait-for-visible`,
+ doar operații enumerate, disponibile numai în citire (`navigate`, `wait-for-visible`,
 `wait-for-text`, `wait-for-enabled`, `wait-for-state`, `wait-for-disclosure`):
 
 ```yaml

@@ -47,8 +47,10 @@ practiceShop:
     api: artifacts/reports/api
   reporting:
     systemBodyPreviewCharacters: 100
+    # Capture a privacy-masked screenshot after every Playwright action table.
+    # Set to none only when this evidence is explicitly prohibited.
+    screenshotPolicy: each-checkpoint
   authenticatedE2eEnabled: false
-  screenshotOnFailure: true
   # The external catalog rotates product ids; use auto for a stable name-based fixture.
   # Set an exact /product/<id> route when a deterministic fixture is required.
   productName: Pliers

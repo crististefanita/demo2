@@ -10,7 +10,7 @@ public final class PracticeShopApiReportMetadataFixture {
     public static final List<String> LIVE_TAGS = List.of("api", "integration", "live", "practice-shop");
 
     public static final String COMPONENT_TEST_CLASS = "PracticeShopApiContractReportComponentTest";
-    public static final String COMPONENT_TEST_PACKAGE = "atf.ui.tests.practiceshop.api.component";
+    public static final String COMPONENT_TEST_PACKAGE = "atf.ui.tests.practiceshop.api.component.reporting";
     public static final String COMPONENT_SCENARIO = "Practice Shop API component contract";
     public static final List<String> COMPONENT_TAGS = List.of("api", "component", "acceptance", "practice-shop");
 

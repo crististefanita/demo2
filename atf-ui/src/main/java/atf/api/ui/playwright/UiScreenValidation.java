@@ -1,9 +1,11 @@
 package atf.api.ui.playwright;
 
 import atf.api.ui.config.UiScreenValidationConfiguration;
+import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 
 import java.util.Base64;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -23,13 +25,22 @@ public final class UiScreenValidation {
 
     public static Evidence capture(Page page, UiScreenValidationConfiguration configuration,
                                    String title) {
+        return capture(page, configuration, title, List.of());
+    }
+
+    /** Captures one visual state while masking caller-selected sensitive page regions. */
+    public static Evidence capture(Page page, UiScreenValidationConfiguration configuration,
+                                   String title, List<Locator> masks) {
         Objects.requireNonNull(page, "page");
         Objects.requireNonNull(configuration, "configuration");
+        List<Locator> safeMasks = List.copyOf(Objects.requireNonNull(masks, "masks"));
         String safeTitle = title == null || title.isBlank() ? "Screen validation" : title.trim();
         if (!configuration.enabled()) return new Evidence(safeTitle, "", false);
-        byte[] png = page.screenshot(new Page.ScreenshotOptions()
+        Page.ScreenshotOptions options = new Page.ScreenshotOptions()
                 .setFullPage(configuration.fullPage())
-                .setTimeout(configuration.screenshotTimeout().toMillis()));
+                .setTimeout(configuration.screenshotTimeout().toMillis());
+        if (!safeMasks.isEmpty()) options.setMask(safeMasks).setMaskColor("#343a40");
+        byte[] png = page.screenshot(options);
         String base64 = Base64.getEncoder().encodeToString(png);
         return new Evidence(safeTitle, base64, true);
     }

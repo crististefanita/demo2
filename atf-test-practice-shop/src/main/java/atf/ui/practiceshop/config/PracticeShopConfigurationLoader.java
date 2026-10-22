@@ -6,6 +6,7 @@ import atf.api.ui.config.UiRetryPolicy;
 import atf.api.ui.config.UiNetworkInspectionConfiguration;
 import atf.api.ui.config.UiNetworkSettlementPolicy;
 import atf.api.core.config.ApiTransportMode;
+import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -125,8 +126,9 @@ public final class PracticeShopConfigurationLoader {
             JsonNode reports = root.path("reports");
             Path uiReports = resolveDirectory(text(reports, "ui", "artifacts/reports/ui"));
             Path apiReports = resolveDirectory(text(reports, "api", "artifacts/reports/api"));
+            boolean legacyCheckpointScreenshots = bool(root, "screenshotOnFailure", true);
             PracticeShopReportConfiguration reportConfiguration = reportConfiguration(
-                    root.path("reporting"));
+                    root.path("reporting"), legacyCheckpointScreenshots);
             boolean authenticatedE2e = bool(root, "authenticatedE2eEnabled", false);
             return override(new PracticeShopConfiguration(base, configuredAccount, product, path,
                     checkoutConfiguration,
@@ -136,7 +138,7 @@ public final class PracticeShopConfigurationLoader {
                             integer(root.path("viewport"), "width", 1440),
                             integer(root.path("viewport"), "height", 1000),
                             integer(root, "zoomPercent", 100),
-                            bool(root, "screenshotOnFailure", true),
+                            legacyCheckpointScreenshots,
                             uiRetry.policy(), networkInspection), uiRetry, validationProfile,
                     apiConfiguration, uiReports, apiReports, authenticatedE2e, reportConfiguration));
     }
@@ -184,11 +186,16 @@ public final class PracticeShopConfigurationLoader {
                 bool(network, "collapseConsecutiveSignatures", true), settlement);
     }
 
-    private static PracticeShopReportConfiguration reportConfiguration(JsonNode reporting) {
+    private static PracticeShopReportConfiguration reportConfiguration(JsonNode reporting,
+                                                                        boolean legacyCheckpointScreenshots) {
+        String legacyPolicy = legacyCheckpointScreenshots
+                ? ReportScreenshotPolicy.EACH_CHECKPOINT.configValue()
+                : ReportScreenshotPolicy.FAILURE_ONLY.configValue();
         return new PracticeShopReportConfiguration(
                 positiveInteger(reporting, "systemBodyPreviewCharacters",
                         PracticeShopReportConfiguration.DEFAULT_SYSTEM_BODY_PREVIEW_CHARACTERS,
-                        "practiceShop.reporting.systemBodyPreviewCharacters"));
+                        "practiceShop.reporting.systemBodyPreviewCharacters"),
+                ReportScreenshotPolicy.fromConfig(text(reporting, "screenshotPolicy", legacyPolicy)));
     }
 
     private static Set<String> textSet(JsonNode configured, String path) {

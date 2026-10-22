@@ -1,6 +1,6 @@
 # Build și execuție sigură pentru ATF
 
-## Overall
+## Pe scurt
 
 - live-ul este contextul de lucru și sursa de sincronizare;
 - build-ul și testele rulează într-un staging extern;
@@ -305,7 +305,7 @@ schimbării. În TAB MCP:
 O verificare statică a HTML-ului este utilă, dar nu înlocuiește click-ul în TAB
 MCP pentru schimbări de layout, selector, collapse, tab sau scroll.
 
-## Definition of Done pentru o execuție sigură
+## Criterii de finalizare pentru o execuție sigură
 
 - procesul existent nu a fost oprit;
 - staging-ul este separat și nu conține output-uri copiate din rulări vechi;

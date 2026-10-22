@@ -3,14 +3,15 @@ package atf.ui.tests.practiceshop.support;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.api.reporting.contract.AtfReportStatus;
-import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
 import atf.api.reporting.evidence.profile.ReportEvidenceProfile;
+import atf.api.reporting.evidence.profile.ReportUiActionDetailsMode;
 import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.ui.practiceshop.config.PracticeShopConfiguration;
 import atf.ui.practiceshop.config.PracticeShopConfigurationLoader;
 import atf.ui.practiceshop.config.PracticeShopCredentials;
 import atf.ui.practiceshop.config.PracticeShopValidationProfile;
+import atf.ui.practiceshop.flow.PracticeShopPurchaseFlow;
 import atf.ui.practiceshop.locators.PracticeShopLocators;
 import atf.ui.practiceshop.support.PracticeShopApiNetworkJournal;
 import atf.ui.practiceshop.support.PracticeShopE2eContext;
@@ -30,6 +31,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.BiConsumer;
@@ -56,13 +58,10 @@ public final class PracticeShopE2eTestSupport {
         UNIFIED_FLOW
     }
 
-    public enum ScreenshotMode {
+    public enum ActionDetailsMode {
         CONFIGURED,
-        EACH_CHECKPOINT,
-        FINAL_ONLY,
-        FAILURE_ONLY,
-        FINAL_AND_FAILURE,
-        NONE
+        INCLUDED_COLLAPSED,
+        SUMMARY_ONLY
     }
 
     @Target(ElementType.TYPE)
@@ -71,7 +70,7 @@ public final class PracticeShopE2eTestSupport {
     public @interface WithE2eHarness {
         HarnessProfile profile() default HarnessProfile.CONFIGURED;
         ReportFlow reportFlow() default ReportFlow.CONFIGURED;
-        ScreenshotMode screenshots() default ScreenshotMode.CONFIGURED;
+        ActionDetailsMode actionDetails() default ActionDetailsMode.CONFIGURED;
     }
 
     /** JUnit opens and closes one harness per test method, including failed methods. */
@@ -86,15 +85,19 @@ public final class PracticeShopE2eTestSupport {
                     context.getRequiredTestClass().getAnnotation(PracticeShopTestSupport.AuthenticatedE2e.class);
             PracticeShopTestSupport.AccountSetupMode accountSetup = authenticated == null
                     ? PracticeShopTestSupport.AccountSetupMode.REUSE_FIXTURE : authenticated.accountSetup();
+            PracticeShopTestSupport.RegistrationProfileMode registrationProfileMode = authenticated == null
+                    ? PracticeShopTestSupport.RegistrationProfileMode.LOCAL : authenticated.registrationProfile();
             Path registrationProfile = authenticated != null
                     && accountSetup == PracticeShopTestSupport.AccountSetupMode.REGISTER_PER_RUN
+                    && authenticated.registrationProfile() == PracticeShopTestSupport.RegistrationProfileMode.LOCAL
                     ? PracticeShopConfigurationLoader.resolveRegistrationProfileFile(
                             authenticated.registrationProfileFile()) : null;
-            ReportEvidenceProfile presentation = reportProfile(configuration, harness, accountSetup);
+            ReportEvidenceProfile presentation = reportProfile(configuration, harness);
             PracticeShopE2eContext browser = PracticeShopE2eContext.open(configuration, presentation);
             context.getStore(NAMESPACE).put(HARNESS_KEY, new E2eResource(
                     new E2eHarness(configuration, browser, new PracticeShopLocators(),
                             context.getRequiredTestClass().getSimpleName(), accountSetup, registrationProfile,
+                            harness != null && harness.authenticatedSetupScreenshot(),
                             context.getRoot().getUniqueId() + "::"
                                     + context.getRequiredTestClass().getName())));
         }
@@ -131,12 +134,21 @@ public final class PracticeShopE2eTestSupport {
                                                WithE2eHarness harness) {
         ReportEvidenceProfile configured = PracticeShopScreenshotPolicy.profile(
                 Objects.requireNonNull(configuration, "configuration")
-                        .browser().screenshotOnFailure());
+                        .reporting().screenshotPolicy());
         if (harness == null) return configured;
         return configured.toBuilder()
                 .flowMode(resolve(harness.reportFlow(), configured.flowMode()))
-                .screenshotPolicy(resolve(harness.screenshots(), configured.screenshotPolicy()))
+                .actionDetailsMode(resolve(harness.actionDetails(), configured.actionDetailsMode()))
                 .build();
+    }
+
+    private static ReportUiActionDetailsMode resolve(ActionDetailsMode selected,
+                                                      ReportUiActionDetailsMode configured) {
+        return switch (Objects.requireNonNull(selected, "actionDetails")) {
+            case CONFIGURED -> Objects.requireNonNull(configured, "configured action details mode");
+            case INCLUDED_COLLAPSED -> ReportUiActionDetailsMode.INCLUDED_COLLAPSED;
+            case SUMMARY_ONLY -> ReportUiActionDetailsMode.SUMMARY_ONLY;
+        };
     }
 
     private static ReportEvidenceFlowMode resolve(ReportFlow selected,
@@ -146,27 +158,6 @@ public final class PracticeShopE2eTestSupport {
             case SCREEN_CHECKPOINTS -> ReportEvidenceFlowMode.SCREEN_CHECKPOINTS;
             case UNIFIED_FLOW -> ReportEvidenceFlowMode.UNIFIED_FLOW;
         };
-    }
-
-    private static ReportScreenshotPolicy resolve(ScreenshotMode selected,
-                                                  ReportScreenshotPolicy configured) {
-        return switch (Objects.requireNonNull(selected, "screenshots")) {
-            case CONFIGURED -> configured;
-            case EACH_CHECKPOINT -> ReportScreenshotPolicy.EACH_CHECKPOINT;
-            case FINAL_ONLY -> ReportScreenshotPolicy.FINAL_ONLY;
-            case FAILURE_ONLY -> ReportScreenshotPolicy.FAILURE_ONLY;
-            case FINAL_AND_FAILURE -> ReportScreenshotPolicy.FINAL_AND_FAILURE;
-            case NONE -> ReportScreenshotPolicy.NONE;
-        };
-    }
-
-    static ReportEvidenceProfile reportProfile(PracticeShopConfiguration configuration,
-                                               WithE2eHarness harness,
-                                               PracticeShopTestSupport.AccountSetupMode accountSetup) {
-        ReportEvidenceProfile profile = reportProfile(configuration, harness);
-        return accountSetup == PracticeShopTestSupport.AccountSetupMode.REGISTER_PER_RUN
-                ? profile.toBuilder().screenshotPolicy(atf.api.reporting.evidence.ReportScreenshotPolicy.NONE).build()
-                : profile;
     }
 
     /** Holds the resource after opening so teardown is idempotent even when it fails. */
@@ -208,12 +199,13 @@ public final class PracticeShopE2eTestSupport {
                              String reportClass,
                              PracticeShopTestSupport.AccountSetupMode accountSetupMode,
                              Path registrationProfileFile,
+                             boolean authenticatedSetupScreenshot,
                              String accountRunScope) implements AutoCloseable {
         public E2eHarness(PracticeShopConfiguration configuration,
                           PracticeShopE2eContext context,
                           PracticeShopLocators locators, String reportClass) {
             this(configuration, context, locators, reportClass,
-                    PracticeShopTestSupport.AccountSetupMode.REUSE_FIXTURE, null, "standalone");
+                    PracticeShopTestSupport.AccountSetupMode.REUSE_FIXTURE, null, false, "standalone");
         }
 
         public E2eHarness {
@@ -226,10 +218,6 @@ public final class PracticeShopE2eTestSupport {
             Objects.requireNonNull(accountSetupMode, "accountSetupMode");
             if (accountRunScope == null || accountRunScope.isBlank()) {
                 throw new IllegalArgumentException("accountRunScope is required");
-            }
-            if (accountSetupMode == PracticeShopTestSupport.AccountSetupMode.REGISTER_PER_RUN
-                    && registrationProfileFile == null) {
-                throw new IllegalArgumentException("register-per-run requires a local registration profile");
             }
         }
 
@@ -266,7 +254,7 @@ public final class PracticeShopE2eTestSupport {
         }
     }
 
-    /** Explicit setup-only view; publication intentionally excludes screenshots and raw values. */
+    /** Setup-only view; raw values stay excluded and each action table follows the YAML capture policy. */
     public static final class E2eSetup {
         private final E2eHarness harness;
         private final PlaywrightActionSequence actions;
@@ -289,12 +277,23 @@ public final class PracticeShopE2eTestSupport {
         public PracticeShopTestSupport.AccountSetupMode accountSetupMode() { return harness.accountSetupMode(); }
         public Path registrationProfileFile() { return harness.registrationProfileFile(); }
         public String accountRunScope() { return harness.accountRunScope(); }
+        public ReportScreenshot authenticatedAccountScreenScreenshot() {
+            return harness.authenticatedSetupScreenshot()
+                    ? harness.context().captureBrowserViewport("Authenticated account — full browser screen")
+                    : null;
+        }
         public void checkpoint(AtfGherkinKeyword keyword, String title, Collection<AtfAssertion> assertions,
                                Collection<atf.api.reporting.model.ReportExecutionEvidence> apiEvidence) {
+            checkpoint(keyword, title, assertions, apiEvidence, null);
+        }
+
+        public void checkpoint(AtfGherkinKeyword keyword, String title, Collection<AtfAssertion> assertions,
+                               Collection<atf.api.reporting.model.ReportExecutionEvidence> apiEvidence,
+                               ReportScreenshot screenshot) {
             if (completed || failed) throw new IllegalStateException("SETUP is already finished");
             AtfReportStatus status = assertions.stream().allMatch(AtfAssertion::passed)
                     ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
-            scenario.setupCheckpoint(page(), actions, keyword, title, assertions, apiEvidence, status);
+            scenario.setupCheckpoint(page(), actions, keyword, title, assertions, apiEvidence, screenshot, status);
             if (status == AtfReportStatus.FAIL) {
                 failed = true;
                 scenario.finishSetup(AtfReportStatus.FAIL);
@@ -339,6 +338,23 @@ public final class PracticeShopE2eTestSupport {
 
         public void completePurchase() {
             scenario.complete(AtfReportStatus.PASS);
+        }
+
+        /** Publishes one terminal screen validation with the final browser capture. */
+        public void completePurchase(PracticeShopPurchaseFlow.PurchaseResult result) {
+            pass("final order confirmation", purchaseConfirmationAssertions(result));
+        }
+
+        static List<AtfAssertion> purchaseConfirmationAssertions(
+                PracticeShopPurchaseFlow.PurchaseResult result) {
+            Objects.requireNonNull(result, "purchase result");
+            String confirmation = result.confirmation();
+            boolean confirmed = confirmation != null
+                    && confirmation.contains("Thanks for your order!")
+                    && confirmation.contains("INV-");
+            return List.of(new AtfAssertion(
+                    "Order confirmation", "confirmation includes a successful order and invoice",
+                    confirmation == null ? "no confirmation was observed" : confirmation, confirmed));
         }
     }
 }

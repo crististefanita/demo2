@@ -5,7 +5,7 @@ browserul, contextul, pagina, timeout-urile, viewport-ul, screenshot-ul și
 recorderul de acțiuni. Nu conține testele UI ale raportului, rendererul HTML,
 publisherul Extent sau page objects de produs.
 
-## Overall
+## Pe scurt
 
 | Input | Output | Boundary |
 |---|---|---|
@@ -142,7 +142,7 @@ standard și fail-closed dacă nu poate provisiona browserul.
 - validatorul pur din `atf-reporting` decide dacă snapshot-ul DOM corespunde
   proiecției așteptate.
 
-## Screen validation și screenshot
+## Validarea ecranului și capturi de ecran
 
 `UiScreenValidation.capture(page, configuration, title)` returnează un payload
 PNG Base64 și nu scrie fișier PNG extern. Publisherul din `atf-reporting` îl
@@ -170,7 +170,7 @@ assert Java care ascunde acțiunea din raport. Contractul complet de cardinalita
 markup și randare este în
 [`atf-reporting/README.md`](../atf-reporting/README.md).
 
-## Network inspector — boundary generic
+## Inspectorul de rețea — limită generică de responsabilitate
 
 `UiNetworkInspector` este opt-in și acceptă numai host-urile configurate.
 Listenerii Playwright observă atât `response`, cât și `request-failed`; nu

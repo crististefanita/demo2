@@ -100,8 +100,17 @@ public final class UiPhaseLifecycle implements AutoCloseable {
                Collection<AtfUiActionRecord> actions,
                Collection<ReportExecutionEvidence> apiEvidence,
                AtfReportStatus status) {
+        setup(keyword, title, target, assertions, actions, apiEvidence, null, status);
+    }
+
+    void setup(String keyword, String title, String target,
+               Collection<AtfAssertion> assertions,
+               Collection<AtfUiActionRecord> actions,
+               Collection<ReportExecutionEvidence> apiEvidence,
+               atf.api.reporting.model.ReportScreenshot screenshot,
+               AtfReportStatus status) {
         ensureOpen();
-        evidencePublisher.publishSetup(keyword, title, target, assertions, actions, apiEvidence, status);
+        evidencePublisher.publishSetup(keyword, title, target, assertions, actions, apiEvidence, screenshot, status);
     }
 
     void setup(AtfGherkinKeyword keyword, String title, String target,
@@ -115,6 +124,15 @@ public final class UiPhaseLifecycle implements AutoCloseable {
                Collection<ReportExecutionEvidence> apiEvidence,
                AtfReportStatus status) {
         setup(keyword.text(), title, target, assertions, actions, apiEvidence, status);
+    }
+
+    void setup(AtfGherkinKeyword keyword, String title, String target,
+               Collection<AtfAssertion> assertions,
+               Collection<AtfUiActionRecord> actions,
+               Collection<ReportExecutionEvidence> apiEvidence,
+               atf.api.reporting.model.ReportScreenshot screenshot,
+               AtfReportStatus status) {
+        setup(keyword.text(), title, target, assertions, actions, apiEvidence, screenshot, status);
     }
 
     void networkInspector(String title,

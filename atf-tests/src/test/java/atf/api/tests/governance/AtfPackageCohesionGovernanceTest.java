@@ -1,5 +1,7 @@
 package atf.api.tests.governance;
+
 import atf.api.core.config.module.AtfModuleIds;
+import atf.api.core.files.AtfPathLocator;
 import atf.api.testkit.AtfComponentTest;
 
 import org.junit.jupiter.api.Test;
@@ -62,9 +64,9 @@ public class AtfPackageCohesionGovernanceTest {
     }
 
     @Test
-    void testKitPackagesKeepCohesionBoundaries() throws Exception {
-        Path tests = locateProjectRoot().resolve(AtfModuleIds.REPORTING_TESTS)
-                .resolve("src/test/java");
+    void reportingTestPackagesKeepCohesionBoundaries() throws Exception {
+        Path tests = AtfPathLocator.resolveModuleSourceRoot(
+                locateProjectRoot(), AtfModuleIds.REPORTING_TESTS, true);
         Map<String, Integer> counts = testPackageCounts(tests);
         Map<String, List<String>> inventory = packageClassInventory(tests);
         Map<String, Integer> overLimit = new TreeMap<>();
@@ -73,7 +75,7 @@ public class AtfPackageCohesionGovernanceTest {
         });
 
         assertTrue(overLimit.isEmpty(), () ->
-                "Test-kit package exceeds the eight-class cohesion limit: "
+                "Reporting-test package exceeds the eight-class cohesion limit: "
                         + describe(overLimit, inventory));
         assertFalse(counts.containsKey("atf.ui.tests.extent.support.section"),
                 "section root must not become a mixed test package again");
@@ -84,20 +86,19 @@ public class AtfPackageCohesionGovernanceTest {
     }
 
     @Test
-    void allTestSourceSetsRespectTheEightClassCohesionLimitUnlessReviewed() throws Exception {
+    void everyReactorModuleTestSourceSetRespectsTheEightClassCohesionLimitUnlessReviewed()
+            throws Exception {
         Path root = locateProjectRoot();
         Map<String, Integer> overLimit = new TreeMap<>();
         Map<String, List<String>> inventory = new TreeMap<>();
-        for (String module : PRODUCTION_MODULES) {
-            for (String sourceDirectory : java.util.List.of("src/test/java", "src/test")) {
-                Path sourceRoot = root.resolve(module).resolve(sourceDirectory);
-                if (!java.nio.file.Files.isDirectory(sourceRoot)) continue;
-                testPackageCounts(sourceRoot).forEach((packageName, count) -> {
-                    if (count > PACKAGE_COHESION_LIMIT) overLimit.put(module + ":" + packageName, count);
-                });
-                packageClassInventory(sourceRoot).forEach((packageName, classes) ->
-                        inventory.put(module + ":" + packageName, classes));
-            }
+        for (String module : AtfModuleIds.REACTOR_MODULES) {
+            Path sourceRoot = AtfPathLocator.resolveModuleSourceRoot(root, module, true);
+            testPackageCounts(sourceRoot).forEach((packageName, count) -> {
+                String modulePackage = module + ":" + packageName;
+                if (count > PACKAGE_COHESION_LIMIT) overLimit.put(modulePackage, count);
+            });
+            packageClassInventory(sourceRoot).forEach((packageName, classes) ->
+                    inventory.put(module + ":" + packageName, classes));
         }
         Map<String, Integer> unreviewed = withoutReviewedEntries(overLimit, REVIEWED_TEST_COHESION_EXCEPTIONS);
         assertTrue(unreviewed.isEmpty(),

@@ -5,7 +5,7 @@ constante, asset-uri de raportare și stratificarea testelor. Pentru redactarea
 README-urilor și a feedback-ului se folosește
 [README_Atf_DocumentationBestPractices.md](README_Atf_DocumentationBestPractices.md).
 
-## Overall
+## Pe scurt
 
 Codul ATF trebuie să fie ușor de citit din boundary spre detaliu:
 
@@ -34,7 +34,7 @@ flowchart LR
 | output și asset-uri stabile | contract test + artifact audit |
 | E2E minim și configurabil | selecție semantică + coverage matrix |
 
-## Boundary și ownership
+## Limite de responsabilitate și proprietari
 
 | Zonă | Responsabilitate | Nu deține |
 |---|---|---|
@@ -104,8 +104,8 @@ un pachet
    └─ peste prag → split coeziv sau excepție revizuită explicit
 ```
 
-- `AtfPackageCohesionGovernanceTest` verifică producția și source-set-urile
-  de test relevante;
+- `AtfPackageCohesionGovernanceTest` verifică producția guvernată și testele din
+  toate modulele reactorului ATF, inclusiv modulele consumer și modulele de test;
 - un pachet peste opt clase nu devine automat acceptat printr-o allow-list;
 - o excepție trebuie să aibă motiv semantic, owner și dovadă de boundary;
 - diagnosticul guard-ului enumeră pachetul, numărul și clasele concrete;
@@ -162,7 +162,7 @@ import static atf.ui.tests.practiceshop.api.support.PracticeShopApiScenarioFixtu
 import static org.junit.jupiter.api.Assertions.assertEquals;
 ```
 
-## Reporting: HTML, CSS și JavaScript
+## Raportare: HTML, CSS și JavaScript
 
 ```mermaid
 flowchart LR
@@ -287,6 +287,27 @@ raport, request factory, selectori sau cleanup, composition root-ul este prea
 
 </details>
 
+### Date de test și configurare inițială cu efect extern
+
+Un test autentificat separă sursa contului de journey-ul pe care îl verifică:
+
+- sursa este aleasă explicit prin configurație/adnotare typed; preflight-ul
+  validează profilul înainte de browser și înaintea oricărei mutații;
+- reuse-ul unui fixture și crearea per-rulare sunt moduri distincte; numele și
+  evidence-ul nu sugerează creare când s-a selectat doar un cont existent;
+- achiziția contului și confirmarea sesiunii apar în `SETUP`; testul de business
+  începe numai după un setup PASS;
+- o creare externă se trimite o singură dată; dacă rezultatul este incert,
+  execuția se oprește pentru reconciliere, nu repetă automat mutația;
+- cheia de reuse corespunde scope-ului declarat (metodă, class-run sau suită),
+  iar acel scope se dovedește comportamental, nu doar printr-un test al map-ului;
+- raportul rezumă check-urile în `Setup evidence`, păstrează API exchange-ul
+  separat când este colectat și redactează credențiale/date personale din
+  acțiuni, assertions și capturi.
+
+Detaliul contractului E2E aparține consumerului; forma generică a evidence-ului
+este deținută de [ATF Reporting Contract](ATF_Reporting_Contract.md#evidence-ul-de-setup).
+
 ## Configurare și căi
 
 - [ ] Nicio cale absolută nu apare în cod, comentarii, mesaj sau README.
@@ -306,7 +327,7 @@ raport, request factory, selectori sau cleanup, composition root-ul este prea
 - [ ] Un output este referit prin nume logic sau placeholder configurabil,
       niciodată prin `Path.toString()` într-un raport permanent.
 
-## Consolă și reporting
+## Consolă și raportare
 
 Regula de separare pentru consolă și reporting este:
 
@@ -395,7 +416,7 @@ Checklist obligatoriu pentru un modul de test:
 - [ ] Mută regula stabilă în README-ul ownerului și păstrează în feedback doar
       gap-ul rămas.
 
-## Definition of done
+## Criterii de finalizare
 
 - [ ] Responsabilitatea este mai clară decât înainte.
 - [ ] Boundary-ul poate fi substituit printr-o interfață sau un adapter real.

@@ -8,12 +8,21 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.UUID;
 
-/** Local-only source for synthetic registration values; the email is unique per invocation. */
+/** Local or built-in synthetic registration values; generated email identity is unique per invocation. */
 public record PracticeShopRegistrationProfile(
         String emailTemplate, String password, String firstName, String lastName,
         String dateOfBirth, String country, String postalCode, String houseNumber,
         String street, String city, String state, String phone) {
     public static final String RUN_ID_TOKEN = "{runId}";
+    private static final String SYNTHETIC_EMAIL_TEMPLATE = "atf-practice-shop+{runId}@atf.invalid";
+
+    /** Non-deliverable identity for explicit demo-app registration tests; no mailbox or secrets are needed. */
+    public static PracticeShopRegistrationProfile synthetic() {
+        return new PracticeShopRegistrationProfile(SYNTHETIC_EMAIL_TEMPLATE,
+                "Atf!" + UUID.randomUUID().toString().replace("-", "") + "9x",
+                "ATF", "PracticeShop", "1990-01-01", "Romania", "010101", "10",
+                "ATF Test Street", "Bucharest", "Bucharest", "0700000000");
+    }
 
     public PracticeShopRegistrationProfile {
         emailTemplate = required(emailTemplate, "emailTemplate");
@@ -66,7 +75,9 @@ public record PracticeShopRegistrationProfile(
         }
         String email = emailTemplate.replace(RUN_ID_TOKEN, id);
         PracticeShopCredentials candidate = new PracticeShopCredentials(email, password, firstName, lastName);
-        if (!candidate.hasLiveAccountCandidate()) {
+        boolean explicitlySynthetic = SYNTHETIC_EMAIL_TEMPLATE.equals(emailTemplate)
+                && email.endsWith("@atf.invalid");
+        if (!candidate.hasLiveAccountCandidate() && !explicitlySynthetic) {
             throw new IllegalArgumentException(
                     "emailTemplate must use a non-reserved domain controlled by the test owner");
         }

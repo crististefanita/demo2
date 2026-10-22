@@ -1,6 +1,6 @@
 # Ghid pentru adăugarea unui test API în ATF Java
 
-## Overall
+## Pe scurt
 
 - scop: un test API determinist, semantic și reproductibil;
 - boundary: testul compune core, transportul configurat și validatorul;

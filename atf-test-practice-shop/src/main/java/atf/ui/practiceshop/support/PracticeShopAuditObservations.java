@@ -8,6 +8,7 @@ import atf.api.ui.playwright.UiScreenValidation;
 import com.microsoft.playwright.Page;
 
 import java.util.Collection;
+import java.util.Base64;
 import java.util.Objects;
 
 /**
@@ -16,6 +17,10 @@ import java.util.Objects;
  * boundary that produced it.
  */
 public final class PracticeShopAuditObservations {
+    private static final byte[] PNG_SIGNATURE = {
+            (byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a
+    };
+
     private PracticeShopAuditObservations() {
     }
 
@@ -98,6 +103,29 @@ public final class PracticeShopAuditObservations {
                         + "; assertions=" + (assertions == null ? 0 : assertions.size())
                         + "; screenshot=" + (screenshot.hasScreenshotPayload() ? "valid PNG" : "not captured")
                         + "; url=" + safeUrl(page));
+    }
+
+    /** A passing Screen validation is a visual claim and therefore requires a real PNG payload. */
+    public static void requireScreenshotForScreenValidation(UiScreenValidation.Evidence evidence) {
+        Objects.requireNonNull(evidence, "evidence");
+        if (!isPng(evidence.base64Png())) {
+            throw new IllegalStateException(
+                    "Screen validation cannot be published without a valid PNG screenshot");
+        }
+    }
+
+    private static boolean isPng(String payload) {
+        if (payload == null || payload.isBlank()) return false;
+        try {
+            byte[] bytes = Base64.getDecoder().decode(payload);
+            if (bytes.length < PNG_SIGNATURE.length) return false;
+            for (int index = 0; index < PNG_SIGNATURE.length; index++) {
+                if (bytes[index] != PNG_SIGNATURE[index]) return false;
+            }
+            return true;
+        } catch (IllegalArgumentException malformedBase64) {
+            return false;
+        }
     }
 
     private static String safeUrl(Page page) {

@@ -36,6 +36,11 @@ public final class PracticeShopTestSupport {
         REGISTER_PER_RUN
     }
 
+    public enum RegistrationProfileMode {
+        LOCAL,
+        SYNTHETIC
+    }
+
     /**
      * Declares a directly runnable authenticated E2E composition root.
      * Defaults intentionally point to the ignored local fixture and headed
@@ -53,6 +58,8 @@ public final class PracticeShopTestSupport {
         int zoomPercent() default 70;
 
         AccountSetupMode accountSetup() default AccountSetupMode.REUSE_FIXTURE;
+
+        RegistrationProfileMode registrationProfile() default RegistrationProfileMode.LOCAL;
 
         String registrationProfileFile() default
                 "atf-test-practice-shop/src/test/resources/practice-software-testing-registration.local.properties";
@@ -155,6 +162,7 @@ public final class PracticeShopTestSupport {
             return "REGISTER_PER_RUN requires the explicit @AllowsRegistrationPerRun marker; "
                     + "use REUSE_FIXTURE for this class";
         }
+        if (profile.registrationProfile() == RegistrationProfileMode.SYNTHETIC) return null;
         try {
             Path registrationFile = PracticeShopConfigurationLoader.resolveRegistrationProfileFile(
                     profile.registrationProfileFile());

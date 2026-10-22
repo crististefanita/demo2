@@ -183,6 +183,9 @@ class ExtentReportUiEvidencePublishingTest {
                     List.of(action), List.of(apiExecution), AtfReportStatus.PASS);
             setup.setup(AND, "the account is signed in", "/account", List.of(
                     new AtfAssertion("Account session", "authenticated", "authenticated", true)),
+                    List.of(action), List.of(), new atf.api.reporting.model.ReportScreenshot(
+                            "Authenticated account screen",
+                            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="),
                     AtfReportStatus.PASS);
             setup.complete(AtfReportStatus.PASS);
             var body = scenario.startPhase(ReportUiContract.Phase.TEST_BODY.displayName());
@@ -195,7 +198,10 @@ class ExtentReportUiEvidencePublishingTest {
         String html = Files.readString(report);
         int setupPosition = html.indexOf("<span>SETUP</span>");
         int registrationPosition = html.indexOf("GIVEN a new account is registered");
-        int setupEvidencePosition = html.indexOf("atf-setup-evidence-table");
+        int setupEvidencePosition = html.indexOf("class=\"atf-setup-evidence-table\"");
+        int actionTablePosition = html.indexOf("Playwright action sequence (1 entries)");
+        int screenshotPosition = html.indexOf("Authenticated account screen");
+        int actionTableEnd = html.lastIndexOf("</table>", screenshotPosition);
         int testBodyPosition = html.indexOf("<span>TEST BODY</span>");
         assertAll(
                 () -> assertTrue(setupPosition >= 0 && registrationPosition > setupPosition),
@@ -204,6 +210,10 @@ class ExtentReportUiEvidencePublishingTest {
                 () -> assertTrue(html.contains("Playwright action sequence (1 entries)")),
                 () -> assertTrue(html.contains("API validation")),
                 () -> assertTrue(html.contains("POST /users/register")),
+                () -> assertTrue(actionTablePosition >= 0 && actionTableEnd > actionTablePosition
+                                && screenshotPosition > actionTableEnd,
+                        "authenticated SETUP screenshot must follow its Playwright action table"),
+                () -> assertTrue(html.contains("Authenticated account screen")),
                 () -> assertTrue(testBodyPosition > setupEvidencePosition),
                 () -> assertFalse(html.contains("UI validation")));
     }

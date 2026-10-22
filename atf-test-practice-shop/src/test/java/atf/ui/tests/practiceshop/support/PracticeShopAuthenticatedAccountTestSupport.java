@@ -28,8 +28,9 @@ public final class PracticeShopAuthenticatedAccountTestSupport {
         List<atf.api.reporting.model.ReportExecutionEvidence> apiEvidence = new ArrayList<>();
 
         if (setup.accountSetupMode() == PracticeShopTestSupport.AccountSetupMode.REGISTER_PER_RUN) {
-            PracticeShopRegistrationProfile profile = PracticeShopRegistrationProfile.load(
-                    setup.registrationProfileFile());
+            PracticeShopRegistrationProfile profile = setup.registrationProfileFile() == null
+                    ? PracticeShopRegistrationProfile.synthetic()
+                    : PracticeShopRegistrationProfile.load(setup.registrationProfileFile());
             credentials = CLASS_RUN_ACCOUNTS.get(setup.accountRunScope());
             if (credentials == null) {
                 PracticeShopRegistrationData registration = profile.newRegistrationData();
@@ -85,17 +86,26 @@ public final class PracticeShopAuthenticatedAccountTestSupport {
         assertions.addAll(setup.apiNetwork().loginConfirmed(setup.configuration().api(), credentials));
         apiEvidence.addAll(setup.apiNetwork().evidence(PracticeShopApiCheckpoint.LOGIN));
         setup.checkpoint(AtfGherkinKeyword.AND, "the account is signed in and its session is confirmed",
-                assertions, apiEvidence);
+                assertions, apiEvidence, setup.authenticatedAccountScreenScreenshot());
         setup.complete();
         return credentials;
     }
 
     static List<AtfAssertion> registrationAssertions(int responseStatus,
                                                        List<AtfAssertion> journalAssertions) {
-        if (!journalAssertions.isEmpty()) return List.copyOf(journalAssertions);
-        boolean successful = responseStatus >= 200 && responseStatus < 300;
-        return List.of(new AtfAssertion("Registration browser response", "HTTP 2xx",
-                "HTTP " + responseStatus, successful));
+        boolean responseAccepted = responseStatus >= 200 && responseStatus < 300;
+        boolean journalConfirmed = journalAssertions == null
+                || journalAssertions.stream().allMatch(AtfAssertion::passed);
+        boolean successful = responseAccepted && journalConfirmed;
+        List<AtfAssertion> assertions = new ArrayList<>(List.of(
+                new AtfAssertion("Account setup mode", "REGISTER_PER_RUN", "REGISTER_PER_RUN", true),
+                new AtfAssertion("Registration browser response", "HTTP 2xx",
+                        "HTTP " + responseStatus, responseAccepted),
+                new AtfAssertion("Login readiness", "registered account details are ready for sign-in",
+                        successful ? "credentials retained for the following login; values redacted"
+                                : "registration was not accepted; sign-in must not start", successful)));
+        if (journalAssertions != null) assertions.addAll(journalAssertions);
+        return List.copyOf(assertions);
     }
 
     /**

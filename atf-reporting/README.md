@@ -1,10 +1,10 @@
-# ATF Reporting — bibliotecă standalone pentru artifacte Extent
+# ATF Reporting — bibliotecă autonomă pentru artefacte Extent
 
 `atf-reporting` transformă modele typed în raportare semantică și artifacte
 Extent/HTML verificabile. Librăria nu execută API-uri, nu pornește browserul și
 nu citește mock-uri sau fixture-uri de aplicație.
 
-## Overall
+## Pe scurt
 
 - **producție** — contracte typed, modele semantice, renderer, asset-uri și
   publication; zero dependențe către module ATF;
@@ -21,7 +21,7 @@ nu citește mock-uri sau fixture-uri de aplicație.
 testare → gate`. Structura package-urilor din `atf-reporting-tests` nu este
 duplicată aici; aparține README-ului acelui consumer.
 
-## Boundary standalone și consumatorul canonic
+## Limitele librăriei autonome și consumatorul canonic
 
 ```mermaid
 flowchart LR
@@ -81,7 +81,7 @@ flowchart LR
 
 </details>
 
-## Modelul typed
+## Modelul tipizat
 
 Regula permanentă este:
 
@@ -169,7 +169,7 @@ proiecții din surse diferite. Agregatul nu deține lifecycle state și nu schim
 arborele immutable; separarea dintre recorderul mutabil și proiecția pură rămâne
 explicită.
 
-### Snapshot typed pentru Overview/System
+### Instantaneu tipizat pentru Overview/System
 
 Configurația relevantă a unui run se publică printr-un snapshot allowlist-uit,
 nu prin dump-ul arbitrar al YAML-ului:
@@ -220,7 +220,7 @@ verificat cu un consumer sintetic în `ReportTraceMetadataRenderingTest`.
 
 ```text
 TestCase
-├── SETUP (opțional; numai precondiții / fixture-uri)
+├── SETUP (opțional; precondiții / dobândire și verificare fixture)
 ├── TEST BODY (acțiunea și validarea)
 │   ├── Request
 │   │   ├── Request details + REQUEST JSON / null
@@ -234,6 +234,7 @@ TestCase
 | Regula | Contract |
 |---|---|
 | ownership | request și validation sunt surori în aceeași fază |
+| setup evidence | tabelul `CHECK / EXPECTED / ACTUAL / RESULT` rezumă precondiția; exchange-urile reale rămân `API validation` distinctă sub același checkpoint `SETUP` |
 | write body | `POST` și `PUT` au request JSON și response JSON valide, ne-goale |
 | read/no body | `GET`, `204`, `304` păstrează disclosure-urile și afișează explicit `null` când body-ul lipsește |
 | UI evidence | `SETUP` este setup; `Screen validation` este în `TEST BODY` după acțiuni și observații |
@@ -246,7 +247,7 @@ TestCase
 | failures | `Setup`, `Playwright action`, `Audit observation` și `Assertion` au cauze distincte și `Open in Tests` |
 | navigation | `Tests`, `Overview`, `Categories`, `Fails` folosesc aceeași identitate semantică și deep-link |
 
-### API evidence atașată unui pas UI
+### Dovezi API atașate unui pas UI
 
 Un consumer poate atașa unul sau mai multe `ReportExecutionEvidence` la același
 checkpoint UI prin overload-ul `UiExtentReportSession.step(...)`. Reporting nu
@@ -296,7 +297,7 @@ UI checkpoint
 Verdictul este calculat de execution/validation și doar publicat de reporting.
 Rendererul nu inventează statusuri.
 
-### Inspector agregat pentru journey UI/API
+### Inspector agregat pentru flux UI/API
 
 `ReportNetworkInspector.JourneyAggregate` este proiecția semantică a journey-ului;
 nu este un al doilea trace și nu înlocuiește evidence-ul canonical al unui exchange.
@@ -638,7 +639,7 @@ urmăresc numai în README-ul dedicat, nu se duplică în această librărie.
 
 </details>
 
-## Input și configurare în librărie
+## Intrări și configurare în bibliotecă
 
 Producția `atf-reporting` deține numai configurația necesară publicării:
 `ReportingSettings`, `ExtentReportConfiguration`, contextul de pornire și loaderul
@@ -670,7 +671,7 @@ se aplică înainte de render, iar limitele sunt typed și configurabile. `POST`
 `PUT` pot avea request/response JSON; `GET`, `204` și `304` păstrează explicit
 absența body-ului.
 
-### Politica typed pentru screenshot evidence
+### Politică tipizată pentru dovezile de captură
 
 `ReportScreenshotPolicy` este contractul public pentru politica de publicare a
 capturilor UI. Nu se pasează
@@ -727,7 +728,7 @@ publication policy, validarea target-ului și proiecția în artifact.
 - configurația se încarcă o singură dată, iar `openConfiguredResolved` poate
   dezactiva timestamp-ul fără a reconstrui o a doua configurație.
 
-### Evidence JSON și renderer-ele UI
+### Dovezi JSON și componentele de randare UI
 
 - `ReportJsonBody` păstrează body-ul semantic așa cum a fost primit;
 - Extent și fallback HTML folosesc același `ReportJsonBodyFormatter`;
@@ -753,7 +754,7 @@ publication policy, validarea target-ului și proiecția în artifact.
 - body-ul rămâne responsabilitatea renderer-ului concret: Extent poate publica
   markup vendor-specific, iar fallback-ul păstrează `<pre>`.
 
-### Normalizarea evidence în artifact
+### Normalizarea dovezilor în artefact
 
 Normalizarea este un boundary de publicare, nu o a doua sursă de evidence:
 
@@ -775,7 +776,7 @@ flowchart LR
 
 </details>
 
-## Publicare și output
+## Publicare și ieșire
 
 Output-ul este configurabil prin `reporting.extent.outputDirectory` și
 `fileName`; runtime-ul UI folosește separat directorul UI configurat de test.
@@ -811,7 +812,7 @@ hidden`).
 - păstrează retry-ul în production publication boundary, nu în test-kit și nu în
   browser.
 
-## Gate de contribuție
+## Verificare pentru contribuții
 
 ```text
 cod live curent
