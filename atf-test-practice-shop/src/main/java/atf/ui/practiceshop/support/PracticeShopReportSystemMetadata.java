@@ -111,14 +111,13 @@ public final class PracticeShopReportSystemMetadata {
     }
 
     private static String precondition(PracticeShopConfiguration configuration) {
-        return "API precondition (configured): "
-                + configuration.api().precondition().name().toLowerCase()
-                + " · UI journey: " + journeyPrecondition(configuration);
+        return "API request precondition: "
+                + configuration.api().precondition().name().toLowerCase();
     }
 
     private static String journeyPrecondition(PracticeShopConfiguration configuration) {
-        return configuration.authenticatedE2eAllowed()
-                ? "authenticated checkout account fixture loaded"
+        return configuration.authenticatedE2eEnabled()
+                ? "authenticated account lifecycle selected"
                 : "guest checkout configuration ready";
     }
 

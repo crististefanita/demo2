@@ -122,6 +122,7 @@ public final class PracticeShopApiNetworkJournal {
                 exchanges, HttpMethod.POST.value(), PracticeShopApiRoutes.LOGIN,
                 exchange -> exchange.status() == 200);
         login = recoverLoginBody(login, apiConfiguration, credentials);
+        login = replaceWithIdentityRedacted(login);
         store(PracticeShopApiCheckpoint.LOGIN, List.of(toEvidence(login)));
         return PracticeShopApiAssertions.login(login);
     }
@@ -139,7 +140,7 @@ public final class PracticeShopApiNetworkJournal {
                 .filter(exchange -> HttpMethod.POST.value().equalsIgnoreCase(exchange.method()))
                 .toList();
         List<Exchange> safeSubmissions = submissions.stream()
-                .map(exchange -> exchange.withPhase("account-setup").withRegistrationRedaction())
+                .map(exchange -> replaceWithIdentityRedacted(exchange.withPhase("account-setup")))
                 .toList();
         if (!safeSubmissions.isEmpty()) {
             store(PracticeShopApiCheckpoint.REGISTRATION,
@@ -325,6 +326,18 @@ public final class PracticeShopApiNetworkJournal {
         if (enabled(checkpoint)) evidenceByCheckpoint.put(checkpoint, List.copyOf(evidence));
     }
 
+    private Exchange replaceWithIdentityRedacted(Exchange exchange) {
+        if (exchange == null) return null;
+        Exchange safe = exchange.withIdentityRedaction();
+        for (int index = 0; index < exchanges.size(); index++) {
+            if (exchanges.get(index).sequence() == exchange.sequence()) {
+                exchanges.set(index, safe);
+                break;
+            }
+        }
+        return safe;
+    }
+
     private ReportExecutionEvidence toEvidence(Exchange exchange) {
         String host = URI.create(exchange.url()).getHost();
         String alias = serviceAlias.apply(host == null ? "" : host);
@@ -442,12 +455,13 @@ public final class PracticeShopApiNetworkJournal {
                     expected, observed, observedAuthMethod, failureReason);
         }
 
-        public Exchange withRegistrationRedaction() {
+        public Exchange withIdentityRedaction() {
+            String safeRequest = PracticeShopJsonEvidence.redactRegistration(requestBody);
+            String safeResponse = PracticeShopJsonEvidence.redactRegistration(responseBody);
             return new Exchange(method, path, url, status,
-                    PracticeShopJsonEvidence.redactRegistration(requestBody),
-                    PracticeShopJsonEvidence.redactRegistration(responseBody),
+                    safeRequest, safeResponse,
                     requestHeaders, responseHeaders, sequence, capturedAt, phase,
-                    signature, digest(method, path, status, requestBody, responseBody),
+                    requestSignature(method, path, safeRequest), digest(method, path, status, safeRequest, safeResponse),
                     role, stepId, initiator, evidenceSource, expected, observed,
                     observedAuthMethod, failureReason);
         }

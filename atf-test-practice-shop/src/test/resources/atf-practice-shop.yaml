@@ -13,7 +13,7 @@ practiceShop:
   validation:
     profile: ui-api
     # Typed journey binding; omit the list to enable all checkpoints for UI_API.
-    apiEvidence: [product, login, cart, payment, order]
+    apiEvidence: [product, registration, login, cart, payment, order]
   # Opt-in browser boundary. It observes only the configured API host, keeps
   # bodies bounded/redacted and feeds the existing API network inspector; it
   # never creates verdicts or replays a mutating browser action.

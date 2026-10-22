@@ -17,26 +17,26 @@ adresat mai devreme.
 | Ordine | Owner feedback | Impact /40 | Gap /30 | Lucrabil acum /20 | Datorie doc. /10 | Scor | Ce mai trebuie făcut |
 |---:|---|---:|---:|---:|---:|---:|---|
 | 1 | [AI evaluation](README_AI_Evaluation.md) | 34 | 26 | 12 | 6 | **78** | evaluatorul typed și snapshot-ul sunt implementate; rămân review/state AI, run-level evidence ledger, publication path, regression delta și cazuri business-negative |
-| 2 | [Practice Shop E2E](ATF_Practice_Shop_E2E_Feedback.md) · `SHOP-E2E-INTELLIJ-AUTH-01` | 34 | 25 | 8 | 3 | **70** | ambele clase autentificate cer alegere `REUSE_FIXTURE` / opt-in `REGISTER_PER_RUN`; harness-ul actual închide `SETUP` înainte de callback, deci registration flow-ul lipsește. Înregistrare și login verificate înaintea journey-ului propriu fiecărei clase, fără replay și fără PII |
-| 3 | [Practice Shop E2E](ATF_Practice_Shop_E2E_Feedback.md) · `SHOP-E2E-PRESENTATION-01` | 29 | 20 | 12 | 5 | **66** | consumerul nu expune încă prin YAML `UNIFIED_FLOW`, gruparea UI steps și screenshot `FINAL_ONLY`; reporting-ul generic le suportă și este probat |
+| 2 | [Practice Shop E2E](ATF_Practice_Shop_E2E_Feedback.md) · `SHOP-E2E-INTELLIJ-AUTH-01` | 34 | 25 | 8 | 3 | **70** | ambele clase cer alegere `REUSE_FIXTURE` / opt-in `REGISTER_PER_RUN`; provisioning-ul lipsește. O lansare de clasă înregistrează o dată, iar metodele account/catalog reutilizează identitatea; login-ul rămâne în business body. Fără replay și PII |
+| 3 | [Practice Shop E2E](ATF_Practice_Shop_E2E_Feedback.md) · `SHOP-E2E-PRESENTATION-01` | 29 | 20 | 12 | 5 | **66** | profilul UI-only/UI+API este deja selectabil prin adnotarea clasei; presetul single-flow leagă flow mode de screenshot, iar consumerul nu expune independent policy-ul de captură sau detaliile acțiunilor. Aceste opțiuni rămase trebuie să poată fi setate typed pe testul rulat în IntelliJ |
 
 Starea pe domenii:
 
-- Practice Shop: generic `UNIFIED_FLOW` este implementat și probat în
-  `atf-reporting`; configurarea YAML pentru testul canonic și captura finală
-  rămân gap-uri ale consumerului și sunt urmărite separat.
+- Practice Shop: generic `UNIFIED_FLOW` și politicile de screenshot sunt
+  implementate și probate în `atf-reporting`; consumerul are numai preseturi de
+  clasă, fără toate axele configurabile independent din testul selectat în IntelliJ.
 - Practice Shop: profilul `ui-only` oprește captura/publicarea API în consumer,
   nu request-urile normale ale aplicației. O clasă E2E separată UI-only nu
   înlocuiește cerința de configurare a testului canonic și poate dubla purchase-ul.
-- Practice Shop authenticated: `@AuthenticatedE2e` declară profilul de launch
-  independent pentru fiecare clasă; testele modulare confirmă profilul și skip-ul
-  sigur fără VM options. Cerința extinde adnotarea pentru ambele clase cu
-  lifecycle explicit (`REUSE_FIXTURE` / `REGISTER_PER_RUN`): provisioning-ul
-  este opt-in, unic în `SETUP`, fără retry la mutația de înregistrare, apoi login
-  verificat și journey-ul clasei. Codul are page object/data parțiale, nu și
-  registration flow; run-ul fixture-ului
-  live a eșuat la login. Scorul 70 reflectă impactul testelor autentificate,
-  gap-ul de implementare și riscul mutației externe fără cleanup demonstrat.
+- Practice Shop authenticated: `@AuthenticatedE2e` declară fixture-ul, browserul
+  și zoom-ul; testele modulare confirmă profilul și skip-ul sigur fără VM options.
+  Lifecycle-ul cerut este `REUSE_FIXTURE` implicit sau `REGISTER_PER_RUN` opt-in
+  prin adnotare. Provisioning-ul trebuie să se întâmple o dată în `SETUP` per
+  lansare a clasei; cele două metode account/catalog reutilizează contul, iar
+  login-ul verificat rămâne în body-ul care îl testează. Codul are page
+  object/data parțiale, nu și registration flow; run-ul fixture-ului live a
+  eșuat la login. Scorul 70 reflectă impactul, gap-ul și riscul mutației externe
+  fără cleanup demonstrat.
 - Practice Shop build: harness-ul păstrează clasele E2E package-private,
   profilele `CONFIGURED`/`UI_ONLY`/`UI_API` sunt aliniate, iar testele țintite
   trec (31/31); problema de compilare anterioară este închisă și nu mai este
@@ -69,7 +69,7 @@ contractele deja implementate.
 | Trace per checkpoint, inspector aggregate și stabilitatea disclosure-urilor | fără ToDo activ; nested network summaries = `34px`, redeschidere numai la regresie | [ATF Reporting Contract](../ATF_Reporting_Contract.md), [ATF Testing Guide](../ATF_Testing_Guide.md) |
 | Reporting: tabele scrollabile, summary-uri API, setup-ul până la publisher și grouping pentru `UNIFIED_FLOW` | fără ToDo activ; geometria aggregate nested măsurată la `34px`, redeschidere numai la regresie | [ATF Reporting Contract](../ATF_Reporting_Contract.md), [ATF Reporting README](../../atf-reporting/README.md), [ATF Reporting Tests README](../../atf-reporting-tests/README.md) |
 | Inspector UI și politica fără replay | fără ToDo; redeschidere numai la încălcarea contractului | [ATF UI README](../../atf-ui/README.md), [Practice Shop README](../../atf-test-practice-shop/README.md) |
-| Practice Shop purchase E2E | purchase-ul complet, profilele IntelliJ, build-ul țintit și runtime boundary sunt documentate/probate; wiring-ul single-flow/UI steps/screenshot policy și dovada cu un cont activ sunt restante | [Practice Shop README](../../atf-test-practice-shop/README.md), [Practice Shop E2E Feedback](ATF_Practice_Shop_E2E_Feedback.md) |
+| Practice Shop purchase E2E | purchase-ul complet, profilele clasei, build-ul țintit și runtime boundary sunt documentate/probate; selectarea profilelor/presentation/screenshot/action details din același test și lifecycle-ul de cont nou rămân restante | [Practice Shop README](../../atf-test-practice-shop/README.md), [Practice Shop E2E Feedback](ATF_Practice_Shop_E2E_Feedback.md) |
 
 Scorurile acestor domenii nu mai apar în ordinea de lucru cât timp nu există un
 gap activ. Contractele închise rămân în README-urile ownerilor și în testele

@@ -249,30 +249,31 @@ Principiul de selecție:
 | authenticated purchase | `PracticeShopAuthenticatedPurchaseE2eTest` | selectarea individuală a clasei; `@AuthenticatedE2e` + fixture local valid; poate crea o comandă demo |
 | account/catalog smoke | `PracticeShopAccountAndCatalogE2eTest` | selectarea individuală a clasei; aceeași adnotare și fixture; nu creează comandă |
 
-Acestea sunt preseturi de clase, nu încă un singur test configurabil dintr-o
-adnotare IntelliJ. `PracticeShopPurchaseE2eTest` fixează `UI_API`, iar
-`PracticeShopPurchaseUiOnlyE2eTest` fixează `UI_ONLY`; pentru a compara modurile
-trebuie lansată o altă clasă, ceea ce execută din nou purchase-ul demo.
-`@WithE2eHarness(profile = ...)` protejează contractul clasei de override-ul
-global, dar nu oferă încă o selecție de profil pe instanța aceluiași test.
-Ambele moduri lasă traficul browserului să continue normal: `UI_ONLY` oprește
+Profilele sunt deja selectabile prin `@WithE2eHarness(profile = UI_ONLY | UI_API)`
+în testul lansat din IntelliJ, fără VM options. Clasele guest actuale sunt
+exemple presetate: `PracticeShopPurchaseE2eTest` fixează `UI_API`, iar
+`PracticeShopPurchaseUiOnlyE2eTest` fixează `UI_ONLY`; lansarea ambelor repetă
+purchase-ul demo. Pentru o singură rulare, profilele nu trebuie deduse din
+YAML sau schimbate global: se folosește valoarea explicită din adnotarea clasei.
+Ambele moduri lasă traficul browserului să continue normal; `UI_ONLY` oprește
 doar capturarea/publicarea API evidence.
 
 Separă patru axe care nu trebuie să schimbe flow-ul de business:
 
 | Axă | Ce există acum | Ce trebuie să poată selecta testul |
 |---|---|---|
-| Validare | profile typed `UI_ONLY` / `UI_API`, fixate în clasele guest actuale | `UI_ONLY` sau `UI_API` printr-o singură adnotare de harness, independent de presentation și capturi |
+| Validare | profile typed `UI_ONLY` / `UI_API` prin `@WithE2eHarness`; clasele guest actuale sunt presetate | funcționalitatea există; profilul se selectează explicit pe clasa E2E, independent de presentation și capturi |
 | Forma raportului | `STANDARD` sau presetul `SINGLE_FLOW_FINAL_SCREENSHOT`; al doilea leagă `UNIFIED_FLOW` de `FINAL_ONLY` | `SCREEN_CHECKPOINTS` sau `UNIFIED_FLOW`, selectabil separat de screenshot policy |
 | Capturi | YAML-ul are `screenshotOnFailure`: `true` capturează fiecare checkpoint, `false` capturează numai eșecul | o politică typed: `EACH_CHECKPOINT`, `FINAL_ONLY`, `FAILURE_ONLY`, `FINAL_AND_FAILURE` sau `NONE` |
 | Pași UI intermediari | acțiunile Playwright sunt evidence în raport; nu există opțiune consumer dedicată pentru includerea lor | detaliile pot fi incluse într-o singură disclosure tehnică sau omise, fără a elimina validările și fără un nod Gherkin per click |
 
-Pentru același test, aceste opțiuni trebuie să fie ușor de setat în adnotarea
-clasei lansate din IntelliJ; YAML-ul păstrează valorile de configurare ale
-aplicației și default-urile. Acțiunile, aserțiunile, request-urile și rezultatul
-purchase-ului rămân identice când se schimbă numai forma evidence-ului. `UI_API`
-publică exchange-urile selectate; `UI_ONLY` nu le publică, dar nu blochează
-request-urile reale ale browserului.
+Profilele UI/API se setează deja în adnotarea clasei lansate din IntelliJ.
+Rămâne de făcut selectarea independentă prin adnotare a flow mode, screenshot
+policy și detaliilor acțiunilor; YAML-ul păstrează valorile aplicației și
+default-urile, nu ascunde alegerea testului. Acțiunile, aserțiunile,
+request-urile și rezultatul purchase-ului rămân identice când se schimbă numai
+forma evidence-ului. `UI_API` publică exchange-urile selectate; `UI_ONLY` nu le
+publică, dar nu blochează request-urile reale ale browserului.
 
 Testele autentificate rămân intenționat ignorate fără opt-in și un fixture valid.
 Instrucțiunile de rulare manuală sunt colapsate:

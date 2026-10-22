@@ -6,6 +6,7 @@ import atf.api.reporting.evidence.profile.ReportEvidenceProfile;
 import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.ui.practiceshop.config.PracticeShopConfiguration;
 import atf.ui.practiceshop.config.PracticeShopConfigurationLoader;
+import atf.ui.practiceshop.config.PracticeShopCredentials;
 import atf.ui.practiceshop.locators.PracticeShopLocators;
 import atf.ui.practiceshop.support.PracticeShopApiNetworkJournal;
 import atf.ui.practiceshop.support.PracticeShopE2eContext;
@@ -27,6 +28,9 @@ import java.lang.annotation.Target;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+import java.nio.file.Path;
 
 /** Per-method browser lifecycle and the small composition API used by Practice Shop E2E tests. */
 public final class PracticeShopE2eTestSupport {
@@ -63,11 +67,19 @@ public final class PracticeShopE2eTestSupport {
                     context.getRequiredTestClass());
             WithE2eHarness harness = context.getRequiredTestClass().getAnnotation(WithE2eHarness.class);
             if (harness != null) configuration = configurationForHarnessProfile(configuration, harness.profile());
-            ReportEvidenceProfile presentation = reportProfile(configuration, harness);
+            PracticeShopTestSupport.AuthenticatedE2e authenticated =
+                    context.getRequiredTestClass().getAnnotation(PracticeShopTestSupport.AuthenticatedE2e.class);
+            PracticeShopTestSupport.AccountSetupMode accountSetup = authenticated == null
+                    ? PracticeShopTestSupport.AccountSetupMode.REUSE_FIXTURE : authenticated.accountSetup();
+            Path registrationProfile = authenticated != null
+                    && accountSetup == PracticeShopTestSupport.AccountSetupMode.REGISTER_PER_RUN
+                    ? PracticeShopConfigurationLoader.resolveRegistrationProfileFile(
+                            authenticated.registrationProfileFile()) : null;
+            ReportEvidenceProfile presentation = reportProfile(configuration, harness, accountSetup);
             PracticeShopE2eContext browser = PracticeShopE2eContext.open(configuration, presentation);
             context.getStore(NAMESPACE).put(HARNESS_KEY, new E2eResource(
                     new E2eHarness(configuration, browser, new PracticeShopLocators(),
-                            context.getRequiredTestClass().getSimpleName())));
+                            context.getRequiredTestClass().getSimpleName(), accountSetup, registrationProfile)));
         }
 
         @Override
@@ -111,6 +123,15 @@ public final class PracticeShopE2eTestSupport {
                         .browser().screenshotOnFailure());
     }
 
+    static ReportEvidenceProfile reportProfile(PracticeShopConfiguration configuration,
+                                               WithE2eHarness harness,
+                                               PracticeShopTestSupport.AccountSetupMode accountSetup) {
+        ReportEvidenceProfile profile = reportProfile(configuration, harness);
+        return accountSetup == PracticeShopTestSupport.AccountSetupMode.REGISTER_PER_RUN
+                ? profile.toBuilder().screenshotPolicy(atf.api.reporting.evidence.ReportScreenshotPolicy.NONE).build()
+                : profile;
+    }
+
     /** Holds the resource after opening so teardown is idempotent even when it fails. */
     static final class E2eResource implements AutoCloseable {
         private final AutoCloseable delegate;
@@ -147,13 +168,27 @@ public final class PracticeShopE2eTestSupport {
     public record E2eHarness(PracticeShopConfiguration configuration,
                              PracticeShopE2eContext context,
                              PracticeShopLocators locators,
-                             String reportClass) implements AutoCloseable {
+                             String reportClass,
+                             PracticeShopTestSupport.AccountSetupMode accountSetupMode,
+                             Path registrationProfileFile) implements AutoCloseable {
+        public E2eHarness(PracticeShopConfiguration configuration,
+                          PracticeShopE2eContext context,
+                          PracticeShopLocators locators, String reportClass) {
+            this(configuration, context, locators, reportClass,
+                    PracticeShopTestSupport.AccountSetupMode.REUSE_FIXTURE, null);
+        }
+
         public E2eHarness {
             Objects.requireNonNull(configuration, "configuration");
             Objects.requireNonNull(context, "context");
             Objects.requireNonNull(locators, "locators");
             if (reportClass == null || reportClass.isBlank()) {
                 throw new IllegalArgumentException("reportClass is required");
+            }
+            Objects.requireNonNull(accountSetupMode, "accountSetupMode");
+            if (accountSetupMode == PracticeShopTestSupport.AccountSetupMode.REGISTER_PER_RUN
+                    && registrationProfileFile == null) {
+                throw new IllegalArgumentException("register-per-run requires a local registration profile");
             }
         }
 
@@ -165,10 +200,70 @@ public final class PracticeShopE2eTestSupport {
             scenario.execute(context.page(), actions, () -> businessFlow.accept(journey));
         }
 
+        /** Runs account acquisition in SETUP and opens TEST BODY only after it has passed. */
+        public void run(String title, String overview,
+                        Function<E2eSetup, PracticeShopCredentials> accountSetup,
+                        BiConsumer<E2eJourney, PracticeShopCredentials> businessFlow) {
+            Objects.requireNonNull(accountSetup, "accountSetup");
+            Objects.requireNonNull(businessFlow, "businessFlow");
+            PlaywrightActionSequence actions = context.actions();
+            PracticeShopE2eContext.Scenario scenario = context.scenarioWithExplicitSetup(reportClass, title, overview);
+            scenario.execute(context.page(), actions, () -> {
+                E2eSetup setup = new E2eSetup(this, actions, scenario);
+                PracticeShopCredentials credentials = Objects.requireNonNull(
+                        accountSetup.apply(setup), "accountSetup credentials");
+                if (!setup.completed()) {
+                    throw new IllegalStateException("account setup must publish a passing SETUP step before TEST BODY");
+                }
+                businessFlow.accept(new E2eJourney(this, actions, scenario), credentials);
+            });
+        }
+
         @Override
         public void close() {
             context.close();
         }
+    }
+
+    /** Explicit setup-only view; publication intentionally excludes screenshots and raw values. */
+    public static final class E2eSetup {
+        private final E2eHarness harness;
+        private final PlaywrightActionSequence actions;
+        private final PracticeShopE2eContext.Scenario scenario;
+        private boolean completed;
+
+        private E2eSetup(E2eHarness harness, PlaywrightActionSequence actions,
+                         PracticeShopE2eContext.Scenario scenario) {
+            this.harness = harness;
+            this.actions = actions;
+            this.scenario = scenario;
+        }
+
+        public PracticeShopConfiguration configuration() { return harness.configuration(); }
+        public PracticeShopLocators locators() { return harness.locators(); }
+        public Page page() { return harness.context().page(); }
+        public PlaywrightActionSequence actions() { return actions; }
+        public PracticeShopApiNetworkJournal apiNetwork() { return harness.context().apiNetwork(); }
+        public PracticeShopTestSupport.AccountSetupMode accountSetupMode() { return harness.accountSetupMode(); }
+        public Path registrationProfileFile() { return harness.registrationProfileFile(); }
+        public void authenticatedSessionEstablished() {
+            harness.context().runtimeDiagnostics().markAuthenticated();
+        }
+
+        public void complete(String title, Collection<AtfAssertion> assertions,
+                             Collection<atf.api.reporting.model.ReportExecutionEvidence> apiEvidence) {
+            if (completed) throw new IllegalStateException("SETUP has already been completed");
+            AtfReportStatus status = assertions.stream().allMatch(AtfAssertion::passed)
+                    ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
+            scenario.setupCheckpoint(page(), actions, title, assertions, apiEvidence, status);
+            scenario.finishSetup(status);
+            completed = status == AtfReportStatus.PASS;
+            if (status != AtfReportStatus.PASS) {
+                throw new AssertionError("Authenticated account setup failed; TEST BODY was not started");
+            }
+        }
+
+        private boolean completed() { return completed; }
     }
 
     /** Test-facing handles; observed assertions and business flow stay in the E2E test. */

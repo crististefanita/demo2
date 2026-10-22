@@ -8,6 +8,7 @@ import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.configuration.AtfReportConfigurationLoader;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.model.ReportScreenshot;
+import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.ui.UiExtentReportSession;
 import atf.api.reporting.ui.network.ReportNetworkInspector;
 import atf.api.ui.config.UiScreenValidationConfiguration;
@@ -106,9 +107,7 @@ public final class PracticeShopE2eContext implements AutoCloseable {
 
     /** Starts a report scenario with the concrete test identity of the caller. */
     public Scenario scenario(String reportClass, String title, String overview) {
-        UiExtentReportSession.UiScenario scenario = report.startScenario(
-                reportClass, "atf.ui.tests.practiceshop",
-                overview, List.of("ui", "e2e", "external", "practice-shop"));
+        UiExtentReportSession.UiScenario scenario = startReportScenario(reportClass, overview);
         var setup = scenario.startPhase("SETUP");
         List<AtfAssertion> setupAssertions = setupAssertions(configuration);
         AtfReportStatus setupStatus = setupAssertions.stream().allMatch(AtfAssertion::passed)
@@ -122,6 +121,17 @@ public final class PracticeShopE2eContext implements AutoCloseable {
                 setupAssertions, setupStatus);
         setup.complete(setupStatus);
         return new Scenario(scenario, title);
+    }
+
+    /** Opens SETUP and defers TEST BODY until the caller proves account setup succeeded. */
+    public Scenario scenarioWithExplicitSetup(String reportClass, String title, String overview) {
+        UiExtentReportSession.UiScenario scenario = startReportScenario(reportClass, overview);
+        return new Scenario(scenario, title, scenario.startPhase("SETUP"));
+    }
+
+    private UiExtentReportSession.UiScenario startReportScenario(String reportClass, String overview) {
+        return report.startScenario(reportClass, "atf.ui.tests.practiceshop",
+                overview, List.of("ui", "e2e", "external", "practice-shop"));
     }
 
     static List<AtfAssertion> setupAssertions(PracticeShopConfiguration configuration) {
@@ -177,16 +187,54 @@ public final class PracticeShopE2eContext implements AutoCloseable {
 
     public final class Scenario implements AutoCloseable {
         private final UiExtentReportSession.UiScenario scenario;
-        private final UiExtentReportSession.UiPhase body;
+        private final UiExtentReportSession.UiPhase setupPhase;
+        private UiExtentReportSession.UiPhase body;
         private final String title;
         private final List<ReportNetworkInspector.Step> networkSteps = new ArrayList<>();
         private boolean complete;
         private boolean networkInspectorPublished;
+        private boolean setupStepPublished;
+        private boolean setupFinished;
 
         private Scenario(UiExtentReportSession.UiScenario scenario, String title) {
+            this(scenario, title, null);
+        }
+
+        private Scenario(UiExtentReportSession.UiScenario scenario, String title,
+                         UiExtentReportSession.UiPhase setupPhase) {
             this.scenario = scenario;
-            this.body = scenario.startPhase("TEST BODY");
+            this.setupPhase = setupPhase;
+            this.body = setupPhase == null ? scenario.startPhase("TEST BODY") : null;
             this.title = title == null || title.isBlank() ? "completed Practice Shop scenario" : title;
+        }
+
+        /** Publishes setup as one UI step, with no screenshot that could expose entered identity fields. */
+        public void setupCheckpoint(Page page, PlaywrightActionSequence actions, String stepTitle,
+                                    Collection<AtfAssertion> assertions,
+                                    Collection<ReportExecutionEvidence> apiEvidence,
+                                    AtfReportStatus status) {
+            if (setupPhase == null || setupFinished || setupStepPublished) {
+                throw new IllegalStateException("Explicit authenticated setup is not open");
+            }
+            setupPhase.step(AtfGherkinKeyword.GIVEN, stepTitle, page.url(), "",
+                    assertions, PracticeShopReportUiActionAdapters.from(actions.drain()),
+                    apiEvidence, ReportScreenshotPolicy.CapturePoint.CHECKPOINT, status);
+            setupStepPublished = true;
+        }
+
+        /** The business body does not exist in the report until setup has passed. */
+        public void finishSetup(AtfReportStatus status) {
+            if (setupPhase == null || setupFinished) {
+                throw new IllegalStateException("Explicit authenticated setup is not open");
+            }
+            setupPhase.complete(status);
+            setupFinished = true;
+            if (status == AtfReportStatus.PASS) {
+                body = scenario.startPhase("TEST BODY");
+            } else {
+                scenario.complete(status);
+                complete = true;
+            }
         }
 
         /**
@@ -207,6 +255,7 @@ public final class PracticeShopE2eContext implements AutoCloseable {
 
         public void checkpoint(Page page, PlaywrightActionSequence actions,
                                PracticeShopPurchaseCheckpoint checkpoint) {
+            if (body == null) throw new IllegalStateException("TEST BODY cannot start before setup passes");
             var capturePoint = checkpoint.passed()
                     ? ReportScreenshotPolicy.CapturePoint.CHECKPOINT
                     : ReportScreenshotPolicy.CapturePoint.FAILURE;
@@ -227,6 +276,7 @@ public final class PracticeShopE2eContext implements AutoCloseable {
         public void pass(Page page, PlaywrightActionSequence actions,
                          String evidenceTitle,
                          Collection<AtfAssertion> assertions) {
+            if (body == null) throw new IllegalStateException("TEST BODY cannot start before setup passes");
             String payload = capture(page, evidenceTitle, ReportScreenshotPolicy.CapturePoint.FINAL);
             UiScreenValidation.Evidence evidence = new UiScreenValidation.Evidence(
                     evidenceTitle, payload, !payload.isBlank());
@@ -246,6 +296,7 @@ public final class PracticeShopE2eContext implements AutoCloseable {
         }
 
         public void complete(AtfReportStatus status) {
+            if (body == null) throw new IllegalStateException("TEST BODY cannot start before setup passes");
             publishNetworkInspector();
             body.complete(status);
             scenario.complete(status);
@@ -254,6 +305,30 @@ public final class PracticeShopE2eContext implements AutoCloseable {
 
         public void fail(Page page, PlaywrightActionSequence actions, Throwable failure) {
             if (complete) return;
+            if (body == null && setupPhase != null && !setupFinished) {
+                try {
+                    if (!setupStepPublished) {
+                        AtfAssertion failed = new AtfAssertion("Authenticated account setup",
+                                "registration/login setup passes before TEST BODY",
+                                "setup failed; business flow was not started", false);
+                        setupPhase.step(AtfGherkinKeyword.GIVEN,
+                                "authenticated account setup completes before the purchase flow",
+                                page.url(), "", List.of(failed),
+                                PracticeShopReportUiActionAdapters.from(actions.drain()),
+                                setupEvidence(), ReportScreenshotPolicy.CapturePoint.FAILURE,
+                                AtfReportStatus.FAIL);
+                        setupStepPublished = true;
+                    }
+                    setupPhase.complete(AtfReportStatus.FAIL);
+                    setupFinished = true;
+                    scenario.complete(AtfReportStatus.FAIL);
+                } catch (IllegalStateException alreadyClosed) {
+                    // Preserve the original setup failure if report publication already closed the phase.
+                } finally {
+                    complete = true;
+                }
+                return;
+            }
             try {
                 publishNetworkInspector();
                 String screenshot = "";
@@ -284,11 +359,20 @@ public final class PracticeShopE2eContext implements AutoCloseable {
 
         @Override public void close() {
             if (!complete) {
-                try {
-                    complete(AtfReportStatus.FAIL);
+                if (body == null) {
+                    fail(page(), actions(), new IllegalStateException("authenticated setup did not complete"));
+                } else {
+                    try { complete(AtfReportStatus.FAIL); }
+                    finally { complete = true; }
                 }
-                finally { complete = true; }
             }
+        }
+
+        private List<ReportExecutionEvidence> setupEvidence() {
+            List<ReportExecutionEvidence> evidence = new ArrayList<>();
+            evidence.addAll(apiNetwork.evidence(atf.ui.practiceshop.config.PracticeShopApiCheckpoint.REGISTRATION));
+            evidence.addAll(apiNetwork.evidence(atf.ui.practiceshop.config.PracticeShopApiCheckpoint.LOGIN));
+            return List.copyOf(evidence);
         }
 
         private void publishNetworkInspector() {
