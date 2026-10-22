@@ -4,6 +4,7 @@ import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.model.ReportExecutionEvidence;
+import atf.api.reporting.ui.model.AtfUiActionRecord;
 
 import java.util.List;
 

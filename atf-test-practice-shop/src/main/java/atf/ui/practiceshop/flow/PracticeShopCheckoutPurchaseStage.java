@@ -67,16 +67,12 @@ final class PracticeShopCheckoutPurchaseStage {
         }
 
         PracticeShopBillingPage billing = new PracticeShopBillingPage(page, locators, actions);
-        billing.fill(configuration.checkout().billing());
         var address = configuration.checkout().billing();
+        var billingValidation = configuration.validationProfile().apiEvidenceRequired()
+                ? validateConfiguredBilling(billing, context, address)
+                : validateLookupBilling(billing, context, address);
         context.publish(context.checkpoint(PracticeShopPurchaseTraceStep.BILLING,
-                context.pageValidator().validateValues(page, PracticeShopBillingPage.class, Map.of(
-                        PracticeShopControl.COUNTRY, address.country(),
-                        PracticeShopControl.POSTAL_CODE, address.postalCode(),
-                        PracticeShopControl.HOUSE_NUMBER, address.houseNumber(),
-                        PracticeShopControl.STREET, address.street(),
-                        PracticeShopControl.CITY, address.city(),
-                        PracticeShopControl.STATE, address.state())),
+                billingValidation,
                 List.of(), List.of())
                 .withAdditionalAssertions(context.purchaseScreenValidator().billing(page)));
         billing.proceedToPayment();
@@ -116,5 +112,29 @@ final class PracticeShopCheckoutPurchaseStage {
                 .withAdditionalAssertions(context.purchaseScreenValidator().orderConfirmation(page)));
         return new PracticeShopPurchaseFlow.PurchaseResult(line.productName(), line.quantity(),
                 configuration.checkout().paymentMethod(), confirmation);
+    }
+
+    private static PracticeShopPageValidationResult validateConfiguredBilling(
+            PracticeShopBillingPage billing, PracticeShopPurchaseJourneyContext context,
+            atf.ui.practiceshop.config.PracticeShopBillingAddress address) {
+        billing.fill(address);
+        return context.pageValidator().validateValues(context.page(), PracticeShopBillingPage.class, Map.of(
+                PracticeShopControl.COUNTRY, address.country(),
+                PracticeShopControl.POSTAL_CODE, address.postalCode(),
+                PracticeShopControl.HOUSE_NUMBER, address.houseNumber(),
+                PracticeShopControl.STREET, address.street(),
+                PracticeShopControl.CITY, address.city(),
+                PracticeShopControl.STATE, address.state()));
+    }
+
+    private static PracticeShopPageValidationResult validateLookupBilling(
+            PracticeShopBillingPage billing, PracticeShopPurchaseJourneyContext context,
+            atf.ui.practiceshop.config.PracticeShopBillingAddress address) {
+        billing.fillFromPostalLookup(address);
+        return context.pageValidator().validatePopulatedValues(context.page(), PracticeShopBillingPage.class,
+                Map.of(PracticeShopControl.COUNTRY, address.country(),
+                        PracticeShopControl.POSTAL_CODE, address.postalCode(),
+                        PracticeShopControl.HOUSE_NUMBER, address.houseNumber()),
+                PracticeShopControl.STREET, PracticeShopControl.CITY, PracticeShopControl.STATE);
     }
 }

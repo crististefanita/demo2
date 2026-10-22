@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @AtfComponentTest
 class PracticeShopE2eSetupAssertionsTest {
     @Test
-    void guestSetupSeparatesFixtureOwnershipFromWhetherTheJourneyConsumesIt() {
+    void guestSetupDoesNotSurfaceAnAccountFixtureThatTheJourneyDoesNotUse() {
         PracticeShopConfiguration configuration = PracticeShopConfigurationLoader.load();
 
         List<AtfAssertion> assertions = PracticeShopE2eContext.setupAssertions(configuration);
@@ -25,10 +25,10 @@ class PracticeShopE2eSetupAssertionsTest {
         AtfAssertion accountSetup = assertion(assertions, "Account setup");
 
         assertTrue(assertions.stream().allMatch(AtfAssertion::passed));
-        assertEquals(configuration.accountPolicy().expectedEvidence(), fixturePolicy.expected());
+        assertEquals("not required for guest journey", fixturePolicy.expected());
         assertEquals(fixturePolicy.expected(), fixturePolicy.actual());
-        assertTrue(accountSetup.actual().contains("guest journey"));
-        assertTrue(accountSetup.actual().contains("not consumed"));
+        assertEquals("not required for guest journey", accountSetup.actual());
+        assertFalse(assertion(assertions, "Checkout mode").actual().contains("accountFile"));
     }
 
     @Test
@@ -41,22 +41,22 @@ class PracticeShopE2eSetupAssertionsTest {
         List<AtfAssertion> assertions = PracticeShopE2eContext.setupAssertions(guest);
 
         assertTrue(assertions.stream().allMatch(AtfAssertion::passed));
-        assertTrue(assertion(assertions, "Account setup").actual().contains("fixture missing"));
+        assertEquals("not required for guest journey", assertion(assertions, "Account setup").actual());
         assertTrue(assertion(assertions, "Account fixture policy").passed());
     }
 
     @Test
-    void fixtureOutsideOwnedTestResourcesFailsOnlyTheOwnershipCheck(@TempDir Path temp) {
+    void unusedFixtureOutsideOwnedTestResourcesDoesNotBlockGuestJourney(@TempDir Path temp) {
         PracticeShopConfiguration base = PracticeShopConfigurationLoader.load();
         PracticeShopConfiguration guest = withAccountFile(base, temp.resolve("account.properties"));
 
         List<AtfAssertion> assertions = PracticeShopE2eContext.setupAssertions(guest);
 
-        AtfAssertion fixturePolicy = assertion(assertions, "Account fixture policy");
-        assertFalse(fixturePolicy.passed());
-        assertEquals("fixture path outside module-owned src/test/resources", fixturePolicy.actual());
-        assertTrue(assertions.stream().filter(candidate -> !candidate.name().equals(fixturePolicy.name()))
-                .allMatch(AtfAssertion::passed));
+        assertTrue(assertions.stream().allMatch(AtfAssertion::passed));
+        assertEquals("not required for guest journey", assertion(assertions,
+                "Account fixture policy").actual());
+        assertEquals("guest checkout; account fixture not required",
+                assertion(assertions, "Checkout mode").actual());
     }
 
     private static AtfAssertion assertion(List<AtfAssertion> assertions, String name) {

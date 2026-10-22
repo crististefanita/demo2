@@ -8,7 +8,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Typed, browser-neutral composition of the three evidence axes.
+ * Typed, browser-neutral composition of the evidence and disclosure policies.
  *
  * <p>The profile is policy and provenance, not a browser executor. A
  * composition root maps YAML or builder input to this object and supplies
@@ -55,7 +55,7 @@ public record ReportEvidenceProfile(ReportEvidenceFlowMode flowMode,
                 ReportUiActionDetailsMode.INCLUDED_COLLAPSED);
     }
 
-    /** Maps the three documented YAML values at a composition boundary. */
+    /** Maps the legacy three YAML values, defaulting action details to included/collapsed. */
     public static ReportEvidenceProfile fromConfig(String flowMode,
                                                    String screenshotPolicy,
                                                    String captureSource) {

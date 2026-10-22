@@ -15,7 +15,6 @@ import atf.ui.practiceshop.locators.PracticeShopLocators;
 import atf.ui.practiceshop.support.PracticeShopApiNetworkJournal;
 import atf.ui.practiceshop.support.PracticeShopE2eContext;
 import atf.ui.practiceshop.support.PracticeShopPurchaseCheckpoint;
-import atf.ui.practiceshop.support.PracticeShopRuntimeDiagnostics;
 import atf.ui.practiceshop.support.PracticeShopScreenshotPolicy;
 import com.microsoft.playwright.Page;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -273,6 +272,7 @@ public final class PracticeShopE2eTestSupport {
         private final PlaywrightActionSequence actions;
         private final PracticeShopE2eContext.Scenario scenario;
         private boolean completed;
+        private boolean failed;
 
         private E2eSetup(E2eHarness harness, PlaywrightActionSequence actions,
                          PracticeShopE2eContext.Scenario scenario) {
@@ -289,30 +289,32 @@ public final class PracticeShopE2eTestSupport {
         public PracticeShopTestSupport.AccountSetupMode accountSetupMode() { return harness.accountSetupMode(); }
         public Path registrationProfileFile() { return harness.registrationProfileFile(); }
         public String accountRunScope() { return harness.accountRunScope(); }
-        public void authenticatedSessionEstablished() {
-            harness.context().runtimeDiagnostics().markAuthenticated();
-        }
-
-        public void complete(String title, Collection<AtfAssertion> assertions,
-                             Collection<atf.api.reporting.model.ReportExecutionEvidence> apiEvidence) {
-            if (completed) throw new IllegalStateException("SETUP has already been completed");
+        public void checkpoint(AtfGherkinKeyword keyword, String title, Collection<AtfAssertion> assertions,
+                               Collection<atf.api.reporting.model.ReportExecutionEvidence> apiEvidence) {
+            if (completed || failed) throw new IllegalStateException("SETUP is already finished");
             AtfReportStatus status = assertions.stream().allMatch(AtfAssertion::passed)
                     ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
-            scenario.setupCheckpoint(page(), actions, AtfGherkinKeyword.GIVEN, title,
-                    assertions, apiEvidence, status);
-            scenario.finishSetup(status);
-            completed = status == AtfReportStatus.PASS;
-            if (status != AtfReportStatus.PASS) {
+            scenario.setupCheckpoint(page(), actions, keyword, title, assertions, apiEvidence, status);
+            if (status == AtfReportStatus.FAIL) {
+                failed = true;
+                scenario.finishSetup(AtfReportStatus.FAIL);
                 throw new AssertionError("Authenticated account setup failed; TEST BODY was not started");
             }
         }
 
+        public void complete() {
+            if (completed || failed) throw new IllegalStateException("SETUP is already finished");
+            scenario.finishSetup(AtfReportStatus.PASS);
+            completed = true;
+        }
+
         public void fail(String title, Collection<AtfAssertion> assertions,
                          Collection<atf.api.reporting.model.ReportExecutionEvidence> apiEvidence) {
-            if (completed) throw new IllegalStateException("SETUP has already been completed");
+            if (completed || failed) throw new IllegalStateException("SETUP is already finished");
             scenario.setupCheckpoint(page(), actions, AtfGherkinKeyword.GIVEN, title,
                     assertions, apiEvidence, AtfReportStatus.FAIL);
             scenario.finishSetup(AtfReportStatus.FAIL);
+            failed = true;
         }
 
         private boolean completed() { return completed; }
@@ -326,10 +328,6 @@ public final class PracticeShopE2eTestSupport {
         public PracticeShopLocators locators() { return harness.locators(); }
         public Page page() { return context().page(); }
         public PracticeShopApiNetworkJournal apiNetwork() { return context().apiNetwork(); }
-        public PracticeShopRuntimeDiagnostics runtimeDiagnostics() { return context().runtimeDiagnostics(); }
-
-        /** Called only after the account page proves the authenticated browser session. */
-        public void authenticatedSessionEstablished() { runtimeDiagnostics().markAuthenticated(); }
 
         public void checkpoint(PracticeShopPurchaseCheckpoint checkpoint) {
             scenario.checkpoint(page(), actions, checkpoint);
@@ -340,7 +338,6 @@ public final class PracticeShopE2eTestSupport {
         }
 
         public void completePurchase() {
-            runtimeDiagnostics().assertClean();
             scenario.complete(AtfReportStatus.PASS);
         }
     }

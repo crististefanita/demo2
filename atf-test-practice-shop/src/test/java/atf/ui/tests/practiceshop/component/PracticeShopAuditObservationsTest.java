@@ -45,12 +45,15 @@ class PracticeShopAuditObservationsTest {
                 new UiScreenValidation.Evidence("product", "", false));
 
         var observations = actions.snapshot();
-        assertEquals(2, observations.size());
+        assertEquals(3, observations.size());
         assertTrue(observations.stream().allMatch(row -> row.source().name().equals("OBSERVE")));
-        assertEquals("Audit screen contract", observations.get(0).operation());
-        assertEquals("Audit API exchange #1", observations.get(1).operation());
-        assertTrue(observations.get(1).observed().contains("status=200"));
-        assertTrue(observations.get(1).observed().contains("transport=LIVE / HTTP"));
+        assertEquals("Replay checkpoint", observations.get(0).operation());
+        assertTrue(observations.get(0).expected().contains("perform the actions above"));
+        assertTrue(observations.get(0).observed().contains("visible assertions=1/1"));
+        assertEquals("Audit screen contract", observations.get(1).operation());
+        assertEquals("Audit API exchange #1", observations.get(2).operation());
+        assertTrue(observations.get(2).observed().contains("status=200"));
+        assertTrue(observations.get(2).observed().contains("transport=LIVE / HTTP"));
     }
 
     @Test
@@ -67,8 +70,28 @@ class PracticeShopAuditObservationsTest {
         PracticeShopAuditObservations.recordCheckpoint(actions, page, checkpoint,
                 new UiScreenValidation.Evidence("confirmation", "", false));
 
-        assertEquals(1, actions.snapshot().size());
-        assertEquals("Audit screen contract", actions.snapshot().get(0).operation());
+        assertEquals(2, actions.snapshot().size());
+        assertEquals("Replay checkpoint", actions.snapshot().get(0).operation());
+        assertEquals("Audit screen contract", actions.snapshot().get(1).operation());
+    }
+
+    @Test
+    void marksOnlyTheThenCheckpointAsTheTerminalReplayCondition() {
+        PlaywrightActionSequence actions = new PlaywrightActionSequence();
+        Page page = page(CONFIGURATION.uri(PracticeShopUiRoutes.CHECKOUT).toString());
+        var checkpoint = new PracticeShopPurchaseCheckpoint(
+                AtfGherkinKeyword.THEN,
+                "order confirmation is displayed",
+                List.of(new AtfAssertion("Confirmation", "visible", "visible", true)),
+                List.of());
+
+        PracticeShopAuditObservations.recordCheckpoint(actions, page, checkpoint,
+                new UiScreenValidation.Evidence("confirmation", "", false));
+
+        var replay = actions.snapshot().getFirst();
+        assertEquals("Replay checkpoint", replay.operation());
+        assertTrue(replay.observed().contains("terminal=success condition"));
+        assertTrue(replay.expected().contains("order confirmation is displayed"));
     }
 
     @Test

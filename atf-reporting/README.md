@@ -49,7 +49,7 @@ flowchart LR
 | `src/main` | librăria producție și artifactul publicat | orice modul ATF, browser, fixture de business |
 | `src/test` | guard-uri și contracte standalone | mock, Playwright, endpoint live |
 | `atf-reporting-tests` | consumatorul canonic pentru component/integration API și UI/E2E | nu intră în JAR-ul reporting |
-| alte module | nu trebuie să fie consumatori direcți în ținta de decuplare | dependențe test-scope rămase se urmăresc separat în feedback |
+| alte module | pot consuma API-ul public pentru normalizarea modelelor la boundary-ul propriu; nu înlocuiesc composition root-ul canonic | policy-ul rămâne în consumer, iar cuplajele test-scope se urmăresc separat în feedback |
 
 <details>
 <summary><strong>Dovadă standalone, adopție și limită de decuplare</strong></summary>
@@ -60,13 +60,15 @@ flowchart LR
 - `atf-reporting` este renderer-neutral și publică HTML prin API-ul
   `atf.api.reporting.*`: contracte, records immutable, porturi, evidence,
   snapshot și renderer;
-- `ReportModelAdapters` este seam-ul generic, reflection-only pentru request,
+- `ReportModelAdapters` este adaptorul public generic, reflection-only pentru request,
   execution/retry/provenance, assertions, UI actions și statusuri; decodarea URI
   este deținută de `ReportQueryParameters`. Aceste API-uri nu conțin reguli de
   aplicație și nu adaugă dependență compile-time către `atf-core`;
 - `CoreReportPortsAdapter` rămâne exclusiv în test/composition scope și folosește
   aceiași adaptoare, fără a întreține o a doua mapare;
-- aceste seam-uri sunt pentru migrare/interoperabilitate, nu cod de business:
+- aceste adaptoare pot fi folosite de consumatori în cod de producție numai la
+  boundary-ul de normalizare/interoperabilitate; nu implementează policy și nu
+  devin layer de business:
   execution decide schimbul HTTP, validation decide verdictul, UI produce
   acțiunea, iar reporting conservă și publică evidence-ul. Consumatorul păstrează
   doar contextul propriu — de exemplu, trace-ul și redactarea identității Shop;
@@ -272,10 +274,10 @@ UI checkpoint
 - `Execution evidence · 1 attempts` nu poate rămâne un titlu repetat fără
   context: exchange-ul trebuie identificat prin disclosure-ul părinte sau printr-un
   label semantic per exchange;
-- diagnosticările runtime, dacă un consumer trebuie să le expună, aparțin
-  evidence-ului tehnic și nu creează un pas Gherkin de business;
-- `API network inspector` conține numai exchange-uri API și checkpoint-urile
-  lor cauzale; erorile runtime neașteptate rămân failure evidence, nu API evidence;
+- `API network inspector` acceptă numai exchange-uri HTTP și checkpoint-urile
+  lor cauzale; nu există un canal generic pentru console/page diagnostics;
+- `Technical diagnostics` este derivat numai din exchange-uri HTTP eșuate și
+  rămâne transport evidence, nu un pas Gherkin sau o validare de business;
 - nodurile tehnice folosesc accentul vizual comun, dar nu inventează un verdict
   sau un status pentru un exchange;
 - copiii tehnici ai acestor noduri moștenesc aceeași familie vizuală, fără să
@@ -299,6 +301,15 @@ Rendererul nu inventează statusuri.
 `ReportNetworkInspector.JourneyAggregate` este proiecția semantică a journey-ului;
 nu este un al doilea trace și nu înlocuiește evidence-ul canonical al unui exchange.
 
+Contractul pentru un summary solicitat este:
+
+- lifecycle-ul îl publică o singură dată, după checkpoint-urile UI/API și failure evidence, chiar înainte de închiderea fazei;
+- summary-ul este ultimul nod tehnic al `TEST BODY`, fără checkpoint sau dovadă de eșec după el;
+- o cerere explicită fără exchange-uri produce `0 exchanges`; profilul UI-only îl omite prin necerere;
+- summary-ul rămâne informativ (`PASS`); verdictul aparține checkpoint-urilor și scenariului.
+
+`NetworkInspectorSummaryRoleTest` verifică ordinea în ambele moduri de randare.
+
 ```mermaid
 flowchart LR
     Checkpoint["un singur Gherkin checkpoint"] -->|păstrează| Ui["UI validation"]
@@ -319,11 +330,9 @@ flowchart LR
 - `signatures` grupează signature-ul safe cu count și statusuri și îl afișează
   o singură dată ca un card compact cu method, route, authentication, evidence
   source și phase;
-- `diagnostics` deduplicatează response/console/page după method/route/status și
-  păstrează `count` și `sources`, fără mesaje volatile; pentru semnale fără facts
-  de transport, tripletul gol nu este o identitate suficientă: mesajul exact este
-  folosit numai intern pentru grouping, iar HTML-ul expune token-uri bounded
-  distincte `UNBOUND-n`, cu count comun numai pentru repetări reale;
+- `diagnostics` deduplicatează eșecurile HTTP după method/route/status/reason și
+  păstrează `count` și sursa de transport; semnalele browser fără un exchange
+  asociat nu sunt colectate și nu pot intra în aggregate;
 - body-urile JSON, headerele sensibile și execution details rămân în disclosure-ul
   canonical al exchange-ului; nu se copiază în sumar;
 - indexul atașat request-ului de inspector conține numai trei facts bounded:
@@ -349,7 +358,8 @@ Contractul de trace se citește astfel:
   păstrează `API validation → Exchange → request → response → execution`, fără
   JSON duplicat; retry-ul rămâne în evidence-ul aceluiași exchange;
 - consumerul atașează API validation la același nod Gherkin cu `UI validation`;
-  un diagnostic runtime nu introduce o propoziție Gherkin suplimentară.
+  diagnosticul tehnic de transport provine din exchange și nu introduce o
+  propoziție Gherkin suplimentară.
 
 Contractul este verificat de testul component
 [`keepsUiAndApiValidationUnderOneGherkinCheckpoint`](../atf-reporting-tests/src/test/java/atf/api/reporting/ui/ExtentReportUiEvidencePublishingTest.java):
@@ -378,7 +388,8 @@ atf.api.reporting
 ├── html/            fallback document și script builder
 ├── theme/           tokens, CSS selectors, theme/evidence providers
 ├── runtime/         JavaScript Extent split pe responsabilități
-├── ui/              contracte, audit model și UI lifecycle
+├── ui/              contracte, audit și UI lifecycle
+│   └── model/       evidence rows tipizate pentru acțiuni UI
 ├── api/             acceptance/report contract și JSON evidence audit
 ├── artifact/        inspector și contracte ale artifactului
 ├── publication/     workspace, coordinator, finalizer
@@ -687,8 +698,11 @@ publication policy, validarea target-ului și proiecția în artifact.
 - contractul este verificat în `atf-reporting-tests` prin teste unitare și
   integration pe HTML local, fără browser și fără Practice Shop;
 - seam-ul typed pentru configurare extinsă este `ReportEvidenceProfile`;
-- profilul compune `ReportEvidenceFlowMode`, `ReportScreenshotPolicy` și
-  `ReportEvidenceCaptureSource`;
+- profilul compune `ReportEvidenceFlowMode`, `ReportScreenshotPolicy`,
+  `ReportEvidenceCaptureSource` și `ReportUiActionDetailsMode`;
+- `ReportUiActionDetailsMode` selectează `INCLUDED_COLLAPSED` sau `SUMMARY_ONLY`;
+  schimbă numai disclosure-ul acțiunilor Playwright, nu capturarea, aserțiunile
+  sau verdictul;
 - `ReportEvidenceCaptureProvider` este seam-ul public pentru browser sau mock;
   `ReportEvidenceProfile.capture(...)` aplică policy înainte de provider,
   verifică source-ul și cere PNG Base64 valid când captura este permisă;

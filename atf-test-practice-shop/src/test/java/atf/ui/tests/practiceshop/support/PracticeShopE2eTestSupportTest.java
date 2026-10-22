@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -51,7 +52,7 @@ class PracticeShopE2eTestSupportTest {
         var authenticated = Class.forName(
                         "atf.ui.tests.practiceshop.e2e.PracticeShopAuthenticatedPurchaseE2eTest")
                 .getAnnotation(PracticeShopTestSupport.AuthenticatedE2e.class);
-        assertEquals(PracticeShopTestSupport.AccountSetupMode.REUSE_FIXTURE, authenticated.accountSetup());
+        assertEquals(PracticeShopTestSupport.AccountSetupMode.REGISTER_PER_RUN, authenticated.accountSetup());
 
         var configured = PracticeShopConfigurationLoader.load();
         var uiOnly = PracticeShopE2eTestSupport.configurationForHarnessProfile(
@@ -110,5 +111,16 @@ class PracticeShopE2eTestSupportTest {
         assertSame(first, cache.putIfAbsent("class-run", first));
         assertSame(first, cache.putIfAbsent("class-run", second));
         assertSame(first, cache.get("class-run"));
+    }
+
+    @Test
+    void uiOnlyRegistrationStillReportsTheObservedBrowserResponseStatus() {
+        var success = PracticeShopAuthenticatedAccountTestSupport.registrationAssertions(201, java.util.List.of());
+        var failure = PracticeShopAuthenticatedAccountTestSupport.registrationAssertions(409, java.util.List.of());
+
+        assertEquals("HTTP 201", success.getFirst().actual());
+        assertTrue(success.getFirst().passed());
+        assertEquals("HTTP 409", failure.getFirst().actual());
+        assertFalse(failure.getFirst().passed());
     }
 }

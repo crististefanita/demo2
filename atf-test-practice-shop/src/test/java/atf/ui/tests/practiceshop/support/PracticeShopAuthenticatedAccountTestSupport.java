@@ -1,6 +1,7 @@
 package atf.ui.tests.practiceshop.support;
 
 import atf.api.reporting.contract.AtfAssertion;
+import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.ui.practiceshop.config.PracticeShopApiCheckpoint;
 import atf.ui.practiceshop.config.PracticeShopCredentials;
 import atf.ui.practiceshop.config.PracticeShopRegistrationData;
@@ -25,7 +26,6 @@ public final class PracticeShopAuthenticatedAccountTestSupport {
         PracticeShopCredentials credentials;
         List<AtfAssertion> assertions = new ArrayList<>();
         List<atf.api.reporting.model.ReportExecutionEvidence> apiEvidence = new ArrayList<>();
-        String title;
 
         if (setup.accountSetupMode() == PracticeShopTestSupport.AccountSetupMode.REGISTER_PER_RUN) {
             PracticeShopRegistrationProfile profile = PracticeShopRegistrationProfile.load(
@@ -38,8 +38,10 @@ public final class PracticeShopAuthenticatedAccountTestSupport {
                 registrationPage.open(setup.configuration());
                 registrationPage.fill(registration);
                 long sequenceFence = setup.apiNetwork().sequenceMarker();
+                int responseStatus;
                 try {
-                    registrationPage.submitAndAwaitApiResponse(setup.configuration().api().endpoint());
+                    responseStatus = registrationPage.submitAndAwaitApiResponse(
+                            setup.configuration().api().endpoint());
                 } catch (RuntimeException | AssertionError uncertainSubmission) {
                     List<AtfAssertion> failedSetup = new ArrayList<>(
                             setup.apiNetwork().registrationConfirmed(sequenceFence,
@@ -52,18 +54,27 @@ public final class PracticeShopAuthenticatedAccountTestSupport {
                             setup.apiNetwork().evidence(PracticeShopApiCheckpoint.REGISTRATION));
                     throw uncertainSubmission;
                 }
-                assertions.addAll(setup.apiNetwork().registrationConfirmed(sequenceFence,
-                        setup.configuration().api().endpoint()));
+                assertions.addAll(registrationAssertions(responseStatus,
+                        setup.apiNetwork().registrationConfirmed(sequenceFence,
+                                setup.configuration().api().endpoint())));
                 apiEvidence.addAll(setup.apiNetwork().evidence(PracticeShopApiCheckpoint.REGISTRATION));
+                setup.checkpoint(AtfGherkinKeyword.GIVEN, "a new account is registered",
+                        assertions, apiEvidence);
                 credentials = profile.credentials(registration);
                 CLASS_RUN_ACCOUNTS.putIfAbsent(setup.accountRunScope(), credentials);
-                title = "a new account is registered and signed in";
             } else {
-                title = "the class-run account is reused and signed in";
+                setup.checkpoint(AtfGherkinKeyword.GIVEN,
+                        "the account registered earlier in this class-run is reused",
+                        List.of(new AtfAssertion("Class-run account", "a registered account is available",
+                                "the run-scoped account is reused; credentials are redacted", true)), List.of());
             }
         } else {
             credentials = PracticeShopCredentials.load(setup.configuration().accountFile());
-            title = "the configured account is signed in";
+            boolean credentialsAvailable = credentials.hasLiveAccountCandidate();
+            setup.checkpoint(AtfGherkinKeyword.GIVEN, "the configured local account fixture is loaded",
+                    List.of(new AtfAssertion("Local account fixture", "valid credentials are available",
+                            credentialsAvailable ? "local credentials are available; values are redacted"
+                                    : "local credentials are incomplete", credentialsAvailable)), List.of());
         }
 
         new PracticeShopAccountFlow(setup.locators()).loginAndAssertAccount(
@@ -73,9 +84,18 @@ public final class PracticeShopAuthenticatedAccountTestSupport {
                 .assertions());
         assertions.addAll(setup.apiNetwork().loginConfirmed(setup.configuration().api(), credentials));
         apiEvidence.addAll(setup.apiNetwork().evidence(PracticeShopApiCheckpoint.LOGIN));
-        setup.authenticatedSessionEstablished();
-        setup.complete(title, assertions, apiEvidence);
+        setup.checkpoint(AtfGherkinKeyword.AND, "the account is signed in and its session is confirmed",
+                assertions, apiEvidence);
+        setup.complete();
         return credentials;
+    }
+
+    static List<AtfAssertion> registrationAssertions(int responseStatus,
+                                                       List<AtfAssertion> journalAssertions) {
+        if (!journalAssertions.isEmpty()) return List.copyOf(journalAssertions);
+        boolean successful = responseStatus >= 200 && responseStatus < 300;
+        return List.of(new AtfAssertion("Registration browser response", "HTTP 2xx",
+                "HTTP " + responseStatus, successful));
     }
 
     /**

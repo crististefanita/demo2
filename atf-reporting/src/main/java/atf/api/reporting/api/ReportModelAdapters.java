@@ -3,8 +3,8 @@ package atf.api.reporting.api;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
-import atf.api.reporting.ui.AtfUiActionRecord;
-import atf.api.reporting.ui.AtfUiEvidenceSource;
+import atf.api.reporting.ui.model.AtfUiActionRecord;
+import atf.api.reporting.ui.model.AtfUiEvidenceSource;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

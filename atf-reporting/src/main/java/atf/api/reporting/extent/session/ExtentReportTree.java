@@ -20,7 +20,7 @@ import atf.api.reporting.semantic.AtfReportSemanticSnapshot;
 import atf.api.reporting.configuration.ReportingSettings;
 import atf.api.reporting.security.SensitiveDataRedactor;
 import atf.api.reporting.evidence.profile.ReportUiActionDetailsMode;
-import atf.api.reporting.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.model.AtfUiActionRecord;
 import com.aventstack.extentreports.ExtentReports;
 import com.aventstack.extentreports.ExtentTest;
 

@@ -4,6 +4,7 @@ import atf.api.reporting.ui.contract.ReportUiContract;
 import atf.ui.tests.extent.support.lifecycle.UiAuditFlow;
 
 import atf.api.ui.playwright.PlaywrightActionSequence;
+import atf.api.ui.playwright.AtfLocator;
 import atf.ui.tests.extent.support.locators.ReportUiLocators;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
@@ -239,10 +240,10 @@ public final class ApiReportUiFlow {
         return card.page();
     }
 
-    private void expand(Locator control, atf.api.ui.playwright.AtfLocator action, String expected) {
+    private void expand(Locator control, AtfLocator action, String expected) {
         if (control.count() == 0) return;
         Locator firstControl = control.first();
-        var firstAction = new atf.api.ui.playwright.AtfLocator(action.locator().first(),
+        var firstAction = new AtfLocator(action.locator().first(),
                 action.selector() + " >> nth=0");
         if (!firstControl.isVisible()) return;
         if (!"true".equals(firstControl.getAttribute("aria-expanded"))) {

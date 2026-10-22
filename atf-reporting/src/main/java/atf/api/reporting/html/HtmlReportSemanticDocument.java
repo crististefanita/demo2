@@ -2,7 +2,7 @@ package atf.api.reporting.html;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
-import atf.api.reporting.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.model.AtfUiActionRecord;
 import atf.api.reporting.model.ReportField;
 import atf.api.reporting.model.ReportJsonBody;
 import atf.api.reporting.model.ReportExecutionModel;

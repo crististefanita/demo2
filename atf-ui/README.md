@@ -136,6 +136,9 @@ standard și fail-closed dacă nu poate provisiona browserul.
 `PlaywrightActionSequence` este recorderul, nu auditorul:
 
 - înregistrează ordinea, target-ul, expected, observed, durata și statusul;
+- ordinalul acțiunii este monoton pentru o secvență și continuă peste `drain()`;
+  în E2E, aceeași secvență păstrează identificarea între setup și checkpoint-urile
+  body-ului;
 - validatorul pur din `atf-reporting` decide dacă snapshot-ul DOM corespunde
   proiecției așteptate.
 

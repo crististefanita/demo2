@@ -177,11 +177,17 @@ flowchart LR
 
 </details>
 
-- `ReportEvidenceProfileTest` verifică filtrarea înainte de captură, potrivirea sursei și payload-ul PNG.
+- `ReportEvidenceProfileTest` verifică filtrarea înainte de captură, potrivirea sursei,
+  payload-ul PNG și selecția typed a detaliilor acțiunilor.
+- `ExtentReportUiEvidenceRenderingTest` verifică tabelul implicit și că
+  `SUMMARY_ONLY` păstrează un disclosure colapsat, fără tabelul detaliat sau
+  schimbarea capturii; rendererul nu execută acțiuni UI.
 - `ReportEvidenceProfileIntegrationTest` dovedește provider mock → sesiune → HTML local pentru ambele flow mode-uri.
 - `UNIFIED_FLOW` păstrează un singur request cu propoziția Gherkin finală, fără checkpoint-uri numerotate sau Gherkin duplicat; UI actions și assertions sunt agregate, iar validarea API rămâne un sibling cu exchange-urile sale. Sub `FINAL_ONLY` se publică doar captura `FINAL`.
 - `SCREEN_CHECKPOINTS` păstrează request-urile Gherkin independente.
-- Profilul typed combină flow mode, policy și source. Grouping-ul aparține lifecycle/publisher-ului din `atf-reporting`, nu consumerului; nu este necesar Practice Shop.
+- Profilul typed combină flow mode, screenshot policy, capture source și action-details mode.
+  Grouping-ul aparține lifecycle/publisher-ului din `atf-reporting`; alegerea modului
+  pentru o adnotare de consumer rămâne responsabilitatea acelui consumer.
 
 ## Matricea integration și boundary-ul verificat
 
@@ -234,7 +240,9 @@ Invarianturile browser sunt:
 - rândurile Network Inspector `Unique request signatures` și
   `Technical diagnostics` măsoară `34px` la ambele viewport-uri și sunt
   collapsed implicit, aliniate cu celelalte detalii API/UI;
-- nu apar erori browser console/page/request în rapoartele UI și API măsurate;
+- auditul browserului nu observă erori console/page/request când deschide
+  artifactele UI și API selectate; aceasta este dovadă de randare, nu evidence
+  publicată în raport;
 - raportul păstrează secțiunile, disclosure-urile collapsed la sosire,
   `SETUP → TEST BODY → Screen validation`, request/response JSON și glyph-ul
   `＋/−` inline înaintea propoziției, fără `<hr>` decorativ.
@@ -251,7 +259,7 @@ al modelului:
 
 ```mermaid
 flowchart LR
-    Evidence["typed exchanges + diagnostics"] -->|component| Aggregate["JourneyAggregate"]
+    Evidence["typed HTTP exchanges"] -->|component| Aggregate["JourneyAggregate"]
     Aggregate -->|integration| Publisher["Extent publisher"]
     Publisher -->|browser proof| Render["collapsed HTML"]
 ```
@@ -260,9 +268,8 @@ flowchart LR
 <summary><strong>Legendă — ce trebuie să treacă la fiecare nivel</strong></summary>
 
 - `ReportNetworkInspectorTest` verifică ordered facts, authentication,
-  correlation, transport counters, unique signatures și diagnostic dedupe,
-  inclusiv faptul că două semnale console/page necorelate nu sunt contopite doar
-  fiindcă method/route/status lipsesc;
+  correlation, transport counters, unique signatures și deduplicarea
+  diagnosticelor derivate din exchange-uri HTTP eșuate;
 - component/integration publisher tests verifică faptul că body-urile rămân în
   disclosures canonical și aggregate-ul nu primește credentiale sau mesaje
   volatile;

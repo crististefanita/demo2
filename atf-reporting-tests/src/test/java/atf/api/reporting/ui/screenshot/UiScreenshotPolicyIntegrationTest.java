@@ -1,10 +1,11 @@
-package atf.api.reporting.ui;
+package atf.api.reporting.ui.screenshot;
 
 import atf.api.reporting.console.AtfConsoleSink;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.support.ReportTestScreenshots;
 import atf.api.reporting.ui.contract.ReportUiContract;
+import atf.api.reporting.ui.UiExtentReportSession;
 import atf.api.testkit.AtfIntegrationTest;
 import org.junit.jupiter.api.Test;
 

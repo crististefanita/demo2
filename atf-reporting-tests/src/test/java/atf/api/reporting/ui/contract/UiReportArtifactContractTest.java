@@ -3,8 +3,8 @@ import atf.api.testkit.AtfUnitTest;
 
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
-import atf.api.reporting.ui.AtfUiActionRecord;
-import atf.api.reporting.ui.AtfUiEvidenceSource;
+import atf.api.reporting.ui.model.AtfUiActionRecord;
+import atf.api.reporting.ui.model.AtfUiEvidenceSource;
 import atf.api.reporting.console.AtfConsoleSink;
 import atf.api.reporting.support.ReportTestScreenshots;
 import atf.api.reporting.ui.UiExtentReportSession;

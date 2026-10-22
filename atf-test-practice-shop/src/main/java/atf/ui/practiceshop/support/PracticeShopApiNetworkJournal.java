@@ -8,7 +8,6 @@ import atf.api.core.http.request.HttpMethod;
 import atf.ui.practiceshop.api.PracticeShopApiOperation;
 import atf.ui.practiceshop.api.PracticeShopApiHttpStatus;
 import atf.ui.practiceshop.api.PracticeShopApiAuthType;
-import atf.ui.practiceshop.api.PracticeShopApiRequestFactory;
 import atf.ui.practiceshop.api.PracticeShopApiRoutes;
 import atf.ui.practiceshop.config.PracticeShopApiConfiguration;
 import atf.ui.practiceshop.config.PracticeShopCredentials;
@@ -21,9 +20,6 @@ import com.microsoft.playwright.Page;
 
 import java.util.ArrayList;
 import java.time.Instant;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
 import java.net.URI;
 import java.security.MessageDigest;
 import java.nio.charset.StandardCharsets;
@@ -90,7 +86,6 @@ public final class PracticeShopApiNetworkJournal {
     /** Internal composition seam for deterministic component tests; browser capture remains the live path. */
     void recordCapturedExchange(Exchange exchange) {
         Objects.requireNonNull(exchange, "exchange");
-        if (!PracticeShopApiTrafficCapture.isPublishable(exchange.method(), exchange.path())) return;
         exchanges.add(exchange.withTrace(sequence.incrementAndGet(), Instant.now(), phase(exchange.path())));
     }
 
@@ -122,7 +117,6 @@ public final class PracticeShopApiNetworkJournal {
                 exchanges, HttpMethod.POST.value(), PracticeShopApiRoutes.LOGIN,
                 exchange -> exchange.status() == 200);
         login = recoverLoginBody(login, apiConfiguration, credentials);
-        login = replaceWithIdentityRedacted(login);
         store(PracticeShopApiCheckpoint.LOGIN, List.of(toEvidence(login)));
         return PracticeShopApiAssertions.login(login);
     }
@@ -142,7 +136,7 @@ public final class PracticeShopApiNetworkJournal {
                 .filter(exchange -> sameHost(exchange.url(), endpoint))
                 .toList();
         List<Exchange> safeSubmissions = submissions.stream()
-                .map(exchange -> replaceWithIdentityRedacted(exchange.withPhase("account-setup")))
+                .map(exchange -> exchange.withPhase("account-setup"))
                 .toList();
         if (!safeSubmissions.isEmpty()) {
             store(PracticeShopApiCheckpoint.REGISTRATION,
@@ -179,39 +173,11 @@ public final class PracticeShopApiNetworkJournal {
                 || apiConfiguration.mode() != atf.api.core.config.ApiTransportMode.LIVE) {
             return login;
         }
-        PracticeShopLoginBodyRecovery.Result recovery = PracticeShopLoginBodyRecovery.attempt(
-                () -> recoverLoginBody(apiConfiguration, credentials));
+        PracticeShopLoginBodyRecovery.Result recovery =
+                PracticeShopLoginBodyRecovery.recoverLive(apiConfiguration, credentials);
         // Browser evidence remains authoritative. A failed optional recovery is
         // still published as explicit evidence instead of being swallowed.
         return login.withResponseBody(recovery.effectiveBody());
-    }
-
-    private static String recoverLoginBody(PracticeShopApiConfiguration configuration,
-                                           PracticeShopCredentials credentials) throws IOException {
-        var request = new PracticeShopApiRequestFactory().login(credentials);
-        URI uri = configuration.endpoint().resolve(PracticeShopApiRoutes.LOGIN.substring(1));
-        HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
-        try {
-            connection.setConnectTimeout((int) configuration.timeout().toMillis());
-            connection.setReadTimeout((int) configuration.timeout().toMillis());
-            connection.setRequestMethod(HttpMethod.POST.value());
-            connection.setDoOutput(true);
-            connection.setRequestProperty("Accept", "application/json");
-            connection.setRequestProperty("Content-Type", "application/json");
-            byte[] body = request.bodyText().getBytes(StandardCharsets.UTF_8);
-            try (var output = connection.getOutputStream()) {
-                output.write(body);
-            }
-            int status = connection.getResponseCode();
-            if (status < 200 || status >= 300) {
-                throw new IOException("HTTP status " + status + " for " + PracticeShopApiRoutes.LOGIN);
-            }
-            try (InputStream input = connection.getInputStream()) {
-                return new String(input.readAllBytes(), StandardCharsets.UTF_8);
-            }
-        } finally {
-            connection.disconnect();
-        }
     }
 
     private static boolean bodyUnavailable(String body) {
@@ -345,18 +311,6 @@ public final class PracticeShopApiNetworkJournal {
         if (enabled(checkpoint)) evidenceByCheckpoint.put(checkpoint, List.copyOf(evidence));
     }
 
-    private Exchange replaceWithIdentityRedacted(Exchange exchange) {
-        if (exchange == null) return null;
-        Exchange safe = exchange.withIdentityRedaction();
-        for (int index = 0; index < exchanges.size(); index++) {
-            if (exchanges.get(index).sequence() == exchange.sequence()) {
-                exchanges.set(index, safe);
-                break;
-            }
-        }
-        return safe;
-    }
-
     private ReportExecutionEvidence toEvidence(Exchange exchange) {
         String host = URI.create(exchange.url()).getHost();
         String alias = serviceAlias.apply(host == null ? "" : host);
@@ -472,17 +426,6 @@ public final class PracticeShopApiNetworkJournal {
                     requestHeaders, responseHeaders, sequence, capturedAt, selectedPhase,
                     signature, digest, role, stepId, initiator, evidenceSource,
                     expected, observed, observedAuthMethod, failureReason);
-        }
-
-        public Exchange withIdentityRedaction() {
-            String safeRequest = PracticeShopJsonEvidence.redactRegistration(requestBody);
-            String safeResponse = PracticeShopJsonEvidence.redactRegistration(responseBody);
-            return new Exchange(method, path, url, status,
-                    safeRequest, safeResponse,
-                    requestHeaders, responseHeaders, sequence, capturedAt, phase,
-                    requestSignature(method, path, safeRequest), digest(method, path, status, safeRequest, safeResponse),
-                    role, stepId, initiator, evidenceSource, expected, observed,
-                    observedAuthMethod, failureReason);
         }
 
         public Exchange withObservedAuthMethod(String authMethod) {

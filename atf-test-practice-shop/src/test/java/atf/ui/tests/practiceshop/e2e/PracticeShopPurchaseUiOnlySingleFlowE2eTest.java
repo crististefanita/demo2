@@ -29,7 +29,6 @@ class PracticeShopPurchaseUiOnlySingleFlowE2eTest {
                     var result = new PracticeShopPurchaseFlow(journey.locators())
                             .purchaseConfiguredProduct(journey.page(), journey.actions(),
                                     journey.configuration(), journey::checkpoint);
-                    journey.runtimeDiagnostics().assertClean();
                     journey.pass("final order confirmation",
                             List.of(new AtfAssertion("Order confirmation",
                                     "confirmation includes a successful order and invoice",

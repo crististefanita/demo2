@@ -121,7 +121,7 @@ class HtmlReportViewsTest {
         var scenario = document.startScenario("NetworkTests", "nested aggregate", List.of("ui", "api"));
         var phase = scenario.addPhase("TEST BODY");
         var request = phase.addRequest("API network inspector", "TRACE", "network");
-        request.networkAggregate(ReportNetworkInspector.aggregate(List.of(), List.of(), List.of()));
+        request.networkAggregate(ReportNetworkInspector.aggregate(List.of(), List.of()));
         request.complete(AtfReportStatus.PASS);
         phase.complete(AtfReportStatus.PASS);
         scenario.complete(AtfReportStatus.PASS);

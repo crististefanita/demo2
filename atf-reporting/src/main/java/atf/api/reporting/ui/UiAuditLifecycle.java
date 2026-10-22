@@ -2,7 +2,7 @@ package atf.api.reporting.ui;
 
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
-import atf.api.reporting.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.model.AtfUiActionRecord;
 
 import java.util.Collection;
 import java.util.List;

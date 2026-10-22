@@ -28,7 +28,8 @@ class PracticeShopApiNetworkJournalTest {
     void selectedEvidencePublishesOnlyConfiguredAndValidatedCheckpointsInCaptureOrder() {
         var journal = new PracticeShopApiNetworkJournal(PracticeShopValidationProfile.UI_API,
                 PracticeShopApiEvidenceBinding.fromCsv(PracticeShopValidationProfile.UI_API, "product"));
-        journal.recordCapturedExchange(exchange("GET", "/users/me", "{}", "{}"));
+        journal.recordCapturedExchange(exchange("GET", "/session/status", "{}", "{}"));
+        journal.recordCapturedExchange(exchange("GET", "/session/status", "{}", "{}"));
         journal.recordCapturedExchange(exchange("GET", "/products/search?q=Widget",
                 "", "{\"data\":[{\"id\":\"p1\",\"name\":\"Widget\"}]}"));
         journal.recordCapturedExchange(exchange("GET", PracticeShopApiRoutes.product("p1"),
@@ -37,25 +38,27 @@ class PracticeShopApiNetworkJournalTest {
         journal.productReady("Widget", null);
 
         var selected = journal.selectedEvidence();
-        assertEquals(List.of("E1", "E2"), selected.stream()
+        assertEquals(List.of("E3", "E4"), selected.stream()
                 .map(evidence -> evidence.trace().eventId()).toList());
         assertTrue(selected.stream().allMatch(evidence ->
                 evidence.request().path().startsWith("/products")));
-        assertEquals(2, journal.allEvidence().size());
+        assertEquals(List.of("/session/status", "/session/status", "/products/search?q=Widget",
+                        "/products/p1"), journal.allEvidence().stream()
+                .map(evidence -> evidence.request().path()).toList());
+        assertEquals(4, journal.allEvidence().size());
     }
 
     @Test
-    void ambientSessionProbeNeverEntersTheJournalOrReportEvidence() {
+    void unboundRequestsAreRetainedButNotPublishedRegardlessOfTheirRoute() {
         var journal = new PracticeShopApiNetworkJournal(PracticeShopValidationProfile.UI_API,
                 PracticeShopApiEvidenceBinding.fromCsv(PracticeShopValidationProfile.UI_API, "product"));
-        journal.recordCapturedExchange(exchange("GET", "/users/me", "{}", "{}"));
+        journal.recordCapturedExchange(exchange("GET", "/session/status", "{}", "{}"));
+        journal.recordCapturedExchange(exchange("GET", "/session/status", "{}", "{}"));
 
         assertTrue(journal.selectedEvidence().isEmpty());
-        assertTrue(journal.allEvidence().isEmpty());
+        assertEquals(List.of("/session/status", "/session/status"), journal.allEvidence().stream()
+                .map(evidence -> evidence.request().path()).toList());
         assertTrue(journal.inspectorEvidence().isEmpty());
-        assertFalse(PracticeShopApiTrafficCapture.isPublishable("GET", "/users/me?source=bootstrap"));
-        assertTrue(PracticeShopApiTrafficCapture.isPublishable("GET", "/payment/check"));
-        assertTrue(PracticeShopApiTrafficCapture.isPublishable("POST", "/users/login"));
     }
 
     @Test
@@ -129,6 +132,24 @@ class PracticeShopApiNetworkJournalTest {
             assertFalse(published.contains(personalValue), "leaked value: " + personalValue);
         }
         assertFalse(journal.allEvidence().getFirst().request().bodyText().contains("Ada"));
+    }
+
+    @Test
+    void ordinaryApiExchangesRedactIdentityFieldsBeforeEnteringTheJournal() {
+        var journal = new PracticeShopApiNetworkJournal(PracticeShopValidationProfile.UI_API,
+                PracticeShopApiEvidenceBinding.fromCsv(PracticeShopValidationProfile.UI_API, "order"));
+        journal.recordCapturedExchange(exchange("POST", PracticeShopApiRoutes.GUEST_INVOICE_CREATE,
+                "{\"firstName\":\"Ada\",\"email\":\"ada.private@example.test\","
+                        + "\"address\":{\"city\":\"Hidden City\",\"postalCode\":\"10101\"}}",
+                "{\"phone\":\"0700000000\",\"result\":\"accepted\"}"));
+
+        var evidence = journal.allEvidence().getFirst();
+        String publishedBodies = evidence.request().bodyText() + evidence.response().body();
+
+        for (String personalValue : List.of("Ada", "ada.private@example.test", "Hidden City",
+                "10101", "0700000000")) {
+            assertFalse(publishedBodies.contains(personalValue), "exchange leaked value: " + personalValue);
+        }
     }
 
     @Test
@@ -225,7 +246,7 @@ class PracticeShopApiNetworkJournalTest {
         assertEquals("FAILURE", evidence.get(0).attemptHistory().get(0).outcome());
         assertEquals("net::ERR_CONNECTION_RESET", evidence.get(0).attemptHistory().get(0).reason());
         assertEquals("UI_BROWSER_REQUEST_FAILED", evidence.get(0).trace().evidenceSource());
-        var aggregate = ReportNetworkInspector.aggregate(evidence, List.of(), List.of());
+        var aggregate = ReportNetworkInspector.aggregate(evidence, List.of());
         assertEquals(1, aggregate.transport().failed());
         assertEquals("net::ERR_CONNECTION_RESET", aggregate.diagnostics().get(0).signal());
         String markup = ReportNetworkAggregateMarkup.disclosure(aggregate);

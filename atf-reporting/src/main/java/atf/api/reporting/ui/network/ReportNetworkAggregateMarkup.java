@@ -211,22 +211,14 @@ public final class ReportNetworkAggregateMarkup {
         for (var item : diagnostics) {
             html.append(open("atf-secondary-metric network-diagnostic-card"));
             html.append(open("network-diagnostic-heading"));
-            if (item.method().isBlank() && item.route().isBlank()) {
-                html.append(span("network-diagnostic-signal", "Unbound browser diagnostic"));
-                if (!item.signal().isBlank()) html.append(span("network-diagnostic-code", item.signal()));
-            } else {
-                html.append(span("network-diagnostic-signal", item.method() + " " + item.route()));
-                html.append(span("network-diagnostic-status", status(item.status())));
-            }
+            html.append(span("network-diagnostic-signal", item.method() + " " + item.route()));
+            html.append(span("network-diagnostic-status", status(item.status())));
             html.append(span("atf-secondary-caption network-diagnostic-count", "Count " + item.count()));
             html.append(close());
             html.append(open("atf-secondary-grid network-diagnostic-meta"));
             meta(html, "SOURCES", join(item.sources()));
-            if (item.status() < 0 && !item.method().isBlank()) {
+            if (item.status() < 0) {
                 meta(html, "REASON", item.signal());
-            }
-            if (item.method().isBlank() && item.route().isBlank()) {
-                meta(html, "MEANING", "console/page signal without a bound HTTP exchange");
             }
             html.append(close());
             html.append(close());

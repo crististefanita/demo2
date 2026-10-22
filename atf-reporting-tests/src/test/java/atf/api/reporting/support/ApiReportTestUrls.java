@@ -20,6 +20,7 @@ public final class ApiReportTestUrls {
     /** Renderer-only paths deliberately kept separate from the application route catalog. */
     public static final String GENERIC_USERS = "/users";
     public static final String GENERIC_USER_ONE = GENERIC_USERS + "/1";
+    public static final String GENERIC_CHECKOUT = "/checkout";
     public static final String GENERIC_SECURE = "/secure";
     public static final String GENERIC_OTHER = "/other";
     public static final String GENERIC_HEALTH = "/health";

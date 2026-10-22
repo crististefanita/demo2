@@ -1,8 +1,10 @@
 package atf.ui.practiceshop.support;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -12,19 +14,23 @@ import java.util.Map;
 
 /** One parse-aware JSON/redaction boundary for all Practice Shop evidence. */
 public final class PracticeShopJsonEvidence {
-    private static final ObjectMapper JSON = new ObjectMapper();
+    private static final ObjectMapper JSON = new ObjectMapper()
+            .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
     private static final String REDACTED = "<redacted>";
+    private static final String OMITTED_UNSAFE_BODY = "<body omitted: malformed or non-JSON payload>";
     private static final Set<String> PERSONAL_FIELDS = Set.of(
-            "firstname", "lastname", "dob", "dateofbirth", "birthdate", "country",
+            "firstname", "middlename", "lastname", "givenname", "surname", "fullname",
+            "email", "emailaddress", "username", "dob", "dateofbirth", "birthdate", "country",
             "postalcode", "zipcode", "housenumber", "street", "address", "addressline1",
-            "addressline2", "city", "state", "province", "phone", "phonenumber", "mobile");
+            "addressline2", "billingaddress", "shippingaddress", "city", "state", "province",
+            "phone", "phonenumber", "mobile", "telephone");
 
     private PracticeShopJsonEvidence() { }
 
     public static JsonNode parse(String value) {
         if (value == null || value.isBlank()) return null;
         try {
-            return JSON.readTree(value);
+            return JSON.reader().with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS).readTree(value);
         } catch (JsonProcessingException ignored) {
             return null;
         }
@@ -36,75 +42,86 @@ public final class PracticeShopJsonEvidence {
     }
 
     public static String redact(String value) {
-        return redact(value, false);
-    }
-
-    /** Stronger field-aware policy for registration evidence, which contains an entire identity. */
-    public static String redactRegistration(String value) {
-        return redact(value, true);
-    }
-
-    private static String redact(String value, boolean redactPersonalFields) {
         if (value == null || value.isBlank()) return value == null ? "" : value;
         JsonNode root = parse(value);
-        if (root != null) {
-            redactNode(root, redactPersonalFields);
-            try {
-                return JSON.writerWithDefaultPrettyPrinter().writeValueAsString(root);
-            } catch (JsonProcessingException error) {
-                throw new IllegalStateException("Cannot serialize redacted JSON evidence", error);
-            }
+        if (root == null) {
+            // Preserve transport limitation markers, but fail closed for arbitrary text:
+            // malformed JSON cannot be redacted reliably with a field-aware policy.
+            return PracticeShopApiBodyEvidence.isUnavailable(value) ? value : OMITTED_UNSAFE_BODY;
         }
-        // Malformed payloads still must not leak a simple secret before the
-        // contract validator reports the malformed-body failure.
-        return value.replaceAll(
-                "(?i)(\\\"(?:email|password|token|access_token|accessToken|refresh_token|authorization|cookie|api[_-]?key)\\\"\\s*:\\s*\\\")[^\\\"]*(\\\")",
-                "$1" + REDACTED + "$2");
+        redactNode(root);
+        if (root.isTextual()) root = JSON.getNodeFactory().textNode(REDACTED);
+        try {
+            return JSON.writerWithDefaultPrettyPrinter().writeValueAsString(root);
+        } catch (JsonProcessingException error) {
+            throw new IllegalStateException("Cannot serialize redacted JSON evidence", error);
+        }
+    }
+
+    /** Compatibility alias; all published API bodies now use the same strict field-aware policy. */
+    public static String redactRegistration(String value) {
+        return redact(value);
     }
 
     public static Map<String, String> redactHeaders(Map<String, String> headers) {
         Map<String, String> result = new LinkedHashMap<>();
         (headers == null ? Map.<String, String>of() : headers).forEach((name, value) -> {
-            String lower = name == null ? "" : name.toLowerCase(Locale.ROOT);
-            boolean sensitive = lower.contains("authorization") || lower.equals("cookie")
-                    || lower.contains("token") || lower.contains("api-key")
-                    || lower.contains("api_key") || lower.equals("apikey") || lower.contains("password");
+            boolean sensitive = isSensitive(name) || isPersonalField(name);
             result.put(name == null ? "" : name, sensitive ? REDACTED : value);
         });
         return Map.copyOf(result);
     }
 
-    private static void redactNode(JsonNode node, boolean redactPersonalFields) {
+    private static void redactNode(JsonNode node) {
         if (node == null) return;
         if (node.isObject()) {
             Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
             while (fields.hasNext()) {
                 Map.Entry<String, JsonNode> field = fields.next();
-                if (isSensitive(field.getKey())
-                        || redactPersonalFields && isPersonalField(field.getKey())) {
+                if (isSensitive(field.getKey()) || isPersonalField(field.getKey())) {
                     field.setValue(JSON.getNodeFactory().textNode(REDACTED));
+                } else if (field.getValue().isTextual()) {
+                    field.setValue(JSON.getNodeFactory().textNode(
+                            redactEmbeddedPii(field.getValue().asText())));
                 } else {
-                    redactNode(field.getValue(), redactPersonalFields);
+                    redactNode(field.getValue());
                 }
             }
         } else if (node.isArray()) {
-            node.forEach(child -> redactNode(child, redactPersonalFields));
+            for (int index = 0; index < node.size(); index++) {
+                JsonNode child = node.get(index);
+                if (child.isTextual()) {
+                    ((ArrayNode) node).set(index, JSON.getNodeFactory().textNode(
+                            redactEmbeddedPii(child.asText())));
+                }
+                else redactNode(child);
+            }
         }
     }
 
+    private static String redactEmbeddedPii(String value) {
+        return value.replaceAll("(?i)[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}", REDACTED);
+    }
+
     private static boolean isPersonalField(String name) {
-        String normalized = name == null ? "" : name.toLowerCase(Locale.ROOT)
-                .replace("_", "").replace("-", "");
-        return PERSONAL_FIELDS.contains(normalized);
+        String normalized = normalizeFieldName(name);
+        return PERSONAL_FIELDS.contains(normalized)
+                || normalized.contains("firstname") || normalized.contains("middlename")
+                || normalized.contains("lastname") || normalized.contains("givenname")
+                || normalized.contains("surname")
+                || normalized.contains("address") || normalized.contains("postalcode")
+                || normalized.contains("zipcode") || normalized.contains("phonenumber")
+                || normalized.contains("email");
     }
 
     private static boolean isSensitive(String name) {
-        String lower = name == null ? "" : name.toLowerCase(Locale.ROOT);
-        return lower.equals("email") || lower.equals("password") || lower.equals("token")
-                || lower.equals("access_token") || lower.equals("accesstoken")
-                || lower.equals("refresh_token") || lower.equals("authorization")
-                || lower.equals("cookie") || lower.equals("api_key") || lower.equals("api-key")
-                || lower.equals("apikey")
-                || lower.contains("secret");
+        String normalized = normalizeFieldName(name);
+        return normalized.contains("password") || normalized.contains("token")
+                || normalized.contains("authorization") || normalized.contains("cookie")
+                || normalized.contains("apikey") || normalized.contains("secret");
+    }
+
+    private static String normalizeFieldName(String name) {
+        return name == null ? "" : name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
     }
 }

@@ -4,7 +4,7 @@ import atf.api.reporting.configuration.ReportingSettings;
 import atf.api.reporting.markup.AtfReportLabels;
 import atf.api.reporting.markup.ExtentReportNodeSupport;
 import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
-import atf.api.reporting.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.model.AtfUiActionRecord;
 import com.aventstack.extentreports.ExtentTest;
 
 import java.util.List;

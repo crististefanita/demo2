@@ -32,26 +32,9 @@ public final class ReportNetworkInspector {
         return fields(evidence, List.of());
     }
 
-    /**
-     * Projects the full browser trace and its causal UI checkpoints. The
-     * checkpoint rows stay compact; request/response JSON remains attached to
-     * the corresponding UI checkpoint and is never copied into this summary.
-     */
+    /** Projects only the compact index attached to the inspector request. */
     public static List<ReportField> fields(Collection<ReportExecutionEvidence> evidence,
                                            Collection<Step> steps) {
-        return fields(evidence, steps, List.of());
-    }
-
-    /**
-     * Projects only the compact index attached to the inspector request. The
-     * typed aggregate is stored separately by the lifecycle and rendered in
-     * its own disclosure. Keeping the two projections separate prevents
-     * request signatures and Gherkin correlation from being copied into the
-     * request's response-details table.
-     */
-    public static List<ReportField> fields(Collection<ReportExecutionEvidence> evidence,
-                                           Collection<Step> steps,
-                                           Collection<Diagnostic> diagnostics) {
         List<ReportExecutionEvidence> exchanges = evidence == null
                 ? List.of()
                 : evidence.stream().filter(Objects::nonNull).toList();
@@ -75,15 +58,12 @@ public final class ReportNetworkInspector {
 
     /** Builds the typed journey projection consumed by all report renderers. */
     public static JourneyAggregate aggregate(Collection<ReportExecutionEvidence> evidence,
-                                             Collection<Step> steps,
-                                             Collection<Diagnostic> diagnostics) {
+                                             Collection<Step> steps) {
         List<ReportExecutionEvidence> exchanges = evidence == null
                 ? List.of() : evidence.stream().filter(Objects::nonNull).toList();
         List<Step> journey = steps == null ? List.of() : steps.stream()
                 .filter(Objects::nonNull).toList();
-        List<Diagnostic> runtimeDiagnostics = new ArrayList<>();
-        if (diagnostics != null) diagnostics.stream().filter(Objects::nonNull)
-                .forEach(runtimeDiagnostics::add);
+        List<NetworkFailure> technicalDiagnostics = new ArrayList<>();
 
         Map<AuthKey, Integer> authCounts = new LinkedHashMap<>();
         Map<SignatureKey, SignatureAccumulator> signatures = new LinkedHashMap<>();
@@ -115,7 +95,7 @@ public final class ReportNetworkInspector {
                             .findFirst().orElse("request failed before response");
                     String source = exchange.trace() == null ? "UI_BROWSER_REQUEST_FAILED"
                             : exchange.trace().evidenceSource();
-                    runtimeDiagnostics.add(new Diagnostic(source, exchange.request().method(),
+                    technicalDiagnostics.add(new NetworkFailure(source, exchange.request().method(),
                             exchange.request().path(), -1, reason));
                 }
             }
@@ -138,25 +118,23 @@ public final class ReportNetworkInspector {
                 .map(step -> new ScenarioCorrelation(step.keyword(), step.title(), step.exchanges().size(),
                         step.assertionCount(), step.passed()))
                 .toList();
-        List<DiagnosticObservation> diagnosticObservations = deduplicateDiagnostics(runtimeDiagnostics);
+        List<DiagnosticObservation> diagnosticObservations = deduplicateNetworkFailures(technicalDiagnostics);
         return new JourneyAggregate(authentication, correlation,
                 new TransportCounters(exchanges.size(), successful, failed, attempts, retries,
                         live, mock, unknown), signatureObservations, diagnosticObservations);
     }
 
-    private static List<DiagnosticObservation> deduplicateDiagnostics(Collection<Diagnostic> diagnostics) {
+    private static List<DiagnosticObservation> deduplicateNetworkFailures(
+            Collection<NetworkFailure> diagnostics) {
         Map<DiagnosticKey, DiagnosticAccumulator> grouped = new LinkedHashMap<>();
-        for (Diagnostic diagnostic : diagnostics) {
+        for (NetworkFailure diagnostic : diagnostics) {
             DiagnosticKey key = DiagnosticKey.from(diagnostic);
             grouped.computeIfAbsent(key, ignored -> new DiagnosticAccumulator()).add(diagnostic.source());
         }
-        int unboundIndex = 0;
         List<DiagnosticObservation> observations = new ArrayList<>();
         for (var entry : grouped.entrySet()) {
             var key = entry.getKey();
-            String signal = key.unbound() ? "UNBOUND-" + (++unboundIndex)
-                    : key.status() < 0 ? key.message() : "";
-            observations.add(new DiagnosticObservation(key.method(), key.route(), key.status(), signal,
+            observations.add(new DiagnosticObservation(key.method(), key.route(), key.status(), key.message(),
                     entry.getValue().count, entry.getValue().sources()));
         }
         return List.copyOf(observations);
@@ -270,15 +248,6 @@ public final class ReportNetworkInspector {
         }
     }
 
-    public record Diagnostic(String source, String method, String route, int status, String message) {
-        public Diagnostic {
-            source = normalize(source);
-            method = normalize(method).toUpperCase(Locale.ROOT);
-            route = normalize(route);
-            message = normalize(message);
-        }
-    }
-
     public record DiagnosticObservation(String method, String route, int status, String signal,
                                         int count, List<String> sources) {
         public DiagnosticObservation {
@@ -297,14 +266,19 @@ public final class ReportNetworkInspector {
 
     private record AuthKey(String method, String source, int status) { }
     private record SignatureKey(String signature) { }
-    private record DiagnosticKey(String method, String route, int status,
-                                 String message, boolean unbound) {
-        private static DiagnosticKey from(Diagnostic diagnostic) {
-            boolean unbound = diagnostic.method().isBlank()
-                    && diagnostic.route().isBlank()
-                    && diagnostic.status() < 0;
+    private record NetworkFailure(String source, String method, String route, int status, String message) {
+        private NetworkFailure {
+            source = normalize(source);
+            method = normalize(method).toUpperCase(Locale.ROOT);
+            route = normalize(route);
+            message = normalize(message);
+        }
+    }
+
+    private record DiagnosticKey(String method, String route, int status, String message) {
+        private static DiagnosticKey from(NetworkFailure diagnostic) {
             return new DiagnosticKey(diagnostic.method(), diagnostic.route(), diagnostic.status(),
-                    diagnostic.status() < 0 ? diagnostic.message() : "", unbound);
+                    diagnostic.message());
         }
     }
 

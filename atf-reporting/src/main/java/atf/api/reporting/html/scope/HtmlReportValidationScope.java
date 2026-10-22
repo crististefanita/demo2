@@ -6,7 +6,7 @@ import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportPorts;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.contract.ReportStatusAggregator;
-import atf.api.reporting.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.model.AtfUiActionRecord;
 import atf.api.reporting.html.HtmlReportSemanticDocument;
 import atf.api.reporting.semantic.AtfReportSemanticRecorder;
 

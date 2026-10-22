@@ -8,6 +8,7 @@ import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.ui.network.ReportNetworkInspector;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 /** Publishes the network-table fixture through the API report's real request tree. */
@@ -29,10 +30,10 @@ public final class ScrollableApiAggregateReportFixture {
                 directory, REPORT_FILE.formatted(densityName), false,
                 ExtentReportConfiguration.DEFAULT_TIMESTAMP_PATTERN,
                 ExtentReportConfiguration.DEFAULT_TIMESTAMP_ZONE);
-        List<ReportExecutionEvidence> exchanges =
-                ScrollableTableReportFixture.exchanges(density.signatureCount());
-        var aggregate = ReportNetworkInspector.aggregate(exchanges, List.of(),
-                ScrollableTableReportFixture.diagnostics(density.diagnosticCount()));
+        List<ReportExecutionEvidence> exchanges = new ArrayList<>(
+                ScrollableTableReportFixture.exchanges(density.signatureCount()));
+        exchanges.addAll(ScrollableTableReportFixture.failedExchanges(density.diagnosticCount()));
+        var aggregate = ReportNetworkInspector.aggregate(exchanges, List.of());
 
         try (ExtentReportSession session = ExtentReportSession.openConfigured(configuration)) {
             AtfReportPorts.Scenario scenario = session.startScenario(OWNER, TEST_PACKAGE,

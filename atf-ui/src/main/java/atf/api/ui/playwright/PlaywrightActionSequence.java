@@ -69,7 +69,7 @@ public final class PlaywrightActionSequence {
         return locatorActions.getText(element, expected);
     }
 
-    /** Fills a field while keeping the value itself out of action evidence. */
+    /** Fills a field and publishes its replay value, redacting sensitive targets. */
     public void fill(AtfLocator element, String value, String expected) {
         locatorActions.fill(element, value, expected);
     }

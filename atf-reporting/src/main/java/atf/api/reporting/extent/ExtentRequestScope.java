@@ -13,8 +13,8 @@ import atf.api.reporting.semantic.AtfReportSemanticRecorder;
 import atf.api.reporting.ui.network.ReportNetworkAggregateMarkup;
 import atf.api.reporting.ui.network.ReportNetworkInspector;
 
-import atf.api.reporting.ui.AtfUiActionRecord;
-import atf.api.reporting.ui.AtfUiEvidenceSource;
+import atf.api.reporting.ui.model.AtfUiActionRecord;
+import atf.api.reporting.ui.model.AtfUiEvidenceSource;
 import com.aventstack.extentreports.ExtentTest;
 
 import java.util.ArrayList;
@@ -111,6 +111,7 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
         }
         if (isSetupEvidence()) {
             tree.renderSetupEvidence(request, details);
+            tree.renderUiActions(request, uiActions, screenshots);
         } else {
             tree.renderRequestDetails(request, details, json);
             tree.renderResponseDetails(request, details, json);

@@ -3,7 +3,7 @@ package atf.api.reporting.contract;
 import atf.api.reporting.inventory.ValidationSink;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.api.ReportModelAdapters;
-import atf.api.reporting.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.model.AtfUiActionRecord;
 import atf.api.reporting.ui.network.ReportNetworkInspector;
 import java.nio.file.Path;
 import java.util.Collection;

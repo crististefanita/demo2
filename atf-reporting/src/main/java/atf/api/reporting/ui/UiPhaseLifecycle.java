@@ -10,7 +10,7 @@ import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
 import atf.api.reporting.model.ReportExecutionEvidence;
 
-import atf.api.reporting.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.model.AtfUiActionRecord;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -24,6 +24,7 @@ public final class UiPhaseLifecycle implements AutoCloseable {
     private final String scenarioTitle;
     private final String phaseName;
     private final List<UiUnifiedFlowCheckpoint> unifiedCheckpoints = new ArrayList<>();
+    private PendingNetworkSummary networkSummary;
     private boolean completed;
     private boolean unifiedFlowPublished;
 
@@ -91,13 +92,29 @@ public final class UiPhaseLifecycle implements AutoCloseable {
 
     void setup(String keyword, String title, String target,
                Collection<AtfAssertion> assertions, AtfReportStatus status) {
+        setup(keyword, title, target, assertions, List.of(), List.of(), status);
+    }
+
+    void setup(String keyword, String title, String target,
+               Collection<AtfAssertion> assertions,
+               Collection<AtfUiActionRecord> actions,
+               Collection<ReportExecutionEvidence> apiEvidence,
+               AtfReportStatus status) {
         ensureOpen();
-        evidencePublisher.publishSetup(keyword, title, target, assertions, status);
+        evidencePublisher.publishSetup(keyword, title, target, assertions, actions, apiEvidence, status);
     }
 
     void setup(AtfGherkinKeyword keyword, String title, String target,
                Collection<AtfAssertion> assertions, AtfReportStatus status) {
         setup(keyword.text(), title, target, assertions, status);
+    }
+
+    void setup(AtfGherkinKeyword keyword, String title, String target,
+               Collection<AtfAssertion> assertions,
+               Collection<AtfUiActionRecord> actions,
+               Collection<ReportExecutionEvidence> apiEvidence,
+               AtfReportStatus status) {
+        setup(keyword.text(), title, target, assertions, actions, apiEvidence, status);
     }
 
     void networkInspector(String title,
@@ -108,39 +125,39 @@ public final class UiPhaseLifecycle implements AutoCloseable {
     void networkInspector(String title,
                           Collection<ReportExecutionEvidence> executionEvidence,
                           Collection<ReportNetworkInspector.Step> steps) {
-        networkInspector(title, executionEvidence, steps, List.of());
+        ensureOpen();
+        if (networkSummary != null) {
+            throw new IllegalStateException(
+                    "Only one journey-level network inspector summary can be registered per UI phase");
+        }
+        networkSummary = new PendingNetworkSummary(
+                title == null || title.isBlank() ? "API network inspector" : title.trim(),
+                immutableCopy(executionEvidence), immutableCopy(steps));
     }
 
-    void networkInspector(String title,
-                          Collection<ReportExecutionEvidence> executionEvidence,
-                          Collection<ReportNetworkInspector.Step> steps,
-                          Collection<ReportNetworkInspector.Diagnostic> diagnostics) {
-        ensureOpen();
-        if (isEmpty(executionEvidence) && isEmpty(diagnostics)) return;
+    private void publishNetworkSummary() {
+        if (networkSummary == null) return;
+        PendingNetworkSummary summary = networkSummary;
         var request = delegate.startRequest(
-                title == null || title.isBlank() ? "API network inspector" : title.trim(),
-                "TRACE", "network");
+                summary.title(), "TRACE", "network");
         try {
             request.detail("request.action", "API network inspector");
             request.detail("request.target", "ordered exchanges from the same UI browser session");
             request.detail("evidence.role", "journey summary; not an additional business step");
             request.detail(AtfReportEvidenceKeys.EVIDENCE_TYPE,
                     AtfReportEvidenceKeys.API_TRACE);
-            ReportNetworkInspector.fields(executionEvidence, steps, diagnostics).stream()
+            ReportNetworkInspector.fields(summary.evidence(), summary.steps()).stream()
                     .filter(field -> !field.name().startsWith("network.aggregate."))
                     .forEach(field -> request.detail(field.name(), field.value()));
-            request.networkAggregate(ReportNetworkInspector.aggregate(executionEvidence, steps, diagnostics));
-            boolean requestFailed = executionEvidence != null && executionEvidence.stream()
-                    .anyMatch(evidence -> evidence != null && evidence.response() != null
-                            && evidence.response().status() < 0);
-            request.complete(requestFailed ? AtfReportStatus.WARNING : AtfReportStatus.PASS);
+            request.networkAggregate(ReportNetworkInspector.aggregate(
+                    summary.evidence(), summary.steps()));
+            // This node is a passive journey summary, not an API assertion.
+            // Failed exchanges retain their evidence here; checkpoint/API validation
+            // nodes own the verdict. No independent browser runtime signals are accepted.
+            request.complete(AtfReportStatus.PASS);
         } finally {
             request.close();
         }
-    }
-
-    private static boolean isEmpty(Collection<?> values) {
-        return values == null || values.isEmpty();
     }
 
     void outcome(String keyword, String title, String target, AtfReportStatus status) {
@@ -150,17 +167,6 @@ public final class UiPhaseLifecycle implements AutoCloseable {
 
     void outcome(AtfGherkinKeyword keyword, String title, String target, AtfReportStatus status) {
         outcome(keyword.text(), title, target, status);
-    }
-
-    void diagnostic(String keyword, String title, String target,
-                    Collection<AtfAssertion> assertions, AtfReportStatus status) {
-        ensureOpen();
-        evidencePublisher.publishDiagnostic(keyword, title, target, assertions, status);
-    }
-
-    void diagnostic(AtfGherkinKeyword keyword, String title, String target,
-                    Collection<AtfAssertion> assertions, AtfReportStatus status) {
-        diagnostic(keyword.text(), title, target, assertions, status);
     }
 
     void apiTrace(AtfGherkinKeyword keyword, String title, String target,
@@ -221,6 +227,7 @@ public final class UiPhaseLifecycle implements AutoCloseable {
     void complete(AtfReportStatus status) {
         ensureOpen();
         publishUnifiedFlow(status);
+        publishNetworkSummary();
         delegate.complete(status == null ? AtfReportStatus.INFO : status);
         completed = true;
     }
@@ -295,4 +302,8 @@ public final class UiPhaseLifecycle implements AutoCloseable {
                                         ReportScreenshotPolicy.CapturePoint capturePoint) {
         return evidencePublisher.acceptsScreenshot(base64Png, capturePoint) ? base64Png : "";
     }
+
+    private record PendingNetworkSummary(String title,
+                                        List<ReportExecutionEvidence> evidence,
+                                        List<ReportNetworkInspector.Step> steps) { }
 }

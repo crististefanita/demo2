@@ -1,7 +1,7 @@
 package atf.ui.practiceshop.support;
 
 import atf.api.reporting.api.ReportModelAdapters;
-import atf.api.reporting.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.model.AtfUiActionRecord;
 
 import java.util.Collection;
 import java.util.List;

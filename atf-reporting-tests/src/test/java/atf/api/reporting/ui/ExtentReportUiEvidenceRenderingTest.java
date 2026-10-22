@@ -4,8 +4,8 @@ import atf.api.testkit.AtfUnitTest;
 import atf.api.reporting.console.AtfConsoleSink;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
-import atf.api.reporting.ui.AtfUiActionRecord;
-import atf.api.reporting.ui.AtfUiEvidenceSource;
+import atf.api.reporting.ui.model.AtfUiActionRecord;
+import atf.api.reporting.ui.model.AtfUiEvidenceSource;
 import atf.api.reporting.evidence.ExtentReportUiEvidence;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.evidence.profile.ReportEvidenceCaptureSource;
@@ -179,7 +179,7 @@ class ExtentReportUiEvidenceRenderingTest {
             var body = scenario.startPhase("TEST BODY");
             body.screenValidation("the final state is visible", "#test-view",
                     ReportTestScreenshots.ONE_PIXEL_PNG, List.of(), List.of(
-                            new atf.api.reporting.ui.AtfUiActionRecord(1, "Click", "#tests",
+                            new AtfUiActionRecord(1, "Click", "#tests",
                                     "Tests opens", "click completed", 4, AtfReportStatus.PASS)),
                     AtfReportStatus.PASS);
             body.complete(AtfReportStatus.PASS);

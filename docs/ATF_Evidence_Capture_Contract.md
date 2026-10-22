@@ -44,17 +44,20 @@ flowchart LR
 
 </details>
 
-## Cele trei axe care nu se combină într-un flag
+## Axe de evidence independente
 
 | Axă | Întrebarea | Valori de contract | Owner conceptual |
 |---|---|---|---|
 | flow mode | cum este reprezentat flow-ul? | `SCREEN_CHECKPOINTS`, `UNIFIED_FLOW` | `atf-reporting` lifecycle/publisher, configurat de consumer |
 | screenshot policy | când se publică imaginea? | `EACH_CHECKPOINT`, `FINAL_ONLY`, `FAILURE_ONLY`, `FINAL_AND_FAILURE`, `NONE` | contract evidence + publisher |
 | capture source | de unde vine payload-ul? | `BROWSER`, `MOCK`, `CUSTOM_PROVIDER` | adapterul consumerului / test scope |
+| action details mode | cât din acțiunile deja capturate se dezvăluie? | `INCLUDED_COLLAPSED`, `SUMMARY_ONLY` | renderer generic; consumerul alege profilul |
 
 `flow mode` și `screenshot policy` sunt independente. Un flow unificat poate avea
 `FINAL_ONLY`, `FAILURE_ONLY`, `FINAL_AND_FAILURE` sau `NONE`; un flow pe checkpoint-uri
-poate păstra `EACH_CHECKPOINT` fără să schimbe rendererul.
+poate păstra `EACH_CHECKPOINT` fără să schimbe rendererul. `action details mode`
+schimbă numai disclosure-ul acțiunilor: nu filtrează capturarea și nu schimbă
+asserțiile ori verdictul.
 
 ### Starea live
 
@@ -64,8 +67,9 @@ poate păstra `EACH_CHECKPOINT` fără să schimbe rendererul.
 - **existent**: `atf-reporting-tests` are fixture-uri PNG deterministe și verifică
   policy-ul fără browser;
 - **existent**: `ReportEvidenceProfile` compune typed `ReportEvidenceFlowMode`,
-  `ReportScreenshotPolicy` și `ReportEvidenceCaptureSource`; mapping-ul se poate
-  face prin `fromConfig(...)` sau builder și traversează `UiExtentReportSession`;
+  `ReportScreenshotPolicy`, `ReportEvidenceCaptureSource` și
+  `ReportUiActionDetailsMode`; mapping-ul se poate face prin `fromConfig(...)` sau
+  builder și traversează `UiExtentReportSession`;
 - **distincție**: setările `reporting.extent` rămân configurarea publisherului;
   `evidence.flowMode` și mapping-ul unui flow nu se ascund în acel loader;
 - **implementat**: `ReportEvidenceCaptureProvider` este seam-ul browser-neutral;
@@ -83,6 +87,9 @@ poate păstra `EACH_CHECKPOINT` fără să schimbe rendererul.
   rămân într-o singură validare sibling `API validation`, în ordinea execuției;
 - **independent**: screenshot policy decide capturile înainte de buffer; numai
   capturile permise ajung în validarea UI agregată (`FINAL_ONLY` → captura finală);
+- **implementat**: `INCLUDED_COLLAPSED` și `SUMMARY_ONLY` schimbă disclosure-ul
+  acțiunilor deja înregistrate, fără să elimine dovezi de aserțiune sau să modifice
+  verdictul; testele component acoperă ambele randări;
 - **boundary**: consumerul furnizează semantică și profile, iar reporting-ul
   deține grouping-ul generic. Practice Shop doar mapează config-ul propriu și nu
   conține reguli de publisher;

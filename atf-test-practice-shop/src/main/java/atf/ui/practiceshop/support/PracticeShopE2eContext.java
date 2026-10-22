@@ -37,16 +37,14 @@ public final class PracticeShopE2eContext implements AutoCloseable {
     private final PlaywrightUiSession browser;
     private final PracticeShopBrowserCaptureProvider browserCaptureProvider;
     private final PracticeShopApiNetworkJournal apiNetwork;
-    private final PracticeShopRuntimeDiagnostics runtimeDiagnostics;
 
     private PracticeShopE2eContext(PracticeShopConfiguration configuration,
                                    UiExtentReportSession report, PlaywrightUiSession browser,
                                    PracticeShopBrowserCaptureProvider browserCaptureProvider,
-                                   PracticeShopApiNetworkJournal apiNetwork,
-                                   PracticeShopRuntimeDiagnostics runtimeDiagnostics) {
+                                   PracticeShopApiNetworkJournal apiNetwork) {
         this.configuration = configuration; this.report = report; this.browser = browser;
         this.browserCaptureProvider = browserCaptureProvider;
-        this.apiNetwork = apiNetwork; this.runtimeDiagnostics = runtimeDiagnostics;
+        this.apiNetwork = apiNetwork;
     }
 
     public static PracticeShopE2eContext open(PracticeShopConfiguration configuration) {
@@ -76,10 +74,8 @@ public final class PracticeShopE2eContext implements AutoCloseable {
                     new PracticeShopApiNetworkJournal(configuration.validationProfile(),
                             configuration.api().evidenceBinding());
             apiNetwork.attach(browser.networkInspector());
-            PracticeShopRuntimeDiagnostics runtimeDiagnostics = new PracticeShopRuntimeDiagnostics();
-            runtimeDiagnostics.attach(browser.page());
             return new PracticeShopE2eContext(configuration, report, browser, browserCaptureProvider,
-                    apiNetwork, runtimeDiagnostics);
+                    apiNetwork);
         } catch (RuntimeException error) {
             report.close();
             throw error;
@@ -100,7 +96,6 @@ public final class PracticeShopE2eContext implements AutoCloseable {
     public PlaywrightActionSequence actions() { return browser.newActionSequence(); }
     public Path reportPath() { return report.reportPath(); }
     public PracticeShopApiNetworkJournal apiNetwork() { return apiNetwork; }
-    public PracticeShopRuntimeDiagnostics runtimeDiagnostics() { return runtimeDiagnostics; }
 
     public Scenario scenario(String title, String overview) {
         return scenario("PracticeShopE2eTest", title, overview);
@@ -121,7 +116,7 @@ public final class PracticeShopE2eContext implements AutoCloseable {
                 authenticated ? configuration.accountPolicy().evidenceTarget() : "YAML checkout inputs",
                 setupAssertions, setupStatus);
         setup.complete(setupStatus);
-        return new Scenario(scenario, title);
+        return new Scenario(scenario, title, null);
     }
 
     /** Opens SETUP and defers TEST BODY until the caller proves account setup succeeded. */
@@ -136,31 +131,33 @@ public final class PracticeShopE2eContext implements AutoCloseable {
     }
 
     static List<AtfAssertion> setupAssertions(PracticeShopConfiguration configuration) {
-        boolean accountConfigured = configuration.accountConfigured();
+        boolean accountFixtureRequired = configuration.authenticatedE2eEnabled();
+        boolean accountConfigured = accountFixtureRequired && configuration.accountConfigured();
         boolean authenticated = configuration.authenticatedE2eAllowed();
         String selectedMode = authenticated ? "authenticated" : "guest";
         String expectedMode = configuration.authenticatedE2eEnabled() && accountConfigured
                 ? "authenticated" : "guest";
         String profile = configuration.validationProfile().name().toLowerCase().replace('_', '-');
         var accountPolicy = configuration.accountPolicy();
-        boolean policyAccepted = accountPolicy.accepts(configuration.accountFile());
-        String observedPolicy = policyAccepted
-                ? accountPolicy.displayName() + "; credentials redacted"
+        boolean policyAccepted = !accountFixtureRequired || accountPolicy.accepts(configuration.accountFile());
+        String observedPolicy = !accountFixtureRequired
+                ? "not required for guest journey"
+                : policyAccepted ? accountPolicy.displayName() + "; credentials redacted"
                 : "fixture path outside module-owned src/test/resources";
+        String modeEvidence = authenticated ? "authenticated checkout; account fixture available"
+                : "guest checkout; account fixture not required";
         return List.of(
                 new AtfAssertion("Checkout mode", expectedMode + " checkout is selected",
-                        selectedMode + " checkout; authenticatedE2eEnabled="
-                                + configuration.authenticatedE2eEnabled()
-                                + "; accountFile=" + (accountConfigured ? "available" : "missing"),
+                        modeEvidence,
                         expectedMode.equals(selectedMode)),
                 new AtfAssertion("Account setup",
                         authenticated ? "pre-registered account file is available" : "not required for guest journey",
                         authenticated
                                 ? (accountConfigured ? "account file available; credentials redacted" : "account file missing")
-                                : accountPolicy.observedEvidence(accountConfigured, false),
+                                : "not required for guest journey",
                         !authenticated || accountConfigured),
                 new AtfAssertion("Account fixture policy",
-                        accountPolicy.expectedEvidence(),
+                        accountFixtureRequired ? accountPolicy.expectedEvidence() : "not required for guest journey",
                         observedPolicy,
                         policyAccepted),
                 new AtfAssertion("API evidence profile", "ui-api or ui-only", profile,
@@ -197,10 +194,6 @@ public final class PracticeShopE2eContext implements AutoCloseable {
         private boolean setupStepPublished;
         private boolean setupFinished;
 
-        private Scenario(UiExtentReportSession.UiScenario scenario, String title) {
-            this(scenario, title, null);
-        }
-
         private Scenario(UiExtentReportSession.UiScenario scenario, String title,
                          UiExtentReportSession.UiPhase setupPhase) {
             this.scenario = scenario;
@@ -218,9 +211,8 @@ public final class PracticeShopE2eContext implements AutoCloseable {
             if (setupPhase == null || setupFinished) {
                 throw new IllegalStateException("Explicit authenticated setup is not open");
             }
-            setupPhase.step(keyword, stepTitle, page.url(), "",
-                    assertions, PracticeShopReportUiActionAdapters.from(actions.drain()),
-                    apiEvidence, ReportScreenshotPolicy.CapturePoint.CHECKPOINT, status);
+            setupPhase.setup(keyword, stepTitle, page.url(), assertions,
+                    PracticeShopReportUiActionAdapters.from(actions.drain()), apiEvidence, status);
             setupStepPublished = true;
         }
 
@@ -335,7 +327,6 @@ public final class PracticeShopE2eContext implements AutoCloseable {
                 return;
             }
             try {
-                publishNetworkInspector();
                 String screenshot = "";
                 try {
                     screenshot = capture(page, "external E2E failure",
@@ -345,6 +336,7 @@ public final class PracticeShopE2eContext implements AutoCloseable {
                 }
                 body.failureEvidence("external E2E failure", page.url(),
                         PracticeShopReportUiActionAdapters.from(actions.drain()), failure, screenshot);
+                publishNetworkInspector();
                 body.complete(AtfReportStatus.FAIL);
                 scenario.complete(AtfReportStatus.FAIL);
             } catch (IllegalStateException alreadyClosed) {
@@ -386,6 +378,7 @@ public final class PracticeShopE2eContext implements AutoCloseable {
                     networkSteps);
             networkInspectorPublished = true;
         }
+
     }
 }
 

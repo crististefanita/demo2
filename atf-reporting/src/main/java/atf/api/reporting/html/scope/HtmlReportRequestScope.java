@@ -5,7 +5,7 @@ import atf.api.reporting.console.AtfConsoleEvent;
 import atf.api.reporting.console.AtfConsoleSink;
 import atf.api.reporting.contract.AtfReportPorts;
 import atf.api.reporting.contract.AtfReportStatus;
-import atf.api.reporting.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.model.AtfUiActionRecord;
 import atf.api.reporting.ui.network.ReportNetworkInspector;
 import atf.api.reporting.html.HtmlReportSemanticDocument;
 import atf.api.reporting.semantic.AtfReportSemanticRecorder;

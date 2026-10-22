@@ -16,8 +16,9 @@ import atf.api.reporting.api.ReportResponse;
 import atf.api.reporting.api.ReportTransportProvenance;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.support.ReportTestScreenshots;
-import atf.api.reporting.ui.AtfUiActionRecord;
-import atf.api.reporting.ui.AtfUiEvidenceSource;
+import atf.api.reporting.support.ApiReportTestUrls;
+import atf.api.reporting.ui.model.AtfUiActionRecord;
+import atf.api.reporting.ui.model.AtfUiEvidenceSource;
 import atf.api.reporting.ui.UiExtentReportSession;
 import atf.api.testkit.AtfIntegrationTest;
 import org.junit.jupiter.api.Test;
@@ -154,7 +155,7 @@ class ReportEvidenceProfileIntegrationTest {
                 Map.of("Content-Type", "application/json"), "none", "{\"items\":[1]}");
         var response = new ReportResponse(201, "{\"id\":\"order-1\"}",
                 Map.of("Content-Type", "application/json"), Duration.ofMillis(8),
-                "https://atf.local/checkout");
+                ApiReportTestUrls.atf(ApiReportTestUrls.GENERIC_CHECKOUT));
         return new ReportExecutionEvidence(response, 1, Duration.ofMillis(8), List.of(),
                 List.of(new ReportAttemptRecord(1, 201, Duration.ofMillis(8),
                         "SUCCESS", "created")), request, ReportTransportProvenance.ACCEPTANCE_MOCK);

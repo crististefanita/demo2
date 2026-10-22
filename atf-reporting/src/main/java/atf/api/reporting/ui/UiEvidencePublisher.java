@@ -10,7 +10,7 @@ import atf.api.reporting.api.ApiManualReplay;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
 
-import atf.api.reporting.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.model.AtfUiActionRecord;
 import atf.api.reporting.markup.AtfReportEvidenceKeys;
 
 import java.util.Collection;
@@ -70,38 +70,20 @@ public final class UiEvidencePublisher {
     }
 
     /**
-     * Publishes a runtime/browser diagnostic as a first-class diagnostic.
-     * Diagnostics are deliberately not routed through {@code UI validation}:
-     * that title means a visual checkpoint and would make a known guest
-     * branch look like a screen assertion.
-     */
-    void publishDiagnostic(String keyword, String title, String target,
-                           Collection<AtfAssertion> assertions, AtfReportStatus status) {
-        String stepTitle = stepTitle(keyword, title);
-        AtfReportStatus effectiveStatus = defaultStatus(status, AtfReportStatus.INFO);
-        var request = phase.startRequest(stepTitle, "", "");
-        try {
-            request.detail(AtfReportEvidenceKeys.REQUEST_ACTION, stepTitle);
-            detailTarget(request, target);
-            request.detail(AtfReportEvidenceKeys.EVIDENCE_TYPE,
-                    AtfReportEvidenceKeys.RUNTIME_DIAGNOSTIC);
-            request.detail("diagnostic.status", effectiveStatus.displayValue());
-            var diagnostic = request.startValidation("Runtime diagnostic");
-            diagnostic.assertions(assertions == null ? List.of() : assertions);
-            diagnostic.complete(effectiveStatus);
-            request.complete(effectiveStatus);
-        } finally {
-            request.close();
-        }
-    }
-
-    /**
      * Publishes lifecycle/setup evidence without misclassifying it as a UI
      * validation. Setup proves that the input artifact is available; the
      * browser assertions belong to the TEST BODY Screen validation card.
      */
     void publishSetup(String keyword, String title, String target,
                       Collection<AtfAssertion> assertions, AtfReportStatus status) {
+        publishSetup(keyword, title, target, assertions, List.of(), List.of(), status);
+    }
+
+    void publishSetup(String keyword, String title, String target,
+                      Collection<AtfAssertion> assertions,
+                      Collection<AtfUiActionRecord> actions,
+                      Collection<ReportExecutionEvidence> apiEvidence,
+                      AtfReportStatus status) {
         String stepTitle = stepTitle(keyword, title);
         var request = phase.startRequest(stepTitle, "", "");
         try {
@@ -121,7 +103,22 @@ public final class UiEvidencePublisher {
                                     + " | result=" + assertion.resultStatus().displayValue());
                 }
             }
-            request.complete(defaultStatus(status, AtfReportStatus.PASS));
+            if (actions != null && !actions.isEmpty()) request.uiActions(actions);
+            AtfReportStatus effectiveStatus = defaultStatus(status, AtfReportStatus.PASS);
+            if (hasApiEvidence(apiEvidence)) {
+                if (apiEvidence.stream().anyMatch(evidence -> evidence != null
+                        && evidence.response() != null && evidence.response().status() < 0)) {
+                    effectiveStatus = AtfReportStatus.worst(effectiveStatus, AtfReportStatus.WARNING);
+                }
+                var apiValidation = request.startValidation(API_VALIDATION);
+                try {
+                    publishApiEvidence(apiValidation, apiEvidence, effectiveStatus);
+                    apiValidation.complete(effectiveStatus);
+                } finally {
+                    apiValidation.close();
+                }
+            }
+            request.complete(effectiveStatus);
         } finally {
             request.close();
         }

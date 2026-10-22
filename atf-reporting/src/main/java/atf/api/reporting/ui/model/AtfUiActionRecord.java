@@ -1,4 +1,4 @@
-package atf.api.reporting.ui;
+package atf.api.reporting.ui.model;
 
 import atf.api.reporting.contract.AtfReportStatus;
 import java.util.Objects;

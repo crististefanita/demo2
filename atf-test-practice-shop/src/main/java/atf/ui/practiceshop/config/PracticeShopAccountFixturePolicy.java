@@ -67,14 +67,4 @@ public enum PracticeShopAccountFixturePolicy {
         }
     }
 
-    public String observedEvidence(boolean configured, boolean authenticated) {
-        if (!authenticated) {
-            return configured
-                    ? "guest journey; synthetic source test-resource fixture available but not consumed"
-                    : "guest journey; synthetic source test-resource fixture missing";
-        }
-        return configured
-                ? "synthetic source test-resource account fixture loaded; credentials redacted"
-                : "synthetic source test-resource account fixture missing";
-    }
 }

@@ -69,11 +69,12 @@ dedusă din poziția nodurilor:
 - `atf-test-practice-shop` găzduiește testele aplicației consumatoare; configurația
   și flow-urile aplicației nu intră în `atf-reporting-tests`.
 
-În sens de packaging, standalone înseamnă zero dependențe ATF pentru
-`atf-reporting/src/main`. Testele de integrare pot compune modulele ATF în
-test-scope prin adaptoare explicite. `ReportModelAdapters` este seam de
-migrare, nu layer de business și nu trebuie importat în codul de producție al
-consumatorilor.
+- Standalone înseamnă zero dependențe ATF pentru `atf-reporting/src/main`.
+- Testele de integrare pot compune modulele ATF în test-scope prin adaptoare
+  explicite.
+- `ReportModelAdapters` normalizează modele existente la boundary-ul de mapare;
+  nu mută reguli de business în reporting și nu autorizează dependențe ale
+  rendererului către modele ATF.
 
 `atf-test-kit` este strict test-scope: expune meta-anotațiile unit/component/
 integration/e2e și guard-ul global, fără să intre în classpath-ul de producție.

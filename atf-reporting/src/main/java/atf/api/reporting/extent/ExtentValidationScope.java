@@ -8,8 +8,8 @@ import atf.api.reporting.extent.session.ExtentReportTree;
 import atf.api.reporting.model.ReportScreenshot;
 import atf.api.reporting.semantic.AtfReportSemanticRecorder;
 
-import atf.api.reporting.ui.AtfUiActionRecord;
-import atf.api.reporting.ui.AtfUiEvidenceSource;
+import atf.api.reporting.ui.model.AtfUiActionRecord;
+import atf.api.reporting.ui.model.AtfUiEvidenceSource;
 import com.aventstack.extentreports.ExtentTest;
 
 import java.util.ArrayList;

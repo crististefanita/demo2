@@ -79,6 +79,33 @@ public final class PracticeShopPageValidator {
         return new PracticeShopPageValidationResult(base.screen(), assertions);
     }
 
+    /** Reports an application-generated field value without pretending it was configured by the test. */
+    public PracticeShopPageValidationResult validatePopulatedValues(Page page, Class<?> pageObjectType,
+                                                                     Map<PracticeShopControl, String> expectedValues,
+                                                                     PracticeShopControl... generatedControls) {
+        PracticeShopPageValidationResult base = validate(page, pageObjectType);
+        List<AtfAssertion> assertions = new ArrayList<>(base.assertions());
+        if (expectedValues != null) {
+            expectedValues.entrySet().stream()
+                    .sorted(Comparator.comparingInt(entry -> entry.getKey().ordinal()))
+                    .forEach(entry -> assertions.add(value(entry.getKey(), page, entry.getValue())));
+        }
+        if (generatedControls != null) {
+            for (PracticeShopControl control : generatedControls) {
+                try {
+                    String actual = locators.control(page, control).locator().inputValue();
+                    boolean populated = actual != null && !actual.isBlank();
+                    assertions.add(assertion(control.label(), "non-empty; auto-filled by Practice Shop",
+                            compact(actual), populated));
+                } catch (RuntimeException error) {
+                    assertions.add(assertion(control.label(), "non-empty; auto-filled by Practice Shop",
+                            PracticeShopValidationDiagnostics.unavailable(error), false));
+                }
+            }
+        }
+        return new PracticeShopPageValidationResult(base.screen(), assertions);
+    }
+
     /** Convenience entry point for a single form field in a component checkpoint. */
     public PracticeShopPageValidationResult validateValue(Page page, Class<?> pageObjectType,
                                                           PracticeShopControl control,

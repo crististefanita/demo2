@@ -3,7 +3,7 @@ import atf.api.testkit.AtfUnitTest;
 
 import atf.api.reporting.console.AtfConsoleSink;
 import atf.api.reporting.contract.AtfReportStatus;
-import atf.api.reporting.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.model.AtfUiActionRecord;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 

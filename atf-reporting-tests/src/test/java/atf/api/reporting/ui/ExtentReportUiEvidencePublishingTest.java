@@ -82,34 +82,6 @@ class ExtentReportUiEvidencePublishingTest {
     }
 
     @Test
-    void publishesRuntimeDiagnosticWithoutMisclassifyingItAsUiValidation() throws Exception {
-        Path root = Files.createTempDirectory("atf-ui-runtime-diagnostic-");
-        Path report;
-
-        try (var session = UiExtentReportSession.openConfigured(root, "ui-runtime-diagnostic.html",
-                AtfConsoleSink.noOp())) {
-            report = session.reportPath();
-            var scenario = session.startScenario("UiTest", EXTENT_UI_TEST_PACKAGE,
-                    "browser runtime signal", List.of("ui", "diagnostic"));
-            var body = scenario.startPhase(ReportUiContract.Phase.TEST_BODY.displayName());
-            body.diagnostic(AND, "known browser runtime signal is visible as a warning",
-                    "browser console bootstrap diagnostic",
-                    List.of(new AtfAssertion("Browser runtime signal", "known bootstrap diagnostic",
-                            "browser console reported a known bootstrap signal", true)), AtfReportStatus.WARNING);
-            body.complete(AtfReportStatus.WARNING);
-            scenario.complete(AtfReportStatus.WARNING);
-        }
-
-        String html = Files.readString(report);
-        assertAll(
-                () -> assertTrue(html.contains("known browser runtime signal is visible as a warning")),
-                () -> assertTrue(html.contains("Runtime diagnostic")),
-                () -> assertTrue(html.contains("runtime-diagnostic")),
-                () -> assertTrue(html.contains("Browser runtime signal")),
-                () -> assertFalse(html.contains("UI validation")));
-    }
-
-    @Test
     void publishesSetupAsArtifactEvidenceWithoutSyntheticUiValidationChild() throws Exception {
         Path root = Files.createTempDirectory("atf-ui-setup-evidence-");
         Path report;
@@ -397,10 +369,6 @@ class ExtentReportUiEvidencePublishingTest {
                 request, ReportTransportProvenance.LIVE_HTTP);
         var step = ReportNetworkInspector.Step.from("GIVEN", "session response is observed",
                 List.of(new AtfAssertion("Session response", "401", "401", true)), List.of(evidence));
-        var diagnostics = List.of(
-                new ReportNetworkInspector.Diagnostic("response", "GET", "/session", 401, "HTTP 401"),
-                new ReportNetworkInspector.Diagnostic("console", "GET", "/session", 401, "Unauthorized"));
-
         try (var session = UiExtentReportSession.openConfigured(root, "ui-network-aggregate.html",
                 AtfConsoleSink.noOp())) {
             report = session.reportPath();
@@ -408,7 +376,7 @@ class ExtentReportUiEvidencePublishingTest {
                     "journey network aggregate", List.of("ui", "api"));
             var body = scenario.startPhase(ReportUiContract.Phase.TEST_BODY.displayName());
             body.networkInspector("API network inspector — ordered UI journey",
-                    List.of(evidence), List.of(step), diagnostics);
+                    List.of(evidence), List.of(step));
             body.complete(AtfReportStatus.PASS);
             scenario.complete(AtfReportStatus.PASS);
         }
@@ -428,10 +396,9 @@ class ExtentReportUiEvidencePublishingTest {
                 () -> assertTrue(html.contains("transport counters")),
                 () -> assertFalse(html.contains("transport counters · 1")),
                 () -> assertTrue(html.contains("unique request signatures · 1")),
-                () -> assertTrue(html.contains("technical diagnostics · 1")),
+                () -> assertFalse(html.contains("technical diagnostics")),
                 () -> assertTrue(html.contains("network-signatures")),
-                () -> assertTrue(html.contains("network-diagnostics")),
-                () -> assertEquals(5, alignedAggregateRows,
+                () -> assertEquals(4, alignedAggregateRows,
                         "each inspector section must own an INFO badge in its Status/Details event row"),
                 () -> assertTrue(html.contains("response details · 5 fields")),
                 () -> assertFalse(html.contains("network ui step")),
@@ -439,12 +406,11 @@ class ExtentReportUiEvidencePublishingTest {
                 () -> assertTrue(html.contains("evidence type") && html.contains("api-trace"),
                         "the ordered network inspector must expose its typed technical evidence contract"),
                 () -> assertFalse(html.contains("network.aggregate.authentication")),
-                () -> assertTrue(html.contains("response · console")),
                 () -> assertFalse(html.contains("unauthorized bootstrap")));
     }
 
     @Test
-    void omitsJourneyInspectorWhenThereAreNoExchangesOrRuntimeDiagnostics() throws Exception {
+    void publishesRequestedJourneyInspectorWhenThereAreNoExchangesOrTechnicalDiagnostics() throws Exception {
         Path root = Files.createTempDirectory("atf-ui-empty-network-aggregate-");
         Path report;
         var emptyApiStep = ReportNetworkInspector.Step.from("GIVEN", "catalog page is ready",
@@ -457,17 +423,16 @@ class ExtentReportUiEvidencePublishingTest {
                     "catalog without API traffic", List.of("ui"));
             var body = scenario.startPhase(ReportUiContract.Phase.TEST_BODY.displayName());
             body.networkInspector("API network inspector — ordered UI journey",
-                    List.of(), List.of(emptyApiStep), List.of());
+                    List.of(), List.of(emptyApiStep));
             body.complete(AtfReportStatus.PASS);
             scenario.complete(AtfReportStatus.PASS);
         }
 
-        String html = Files.readString(report);
+        String html = Files.readString(report).toLowerCase();
         assertAll(
-                () -> assertFalse(html.contains("API network inspector — ordered UI journey")),
-                () -> assertFalse(html.contains("Network aggregate · 0 exchanges")),
-                () -> assertFalse(html.contains("Authentication evidence · 0")),
-                () -> assertFalse(html.contains("Technical diagnostics · 0")));
+                () -> assertTrue(html.contains("api network inspector — ordered ui journey")),
+                () -> assertTrue(html.contains("network aggregate · 0 exchanges")),
+                () -> assertEquals(1, html.split("api network inspector — ordered ui journey", -1).length - 1));
     }
 
     @Test

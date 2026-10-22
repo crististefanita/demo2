@@ -19,7 +19,7 @@ function assignNodeRoles() {
       /NETWORK/.test(upper)
     )
       role = 'request';
-    else if (/^VALIDATE[: ]/.test(upper)||upper.indexOf('VALIDATION')>=0||upper==='RUNTIME DIAGNOSTIC')
+    else if (/^VALIDATE[: ]/.test(upper)||upper.indexOf('VALIDATION')>=0)
       role = 'validation';
     if (role) card.setAttribute('data-atf-node-role', role);
     if (role === 'phase')
@@ -33,7 +33,7 @@ function assignNodeRoles() {
     var evidenceType = technicalEvidenceType(card);
     if (evidenceType) {
       card.setAttribute('data-atf-evidence-type', evidenceType);
-      if (evidenceType === 'runtime-diagnostic' || evidenceType === 'api-trace')
+      if (evidenceType === 'api-trace')
         card.setAttribute('data-atf-evidence-family', 'technical');
     }
   });

@@ -154,11 +154,12 @@ rendererul fallback:
 - în UI trace, acest spine este copilul semantic `API validation`, poziționat
   între pasul Gherkin și disclosure-urile collapsed; `API validation` are stilul
   și statusul unei `UI validation`, dar nu creează un test sau un verdict paralel;
-- diagnosticele runtime pot apărea numai ca disclosure tehnic explicit separat;
-  nu devin pași Gherkin, validări de business sau exchange-uri API;
-- un inspector configurat API-only primește exchange-urile contractuale și
-  checkpoint-urile cauzale; semnalele browser nelegate rămân la gate-ul runtime
-  al consumerului, nu în aggregate-ul API și nu în verdictul unui pas business;
+- nu există un canal generic de captură sau publicare pentru console/page
+  diagnostics; raportul nu pretinde că aceste semnale au fost verificate;
+- `Technical diagnostics` în Network Inspector se derivă numai din exchange-uri
+  HTTP eșuate; nu devine pas Gherkin, validare de business sau exchange nou;
+- inspectorul primește exchange-urile contractuale și checkpoint-urile cauzale;
+  orice verdict rămâne owner-ul validării de checkpoint/scenariu;
 - inspectorul de rețea este un nod synthetic unic, iar `Network aggregate · N
   exchanges` este copilul său real; copilul deține disclosure-urile typed pentru
   auth, correlation, transport, unique signatures și diagnostics, fără să
@@ -728,12 +729,14 @@ Un flow `final-only` marchează explicit checkpoint-ul prin
 Când policy-ul acceptă screenshot-ul, target-ul este obligatoriu, iar acțiunile
 și assertions rămân publicate chiar dacă imaginea este dezactivată.
 
-Pentru evidence, composition root-ul poate mapa `flowMode`, `screenshotPolicy`
-și `captureSource` în `ReportEvidenceProfile`, prin `fromConfig(...)` sau builder.
-Profilul nu execută Playwright și nu mută mock-ul în reporting.
+Pentru evidence, composition root-ul poate mapa `flowMode`, `screenshotPolicy`,
+`captureSource` și `actionDetailsMode` în `ReportEvidenceProfile`, prin
+`fromConfig(...)` sau builder. `actionDetailsMode` schimbă doar disclosure-ul
+acțiunilor deja capturate. Profilul nu execută Playwright și nu mută mock-ul în
+reporting.
 
 Acest contract descrie politica de publicare și efectul în artifact. Separarea
-generică dintre flow mode, capture source și composition root este în
+generică dintre flow mode, capture source, action-details mode și composition root este în
 [`ATF_Evidence_Capture_Contract.md`](ATF_Evidence_Capture_Contract.md); nu este
 specifică Practice Shop și nu se deduce din `reporting.extent`.
 

@@ -11,6 +11,7 @@ import atf.ui.practiceshop.routes.PracticeShopUiRoutes;
 import com.microsoft.playwright.Page;
 
 import java.net.URI;
+import java.util.List;
 
 /** Registration page object; account creation is explicit and never implicit in a purchase test. */
 @PracticeShopPageContract(screen = PracticeShopScreen.REGISTRATION, route = PracticeShopUiRoutes.AUTH_REGISTER,
@@ -43,9 +44,20 @@ public final class PracticeShopRegistrationPage {
         actions.fill(locators.registerFirstName(page), data.firstName(), "registration first name is entered");
         actions.fill(locators.registerLastName(page), data.lastName(), "registration last name is entered");
         actions.fill(locators.registerDob(page), data.dateOfBirth(), "registration date of birth is entered");
+        actions.waitForVisible(locators.registerCountry(page));
         actions.selectOption(locators.registerCountry(page), data.country(), "registration country is selected");
         actions.fill(locators.registerPostalCode(page), data.postalCode(), "registration postal code is entered");
         actions.fill(locators.registerHouseNumber(page), data.houseNumber(), "registration house number is entered");
+        page.waitForFunction("""
+                selectors => selectors.every(selector => {
+                    const field = document.querySelector(selector);
+                    return field && field.value.trim().length > 0;
+                })
+                """, List.of(locators.registerStreet(page).selector(),
+                locators.registerCity(page).selector(), locators.registerState(page).selector()));
+        actions.observation("Address lookup", "registration address fields",
+                "the shop fills street, city and state after country, postal code and house number are entered",
+                "street, city and state were populated before configured values were applied");
         actions.fill(locators.registerStreet(page), data.street(), "registration street is entered");
         actions.fill(locators.registerCity(page), data.city(), "registration city is entered");
         actions.fill(locators.registerState(page), data.state(), "registration state is entered");

@@ -97,30 +97,22 @@ class ReportNetworkInspectorTest {
     }
 
     @Test
-    void exposesTypedAggregateFactsAndDeduplicatesCrossSourceDiagnostics() {
+    void exposesTypedAggregateFactsWithoutPromotingHttpResponsesToBrowserDiagnostics() {
         var response = evidence("E5", 5, "checkout", "GET", "/session", 401,
                 "", "{\"message\":\"Unauthorized\"}");
-        var console = new ReportNetworkInspector.Diagnostic(
-                "console", "GET", "/session", 401, "Unauthorized response");
-        var network = new ReportNetworkInspector.Diagnostic(
-                "response", "GET", "/session", 401, "HTTP 401");
         var aggregate = ReportNetworkInspector.aggregate(List.of(response), List.of(
                 ReportNetworkInspector.Step.from("WHEN", "session response is observed",
-                        List.of(new AtfAssertion("Session response", "401", "401", true)), List.of(response))),
-                List.of(network, console));
+                        List.of(new AtfAssertion("Session response", "401", "401", true)), List.of(response))));
 
-        String projection = ReportNetworkInspector.fields(List.of(response), List.of(),
-                List.of(network, console)).toString();
+        String projection = ReportNetworkInspector.fields(List.of(response), List.of()).toString();
         assertAll(
                 () -> assertEquals(1, aggregate.authentication().size()),
                 () -> assertEquals(1, aggregate.signatures().size()),
                 () -> assertEquals("api.example.test", aggregate.signatures().get(0).service()),
                 () -> assertEquals("browser network / Playwright",
                         aggregate.signatures().get(0).mechanism()),
-                () -> assertEquals(1, aggregate.diagnostics().size()),
-                () -> assertEquals(2, aggregate.diagnostics().get(0).count()),
-                () -> assertEquals(List.of("response", "console"),
-                        aggregate.diagnostics().get(0).sources()),
+                () -> assertTrue(aggregate.diagnostics().isEmpty(),
+                        "a normal HTTP response does not become browser diagnostics"),
                 () -> assertFalse(projection.contains("network.aggregate")),
                 () -> assertFalse(projection.contains("Unauthorized bootstrap")),
                 () -> assertFalse(projection.contains("Unauthorized")));
@@ -133,7 +125,7 @@ class ReportNetworkInspectorTest {
         var aggregate = ReportNetworkInspector.aggregate(List.of(exchange), List.of(
                 ReportNetworkInspector.Step.from("THEN", "product is visible",
                         List.of(new AtfAssertion("Product", "visible", "visible", true)),
-                        List.of(exchange))), List.of());
+                        List.of(exchange))));
 
         String html = ReportNetworkAggregateMarkup.disclosure(aggregate);
 
@@ -162,24 +154,26 @@ class ReportNetworkInspectorTest {
 
     @Test
     void omitsEmptyAggregateAndRendersOnlyPopulatedSections() {
-        var empty = ReportNetworkInspector.aggregate(List.of(), List.of(), List.of());
-        var diagnostic = new ReportNetworkInspector.Diagnostic(
-                "console", "", "", -1, "browser console signal");
-        var diagnosticsOnly = ReportNetworkInspector.aggregate(List.of(), List.of(), List.of(diagnostic));
+        var empty = ReportNetworkInspector.aggregate(List.of(), List.of());
+        var failedExchange = failedEvidence("F1", 1, "/products/search", "network reset");
+        var diagnosticsOnly = ReportNetworkInspector.aggregate(List.of(failedExchange), List.of());
 
         String emptyDisclosure = ReportNetworkAggregateMarkup.disclosure(empty);
         String emptyBody = ReportNetworkAggregateMarkup.substepBody(empty);
         List<String> partialSections = ReportNetworkAggregateMarkup.substepSections(diagnosticsOnly);
+        String joinedSections = String.join("\n", partialSections);
 
         assertAll(
                 () -> assertTrue(emptyDisclosure.isBlank()),
                 () -> assertTrue(emptyBody.isBlank()),
                 () -> assertTrue(ReportNetworkAggregateMarkup.substepSections(empty).isEmpty()),
                 () -> assertFalse(partialSections.isEmpty()),
-                () -> assertEquals(1, partialSections.size()),
-                () -> assertTrue(partialSections.get(0).contains("Technical diagnostics · 1")),
-                () -> assertFalse(partialSections.get(0).contains("Authentication evidence · 0")),
-                () -> assertFalse(partialSections.get(0).contains("Transport counters · 1")));
+                () -> assertEquals(4, partialSections.size()),
+                () -> assertTrue(joinedSections.contains("Technical diagnostics · 1")),
+                () -> assertFalse(joinedSections.contains("Authentication evidence · 0")),
+                () -> assertTrue(joinedSections.contains("Transport counters")),
+                () -> assertFalse(joinedSections.contains("Unbound browser diagnostic")),
+                () -> assertTrue(joinedSections.contains("GET /products/search")));
     }
 
     @Test
@@ -193,7 +187,7 @@ class ReportNetworkInspectorTest {
                 .mapToObj(index -> ReportNetworkInspector.Step.from("WHEN",
                         "checkpoint " + (index + 1), List.of(), List.of()))
                 .toList();
-        var aggregate = ReportNetworkInspector.aggregate(exchanges, steps, List.of());
+        var aggregate = ReportNetworkInspector.aggregate(exchanges, steps);
         String html = ReportNetworkAggregateMarkup.disclosure(aggregate);
 
         assertAll(
@@ -208,36 +202,41 @@ class ReportNetworkInspectorTest {
     }
 
     @Test
-    void keepsDistinctUnboundDiagnosticsSeparateAndCountsOnlyTrueRepeats() {
-        var first = new ReportNetworkInspector.Diagnostic("console", "", "", -1,
-                "first page signal");
-        var firstRepeat = new ReportNetworkInspector.Diagnostic("console", "", "", -1,
-                "first page signal");
-        var second = new ReportNetworkInspector.Diagnostic("page", "", "", -1,
-                "second page signal");
+    void deduplicatesTechnicalDiagnosticsFromRepeatedFailedHttpExchanges() {
+        var first = failedEvidence("F1", 1, "/products/search", "connection reset");
+        var firstRepeat = failedEvidence("F2", 2, "/products/search", "connection reset");
+        var second = failedEvidence("F3", 3, "/carts", "connection refused");
 
-        var aggregate = ReportNetworkInspector.aggregate(List.of(), List.of(),
-                List.of(first, firstRepeat, second));
+        var aggregate = ReportNetworkInspector.aggregate(List.of(first, firstRepeat, second), List.of());
         String html = ReportNetworkAggregateMarkup.disclosure(aggregate);
 
         assertAll(
                 () -> assertEquals(2, aggregate.diagnostics().size()),
                 () -> assertEquals(List.of(2, 1), aggregate.diagnostics().stream()
                         .map(ReportNetworkInspector.DiagnosticObservation::count).toList()),
-                () -> assertEquals(List.of("UNBOUND-1", "UNBOUND-2"), aggregate.diagnostics().stream()
+                () -> assertEquals(List.of("connection reset", "connection refused"), aggregate.diagnostics().stream()
                         .map(ReportNetworkInspector.DiagnosticObservation::signal).toList()),
-                () -> assertTrue(ReportNetworkInspector.fields(List.of(), List.of(),
-                        List.of(first, firstRepeat, second)).stream()
+                () -> assertTrue(ReportNetworkInspector.fields(List.of(), List.of()).stream()
                         .noneMatch(field -> field.name().startsWith("network.aggregate."))),
-                () -> assertTrue(html.contains("UNBOUND-1")),
-                () -> assertTrue(html.contains("UNBOUND-2")),
                 () -> assertTrue(html.contains("Technical diagnostics · 2")),
                 () -> assertTrue(html.contains("network-diagnostics")),
-                () -> assertTrue(html.contains("Unbound browser diagnostic")),
-                () -> assertFalse(html.contains("<td></td>")),
-                () -> assertFalse(html.contains("<td>-1</td>")),
-                () -> assertFalse(html.contains("first page signal")),
-                () -> assertFalse(html.contains("second page signal")));
+                () -> assertTrue(html.contains("GET /products/search")),
+                () -> assertTrue(html.contains("GET /carts")),
+                () -> assertFalse(html.contains("Unbound browser diagnostic")),
+                () -> assertFalse(html.contains("console/page signal")));
+    }
+
+    private static ReportExecutionEvidence failedEvidence(String eventId, long sequence,
+                                                          String path, String reason) {
+        var request = new ReportRequest("GET", path, Map.of(), Map.of(), "none", "");
+        var response = new ReportResponse(-1, "", Map.of(), Duration.ofMillis(1),
+                "https://api.example.test" + path);
+        var trace = ReportTraceMetadata.from(request).withCapture(eventId, sequence, "catalog",
+                "ActionCaused", "catalog", "UI action", "UI_BROWSER_REQUEST_FAILED",
+                "", "", "");
+        return new ReportExecutionEvidence(response, 1, Duration.ofMillis(1), List.of(),
+                List.of(new ReportAttemptRecord(1, -1, Duration.ofMillis(1), "FAILURE", reason)),
+                request, ReportTransportProvenance.LIVE_HTTP, trace);
     }
 
     private static ReportExecutionEvidence evidence(String eventId, long sequence, String phase,

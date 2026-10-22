@@ -1,6 +1,7 @@
 package atf.ui.tests.extent.support.inspection.layout;
 
 import atf.api.reporting.api.ReportRequest;
+import atf.api.reporting.api.ReportAttemptRecord;
 import atf.api.reporting.api.ReportResponse;
 import atf.api.reporting.api.ReportTraceMetadata;
 import atf.api.reporting.api.ReportTransportProvenance;
@@ -8,10 +9,9 @@ import atf.api.reporting.console.AtfConsoleSink;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.model.ReportExecutionEvidence;
-import atf.api.reporting.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.model.AtfUiActionRecord;
 import atf.api.reporting.ui.UiExtentReportOptions;
 import atf.api.reporting.ui.UiExtentReportSession;
-import atf.api.reporting.ui.network.ReportNetworkInspector;
 
 import java.nio.file.Path;
 import java.time.Duration;
@@ -97,11 +97,18 @@ public final class ScrollableTableReportFixture {
         }).toList();
     }
 
-    static List<ReportNetworkInspector.Diagnostic> diagnostics(int count) {
-        return IntStream.rangeClosed(1, count)
-                .mapToObj(index -> new ReportNetworkInspector.Diagnostic("console", "", "", -1,
-                        "fixture-signal-%02d".formatted(index)))
-                .toList();
+    static List<ReportExecutionEvidence> failedExchanges(int count) {
+        return IntStream.rangeClosed(1, count).mapToObj(index -> {
+            String path = "/viewport/failures/%02d".formatted(index);
+            var request = new ReportRequest("GET", path, Map.of(), Map.of(), "none", "");
+            var response = new ReportResponse(-1, "", Map.of(), Duration.ofMillis(2), BASE_URL + path);
+            var trace = ReportTraceMetadata.from(request).withCapture("F" + index, index, "viewport",
+                    "ActionCaused", "viewport", "UI action", "UI_BROWSER_REQUEST_FAILED", "", "", "");
+            return new ReportExecutionEvidence(response, 1, Duration.ofMillis(2), List.of(),
+                    List.of(new ReportAttemptRecord(1, -1, Duration.ofMillis(2), "FAILURE",
+                            "fixture transport failure %02d".formatted(index))),
+                    request, ReportTransportProvenance.LIVE_HTTP, trace);
+        }).toList();
     }
 
     public enum Density {

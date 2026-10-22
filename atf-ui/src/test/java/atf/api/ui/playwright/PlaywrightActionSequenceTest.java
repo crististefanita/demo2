@@ -125,18 +125,60 @@ class PlaywrightActionSequenceTest {
                 (proxy, method, arguments) -> switch (method.getName()) {
                     case "count" -> 1;
                     case "fill", "toString" -> method.getName().equals("toString")
-                            ? "input[data-test='postal_code']" : null;
+                            ? "input[data-test='search-query']" : null;
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
 
         var actions = new PlaywrightActionSequence();
-        actions.fill(new AtfLocator(locator, "input[data-test='postal_code']"),
-                "010101", "billing postal code is entered");
+        actions.fill(new AtfLocator(locator, "input[data-test='search-query']"),
+                "pliers", "product search query is entered");
 
         var record = actions.snapshot().getFirst();
-        assertEquals("input[data-test='postal_code']", record.target());
-        assertEquals("billing postal code is entered · value=010101", record.expected());
-        assertEquals("value entered: 010101", record.observed());
+        assertEquals("input[data-test='search-query']", record.target());
+        assertEquals("product search query is entered · value=pliers", record.expected());
+        assertEquals("value entered: pliers", record.observed());
+    }
+
+    @Test
+    void fillRedactsPersonalRegistrationFieldsButKeepsTheValuesInTheBrowser() {
+        var entered = new ArrayList<String>();
+        var actions = new PlaywrightActionSequence();
+        var targetsAndValues = List.of(
+                List.of("input[id='first_name']", "Ada"),
+                List.of("input[id='last_name']", "Lovelace"),
+                List.of("input[id='dob']", "1990-01-01"),
+                List.of("input[id='postal_code']", "010101"),
+                List.of("input[id='house_number']", "10"),
+                List.of("input[id='street']", "Secret Street"),
+                List.of("input[id='city']", "Private City"),
+                List.of("input[id='state']", "Private State"),
+                List.of("input[id='phone']", "0700000000"),
+                List.of("input[id='email']", "private.person@example.test"),
+                List.of("input[id='password']", "Secret!123"));
+
+        for (List<String> targetAndValue : targetsAndValues) {
+            String target = targetAndValue.getFirst();
+            String value = targetAndValue.getLast();
+            var locator = (com.microsoft.playwright.Locator) Proxy.newProxyInstance(
+                    com.microsoft.playwright.Locator.class.getClassLoader(),
+                    new Class<?>[]{com.microsoft.playwright.Locator.class},
+                    (proxy, method, arguments) -> switch (method.getName()) {
+                        case "count" -> 1;
+                        case "fill" -> { entered.add((String) arguments[0]); yield null; }
+                        case "toString" -> target;
+                        default -> throw new UnsupportedOperationException(method.getName());
+                    });
+            actions.fill(new AtfLocator(locator, target), value, "registration field is entered");
+        }
+
+        var records = actions.snapshot();
+        assertEquals(targetsAndValues.stream().map(values -> values.get(1)).toList(), entered);
+        assertEquals(targetsAndValues.size(), records.size());
+        for (int index = 0; index < records.size(); index++) {
+            assertEquals("value entered: [REDACTED]", records.get(index).observed());
+            assertEquals("registration field is entered · value=[REDACTED]", records.get(index).expected());
+            assertTrue(!records.get(index).observed().contains(entered.get(index)));
+        }
     }
 
     @Test

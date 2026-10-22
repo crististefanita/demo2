@@ -18,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 
+import static atf.api.core.http.response.JsonBodyPolicy.validDocument;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -59,7 +60,7 @@ class ApiSelectionMockPublisherComponentTest {
                 () -> assertEquals(java.util.List.of(AtfReportStatus.PASS),
                         result.manifest().expectedProjection().expectedScenarioStatuses()),
                 () -> assertEquals(201, route.status()),
-                () -> assertTrue(atf.api.core.http.response.JsonBodyPolicy.validDocument(route.body()),
+                () -> assertTrue(validDocument(route.body()),
                         "the selected POST response must come from its JSON mock route"),
                 () -> assertTrue(html.contains(SELECTED_TITLE),
                         "the chosen exact API test must reach the published report"),

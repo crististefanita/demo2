@@ -1,12 +1,17 @@
 package atf.api.reporting.api;
 
 import atf.api.testkit.AtfUnitTest;
+import atf.api.core.http.request.ApiRequest;
+import atf.api.core.http.response.ApiResponse;
+import atf.api.core.http.response.ApiExecutionResult;
+import atf.api.core.http.response.RetryEvent;
+import atf.api.core.http.response.ApiAttemptRecord;
+import atf.api.core.reporting.contract.AtfAssertion;
+import atf.api.core.ui.AtfUiActionRecord;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.support.ApiReportTestUrls;
-import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
-import atf.api.reporting.ui.AtfUiActionRecord;
-import atf.api.reporting.ui.AtfUiEvidenceSource;
+import atf.api.reporting.ui.model.AtfUiEvidenceSource;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
@@ -47,22 +52,22 @@ class ReportModelAdaptersTest {
 
     @Test
     void adaptsLiveCoreExecutionWithoutLosingRetryOrTransportFacts() {
-        var request = new atf.api.core.http.request.ApiRequest(
+        var request = new ApiRequest(
                 java.net.http.HttpRequest.BodyPublishers.noBody(), "POST", "/orders",
                 Map.of("include", "invoice"), Map.of("Authorization", "Bearer raw-token"),
                 "bearer", null, "{\"quantity\":2}");
-        var response = new atf.api.core.http.response.ApiResponse(201, "{\"id\":7}",
+        var response = new ApiResponse(201, "{\"id\":7}",
                 Map.of("content-type", "application/json"), Duration.ofMillis(12),
                 ApiReportTestUrls.atf(ApiReportTestUrls.GENERIC_USERS));
-        var execution = new atf.api.core.http.response.ApiExecutionResult(response, 2,
+        var execution = new ApiExecutionResult(response, 2,
                 Duration.ofMillis(31),
-                List.of(new atf.api.core.http.response.RetryEvent(2, 503, "Retry-After",
+                List.of(new RetryEvent(2, 503, "Retry-After",
                         Duration.ofMillis(5), "temporary")),
-                List.of(new atf.api.core.http.response.ApiAttemptRecord(1, 503,
+                List.of(new ApiAttemptRecord(1, 503,
                                 Duration.ofMillis(7),
                                 atf.api.core.http.response.ApiAttemptOutcome.RETRYABLE_RESPONSE,
                                 "temporary"),
-                        new atf.api.core.http.response.ApiAttemptRecord(2, 201,
+                        new ApiAttemptRecord(2, 201,
                                 Duration.ofMillis(12),
                                 atf.api.core.http.response.ApiAttemptOutcome.SUCCESS, "")),
                 request, atf.api.core.http.transport.ApiTransportProvenance.LIVE_HTTP);
@@ -81,16 +86,16 @@ class ReportModelAdaptersTest {
 
     @Test
     void adaptsCoreAssertionsAndUiActionsThroughOneSharedBoundary() {
-        var coreAssertion = new atf.api.core.reporting.contract.AtfAssertion(
+        var coreAssertion = new AtfAssertion(
                 "visible", "yes", "yes", true,
                 atf.api.core.reporting.contract.AtfReportStatus.WARNING);
-        var coreAction = new atf.api.core.ui.AtfUiActionRecord(4, "Fill", "#email",
+        var coreAction = new AtfUiActionRecord(4, "Fill", "#email",
                 "configured value", "value entered", 18,
                 atf.api.core.reporting.contract.AtfReportStatus.PASS,
                 atf.api.core.ui.AtfUiEvidenceSource.OBSERVE);
 
-        AtfAssertion assertion = ReportModelAdapters.assertion(coreAssertion);
-        List<AtfUiActionRecord> actions = ReportModelAdapters.uiActions(List.of(coreAction));
+        var assertion = ReportModelAdapters.assertion(coreAssertion);
+        var actions = ReportModelAdapters.uiActions(List.of(coreAction));
 
         assertEquals(AtfReportStatus.WARNING, assertion.resultStatus());
         assertEquals("#email", actions.getFirst().target());

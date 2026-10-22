@@ -34,7 +34,11 @@ class PracticeShopConfigurationTest {
         assertFalse(configuration.matchesProductPath(PracticeShopUiRoutes.category("pliers")));
         assertEquals(2, configuration.checkout().quantity());
         assertEquals("Cash on Delivery", configuration.checkout().paymentMethod());
-        assertEquals("Romania", configuration.checkout().billing().country());
+        assertEquals("United States of America (the)", configuration.checkout().billing().country());
+        assertEquals("53703", configuration.checkout().billing().postalCode());
+        assertEquals("Wayne Lock", configuration.checkout().billing().street());
+        assertEquals("Cartwrightmouth", configuration.checkout().billing().city());
+        assertEquals("Alaska", configuration.checkout().billing().state());
         assertEquals(70, configuration.browser().zoomPercent());
         assertTrue(configuration.browser().screenshotOnFailure());
         assertEquals(1, configuration.uiRetry().maxAttempts());

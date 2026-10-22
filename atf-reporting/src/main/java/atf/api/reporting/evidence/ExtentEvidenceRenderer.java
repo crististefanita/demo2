@@ -5,7 +5,7 @@ import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.configuration.ReportingSettings;
 import atf.api.reporting.security.SensitiveDataRedactor;
 import atf.api.reporting.evidence.profile.ReportUiActionDetailsMode;
-import atf.api.reporting.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.model.AtfUiActionRecord;
 import atf.api.reporting.ui.network.ReportNetworkInspector;
 import atf.api.reporting.model.ReportField;
 import atf.api.reporting.model.ReportJsonBody;

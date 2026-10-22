@@ -2,6 +2,7 @@ package atf.ui.practiceshop.support;
 
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.contract.AtfAssertion;
+import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.api.ui.playwright.UiScreenValidation;
 import com.microsoft.playwright.Page;
@@ -27,6 +28,7 @@ public final class PracticeShopAuditObservations {
         Objects.requireNonNull(checkpoint, "checkpoint");
         Objects.requireNonNull(screenshot, "screenshot");
 
+        recordReplayCheckpoint(actions, page, checkpoint, screenshot);
         recordScreenContract(actions, page, checkpoint.title(), checkpoint.assertions(), screenshot,
                 checkpoint.passed());
 
@@ -49,6 +51,32 @@ public final class PracticeShopAuditObservations {
                             + "; transport=" + evidence.provenance().reportLabel()
                             + "; attempts=" + evidence.attempts());
         }
+    }
+
+    /**
+     * Publishes the smallest reader-facing replay contract for one checkpoint.
+     *
+     * <p>This is deliberately an observation, not another browser action: the
+     * action table answers "what did the test do?", while this row tells a
+     * reader without ATF source what to verify before continuing.</p>
+     */
+    private static void recordReplayCheckpoint(PlaywrightActionSequence actions,
+                                               Page page,
+                                               PracticeShopPurchaseCheckpoint checkpoint,
+                                               UiScreenValidation.Evidence screenshot) {
+        int total = checkpoint.assertions().size();
+        long passed = checkpoint.assertions().stream().filter(AtfAssertion::passed).count();
+        boolean terminal = checkpoint.keyword() == AtfGherkinKeyword.THEN;
+        actions.observation(
+                "Replay checkpoint",
+                safeUrl(page),
+                "perform the actions above; verify '" + checkpoint.title()
+                        + "' and continue only when visible assertions pass",
+                "status=" + (checkpoint.passed() ? "PASS" : "FAIL")
+                        + "; visible assertions=" + passed + "/" + total
+                        + "; terminal=" + (terminal ? "success condition" : "continue")
+                        + "; screenshot=" + (screenshot.hasScreenshotPayload() ? "valid PNG" : "not captured")
+                        + "; checkpoint=" + checkpoint.title());
     }
 
     /** Adds the same screen audit to the account/catalog compatibility path. */

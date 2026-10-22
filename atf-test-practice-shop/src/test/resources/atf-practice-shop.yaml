@@ -60,12 +60,15 @@ practiceShop:
       firstName: ATF
       lastName: PracticeShop
     billing:
-      country: Romania
-      postalCode: 010101
+      country: United States of America (the)
+      postalCode: "53703"
       houseNumber: 10
-      street: Test Street
-      city: Bucharest
-      state: Bucharest
+      # The current demo lookup for this country/postcode resolves this fixture.
+      # UI_ONLY leaves the following fields to the application's lookup; UI_API
+      # keeps explicit values for deterministic request/evidence assertions.
+      street: Wayne Lock
+      city: Cartwrightmouth
+      state: Alaska
     paymentMethod: Cash on Delivery
   # This is a disposable synthetic demo fixture owned by this module. It is
   # intentionally explicit so authenticated live proof is reproducible.

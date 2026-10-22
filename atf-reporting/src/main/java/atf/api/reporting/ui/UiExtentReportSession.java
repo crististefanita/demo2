@@ -13,7 +13,7 @@ import atf.api.reporting.configuration.AtfReportConfigurationLoader;
 import atf.api.reporting.configuration.ExtentReportConfiguration;
 import atf.api.reporting.configuration.ReportEnvironmentSnapshot;
 import atf.api.reporting.extent.session.ExtentReportSession;
-import atf.api.reporting.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.model.AtfUiActionRecord;
 
 import java.nio.file.Path;
 import java.time.Clock;
@@ -288,25 +288,21 @@ public final class UiExtentReportSession implements AutoCloseable {
                     apiEvidence, capturePoint, status);
         }
 
-        /** Adds a compact journey-level network projection without duplicating JSON bodies. */
+        /**
+         * Registers the phase's single journey summary. Reporting publishes it
+         * after all other phase evidence, immediately before phase close; an
+         * explicitly requested empty journey is retained as a zero-exchange summary.
+         */
         public void networkInspector(String title,
                                      Collection<atf.api.reporting.model.ReportExecutionEvidence> evidence) {
             lifecycle.networkInspector(title, evidence);
         }
 
-        /** Publishes ordered UI checkpoints plus their compact network projection. */
+        /** Registers ordered UI checkpoints with the phase's terminal network summary. */
         public void networkInspector(String title,
                                      Collection<atf.api.reporting.model.ReportExecutionEvidence> evidence,
                                      Collection<ReportNetworkInspector.Step> steps) {
             lifecycle.networkInspector(title, evidence, steps);
-        }
-
-        /** Publishes the journey aggregate with deduplicated runtime diagnostics. */
-        public void networkInspector(String title,
-                                     Collection<atf.api.reporting.model.ReportExecutionEvidence> evidence,
-                                     Collection<ReportNetworkInspector.Step> steps,
-                                     Collection<ReportNetworkInspector.Diagnostic> diagnostics) {
-            lifecycle.networkInspector(title, evidence, steps, diagnostics);
         }
 
         public void setup(String keyword, String title, String target,
@@ -327,12 +323,6 @@ public final class UiExtentReportSession implements AutoCloseable {
         public void outcome(AtfGherkinKeyword keyword, String title, String target,
                             AtfReportStatus status) {
             lifecycle.outcome(keyword, title, target, status);
-        }
-
-        /** Publishes a non-visual browser/runtime diagnostic without a UI-validation label. */
-        public void diagnostic(AtfGherkinKeyword keyword, String title, String target,
-                               Collection<AtfAssertion> assertions, AtfReportStatus status) {
-            lifecycle.diagnostic(keyword, title, target, assertions, status);
         }
 
         /** Publishes API evidence as a causal sibling immediately after its UI checkpoint. */

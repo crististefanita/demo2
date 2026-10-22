@@ -17,7 +17,7 @@ public final class CoreReportPortsAdapter implements atf.api.core.reporting.cont
     public void flush(){delegate.flush();} public void close(){delegate.close();}
     private static atf.api.reporting.contract.AtfReportStatus status(atf.api.core.reporting.contract.AtfReportStatus s){return ReportModelAdapters.status(s);}
     private static atf.api.reporting.contract.AtfAssertion assertion(atf.api.core.reporting.contract.AtfAssertion a){return ReportModelAdapters.assertion(a);}
-    private static atf.api.reporting.ui.AtfUiActionRecord action(atf.api.core.ui.AtfUiActionRecord a){return ReportModelAdapters.uiAction(a);}
+    private static atf.api.reporting.ui.model.AtfUiActionRecord action(atf.api.core.ui.AtfUiActionRecord a){return ReportModelAdapters.uiAction(a);}
     private static final class Scenario implements atf.api.core.reporting.contract.AtfReportPorts.Scenario {
         private final atf.api.reporting.contract.AtfReportPorts.Scenario delegate; Scenario(atf.api.reporting.contract.AtfReportPorts.Scenario d){delegate=d;}
         public String id(){return delegate.id();} public atf.api.core.reporting.contract.AtfReportPorts.Phase startPhase(String name){return new Phase(delegate.startPhase(name));}

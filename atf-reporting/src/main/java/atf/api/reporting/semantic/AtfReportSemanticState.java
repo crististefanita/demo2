@@ -3,7 +3,7 @@ package atf.api.reporting.semantic;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.model.ReportTagNormalizer;
-import atf.api.reporting.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.model.AtfUiActionRecord;
 
 import java.util.ArrayList;
 import java.util.Collection;

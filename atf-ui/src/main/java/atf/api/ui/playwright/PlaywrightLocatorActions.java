@@ -11,7 +11,9 @@ import com.microsoft.playwright.options.SelectOption;
 /** Executes and records actions whose target is a Playwright locator. */
 final class PlaywrightLocatorActions {
     private static final Pattern SENSITIVE_TARGET = Pattern.compile(
-            "password|token|secret|credential|authorization|cookie|api[-_]?key",
+            "password|token|secret|credential|authorization|cookie|api[-_]?key"
+                    + "|(?:^|[^a-z])(?:e-?mail|first[_-]?name|last[_-]?name|date[_-]?of[_-]?birth|dob"
+                    + "|phone|postal[_-]?code|house[_-]?number|street|city|state|address)(?:$|[^a-z])",
             Pattern.CASE_INSENSITIVE);
     private final UiActionRecorder recorder;
 

@@ -233,7 +233,7 @@ public final class PracticeShopApiReportPublisher {
             }
             node.detail("trace.contract", "logical signature = method + safe URL + canonical JSON body digest");
             node.detail("trace.observations", Integer.toString(executions.size()));
-            node.networkAggregate(ReportNetworkInspector.aggregate(evidence, List.of(), List.of()));
+            node.networkAggregate(ReportNetworkInspector.aggregate(evidence, List.of()));
             node.complete(AtfReportStatus.PASS);
         } finally {
             node.close();

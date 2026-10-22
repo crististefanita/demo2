@@ -1,5 +1,16 @@
 package atf.ui.practiceshop.support;
 
+import atf.api.core.http.request.HttpMethod;
+import atf.ui.practiceshop.api.PracticeShopApiRequestFactory;
+import atf.ui.practiceshop.api.PracticeShopApiRoutes;
+import atf.ui.practiceshop.config.PracticeShopApiConfiguration;
+import atf.ui.practiceshop.config.PracticeShopCredentials;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
 /**
@@ -44,6 +55,45 @@ public final class PracticeShopLoginBodyRecovery {
         } catch (Exception error) {
             return new Result(false, "", PracticeShopApiBodyEvidence.unavailable(
                     "login body recovery", error));
+        }
+    }
+
+    /** Performs the narrowly scoped live login read-back used when Playwright cannot expose its body. */
+    public static Result recoverLive(PracticeShopApiConfiguration configuration,
+                                     PracticeShopCredentials credentials) {
+        Objects.requireNonNull(configuration, "configuration");
+        Objects.requireNonNull(credentials, "credentials");
+        if (configuration.mode() != atf.api.core.config.ApiTransportMode.LIVE) {
+            return Result.unavailable("live recovery is disabled outside LIVE mode");
+        }
+        return attempt(() -> fetchLiveLoginBody(configuration, credentials));
+    }
+
+    private static String fetchLiveLoginBody(PracticeShopApiConfiguration configuration,
+                                             PracticeShopCredentials credentials) throws IOException {
+        var request = new PracticeShopApiRequestFactory().login(credentials);
+        URI uri = configuration.endpoint().resolve(PracticeShopApiRoutes.LOGIN.substring(1));
+        HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
+        try {
+            connection.setConnectTimeout((int) configuration.timeout().toMillis());
+            connection.setReadTimeout((int) configuration.timeout().toMillis());
+            connection.setRequestMethod(HttpMethod.POST.value());
+            connection.setDoOutput(true);
+            connection.setRequestProperty("Accept", "application/json");
+            connection.setRequestProperty("Content-Type", "application/json");
+            byte[] body = request.bodyText().getBytes(StandardCharsets.UTF_8);
+            try (var output = connection.getOutputStream()) {
+                output.write(body);
+            }
+            int status = connection.getResponseCode();
+            if (status < 200 || status >= 300) {
+                throw new IOException("HTTP status " + status + " for " + PracticeShopApiRoutes.LOGIN);
+            }
+            try (InputStream input = connection.getInputStream()) {
+                return new String(input.readAllBytes(), StandardCharsets.UTF_8);
+            }
+        } finally {
+            connection.disconnect();
         }
     }
 }

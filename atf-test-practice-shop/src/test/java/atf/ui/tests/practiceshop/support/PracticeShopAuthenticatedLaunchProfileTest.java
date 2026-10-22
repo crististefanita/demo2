@@ -85,12 +85,18 @@ class PracticeShopAuthenticatedLaunchProfileTest {
     void registrationCapabilityIsAnExplicitClassContract() throws ClassNotFoundException {
         Class<?> purchase = Class.forName(
                 "atf.ui.tests.practiceshop.e2e.PracticeShopAuthenticatedPurchaseE2eTest");
+        var purchaseProfile = purchase.getAnnotation(PracticeShopTestSupport.AuthenticatedE2e.class);
 
         assertTrue(purchase.isAnnotationPresent(PracticeShopTestSupport.AllowsRegistrationPerRun.class));
+        assertEquals(PracticeShopTestSupport.AccountSetupMode.REGISTER_PER_RUN,
+                purchaseProfile.accountSetup());
         Class<?> accountAndCatalog = Class.forName(
                 "atf.ui.tests.practiceshop.e2e.PracticeShopAccountAndCatalogE2eTest");
+        var accountProfile = accountAndCatalog.getAnnotation(PracticeShopTestSupport.AuthenticatedE2e.class);
         assertTrue(accountAndCatalog.isAnnotationPresent(
                 PracticeShopTestSupport.AllowsRegistrationPerRun.class));
+        assertEquals(PracticeShopTestSupport.AccountSetupMode.REGISTER_PER_RUN,
+                accountProfile.accountSetup());
         assertFalse(NonPurchaseAuthenticatedTest.class.isAnnotationPresent(
                 PracticeShopTestSupport.AllowsRegistrationPerRun.class));
     }

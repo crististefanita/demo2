@@ -1,6 +1,5 @@
 package atf.ui.practiceshop.support;
 
-import atf.api.core.http.request.HttpMethod;
 import com.microsoft.playwright.Response;
 
 import java.util.Optional;
@@ -8,7 +7,6 @@ import java.util.Optional;
 /** Captures and sanitizes one Practice Shop HTTP response from the current UI session. */
 final class PracticeShopApiTrafficCapture {
     private static final String API_HOST = "api.practicesoftwaretesting.com";
-    private static final String UNPUBLISHED_SESSION_PATH = "/users/me";
 
     Optional<PracticeShopApiNetworkJournal.Exchange> capture(Response response) {
         if (response == null) return Optional.empty();
@@ -17,9 +15,6 @@ final class PracticeShopApiTrafficCapture {
             return Optional.empty();
         }
         String path = path(request.url());
-        if (!isPublishable(request.method(), path)) {
-            return Optional.empty();
-        }
         String responseBody;
         try {
             // Response callbacks can arrive before Chromium has released the
@@ -55,9 +50,4 @@ final class PracticeShopApiTrafficCapture {
         return uri.getRawPath() + (uri.getRawQuery() == null ? "" : "?" + uri.getRawQuery());
     }
 
-    static boolean isPublishable(String method, String path) {
-        String route = path == null ? "" : path.split("[?#]", 2)[0];
-        return !(HttpMethod.GET.value().equalsIgnoreCase(method)
-                && UNPUBLISHED_SESSION_PATH.equals(route));
-    }
 }
