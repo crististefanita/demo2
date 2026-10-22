@@ -11,6 +11,7 @@ import atf.api.reporting.api.ReportTransportProvenance;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.ui.contract.ReportUiContract;
 import atf.api.reporting.ui.network.ReportNetworkInspector;
+import atf.api.reporting.ui.model.AtfUiActionRecord;
 
 import org.junit.jupiter.api.Test;
 
@@ -154,6 +155,57 @@ class ExtentReportUiEvidencePublishingTest {
                 () -> assertTrue(closing > disclosure),
                 () -> assertEquals(1, ExtentReportUiEvidenceTestSupport.count(html,
                         "step-detail setup-evidence atf-setup-evidence")));
+    }
+
+    @Test
+    void keepsRegistrationChecksActionsAndApiEvidenceInsideAuthenticatedSetup() throws Exception {
+        Path root = Files.createTempDirectory("atf-ui-authenticated-setup-");
+        Path report;
+        var assertion = new AtfAssertion("Registration response", "HTTP 2xx", "HTTP 201", true);
+        var action = new AtfUiActionRecord(1, "Click", "button[name=Register]",
+                "registration submitted", "click completed", 4, AtfReportStatus.PASS);
+        var apiRequest = new ReportRequest("POST", "/users/register", Map.of(),
+                Map.of("Content-Type", "application/json"), "none", "{\"email\":\"redacted\"}");
+        var apiResponse = new ReportResponse(201, "{\"message\":\"registered\"}",
+                Map.of("Content-Type", "application/json"), Duration.ofMillis(12),
+                "https://api.practicesoftwaretesting.com/users/register");
+        var apiExecution = new ReportExecutionEvidence(apiResponse, 1, Duration.ofMillis(12),
+                List.of(), List.of(new ReportAttemptRecord(1, 201, Duration.ofMillis(12),
+                "SUCCESS", "registration accepted")), apiRequest, ReportTransportProvenance.LIVE_HTTP);
+
+        try (var session = UiExtentReportSession.openConfigured(root, "ui-authenticated-setup.html",
+                AtfConsoleSink.noOp())) {
+            report = session.reportPath();
+            var scenario = session.startScenario("AuthenticatedUiTest", EXTENT_UI_TEST_PACKAGE,
+                    "registration before authenticated flow", List.of("ui", "authenticated"));
+            var setup = scenario.startPhase(ReportUiContract.Phase.SETUP.displayName());
+            setup.setup(GIVEN, "a new account is registered", "/auth/register", List.of(assertion),
+                    List.of(action), List.of(apiExecution), AtfReportStatus.PASS);
+            setup.setup(AND, "the account is signed in", "/account", List.of(
+                    new AtfAssertion("Account session", "authenticated", "authenticated", true)),
+                    AtfReportStatus.PASS);
+            setup.complete(AtfReportStatus.PASS);
+            var body = scenario.startPhase(ReportUiContract.Phase.TEST_BODY.displayName());
+            body.step(THEN, "the authenticated account is ready", "/account", null,
+                    AtfReportStatus.PASS);
+            body.complete(AtfReportStatus.PASS);
+            scenario.complete(AtfReportStatus.PASS);
+        }
+
+        String html = Files.readString(report);
+        int setupPosition = html.indexOf("<span>SETUP</span>");
+        int registrationPosition = html.indexOf("GIVEN a new account is registered");
+        int setupEvidencePosition = html.indexOf("atf-setup-evidence-table");
+        int testBodyPosition = html.indexOf("<span>TEST BODY</span>");
+        assertAll(
+                () -> assertTrue(setupPosition >= 0 && registrationPosition > setupPosition),
+                () -> assertTrue(setupEvidencePosition > registrationPosition),
+                () -> assertTrue(html.contains("Setup evidence · 1 checks")),
+                () -> assertTrue(html.contains("Playwright action sequence (1 entries)")),
+                () -> assertTrue(html.contains("API validation")),
+                () -> assertTrue(html.contains("POST /users/register")),
+                () -> assertTrue(testBodyPosition > setupEvidencePosition),
+                () -> assertFalse(html.contains("UI validation")));
     }
 
     @Test
