@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import static atf.api.reporting.audit.ReportAuditChecks.check;
 
 /** External smoke slice: one reusable account, two high-value journeys. */
-@PracticeShopTestSupport.RequiresAuthenticatedFixture
+@PracticeShopTestSupport.AuthenticatedE2e
 @AtfE2eTest
 @PracticeShopE2eTestSupport.WithE2eHarness
 @Execution(ExecutionMode.SAME_THREAD)

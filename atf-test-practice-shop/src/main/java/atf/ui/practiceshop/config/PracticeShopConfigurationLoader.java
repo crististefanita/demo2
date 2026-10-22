@@ -51,6 +51,11 @@ public final class PracticeShopConfigurationLoader {
         }
     }
 
+    /** Resolves and validates a module-owned account fixture for test annotations. */
+    public static Path resolveAccountFile(String configured) {
+        return accountPath(configured);
+    }
+
     private static PracticeShopConfiguration load(InputStream stream) throws IOException {
             Path account = Path.of("atf-test-practice-shop", "src", "test", "resources",
                     "practice-software-testing-account.properties");

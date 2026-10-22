@@ -17,7 +17,7 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 import atf.ui.tests.practiceshop.support.PracticeShopTestSupport;
 
 /** One authenticated purchase proof: reusable login setup, then the complete UI journey. */
-@PracticeShopTestSupport.RequiresAuthenticatedFixture
+@PracticeShopTestSupport.AuthenticatedE2e
 @AtfE2eTest
 @PracticeShopE2eTestSupport.WithE2eHarness
 @Execution(ExecutionMode.SAME_THREAD)

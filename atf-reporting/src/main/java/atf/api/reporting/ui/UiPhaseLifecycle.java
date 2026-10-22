@@ -7,10 +7,12 @@ import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.api.reporting.contract.AtfReportPorts;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
+import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
 import atf.api.reporting.model.ReportExecutionEvidence;
 
 import atf.api.reporting.ui.AtfUiActionRecord;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -18,12 +20,23 @@ import java.util.List;
 public final class UiPhaseLifecycle implements AutoCloseable {
     private final AtfReportPorts.Phase delegate;
     private final UiEvidencePublisher evidencePublisher;
+    private final ReportEvidenceFlowMode flowMode;
+    private final String scenarioTitle;
+    private final String phaseName;
+    private final List<UiUnifiedFlowCheckpoint> unifiedCheckpoints = new ArrayList<>();
     private boolean completed;
+    private boolean unifiedFlowPublished;
 
     UiPhaseLifecycle(AtfReportPorts.Phase delegate,
-                     ReportScreenshotPolicy screenshotPolicy) {
+                     ReportScreenshotPolicy screenshotPolicy,
+                     ReportEvidenceFlowMode flowMode,
+                     String scenarioTitle,
+                     String phaseName) {
         this.delegate = delegate;
         this.evidencePublisher = new UiEvidencePublisher(delegate, screenshotPolicy);
+        this.flowMode = flowMode;
+        this.scenarioTitle = scenarioTitle == null ? "" : scenarioTitle.trim();
+        this.phaseName = phaseName == null ? "" : phaseName.trim();
     }
 
     void step(String keyword, String title, String target, String base64Png,
@@ -183,6 +196,14 @@ public final class UiPhaseLifecycle implements AutoCloseable {
                                  Collection<AtfUiActionRecord> actions,
                                  AtfReportStatus status) {
         ensureOpen();
+        if (flowMode == ReportEvidenceFlowMode.UNIFIED_FLOW) {
+            unifiedCheckpoints.add(new UiUnifiedFlowCheckpoint(
+                    AtfGherkinKeyword.THEN.text(), title, target, base64Png,
+                    assertions == null ? List.of() : List.copyOf(assertions), status,
+                    "Screen validation", immutableCopy(actions), List.of(),
+                    ReportScreenshotPolicy.CapturePoint.CHECKPOINT, true));
+            return;
+        }
         evidencePublisher.publishScreenValidationAsMedia(title, target, base64Png,
                 assertions, actions, ReportScreenshotPolicy.CapturePoint.CHECKPOINT, status);
     }
@@ -196,6 +217,7 @@ public final class UiPhaseLifecycle implements AutoCloseable {
 
     void complete(AtfReportStatus status) {
         ensureOpen();
+        publishUnifiedFlow(status);
         delegate.complete(status == null ? AtfReportStatus.INFO : status);
         completed = true;
     }
@@ -229,9 +251,14 @@ public final class UiPhaseLifecycle implements AutoCloseable {
                         Collection<ReportExecutionEvidence> apiEvidence,
                         ReportScreenshotPolicy.CapturePoint capturePoint) {
         ensureOpen();
+        if (flowMode == ReportEvidenceFlowMode.UNIFIED_FLOW) {
+            unifiedCheckpoints.add(new UiUnifiedFlowCheckpoint(keyword, title, target,
+                    base64Png, immutableCopy(assertions), status, validationTitle,
+                    immutableCopy(actions), immutableCopy(apiEvidence), capturePoint, false));
+            return;
+        }
         evidencePublisher.publishAction(keyword, title, target, base64Png, assertions,
-                status, validationTitle, actions, apiEvidence,
-                capturePoint);
+                status, validationTitle, actions, apiEvidence, capturePoint);
     }
 
     private void action(String keyword, String title, String target,
@@ -246,5 +273,18 @@ public final class UiPhaseLifecycle implements AutoCloseable {
 
     private void ensureOpen() {
         if (completed) throw new IllegalStateException("UI phase is already complete");
+    }
+
+    private void publishUnifiedFlow(AtfReportStatus status) {
+        if (flowMode != ReportEvidenceFlowMode.UNIFIED_FLOW
+                || unifiedCheckpoints.isEmpty() || unifiedFlowPublished) return;
+        unifiedFlowPublished = true;
+        evidencePublisher.publishUnifiedFlow(scenarioTitle, phaseName,
+                List.copyOf(unifiedCheckpoints), status);
+        unifiedCheckpoints.clear();
+    }
+
+    private static <T> List<T> immutableCopy(Collection<T> values) {
+        return values == null ? List.of() : List.copyOf(values);
     }
 }

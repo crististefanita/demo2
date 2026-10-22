@@ -36,13 +36,11 @@ public final class UiExtentReportSession implements AutoCloseable {
 
     private final ExtentReportSession delegate;
     private final ReportEvidenceProfile evidenceProfile;
-    private final ReportScreenshotPolicy screenshotPolicy;
 
     private UiExtentReportSession(ExtentReportSession delegate,
                                   ReportEvidenceProfile evidenceProfile) {
         this.delegate = delegate;
         this.evidenceProfile = Objects.requireNonNull(evidenceProfile, "evidenceProfile");
-        this.screenshotPolicy = evidenceProfile.screenshotPolicy();
     }
 
     public static UiExtentReportSession openConfigured() {
@@ -194,7 +192,8 @@ public final class UiExtentReportSession implements AutoCloseable {
     public UiScenario startScenario(String testClass, String testPackage,
                                     String scenario, Collection<String> tags) {
         return new UiScenario(new UiScenarioLifecycle(
-                delegate.startScenario(testClass, testPackage, scenario, tags), screenshotPolicy));
+                delegate.startScenario(testClass, testPackage, scenario, tags),
+                evidenceProfile, scenario));
     }
 
     @Override

@@ -73,6 +73,20 @@ class PracticeShopConfigurationTest {
     }
 
     @Test
+    void uiOnlyHarnessProfileKeepsRuntimeConfigurationButDisablesApiEvidence() {
+        var configured = PracticeShopConfigurationLoader.load();
+        var uiOnly = configured.withValidationProfile(PracticeShopValidationProfile.UI_ONLY);
+
+        assertEquals(PracticeShopValidationProfile.UI_ONLY, uiOnly.validationProfile());
+        assertTrue(uiOnly.api().evidenceBinding().checkpoints().isEmpty());
+        assertEquals(configured.baseUrl(), uiOnly.baseUrl());
+        assertEquals(configured.productName(), uiOnly.productName());
+        assertEquals(configured.checkout(), uiOnly.checkout());
+        assertEquals(configured.browser(), uiOnly.browser());
+        assertEquals(configured.uiReportDirectory(), uiOnly.uiReportDirectory());
+    }
+
+    @Test
     void authenticatedRunCannotDeclareAnAnonymousApiPrecondition() {
         assertThrows(IllegalArgumentException.class, () -> new atf.ui.practiceshop.config.PracticeShopConfiguration(
                 configuration().baseUrl(), configuration().accountFile(), configuration().productName(),
@@ -82,6 +96,24 @@ class PracticeShopConfigurationTest {
                         configuration().api().mode(), PracticeShopApiPrecondition.ANONYMOUS,
                         configuration().api().timeout()),
                 configuration().uiReportDirectory(), configuration().apiReportDirectory(), true));
+    }
+
+    @Test
+    void annotationStyleAuthProfilePromotesYamlToHeadedLiveE2e(@TempDir Path temp) throws Exception {
+        var base = configuration();
+        Path sourceFixture = temp.resolve("src/test/resources/account.properties");
+        Files.createDirectories(sourceFixture.getParent());
+        Files.writeString(sourceFixture,
+                "email=customer@practicesoftwaretesting.com\npassword=secret\n");
+
+        var configured = base.forAuthenticatedE2e(sourceFixture, false, 70);
+
+        assertTrue(configured.authenticatedE2eEnabled());
+        assertTrue(configured.authenticatedE2eAllowed());
+        assertEquals(atf.api.core.config.ApiTransportMode.LIVE, configured.api().mode());
+        assertEquals(PracticeShopApiPrecondition.AUTHENTICATED, configured.api().precondition());
+        assertFalse(configured.browser().headless());
+        assertEquals(70, configured.browser().zoomPercent());
     }
 
     @Test

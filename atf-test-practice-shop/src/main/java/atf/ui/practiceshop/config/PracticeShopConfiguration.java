@@ -1,5 +1,6 @@
 package atf.ui.practiceshop.config;
 
+import atf.api.core.config.ApiTransportMode;
 import atf.api.ui.config.UiBrowserConfiguration;
 import atf.ui.practiceshop.routes.PracticeShopUiRoutes;
 
@@ -100,6 +101,25 @@ public record PracticeShopConfiguration(
         return authenticatedE2eEnabled && accountConfigured();
     }
 
+    /**
+     * Creates the explicit live-auth launch profile used by the IntelliJ E2E
+     * annotation. YAML remains the source for the business fixture; this
+     * method only promotes the selected test into an authenticated live run
+     * and applies the browser settings declared by that test.
+     */
+    public PracticeShopConfiguration forAuthenticatedE2e(Path fixture, boolean headless, int zoomPercent) {
+        UiBrowserConfiguration selectedBrowser = new UiBrowserConfiguration(
+                browser.baseUrl(), browser.browser(), headless, browser.timeout(),
+                browser.navigationTimeout(), browser.viewportWidth(), browser.viewportHeight(),
+                zoomPercent, browser.screenshotOnFailure(), browser.retryPolicy(), browser.networkInspection());
+        PracticeShopApiConfiguration selectedApi = new PracticeShopApiConfiguration(
+                api.endpoint(), ApiTransportMode.LIVE, PracticeShopApiPrecondition.AUTHENTICATED,
+                api.timeout(), api.evidenceBinding());
+        return new PracticeShopConfiguration(baseUrl, fixture, productName, productPath, checkout,
+                selectedBrowser, uiRetry, validationProfile, selectedApi, uiReportDirectory,
+                apiReportDirectory, true, reporting);
+    }
+
     /** The module-owned synthetic fixture is the only supported live-auth source. */
     public PracticeShopAccountFixturePolicy accountPolicy() {
         return PracticeShopAccountFixturePolicy.SOURCE_TEST_RESOURCE;
@@ -120,6 +140,18 @@ public record PracticeShopConfiguration(
         return usesDynamicProductPath()
                 ? PracticeShopUiRoutes.PRODUCT_PATTERN + " (dynamic fixture)"
                 : productPath;
+    }
+
+    /** Returns the same runtime fixture with a profile-scoped evidence policy. */
+    public PracticeShopConfiguration withValidationProfile(PracticeShopValidationProfile profile) {
+        PracticeShopValidationProfile selected = Objects.requireNonNull(profile, "profile");
+        PracticeShopApiEvidenceBinding binding = selected.apiEvidenceRequired()
+                ? api.evidenceBinding() : PracticeShopApiEvidenceBinding.none();
+        PracticeShopApiConfiguration selectedApi = new PracticeShopApiConfiguration(
+                api.endpoint(), api.mode(), api.precondition(), api.timeout(), binding);
+        return new PracticeShopConfiguration(baseUrl, accountFile, productName, productPath,
+                checkout, browser, uiRetry, selected, selectedApi,
+                uiReportDirectory, apiReportDirectory, authenticatedE2eEnabled, reporting);
     }
 
     public boolean matchesProductPath(String selectedPath) {

@@ -8,6 +8,7 @@ import atf.api.reporting.api.ReportRequest;
 import atf.api.reporting.api.ReportResponse;
 import atf.api.reporting.api.ApiManualReplay;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
+import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
 
 import atf.api.reporting.ui.AtfUiActionRecord;
 import atf.api.reporting.markup.AtfReportEvidenceKeys;
@@ -185,6 +186,103 @@ public final class UiEvidencePublisher {
         } finally {
             request.close();
         }
+    }
+
+    /** Publishes buffered checkpoints beneath one scenario-level business node. */
+    void publishUnifiedFlow(String scenarioTitle, String phaseName,
+                            List<UiUnifiedFlowCheckpoint> checkpoints,
+                            AtfReportStatus phaseStatus) {
+        if (checkpoints == null || checkpoints.isEmpty()) return;
+        String flowTitle = unifiedFlowTitle(scenarioTitle);
+        AtfReportStatus flowStatus = AtfReportStatus.orInfo(phaseStatus);
+        for (UiUnifiedFlowCheckpoint checkpoint : checkpoints) {
+            flowStatus = AtfReportStatus.worst(flowStatus, effectiveStatus(checkpoint));
+        }
+
+        var flow = phase.startRequest(flowTitle, "", "");
+        try {
+            flow.detail(AtfReportEvidenceKeys.REQUEST_ACTION, flowTitle);
+            flow.detail(AtfReportEvidenceKeys.EVIDENCE_TYPE,
+                    AtfReportEvidenceKeys.UNIFIED_UI_FLOW);
+            flow.detail(AtfReportEvidenceKeys.FLOW_MODE,
+                    ReportEvidenceFlowMode.UNIFIED_FLOW.configValue());
+            if (hasText(phaseName)) {
+                flow.detail(AtfReportEvidenceKeys.FLOW_PHASE, phaseName);
+            }
+            flow.detail(AtfReportEvidenceKeys.FLOW_CHECKPOINT_COUNT,
+                    Integer.toString(checkpoints.size()));
+
+            int checkpointNumber = 0;
+            for (UiUnifiedFlowCheckpoint checkpoint : checkpoints) {
+                checkpointNumber++;
+                String checkpointTitle = "Checkpoint %d — %s".formatted(
+                        checkpointNumber, checkpoint.gherkinTitle());
+                flow.detail(AtfReportEvidenceKeys.flowCheckpoint(checkpointNumber),
+                        checkpoint.gherkinTitle());
+                publishUnifiedCheckpoint(flow, checkpoint, checkpointTitle);
+            }
+            flow.complete(flowStatus);
+        } finally {
+            flow.close();
+        }
+    }
+
+    private void publishUnifiedCheckpoint(AtfReportPorts.Request flow,
+                                          UiUnifiedFlowCheckpoint checkpoint,
+                                          String checkpointTitle) {
+        AtfReportStatus status = effectiveStatus(checkpoint);
+        boolean visualValidation = SCREEN_VALIDATION.equals(checkpoint.validationTitle());
+        boolean hasUiEvidence = visualValidation || !checkpoint.assertions().isEmpty()
+                || !checkpoint.actions().isEmpty();
+        if (hasUiEvidence) {
+            var validation = flow.startValidation(checkpointTitle);
+            try {
+                publishActions(validation, checkpoint.actions());
+                publishUnifiedScreenshot(validation, checkpoint, status);
+                validation.assertions(checkpoint.assertions());
+                validation.complete(status);
+            } finally {
+                validation.close();
+            }
+        }
+        if (hasApiEvidence(checkpoint.apiEvidence())) {
+            var apiValidation = flow.startValidation(API_VALIDATION + " — " + checkpointTitle);
+            try {
+                publishApiEvidence(apiValidation, checkpoint.apiEvidence(), status);
+                apiValidation.complete(status);
+            } finally {
+                apiValidation.close();
+            }
+        }
+    }
+
+    private static AtfReportStatus effectiveStatus(UiUnifiedFlowCheckpoint checkpoint) {
+        AtfReportStatus status = checkpoint.status();
+        if (hasApiEvidence(checkpoint.apiEvidence())
+                && checkpoint.apiEvidence().stream().anyMatch(evidence -> evidence != null
+                && evidence.response() != null && evidence.response().status() < 0)) {
+            return AtfReportStatus.worst(status, AtfReportStatus.WARNING);
+        }
+        return status;
+    }
+
+    private void publishUnifiedScreenshot(AtfReportPorts.Validation validation,
+                                          UiUnifiedFlowCheckpoint checkpoint,
+                                          AtfReportStatus status) {
+        if (!shouldPublish(checkpoint.base64Png(), checkpoint.capturePoint())) return;
+        requireTargetForScreenshot(checkpoint.target());
+        String title = "UI screenshot — " + checkpoint.title() + " — "
+                + defaultStatus(status, AtfReportStatus.PASS);
+        if (checkpoint.mediaScreenshot()) {
+            validation.mediaScreenshot(title, checkpoint.base64Png());
+        } else {
+            validation.screenshot("UI assertion — " + checkpoint.title() + " — "
+                    + defaultStatus(status, AtfReportStatus.PASS), checkpoint.base64Png());
+        }
+    }
+
+    private static String unifiedFlowTitle(String scenarioTitle) {
+        return "UNIFIED FLOW — " + (hasText(scenarioTitle) ? scenarioTitle.trim() : "UI scenario");
     }
 
     /** Publishes an explicit standalone API trace with nested exchange evidence. */

@@ -35,16 +35,29 @@ public final class PracticeShopE2eTestSupport {
 
     private PracticeShopE2eTestSupport() { }
 
+    public enum HarnessProfile {
+        CONFIGURED,
+        UI_ONLY
+    }
+
     @Target(ElementType.TYPE)
     @Retention(RetentionPolicy.RUNTIME)
     @ExtendWith(E2eExtension.class)
-    public @interface WithE2eHarness { }
+    public @interface WithE2eHarness {
+        HarnessProfile profile() default HarnessProfile.CONFIGURED;
+    }
 
     /** JUnit opens and closes one harness per test method, including failed methods. */
     public static final class E2eExtension implements BeforeEachCallback, AfterEachCallback, ParameterResolver {
         @Override
         public void beforeEach(ExtensionContext context) {
-            PracticeShopConfiguration configuration = PracticeShopConfigurationLoader.load();
+            PracticeShopConfiguration configuration = PracticeShopTestSupport.configurationFor(
+                    context.getRequiredTestClass());
+            WithE2eHarness harness = context.getRequiredTestClass().getAnnotation(WithE2eHarness.class);
+            if (harness != null && harness.profile() == HarnessProfile.UI_ONLY) {
+                configuration = configuration.withValidationProfile(
+                        atf.ui.practiceshop.config.PracticeShopValidationProfile.UI_ONLY);
+            }
             PracticeShopE2eContext browser = PracticeShopE2eContext.open(configuration);
             context.getStore(NAMESPACE).put(HARNESS_KEY, new E2eResource(
                     new E2eHarness(configuration, browser, new PracticeShopLocators(),

@@ -13,6 +13,11 @@ public final class AtfReportEvidenceKeys {
     public static final String RUNTIME_DIAGNOSTIC = "runtime-diagnostic";
     public static final String API_TRACE = "api-trace";
     public static final String UI_FAILURE = "ui-failure";
+    public static final String UNIFIED_UI_FLOW = "unified-ui-flow";
+    public static final String FLOW_MODE = "flow.mode";
+    public static final String FLOW_PHASE = "flow.phase";
+    public static final String FLOW_CHECKPOINT_COUNT = "flow.checkpoint.count";
+    public static final String FLOW_CHECKPOINT_PREFIX = "flow.checkpoint.";
     public static final String SETUP_RESULT = "setup.result";
     public static final String SETUP_CHECK_PREFIX = "setup.check.";
 
@@ -21,5 +26,10 @@ public final class AtfReportEvidenceKeys {
     public static String setupCheck(int index) {
         if (index < 1) throw new IllegalArgumentException("index must be >= 1");
         return SETUP_CHECK_PREFIX + index;
+    }
+
+    public static String flowCheckpoint(int index) {
+        if (index < 1) throw new IllegalArgumentException("index must be >= 1");
+        return FLOW_CHECKPOINT_PREFIX + index;
     }
 }
