@@ -40,6 +40,7 @@ testChanges:
 Cerut direct: diferența Git se validează contra cererilor de mai sus și din
 celelalte documente feedback. Testele noi protejează inclusiv propria suită;
 nu se acceptă wildcard-uri, cereri expirate/închise sau un baseline străin.
+
 Scope-ul protejează și POM-ul rădăcină, respectiv POM-urile modulelor:
 ele pot configura ori dezactiva testele. Excepția Shop se păstrează.
 Proba de transfer cere închiderea vechiului owner înainte de activarea celui nou.
@@ -69,17 +70,26 @@ testChanges:
 Scope-ul de mai jos înregistrează schimbările Reporting deja prezente înaintea
 cerinței consolei: input de audit explicit sau generat și compoziția fixture-ului
 UI. Se verifică separat; nu sunt asimilate schimbării de default a consolei.
+
 `ReportAuditInputsTest` declară explicit `@AtfComponentTest`; verificarea
 `AtfTestLayerArchitectureTest` respinge testele executabile fără strat declarat.
+
+Verificarea completă cere și separarea browserului de intenția E2E: probele de
+tab rămân în context, nu într-un `Page` deținut de test. Locatorul pentru dovada
+UI trebuie să recunoască rolul semantic și acțiunile, inclusiv cu titlu custom;
+fallback-ul textual rămâne doar pentru artifacte legacy.
+
+Extractorul deschide și checkpoint-urile Gherkin dintre fază și validare, dinspre
+ancestori spre copii; un nod ascuns nu este confundat cu o dovadă absentă.
 
 ```yaml
 testChanges:
   - id: REPORT-AUDIT-INPUT-01
-    status: VERIFIED
+    status: ACTIVE
     base: 521135291e642194294f9734ee1410ede0f19ef6
     expires: 2026-11-21
     reason: Verificarea schimbarilor existente pentru selectia inputului auditului UI.
-    proof: mvn -pl atf-reporting-tests -am -Dtest=ReportAuditInputsTest,AtfTestLayerArchitectureTest -Dsurefire.failIfNoSpecifiedTests=false test
+    proof: mvn -pl atf-reporting-tests -am -Dtest=ReportAuditInputsTest,AtfTestLayerArchitectureTest,FailureEvidenceFlowTest,StaticUiExtentReportContractTest,DeclarativeUiTestArchitectureTest,UiTestLayerArchitectureTest -Dsurefire.failIfNoSpecifiedTests=false test
     paths:
       - atf-reporting-tests/src/test/java/atf/ui/tests/extent/e2e/failure/FailureEvidenceFlowTest.java
       - atf-reporting-tests/src/test/java/atf/ui/tests/extent/e2e/navigation/ReportNavigationAggregationFlowTest.java
@@ -88,6 +98,8 @@ testChanges:
       - atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/uireport/browser/UiReportContractFixture.java
       - atf-reporting-tests/src/test/java/atf/ui/tests/extent/component/audit/ReportAuditInputsTest.java
       - atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/uireport/browser/UiReportContractInputFactory.java
+      - atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/locators/ReportScreenValidationLocators.java
+      - atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/section/extract/ScreenValidationSectionExtractor.java
 ```
 
 ## REPORT-EVIDENCE-STATIC-GATE-01 — contract structural UI/API
@@ -114,6 +126,7 @@ testChanges:
 
 Gate-ul whole-ATF a identificat o invocație calificată complet într-un test
 existent. Remedierea introduce importul tipului, fără schimbarea aserțiunilor.
+
 Proba importului a trecut; înregistrarea este închisă prin transferul ownership-ului
 fișierului către `UI-CHECKPOINT-CONTEXT-01`, care acoperă modificările ulterioare
 din același baseline. Acest transfer nu reprezintă o integrare Git.
@@ -137,10 +150,15 @@ Cerut direct: propoziția UI nu afișează `Status / Details / Info` și
 Contextul rămâne în model; request/response/execution pentru schimburile API
 rămân publice. Probele acoperă ambele proiecții, metadata mixtă și browserul
 headless cu un checkpoint UI care deține o validare API.
-Controlul de autentificare verifică rândurile și valorile canonice
-`AUTH PROFILE=bearer` și `AUTHENTICATION=bearer`, nu prezența accidentală a
-aliasului `AUTH TYPE` în scriptul inclus. Absența unui disclosure este verificată
+
+Controlul de autentificare verifică rândurile și valorile canonice live
+`AUTH PROFILE=bearer` și `AUTH TYPE=bearer`, nu prezența accidentală a
+unei etichete în scriptul inclus. `auth.mode` păstrează separat eticheta
+`AUTHENTICATION`; refactorizarea paralelă a vocabularului nu este anulată.
+
+Absența unui disclosure este verificată
 în markup, nu prin interzicerea vocabularului legitim din asset-urile JavaScript.
+
 Testul browser comun rămâne în scope-ul `REPORT-API-UNIFORMITY-01` din
 [feedback-ul Reporting](ATF_Reporting_Feedback.md#scope-executabil--uniformitate-și-viewport);
 comanda de probă îl execută și aici, fără să-i dubleze ownership-ul.
@@ -183,6 +201,7 @@ testChanges:
 Suita completă a găsit o aserțiune textuală rămasă la vechiul `panel.style`.
 Runtime-ul live controlează deja toate panourile directe prin `nodePanels` și
 `panels.forEach`, pentru a nu lăsa validările vizibile după închiderea părintelui.
+
 Guard-ul static trebuie să ceară această iterație și actualizarea vizibilității,
 nu să impună vechiul nume de variabilă. Proba browser mouse/Enter/Space rămâne
 obligatorie; nu se schimbă runtime-ul pentru a satisface textul depășit.
@@ -199,6 +218,29 @@ testChanges:
       - atf-reporting-tests/src/test/java/atf/api/reporting/extent/session/ExtentReportInteractionContractTest.java
 ```
 
+## REPORT-EVIDENCE-LABELS-01 — singular și plural în proiecțiile dovezilor
+
+Scope-ul înregistrează actualizările existente ale consumatorilor pentru
+vocabularul comun: `1 field`, `1 attempt`, `1 entry` și `1 check`.
+Probele păstrează paritatea Extent/fallback și snapshot-ul semantic.
+
+```yaml
+testChanges:
+  - id: REPORT-EVIDENCE-LABELS-01
+    status: ACTIVE
+    base: 521135291e642194294f9734ee1410ede0f19ef6
+    expires: 2026-11-21
+    reason: Consumatorii verifica singularul si pluralul vocabularului comun fara a schimba verdictele.
+    proof: mvn -pl atf-reporting-tests -am -Dtest=ReportEvidenceMarkupTest,ExtentReportSessionContractTest,HtmlReportSessionTest,AtfReportSemanticSnapshotTest,ExtentReportUiEvidenceRenderingTest,ExtentReportUiFailureEvidenceTest -Dsurefire.failIfNoSpecifiedTests=false test
+    paths:
+      - atf-reporting-tests/src/test/java/atf/api/reporting/evidence/markup/ReportEvidenceMarkupTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/extent/session/ExtentReportSessionContractTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/html/HtmlReportSessionTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/semantic/AtfReportSemanticSnapshotTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/ui/ExtentReportUiEvidenceRenderingTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/ui/ExtentReportUiFailureEvidenceTest.java
+```
+
 ## Închidere
 
 - Cererea rămâne `ACTIVE` în timpul verificării; `VERIFIED` păstrează scope-ul
@@ -213,4 +255,6 @@ testChanges:
 - `WholeAtfGovernanceSuiteTest` rămâne un diagnostic mai larg, nu proba de
   închidere a acestui feedback: la 2026-10-22 raportează probleme de densitate
   a prozei din README-urile `atf-reporting-tests` și `atf-test-practice-shop`.
-  Aceste documente de modul nu sunt modificate în acest task.
+  Actualizarea contractului checkpoint-ului în aceste documente nu închide
+  refactorizarea întregii proze; proba Console de mai sus nu verifică această
+  cerință editorială.

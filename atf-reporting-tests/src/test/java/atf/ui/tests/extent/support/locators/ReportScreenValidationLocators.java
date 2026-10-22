@@ -29,6 +29,10 @@ final class ReportScreenValidationLocators {
     }
 
     Locator screenValidationNodes(Page page) {
+        Locator typed = pages.testsView(page).locator(TEST_CONTENT_DETAIL + " "
+                + SCREEN_VALIDATION_CARD + ":has(" + ACTION_ZONE + ")"
+                + " > [class~='card-header'] [class~='card-title'] [class~='node']");
+        if (typed.count() > 0) return typed;
         Locator candidates = pages.testsView(page).locator(TEST_CONTENT_DETAIL + " "
                 + "[class~='card-title'] a[class~='node']");
         Locator uiValidation = candidates.filter(

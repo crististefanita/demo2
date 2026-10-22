@@ -136,6 +136,13 @@ public final class ReportAuditContext implements AutoCloseable {
 
     public PlaywrightActionSequence newActionSequence() { return browser.newActionSequence(); }
 
+    /** Observes tab selection without leaking the browser into a declarative test. */
+    public boolean isTabSelected(ReportUiContract.Tab tab) {
+        Objects.requireNonNull(tab, "tab");
+        return browser.page().url().endsWith(tab.hash())
+                && locators.tabView(browser.page(), tab).isVisible();
+    }
+
     /** Captures the current page only when the configured failure policy enables it. */
     public UiScreenValidation.Evidence captureFailure(UiConfiguration configuration, String title) {
         Objects.requireNonNull(configuration, "configuration");

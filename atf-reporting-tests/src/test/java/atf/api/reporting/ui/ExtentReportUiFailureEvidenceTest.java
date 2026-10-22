@@ -116,7 +116,7 @@ class ExtentReportUiFailureEvidenceTest {
         String html = Files.readString(report);
         assertAll(
                 () -> assertTrue(html.contains("preserve executed actions; screenshot disabled or unavailable")),
-                () -> assertTrue(html.contains("Playwright action sequence (1 entries)")),
+                () -> assertTrue(html.contains("Playwright action sequence (1 entry)")),
                 () -> assertTrue(html.contains("synthetic failure")),
                 () -> assertTrue(html.contains("Failure evidence")));
     }

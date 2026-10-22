@@ -127,11 +127,11 @@ class ExtentReportInteractionContractTest {
                         "execution evidence must retain the effective URL"),
                 () -> assertTrue(html.contains("<td>HTTP STATUS</td><td>200</td>"),
                         "technical trace must expose the response status"),
-                () -> assertTrue(html.contains("Request details · 1 fields"),
+                () -> assertTrue(html.contains("Request details · 1 field"),
                         "request context must have its own disclosure"),
                 () -> assertTrue(html.contains("Response details · 2 fields"),
                         "response metadata must have its own disclosure"),
-                () -> assertTrue(html.contains("Execution evidence · 1 attempts"),
+                () -> assertTrue(html.contains("Execution evidence · 1 attempt"),
                         "execution evidence must have its own semantic label"),
                 () -> assertTrue(html.contains(
                                 "<details class=\"step-detail execution-evidence\"><summary aria-expanded=\"false\">"),
@@ -277,7 +277,7 @@ class ExtentReportInteractionContractTest {
                         "failed PUT must keep request context in its own zone"),
                 () -> assertTrue(html.contains("Response details · 2 fields"),
                         "failed PUT must keep response metadata in its own zone"),
-                () -> assertTrue(html.contains("Execution evidence · 1 attempts"),
+                () -> assertTrue(html.contains("Execution evidence · 1 attempt"),
                         "failed PUT must keep execution facts in its own zone"),
                 () -> assertTrue(html.contains("request-json-body") && html.contains("response-json-body"),
                         "failed PUT must preserve both JSON bodies"),
@@ -289,7 +289,7 @@ class ExtentReportInteractionContractTest {
                 () -> assertTrue(html.indexOf("Request details · 3 fields")
                                 < html.indexOf("Response details · 2 fields")
                                 && html.indexOf("Response details · 2 fields")
-                                < html.indexOf("Execution evidence · 1 attempts"),
+                                < html.indexOf("Execution evidence · 1 attempt"),
                         "the failed transport evidence must retain request → response → execution order")
         );
     }

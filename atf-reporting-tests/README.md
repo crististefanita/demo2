@@ -27,11 +27,16 @@ Proiecția contextului UI este verificată la componentă:
 |---|---|
 | `UiCheckpointEvidenceProjectionTest` | cheile interne `request.action`/`request.target` rămân în model; proiecțiile typed/legacy și fallback nu le publică și nu le mută în response |
 | `ExtentReportUiEvidencePublishingTest` | publisher-ul UI nu adaugă un request HTTP sintetic; exchange-ul nested păstrează request/response/JSON/execution |
-| `ExtentReportDisclosureBrowserComponentTest` | artifact controlat cu PASS/WARNING/FAIL; niciun tabel introductiv `Status / Details / Info` la checkpoint, validări și screenshot disponibile, API exchange complet și close fără subarbore vizibil |
+| `ExtentReportDisclosureBrowserComponentTest` | artifact controlat cu PASS/WARNING/FAIL; niciun tabel introductiv la checkpoint, validări și screenshot disponibile, API exchange complet, close fără subarbore vizibil și titluri custom identificate semantic |
 
 Fixture-ul browser este local și determinist; nu cere o nouă achiziție în
 Practice Shop. Raportul timestamped este dovadă de componentă, iar stările
 FAIL/WARNING sunt date deliberate ale fixture-ului.
+
+Testele JUnit declară intențiile; `support/inspection/disclosure` deține fixture-ul
+și proba browser. Auditul reutilizabil folosește facade-ul din `support/locators`:
+identifică validarea UI după rol și acțiunile incluse, nu după titlu, și deschide
+ancestorii scenariu → fază → checkpoint → validare înaintea inspecției.
 
 ```mermaid
 flowchart LR
@@ -274,6 +279,14 @@ Invarianturile de randare sunt:
 - `TECHNICAL TRACE` este măsurat în API direct și în schimbul API publicat lângă
   checkpoint-ul UI, pentru date scurte și lungi; testele de markup și CSS
   verifică aceeași structură și același token în rendererul fallback;
+- `ExtentReportDisclosureBrowserComponentTest` generează metadata request și
+  retry history lungi, apoi verifică scroll local, ultimul rând și antetul sticky
+  la viewport standard și `760px`; `HtmlReportViewsTest` verifică wrapperul
+  comun în fallback, nu doar prezența claselor în CSS;
+- `ReportApiViewportParityComponentTest` completează matricea cu tabele scurte
+  Extent și cu tabele scurte/lungi fallback la `1280px` și `760px`: înălțime
+  naturală pentru scurt, scroll local/ultimul rând/sticky pentru lung, fără
+  overflow orizontal al documentului;
 - pentru conținut lung, ultimul rând rămâne accesibil, antetul tabelului rămâne
   fix, iar zona scrollabilă nu depășește plafonul comun;
 - rândurile Network Inspector `Unique request signatures` și
@@ -326,7 +339,7 @@ flowchart LR
   UI validation + API validation → disclosures`, cu cele două validation nodes
   ca frați semantici și fără repetarea propoziției Gherkin;
 - execution disclosure-ul trebuie să fie identificabil pentru exchange-ul lui;
-  două apariții `Execution evidence · 1 attempts` fără context sunt ambigue chiar
+  două apariții `Execution evidence · 1 attempt` fără context sunt ambigue chiar
   dacă numărul de attempts este corect;
 - retry-ul aceluiași request trebuie verificat ca un singur exchange logic:
   attempts/history se păstrează în execution disclosure și nu generează un nou

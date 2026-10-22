@@ -187,7 +187,7 @@ class ExtentReportUiEvidenceRenderingTest {
         }
 
         String html = Files.readString(report);
-        assertTrue(html.contains("Playwright action sequence (1 entries)"));
+        assertTrue(html.contains("Playwright action sequence (1 entry)"));
         assertTrue(html.contains("class=\"atf-ui-action-sequence\""));
         assertFalse(html.contains("<th>ACTION</th>"));
         assertFalse(html.contains("#tests"));
@@ -285,7 +285,7 @@ class ExtentReportUiEvidenceRenderingTest {
 
         String html = Files.readString(report);
         assertAll(
-                () -> assertTrue(html.contains("Playwright action sequence (1 entries)")),
+                () -> assertTrue(html.contains("Playwright action sequence (1 entry)")),
                 () -> assertTrue(html.contains("Audit observations · 1 checkpoint")),
                 () -> assertTrue(html.contains("aria-label=\"Audit observations · 1 checkpoint\"")),
                 () -> assertFalse(html.contains("Audit observations · 1 checkpoint · Screenshot")),

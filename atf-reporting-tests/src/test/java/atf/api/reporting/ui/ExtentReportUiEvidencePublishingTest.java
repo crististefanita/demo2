@@ -115,7 +115,7 @@ class ExtentReportUiEvidencePublishingTest {
                 () -> assertTrue(setupStart >= 0 && setupEnd > setupStart),
                 () -> assertTrue(html.contains("data-atf-evidence-type=\"report-setup\"")),
                 () -> assertTrue(html.contains("<summary aria-expanded=\"false\"><span class=\"atf-disclosure-glyph\"")),
-                () -> assertTrue(html.contains("Setup evidence · 1 checks")),
+                () -> assertTrue(html.contains("Setup evidence · 1 check")),
                 () -> assertTrue(html.contains("<div class=\"body\"><table")),
                 () -> assertTrue(html.contains("</table></div></details>")),
                 () -> assertTrue(html.contains("class=\"atf-setup-evidence-table\"")),
@@ -203,15 +203,15 @@ class ExtentReportUiEvidencePublishingTest {
         int setupPosition = html.indexOf("<span>SETUP</span>");
         int registrationPosition = html.indexOf("GIVEN a new account is registered");
         int setupEvidencePosition = html.indexOf("class=\"atf-setup-evidence-table\"");
-        int actionTablePosition = html.indexOf("Playwright action sequence (1 entries)");
+        int actionTablePosition = html.indexOf("Playwright action sequence (1 entry)");
         int screenshotPosition = html.indexOf("Authenticated account screen");
         int actionTableEnd = html.lastIndexOf("</table>", screenshotPosition);
         int testBodyPosition = html.indexOf("<span>TEST BODY</span>");
         assertAll(
                 () -> assertTrue(setupPosition >= 0 && registrationPosition > setupPosition),
                 () -> assertTrue(setupEvidencePosition > registrationPosition),
-                () -> assertTrue(html.contains("Setup evidence · 1 checks")),
-                () -> assertTrue(html.contains("Playwright action sequence (1 entries)")),
+                () -> assertTrue(html.contains("Setup evidence · 1 check")),
+                () -> assertTrue(html.contains("Playwright action sequence (1 entry)")),
                 () -> assertTrue(html.contains("API validation")),
                 () -> assertTrue(html.contains("POST /users/register")),
                 () -> assertTrue(actionTablePosition >= 0 && actionTableEnd > actionTablePosition
@@ -257,7 +257,7 @@ class ExtentReportUiEvidencePublishingTest {
                 () -> assertTrue(html.contains("REQUEST JSON")),
                 () -> assertTrue(html.contains("RESPONSE JSON")),
                 () -> assertTrue(html.contains("<td>AUTH PROFILE</td><td>bearer</td>")),
-                () -> assertTrue(html.contains("<td>AUTHENTICATION</td><td>bearer</td>")),
+                () -> assertTrue(html.contains("<td>AUTH TYPE</td><td>bearer</td>")),
                 () -> assertTrue(html.contains("REQUEST HEADERS")),
                 () -> assertTrue(html.contains("MANUAL REPLAY")),
                 () -> assertTrue(html.contains("API validation")),
@@ -327,7 +327,7 @@ class ExtentReportUiEvidencePublishingTest {
                  () -> assertTrue(html.contains("Response details")),
                  () -> assertTrue(html.contains("TECHNICAL TRACE")),
                  () -> assertTrue(html.contains("Execution evidence")),
-                 () -> assertTrue(html.contains("AUTHENTICATION")),
+                 () -> assertTrue(html.contains("<td>AUTH TYPE</td><td>none</td>")),
                  () -> assertTrue(html.contains("REQUEST HEADERS")),
                  () -> assertTrue(html.contains("MANUAL REPLAY")),
                  () -> assertTrue(html.contains("API validation")),

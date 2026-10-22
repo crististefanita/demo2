@@ -72,7 +72,8 @@ class ReportNavigationAggregationFlowTest {
     void testsFiltersCategoriesAndOverviewReconcile() {
         audit("Tests → status/tag filters → Clear → Categories → Overview", audit -> {
             ReportNavigationFlow.NavigationSnapshot snapshot = reportFlow.traverse();
-            UiScreenValidation.Evidence evidence = capture(snapshot.overviewPage(), "Tests, filters, Categories and Overview reconciled");
+            UiScreenValidation.Evidence evidence = auditFlow.capture(snapshot.overviewPage(),
+                    "Tests, filters, Categories and Overview reconciled");
             var baseline = snapshot.baseline();
             var category = snapshot.category();
             var overview = new OverviewSectionValidator().validate(snapshot.overview(), baseline,
@@ -107,10 +108,6 @@ class ReportNavigationAggregationFlowTest {
                     () -> assertTrue(snapshot.clearRestoresBaseline()), () -> assertTrue(category.valid()),
                     () -> assertTrue(overview.valid(), overview.failureSummary()));
         });
-    }
-
-    private UiScreenValidation.Evidence capture(com.microsoft.playwright.Page page, String title) {
-        return auditFlow.capture(page, title);
     }
 
     private void audit(String title, UiAuditFlow.AuditAction action) { auditFlow.audit(title, action); }

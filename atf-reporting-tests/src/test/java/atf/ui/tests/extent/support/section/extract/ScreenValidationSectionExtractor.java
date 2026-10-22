@@ -314,18 +314,20 @@ public final class ScreenValidationSectionExtractor {
     private void expandScreenValidationAncestors(Locator nodes) {
         for (Locator node : nodes.all()) {
             List<Locator> ancestors = new ArrayList<>(locators.nodeAncestors(node).all());
-            java.util.Collections.reverse(ancestors);
             for (Locator ancestor : ancestors) {
                 String role = ancestor.getAttribute("data-atf-node-role");
-                if (!("scenario".equals(role) || "phase".equals(role))
+                if (!("scenario".equals(role) || "phase".equals(role)
+                        || "request".equals(role) || "validation".equals(role))
                         || !ancestor.isVisible()) {
                     continue;
                 }
                 String openAttribute = locators.nodeOpenAttribute(ancestor);
                 if ("true".equals(ancestor.getAttribute(openAttribute))) continue;
-                AtfLocator action = "phase".equals(role)
-                        ? locators.phaseNodeAction(ancestor)
-                        : locators.scenarioNodeAction(ancestor);
+                AtfLocator action = switch (role) {
+                    case "scenario" -> locators.scenarioNodeAction(ancestor);
+                    case "phase" -> locators.phaseNodeAction(ancestor);
+                    default -> locators.requestNodeToggleAction(ancestor);
+                };
                 audit.actions().click(action, "Screen validation structural evidence opens");
             }
         }

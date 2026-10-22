@@ -18,6 +18,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @AtfUnitTest
 class AtfReportMarkupTest {
     @Test
+    void evidenceLabelsUseSingularOnlyForOneItem() {
+        assertAll(
+                () -> assertEquals("Request details · 1 field", AtfReportLabels.requestDetails(1)),
+                () -> assertEquals("Response details · 2 fields", AtfReportLabels.responseDetails(2)),
+                () -> assertEquals("Audit details · 1 field", AtfReportLabels.auditDetails(1)),
+                () -> assertEquals("Setup evidence · 1 check", AtfReportLabels.setupEvidence(1)),
+                () -> assertEquals("Execution evidence · 1 attempt", AtfReportLabels.executionEvidence(1)),
+                () -> assertEquals("Playwright action sequence (1 entry)", AtfReportLabels.actionSequence(1)),
+                () -> assertEquals("Playwright action sequence (0 entries)", AtfReportLabels.actionSequence(0)));
+    }
+
+    @Test
     void keyValueEvidenceTablesUseTheSharedKeyColumnWidth() {
         String html = AtfReportMarkup.tableHtml("helm-evidence-table helm-trace-table", new String[][]{
                 {"FIELD", "VALUE"},
@@ -44,7 +56,7 @@ class AtfReportMarkupTest {
     @Test
     void requestAndRetryTablesShareABoundedViewportWithoutChangingTraceClassification() {
         String request = AtfReportMarkup.tableHtml("helm-evidence-table helm-request-table",
-                new String[][]{{"FIELD", "VALUE"}, {"URL", "https://atf.local/resource"}});
+                new String[][]{{"FIELD", "VALUE"}, {"URL", ApiReportTestUrls.atf("/resource")}});
         String retry = AtfReportMarkup.tableHtml("helm-evidence-table retry-history-table",
                 new String[][]{{"ATTEMPT", "STATUS"}, {"1", "429"}});
         assertAll(
@@ -148,6 +160,8 @@ class AtfReportMarkupTest {
     void multiExchangeUiTraceReusesDirectApiVocabularyWithoutRequestPrefixNoise() {
         assertAll(
                 () -> assertEquals("API 1 · METHOD", EvidenceTableFormatter.displayName("request.api.1.method")),
+                () -> assertEquals("API 1 · AUTH TYPE",
+                        EvidenceTableFormatter.displayName("request.api.1.auth.type")),
                 () -> assertEquals("API 1 · PATH", EvidenceTableFormatter.displayName("request.api.1.path")),
                 () -> assertEquals("API 1 · TRANSPORT PROVENANCE",
                         EvidenceTableFormatter.displayName("request.api.1.transport")),
@@ -155,6 +169,13 @@ class AtfReportMarkupTest {
                         EvidenceTableFormatter.displayName("response.api.2.status")),
                 () -> assertEquals("API 2 · CONTENT-TYPE",
                         EvidenceTableFormatter.displayName("response.api.2.content.type")));
+    }
+
+    @Test
+    void authenticationModeAndTypeKeepDistinctReportLabels() {
+        assertAll(
+                () -> assertEquals("AUTHENTICATION", EvidenceTableFormatter.displayName("auth.mode")),
+                () -> assertEquals("AUTH TYPE", EvidenceTableFormatter.displayName("auth.type")));
     }
 
     @Test

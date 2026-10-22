@@ -142,6 +142,7 @@ class HtmlReportViewsTest {
         var scenario = document.startScenario("RetryTests", "retry evidence", List.of("api"));
         var phase = new HtmlReportSemanticDocument.PhaseModel("TEST BODY");
         var request = new HtmlReportSemanticDocument.RequestModel("retry", "GET", ApiReportTestUrls.GENERIC_USERS);
+        request.addDetail("request.header.Accept", "application/json");
         request.execution(new ApiExecutionResult(
                 new ApiResponse(200, "ignored", Map.of(), Duration.ofMillis(301),
                         ApiReportTestUrls.example(ApiReportTestUrls.GENERIC_USERS
@@ -161,7 +162,10 @@ class HtmlReportViewsTest {
 
         assertAll(
                 () -> assertTrue(html.contains("execution-evidence")),
+                () -> assertTrue(html.contains("request-evidence")),
                 () -> assertTrue(html.contains("retry-history-table")),
+                () -> assertEquals(2, html.split("class=\"atf-api-table-wrap\"", -1).length - 1,
+                        "fallback request metadata and retry history use the same bounded table wrapper"),
                 () -> assertTrue(html.contains("response.duration.ms")),
                 () -> assertTrue(html.contains("<th>response.duration.ms</th><td>0.301 s</td>")),
                 () -> assertTrue(html.contains("<td>1</td><td>429</td><td>5 ms</td><td>RETRYABLE_RESPONSE</td>")),
@@ -186,7 +190,7 @@ class HtmlReportViewsTest {
 
         assertAll(
                 () -> assertTrue(html.contains("<details class=\"step-detail phase-details\"")),
-                () -> assertTrue(html.contains("Audit details · 1 fields")),
+                () -> assertTrue(html.contains("Audit details · 1 field")),
                 () -> assertTrue(html.contains("Failure cause")),
                 () -> assertTrue(html.contains("token=***REDACTED***")),
                 () -> assertTrue(html.contains("mode=full")),

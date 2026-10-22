@@ -243,6 +243,7 @@ TestCase
 | responsive evidence | până la breakpoint-ul de lucru (`1300px`), action tables se redimensionează și împachetează conținutul fără scrollbar orizontal; padding-ul lateral al wrapperului este eliminat semantic, nu prin crop | 
 | tabele cu derulare | containerele folosesc `height:auto` și `max-height:var(--atf-table-scroll-height)`, derivat din `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT` (`500px` în prezent); conținutul scurt nu rezervă spațiu gol, conținutul lung derulează sub antetul fix, iar panourile JSON/cod nu intră în acest contract |
 | `TECHNICAL TRACE` | toate tabelele `helm-trace-table` sunt învelite de markup-ul comun `atf-trace-table-wrap`; wrapperul folosește `height:auto`, `max-height:var(--atf-table-scroll-height)`, scroll vertical și header sticky. Se aplică în Extent și fallback, strict tabelului, nu disclosure-ului exterior sau JSON-ului |
+| request metadata / retry history | tabelele `helm-request-table` și `retry-history-table` folosesc același wrapper `atf-api-table-wrap`, plafon CSS și header sticky în Extent și fallback; JSON-ul rămâne în afara wrapperului |
 | action number | fiecare acțiune afișează `#n` într-un token dedicat, `atf-ui-action-number`, compact (`inline-block`/`max-content`); nu se reutilizează clasa extensibilă `atf-ui-action-sequence` |
 | screenshot | link inline cu emoji-ul curent; payload Base64 pentru prima apariție sau referință locală bounded (`screenshot-n`) pentru o stare deduplicată; fingerprint-ul rămâne intern și nu este afișat în locul linkului |
 | action table | acțiunile relevante includ `getText`/text extraction; timpul apare numai pentru acțiuni |
@@ -291,7 +292,7 @@ UI checkpoint
 - `Exchange n` este identificator local în `API validation`; nu se revine la
   chei flat `API n · ...` și nu se multiplică propoziția Gherkin pentru
   request-uri diferite;
-- `Execution evidence · 1 attempts` nu poate rămâne un titlu repetat fără
+- `Execution evidence · 1 attempt` nu poate rămâne un titlu repetat fără
   context: exchange-ul trebuie identificat prin disclosure-ul părinte sau printr-un
   label semantic per exchange;
 - `API network inspector` acceptă numai exchange-uri HTTP și checkpoint-urile
@@ -450,7 +451,8 @@ este plafonul comun, publicat ca `--atf-table-scroll-height`. Containerele au
 `height:auto` și `max-height` comun, astfel conținutul scurt nu rezervă spațiu
 gol, iar conținutul lung derulează în interiorul aceluiași plafon. Header-ele
 rămân fixe; contractul acoperă Overview, audit, dovezile UI, agregatele API și
-tabelul `TECHNICAL TRACE` din `Response details`. Markup-ul trace și CSS-ul
+tabelul `TECHNICAL TRACE` din `Response details`, plus request metadata și
+retry history în `atf-api-table-wrap`. Markup-ul trace și CSS-ul
 viewportului sunt comune rendererelor Extent și fallback; proba browser verifică
 API direct și trace-ul API publicat ca frate cauzal al unui checkpoint UI.
 

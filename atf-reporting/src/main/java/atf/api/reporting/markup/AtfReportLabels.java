@@ -65,15 +65,15 @@ public final class AtfReportLabels {
     }
 
     public static String responseDetails(int fields) {
-        return String.format("%s · %d fields", RESPONSE_DETAILS, fields);
+        return counted(RESPONSE_DETAILS, fields, "field", "fields");
     }
 
     public static String auditDetails(int fields) {
-        return String.format("%s · %d fields", AUDIT_DETAILS, fields);
+        return counted(AUDIT_DETAILS, fields, "field", "fields");
     }
 
     public static String requestDetails(int fields) {
-        return String.format("%s · %d fields", REQUEST_DETAILS, fields);
+        return counted(REQUEST_DETAILS, fields, "field", "fields");
     }
 
     public static String assertions(int rows) {
@@ -81,24 +81,29 @@ public final class AtfReportLabels {
     }
 
     public static String setupEvidence(int checks) {
-        return String.format("%s · %d checks", SETUP_EVIDENCE, checks);
+        return counted(SETUP_EVIDENCE, checks, "check", "checks");
     }
 
     public static String executionEvidence(int attempts) {
-        return String.format("Execution evidence · %d attempts", attempts);
+        return counted("Execution evidence", attempts, "attempt", "attempts");
     }
 
     public static String actionSequence(int entries) {
-        return String.format("%s (%d entries)", PLAYWRIGHT_ACTION_SEQUENCE, entries);
+        return String.format("%s (%d %s)", PLAYWRIGHT_ACTION_SEQUENCE, entries,
+                entries == 1 ? "entry" : ENTRIES);
     }
 
     public static String failedActions(long failures, int total) {
         return String.format("%s · %d %s %d %s", PLAYWRIGHT_ACTION_SEQUENCE,
-                failures, FAILED_OF, total, ENTRIES);
+                failures, FAILED_OF, total, total == 1 ? "entry" : ENTRIES);
     }
 
     public static String failedObservations(long failures, int total) {
         return String.format("%s · %d %s %d", AUDIT_OBSERVATIONS,
                 failures, FAILED_OF, total);
+    }
+
+    private static String counted(String label, int count, String singular, String plural) {
+        return String.format("%s · %d %s", label, count, count == 1 ? singular : plural);
     }
 }

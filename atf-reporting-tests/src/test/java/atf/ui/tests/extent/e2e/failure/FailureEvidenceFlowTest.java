@@ -18,7 +18,6 @@ import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.api.ui.playwright.UiScreenValidation;
 import atf.api.core.config.module.AtfModule;
 import atf.api.reporting.test.AtfModuleTest;
-import com.microsoft.playwright.Page;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -87,12 +86,12 @@ class FailureEvidenceFlowTest {
 
         var body = scenario.startPhase(ReportUiContract.Phase.TEST_BODY.displayName());
         UiAuditLifecycle lifecycle = new UiAuditLifecycle(scenario, body);
-        Page page = auditContext.openTab("#test-view", actions);
+        auditContext.openTab(ReportUiContract.Tab.TESTS.hash(), actions);
         actions.observation("Failure-path probe", "#test-view",
                 "a controlled failure is captured at the current report state", "intentional failure");
         UiScreenValidation.Evidence screenshot = auditContext.captureFailure(
                 configuration, "Controlled UI failure");
-        boolean capturedFromTestsTab = page.url().contains("#test-view");
+        boolean capturedFromTestsTab = auditContext.isTabSelected(ReportUiContract.Tab.TESTS);
         lifecycle.fail("Controlled UI failure", "#test-view", ReportUiActionAdapters.from(actions.drain()),
                 new AssertionError("intentional failure for failure-evidence contract"),
                 screenshot.hasScreenshotPayload() ? screenshot.base64Png() : null);

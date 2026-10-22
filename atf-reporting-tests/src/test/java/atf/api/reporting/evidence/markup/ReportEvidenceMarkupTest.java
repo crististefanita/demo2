@@ -38,7 +38,7 @@ class ReportEvidenceMarkupTest {
     void typedDisclosureOwnsEvidenceMetadataWithoutDuplicatingTheShell() {
         String markup = ReportEvidenceMarkup.disclosure(
                 ReportEvidenceDisclosure.withEvidenceStatus(
-                        "setup-evidence atf-setup-evidence", "Setup evidence · 1 checks",
+                        "setup-evidence atf-setup-evidence", "Setup evidence · 1 check",
                         "body", "report-setup", AtfReportStatus.PASS));
 
         assertTrue(markup.startsWith("<details class=\"step-detail setup-evidence atf-setup-evidence\""));

@@ -140,7 +140,8 @@ public final class EvidenceTableFormatter {
             case "method" -> "METHOD";
             case "path" -> "PATH";
             case "url" -> "URL";
-            case "auth.mode", "auth.type" -> "AUTHENTICATION";
+            case "auth.mode" -> "AUTHENTICATION";
+            case "auth.type" -> "AUTH TYPE";
             case "auth.profile", "auth profile" -> "AUTH PROFILE";
             case "transport", "transport.provenance" -> "TRANSPORT PROVENANCE";
             case "manual replay", "manual.replay" -> "MANUAL REPLAY";
