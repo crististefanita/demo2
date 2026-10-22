@@ -338,6 +338,26 @@ atf-test-practice-shop/src/test/java/atf/ui/tests/practiceshop/
 Nu se copiază fixture-uri în `atf-reporting-tests`; acesta rămâne strict
 composition root pentru contractul librăriei reporting.
 
+### Reutilizare neutră între module
+
+- `ReportModelAdapters` convertește modelele core (`ApiExecutionResult`,
+  retry/provenance, assertions și UI actions) fără ca `atf-reporting` să depindă
+  la compilare de `atf-core`; vocabularul necunoscut eșuează explicit, nu este
+  ghicit sau transformat în `INFO`;
+- `ReportQueryParameters.fromUri(...)` este decodorul comun al query-urilor.
+  Practice Shop îl folosește în mapper și în assertions, păstrând doar
+  semantica de business în jurul lui;
+- `AtfPathLocator.locateSourceFile(...)` și `locateModuleRoot(...)` centralizează
+  descoperirea generică folosită de testele component; rădăcinile candidate și
+  fișierul cerut rămân inputuri explicite, relative și validate;
+- capturarea pe host, alegerea endpoint-urilor, recovery-ul login-ului,
+  corelarea checkpoint-urilor și redactarea datelor de identitate rămân în
+  consumerul Shop. Nu sunt promovate în reporting/core fiindcă depind de
+  aplicația testată;
+- `ReportModelAdaptersTest` verifică modelul real core și compatibilitatea
+  strictă; `ReportQueryParameters` este verificat pentru decoding și duplicate,
+  iar testele Shop dovedesc că integrarea folosește același contract.
+
 Rapoartele sunt output de run, nu fixtures păstrate în documentație.
 
 Pentru dovada browser a librăriei există un singur seam generic,

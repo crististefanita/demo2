@@ -11,8 +11,11 @@
 
 - metadata de configurare se publică prin `ReportEnvironmentSnapshot` și
   `ReportEnvironmentField`;
-- allowlist-ul este typed și grupat semantic pe runtime, ținte, browser, timp,
-  precondiție, network, retry, evidence și reporting;
+- allowlist-ul este typed și clasificat semantic pe `Run`, `Targets`, `Browser`,
+  `Time`, `Flow`, `Auth`, `Network`, `Evidence` și `Reporting`; clasificarea
+  este metadata de vocabular, iar `Overview/System` rămâne o listă plată label/value;
+- `Client` este metadata operațională opțională din grupul `Browser`, iar
+  `Suite`, `Test package`, `Flow` și `Fixture` rămân în afara proiecției System;
 - valorile goale sunt ignorate, iar `ReportEnvironment` aplică redaction înainte
   de publicare;
 - `Map<String,String>` rămâne numai compatibilitate pentru consumatori existenți;

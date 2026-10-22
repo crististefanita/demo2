@@ -4,6 +4,7 @@ import atf.api.reporting.contract.AtfAssertion;
 
 import atf.api.reporting.configuration.ReportingSettings;
 import atf.api.reporting.security.SensitiveDataRedactor;
+import atf.api.reporting.evidence.profile.ReportUiActionDetailsMode;
 import atf.api.reporting.ui.AtfUiActionRecord;
 import atf.api.reporting.ui.network.ReportNetworkInspector;
 import atf.api.reporting.model.ReportField;
@@ -20,8 +21,13 @@ public final class ExtentEvidenceRenderer {
     private final ExtentUiEvidenceRenderer ui;
 
     public ExtentEvidenceRenderer(ReportingSettings settings, SensitiveDataRedactor redactor) {
+        this(settings, redactor, ReportUiActionDetailsMode.INCLUDED_COLLAPSED);
+    }
+
+    public ExtentEvidenceRenderer(ReportingSettings settings, SensitiveDataRedactor redactor,
+                                  ReportUiActionDetailsMode detailsMode) {
         this.transport = new ExtentTransportEvidenceRenderer(settings, redactor);
-        this.ui = new ExtentUiEvidenceRenderer(settings, redactor);
+        this.ui = new ExtentUiEvidenceRenderer(settings, redactor, detailsMode);
     }
 
     public void renderDetails(ExtentTest node, List<ReportField> details) {

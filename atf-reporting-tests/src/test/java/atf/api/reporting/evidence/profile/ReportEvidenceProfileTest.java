@@ -17,13 +17,14 @@ class ReportEvidenceProfileTest {
     @Test
     void mapsTheThreeIndependentEvidenceAxes() {
         var profile = ReportEvidenceProfile.fromConfig(
-                "unified-flow", "final-and-failure", "mock");
+                "unified-flow", "final-and-failure", "mock", "summary-only");
 
         assertEquals(ReportEvidenceFlowMode.UNIFIED_FLOW, profile.flowMode());
         assertEquals(ReportScreenshotPolicy.FINAL_AND_FAILURE, profile.screenshotPolicy());
         assertEquals(ReportEvidenceCaptureSource.DETERMINISTIC_MOCK, profile.captureSource());
         assertEquals("unified-flow", profile.flowMode().configValue());
         assertEquals("mock", profile.captureSource().configValue());
+        assertEquals(ReportUiActionDetailsMode.SUMMARY_ONLY, profile.actionDetailsMode());
     }
 
     @Test
@@ -32,10 +33,12 @@ class ReportEvidenceProfileTest {
                 .flowMode(ReportEvidenceFlowMode.UNIFIED_FLOW)
                 .screenshotPolicy(ReportScreenshotPolicy.FINAL_ONLY)
                 .captureSource(ReportEvidenceCaptureSource.BROWSER)
+                .actionDetailsMode(ReportUiActionDetailsMode.SUMMARY_ONLY)
                 .build();
 
         assertEquals(profile, profile.toBuilder().build());
         assertTrue(profile.captures(ReportScreenshotPolicy.CapturePoint.FINAL));
+        assertEquals(ReportUiActionDetailsMode.SUMMARY_ONLY, profile.toBuilder().build().actionDetailsMode());
     }
 
     @Test

@@ -1,6 +1,10 @@
 package atf.api.reporting.api;
 
 import atf.api.reporting.model.ReportExecutionEvidence;
+import atf.api.reporting.contract.AtfAssertion;
+import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.AtfUiEvidenceSource;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -83,6 +87,60 @@ public final class ReportModelAdapters {
                 attemptHistory(optionalValue(source, "attemptHistory")),
                 request(optionalValue(source, "request")),
                 provenance(optionalValue(source, "provenance")));
+    }
+
+    /**
+     * Adapts one legacy/core assertion without adding a compile-time dependency
+     * from the standalone reporting library to the producer module.
+     */
+    public static AtfAssertion assertion(Object source) {
+        if (source == null) return null;
+        if (source instanceof AtfAssertion assertion) return assertion;
+        String name = requiredText(source, "name");
+        String expected = requiredString(source, "expected");
+        String actual = requiredString(source, "actual");
+        boolean passed = requiredBoolean(source, "passed");
+        Object result = optionalValue(source, "resultStatus");
+        return new AtfAssertion(name, expected, actual, passed,
+                result == null ? null : reportStatus(source, "resultStatus", result));
+    }
+
+    /** Adapts one legacy/core UI action record into the renderer-neutral model. */
+    public static AtfUiActionRecord uiAction(Object source) {
+        if (source == null) return null;
+        if (source instanceof AtfUiActionRecord action) return action;
+        Object rawStatus = requiredObject(source, "status");
+        Object rawSource = optionalValue(source, "source");
+        return new AtfUiActionRecord(
+                requiredInt(source, "sequence"),
+                requiredText(source, "operation"),
+                requiredText(source, "target"),
+                optionalText(source, "expected", ""),
+                optionalText(source, "observed", ""),
+                requiredLong(source, "durationMillis"),
+                reportStatus(source, "status", rawStatus),
+                rawSource == null ? AtfUiEvidenceSource.ACTION
+                        : evidenceSource(source, "source", rawSource));
+    }
+
+    /** Adapts a collection of legacy/core action rows while preserving order. */
+    public static List<AtfUiActionRecord> uiActions(Iterable<?> source) {
+        if (source == null) return List.of();
+        List<AtfUiActionRecord> actions = new ArrayList<>();
+        for (Object action : source) {
+            if (action == null) {
+                throw failure(source, "uiActions", "contains a null action", null);
+            }
+            actions.add(uiAction(action));
+        }
+        return List.copyOf(actions);
+    }
+
+    /** Maps the matching core/report status vocabulary, failing closed on drift. */
+    public static AtfReportStatus status(Object source) {
+        if (source == null) return AtfReportStatus.INFO;
+        if (source instanceof AtfReportStatus status) return status;
+        return reportStatus(source, "status", source);
     }
 
     private static List<ReportRetryEvent> retryEvents(Object value) {
@@ -169,6 +227,55 @@ public final class ReportModelAdapters {
         }
         throw failure(source, field, "expected Number or numeric String but received "
                 + value.getClass().getName(), null);
+    }
+
+    private static long requiredLong(Object source, String field) {
+        Object value = requiredObject(source, field);
+        if (value instanceof Number number) return number.longValue();
+        if (value instanceof String text) {
+            try {
+                return Long.parseLong(text.trim());
+            } catch (NumberFormatException error) {
+                throw failure(source, field, "is not an integer: " + text, error);
+            }
+        }
+        throw failure(source, field, "expected Number or numeric String but received "
+                + value.getClass().getName(), null);
+    }
+
+    private static boolean requiredBoolean(Object source, String field) {
+        Object value = requiredObject(source, field);
+        if (value instanceof Boolean bool) return bool;
+        throw failure(source, field, "expected Boolean but received " + value.getClass().getName(), null);
+    }
+
+    private static String requiredString(Object source, String field) {
+        Object value = requiredObject(source, field);
+        if (value instanceof String text) return text;
+        throw failure(source, field, "expected String but received " + value.getClass().getName(), null);
+    }
+
+    private static AtfReportStatus reportStatus(Object owner, String field, Object value) {
+        String name = enumName(value);
+        try {
+            return AtfReportStatus.valueOf(name);
+        } catch (IllegalArgumentException error) {
+            throw failure(owner, field, "unsupported status '" + name + "'", error);
+        }
+    }
+
+    private static AtfUiEvidenceSource evidenceSource(Object owner, String field, Object value) {
+        String name = enumName(value);
+        try {
+            return AtfUiEvidenceSource.valueOf(name);
+        } catch (IllegalArgumentException error) {
+            throw failure(owner, field, "unsupported UI evidence source '" + name + "'", error);
+        }
+    }
+
+    private static String enumName(Object value) {
+        return value instanceof Enum<?> enumValue
+                ? enumValue.name() : String.valueOf(value).trim().toUpperCase(java.util.Locale.ROOT);
     }
 
     private static Duration optionalDuration(Object source, String field) {

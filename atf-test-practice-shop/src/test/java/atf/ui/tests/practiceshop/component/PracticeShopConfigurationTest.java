@@ -42,7 +42,7 @@ class PracticeShopConfigurationTest {
         assertFalse(configuration.browser().retryPolicy().enabled());
         assertEquals(PracticeShopValidationProfile.UI_API, configuration.validationProfile());
         assertTrue(configuration.api().authenticatedPrecondition());
-        assertEquals(5, configuration.api().evidenceBinding().checkpoints().size());
+        assertEquals(6, configuration.api().evidenceBinding().checkpoints().size());
         assertTrue(configuration.api().evidenceBinding().includes(PracticeShopApiCheckpoint.PRODUCT));
         assertTrue(configuration.api().evidenceBinding().includes(PracticeShopApiCheckpoint.PAYMENT));
         assertTrue(configuration.api().evidenceBinding().includes(PracticeShopApiCheckpoint.ORDER));

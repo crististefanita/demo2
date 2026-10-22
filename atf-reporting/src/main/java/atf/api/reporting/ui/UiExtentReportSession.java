@@ -176,7 +176,7 @@ public final class UiExtentReportSession implements AutoCloseable {
         systemInfo.putAll(options.systemInfo());
         return new UiExtentReportSession(new ExtentReportSession(report,
                 uiConfiguration.reportingSettings(), new SensitiveDataRedactor(), options.console(),
-                systemInfo),
+                systemInfo, options.evidenceProfile().actionDetailsMode()),
                 options.evidenceProfile());
     }
 

@@ -31,7 +31,8 @@ public record PracticeShopRegistrationProfile(
         if (occurrences(emailTemplate, RUN_ID_TOKEN) != 1) {
             throw new IllegalArgumentException("emailTemplate must contain {runId} exactly once");
         }
-        if (emailTemplate.contains("{") && !emailTemplate.contains(RUN_ID_TOKEN)) {
+        String withoutRunId = emailTemplate.replace(RUN_ID_TOKEN, "");
+        if (withoutRunId.contains("{") || withoutRunId.contains("}")) {
             throw new IllegalArgumentException("emailTemplate contains an unsupported placeholder");
         }
     }

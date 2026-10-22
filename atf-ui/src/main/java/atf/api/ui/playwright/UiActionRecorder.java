@@ -85,7 +85,6 @@ final class UiActionRecorder {
     List<AtfUiActionRecord> drain() {
         List<AtfUiActionRecord> result = snapshot();
         records.clear();
-        nextSequence = 1;
         return result;
     }
 

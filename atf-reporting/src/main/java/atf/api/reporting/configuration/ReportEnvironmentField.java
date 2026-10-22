@@ -12,6 +12,7 @@ public enum ReportEnvironmentField {
     TRANSPORT_MODE("Transport mode", "Targets"),
     PRECONDITION("Precondition", "Targets"),
     UI_JOURNEY_PRECONDITION("UI journey precondition", "Targets"),
+    CLIENT("Client", "Browser"),
     BROWSER("Browser", "Browser"),
     HEADLESS("Headless", "Browser"),
     VIEWPORT("Viewport", "Browser"),

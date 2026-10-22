@@ -6,6 +6,9 @@ import atf.ui.practiceshop.support.PracticeShopReportSystemMetadata;
 import atf.ui.practiceshop.config.PracticeShopReportConfiguration;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.configuration.ReportEnvironmentField;
+import atf.api.reporting.evidence.profile.ReportEvidenceCaptureSource;
+import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
+import atf.api.reporting.evidence.profile.ReportEvidenceProfile;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -27,14 +30,14 @@ class PracticeShopReportSystemMetadataTest {
         assertAll(
                 () -> assertTrue(values.contains("chromium")),
                 () -> assertTrue(values.contains("headed")),
+                () -> assertTrue(values.contains("Client=Playwright browser")),
                 () -> assertTrue(metadata.get(ReportEnvironmentField.BROWSER.label())
                         .contains(" · headed · viewport 1440 × 1000"),
                         "System/Browser must reflect the current headed YAML profile and viewport"),
                 () -> assertTrue(values.contains("zoom 70%")),
                 () -> assertTrue(values.contains("UI + API evidence")),
                 () -> assertTrue(values.contains("Transport mode=LIVE HTTP")),
-                () -> assertTrue(values.contains("Precondition=API precondition (configured): authenticated"
-                        + " · UI journey: guest checkout configuration ready")),
+                () -> assertTrue(values.contains("Precondition=API request precondition: authenticated")),
                 () -> assertFalse(values.contains("UI journey precondition")),
                 () -> assertTrue(values.contains("UI action timeout=20s")),
                 () -> assertTrue(values.contains("Page navigation timeout=45s")),
@@ -68,8 +71,10 @@ class PracticeShopReportSystemMetadataTest {
                         ReportEnvironmentField.UI_JOURNEY_PRECONDITION.label())),
                 () -> assertTrue(snapshot.values().containsKey(ReportEnvironmentField.BODY_PREVIEW)),
                 () -> assertTrue(snapshot.values().containsKey(ReportEnvironmentField.SCREENSHOT_POLICY)),
-                () -> assertEquals(ReportScreenshotPolicy.EACH_CHECKPOINT.configValue(),
-                        snapshot.displayValues().get(ReportEnvironmentField.SCREENSHOT_POLICY.label())),
+                () -> assertEquals("Each checkpoint",
+                        snapshot.systemDisplayValues().get(ReportEnvironmentField.SCREENSHOT_POLICY.label())),
+                () -> assertEquals("Checkpoint-by-checkpoint",
+                        snapshot.systemDisplayValues().get(ReportEnvironmentField.UI_EVIDENCE_LAYOUT.label())),
                 () -> assertEquals("20s", snapshot.displayValues().get(ReportEnvironmentField.UI_TIMEOUT.label())),
                 () -> assertEquals("45s", snapshot.displayValues().get(ReportEnvironmentField.NAVIGATION_TIMEOUT.label())),
                 () -> assertEquals("20s", snapshot.displayValues().get(ReportEnvironmentField.API_TIMEOUT.label())),
@@ -81,6 +86,57 @@ class PracticeShopReportSystemMetadataTest {
                 () -> assertFalse(snapshot.values().containsKey(ReportEnvironmentField.TEST_PACKAGE)),
                 () -> assertFalse(snapshot.displayValues().toString().contains("password")),
                 () -> assertFalse(snapshot.displayValues().toString().contains(".tmp")));
+    }
+
+    @Test
+    void overviewReflectsTheResolvedPresentationOverridesInsteadOfYamlDefaults() {
+        var configuration = PracticeShopConfigurationLoader.load();
+        var reportProfile = ReportEvidenceProfile.builder()
+                .flowMode(ReportEvidenceFlowMode.UNIFIED_FLOW)
+                .screenshotPolicy(ReportScreenshotPolicy.FINAL_ONLY)
+                .captureSource(ReportEvidenceCaptureSource.BROWSER)
+                .build();
+
+        var system = PracticeShopReportSystemMetadata.snapshot(configuration,
+                atf.api.reporting.configuration.ReportingSettings.defaults(), reportProfile)
+                .systemDisplayValues();
+
+        assertAll(
+                () -> assertEquals("One consolidated flow",
+                        system.get(ReportEnvironmentField.UI_EVIDENCE_LAYOUT.label())),
+                () -> assertEquals("Final screenshot only",
+                        system.get(ReportEnvironmentField.SCREENSHOT_POLICY.label())),
+                () -> assertFalse(system.containsKey(ReportEnvironmentField.UI_JOURNEY_PRECONDITION.label())),
+                () -> assertFalse(system.containsKey(ReportEnvironmentField.SUITE.label())),
+                () -> assertFalse(system.containsKey(ReportEnvironmentField.TEST_PACKAGE.label())));
+    }
+
+    @Test
+    void uiOnlyOverviewOmitsInactiveApiConfiguration() {
+        var configuration = PracticeShopConfigurationLoader.load()
+                .withValidationProfile(atf.ui.practiceshop.config.PracticeShopValidationProfile.UI_ONLY);
+
+        var snapshot = PracticeShopReportSystemMetadata.snapshot(configuration,
+                atf.api.reporting.configuration.ReportingSettings.defaults());
+
+        assertAll(
+                () -> assertEquals("UI evidence",
+                        snapshot.systemDisplayValues().get(ReportEnvironmentField.PROFILE.label())),
+                () -> assertEquals("Playwright browser",
+                        snapshot.systemDisplayValues().get(ReportEnvironmentField.CLIENT.label())),
+                () -> assertEquals("External live website",
+                        snapshot.systemDisplayValues().get(ReportEnvironmentField.SOURCE_BUILD.label())),
+                () -> assertTrue(snapshot.systemDisplayValues().containsKey(
+                        ReportEnvironmentField.UI_EVIDENCE_LAYOUT.label())),
+                () -> assertTrue(snapshot.systemDisplayValues().containsKey(
+                        ReportEnvironmentField.SCREENSHOT_POLICY.label())),
+                () -> assertFalse(snapshot.values().containsKey(ReportEnvironmentField.API_ENDPOINT)),
+                () -> assertFalse(snapshot.values().containsKey(ReportEnvironmentField.TRANSPORT_MODE)),
+                () -> assertFalse(snapshot.values().containsKey(ReportEnvironmentField.PRECONDITION)),
+                () -> assertFalse(snapshot.values().containsKey(ReportEnvironmentField.API_TIMEOUT)),
+                () -> assertFalse(snapshot.values().containsKey(ReportEnvironmentField.API_EVIDENCE)),
+                () -> assertFalse(snapshot.values().containsKey(ReportEnvironmentField.NETWORK_INSPECTOR)),
+                () -> assertFalse(snapshot.values().containsKey(ReportEnvironmentField.BODY_PREVIEW)));
     }
 
     @Test

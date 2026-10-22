@@ -1,6 +1,7 @@
 package atf.api.reporting.evidence.ui;
 
 import atf.api.reporting.configuration.ReportingSettings;
+import atf.api.reporting.evidence.profile.ReportUiActionDetailsMode;
 import atf.api.reporting.markup.ExtentReportAssets;
 import atf.api.reporting.markup.ExtentReportNodeSupport;
 import atf.api.reporting.markup.AtfReportLabels;
@@ -25,9 +26,16 @@ import static atf.api.reporting.evidence.ui.ExtentUiEvidenceMarkup.tableHeader;
 /** Renders only Playwright action-sequence evidence. */
 public final class ExtentUiActionRenderer {
     private final ReportingSettings settings;
+    private final ReportUiActionDetailsMode detailsMode;
 
     public ExtentUiActionRenderer(ReportingSettings settings) {
+        this(settings, ReportUiActionDetailsMode.INCLUDED_COLLAPSED);
+    }
+
+    public ExtentUiActionRenderer(ReportingSettings settings,
+                                  ReportUiActionDetailsMode detailsMode) {
         this.settings = settings;
+        this.detailsMode = detailsMode;
     }
 
     public void render(ExtentTest node, List<AtfUiActionRecord> actions,
@@ -39,10 +47,7 @@ public final class ExtentUiActionRenderer {
                     "A UI action sequence supports at most one Base64 screenshot; found "
                             + distinctScreenshots.size());
         }
-        StringBuilder html = actionTable(actions)
-                .append(close(AtfReportHtmlVocabulary.Tag.TBODY))
-                .append(close(AtfReportHtmlVocabulary.Tag.TABLE))
-                .append(close(AtfReportHtmlVocabulary.Tag.DIV));
+        StringBuilder html = actionDisclosure(actions);
         for (ReportScreenshot screenshot : distinctScreenshots) {
             html.append(open(AtfReportHtmlVocabulary.Tag.DIV,
                             AtfReportHtmlVocabulary.classAttribute(
@@ -58,11 +63,25 @@ public final class ExtentUiActionRenderer {
 
     public void renderAsMedia(ExtentTest node, List<AtfUiActionRecord> actions) {
         if (actions == null || actions.isEmpty()) return;
-        publish(node, actionTable(actions)
+        publish(node, actionDisclosure(actions).toString(), hasFailure(actions));
+    }
+
+    private StringBuilder actionDisclosure(List<AtfUiActionRecord> actions) {
+        if (detailsMode == ReportUiActionDetailsMode.SUMMARY_ONLY) {
+            boolean failed = hasFailure(actions);
+            return new StringBuilder(open(AtfReportHtmlVocabulary.Tag.DETAILS,
+                            AtfReportHtmlVocabulary.classAttribute(
+                                    AtfReportHtmlVocabulary.CssClass.ATF_UI_ACTION_SEQUENCE),
+                            AtfReportHtmlVocabulary.attribute(
+                                    AtfReportHtmlVocabulary.Attribute.EVIDENCE_STATUS, statusKey(failed))))
+                    .append(open(AtfReportHtmlVocabulary.Tag.SUMMARY))
+                    .append(actionSummary(actions, failed))
+                    .append(close(AtfReportHtmlVocabulary.Tag.SUMMARY));
+        }
+        return actionTable(actions)
                 .append(close(AtfReportHtmlVocabulary.Tag.TBODY))
                 .append(close(AtfReportHtmlVocabulary.Tag.TABLE))
-                .append(close(AtfReportHtmlVocabulary.Tag.DIV))
-                .append(close(AtfReportHtmlVocabulary.Tag.DETAILS)).toString(), hasFailure(actions));
+                .append(close(AtfReportHtmlVocabulary.Tag.DIV));
     }
 
     private StringBuilder actionTable(List<AtfUiActionRecord> actions) {

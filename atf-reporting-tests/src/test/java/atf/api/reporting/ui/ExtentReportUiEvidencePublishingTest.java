@@ -433,7 +433,7 @@ class ExtentReportUiEvidencePublishingTest {
                 () -> assertTrue(html.contains("network-diagnostics")),
                 () -> assertEquals(5, alignedAggregateRows,
                         "each inspector section must own an INFO badge in its Status/Details event row"),
-                () -> assertTrue(html.contains("response details · 4 fields")),
+                () -> assertTrue(html.contains("response details · 5 fields")),
                 () -> assertFalse(html.contains("network ui step")),
                 () -> assertFalse(html.contains("network exchange")),
                 () -> assertTrue(html.contains("evidence type") && html.contains("api-trace"),

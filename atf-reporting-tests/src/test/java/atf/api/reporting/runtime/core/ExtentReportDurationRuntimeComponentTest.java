@@ -1,5 +1,6 @@
 package atf.api.reporting.runtime.core;
 
+import atf.api.core.files.AtfPathLocator;
 import atf.api.testkit.AtfUnitTest;
 
 import org.junit.jupiter.api.Test;
@@ -177,18 +178,9 @@ class ExtentReportDurationRuntimeComponentTest {
     }
 
     private static Path sourceFile(String fileName) {
-        Path current = Path.of(System.getProperty("user.dir", "."))
-                .toAbsolutePath().normalize();
-        while (current != null) {
-            Path moduleSource = current.resolve("src/main/java/atf/api/reporting/runtime/core")
-                    .resolve(fileName);
-            if (Files.isRegularFile(moduleSource)) return moduleSource;
-            Path reactorSource = current.resolve("atf-reporting/src/main/java/atf/api/reporting/runtime/core")
-                    .resolve(fileName);
-            if (Files.isRegularFile(reactorSource)) return reactorSource;
-            current = current.getParent();
-        }
-        throw new IllegalStateException("Cannot locate duration source: " + fileName);
+        return AtfPathLocator.locateSourceFile(Path.of(System.getProperty("user.dir", ".")),
+                Path.of("atf/api/reporting/runtime/core", fileName),
+                List.of(Path.of("src/main/java"), Path.of("atf-reporting/src/main/java")));
     }
 
     private static int occurrences(String source, String token) {

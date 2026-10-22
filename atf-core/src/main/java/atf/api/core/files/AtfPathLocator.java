@@ -67,6 +67,39 @@ public final class AtfPathLocator {
     }
 
     /**
+     * Locates one source file across supported source-root layouts. Useful for
+     * architecture/component tests that inspect production source without
+     * embedding their own ancestor walk or module-specific path guesses.
+     */
+    public static Path locateSourceFile(Path start, Path requiredRelativeFile,
+                                        Collection<Path> sourceRootCandidates) {
+        Path required = relativePath(requiredRelativeFile, "requiredRelativeFile");
+        List<Path> candidates = List.copyOf(Objects.requireNonNull(
+                sourceRootCandidates, "sourceRootCandidates"));
+        if (candidates.isEmpty()) {
+            throw new IllegalArgumentException("sourceRootCandidates must not be empty");
+        }
+        if (candidates.stream().anyMatch(path -> path == null || path.isAbsolute()
+                || path.normalize().startsWith(".."))) {
+            throw new IllegalArgumentException("source root candidates must stay relative");
+        }
+
+        Path current = normalizeStart(start);
+        while (current != null) {
+            for (Path candidate : candidates) {
+                Path sourceRoot = current.resolve(candidate).normalize();
+                Path sourceFile = sourceRoot.resolve(required).normalize();
+                if (sourceRoot.startsWith(current) && Files.isDirectory(sourceRoot)
+                        && sourceFile.startsWith(sourceRoot) && Files.isRegularFile(sourceFile)) {
+                    return sourceFile;
+                }
+            }
+            current = current.getParent();
+        }
+        throw new IllegalStateException("Cannot locate source file " + required);
+    }
+
+    /**
      * Locates a module below the first ancestor that contains the requested
      * module path and a required relative marker below that module.
      */
@@ -126,7 +159,8 @@ public final class AtfPathLocator {
 
     private static Path relativePath(Path path, String name) {
         Path normalized = Objects.requireNonNull(path, name).normalize();
-        if (normalized.isAbsolute() || normalized.getNameCount() == 0) {
+        if (normalized.isAbsolute() || normalized.getNameCount() == 0
+                || normalized.toString().isBlank() || normalized.startsWith("..")) {
             throw new IllegalArgumentException(name + " must be a non-empty relative path");
         }
         return normalized;

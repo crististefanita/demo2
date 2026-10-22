@@ -2,6 +2,8 @@ package atf.ui.practiceshop.support;
 
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.api.ReportRequestSignature;
+import atf.api.reporting.api.ReportQueryParameter;
+import atf.api.reporting.api.ReportQueryParameters;
 import atf.api.core.http.request.MediaTypes;
 import atf.ui.practiceshop.api.PracticeShopApiOperation;
 import atf.ui.practiceshop.api.PracticeShopApiHttpStatus;
@@ -10,6 +12,7 @@ import atf.ui.practiceshop.api.PracticeShopApiQueryParameter;
 import atf.ui.practiceshop.api.PracticeShopApiRoutes;
 import com.fasterxml.jackson.databind.JsonNode;
 
+import java.net.URI;
 import java.util.List;
 
 import static atf.api.reporting.audit.ReportAuditChecks.check;
@@ -132,7 +135,7 @@ public final class PracticeShopApiAssertions {
 
     public static List<AtfAssertion> order(PracticeShopApiNetworkJournal.Exchange order,
                                            String uiConfirmation) {
-        JsonNode response = PracticeShopJsonEvidence.parse(order.responseBody());
+        JsonNode response = order == null ? null : PracticeShopJsonEvidence.parse(order.responseBody());
         String invoice = response == null ? "" : response.path(
                 PracticeShopApiJsonField.INVOICE_NUMBER.wireValue()).asText("");
         JsonNode total = response == null ? null : response.get(PracticeShopApiJsonField.TOTAL.wireValue());
@@ -142,7 +145,7 @@ public final class PracticeShopApiAssertions {
                         order == null ? "missing" : order.summary(), order != null
                                 && PracticeShopApiHttpStatus.isSuccess(order.status()) && order.isJsonResponse()),
                 check("API response JSON · order identity", "order id and invoice number are present",
-                        response == null ? compact(order.responseBody(), 240)
+                        response == null ? order == null ? "missing" : compact(order.responseBody(), 240)
                                 : "id=" + response.path(PracticeShopApiJsonField.ID.wireValue()).asText("")
                                 + ", invoice=" + invoice,
                         response != null
@@ -225,16 +228,10 @@ public final class PracticeShopApiAssertions {
     }
 
     private static String query(String url, String name) {
-        String raw = java.net.URI.create(url).getRawQuery();
-        if (raw == null) return "";
-        for (String pair : raw.split("&")) {
-            String[] values = pair.split("=", 2);
-            if (name.equals(java.net.URLDecoder.decode(values[0], java.nio.charset.StandardCharsets.UTF_8))) {
-                return values.length == 1 ? ""
-                        : java.net.URLDecoder.decode(values[1], java.nio.charset.StandardCharsets.UTF_8);
-            }
-        }
-        return "";
+        return ReportQueryParameters.fromUri(URI.create(url)).values().stream()
+                .filter(parameter -> parameter.name().equals(name))
+                .map(ReportQueryParameter::value)
+                .findFirst().orElse("");
     }
 
     private static boolean positiveContentLength(PracticeShopApiNetworkJournal.Exchange exchange) {

@@ -209,15 +209,16 @@ public final class PracticeShopE2eContext implements AutoCloseable {
             this.title = title == null || title.isBlank() ? "completed Practice Shop scenario" : title;
         }
 
-        /** Publishes setup as one UI step, with no screenshot that could expose entered identity fields. */
-        public void setupCheckpoint(Page page, PlaywrightActionSequence actions, String stepTitle,
+        /** Publishes one explicit setup step without screenshots that could expose entered identity fields. */
+        public void setupCheckpoint(Page page, PlaywrightActionSequence actions, AtfGherkinKeyword keyword,
+                                    String stepTitle,
                                     Collection<AtfAssertion> assertions,
                                     Collection<ReportExecutionEvidence> apiEvidence,
                                     AtfReportStatus status) {
-            if (setupPhase == null || setupFinished || setupStepPublished) {
+            if (setupPhase == null || setupFinished) {
                 throw new IllegalStateException("Explicit authenticated setup is not open");
             }
-            setupPhase.step(AtfGherkinKeyword.GIVEN, stepTitle, page.url(), "",
+            setupPhase.step(keyword, stepTitle, page.url(), "",
                     assertions, PracticeShopReportUiActionAdapters.from(actions.drain()),
                     apiEvidence, ReportScreenshotPolicy.CapturePoint.CHECKPOINT, status);
             setupStepPublished = true;
@@ -227,6 +228,9 @@ public final class PracticeShopE2eContext implements AutoCloseable {
         public void finishSetup(AtfReportStatus status) {
             if (setupPhase == null || setupFinished) {
                 throw new IllegalStateException("Explicit authenticated setup is not open");
+            }
+            if (!setupStepPublished) {
+                throw new IllegalStateException("SETUP must publish at least one account step before it can finish");
             }
             setupPhase.complete(status);
             setupFinished = true;

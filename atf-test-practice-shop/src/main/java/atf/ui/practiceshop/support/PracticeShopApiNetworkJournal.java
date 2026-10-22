@@ -133,11 +133,13 @@ public final class PracticeShopApiNetworkJournal {
     }
 
     /** Validates and owns the observed form POST; the route is discovered from this browser run, not guessed. */
-    public List<AtfAssertion> registrationConfirmed(long afterSequence) {
+    public List<AtfAssertion> registrationConfirmed(long afterSequence, URI apiEndpoint) {
         if (!enabled(PracticeShopApiCheckpoint.REGISTRATION)) return List.of();
+        URI endpoint = Objects.requireNonNull(apiEndpoint, "apiEndpoint");
         List<Exchange> submissions = exchanges.stream()
                 .filter(exchange -> exchange.sequence() > afterSequence)
                 .filter(exchange -> HttpMethod.POST.value().equalsIgnoreCase(exchange.method()))
+                .filter(exchange -> sameHost(exchange.url(), endpoint))
                 .toList();
         List<Exchange> safeSubmissions = submissions.stream()
                 .map(exchange -> replaceWithIdentityRedacted(exchange.withPhase("account-setup")))
@@ -156,6 +158,17 @@ public final class PracticeShopApiNetworkJournal {
                 new AtfAssertion("Registration response", "HTTP 2xx",
                         singleSubmission ? "HTTP " + safeSubmissions.getFirst().status() : "not uniquely observed",
                         successfulResponse));
+    }
+
+    private static boolean sameHost(String url, URI endpoint) {
+        try {
+            String observedHost = URI.create(url).getHost();
+            String expectedHost = endpoint.getHost();
+            return observedHost != null && expectedHost != null
+                    && observedHost.equalsIgnoreCase(expectedHost);
+        } catch (RuntimeException malformedUrl) {
+            return false;
+        }
     }
 
     private static Exchange recoverLoginBody(Exchange login,
@@ -253,12 +266,18 @@ public final class PracticeShopApiNetworkJournal {
     }
 
     /** API confirmation for the order created by the final UI confirmation action. */
-    public List<AtfAssertion> orderCreated(String uiConfirmation) {
+    /**
+     * Binds order evidence to the exchange observed after the final Confirm
+     * click. A stale order response from an earlier attempt can never satisfy
+     * the current confirmation checkpoint.
+     */
+    public List<AtfAssertion> orderCreated(long afterSequence, String uiConfirmation) {
         if (!enabled(PracticeShopApiCheckpoint.ORDER)) return List.of();
-        Exchange order = PracticeShopApiExchangeSelector.latest(
+        Exchange order = PracticeShopApiExchangeSelector.latestOptional(
                 exchanges, PracticeShopApiOperation.ORDER_CREATE,
-                exchange -> PracticeShopApiHttpStatus.isSuccess(exchange.status()));
-        store(PracticeShopApiCheckpoint.ORDER, List.of(toEvidence(order)));
+                exchange -> PracticeShopApiHttpStatus.isSuccess(exchange.status())
+                        && exchange.sequence() > afterSequence);
+        if (order != null) store(PracticeShopApiCheckpoint.ORDER, List.of(toEvidence(order)));
         return PracticeShopApiAssertions.order(order, uiConfirmation);
     }
 

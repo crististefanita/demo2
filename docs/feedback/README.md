@@ -8,54 +8,25 @@ run și istoricul screenshot-urilor nu sunt backlog.
 
 ## ToDo-uri active, în ordinea priorității
 
-Scorurile sunt priorități de intervenție, nu scoruri de calitate: impact
-(40), gap deschis (30), posibilitate de lucru acum (20), datorie editorială
-(10). Se recalculează numai după compararea feedback-ului cu implementarea,
-testele și artifactele relevante; scorul mare înseamnă că domeniul trebuie
-adresat mai devreme.
+- Scor de bază: impact (40) + gap deschis (30) + posibilitate de lucru acum
+  (20) + datorie editorială (10).
+- Scor final: scor de bază × pondere, rotunjit la cel mai apropiat întreg.
+- Pondere temporară: AI Evaluation `0.30`; toate celelalte domenii `1.00`.
+- Ponderea schimbă numai ordinea de lucru, nu readiness-ul sau maturitatea
+  implementării AI documentate în README-ul dedicat.
 
-| Ordine | Owner feedback | Impact /40 | Gap /30 | Lucrabil acum /20 | Datorie doc. /10 | Scor | Ce mai trebuie făcut |
-|---:|---|---:|---:|---:|---:|---:|---|
-| 1 | [AI evaluation](README_AI_Evaluation.md) | 34 | 26 | 12 | 6 | **78** | evaluatorul typed și snapshot-ul sunt implementate; rămân review/state AI, run-level evidence ledger, publication path, regression delta și cazuri business-negative |
-| 2 | [Practice Shop E2E](ATF_Practice_Shop_E2E_Feedback.md) · `SHOP-E2E-INTELLIJ-AUTH-01` | 34 | 25 | 8 | 3 | **70** | ambele clase cer alegere `REUSE_FIXTURE` / opt-in `REGISTER_PER_RUN`; provisioning-ul lipsește. O lansare de clasă înregistrează o dată, iar metodele account/catalog reutilizează identitatea; login-ul rămâne în business body. Fără replay și PII |
-| 3 | [Practice Shop E2E](ATF_Practice_Shop_E2E_Feedback.md) · `SHOP-E2E-PRESENTATION-01` | 29 | 20 | 12 | 5 | **66** | profilul UI-only/UI+API este deja selectabil prin adnotarea clasei; presetul single-flow leagă flow mode de screenshot, iar consumerul nu expune independent policy-ul de captură sau detaliile acțiunilor. Aceste opțiuni rămase trebuie să poată fi setate typed pe testul rulat în IntelliJ |
+| Ordine | Owner feedback | Impact /40 | Gap /30 | Lucrabil acum /20 | Datorie doc. /10 | Pondere | Scor | Ce mai trebuie făcut |
+|---:|---|---:|---:|---:|---:|---:|---:|---|
+| 1 | [Practice Shop E2E](ATF_Practice_Shop_E2E_Feedback.md) | 36 | 10 | 8 | 5 | 1.00 | **59** | implementarea pentru fence-ul invoice, valorile finale ale adresei și rolul de journey summary este acoperită; rămân un replay E2E fresh și verificarea vizuală MCP a artifactului rezultat |
+| 2 | [AI evaluation](README_AI_Evaluation.md) | 34 | 26 | 12 | 6 | 0.30 | **23** | grounding ambiguity/run ledger, review-state, reporting parity, regression delta și publication path; grounding per field, snapshot-ul immutable și package cohesion sunt deja demonstrate |
 
-Starea pe domenii:
-
-- Practice Shop: generic `UNIFIED_FLOW` și politicile de screenshot sunt
-  implementate și probate în `atf-reporting`; consumerul are numai preseturi de
-  clasă, fără toate axele configurabile independent din testul selectat în IntelliJ.
-- Practice Shop: profilul `ui-only` oprește captura/publicarea API în consumer,
-  nu request-urile normale ale aplicației. O clasă E2E separată UI-only nu
-  înlocuiește cerința de configurare a testului canonic și poate dubla purchase-ul.
-- Practice Shop authenticated: `@AuthenticatedE2e` declară fixture-ul, browserul
-  și zoom-ul; testele modulare confirmă profilul și skip-ul sigur fără VM options.
-  Lifecycle-ul cerut este `REUSE_FIXTURE` implicit sau `REGISTER_PER_RUN` opt-in
-  prin adnotare. Provisioning-ul trebuie să se întâmple o dată în `SETUP` per
-  lansare a clasei; cele două metode account/catalog reutilizează contul, iar
-  login-ul verificat rămâne în body-ul care îl testează. Codul are page
-  object/data parțiale, nu și registration flow; run-ul fixture-ului live a
-  eșuat la login. Scorul 70 reflectă impactul, gap-ul și riscul mutației externe
-  fără cleanup demonstrat.
-- Practice Shop build: harness-ul păstrează clasele E2E package-private,
-  profilele `CONFIGURED`/`UI_ONLY`/`UI_API` sunt aliniate, iar testele țintite
-  trec (31/31); problema de compilare anterioară este închisă și nu mai este
-  backlog.
-- Reporting: tabelele scrollabile, summary-urile API, trace-ul UI/API și
-  `UNIFIED_FLOW` sunt închise; lifecycle-ul publică o singură propoziție Gherkin,
-  UI evidence agregată și API evidence sibling, cu policy screenshot independentă.
-- Practice Shop runtime boundary: excepțiile guest/bootstrap sunt explicite și
-  testate; semnalele necunoscute, host/rute diferite și erorile după autentificare
-  rămân failure. Contractul stabil este în README-ul consumerului; nu există un
-  ToDo de cleanup activ pentru această regulă.
-- AI evaluation rămâne deschis; scorurile sunt priorități de lucru, nu scoruri
-  de calitate a produsului.
-
-Verificare în afara ordinii de implementare: [ATF Reporting Feedback](ATF_Reporting_Feedback.md)
-nu mai are gap de cod. Rămâne un pas IDE al proprietarului proiectului: după
-**Reload All Maven Projects**, rerulează configurația IntelliJ cu modelul curent;
-eroarea `ReportWorkspaceSweeper` nu a fost reprodusă în Maven și nu justifică o
-modificare a librăriei înainte de această verificare.
+- Practice Shop rămâne deschis numai pentru dovada E2E fresh și inspecția vizuală
+  a artifactului rezultat; statusul codului și al testelor de component/integration
+  este reconciliat în feedback-ul ownerului.
+- Ponderea `0.30` plasează temporar AI Evaluation sub toate celelalte ToDo-uri
+  active, fără să modifice readiness-ul de pilot (`78/100`) ori maturitatea
+  implementării (`50/100`) din documentul AI.
+- Scorurile din acest registru ordonează lucrul rămas; nu sunt verdicte de calitate.
 
 Feedback-ul ownerului este sursa criteriului de acceptare și a dovezii cerute.
 Rândurile de mai sus sunt doar indexul lucrului rămas; nu duplică istoricul sau
@@ -66,10 +37,9 @@ contractele deja implementate.
 | Domeniu | Stare | Documentație oficială |
 |---|---|---|
 | Arhitectura testelor și matricea module × layer | fără ToDo; redeschidere numai la regresie | [ATF Testing Guide](../ATF_Testing_Guide.md), [ATF Code Best Practices](../README_Atf_CodeBestPractices.md) |
-| Trace per checkpoint, inspector aggregate și stabilitatea disclosure-urilor | fără ToDo activ; nested network summaries = `34px`, redeschidere numai la regresie | [ATF Reporting Contract](../ATF_Reporting_Contract.md), [ATF Testing Guide](../ATF_Testing_Guide.md) |
-| Reporting: tabele scrollabile, summary-uri API, setup-ul până la publisher și grouping pentru `UNIFIED_FLOW` | fără ToDo activ; geometria aggregate nested măsurată la `34px`, redeschidere numai la regresie | [ATF Reporting Contract](../ATF_Reporting_Contract.md), [ATF Reporting README](../../atf-reporting/README.md), [ATF Reporting Tests README](../../atf-reporting-tests/README.md) |
+| Reporting: evidence, trace, aggregate, viewport și selecția API până la publisher | fără ToDo; redeschidere numai la regresia contractului | [ATF Reporting Contract](../ATF_Reporting_Contract.md), [ATF Reporting README](../../atf-reporting/README.md), [ATF Reporting Tests README](../../atf-reporting-tests/README.md) |
 | Inspector UI și politica fără replay | fără ToDo; redeschidere numai la încălcarea contractului | [ATF UI README](../../atf-ui/README.md), [Practice Shop README](../../atf-test-practice-shop/README.md) |
-| Practice Shop purchase E2E | purchase-ul complet, profilele clasei, build-ul țintit și runtime boundary sunt documentate/probate; selectarea profilelor/presentation/screenshot/action details din același test și lifecycle-ul de cont nou rămân restante | [Practice Shop README](../../atf-test-practice-shop/README.md), [Practice Shop E2E Feedback](ATF_Practice_Shop_E2E_Feedback.md) |
+| Practice Shop purchase trace | contractul Gherkin nu are gap structural; replay-ul manual este urmărit separat | [Practice Shop README](../../atf-test-practice-shop/README.md), [Practice Shop E2E Feedback](ATF_Practice_Shop_E2E_Feedback.md) |
 
 Scorurile acestor domenii nu mai apar în ordinea de lucru cât timp nu există un
 gap activ. Contractele închise rămân în README-urile ownerilor și în testele

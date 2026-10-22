@@ -15,7 +15,8 @@ import java.util.List;
 @AtfE2eTest
 @PracticeShopE2eTestSupport.WithE2eHarness(
         profile = PracticeShopE2eTestSupport.HarnessProfile.UI_ONLY,
-        presentation = PracticeShopE2eTestSupport.ReportPresentation.SINGLE_FLOW_FINAL_SCREENSHOT)
+        reportFlow = PracticeShopE2eTestSupport.ReportFlow.UNIFIED_FLOW,
+        screenshots = PracticeShopE2eTestSupport.ScreenshotMode.FINAL_ONLY)
 @Execution(ExecutionMode.SAME_THREAD)
 @DisplayName("Practice Shop UI-only single-flow purchase")
 class PracticeShopPurchaseUiOnlySingleFlowE2eTest {

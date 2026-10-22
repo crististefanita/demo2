@@ -1,5 +1,6 @@
 package atf.api.reporting.runtime.core;
 
+import atf.api.core.files.AtfPathLocator;
 import atf.api.reporting.html.script.HtmlReportScriptModule;
 import atf.api.testkit.AtfUnitTest;
 
@@ -9,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -88,15 +90,8 @@ class ExtentReportRuntimeModuleTest {
     }
 
     private static Path sourceFile() {
-        Path current = Path.of(System.getProperty("user.dir", "."))
-                .toAbsolutePath().normalize();
-        while (current != null) {
-            Path moduleSource = current.resolve("src/main/java/atf/api/reporting/runtime/core/ExtentReportRuntimeCore.java");
-            if (Files.isRegularFile(moduleSource)) return moduleSource;
-            Path reactorSource = current.resolve("atf-reporting/src/main/java/atf/api/reporting/runtime/core/ExtentReportRuntimeCore.java");
-            if (Files.isRegularFile(reactorSource)) return reactorSource;
-            current = current.getParent();
-        }
-        throw new IllegalStateException("Cannot locate ExtentReportRuntimeCore.java");
+        return AtfPathLocator.locateSourceFile(Path.of(System.getProperty("user.dir", ".")),
+                Path.of("atf/api/reporting/runtime/core/ExtentReportRuntimeCore.java"),
+                List.of(Path.of("src/main/java"), Path.of("atf-reporting/src/main/java")));
     }
 }

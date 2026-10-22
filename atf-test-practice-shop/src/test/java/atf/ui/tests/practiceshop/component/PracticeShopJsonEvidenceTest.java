@@ -25,4 +25,20 @@ class PracticeShopJsonEvidenceTest {
         assertTrue(redacted.contains("escaped"));
         assertTrue(headers.values().stream().allMatch("<redacted>"::equals));
     }
+
+    @Test
+    void registrationEvidenceRedactsIdentityAddressAndContactFieldsRecursively() {
+        String json = "{\"data\":[{\"first_name\":\"Ada\",\"last_name\":\"Lovelace\","
+                + "\"dob\":\"1990-01-01\",\"email\":\"ada@owned.test\","
+                + "\"address\":{\"street\":\"Secret Street\",\"city\":\"Hidden City\","
+                + "\"postal_code\":\"12345\",\"phone\":\"0700000000\"}}]}";
+
+        String redacted = PracticeShopJsonEvidence.redactRegistration(json);
+
+        assertTrue(redacted.contains("<redacted>"));
+        for (String personalValue : java.util.List.of("Ada", "Lovelace", "1990-01-01",
+                "ada@owned.test", "Secret Street", "Hidden City", "12345", "0700000000")) {
+            assertFalse(redacted.contains(personalValue), "leaked value: " + personalValue);
+        }
+    }
 }

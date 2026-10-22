@@ -21,6 +21,7 @@ import static atf.api.reporting.audit.ReportAuditChecks.check;
 
 /** External smoke slice: one reusable account, two high-value journeys. */
 @PracticeShopTestSupport.AuthenticatedE2e
+@PracticeShopTestSupport.AllowsRegistrationPerRun
 @AtfE2eTest
 @PracticeShopE2eTestSupport.WithE2eHarness
 @Execution(ExecutionMode.SAME_THREAD)

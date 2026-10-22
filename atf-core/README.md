@@ -49,6 +49,11 @@ comun prin care modulele comunică fără să se cunoască implementările concr
 | guarded sync | `AtfPromotionManifest`, `AtfPromotionGuard` | nu promovează fișiere în afara manifestului și nu șterge surse |
 | reactor vocabulary | `config.module.AtfModuleIds` | nu orchestrează modulele și nu introduce dependențe în sus |
 
+`AtfPathLocator.locateSourceFile(...)` rezolvă un fișier relativ din source root-uri
+candidate, fie când testul pornește din directorul modulului, fie din reactor.
+Validarea respinge căi absolute și traversal; caller-ul declară explicit layout-ul
+acceptat în loc să reproducă bucla de ancestor-walk în fiecare test.
+
 ## Lifecycle generic reutilizabil
 
 `atf-core/src/main/java/atf/api/core/lifecycle` deține mecanica neutră a unui

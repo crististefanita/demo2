@@ -55,6 +55,29 @@ class AtfPathLocatorTest {
     }
 
     @Test
+    void locatesProductionSourceFilesAcrossNestedModuleAndReactorLayouts() throws Exception {
+        Path project = Files.createDirectories(temp.resolve("project"));
+        Path module = Files.createDirectories(project.resolve("atf-reporting/src/main/java"));
+        Files.createDirectories(module.resolve("atf/api"));
+        Path source = Files.createFile(module.resolve("atf/api/Renderer.java"));
+
+        assertEquals(source, AtfPathLocator.locateSourceFile(
+                project.resolve("atf-reporting/target/classes"), Path.of("atf/api/Renderer.java"),
+                List.of(Path.of("src/main/java"), Path.of("atf-reporting/src/main/java"))));
+    }
+
+    @Test
+    void sourceFileLookupRejectsTraversalAndMissingFiles() throws Exception {
+        Path project = Files.createDirectories(temp.resolve("project"));
+        Files.createDirectories(project.resolve("module/src/main/java/atf/api"));
+
+        assertThrows(IllegalArgumentException.class, () -> AtfPathLocator.locateSourceFile(
+                project, Path.of("../outside/Secret.java"), List.of(Path.of("module/src/main/java"))));
+        assertThrows(IllegalStateException.class, () -> AtfPathLocator.locateSourceFile(
+                project, Path.of("atf/api/Missing.java"), List.of(Path.of("module/src/main/java"))));
+    }
+
+    @Test
     void locatesModuleRootFromNestedWorkingDirectory() throws Exception {
         Path project = Files.createDirectories(temp.resolve("project"));
         Path module = Files.createDirectories(project.resolve("atf-test-practice-shop/src/main/java"));

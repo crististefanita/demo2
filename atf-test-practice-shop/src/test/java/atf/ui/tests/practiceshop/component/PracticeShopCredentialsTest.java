@@ -25,6 +25,8 @@ class PracticeShopCredentialsTest {
         assertTrue(credentials.email().contains("@"));
         assertTrue(credentials.displayName().equals("ATF E2E"));
         assertFalse(credentials.toString().contains("Secret!123"));
+        assertFalse(credentials.toString().contains(credentials.email()));
+        assertFalse(credentials.toString().contains(credentials.displayName()));
     }
 
     @Test

@@ -34,6 +34,24 @@ class PracticeShopApiAssertionsTest {
     }
 
     @Test
+    void catalogQueryUsesSharedUriDecoderForPlusAndPercentEncodedValues() {
+        var search = new PracticeShopApiNetworkJournal.Exchange(
+                "GET", PracticeShopApiRoutes.PRODUCT_SEARCH,
+                PracticeShopApiScenarioFixture.API_ENDPOINT + PracticeShopApiRoutes.PRODUCT_SEARCH
+                        + "?q=Pliers+Pro&unused=a%2Bb",
+                PracticeShopApiHttpStatus.OK.code(), "",
+                "{\"data\":[{\"id\":\"p-1\",\"name\":\"Pliers Pro\"}]}",
+                Map.of(), Map.of("content-type", atf.api.core.http.request.MediaTypes.APPLICATION_JSON));
+        var detail = exchange(HttpMethod.GET.value(), PracticeShopApiRoutes.product("p-1"),
+                PracticeShopApiHttpStatus.OK, "", "{\"id\":\"p-1\",\"name\":\"Pliers Pro\"}");
+
+        var assertions = PracticeShopApiAssertions.product(search, detail, "Pliers Pro", "p-1");
+
+        assertTrue(assertions.stream().filter(a -> a.name().equals("API request query · catalog search"))
+                .findFirst().orElseThrow().passed());
+    }
+
+    @Test
     void unauthorizedCatalogSearchFailsThePreconditionInsteadOfPassingByShape() {
         var search = exchange(PracticeShopApiOperation.SEARCH.wireValue(), PracticeShopApiRoutes.PRODUCT_SEARCH,
                 PracticeShopApiHttpStatus.UNAUTHORIZED,

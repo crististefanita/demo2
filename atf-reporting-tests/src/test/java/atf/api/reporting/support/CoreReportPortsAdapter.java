@@ -15,9 +15,9 @@ public final class CoreReportPortsAdapter implements atf.api.core.reporting.cont
     public atf.api.core.reporting.contract.AtfReportPorts.Scenario startScenario(String testClass,String scenario,Collection<String> tags){return new Scenario(delegate.startScenario(testClass,scenario,tags));}
     public atf.api.core.reporting.contract.AtfReportPorts.Scenario startScenario(String testClass,String testPackage,String scenario,Collection<String> tags){return new Scenario(delegate.startScenario(testClass,testPackage,scenario,tags));}
     public void flush(){delegate.flush();} public void close(){delegate.close();}
-    private static atf.api.reporting.contract.AtfReportStatus status(atf.api.core.reporting.contract.AtfReportStatus s){return atf.api.reporting.contract.AtfReportStatus.valueOf(s.name());}
-    private static atf.api.reporting.contract.AtfAssertion assertion(atf.api.core.reporting.contract.AtfAssertion a){return new atf.api.reporting.contract.AtfAssertion(a.name(),a.expected(),a.actual(),a.passed(),status(a.resultStatus()));}
-    private static atf.api.reporting.ui.AtfUiActionRecord action(atf.api.core.ui.AtfUiActionRecord a){return new atf.api.reporting.ui.AtfUiActionRecord(a.sequence(),a.operation(),a.target(),a.expected(),a.observed(),a.durationMillis(),status(a.status()),atf.api.reporting.ui.AtfUiEvidenceSource.valueOf(a.source().name()));}
+    private static atf.api.reporting.contract.AtfReportStatus status(atf.api.core.reporting.contract.AtfReportStatus s){return ReportModelAdapters.status(s);}
+    private static atf.api.reporting.contract.AtfAssertion assertion(atf.api.core.reporting.contract.AtfAssertion a){return ReportModelAdapters.assertion(a);}
+    private static atf.api.reporting.ui.AtfUiActionRecord action(atf.api.core.ui.AtfUiActionRecord a){return ReportModelAdapters.uiAction(a);}
     private static final class Scenario implements atf.api.core.reporting.contract.AtfReportPorts.Scenario {
         private final atf.api.reporting.contract.AtfReportPorts.Scenario delegate; Scenario(atf.api.reporting.contract.AtfReportPorts.Scenario d){delegate=d;}
         public String id(){return delegate.id();} public atf.api.core.reporting.contract.AtfReportPorts.Phase startPhase(String name){return new Phase(delegate.startPhase(name));}

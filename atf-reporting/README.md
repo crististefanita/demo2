@@ -60,11 +60,16 @@ flowchart LR
 - `atf-reporting` este renderer-neutral și publică HTML prin API-ul
   `atf.api.reporting.*`: contracte, records immutable, porturi, evidence,
   snapshot și renderer;
-- `ReportModelAdapters` rămâne seam-ul reflection-only din production, iar
-  `CoreReportPortsAdapter` rămâne exclusiv în test/composition scope;
-- aceste seam-uri sunt pentru migrare, nu cod de business: execution decide
-  schimbul HTTP, validation decide verdictul, UI produce acțiunea, iar reporting
-  conservă și publică evidence-ul;
+- `ReportModelAdapters` este seam-ul generic, reflection-only pentru request,
+  execution/retry/provenance, assertions, UI actions și statusuri; decodarea URI
+  este deținută de `ReportQueryParameters`. Aceste API-uri nu conțin reguli de
+  aplicație și nu adaugă dependență compile-time către `atf-core`;
+- `CoreReportPortsAdapter` rămâne exclusiv în test/composition scope și folosește
+  aceiași adaptoare, fără a întreține o a doua mapare;
+- aceste seam-uri sunt pentru migrare/interoperabilitate, nu cod de business:
+  execution decide schimbul HTTP, validation decide verdictul, UI produce
+  acțiunea, iar reporting conservă și publică evidence-ul. Consumatorul păstrează
+  doar contextul propriu — de exemplu, trace-ul și redactarea identității Shop;
 - orice dependență test-scope din afara consumerului canonic este urmărită în
   [feedback-ul activ](../docs/feedback/README.md), nu duplicată ca TODO aici;
 - standalone înseamnă build independent de parent-ul reactorului și de artifacte
@@ -175,20 +180,26 @@ var environment = ReportEnvironmentSnapshot.builder()
         .build();
 ```
 
-`ReportEnvironmentField` deține vocabularul semantic și grupul de afișare
-(`Runtime`, `Targets`, `Browser`, `Time`, `Precondition`, `Network`, `Retry`,
-`Evidence`, `Reporting`). `ReportEnvironmentSnapshot` este immutable, ignoră valori goale
-și separă `displayValues()` (context typed complet) de `systemDisplayValues()`
-(allowlist operațional pentru `Overview/System`); `ReportEnvironment` aplică redaction
-la boundary-ul Extent. Overload-urile
-vechi cu `Map<String,String>` rămân pentru compatibilitate și migrare; codul nou
-preferă snapshot-ul typed pentru a preveni chei arbitrare, duplicate și valori
-tehnice neacționabile în `System/Environment`.
+Regulile snapshot-ului typed sunt explicite:
 
-Snapshot-ul nu înlocuiește evidence-ul observat: request/response, retry,
-screenshot și verdictul rămân în `TEST BODY`; `Overview/System` explică numai
-configurația operațională efectivă a run-ului. Nu publică `Suite`, `Test package`,
-`Flow`, `Fixture`, `Checkout` sau payload business.
+- `ReportEnvironmentField` deține vocabularul și clasificarea semantică:
+  `Run`, `Targets`, `Browser`, `Time`, `Flow`, `Auth`, `Network`, `Evidence` și
+  `Reporting`. Grupurile sunt metadate, nu headere vizuale.
+- `Overview/System` afișează o listă plată de perechi label/value. `Client` este
+  metadata operațională din grupul `Browser`; `Suite` și alte detalii contextuale
+  nu ajung în această secțiune.
+- `ReportEnvironmentSnapshot` este immutable, ignoră valorile goale și separă
+  `displayValues()` (context typed) de `systemDisplayValues()` (allowlist-ul
+  operațional pentru `Overview/System`). `ReportEnvironment` aplică redaction la
+  boundary-ul Extent.
+- Overload-urile vechi cu `Map<String,String>` rămân pentru compatibilitate și
+  migrare. Codul nou preferă snapshot-ul typed, evitând chei arbitrare, duplicate
+  și valori tehnice neacționabile în `System/Environment`.
+- Snapshot-ul nu înlocuiește evidence-ul observat: request/response, retry,
+  screenshot și verdictul rămân în `TEST BODY`; `Overview/System` descrie numai
+  configurația operațională efectivă a run-ului.
+- `Suite`, `Test package`, `Flow`, `Fixture`, `Checkout` și payload-ul business
+  nu se publică în `Overview/System`.
 
 Un consumer nou folosește contractele publice la nivelul la care există datele:
 

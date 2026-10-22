@@ -24,7 +24,7 @@ class PracticeShopPurchaseUiOnlyE2eTest {
                 journey -> {
                     new PracticeShopPurchaseFlow(journey.locators()).purchaseConfiguredProduct(
                             journey.page(), journey.actions(), journey.configuration(), journey::checkpoint);
-                    journey.completeGuestPurchase();
+                    journey.completePurchase();
                 });
     }
 }

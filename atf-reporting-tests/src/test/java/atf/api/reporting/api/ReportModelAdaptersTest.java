@@ -3,8 +3,13 @@ package atf.api.reporting.api;
 import atf.api.testkit.AtfUnitTest;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.support.ApiReportTestUrls;
+import atf.api.reporting.contract.AtfAssertion;
+import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.AtfUiEvidenceSource;
 import org.junit.jupiter.api.Test;
 
+import java.net.URI;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +43,74 @@ class ReportModelAdaptersTest {
         assertEquals(2, adapted.attempts());
         assertEquals(1, adapted.retryEvents().size());
         assertEquals(2, adapted.attemptHistory().size());
+    }
+
+    @Test
+    void adaptsLiveCoreExecutionWithoutLosingRetryOrTransportFacts() {
+        var request = new atf.api.core.http.request.ApiRequest(
+                java.net.http.HttpRequest.BodyPublishers.noBody(), "POST", "/orders",
+                Map.of("include", "invoice"), Map.of("Authorization", "Bearer raw-token"),
+                "bearer", null, "{\"quantity\":2}");
+        var response = new atf.api.core.http.response.ApiResponse(201, "{\"id\":7}",
+                Map.of("content-type", "application/json"), Duration.ofMillis(12),
+                ApiReportTestUrls.atf(ApiReportTestUrls.GENERIC_USERS));
+        var execution = new atf.api.core.http.response.ApiExecutionResult(response, 2,
+                Duration.ofMillis(31),
+                List.of(new atf.api.core.http.response.RetryEvent(2, 503, "Retry-After",
+                        Duration.ofMillis(5), "temporary")),
+                List.of(new atf.api.core.http.response.ApiAttemptRecord(1, 503,
+                                Duration.ofMillis(7),
+                                atf.api.core.http.response.ApiAttemptOutcome.RETRYABLE_RESPONSE,
+                                "temporary"),
+                        new atf.api.core.http.response.ApiAttemptRecord(2, 201,
+                                Duration.ofMillis(12),
+                                atf.api.core.http.response.ApiAttemptOutcome.SUCCESS, "")),
+                request, atf.api.core.http.transport.ApiTransportProvenance.LIVE_HTTP);
+
+        ReportExecutionEvidence adapted = ReportModelAdapters.execution(execution);
+
+        assertEquals("POST", adapted.request().method());
+        assertEquals("invoice", adapted.request().query().get("include"));
+        assertEquals("{\"quantity\":2}", adapted.request().bodyText());
+        assertEquals(201, adapted.response().status());
+        assertEquals(2, adapted.attempts());
+        assertEquals(1, adapted.retryEvents().size());
+        assertEquals(2, adapted.attemptHistory().size());
+        assertEquals(ReportTransportProvenance.LIVE_HTTP, adapted.provenance());
+    }
+
+    @Test
+    void adaptsCoreAssertionsAndUiActionsThroughOneSharedBoundary() {
+        var coreAssertion = new atf.api.core.reporting.contract.AtfAssertion(
+                "visible", "yes", "yes", true,
+                atf.api.core.reporting.contract.AtfReportStatus.WARNING);
+        var coreAction = new atf.api.core.ui.AtfUiActionRecord(4, "Fill", "#email",
+                "configured value", "value entered", 18,
+                atf.api.core.reporting.contract.AtfReportStatus.PASS,
+                atf.api.core.ui.AtfUiEvidenceSource.OBSERVE);
+
+        AtfAssertion assertion = ReportModelAdapters.assertion(coreAssertion);
+        List<AtfUiActionRecord> actions = ReportModelAdapters.uiActions(List.of(coreAction));
+
+        assertEquals(AtfReportStatus.WARNING, assertion.resultStatus());
+        assertEquals("#email", actions.getFirst().target());
+        assertEquals(4, actions.getFirst().sequence());
+        assertEquals(AtfUiEvidenceSource.OBSERVE, actions.getFirst().source());
+        assertEquals(AtfReportStatus.PASS, actions.getFirst().status());
+        assertSame(actions.getFirst(), ReportModelAdapters.uiAction(actions.getFirst()));
+    }
+
+    @Test
+    void rejectsUnknownCoreUiStatusInsteadOfSilentlyChangingEvidence() {
+        record InvalidAction(int sequence, String operation, String target, String expected,
+                             String observed, long durationMillis, String status, String source) { }
+
+        ReportModelAdapterException error = assertThrows(ReportModelAdapterException.class,
+                () -> ReportModelAdapters.uiAction(new InvalidAction(1, "Click", "#submit",
+                        "enabled", "clicked", 1, "SUCCESS", "ACTION")));
+
+        assertEquals("status", error.field());
+        assertTrue(error.getMessage().contains("unsupported status 'SUCCESS'"));
     }
 
     @Test
@@ -110,6 +183,16 @@ class ReportModelAdaptersTest {
 
         assertEquals("queryParameters", error.field());
         assertTrue(error.getMessage().contains("non-text value"));
+    }
+
+    @Test
+    void uriQueryProjectionDecodesFormValuesAndKeepsOrderedDuplicateObservations() {
+        ReportQueryParameters query = ReportQueryParameters.fromUri(
+                URI.create("https://service.example/orders?state=ready+to+ship&filter=a%2Bb&state=done&empty="));
+
+        assertEquals(List.of("ready to ship", "a+b", "done", ""),
+                query.values().stream().map(ReportQueryParameter::value).toList());
+        assertEquals("done", query.asMap().get("state"));
     }
 
     record LegacyRequest(String method, String path, Object query, Object headers,

@@ -123,6 +123,7 @@ public final class UiPhaseLifecycle implements AutoCloseable {
         try {
             request.detail("request.action", "API network inspector");
             request.detail("request.target", "ordered exchanges from the same UI browser session");
+            request.detail("evidence.role", "journey summary; not an additional business step");
             request.detail(AtfReportEvidenceKeys.EVIDENCE_TYPE,
                     AtfReportEvidenceKeys.API_TRACE);
             ReportNetworkInspector.fields(executionEvidence, steps, diagnostics).stream()

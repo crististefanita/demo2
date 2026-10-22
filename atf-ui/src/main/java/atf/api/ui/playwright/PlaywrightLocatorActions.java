@@ -4,11 +4,15 @@ import com.microsoft.playwright.Locator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.regex.Pattern;
 import com.microsoft.playwright.options.WaitForSelectorState;
 import com.microsoft.playwright.options.SelectOption;
 
 /** Executes and records actions whose target is a Playwright locator. */
 final class PlaywrightLocatorActions {
+    private static final Pattern SENSITIVE_TARGET = Pattern.compile(
+            "password|token|secret|credential|authorization|cookie|api[-_]?key",
+            Pattern.CASE_INSENSITIVE);
     private final UiActionRecorder recorder;
 
     PlaywrightLocatorActions(UiActionRecorder recorder) {
@@ -40,19 +44,21 @@ final class PlaywrightLocatorActions {
 
     void fill(AtfLocator element, String value, String expected) {
         String target = element.selector();
-        recorder.run("Fill", target, expected, () -> {
+        String displayValue = displayValue(target, value);
+        recorder.run("Fill", target, withValue(expected, displayValue), () -> {
             requireExactlyOne(element, "Fill");
             element.locator().fill(value == null ? "" : value);
-            return "value entered";
+            return "value entered: " + displayValue;
         });
     }
 
     void selectOption(AtfLocator element, String label, String expected) {
         String target = element.selector();
-        recorder.run("Select option", target, expected, () -> {
+        String displayLabel = displayValue(target, label);
+        recorder.run("Select option", target, withValue(expected, displayLabel), () -> {
             requireExactlyOne(element, "Select option");
             element.locator().selectOption(new SelectOption().setLabel(label));
-            return "option selected";
+            return "option selected: " + displayLabel;
         });
     }
 
@@ -144,6 +150,20 @@ final class PlaywrightLocatorActions {
             throw new AssertionError(operation + " locator must resolve to exactly one element: "
                     + element.selector() + " (matched " + count + ")");
         }
+    }
+
+    private static String withValue(String expected, String value) {
+        String context = expected == null ? "" : expected.trim();
+        return (context.isBlank() ? "value" : context) + " · value=" + value;
+    }
+
+    private static String displayValue(String target, String value) {
+        if (isSensitiveTarget(target)) return "[REDACTED]";
+        return value == null || value.isBlank() ? "<empty>" : value;
+    }
+
+    private static boolean isSensitiveTarget(String target) {
+        return target != null && SENSITIVE_TARGET.matcher(target).find();
     }
 
     private static String readableText(Locator locator) {

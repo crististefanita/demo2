@@ -19,6 +19,7 @@ import atf.api.reporting.semantic.AtfReportSemanticSnapshot;
 
 import atf.api.reporting.configuration.ReportingSettings;
 import atf.api.reporting.security.SensitiveDataRedactor;
+import atf.api.reporting.evidence.profile.ReportUiActionDetailsMode;
 import atf.api.reporting.ui.AtfUiActionRecord;
 import com.aventstack.extentreports.ExtentReports;
 import com.aventstack.extentreports.ExtentTest;
@@ -49,10 +50,18 @@ public final class ExtentReportTree {
     public ExtentReportTree(ExtentReports reports, ReportingSettings settings,
                             SensitiveDataRedactor redactor, Runnable ensureSessionOpen,
                             AtfConsoleSink console) {
+        this(reports, settings, redactor, ensureSessionOpen, console,
+                ReportUiActionDetailsMode.INCLUDED_COLLAPSED);
+    }
+
+    public ExtentReportTree(ExtentReports reports, ReportingSettings settings,
+                            SensitiveDataRedactor redactor, Runnable ensureSessionOpen,
+                            AtfConsoleSink console,
+                            ReportUiActionDetailsMode detailsMode) {
         this.reports = reports;
         this.settings = settings;
         this.redactor = redactor;
-        this.evidence = new ExtentEvidenceRenderer(settings, redactor);
+        this.evidence = new ExtentEvidenceRenderer(settings, redactor, detailsMode);
         this.ensureSessionOpen = ensureSessionOpen;
         this.console = console == null ? AtfConsoleSink.noOp() : console;
     }

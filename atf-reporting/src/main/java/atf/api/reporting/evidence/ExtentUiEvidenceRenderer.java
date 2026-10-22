@@ -5,6 +5,7 @@ import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.evidence.ui.ExtentUiActionRenderer;
 import atf.api.reporting.evidence.ui.ExtentUiAssertionRenderer;
 import atf.api.reporting.evidence.ui.ExtentUiObservationRenderer;
+import atf.api.reporting.evidence.profile.ReportUiActionDetailsMode;
 import atf.api.reporting.model.ReportScreenshot;
 import atf.api.reporting.security.SensitiveDataRedactor;
 import atf.api.reporting.ui.AtfUiActionRecord;
@@ -21,7 +22,12 @@ public final class ExtentUiEvidenceRenderer {
     private final ExtentUiAssertionRenderer assertionRenderer;
 
     ExtentUiEvidenceRenderer(ReportingSettings settings, SensitiveDataRedactor redactor) {
-        actionRenderer = new ExtentUiActionRenderer(settings);
+        this(settings, redactor, ReportUiActionDetailsMode.INCLUDED_COLLAPSED);
+    }
+
+    ExtentUiEvidenceRenderer(ReportingSettings settings, SensitiveDataRedactor redactor,
+                             ReportUiActionDetailsMode detailsMode) {
+        actionRenderer = new ExtentUiActionRenderer(settings, detailsMode);
         observationRenderer = new ExtentUiObservationRenderer(settings);
         assertionRenderer = new ExtentUiAssertionRenderer(settings, redactor);
     }

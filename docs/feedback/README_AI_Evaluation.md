@@ -15,13 +15,11 @@ limitele de copiere și ordinea de implementare.
 - owner: ATF Java, cu validare în `atf-tests`;
 - scope: evaluare AI, creare asistată de teste și handoff auditabil;
 - out of scope: securitate, secrete, CLI și metodologia completă a ATF1;
-- status: comparatorul field-level, missing/invented critical, invocation/evidence,
-  grounding per field și snapshot-ul immutable `COMPLETE` sunt executabile și
-  testate în `atf-validation`; package cohesion este închisă prin split semantic;
-  provider, run-level evidence ledger, reporting, review/state și workflow agentic
-  rămân neimplementate.
-- verificare live (22 octombrie 2026): `AiEvaluationEvaluatorTest` — 19 teste, 0 failure,
-  0 error, 0 skipped (`mvn -pl atf-validation -am "-Dtest=AiEvaluationEvaluatorTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`).
+- implementat: comparator field-level, missing/invented critical,
+  invocation/evidence, grounding per field și snapshot-ul immutable `COMPLETE`;
+- închis: package cohesion prin separarea semantică a responsabilităților;
+- rămas: provider, run-level evidence ledger, reporting, review/state și workflow
+  agentic.
 
 Regula de integrare este chirurgicală: se preiau contracte observabile, ownership,
 deduplicare, evidence și guard-uri; nu se copiază business-ul, scorurile,

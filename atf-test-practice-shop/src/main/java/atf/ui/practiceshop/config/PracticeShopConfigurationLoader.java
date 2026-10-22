@@ -60,11 +60,28 @@ public final class PracticeShopConfigurationLoader {
     public static Path resolveRegistrationProfileFile(String configured) {
         Path path = resolvePath(configured);
         PracticeShopAccountFixturePolicy.SOURCE_TEST_RESOURCE.validate(path);
+        if (!isPracticeShopTestResource(path)) {
+            throw new IllegalArgumentException(
+                    "Registration profiles must be under atf-test-practice-shop/src/test/resources");
+        }
         if (!path.getFileName().toString().endsWith(".local.properties")) {
             throw new IllegalArgumentException(
                     "Registration profiles must use a module-local .local.properties file ignored by Git");
         }
         return path;
+    }
+
+    private static boolean isPracticeShopTestResource(Path path) {
+        Path normalized = path.toAbsolutePath().normalize();
+        for (int index = 0; index + 3 < normalized.getNameCount(); index++) {
+            if (normalized.getName(index).toString().equalsIgnoreCase("atf-test-practice-shop")
+                    && normalized.getName(index + 1).toString().equalsIgnoreCase("src")
+                    && normalized.getName(index + 2).toString().equalsIgnoreCase("test")
+                    && normalized.getName(index + 3).toString().equalsIgnoreCase("resources")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static PracticeShopConfiguration load(InputStream stream) throws IOException {

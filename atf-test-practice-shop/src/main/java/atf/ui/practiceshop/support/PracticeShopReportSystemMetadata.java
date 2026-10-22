@@ -55,36 +55,18 @@ public final class PracticeShopReportSystemMetadata {
     private static ReportEnvironmentSnapshot.Builder snapshotValues(
             PracticeShopConfiguration configuration,
             ReportEvidenceProfile evidenceProfile) {
-        return ReportEnvironmentSnapshot.builder()
+        var snapshot = ReportEnvironmentSnapshot.builder()
                 .put(ReportEnvironmentField.ENVIRONMENT,
                         System.getProperty(ENVIRONMENT_PROPERTY, "LOCAL"))
                 .put(ReportEnvironmentField.UI_HOST, origin(configuration.baseUrl()))
-                .put(ReportEnvironmentField.API_ENDPOINT, origin(configuration.api().endpoint()))
+                .put(ReportEnvironmentField.CLIENT, "Playwright browser")
                 .put(ReportEnvironmentField.BROWSER, browser(configuration))
                 .put(ReportEnvironmentField.PROFILE,
                         profile(configuration))
-                .put(ReportEnvironmentField.TRANSPORT_MODE,
-                        configuration.api().mode() == ApiTransportMode.LIVE ? "LIVE HTTP" : "FIXTURE")
-                .put(ReportEnvironmentField.PRECONDITION,
-                        precondition(configuration))
                 .put(ReportEnvironmentField.UI_JOURNEY_PRECONDITION,
                         journeyPrecondition(configuration))
-                .put(ReportEnvironmentField.API_EVIDENCE,
-                        configuration.validationProfile().apiEvidenceRequired()
-                                ? "enabled at checkpoints: "
-                                + configuration.api().evidenceBinding().displayValue()
-                                : "disabled by profile")
-                .put(ReportEnvironmentField.NETWORK_INSPECTOR,
-                        configuration.validationProfile().apiEvidenceRequired()
-                                ? "Enabled · collapsed summary · checkpoints: "
-                                + configuration.api().evidenceBinding().displayValue()
-                                + " · JSON in checkpoint evidence"
-                                : "disabled by validation profile")
                 .put(ReportEnvironmentField.RETRY_POLICY,
                         configuration.uiRetry().summary())
-                .put(ReportEnvironmentField.BODY_PREVIEW,
-                        String.format("%,d characters · full JSON remains in checkpoint evidence",
-                                configuration.reporting().systemBodyPreviewCharacters()))
                 .put(ReportEnvironmentField.SCREENSHOT_POLICY,
                         screenshotPolicy(evidenceProfile.screenshotPolicy()))
                 .put(ReportEnvironmentField.UI_EVIDENCE_LAYOUT,
@@ -93,14 +75,36 @@ public final class PracticeShopReportSystemMetadata {
                         humanDuration(configuration.browser().timeout()))
                 .put(ReportEnvironmentField.NAVIGATION_TIMEOUT,
                         humanDuration(configuration.browser().navigationTimeout()))
-                .put(ReportEnvironmentField.API_TIMEOUT,
-                        humanDuration(configuration.api().timeout()))
                 .put(ReportEnvironmentField.SOURCE_BUILD,
-                        configuration.api().mode() == ApiTransportMode.LIVE
+                        configuration.validationProfile().apiEvidenceRequired()
+                                && configuration.api().mode() == ApiTransportMode.LIVE
                                 ? "Live HTTP evidence when observed"
-                                : "Fixture transport boundary")
+                                : configuration.validationProfile().apiEvidenceRequired()
+                                ? "Fixture transport boundary"
+                                : "External live website")
                 .put(ReportEnvironmentField.REPORTING,
                         "Extent offline HTML · UI/API output roles separated");
+
+        if (configuration.validationProfile().apiEvidenceRequired()) {
+            snapshot
+                    .put(ReportEnvironmentField.API_ENDPOINT, origin(configuration.api().endpoint()))
+                    .put(ReportEnvironmentField.TRANSPORT_MODE,
+                            configuration.api().mode() == ApiTransportMode.LIVE ? "LIVE HTTP" : "FIXTURE")
+                    .put(ReportEnvironmentField.PRECONDITION, precondition(configuration))
+                    .put(ReportEnvironmentField.API_EVIDENCE,
+                            "enabled at checkpoints: "
+                                    + configuration.api().evidenceBinding().displayValue())
+                    .put(ReportEnvironmentField.NETWORK_INSPECTOR,
+                            "Enabled · collapsed summary · checkpoints: "
+                                    + configuration.api().evidenceBinding().displayValue()
+                                    + " · JSON in checkpoint evidence")
+                    .put(ReportEnvironmentField.BODY_PREVIEW,
+                            String.format("%,d characters · full JSON remains in checkpoint evidence",
+                                    configuration.reporting().systemBodyPreviewCharacters()))
+                    .put(ReportEnvironmentField.API_TIMEOUT,
+                            humanDuration(configuration.api().timeout()));
+        }
+        return snapshot;
     }
 
     private static ReportEvidenceProfile configuredEvidenceProfile(

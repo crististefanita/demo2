@@ -103,8 +103,9 @@ final class PracticeShopCheckoutPurchaseStage {
 
         PracticeShopConfirmationPage orderConfirmationPage =
                 new PracticeShopConfirmationPage(page, locators, actions);
+        long orderSequenceFence = context.apiNetwork().sequenceMarker();
         String confirmation = orderConfirmationPage.confirmOrder();
-        var orderApiAssertions = context.apiNetwork().orderCreated(confirmation);
+        var orderApiAssertions = context.apiNetwork().orderCreated(orderSequenceFence, confirmation);
         context.publish(context.checkpoint(PracticeShopPurchaseTraceStep.ORDER_CONFIRMATION,
                 context.pageValidator().validate(page, PracticeShopConfirmationPage.class),
                 List.of(check("Order confirmation", "Thanks for your order! and invoice number",

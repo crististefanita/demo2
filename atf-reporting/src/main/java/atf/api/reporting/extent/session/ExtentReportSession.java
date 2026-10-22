@@ -8,6 +8,7 @@ import atf.api.reporting.configuration.ReportEnvironmentSnapshot;
 import atf.api.reporting.semantic.AtfReportSemanticSnapshot;
 import atf.api.reporting.theme.AtfReportTheme;
 import atf.api.reporting.markup.AtfReportLabels;
+import atf.api.reporting.evidence.profile.ReportUiActionDetailsMode;
 
 import atf.api.reporting.configuration.ReportingSettings;
 import atf.api.reporting.security.SensitiveDataRedactor;
@@ -57,6 +58,15 @@ public final class ExtentReportSession implements AtfReportPorts.Session, AutoCl
     public ExtentReportSession(Path reportPath, ReportingSettings settings,
                                SensitiveDataRedactor redactor, AtfConsoleSink console,
                                Map<String, String> systemInfo) {
+        this(reportPath, settings, redactor, console, systemInfo,
+                ReportUiActionDetailsMode.INCLUDED_COLLAPSED);
+    }
+
+    /** Opens a session with an explicit UI action disclosure policy. */
+    public ExtentReportSession(Path reportPath, ReportingSettings settings,
+                               SensitiveDataRedactor redactor, AtfConsoleSink console,
+                               Map<String, String> systemInfo,
+                               ReportUiActionDetailsMode detailsMode) {
         this.reportPath = Objects.requireNonNull(reportPath, "reportPath").toAbsolutePath().normalize();
         Objects.requireNonNull(settings, "settings");
         Objects.requireNonNull(redactor, "redactor");
@@ -70,7 +80,8 @@ public final class ExtentReportSession implements AtfReportPorts.Session, AutoCl
         reports = new ExtentReports();
         reports.attachReporter(spark);
         ReportEnvironment.with(systemInfo, redactor).forEach(reports::setSystemInfo);
-        tree = new ExtentReportTree(reports, settings, redactor, this::ensureOpen, console);
+        tree = new ExtentReportTree(reports, settings, redactor, this::ensureOpen, console,
+                Objects.requireNonNull(detailsMode, "detailsMode"));
     }
 
     /** Opens a session with allowlisted, typed Overview/System metadata. */

@@ -30,6 +30,8 @@ class ReportingCoverageMatrixTest {
                     AtfUnitTest.class),
             entry("safe manual replay", "atf.api.reporting.api.ApiManualReplayProjectionTest",
                     AtfUnitTest.class),
+            entry("legacy/core model compatibility boundary",
+                    "atf.api.reporting.api.ReportModelAdaptersTest", AtfUnitTest.class),
             entry("semantic lifecycle boundary",
                     "atf.api.reporting.semantic.AtfReportSemanticSnapshotTest",
                     AtfUnitTest.class),

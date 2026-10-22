@@ -1,8 +1,12 @@
 package atf.ui.tests.practiceshop.support;
 
 import atf.api.testkit.AtfUnitTest;
+import atf.api.reporting.evidence.ReportScreenshotPolicy;
+import atf.api.reporting.evidence.profile.ReportEvidenceCaptureSource;
+import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
 import atf.ui.practiceshop.config.PracticeShopApiCheckpoint;
 import atf.ui.practiceshop.config.PracticeShopConfigurationLoader;
+import atf.ui.practiceshop.config.PracticeShopCredentials;
 import atf.ui.practiceshop.config.PracticeShopValidationProfile;
 import org.junit.jupiter.api.Test;
 
@@ -12,6 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -30,16 +35,23 @@ class PracticeShopE2eTestSupportTest {
                         "atf.ui.tests.practiceshop.e2e.PracticeShopPurchaseUiOnlySingleFlowE2eTest")
                 .getAnnotation(PracticeShopE2eTestSupport.WithE2eHarness.class);
         assertEquals(PracticeShopE2eTestSupport.HarnessProfile.UI_ONLY, singleFlow.profile());
-        assertEquals(PracticeShopE2eTestSupport.ReportPresentation.SINGLE_FLOW_FINAL_SCREENSHOT,
-                singleFlow.presentation());
+        assertEquals(PracticeShopE2eTestSupport.ReportFlow.UNIFIED_FLOW,
+                singleFlow.reportFlow());
+        assertEquals(PracticeShopE2eTestSupport.ScreenshotMode.FINAL_ONLY,
+                singleFlow.screenshots());
         var reportProfile = PracticeShopE2eTestSupport.reportProfile(
                 PracticeShopConfigurationLoader.load(), singleFlow);
-        assertEquals(atf.api.reporting.evidence.profile.ReportEvidenceFlowMode.UNIFIED_FLOW,
-                reportProfile.flowMode());
-        assertEquals(atf.api.reporting.evidence.ReportScreenshotPolicy.FINAL_ONLY,
-                reportProfile.screenshotPolicy());
-        assertEquals(atf.api.reporting.evidence.profile.ReportEvidenceCaptureSource.BROWSER,
-                reportProfile.captureSource());
+        assertEquals(ReportEvidenceFlowMode.UNIFIED_FLOW, reportProfile.flowMode());
+        assertEquals(ReportScreenshotPolicy.FINAL_ONLY, reportProfile.screenshotPolicy());
+        assertEquals(ReportEvidenceCaptureSource.BROWSER, reportProfile.captureSource());
+        assertEquals(ReportScreenshotPolicy.NONE,
+                PracticeShopE2eTestSupport.reportProfile(PracticeShopConfigurationLoader.load(), singleFlow,
+                        PracticeShopTestSupport.AccountSetupMode.REGISTER_PER_RUN).screenshotPolicy());
+
+        var authenticated = Class.forName(
+                        "atf.ui.tests.practiceshop.e2e.PracticeShopAuthenticatedPurchaseE2eTest")
+                .getAnnotation(PracticeShopTestSupport.AuthenticatedE2e.class);
+        assertEquals(PracticeShopTestSupport.AccountSetupMode.REUSE_FIXTURE, authenticated.accountSetup());
 
         var configured = PracticeShopConfigurationLoader.load();
         var uiOnly = PracticeShopE2eTestSupport.configurationForHarnessProfile(
@@ -52,6 +64,7 @@ class PracticeShopE2eTestSupportTest {
         assertTrue(uiOnly.api().evidenceBinding().checkpoints().isEmpty());
         assertEquals(PracticeShopValidationProfile.UI_API, uiApi.validationProfile());
         assertTrue(uiApi.api().evidenceBinding().includes(PracticeShopApiCheckpoint.PRODUCT));
+        assertTrue(uiApi.api().evidenceBinding().includes(PracticeShopApiCheckpoint.REGISTRATION));
         assertTrue(uiApi.api().evidenceBinding().includes(PracticeShopApiCheckpoint.ORDER));
     }
 
@@ -85,5 +98,17 @@ class PracticeShopE2eTestSupportTest {
 
         assertSame(teardown, assertThrows(IOException.class,
                 () -> PracticeShopE2eTestSupport.closeAfterTest(resource, null)));
+    }
+
+    @Test
+    void classRunRegistrationCacheCreatesOnceAndReturnsTheSameCredentials() {
+        var cache = new PracticeShopAuthenticatedAccountTestSupport.ClassRunAccountCache();
+        var first = new PracticeShopCredentials("live@practice-shop.invalid-domain", "secret", "ATF", "One");
+        var second = new PracticeShopCredentials("live-two@practice-shop.invalid-domain", "secret", "ATF", "Two");
+
+        assertNull(cache.get("class-run"));
+        assertSame(first, cache.putIfAbsent("class-run", first));
+        assertSame(first, cache.putIfAbsent("class-run", second));
+        assertSame(first, cache.get("class-run"));
     }
 }

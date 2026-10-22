@@ -38,6 +38,22 @@ class PlaywrightActionSequenceTest {
     }
 
     @Test
+    void keepsActionOrdinalStableAcrossSetupAndBodyDrains() {
+        var actions = new PlaywrightActionSequence();
+
+        actions.observation("Navigate", "#app", "application is loaded", "loaded");
+        var setup = actions.drain();
+        actions.observation("Click", "#submit", "business body starts", "clicked");
+        var body = actions.drain();
+        actions.observation("Get text", "#confirmation", "confirmation is visible", "confirmed");
+        var finalBody = actions.drain();
+
+        assertEquals(1, setup.getFirst().sequence());
+        assertEquals(2, body.getFirst().sequence());
+        assertEquals(3, finalBody.getFirst().sequence());
+    }
+
+    @Test
     void rejectsBlankLocatorTargetsBeforeAnElementActionCanBeRecorded() {
         assertThrows(IllegalArgumentException.class,
                 () -> PlaywrightActionSequence.requireLocatorTarget(null));
@@ -94,10 +110,33 @@ class PlaywrightActionSequenceTest {
 
         var record = actions.snapshot().getFirst();
         assertEquals("Fill", record.operation());
-        assertEquals("value entered", record.observed());
-        assertEquals("field is filled", record.expected());
+        assertEquals("value entered: [REDACTED]", record.observed());
+        assertEquals("field is filled · value=[REDACTED]", record.expected());
         assertEquals(List.of("sensitive-value"), entered);
         assertTrue(record.observed().contains("value"));
+        assertTrue(!record.observed().contains("sensitive-value"));
+    }
+
+    @Test
+    void fillKeepsReplayValueBesideItsTargetForNonSensitiveFields() {
+        var locator = (com.microsoft.playwright.Locator) Proxy.newProxyInstance(
+                com.microsoft.playwright.Locator.class.getClassLoader(),
+                new Class<?>[]{com.microsoft.playwright.Locator.class},
+                (proxy, method, arguments) -> switch (method.getName()) {
+                    case "count" -> 1;
+                    case "fill", "toString" -> method.getName().equals("toString")
+                            ? "input[data-test='postal_code']" : null;
+                    default -> throw new UnsupportedOperationException(method.getName());
+                });
+
+        var actions = new PlaywrightActionSequence();
+        actions.fill(new AtfLocator(locator, "input[data-test='postal_code']"),
+                "010101", "billing postal code is entered");
+
+        var record = actions.snapshot().getFirst();
+        assertEquals("input[data-test='postal_code']", record.target());
+        assertEquals("billing postal code is entered · value=010101", record.expected());
+        assertEquals("value entered: 010101", record.observed());
     }
 
     @Test
@@ -124,7 +163,9 @@ class PlaywrightActionSequenceTest {
 
         assertEquals(2, actions.snapshot().size());
         assertEquals("Select option", actions.snapshot().get(0).operation());
-        assertEquals("option selected", actions.snapshot().get(0).observed());
+        assertEquals("option selected: Cash on Delivery", actions.snapshot().get(0).observed());
+        assertEquals("demo payment method is selected · value=Cash on Delivery",
+                actions.snapshot().get(0).expected());
         assertEquals("Expect value", actions.snapshot().get(1).operation());
         assertEquals("2", actions.snapshot().get(1).observed());
         assertTrue(selected.getFirst().contains("Cash on Delivery"));

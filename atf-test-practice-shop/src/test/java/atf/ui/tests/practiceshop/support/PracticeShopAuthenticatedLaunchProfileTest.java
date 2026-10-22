@@ -70,6 +70,54 @@ class PracticeShopAuthenticatedLaunchProfileTest {
         assertFalse(reason.contains("customer@practicesoftwaretesting.com"));
     }
 
+    @Test
+    void registerPerRunCannotSilentlyActivateOnAnotherAuthenticatedClass() {
+        var configuration = PracticeShopTestSupport.configurationFor(NonPurchaseAuthenticatedTest.class);
+
+        String reason = PracticeShopTestSupport.authenticatedSetupSkipReason(
+                NonPurchaseAuthenticatedTest.class, configuration);
+
+        assertNotNull(reason);
+        assertTrue(reason.contains("@AllowsRegistrationPerRun"));
+    }
+
+    @Test
+    void registrationCapabilityIsAnExplicitClassContract() throws ClassNotFoundException {
+        Class<?> purchase = Class.forName(
+                "atf.ui.tests.practiceshop.e2e.PracticeShopAuthenticatedPurchaseE2eTest");
+
+        assertTrue(purchase.isAnnotationPresent(PracticeShopTestSupport.AllowsRegistrationPerRun.class));
+        Class<?> accountAndCatalog = Class.forName(
+                "atf.ui.tests.practiceshop.e2e.PracticeShopAccountAndCatalogE2eTest");
+        assertTrue(accountAndCatalog.isAnnotationPresent(
+                PracticeShopTestSupport.AllowsRegistrationPerRun.class));
+        assertFalse(NonPurchaseAuthenticatedTest.class.isAnnotationPresent(
+                PracticeShopTestSupport.AllowsRegistrationPerRun.class));
+    }
+
+    @Test
+    void registrationProfileMustUseAnIgnoredLocalPropertiesFile(@TempDir Path temp) {
+        Path valid = temp.resolve(
+                "project/atf-test-practice-shop/src/test/resources/registration.local.properties");
+        Path wrongModule = temp.resolve(
+                "project/atf-test-kit/src/test/resources/registration.local.properties");
+        Path wrongExtension = temp.resolve(
+                "project/atf-test-practice-shop/src/test/resources/registration.properties");
+
+        var moduleFailure = org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> PracticeShopConfigurationLoader.resolveRegistrationProfileFile(
+                        wrongModule.toString()));
+        var extensionFailure = org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> PracticeShopConfigurationLoader.resolveRegistrationProfileFile(
+                        wrongExtension.toString()));
+
+        assertAll(
+                () -> assertEquals(valid.toAbsolutePath().normalize(),
+                        PracticeShopConfigurationLoader.resolveRegistrationProfileFile(valid.toString())),
+                () -> assertTrue(moduleFailure.getMessage().contains("atf-test-practice-shop/src/test/resources")),
+                () -> assertTrue(extensionFailure.getMessage().contains(".local.properties")));
+    }
+
     private static void assertAuthenticatedProfile(String testClassName) throws ClassNotFoundException {
         Class<?> testClass = Class.forName(testClassName);
         var configuration = PracticeShopTestSupport.configurationFor(testClass);
@@ -87,4 +135,8 @@ class PracticeShopAuthenticatedLaunchProfileTest {
     private static PracticeShopConfiguration authenticatedConfiguration(Path fixture) {
         return PracticeShopConfigurationLoader.load().forAuthenticatedE2e(fixture, false, 70);
     }
+
+    @PracticeShopTestSupport.AuthenticatedE2e(
+            accountSetup = PracticeShopTestSupport.AccountSetupMode.REGISTER_PER_RUN)
+    static class NonPurchaseAuthenticatedTest { }
 }

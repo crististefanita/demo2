@@ -65,7 +65,7 @@ class PracticeShopApiNetworkJournalTest {
         journal.recordCapturedExchange(exchange("POST", PracticeShopApiRoutes.GUEST_INVOICE_CREATE, "{}",
                 "{\"id\":\"order-1\",\"invoice_number\":\"INV-1\",\"total\":24.02}"));
 
-        var assertions = journal.orderCreated("Thanks for your order! Invoice INV-1");
+        var assertions = journal.orderCreated(0L, "Thanks for your order! Invoice INV-1");
 
         assertTrue(assertions.stream().allMatch(assertion -> assertion.passed()));
         assertEquals(List.of("/invoices/guest"), journal.evidence(PracticeShopApiCheckpoint.ORDER).stream()
@@ -81,13 +81,90 @@ class PracticeShopApiNetworkJournalTest {
         journal.recordCapturedExchange(exchange("POST", PracticeShopApiRoutes.INVOICE_CREATE, "{}",
                 "{\"id\":\"order-2\",\"invoice_number\":\"INV-2\",\"total\":24.02}"));
 
-        var assertions = journal.orderCreated("Thanks for your order! Invoice INV-2");
+        var assertions = journal.orderCreated(0L, "Thanks for your order! Invoice INV-2");
 
         assertTrue(assertions.stream().allMatch(assertion -> assertion.passed()));
         assertEquals(List.of(PracticeShopApiRoutes.INVOICE_CREATE), journal.evidence(PracticeShopApiCheckpoint.ORDER).stream()
                 .map(evidence -> evidence.request().path()).toList());
         assertEquals("checkout", journal.evidence(PracticeShopApiCheckpoint.ORDER).getFirst()
                 .trace().phase());
+    }
+
+    @Test
+    void orderEvidenceCannotReuseAnOrderCapturedBeforeTheConfirmFence() {
+        var journal = new PracticeShopApiNetworkJournal(PracticeShopValidationProfile.UI_API,
+                PracticeShopApiEvidenceBinding.fromCsv(PracticeShopValidationProfile.UI_API, "order"));
+        journal.recordCapturedExchange(exchange("POST", PracticeShopApiRoutes.GUEST_INVOICE_CREATE, "{}",
+                "{\"id\":\"old\",\"invoice_number\":\"INV-OLD\",\"total\":24.02}"));
+        long fence = journal.sequenceMarker();
+
+        var assertions = journal.orderCreated(fence,
+                "Thanks for your order! Your invoice number is INV-NEW.");
+
+        assertFalse(assertions.stream().anyMatch(atf.api.reporting.contract.AtfAssertion::passed));
+        assertTrue(journal.evidence(PracticeShopApiCheckpoint.ORDER).isEmpty());
+    }
+
+    @Test
+    void registrationCheckpointOwnsOnlyTheObservedPostAndRedactsIdentityBeforeAnyProjection() {
+        var journal = new PracticeShopApiNetworkJournal(PracticeShopValidationProfile.UI_API,
+                PracticeShopApiEvidenceBinding.fromCsv(PracticeShopValidationProfile.UI_API, "registration"));
+        long fence = journal.sequenceMarker();
+        journal.recordCapturedExchange(exchange("api.practicesoftwaretesting.com", "POST", "/users/register",
+                "{\"first_name\":\"Ada\",\"last_name\":\"Lovelace\","
+                        + "\"email\":\"ada@owned.example\",\"password\":\"Secret!123\","
+                        + "\"street\":\"Secret Street\",\"phone\":\"0700000000\"}",
+                "{\"id\":\"user-1\",\"first_name\":\"Ada\",\"email\":\"ada@owned.example\"}"));
+
+        var assertions = journal.registrationConfirmed(fence,
+                java.net.URI.create("https://api.practicesoftwaretesting.com"));
+        var evidence = journal.evidence(PracticeShopApiCheckpoint.REGISTRATION).getFirst();
+        String published = evidence.request().bodyText() + evidence.response().body();
+
+        assertTrue(assertions.stream().allMatch(atf.api.reporting.contract.AtfAssertion::passed));
+        assertEquals("account-setup", evidence.trace().phase());
+        assertEquals("/users/register", evidence.request().path());
+        for (String personalValue : List.of("Ada", "Lovelace", "ada@owned.example", "Secret!123",
+                "Secret Street", "0700000000")) {
+            assertFalse(published.contains(personalValue), "leaked value: " + personalValue);
+        }
+        assertFalse(journal.allEvidence().getFirst().request().bodyText().contains("Ada"));
+    }
+
+    @Test
+    void registrationCheckpointFailsClosedWhenMoreThanOnePostWasObserved() {
+        var journal = new PracticeShopApiNetworkJournal(PracticeShopValidationProfile.UI_API,
+                PracticeShopApiEvidenceBinding.fromCsv(PracticeShopValidationProfile.UI_API, "registration"));
+        long fence = journal.sequenceMarker();
+        journal.recordCapturedExchange(exchange("api.practicesoftwaretesting.com", "POST",
+                "/users/register", "{}", "{}"));
+        journal.recordCapturedExchange(exchange("api.practicesoftwaretesting.com", "POST",
+                "/users/register", "{}", "{}"));
+
+        var assertions = journal.registrationConfirmed(fence,
+                java.net.URI.create("https://api.practicesoftwaretesting.com"));
+
+        assertFalse(assertions.getFirst().passed());
+        assertFalse(assertions.getLast().passed());
+        assertEquals(2, journal.evidence(PracticeShopApiCheckpoint.REGISTRATION).size());
+    }
+
+    @Test
+    void registrationCheckpointIgnoresPostsToOtherObservedHosts() {
+        var journal = new PracticeShopApiNetworkJournal(PracticeShopValidationProfile.UI_API,
+                PracticeShopApiEvidenceBinding.fromCsv(PracticeShopValidationProfile.UI_API, "registration"));
+        long fence = journal.sequenceMarker();
+        journal.recordCapturedExchange(exchange("telemetry.test", "POST", "/events", "{}", "{}"));
+        journal.recordCapturedExchange(exchange("api.practicesoftwaretesting.com", "POST",
+                "/dynamic-registration-route", "{}", "{}"));
+
+        var assertions = journal.registrationConfirmed(fence,
+                java.net.URI.create("https://api.practicesoftwaretesting.com/v1"));
+
+        assertTrue(assertions.stream().allMatch(atf.api.reporting.contract.AtfAssertion::passed));
+        assertEquals(1, journal.evidence(PracticeShopApiCheckpoint.REGISTRATION).size());
+        assertEquals("/dynamic-registration-route", journal.evidence(PracticeShopApiCheckpoint.REGISTRATION)
+                .getFirst().request().path());
     }
 
     @Test
@@ -98,6 +175,18 @@ class PracticeShopApiNetworkJournalTest {
         var evidence = PracticeShopApiEvidenceMapper.toExecution(exchange);
 
         assertEquals("bearer", evidence.request().authMethod().wireValue());
+    }
+
+    @Test
+    void observedExchangeUsesReportingQueryDecoderAndPreservesDecodedValues() {
+        var exchange = exchange("GET", "/orders?state=ready+to+ship&filter=a%2Bb&empty=", "", "{}")
+                .withObservedAuthMethod("none");
+
+        var evidence = PracticeShopApiEvidenceMapper.toExecution(exchange);
+
+        assertEquals("ready to ship", evidence.request().query().get("state"));
+        assertEquals("a+b", evidence.request().query().get("filter"));
+        assertEquals("", evidence.request().query().get("empty"));
     }
 
     @Test
@@ -147,6 +236,12 @@ class PracticeShopApiNetworkJournalTest {
     private static PracticeShopApiNetworkJournal.Exchange exchange(String method, String path,
                                                                     String requestBody, String responseBody) {
         return new PracticeShopApiNetworkJournal.Exchange(method, path, "https://shop.test" + path, 200,
+                requestBody, responseBody, Map.of("accept", "application/json"), JSON);
+    }
+
+    private static PracticeShopApiNetworkJournal.Exchange exchange(String host, String method, String path,
+                                                                    String requestBody, String responseBody) {
+        return new PracticeShopApiNetworkJournal.Exchange(method, path, "https://" + host + path, 200,
                 requestBody, responseBody, Map.of("accept", "application/json"), JSON);
     }
 }

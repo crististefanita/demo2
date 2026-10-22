@@ -7,7 +7,13 @@ import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.ui.AtfUiActionRecord;
 import atf.api.reporting.ui.AtfUiEvidenceSource;
 import atf.api.reporting.evidence.ExtentReportUiEvidence;
+import atf.api.reporting.evidence.ReportScreenshotPolicy;
+import atf.api.reporting.evidence.profile.ReportEvidenceCaptureSource;
+import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
+import atf.api.reporting.evidence.profile.ReportEvidenceProfile;
+import atf.api.reporting.evidence.profile.ReportUiActionDetailsMode;
 import atf.api.reporting.extent.session.ExtentReportSession;
+import atf.api.reporting.ui.UiExtentReportSession;
 import atf.api.reporting.support.ReportTestScreenshots;
 
 import org.junit.jupiter.api.Test;
@@ -131,29 +137,63 @@ class ExtentReportUiEvidenceRenderingTest {
     }
 
     @Test
-    void rendersPlaywrightActionsWhenScreenshotPolicyOmitsTheCheckpointImage() throws Exception {
-        Path root = Files.createTempDirectory("atf-ui-actions-without-screenshot-");
-        Path report = root.resolve("actions-without-screenshot.html");
+    void rendersReplayValueBesideTheFillTargetAndObservedResult() throws Exception {
+        Path root = Files.createTempDirectory("atf-ui-replay-value-");
+        Path report = root.resolve("ui-replay-value.html");
         try (var session = new ExtentReportSession(report)) {
             var scenario = session.startScenario("UiTest", EXTENT_UI_TEST_PACKAGE,
-                    "checkpoint without image", List.of("ui"));
+                    "replay value evidence", List.of("ui"));
             var phase = scenario.startPhase("TEST BODY");
-            var step = phase.startRequest("THEN the checkpoint remains auditable", "", "");
-            step.uiActions(List.of(new AtfUiActionRecord(1, "Get text", "#status",
-                    "status is visible", "Ready", 3, AtfReportStatus.PASS)));
+            var step = phase.startRequest("WHEN billing postal code is entered", "", "");
+            step.uiActions(List.of(new AtfUiActionRecord(12, "Fill",
+                    "input[data-test='postal_code']",
+                    "billing postal code is entered · value=010101",
+                    "value entered: 010101", 5, AtfReportStatus.PASS)));
             step.complete(AtfReportStatus.PASS);
             phase.complete(AtfReportStatus.PASS);
             scenario.complete(AtfReportStatus.PASS);
         }
 
         String html = Files.readString(report);
-        assertAll(
-                () -> assertTrue(html.contains("class=\"atf-ui-action-sequence\"")),
-                () -> assertTrue(html.contains("Playwright action sequence (1 entries)")),
-                () -> assertTrue(html.contains("Get text")),
-                () -> assertTrue(html.contains("Ready")),
-                () -> assertFalse(html.contains("data-atf-screenshot=\"base64\"")),
-                () -> assertFalse(html.contains("class=\"atf-ui-action-screenshot-link\"")));
+        assertTrue(html.contains("input[data-test='postal_code']"));
+        assertTrue(html.contains("billing postal code is entered · value=010101"));
+        assertTrue(html.contains("value entered: 010101"));
+    }
+
+    @Test
+    void summaryOnlyKeepsOneCollapsedDisclosureAndOmitsTheActionTable() throws Exception {
+        Path root = Files.createTempDirectory("atf-ui-action-summary-only-");
+        var profile = ReportEvidenceProfile.builder()
+                .flowMode(ReportEvidenceFlowMode.SCREEN_CHECKPOINTS)
+                .screenshotPolicy(ReportScreenshotPolicy.EACH_CHECKPOINT)
+                .captureSource(ReportEvidenceCaptureSource.CUSTOM_PROVIDER)
+                .actionDetailsMode(ReportUiActionDetailsMode.SUMMARY_ONLY)
+                .build();
+
+        Path report;
+        try (var session = UiExtentReportSession.openConfigured(root, "summary-only.html",
+                AtfConsoleSink.noOp(), profile)) {
+            report = session.reportPath();
+            var scenario = session.startScenario("UiTest", EXTENT_UI_TEST_PACKAGE,
+                    "summary-only action disclosure", List.of("ui"));
+            var body = scenario.startPhase("TEST BODY");
+            body.screenValidation("the final state is visible", "#test-view",
+                    ReportTestScreenshots.ONE_PIXEL_PNG, List.of(), List.of(
+                            new atf.api.reporting.ui.AtfUiActionRecord(1, "Click", "#tests",
+                                    "Tests opens", "click completed", 4, AtfReportStatus.PASS)),
+                    AtfReportStatus.PASS);
+            body.complete(AtfReportStatus.PASS);
+            scenario.complete(AtfReportStatus.PASS);
+        }
+
+        String html = Files.readString(report);
+        assertTrue(html.contains("Playwright action sequence (1 entries)"));
+        assertTrue(html.contains("class=\"atf-ui-action-sequence\""));
+        assertFalse(html.contains("<th>ACTION</th>"));
+        assertFalse(html.contains("#tests"));
+        assertTrue(html.contains("data-atf-screenshot=\"base64\""));
+        assertTrue(html.contains("</summary><div class=\"atf-ui-action-screenshot\""));
+        assertTrue(html.contains("</a></div></details>"));
     }
 
     @Test

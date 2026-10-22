@@ -58,6 +58,15 @@ public final class PracticeShopTestSupport {
                 "atf-test-practice-shop/src/test/resources/practice-software-testing-registration.local.properties";
     }
 
+    /**
+     * Explicitly allows the annotated E2E class to create a persistent external account per run.
+     * Keeping this opt-in separate from {@link AuthenticatedE2e} makes the side effect visible
+     * at the test declaration and avoids coupling policy to a class name.
+     */
+    @Target(ElementType.TYPE)
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface AllowsRegistrationPerRun { }
+
     /** Selects only tests that have an external account fixture available. */
     @Target(ElementType.TYPE)
     @Retention(RetentionPolicy.RUNTIME)
@@ -142,8 +151,8 @@ public final class PracticeShopTestSupport {
         if (profile.accountSetup() == AccountSetupMode.REUSE_FIXTURE) {
             return authenticatedFixtureSkipReason(configuration);
         }
-        if (!"PracticeShopAuthenticatedPurchaseE2eTest".equals(testClass.getSimpleName())) {
-            return "REGISTER_PER_RUN is currently supported only by PracticeShopAuthenticatedPurchaseE2eTest; "
+        if (!testClass.isAnnotationPresent(AllowsRegistrationPerRun.class)) {
+            return "REGISTER_PER_RUN requires the explicit @AllowsRegistrationPerRun marker; "
                     + "use REUSE_FIXTURE for this class";
         }
         try {

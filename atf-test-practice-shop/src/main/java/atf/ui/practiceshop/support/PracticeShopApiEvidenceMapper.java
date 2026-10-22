@@ -3,20 +3,17 @@ package atf.ui.practiceshop.support;
 import atf.api.reporting.api.ReportAttemptRecord;
 import atf.api.reporting.api.ReportRequest;
 import atf.api.reporting.api.ReportResponse;
-import atf.api.reporting.api.ReportRetryEvent;
 import atf.api.reporting.api.ReportTransportProvenance;
 import atf.api.reporting.api.ReportRequestSignature;
 import atf.api.reporting.api.ReportTraceMetadata;
+import atf.api.reporting.api.ReportModelAdapters;
+import atf.api.reporting.api.ReportQueryParameters;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.core.http.response.ApiExecutionResult;
-import atf.api.core.http.response.ApiAttemptRecord;
 import atf.ui.practiceshop.api.PracticeShopApiOperation;
 
 import java.net.URI;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -63,11 +60,9 @@ public final class PracticeShopApiEvidenceMapper {
                                                        String role, String stepId,
                                                        String initiator, String evidenceSource,
                                                        String expected, String observed) {
-        if (execution == null) {
-            throw new IllegalArgumentException("API execution must contain request and response");
-        }
-        var request = execution.request();
-        var response = execution.response();
+        ReportExecutionEvidence adapted = ReportModelAdapters.execution(execution);
+        var request = adapted.request();
+        var response = adapted.response();
         if (request == null || response == null) {
             throw new IllegalArgumentException("API execution must contain request and response");
         }
@@ -76,37 +71,12 @@ public final class PracticeShopApiEvidenceMapper {
                 redactJson(request.bodyText()));
         ReportResponse reportResponse = new ReportResponse(response.status(), redactJson(response.body()),
                 PracticeShopJsonEvidence.redactHeaders(response.headers()), response.duration(), response.url());
-        List<ReportAttemptRecord> attempts = execution.attemptHistory().stream()
-                .map(PracticeShopApiEvidenceMapper::attempt)
-                .toList();
-        if (attempts.isEmpty()) {
-            attempts = List.of(new ReportAttemptRecord(1, response.status(), response.duration(),
-                    response.status() >= 200 && response.status() < 400 ? "SUCCESS" : "FAILURE",
-                    "final response"));
-        }
-        List<ReportRetryEvent> retries = execution.retryEvents().stream()
-                .map(retry -> new ReportRetryEvent(retry.attempt(), retry.statusCode(), retry.header(),
-                        retry.delay(), retry.reason()))
-                .toList();
         ReportTraceMetadata trace = ReportTraceMetadata.from(reportRequest).withCapture(
                 sequence > 0 ? "E" + sequence : "", sequence, phase, role, stepId,
                 initiator, evidenceSource, ReportRequestSignature.bodyDigest(reportResponse.body()),
                 expected, observed);
-        return new ReportExecutionEvidence(reportResponse, execution.attempts(), execution.totalDuration(),
-                retries, attempts, reportRequest, provenance(execution), trace);
-    }
-
-    private static ReportAttemptRecord attempt(ApiAttemptRecord attempt) {
-        return new ReportAttemptRecord(attempt.number(), attempt.statusCode(), attempt.duration(),
-                attempt.outcome().name(), attempt.reason());
-    }
-
-    private static ReportTransportProvenance provenance(ApiExecutionResult execution) {
-        return switch (execution.provenance()) {
-            case ACCEPTANCE_MOCK -> ReportTransportProvenance.ACCEPTANCE_MOCK;
-            case LIVE_HTTP -> ReportTransportProvenance.LIVE_HTTP;
-            case UNKNOWN -> ReportTransportProvenance.UNKNOWN;
-        };
+        return new ReportExecutionEvidence(reportResponse, adapted.attempts(), adapted.totalDuration(),
+                adapted.retryEvents(), adapted.attemptHistory(), reportRequest, adapted.provenance(), trace);
     }
 
     static Map<String, String> redactHeaders(Map<String, String> headers) {
@@ -118,15 +88,6 @@ public final class PracticeShopApiEvidenceMapper {
     }
 
     private static Map<String, String> query(String url) {
-        String raw = URI.create(url).getRawQuery();
-        if (raw == null || raw.isBlank()) return Map.of();
-        Map<String, String> values = new LinkedHashMap<>();
-        for (String part : raw.split("&")) {
-            String[] pair = part.split("=", 2);
-            String name = URLDecoder.decode(pair[0], StandardCharsets.UTF_8);
-            String value = pair.length == 1 ? "" : URLDecoder.decode(pair[1], StandardCharsets.UTF_8);
-            values.put(name, value);
-        }
-        return Map.copyOf(values);
+        return ReportQueryParameters.fromUri(URI.create(url)).asMap();
     }
 }

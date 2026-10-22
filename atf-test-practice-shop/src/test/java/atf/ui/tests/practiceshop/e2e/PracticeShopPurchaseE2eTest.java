@@ -23,7 +23,7 @@ class PracticeShopPurchaseE2eTest {
                     new PracticeShopPurchaseFlow(journey.locators()).purchaseConfiguredProduct(
                             journey.page(), journey.actions(), journey.configuration(),
                             journey::checkpoint, journey.apiNetwork());
-                    journey.completeGuestPurchase();
+                    journey.completePurchase();
                 });
     }
 }

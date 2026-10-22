@@ -17,7 +17,8 @@ import java.util.Optional;
  */
 public record ReportEvidenceProfile(ReportEvidenceFlowMode flowMode,
                                     ReportScreenshotPolicy screenshotPolicy,
-                                    ReportEvidenceCaptureSource captureSource) {
+                                    ReportEvidenceCaptureSource captureSource,
+                                    ReportUiActionDetailsMode actionDetailsMode) {
     private static final byte[] PNG_SIGNATURE = {
             (byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
     };
@@ -26,6 +27,15 @@ public record ReportEvidenceProfile(ReportEvidenceFlowMode flowMode,
         flowMode = Objects.requireNonNull(flowMode, "flowMode");
         screenshotPolicy = Objects.requireNonNull(screenshotPolicy, "screenshotPolicy");
         captureSource = Objects.requireNonNull(captureSource, "captureSource");
+        actionDetailsMode = Objects.requireNonNull(actionDetailsMode, "actionDetailsMode");
+    }
+
+    /** Backward-compatible constructor with the safe, audit-friendly default. */
+    public ReportEvidenceProfile(ReportEvidenceFlowMode flowMode,
+                                 ReportScreenshotPolicy screenshotPolicy,
+                                 ReportEvidenceCaptureSource captureSource) {
+        this(flowMode, screenshotPolicy, captureSource,
+                ReportUiActionDetailsMode.INCLUDED_COLLAPSED);
     }
 
     /** Backward-compatible profile for the existing checkpoint lifecycle. */
@@ -33,24 +43,35 @@ public record ReportEvidenceProfile(ReportEvidenceFlowMode flowMode,
         return new ReportEvidenceProfile(
                 ReportEvidenceFlowMode.SCREEN_CHECKPOINTS,
                 ReportScreenshotPolicy.EACH_CHECKPOINT,
-                ReportEvidenceCaptureSource.CUSTOM_PROVIDER);
+                ReportEvidenceCaptureSource.CUSTOM_PROVIDER,
+                ReportUiActionDetailsMode.INCLUDED_COLLAPSED);
     }
 
     public static ReportEvidenceProfile forScreenshotPolicy(ReportScreenshotPolicy policy) {
         return new ReportEvidenceProfile(
                 ReportEvidenceFlowMode.SCREEN_CHECKPOINTS,
                 Objects.requireNonNull(policy, "screenshotPolicy"),
-                ReportEvidenceCaptureSource.CUSTOM_PROVIDER);
+                ReportEvidenceCaptureSource.CUSTOM_PROVIDER,
+                ReportUiActionDetailsMode.INCLUDED_COLLAPSED);
     }
 
     /** Maps the three documented YAML values at a composition boundary. */
     public static ReportEvidenceProfile fromConfig(String flowMode,
                                                    String screenshotPolicy,
                                                    String captureSource) {
+        return fromConfig(flowMode, screenshotPolicy, captureSource,
+                ReportUiActionDetailsMode.INCLUDED_COLLAPSED.configValue());
+    }
+
+    public static ReportEvidenceProfile fromConfig(String flowMode,
+                                                   String screenshotPolicy,
+                                                   String captureSource,
+                                                   String actionDetailsMode) {
         return new ReportEvidenceProfile(
                 ReportEvidenceFlowMode.fromConfig(flowMode),
                 ReportScreenshotPolicy.fromConfig(screenshotPolicy),
-                ReportEvidenceCaptureSource.fromConfig(captureSource));
+                ReportEvidenceCaptureSource.fromConfig(captureSource),
+                ReportUiActionDetailsMode.fromConfig(actionDetailsMode));
     }
 
     public boolean captures(ReportScreenshotPolicy.CapturePoint point) {
@@ -94,7 +115,8 @@ public record ReportEvidenceProfile(ReportEvidenceFlowMode flowMode,
     public Builder toBuilder() {
         return builder().flowMode(flowMode)
                 .screenshotPolicy(screenshotPolicy)
-                .captureSource(captureSource);
+                .captureSource(captureSource)
+                .actionDetailsMode(actionDetailsMode);
     }
 
     public static Builder builder() {
@@ -106,6 +128,7 @@ public record ReportEvidenceProfile(ReportEvidenceFlowMode flowMode,
         private ReportEvidenceFlowMode flowMode = ReportEvidenceFlowMode.SCREEN_CHECKPOINTS;
         private ReportScreenshotPolicy screenshotPolicy = ReportScreenshotPolicy.EACH_CHECKPOINT;
         private ReportEvidenceCaptureSource captureSource = ReportEvidenceCaptureSource.CUSTOM_PROVIDER;
+        private ReportUiActionDetailsMode actionDetailsMode = ReportUiActionDetailsMode.INCLUDED_COLLAPSED;
 
         public Builder flowMode(ReportEvidenceFlowMode value) {
             flowMode = Objects.requireNonNull(value, "flowMode");
@@ -122,8 +145,13 @@ public record ReportEvidenceProfile(ReportEvidenceFlowMode flowMode,
             return this;
         }
 
+        public Builder actionDetailsMode(ReportUiActionDetailsMode value) {
+            actionDetailsMode = Objects.requireNonNull(value, "actionDetailsMode");
+            return this;
+        }
+
         public ReportEvidenceProfile build() {
-            return new ReportEvidenceProfile(flowMode, screenshotPolicy, captureSource);
+            return new ReportEvidenceProfile(flowMode, screenshotPolicy, captureSource, actionDetailsMode);
         }
     }
 }

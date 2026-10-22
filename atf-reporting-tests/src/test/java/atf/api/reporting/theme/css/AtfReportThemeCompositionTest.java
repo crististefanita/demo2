@@ -1,4 +1,6 @@
 package atf.api.reporting.theme.css;
+
+import atf.api.core.files.AtfPathLocator;
 import atf.api.testkit.AtfUnitTest;
 import atf.api.reporting.theme.AtfReportTheme;
 import atf.api.reporting.theme.css.AtfReportThemeBaseCss;
@@ -9,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -102,16 +105,9 @@ class AtfReportThemeCompositionTest {
     }
 
     private static Path sourceFile(String relativePath) {
-        Path current = Path.of(System.getProperty("user.dir", "."))
-                .toAbsolutePath().normalize();
-        while (current != null) {
-            Path moduleSource = current.resolve("src/main/java").resolve(relativePath);
-            if (Files.isRegularFile(moduleSource)) return moduleSource;
-            Path reactorSource = current.resolve("atf-reporting/src/main/java").resolve(relativePath);
-            if (Files.isRegularFile(reactorSource)) return reactorSource;
-            current = current.getParent();
-        }
-        throw new IllegalStateException("Cannot locate reporting source: " + relativePath);
+        return AtfPathLocator.locateSourceFile(Path.of(System.getProperty("user.dir", ".")),
+                Path.of(relativePath), List.of(Path.of("src/main/java"),
+                        Path.of("atf-reporting/src/main/java")));
     }
 
     private static void assertNativeFacade(String relativePath, String composerCall) throws Exception {
