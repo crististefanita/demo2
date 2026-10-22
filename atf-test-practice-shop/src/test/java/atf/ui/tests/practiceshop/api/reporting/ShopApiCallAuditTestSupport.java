@@ -1,7 +1,6 @@
 package atf.ui.tests.practiceshop.api.reporting;
 
 import atf.api.core.http.response.ApiExecutionResult;
-import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportPorts;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.extent.session.ExtentReportSession;
@@ -52,46 +51,22 @@ public final class ShopApiCallAuditTestSupport implements BeforeEachCallback, Af
             var scenario = session.startScenario(testClass.getSimpleName(), testClass.getPackageName(),
                     displayName, List.of("api", "component", "api-call"));
             var phase = scenario.startPhase("TEST BODY");
-            boolean testPassed = context.getExecutionException().isEmpty();
-            boolean exchangeCaptured = !calls.isEmpty();
-            AtfReportStatus status = testPassed && exchangeCaptured
-                    ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
+            Throwable failure = context.getExecutionException().orElse(null);
+            AtfReportStatus status = failure == null ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
             try {
                 long sequence = 0;
+                String outcome = failure == null ? "test method passed"
+                        : failure.getClass().getSimpleName();
                 for (ApiExecutionResult call : calls) {
-                    ShopApiReportPublisher.publishObserved(phase, call, ++sequence);
+                    ShopApiReportPublisher.publishObserved(phase, call, ++sequence,
+                            outcome, calls.size(), status);
                 }
-                publishJUnitOutcome(phase, testClass.getSimpleName(), displayName,
-                        context.getExecutionException().orElse(null), calls.size(), status);
+                publishAuditDetails(phase, failure, calls.size());
                 phase.complete(status);
                 scenario.complete(status);
             } finally {
                 phase.close();
                 scenario.close();
-            }
-        }
-
-        private static void publishJUnitOutcome(AtfReportPorts.Phase phase, String testClass,
-                                                String displayName, Throwable failure,
-                                                int exchangeCount, AtfReportStatus status) {
-            var result = phase.startRequest("JUnit result — " + displayName, "ASSERT", testClass);
-            try {
-                var validation = result.startValidation("Test method outcome");
-                try {
-                    String observed = failure == null ? "test method passed"
-                            : failure.getClass().getSimpleName();
-                    validation.assertions(List.of(
-                            new AtfAssertion("JUnit outcome", "test method passes", observed,
-                                    failure == null),
-                            new AtfAssertion("API exchanges captured", "at least 1",
-                                    Integer.toString(exchangeCount), exchangeCount > 0)));
-                    validation.complete(status);
-                    result.complete(status);
-                } finally {
-                    validation.close();
-                }
-            } finally {
-                result.close();
             }
         }
 
@@ -105,6 +80,19 @@ public final class ShopApiCallAuditTestSupport implements BeforeEachCallback, Af
         @Override
         public void close() {
             session.close();
+        }
+    }
+
+    static void publishAuditDetails(AtfReportPorts.Phase phase, Throwable failure,
+                                    int exchangeCount) {
+        String captured = exchangeCount + (exchangeCount == 1
+                ? " actual API exchange captured" : " actual API exchanges captured");
+        phase.detail("API audit completeness", captured);
+        if (failure != null) {
+            String message = failure.getMessage();
+            String reason = failure.getClass().getSimpleName()
+                    + (message == null || message.isBlank() ? "" : ": " + message);
+            phase.detail("JUnit failure", reason);
         }
     }
 }

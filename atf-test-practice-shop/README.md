@@ -81,7 +81,7 @@ nu publică API evidence.
 ```text
 Playwright response / request-failed
   → UiNetworkInspector
-  → PracticeShopApiNetworkJournal
+  → ShopApiNetworkJournal
   → checkpoint-uri Gherkin: UI validation + API validation configurată
   → dovada finală de ecran sau de eșec
   → un singur API network inspector — journey summary (ultimul nod tehnic)
@@ -112,7 +112,7 @@ consumerului este:
 
 Journal-ul consumerului păstrează trace-ul ordonat.
 
-- `PracticeShopJsonEvidence.redact` aplică înainte de journal/model politica
+- `ShopJsonEvidence.redact` aplică înainte de journal/model politica
   field-aware comună pentru secrete, identitate, contact și adresă.
 - Aliasurile normalizează casing-ul și separatorii (`first_name`, `firstName`,
   `postal-code`).
@@ -144,7 +144,7 @@ UI validation și API evidence au roluri separate:
   flow-ul rămâne `FAIL` și nu marchează boundary-ul ca autentificat.
 
 Selecția generică pe checkpoint și ownership-ul traficului sunt verificate fără
-browser de `PracticeShopApiNetworkJournalTest`.
+browser de `ShopApiNetworkJournalTest`.
 
 Settlement-ul pentru acțiuni care modifică serverul este separat și dezactivat
 implicit:
@@ -152,7 +152,7 @@ implicit:
 - cursorul este capturat înainte de acțiune; read-back-ul bounded caută numai
   observații ulterioare prin `awaitAfter(...)` și nu repetă acțiunea;
 - inspectorul nu reia mutații, indiferent de timeout sau de observația capturată;
-- `PracticeShopUiNetworkSettlementFixture` acoperă read-back-ul idempotent,
+- `ShopUiNetworkSettlementFixture` acoperă read-back-ul idempotent,
   excluderea unui GET anterior acțiunii, compactarea response-urilor
   consecutive și timeout-ul fără replay sau false-green;
 - o viitoare facilitate consumer-owned ar cere separat identity stabilă,
@@ -191,14 +191,14 @@ flowchart LR
 
 | Zonă | Owner live | Regula de mentenanță |
 |---|---|---|
-| host UI și output | `PracticeShopConfiguration` | un singur `baseUrl`; directoare configurabile |
-| rute UI | `PracticeShopUiRoutes` | numai segmente relative; ID-urile sunt validate |
-| rute API | `PracticeShopApiRoutes` | path-uri și template-uri centralizate |
-| selectorii CSS | `PracticeShopLocators` | testele nu folosesc `page.locator(...)` direct |
-| contracte de ecran | `@PracticeShopPageContract` + `PracticeShopPageValidator` | topologia este declarativă, assertions sunt typed |
-| flow-uri | `PracticeShop*Flow` și stage-urile purchase | business order, fără detalii de renderer |
+| host UI și output | `ShopConfiguration` | un singur `baseUrl`; directoare configurabile |
+| rute UI | `ShopUiRoutes` | numai segmente relative; ID-urile sunt validate |
+| rute API | `ShopApiRoutes` | path-uri și template-uri centralizate |
+| selectorii CSS | `ShopLocators` | testele nu folosesc `page.locator(...)` direct |
+| contracte de ecran | `@ShopPageContract` + `ShopPageValidator` | topologia este declarativă, assertions sunt typed |
+| flow-uri | `Shop*Flow` și stage-urile purchase | business order, fără detalii de renderer |
 | API evidence | journal + capture + selector + mapper | orchestration, selecție și publicare separate |
-| lifecycle | `PracticeShopE2eContext` / publisher | testele nu gestionează manual raportul |
+| lifecycle | `ShopE2eContext` / publisher | testele nu gestionează manual raportul |
 | scanări de arhitectură | `AtfPathLocator` + `AtfFileTree` din `atf-core` | root discovery și file traversal sunt reutilizate; filtrele include/exclude specifice consumerului rămân lângă guard-ul Practice Shop |
 
 Packaging-ul este intenționat:
@@ -250,6 +250,60 @@ Principiul de selecție:
 - E2E demonstrează orchestration-ul real, nu fiecare combinație de API;
 - nu se adaugă un test E2E pentru o variație care poate fi verificată fără browser.
 
+### Suitele de componente API și auditul apelurilor
+
+`ShopApiComponentSuite` este punctul de lansare pentru toate contractele API
+deterministe din `api/component`. `ShopApiEndpointMatrixTest` verifică printr-o
+matrice parametrizată rutele produse de fabrica de cereri și folosite în fluxul
+de achiziție, inclusiv înregistrarea contului, factura autentificată și factura
+pentru vizitator. Pentru fiecare caz verifică metoda HTTP, ruta, codul de stare,
+antetele JSON, validitatea sintactică a corpurilor și rezultatul transportului de
+test; testele fabricii verifică separat câmpurile din corpul cererii. Cazurile
+negative includ date de autentificare invalide, resursă inexistentă, produs
+invalid în coș și date obligatorii lipsă pentru factura vizitatorului
+(`401`, `404`, `422`); înregistrarea contului și crearea coșului verifică
+răspunsul `201`, facturile autentificată și guest verifică `200`, iar eliminarea
+produsului din coș verifică răspunsul `204`.
+
+Body-urile JSON sunt DTO-uri tipizate în `ShopApiRequestBodies`, iar
+`ShopApiRequestFactory` rămâne fabrică pură: selectează metoda, ruta și
+autentificarea, apoi serializează payload-ul. Strategia Jackson transformă
+câmpurile Java în `snake_case`; câmpurile opționale nule ale facturii sunt
+omise. `ShopApiRequestFactoryTest` verifică forma pe fir, inclusiv faptul că
+nu apar chei camelCase. Astfel matricea de schimburi acoperă metoda/ruta/statusul
+și JSON-ul valid, iar testele fabricii protejează schema efectivă a cererilor.
+
+Contractul de status pentru crearea facturii este aliniat: matricea de
+schimburi și fixture-ul determinist verifică `200` atât pentru
+`POST /invoices`, cât și pentru `POST /invoices/guest`, conform
+[specificației OpenAPI publicate](https://api.practicesoftwaretesting.com/docs?api-docs.json).
+Fixture-ul verifică determinist contractul ATF; nu este prezentat ca trafic
+real și nu înlocuiește validarea E2E a serviciului.
+
+Lansare reproductibilă din IntelliJ: rulează `ShopApiComponentSuite`. Din Maven,
+din root-ul ATF:
+
+```text
+mvn -pl atf-test-practice-shop -am "-Dtest=ShopApiComponentSuite" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Testele de schimb HTTP marcate `@ShopApiCallComponentTest` sunt grupate de
+extensia de audit într-un raport Extent, în directorul API configurat de
+Practice Shop (`artifacts/reports/api`). Verdictul JUnit aparține scenariului;
+fiecare schimb capturat păstrează metoda și ruta, detaliile cererii și
+răspunsului, precum și dovezile execuției. Completitudinea aparține auditului,
+nu unui request. Alinierea publisherului cu această semantică este încă
+deschisă; vezi [feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md).
+Suita nu trimite cereri către serviciul public: schimburile provin din
+transporturi deterministe.
+`ShopApiCallAuditSuite` rulează numai selecția de teste pentru audit, în timp ce
+`ShopApiComponentSuite` include și componentele fără schimburi HTTP.
+
+În matrice, cererile de înregistrare și de facturare pentru vizitator folosesc
+numai transportul determinist; nu se creează conturi sau comenzi în serviciul
+real. Fluxul E2E rămâne proba separată a integrării și a rezultatului de business
+în aplicația reală.
+
 ### E2E configurabile
 
 | Flux | Clasă | Activare |
@@ -287,16 +341,15 @@ Separă patru axe care nu trebuie să schimbe flow-ul de business:
 |---|---|---|
 | Validare | profile typed `UI_ONLY` / `UI_API` prin `@WithE2eHarness`; clasele guest actuale sunt presetate | funcționalitatea există; profilul se selectează explicit pe clasa E2E, independent de presentation și capturi |
 | Forma raportului | `reportFlow = CONFIGURED`, `SCREEN_CHECKPOINTS` sau `UNIFIED_FLOW` în `@WithE2eHarness`; implicit moștenește profilul configurat | layout-ul efectiv apare în Overview → System → `UI evidence layout` |
-| Capturi | Rulările individuale folosesc `reporting.screenshotPolicy` din YAML (`each-checkpoint` implicit); `ShopE2eSuite` are override dedicat prin `atf.practice.shop.e2e.suite.screenshot-policy` (`final-and-failure` implicit) | `each-checkpoint` atașează captura stării rezultate fiecărui tabel Playwright nevid din `SETUP` și `TEST BODY`; controalele de formular sunt mascate; `none` dezactivează capturile fără să elimine acțiunile sau aserțiunile |
+| Capturi | `reporting.screenshotPolicy` din YAML este autoritară atât pentru clasele individuale, cât și pentru `ShopE2eSuite`; adnotările aleg layout-ul și detaliile acțiunilor, nu politica de captură | `each-checkpoint` atașează captura stării rezultate fiecărui tabel Playwright nevid din `SETUP` și `TEST BODY`; controalele de formular sunt mascate; `none` dezactivează capturile fără să elimine acțiunile sau aserțiunile |
 | Pași UI intermediari | `@WithE2eHarness(actionDetails = CONFIGURED \| INCLUDED_COLLAPSED \| SUMMARY_ONLY)` selectează disclosure-ul fără să schimbe capturarea acțiunilor | `CONFIGURED` păstrează profilul compus; `INCLUDED_COLLAPSED` este default-ul sigur; niciun mod nu schimbă validările, verdictul sau arborele Gherkin |
 
 **Invariantă:** configurația schimbă proiecția evidence-ului, nu journey-ul.
 
 ```text
-annotation → validation profile + report layout + action disclosure
-YAML       → screenshot policy pentru rulări standalone
-suite property → screenshot policy pentru ShopE2eSuite
-business journey, actions, assertions, requests, verdict → unchanged
+adnotare → profil de validare + layout-ul raportului + detaliile acțiunilor
+YAML     → screenshot policy pentru rulări individuale și ShopE2eSuite
+flow business, acțiuni, aserțiuni, request-uri, verdict → neschimbate
 ```
 
 `Overview → System` arată politica efectivă. `UI_ONLY` oprește publicarea API
@@ -314,8 +367,8 @@ Pașii manuali sunt colapsați:
 fără VM options:
 
 ```java
-@PracticeShopTestSupport.AuthenticatedE2e(
-    accountSetup = PracticeShopTestSupport.AccountSetupMode.REUSE_FIXTURE,
+@ShopTestSupport.AuthenticatedE2e(
+    accountSetup = ShopTestSupport.AccountSetupMode.REUSE_FIXTURE,
     accountFile = "atf-test-practice-shop/src/test/resources/"
         + "practice-software-testing-account.local.properties")
 ```
@@ -329,9 +382,9 @@ Nu îl reutiliza pentru producție ori alte aplicații.
 Numai clasele care chiar creează un cont folosesc profilul local de registration:
 
 ```java
-@PracticeShopTestSupport.AuthenticatedE2e(
-    accountSetup = PracticeShopTestSupport.AccountSetupMode.REGISTER_PER_RUN,
-    registrationProfile = PracticeShopTestSupport.RegistrationProfileMode.LOCAL,
+@ShopTestSupport.AuthenticatedE2e(
+    accountSetup = ShopTestSupport.AccountSetupMode.REGISTER_PER_RUN,
+    registrationProfile = ShopTestSupport.RegistrationProfileMode.LOCAL,
     registrationProfileFile = "atf-test-practice-shop/src/test/resources/"
         + "practice-software-testing-registration.local.properties")
 ```
@@ -428,11 +481,8 @@ credentialele rămân numai în memorie, iar cache-ul este șters la închiderea
 suitei. Rularea unei clase E2E direct păstrează raportul și preflight-ul
 standalone. Proprietatea `-Datf.practice.shop.e2e.suite=true` rămâne disponibilă
 pentru agregarea explicită a claselor individuale pornite împreună, fără clasa
-Suite. Pentru a ține raportul unic sub control, captura este
-`final-and-failure` implicit în suită (o captură terminală pentru fiecare
-journey și cele de eșec); această politică nu schimbă politica YAML a rulărilor
-individuale și poate fi suprascrisă prin
-`atf.practice.shop.e2e.suite.screenshot-policy`.
+Suite. Politica de captură rămâne cea din YAML și în modul agregat; nu există o
+suprascriere separată pentru suite.
 `@AuthenticatedE2e` aplică browser headed la zoom
 70%, API live și precondiția authenticated. În `REUSE_FIXTURE`, fixture-ul local
 trebuie să fie valid; în `REGISTER_PER_RUN` + `LOCAL`, profilul trebuie să fie
@@ -470,31 +520,32 @@ reactorul Maven, înainte de a modifica codul reporting.
 Echivalentul Maven, din root:
 
 ```text
-mvn -pl atf-test-practice-shop -am "-Dtest=ShopE2eSuite" "-Datf.practice.shop.e2e.suite.screenshot-policy=final-and-failure" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -pl atf-test-practice-shop -am "-Dtest=ShopE2eSuite" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
-Politica de captură a suitei acceptă `each-checkpoint`, `final-only`,
-`failure-only`, `final-and-failure` sau `none`. Implicit este
-`final-and-failure`; `ShopE2eSuite` emite câte o singură sesiune de raportare
-Extent agregată. Acest profil compact păstrează capturi terminale și de eșec;
-nu produce captură sub fiecare tabel Playwright.
+Politica de captură acceptă `each-checkpoint`, `final-only`, `failure-only`,
+`final-and-failure` sau `none`, configurate prin `reporting.screenshotPolicy`
+în YAML. Valoarea implicită a fixture-ului Practice Shop este
+`each-checkpoint`; aceeași valoare se aplică și în `ShopE2eSuite`, care emite o
+singură sesiune Extent agregată. Pentru un raport mai compact, schimbă explicit
+valoarea din YAML în `final-and-failure`; nu o înlocui prin proprietăți de sistem.
 
-Pentru audit vizual cu o captură după fiecare tabel Playwright, folosește
-override-ul explicit de mai jos din PowerShell, tot din root-ul repository-ului:
+Pentru audit vizual cu o captură după fiecare tabel Playwright, configurează
+`reporting.screenshotPolicy: each-checkpoint` în YAML și rulează din PowerShell,
+tot din root-ul repository-ului:
 
 ```powershell
 $env:MAVEN_OPTS='-Xms256m -Xmx2g -XX:MaxMetaspaceSize=512m'
-mvn -pl atf-test-practice-shop -am "-Dtest=PracticeShopAuthenticatedLaunchProfileTest,ShopE2eSuite" "-Datf.practice.shop.e2e.suite.screenshot-policy=each-checkpoint" "-Datf.practice.product-name=Pliers" "-DforkCount=0" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -pl atf-test-practice-shop -am "-Dtest=ShopAuthenticatedLaunchProfileTest,ShopE2eSuite" "-Datf.practice.product-name=Pliers" "-DforkCount=0" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
 `each-checkpoint` încorporează mult mai multe PNG-uri, deci HTML-ul final și
 memoria necesară publicării cresc semnificativ. `-DforkCount=0` face ca
 `MAVEN_OPTS` să se aplice procesului care execută testele; fără el, heap-ul
-fork-ului Surefire rămâne limitat separat de configurația Maven. Pentru rularea
-obișnuită, compactă, păstrează comanda de mai sus cu `final-and-failure`.
-Exemplul selectează `Pliers`, produsul disponibil observat la ultima verificare;
-dacă disponibilitatea catalogului se schimbă, setează `-Datf.practice.product-name`
-la un produs care poate fi cumpărat înainte de rerulare.
+fork-ului Surefire rămâne limitat separat de configurația Maven. Pentru o
+rulare mai compactă, configurează explicit `final-and-failure` în YAML.
+Exemplul selectează `Pliers`; înaintea unui E2E live, configurează un produs
+disponibil pentru vânzare. Disponibilitatea catalogului se poate schimba.
 
 Suita de componentă se rulează separat, după validarea E2E:
 
@@ -540,8 +591,8 @@ Scurtarea composition root-urilor nu scurtează journey-ul de purchase:
   → payment check → order confirmation`; `POST /payment/check` validează metoda
   selectată, dar nu creează comanda. Utilizatorul confirmă explicit comanda;
   checkpoint-ul final verifică mesajul și prezența identificatorului de factură
-  (`INV-`). În profilul `UI_API`, assertions verifică și factura non-blank din
-  răspunsul `201 POST /invoices/guest` și corelarea exactă cu UI-ul;
+  (`INV-`). În profilul `UI_API`, aserțiunile verifică și factura non-blank din
+  răspunsul `200 POST /invoices/guest` și corelarea exactă cu UI-ul;
 - authenticated purchase folosește setup-ul selectat prin adnotare, confirmă
   login-ul înainte de `TEST BODY` și păstrează flow-ul complet până la
   confirmarea comenzii;
@@ -556,7 +607,7 @@ Scurtarea composition root-urilor nu scurtează journey-ul de purchase:
 ### Contractul Gherkin al fluxului de achiziție
 
 Keyword-urile și titlurile statice sunt deținute de enum-ul consumerului
-`PracticeShopPurchaseTraceStep`; datele dinamice (produs, cantitate, rută și
+`ShopPurchaseTraceStep`; datele dinamice (produs, cantitate, rută și
 exchange-uri) rămân în evidence. Renderer-ul generic nu rescrie pașii
 Practice Shop.
 
@@ -581,7 +632,7 @@ Practice Shop.
 Regresia locală a vocabularului rulează fără browser sau trafic extern:
 
 ```text
-mvn -pl atf-test-practice-shop -am "-Dtest=PracticeShopPurchaseTraceStepTest,PracticeShopApiNetworkJournalTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -pl atf-test-practice-shop -am "-Dtest=ShopPurchaseTraceStepTest,ShopApiNetworkJournalTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
 E2E-ul guest verifică wiring-ul și ordinea efectiv publicată într-un raport
@@ -669,7 +720,7 @@ API este precondiție și parola rămâne în afara actions, assertions, consol�
 
 Sursa principală este
 `src/test/resources/atf-practice-shop.yaml`. Override-urile de proces sunt
-rezolvate de `PracticeShopConfigurationLoader`; nu se modifică flow-urile pentru
+rezolvate de `ShopConfigurationLoader`; nu se modifică flow-urile pentru
 a schimba mediul.
 
 ```mermaid
@@ -750,7 +801,7 @@ limite.
 | `reporting.systemBodyPreviewCharacters` | limitează la 100 caractere preview-ul de body din System; disclosure-urile de evidence au limita lor separată |
 | `reports.ui` / `reports.api` | directoare relative distincte pentru artifactele UI și API |
 | `productName` / `productPath` | produsul trebuie să fie disponibil pentru vânzare. `auto` acceptă ruta dinamică `/product/*`; o rută exactă e fail-fast dacă nu există |
-| `reporting.screenshotPolicy` | pentru rulări standalone, `each-checkpoint` este valoarea implicită; opțiuni: `final-only`, `failure-only`, `final-and-failure`, `none`. În `ShopE2eSuite`, `atf.practice.shop.e2e.suite.screenshot-policy` suprascrie YAML-ul și implicit este `final-and-failure`; adnotările nu modifică politica. Cheia legacy `screenshotOnFailure` se folosește numai când politica typed lipsește: `true` → `each-checkpoint`, `false` → `failure-only` |
+| `reporting.screenshotPolicy` | valoarea YAML se aplică identic rulărilor individuale și `ShopE2eSuite`; opțiuni: `each-checkpoint`, `final-only`, `failure-only`, `final-and-failure`, `none`. Adnotările nu modifică politica. Cheia legacy `screenshotOnFailure` se folosește numai când politica typed lipsește: `true` → `each-checkpoint`, `false` → `failure-only` |
 | `accountFile` | fixture de cont în `src/test/resources`; `AuthenticatedPurchaseE2eTest` reutilizează un cont de test deja înregistrat, iar `NewAccountPurchaseE2eTest` folosește profil sintetic; căile externe sunt respinse și valorile nu ajung în evidence |
 
 Exemplele guest presetate fixează profilul în adnotarea clasei (`UI_API` sau
@@ -782,7 +833,7 @@ Flow presentation pentru Practice Shop:
 - `@WithE2eHarness.reportFlow` selectează forma flow-ului, nu politica
   screenshot. Standalone se aplică YAML-ul; în `ShopE2eSuite`, system
   property-ul dedicat are prioritate peste YAML;
-- `PracticeShopPurchaseFlow` continuă să emită checkpoint-uri în ambele moduri;
+- `ShopPurchaseFlow` continuă să emită checkpoint-uri în ambele moduri;
   `UNIFIED_FLOW` le agregă în raport, nu transformă click-urile în pași Gherkin
   și nu sare peste acțiunile intermediare;
 - Overview → System afișează `UI evidence layout` și `Screenshot policy` din
@@ -801,8 +852,8 @@ autentificat.
 
 Reguli de configurare:
 
-- testele și page objects folosesc rute relative din `PracticeShopUiRoutes`;
-- `PracticeShopConfiguration.uri(...)` este singurul resolver `baseUrl + route`;
+- testele și page objects folosesc rute relative din `ShopUiRoutes`;
+- `ShopConfiguration.uri(...)` este singurul resolver `baseUrl + route`;
 - output-ul este separat pe tip de artifact și rămâne relativ la workspace:
   ```text
   atf/artifacts/reports/
@@ -837,14 +888,14 @@ flowchart LR
 
 - **page contract** — descrie topologia și intenția unui screen;
 - **screen validator** — transformă starea observată în assertions typed;
-- **semantic locators** — sunt centralizate în `PracticeShopLocators`;
+- **semantic locators** — sunt centralizate în `ShopLocators`;
 - **typed assertions** — decid verdictul, nu doar existența unui nod DOM;
 - **checkpoint evidence** — păstrează acțiuni, observations, API evidence și
   screenshot conform policy-ului.
 
 </details>
 
-Ecranele declarate în `PracticeShopScreen` și în contractele page object sunt:
+Ecranele declarate în `ShopScreen` și în contractele page object sunt:
 
 | Screen | Rută relativă | Contract |
 |---|---|---|
@@ -861,18 +912,18 @@ Ecranele declarate în `PracticeShopScreen` și în contractele page object sunt
 
 Reguli pentru selectors:
 
-- `PracticeShopLocators` este singurul owner al selectorilor;
+- `ShopLocators` este singurul owner al selectorilor;
 - se preferă locatorii semantici și forma stabilă `element[attribute=value]`;
-- pentru un produs configurat se folosește `PracticeShopProductSelector`, cu
+- pentru un produs configurat se folosește `ShopProductSelector`, cu
   `a[data-test^='product-']:has([data-test='product-name']:text-is(...))`;
   potrivirea exactă este obligatorie pentru a nu selecta accidental un produs
   cu nume parțial, indisponibil sau cu alt contract de cumpărare;
 - clasele CSS generate, textul parțial și XPath-ul ambiguu nu sunt fallback-uri;
-- valorile dinamice inserate în CSS trec prin `PracticeShopCssEscaper`;
+- valorile dinamice inserate în CSS trec prin `ShopCssEscaper`;
 - țara de billing acceptă numele sau codul opțiunii configurate, apoi selectează
-  după label-ul vizibil; `PracticeShopCountryOptionTest` protejează potrivirea și
+  după label-ul vizibil; `ShopCountryOptionTest` protejează potrivirea și
   diagnosticul care păstrează numele împreună cu codul;
-- `PracticeShopArchitectureTest` apără boundary-ul și scanează și package-ul `component`.
+- `ShopArchitectureTest` apără boundary-ul și scanează și package-ul `component`.
 
 ### Validare pe checkpoint
 
@@ -885,8 +936,8 @@ Purchase-ul guest păstrează un număr mic de teste și mai multe dovezi locale
   publică tabelul de acțiuni urmat de screenshot-ul stării rezultate; același
   contract se aplică în `SETUP` și `TEST BODY`, atât UI-only, cât și UI/API;
 - checkpoint-urile fără acțiuni nu primesc o imagine artificială; capturile
-  finale/de eșec urmează politica efectivă (YAML standalone sau override-ul
-  suitei agregate);
+  finale/de eșec urmează aceeași politică YAML în rulări individuale și în
+  suita agregată;
 - screenshot-urile maschează `input`, `textarea`, `select` și câmpurile
   `[contenteditable]`, astfel încât dovezile autentificate să nu expună
   credențiale sau date introduse în formulare;
@@ -895,7 +946,7 @@ Purchase-ul guest păstrează un număr mic de teste și mai multe dovezi locale
 
 ### Screen validation și captura terminală
 
-- `PracticeShopE2eContext.pass(...)` capturează punctul `FINAL` conform YAML-ului
+- `ShopE2eContext.pass(...)` capturează punctul `FINAL` conform YAML-ului
   și publică `Screen validation` numai când există PNG valid; dacă YAML-ul
   dezactivează captura, publică validarea `THEN` fără a pretinde că există
   evidence vizual; auditul de ecran este o observație, nu o acțiune Playwright.
@@ -942,19 +993,19 @@ flowchart LR
 <details>
 <summary><strong>Legendă — ownerii API și proiecția evidence</strong></summary>
 
-- `PracticeShopApiRoutes` — path-uri, prefixe și template-uri;
-- `PracticeShopApiRequestFactory` — request și serializare JSON;
-- `PracticeShopApiScreenFlow` — ordinea semantică a operațiilor;
-- `PracticeShopApiTrafficCapture` — host filtering și sanitizare;
-- `PracticeShopApiBodyEvidence` — marker bounded pentru body indisponibil și cauza transportului;
-- `PracticeShopLoginBodyRecovery` — boundary typed `recovered/unavailable` pentru recovery-ul opțional;
-- `PracticeShopApiExchangeSelector` — selecție pură a exchange-urilor;
-- `PracticeShopApiNetworkJournal` — orchestration și sequence/phase;
-- `PracticeShopApiAssertions` — status, JSON și headers;
-- `PracticeShopApiEvidenceMapper` — trace-ul Shop și redactarea field-aware,
+- `ShopApiRoutes` — path-uri, prefixe și template-uri;
+- `ShopApiRequestFactory` — request și serializare JSON;
+- `ShopApiScreenFlow` — ordinea semantică a operațiilor;
+- `ShopApiTrafficCapture` — host filtering și sanitizare;
+- `ShopApiBodyEvidence` — marker bounded pentru body indisponibil și cauza transportului;
+- `ShopLoginBodyRecovery` — boundary typed `recovered/unavailable` pentru recovery-ul opțional;
+- `ShopApiExchangeSelector` — selecție pură a exchange-urilor;
+- `ShopApiNetworkJournal` — orchestration și sequence/phase;
+- `ShopApiAssertions` — status, JSON și headers;
+- `ShopApiEvidenceMapper` — trace-ul Shop și redactarea field-aware,
   aplicată uniform la toate body-urile înainte de
   proiecția datelor comune prin `ReportModelAdapters` și `ReportQueryParameters`;
-- `PracticeShopApiReportPublisher` — artifact API standalone.
+- `ShopApiReportPublisher` — artifact API standalone.
 
 Maparea retry-urilor, provenienței, UI actions și decodarea query-urilor sunt
 contracte reutilizabile de `atf-reporting`; Shop nu întreține copii ale acestor
@@ -991,8 +1042,8 @@ Separarea raporturilor este obligatorie:
 
 | Scop | Owner | Transport | Verdict |
 |---|---|---|---|
-| contract/variante | `api/component/PracticeShopApiContractReportComponentTest` | fixture deterministic local | contract component; niciodată dovadă business |
-| flow business | `api/integration/PracticeShopStandaloneApiReportTest` | `PracticeShopApiClient.live(...)` | numai `LIVE_HTTP`, cu assertions exacte pe login/catalog/cart/payment |
+| contract/variante | `api/component/ShopApiContractReportComponentTest` | fixture deterministic local | contract component; niciodată dovadă business |
+| flow business | `api/integration/ShopStandaloneApiReportTest` | `ShopApiClient.live(...)` | numai `LIVE_HTTP`, cu assertions exacte pe login/catalog/cart/payment |
 
 Raportul live este fail-closed: provenance `ACCEPTANCE_MOCK` sau `UNKNOWN`,
 un status non-2xx, o validare business eșuată ori un exchange lipsă propagă
@@ -1001,7 +1052,7 @@ se publică numai evidence-ul exchange-ului real și testul se oprește; nu se
 continuă cu cart/payment simulate. Rularea explicită este:
 
 ```text
-mvn -pl atf-test-practice-shop -am "-Dtest=PracticeShopStandaloneApiReportTest" "-Dsurefire.failIfNoSpecifiedTests=false" "-Datf.practice.authenticated-e2e=true" "-Datf.practice.api-mode=live" test
+mvn -pl atf-test-practice-shop -am "-Dtest=ShopStandaloneApiReportTest" "-Dsurefire.failIfNoSpecifiedTests=false" "-Datf.practice.authenticated-e2e=true" "-Datf.practice.api-mode=live" test
 ```
 
 Verificarea raportului live folosește un artifact proaspăt, configurația run-ului
@@ -1081,7 +1132,7 @@ publisher-ul API.
 <details>
 <summary><strong>Binding și proiecție HTML</strong></summary>
 
-- `PracticeShopApiEvidenceBinding` decide înaintea publicării ce checkpoint-uri
+- `ShopApiEvidenceBinding` decide înaintea publicării ce checkpoint-uri
   intră în journal;
 - profilul `UI_API` fără selecție activează checkpoint-urile known; valoarea
   necunoscută fail-fast;
@@ -1114,7 +1165,7 @@ Regula de citire este:
 SETUP/precondition → UI action → 0..n API exchanges → business assertion → read-back/cleanup
 ```
 
-Body-ul sau headers-ul afișate nu sunt assertions. `PracticeShopApiAssertions`
+Body-ul sau headers-ul afișate nu sunt assertions. `ShopApiAssertions`
 publică separat status, JSON path, identity, quantity, payment message și trace;
 un `PASS` business nu poate fi produs doar prin faptul că body-ul este vizibil.
 
@@ -1132,7 +1183,7 @@ flowchart LR
 
 - `atf-console` proiectează diagnosticul în `stdout`/`stderr`;
 - `atf-reporting` proiectează artifactul în Extent HTML;
-- `PracticeShopE2eContext` injectează reporterul configurat la boundary-ul UI;
+- `ShopE2eContext` injectează reporterul configurat la boundary-ul UI;
 - publisher-ul API folosește același concept de sink pentru pași request/validation;
 - flow-urile nu dețin `PrintStream` și nu folosesc `println`;
 - consola nu decide verdictul și nu înlocuiește assertions sau HTML-ul;
@@ -1147,13 +1198,13 @@ flowchart LR
 Valorile stabile sunt owner-uite local:
 
 ```text
-PracticeShopApiHttpStatus      → statusuri HTTP
-PracticeShopApiJsonField       → chei JSON
-PracticeShopApiQueryParameter  → chei query
-PracticeShopApiAuthProfile     → profil auth
-PracticeShopApiAuthType        → auth observat
-PracticeShopApiOperation       → intenție + method + route template
-PracticeShopPaymentMethod      → metode de plată suportate
+ShopApiHttpStatus      → statusuri HTTP
+ShopApiJsonField       → chei JSON
+ShopApiQueryParameter  → chei query
+ShopApiAuthProfile     → profil auth
+ShopApiAuthType        → auth observat
+ShopApiOperation       → intenție + method + route template
+ShopPaymentMethod      → metode de plată suportate
 ```
 
 Reguli:
@@ -1161,7 +1212,7 @@ Reguli:
 - enum-urile păstrează vocabular stabil, nu date dinamice;
 - ID-urile, credentials și payload-urile rămân în config/fixture typed;
 - testele capturează response/request o singură dată în aliasuri semantice;
-- se preferă `PracticeShopApiHttpStatus.OK.matches(status)` în loc de numere brute;
+- se preferă `ShopApiHttpStatus.OK.matches(status)` în loc de numere brute;
 - JSON-ul se parsează ca tree/path, nu prin `contains`, cu excepția smoke text;
 - importurile statice sunt nominale și numai când owner-ul rămâne evident;
 - testele nu folosesc `try/catch/finally` pentru lifecycle; support-ul păstrează
@@ -1196,7 +1247,7 @@ Pentru regula completă privind artifacte și conținut normativ, vezi
 Component/API gate:
 
 ```text
-mvn -pl atf-test-practice-shop -am "-Dtest=PracticeShopConfigurationTest,PracticeShopApiRoutesTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -pl atf-test-practice-shop -am "-Dtest=ShopConfigurationTest,ShopApiRoutesTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
 E2E selectat:

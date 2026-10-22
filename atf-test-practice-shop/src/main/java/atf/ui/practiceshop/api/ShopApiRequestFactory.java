@@ -23,10 +23,15 @@ public final class ShopApiRequestFactory {
             HttpHeader.CONTENT_TYPE.value(), MediaTypes.APPLICATION_JSON);
 
     public ApiRequest login(ShopCredentials credentials) {
-        return json(HttpMethod.POST.value(), ShopApiRoutes.LOGIN, Map.of(
-                ShopApiJsonField.EMAIL.wireValue(), credentials.email(),
-                ShopApiJsonField.PASSWORD.wireValue(), credentials.password()),
+        return json(HttpMethod.POST.value(), ShopApiRoutes.LOGIN,
+                new ShopApiRequestBodies.ShopLoginRequest(credentials.email(), credentials.password()),
                 NO_AUTH);
+    }
+
+    public ApiRequest register(ShopCredentials credentials) {
+        return json(HttpMethod.POST.value(), ShopApiRoutes.USER_REGISTER,
+                new ShopApiRequestBodies.ShopRegistrationRequest(credentials.firstName(),
+                        credentials.lastName(), credentials.email(), credentials.password()), NO_AUTH);
     }
 
     public ApiRequest search(String productName) {
@@ -56,17 +61,17 @@ public final class ShopApiRequestFactory {
 
     public ApiRequest addToCart(String cartId, String productId, int quantity) {
         if (quantity <= 0) throw new IllegalArgumentException("cart quantity must be positive");
-        return json(HttpMethod.POST.value(), ShopApiRoutes.cart(cartId), Map.of(
-                ShopApiJsonField.PRODUCT_ID.wireValue(), required(productId, "product id"),
-                ShopApiJsonField.QUANTITY.wireValue(), quantity),
+        return json(HttpMethod.POST.value(), ShopApiRoutes.cart(cartId),
+                new ShopApiRequestBodies.ShopCartItemRequest(
+                        required(productId, "product id"), quantity),
                 NO_AUTH);
     }
 
     public ApiRequest updateCartQuantity(String cartId, String productId, int quantity) {
         if (quantity <= 0) throw new IllegalArgumentException("cart quantity must be positive");
-        return json(HttpMethod.PUT.value(), ShopApiRoutes.updateCartQuantity(cartId), Map.of(
-                ShopApiJsonField.PRODUCT_ID.wireValue(), required(productId, "product id"),
-                ShopApiJsonField.QUANTITY.wireValue(), quantity),
+        return json(HttpMethod.PUT.value(), ShopApiRoutes.updateCartQuantity(cartId),
+                new ShopApiRequestBodies.ShopCartItemRequest(
+                        required(productId, "product id"), quantity),
                 NO_AUTH);
     }
 
@@ -90,10 +95,19 @@ public final class ShopApiRequestFactory {
     }
 
     public ApiRequest payment(ShopPaymentMethod method) {
-        return json(HttpMethod.POST.value(), ShopApiRoutes.PAYMENT_CHECK, Map.of(
-                ShopApiJsonField.PAYMENT_METHOD.wireValue(), method.wireValue(),
-                ShopApiJsonField.PAYMENT_DETAILS.wireValue(), Map.of()),
+        return json(HttpMethod.POST.value(), ShopApiRoutes.PAYMENT_CHECK,
+                new ShopApiRequestBodies.ShopPaymentCheckRequest(method.wireValue(), Map.of()),
                 NO_AUTH);
+    }
+
+    public ApiRequest invoice(ShopApiRequestBodies.ShopInvoiceRequest invoice, String bearerToken) {
+        return json(HttpMethod.POST.value(), ShopApiRoutes.INVOICE_CREATE, invoice, BEARER_AUTH,
+                Map.of(HttpHeader.AUTHORIZATION.value(),
+                        BEARER_PREFIX + required(bearerToken, "bearer token")));
+    }
+
+    public ApiRequest guestInvoice(ShopApiRequestBodies.ShopInvoiceRequest invoice) {
+        return json(HttpMethod.POST.value(), ShopApiRoutes.GUEST_INVOICE_CREATE, invoice, NO_AUTH);
     }
 
     private static ApiRequest get(String path, String bearerToken) {
@@ -111,14 +125,21 @@ public final class ShopApiRequestFactory {
     }
 
     private static ApiRequest json(String method, String path, Object body, String authProfile) {
+        return json(method, path, body, authProfile, Map.of());
+    }
+
+    private static ApiRequest json(String method, String path, Object body, String authProfile,
+                                   Map<String, String> additionalHeaders) {
         String bodyText;
         try {
             bodyText = JSON.writeValueAsString(body);
         } catch (JsonProcessingException error) {
             throw new IllegalStateException("Cannot serialize Practice Shop API JSON body", error);
         }
+        Map<String, String> headers = new LinkedHashMap<>(JSON_HEADERS);
+        headers.putAll(additionalHeaders);
         return new ApiRequest(HttpRequest.BodyPublishers.ofString(bodyText), method, path,
-                Map.of(), JSON_HEADERS, authProfile, null, bodyText);
+                Map.of(), headers, authProfile, null, bodyText);
     }
 
     private static String required(String value, String name) {

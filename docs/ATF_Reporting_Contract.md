@@ -224,8 +224,10 @@ rendererul fallback:
   `max-height`, ca un tabel scurt să nu rezerve spațiu gol, iar unul lung să
   deruleze până la ultimul rând cu header sticky. Regula acoperă
   System/Environment, Category/Overview, tag audit, Playwright action, audit
-  observations, assertions și echivalentele API/UI; nu există înălțimi
-  hardcodate per renderer. Blocurile JSON/code sunt payload panes, nu tabele,
+  observations, assertions, tabelul `TECHNICAL TRACE` din `Response details` și
+  echivalentele API/UI; nu există înălțimi hardcodate per renderer. Tabelul
+  `TECHNICAL TRACE` derulează în containerul său, fără să includă disclosure-ul
+  exterior sau blocul JSON. Blocurile JSON/code sunt payload panes, nu tabele,
   și își păstrează limita compactă proprie;
 - la viewport-uri înguste (`≤991px`), Overview începe după rail-ul fix de
   navigare (`70px`) și ocupă doar spațiul rămas; layout-ul desktop păstrează

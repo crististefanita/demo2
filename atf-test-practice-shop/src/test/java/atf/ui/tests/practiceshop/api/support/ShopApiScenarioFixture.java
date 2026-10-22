@@ -2,6 +2,8 @@ package atf.ui.tests.practiceshop.api.support;
 
 import atf.ui.practiceshop.config.ShopApiConfiguration;
 import atf.ui.practiceshop.config.ShopCredentials;
+import atf.ui.practiceshop.api.ShopApiRequestBodies;
+import atf.ui.practiceshop.api.ShopPaymentMethod;
 
 import java.net.URI;
 
@@ -15,6 +17,7 @@ public final class ShopApiScenarioFixture {
     public static final String INVALID_EMAIL = "invalid@example.test";
     public static final String INVALID_PASSWORD = "invalid";
     public static final String INVALID_LAST_NAME = "Invalid";
+    public static final String BEARER_TOKEN = "token-1";
     public static final String PRODUCT_NAME = "Combination Pliers";
     public static final String PRODUCT_ID = "01product";
     public static final String CART_ID = "01cart";
@@ -22,6 +25,7 @@ public final class ShopApiScenarioFixture {
     public static final String OUT_OF_STOCK_PRODUCT_ID = "out-of-stock";
     public static final String MUTATION_CART_ID = "cart-1";
     public static final String MUTATION_PRODUCT_ID = "product-1";
+    public static final String INVALID_PRODUCT_ID = "missing-product";
     public static final String FILTER_BRAND_ID = "brand-1";
     public static final String FILTER_PRICE_RANGE = "price,10,30";
     public static final int FIRST_PAGE = 1;
@@ -31,10 +35,21 @@ public final class ShopApiScenarioFixture {
     public static final String COUNTRY = "RO";
     public static final String POSTCODE = "010101";
     public static final String HOUSE_NUMBER = "10";
+    public static final String BILLING_STREET = "1 Test Street";
+    public static final String BILLING_CITY = "Test City";
+    public static final String BILLING_STATE = "Test State";
+    public static final String BILLING_COUNTRY = "Test Country";
+    public static final String BILLING_POSTAL_CODE = "TST 001";
     public static final String UNAUTHORIZED_BODY = "{\"message\":\"Unauthorized\"}";
     public static final String NOT_FOUND_BODY = "{\"message\":\"Not found\"}";
+    public static final String UNPROCESSABLE_BODY = "{\"message\":\"The given data was invalid.\"}";
     public static final String PAYMENT_SUCCESS_BODY = "{\"message\":\"Payment was successful\"}";
-    public static final String LOGIN_TOKEN_BODY = "{\"access_token\":\"token-1\"}";
+    public static final String LOGIN_TOKEN_BODY =
+            "{\"access_token\":\"" + BEARER_TOKEN + "\"}";
+    public static final String REGISTERED_USER_BODY =
+            "{\"id\":\"user-1\",\"email\":\"atf@example.test\"}";
+    public static final String CREATED_INVOICE_BODY =
+            "{\"id\":\"order-1\",\"invoice_number\":\"INV-TEST-1\",\"total\":24.02}";
     public static final String PRODUCT_SEARCH_BODY =
             "{\"data\":[{\"id\":\"01product\",\"name\":\"Combination Pliers\"}]}";
     public static final String PRODUCT_COLLECTION_BODY =
@@ -63,5 +78,24 @@ public final class ShopApiScenarioFixture {
 
     public static ShopCredentials invalidCredentials() {
         return new ShopCredentials(INVALID_EMAIL, INVALID_PASSWORD, VALID_FIRST_NAME, INVALID_LAST_NAME);
+    }
+
+    public static ShopApiRequestBodies.ShopInvoiceRequest validInvoice() {
+        return new ShopApiRequestBodies.ShopInvoiceRequest(
+                BILLING_STREET, BILLING_CITY, BILLING_STATE, BILLING_COUNTRY,
+                BILLING_POSTAL_CODE, ShopPaymentMethod.CASH_ON_DELIVERY.wireValue(),
+                java.util.Map.of(), CART_ID, null, null, null);
+    }
+
+    public static ShopApiRequestBodies.ShopInvoiceRequest validGuestInvoice() {
+        return new ShopApiRequestBodies.ShopInvoiceRequest(
+                BILLING_STREET, BILLING_CITY, BILLING_STATE,
+                BILLING_COUNTRY, BILLING_POSTAL_CODE, ShopPaymentMethod.CASH_ON_DELIVERY.wireValue(),
+                java.util.Map.of(), CART_ID, VALID_EMAIL, VALID_FIRST_NAME, VALID_LAST_NAME);
+    }
+
+    public static ShopApiRequestBodies.ShopInvoiceRequest invalidGuestInvoice() {
+        return new ShopApiRequestBodies.ShopInvoiceRequest(
+                "", "", "", "", "", "", java.util.Map.of(), "", "", "", "");
     }
 }

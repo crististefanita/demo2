@@ -234,22 +234,29 @@ Boundary-urile suportului rămân mici și verificabile:
 ### Verificarea randării responsive
 
 `SelectedApiTestsReportUiTest` este entry-point-ul configurabil pentru raportul
-Extent generat. `CategoryCardinalityBrowserFixtureTest` este browser gate-ul
-dinamic: verifică 0/1/multe categorii și măsoară fixtures autentice UI și API
-pentru conținut scurt/lung, la viewport-ul configurat și la `591px`. Raportul de
+Extent generat. `CategoryCardinalityBrowserFixtureTest` este poarta dinamică de
+verificare în browser: verifică 0/1/multe categorii și măsoară fixture-uri UI și API
+pentru conținut scurt/lung, la lățimea configurată și la `591px`. Raportul de
 audit se publică prin `ReportAuditContext` / ATF Debug.
 
 Invarianturile browser sunt:
 
-- în toate cele șapte suprafețe (Overview categories, System/Environment, tag
-  audit, Playwright actions, Audit/Assertions, Unique request signatures,
-  Technical diagnostics), `scrollWidth <= clientWidth`, `max-height` folosește
-  plafonul comun `500px`, iar conținutul scurt rămâne natural, fără înălțime goală;
-- pentru conținut lung, ultimul rând rămâne accesibil, header-ul tabelului rămâne
-  sticky, iar viewport-ul nu depășește plafonul comun;
+- în cele șapte suprafețe acoperite în prezent (Overview categories,
+  System/Environment, tag audit, Playwright actions, Audit/Assertions, Unique
+  request signatures, Technical diagnostics), `scrollWidth <= clientWidth`,
+  `max-height` folosește plafonul comun `500px`, iar conținutul scurt rămâne
+  natural, fără înălțime goală;
+- tabelul `TECHNICAL TRACE` din `Response details` nu este încă inclus în proba
+  de dimensiune verticală în browser; trebuie adăugat cu conținut scurt și lung
+  pentru Extent și rendererul alternativ, atât în API direct, cât și în schimbul
+  API atașat unui pas UI.
+  Criteriile de acceptare sunt în
+  [feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md);
+- pentru conținut lung, ultimul rând rămâne accesibil, antetul tabelului rămâne
+  fix, iar zona scrollabilă nu depășește plafonul comun;
 - rândurile Network Inspector `Unique request signatures` și
-  `Technical diagnostics` măsoară `34px` la ambele viewport-uri și sunt
-  collapsed implicit, aliniate cu celelalte detalii API/UI;
+  `Technical diagnostics` măsoară `34px` la ambele lățimi și sunt închise
+  implicit, aliniate cu celelalte detalii API/UI;
 - auditul browserului nu observă erori console/page/request când deschide
   artifactele UI și API selectate; aceasta este dovadă de randare, nu evidence
   publicată în raport;

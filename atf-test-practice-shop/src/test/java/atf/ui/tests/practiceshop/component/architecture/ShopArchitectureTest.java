@@ -101,6 +101,7 @@ class ShopArchitectureTest {
         assertTrue(List.of(packages.value()).containsAll(List.of(
                         "atf.ui.tests.practiceshop.component",
                         "atf.ui.tests.practiceshop.api.component",
+                        "atf.ui.tests.practiceshop.api.reporting",
                         "atf.ui.tests.practiceshop.api.network",
                         "atf.ui.tests.practiceshop.support")),
                 "component suite must include shop UI/API components, network settlement, and support contracts");

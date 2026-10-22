@@ -1,7 +1,6 @@
 package atf.ui.tests.practiceshop.support;
 
 import atf.api.core.config.ApiTransportMode;
-import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.ui.practiceshop.config.ShopCredentials;
 import atf.ui.practiceshop.config.ShopConfiguration;
 import atf.ui.practiceshop.config.ShopConfigurationLoader;
@@ -21,7 +20,6 @@ import java.lang.annotation.Target;
 /** Shared composition and selection boundary for Practice Shop tests. */
 public final class ShopTestSupport {
     static final String SUITE_MODE_PROPERTY = "atf.practice.shop.e2e.suite";
-    static final String SUITE_SCREENSHOT_POLICY_PROPERTY = "atf.practice.shop.e2e.suite.screenshot-policy";
     private static final String AUTHENTICATED_REASON =
             "authenticated Practice Shop fixture is not configured";
     private static final String LIVE_REASON =
@@ -39,11 +37,6 @@ public final class ShopTestSupport {
 
     static boolean suiteModeEnabled(ExtensionContext context) {
         return suiteModeEnabled(context.getRoot().getUniqueId().toString());
-    }
-
-    static ReportScreenshotPolicy suiteScreenshotPolicy(String configured) {
-        String value = configured == null || configured.isBlank() ? "final-and-failure" : configured;
-        return ReportScreenshotPolicy.fromConfig(value);
     }
 
     public enum BrowserMode {

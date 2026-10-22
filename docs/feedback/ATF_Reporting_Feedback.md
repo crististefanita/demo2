@@ -1,89 +1,154 @@
 # ATF Reporting — feedback activ
 
-Contractele stabile și probele generale rămân în documentele owner de mai jos.
-Rămâne însă un gap de format pentru rapoartele API-call audit: rezultatul metodei
-JUnit este afișat ca request sintetic, iar dovada nu distinge suficient rezultatul
-testului de contractul unui schimb HTTP.
+Acest document conține numai golurile deschise față de contractul comun al
+raportului. Structura dorită este definită în
+[contractul Extent](../ATF_Reporting_Contract.md), iar regulile de implementare
+și verificare sunt în [README-ul `atf-reporting`](../../atf-reporting/README.md)
+și [README-ul `atf-reporting-tests`](../../atf-reporting-tests/README.md).
+Feedback-ul descrie comportament și criterii care rămân valabile între rulări;
+nu păstrează nume de rapoarte, ore, contoare sau rezultate volatile.
 
-## ToDo: model semantic comun pentru API audit și contract validation
+## 1. Model semantic pentru audit API și validarea contractului
 
-**Dovadă observată:** raportul
-[API call audit din 2026-10-22 14:11](../../artifacts/reports/api/api-atf-practice-shop-api-call-audit_2026-10-22T14-11-39.693582700Z.html)
-conține 13 noduri `JUnit result` / `Test method outcome` și niciun `Contract
-validation`. Schimburile reale sunt publicate informativ; extensia adaugă separat
-un request cu metoda `ASSERT` și ruta numelui clasei, apoi o validare generică
-pentru „metoda a trecut” și „s-a capturat cel puțin un exchange”. Asta nu arată
-asserțiunea reală a testului și produce o ierarhie diferită de un API contract
-report.
+### Situația din cod
 
-Forma dorită păstrează tipurile vizibile și nu amestecă verdictul testului cu un
-schimb HTTP:
+Publisherul consumerului afișează schimbul HTTP real cu disclosure-ul
+`Contract validation` imbricat; raportul nu mai creează pseudo-request `ASSERT`.
+Tabelul include verificări de structură pentru JSON/Content-Type, dar amestecă
+acestea cu verdictul JUnit și numărul agregat de schimburi. Rândul `HTTP status`
+arată `asserted by the component test` ca valoare așteptată, însă rezultatul lui
+este determinat de verdictul general JUnit, nu de comparația cu statusul HTTP
+cerut pentru ruta respectivă. Testul component confirmă layout-ul copil, dar
+enumeră aceste date JUnit/audit în aceeași validare.
+
+Rămâne deschis contractul tipizat per exchange: consumerul trebuie să transmită
+așteptările HTTP și aserțiunile specifice răspunsului curent. Pentru metodele cu
+mai multe schimburi, verdictul JUnit și numărul total de schimburi nu trebuie
+repetate în fiecare request; completitudinea se publică o singură dată la nivelul
+auditului.
+
+### Forma semantică cerută
 
 ```text
-JUnit scenario (statusul metodei)
-└── TEST BODY
-    ├── Exchange observat (metodă + rută reale)
-    │   ├── Request / Response / Execution evidence
-    │   └── Contract validation (numai dacă acel response a fost validat)
-    └── Audit completeness (numai dacă trebuie raportat separat)
+Scenariu JUnit (verdictul metodei)
+└── CORPUL TESTULUI
+    ├── Schimb HTTP observat (metodă și rută reale)
+    │   ├── Detalii cerere
+    │   ├── Detalii răspuns
+    │   ├── Dovezi de execuție
+    │   └── Validarea contractului (numai când schimbul are așteptări tipizate)
+    └── Completitudinea capturii
 ```
 
-`Audit completeness` nu este contract API; nu trebuie să devină un request
-`ASSERT` și nici să dubleze verdictul final al metodei.
+Verdictul final aparține metodei/scenariului JUnit și nu este o aserțiune a
+fiecărui nod HTTP. Așteptările HTTP apar în validarea copil numai când testul le
+furnizează explicit. Completitudinea capturii este un audit, nu o cerere
+artificială și nu se multiplică pe fiecare schimb.
 
-Codul are două responsabilități distincte, care trebuie păstrate explicite:
+### Condiții de acceptare
 
-- `PracticeShopApiReportPublisher.publishObserved(...)` surprinde exchange-ul,
-  fără să inventeze un contract HTTP generic;
-- `ShopApiCallAuditTestSupport` agregă rezultatul JUnit și auditul exchange-urilor,
-  dar îl modelează momentan drept `ASSERT` request. Detaliile sunt în
-  [feedback-ul Practice Shop](ATF_Practice_Shop_E2E_Feedback.md).
-
-### Criteriul de acceptare
-
-- Un request din arbore reprezintă numai un schimb API real. Pentru un contract
-  de răspuns efectiv evaluat, `Contract validation` este copilul request-ului și
-  conține aserțiunile `expected / actual / result`.
-- Verdictul metodei JUnit aparține scenariului/testului; nu se reprezintă printr-un
-  request artificial `ASSERT` și nu se redenumește `Test method outcome` ca și cum
-  ar fi un API contract.
-- Un API-call audit fără contract typed rămâne audit de exchange-uri. Nu se
-  fabrică `Contract validation`; metoda JUnit și completitudinea capturii se
-  raportează distinct, fără ca lipsa unui exchange să rescrie verdictul metodei.
-- Proveniența transportului fizic și proveniența rezultatului publicat de ATF sunt
-  etichetate separat când diferă (de exemplu, transport mock într-un test al
-  mapării `ApiTransportMode.LIVE`). Raportul nu trebuie să sugereze trafic live
-  când request-ul a fost executat de fixture.
-- Ierarhia și stilul sunt comune cu restul raportului Extent; nu se rezolvă prin
-  CSS special pentru `Test method outcome`.
+1. Nicio cerere sau aserțiune per exchange nu este fabricată pentru verdictul
+   JUnit; schimburile rămân exclusiv cele capturate din transport.
+2. Verdictul final PASS/FAIL și mesajul eșecului rămân legate de metoda/scenariul
+   JUnit; eșecul auditului nu rescrie retroactiv rezultatul metodei.
+3. `Contract validation` apare numai dacă răspunsul a fost evaluat contra unui
+   contract tipizat. Fiecare tabel `expected / actual / result` folosește
+   așteptarea explicită pentru acel exchange; verdictul JUnit sau statusul
+   observat nu pot substitui valoarea așteptată.
+4. Mai multe schimburi și reîncercările păstrează identitatea și ordinea lor.
+   Reîncercarea aceleiași cereri este istoric de execuție, nu un schimb nou dacă
+   modelul de transport nu a executat o cerere distinctă.
+5. Proveniența execuției fizice este separată de eticheta/proiecția publicată de
+   ATF. Un fixture sau transport simulat nu poate fi prezentat ca trafic real.
+6. Extent și motorul alternativ publică aceeași ierarhie semantică, aceleași statusuri și
+   aceleași detalii relevante, fără CSS special pentru rezultatul metodei.
 
 ### Probe necesare
 
-- În `atf-reporting-tests`, teste de componentă pentru arborele tipizat și HTML:
-  request real → evidence disclosures → validare nested numai dacă există
-  contract; verdict de metodă fără request sintetic; statusuri PASS/FAIL și
-  păstrarea mesajului de eșec; fără schimb HTTP; mai multe exchange-uri și retry;
-  sursa transportului separată de proveniența rezultatului ATF; aceeași structură
-  semantică trebuie verificată atât pentru Extent, cât și pentru fallback.
-- În `atf-test-practice-shop`, test de integrare al extensiei suitei care
-  verifică output-ul auditului; testele rendererului generic nu pot proteja de
-  o compoziție greșită făcută de consumer. Testul existent
+- În `atf-reporting-tests`, teste de componentă și structură HTML verifică
+  schimb HTTP → detalii cerere/răspuns/execuție → validare imbricată numai
+  dacă există contract; separat verifică verdictul metodei, eșecul, absența
+  schimburilor, mai multe schimburi și retry.
+- Aceleași relații părinte–copil și număr de noduri se verifică pentru Extent și
+  motorul alternativ; verificările nu se limitează la text ori clase CSS.
+- În Practice Shop, testul de componentă al consumerului trebuie să confirme că
+  fiecare Request corespunde unui schimb capturat, că nu conține un verdict JUnit
+  reutilizat ca validare și că snapshot-ul are zero noduri Validation în lipsa
+  unui contract tipizat. Înainte de a considera testul drept dovadă, aliniază
+  aritatea apelului `publishObserved(...)` între caller și publisher.
+- Când consumerul furnizează contracte HTTP, verifică separat răspunsuri pozitive
+  și negative prin `expected / actual / result`, imbricate numai în schimbul
+  evaluat. Absența contractului nu trebuie să genereze un disclosure de validare.
+- Metoda
   `HtmlReportSessionTest.rendersApprovedStructureWithValidationAsRequestSibling`
-  afirmă nested în aserțiuni, dar numele spune sibling; corectează numele odată
-  cu extinderea protecției pentru auditul consumerului, ca terminologia să nu
-  perpetueze ierarhia ambiguă.
-- Verificarea DOM trebuie să afirme relațiile părinte–copil și numărul exact de
-  noduri, nu doar prezența unor texte sau clase CSS.
+  afirmă prin aserțiuni că validarea este imbricată în cerere. Numele ei spune
+  contrariul și trebuie corectat odată cu consolidarea testului semantic.
+- `atf-reporting` rămâne independent de JUnit. Dacă lipsește un model neutru
+  pentru verdictul testului, acesta se definește la limita contractului de
+  raportare și se adaptează în stratul de test.
 
-Nu se schimbă `atf-reporting` ca să depindă de JUnit. Dacă lipsește un seam
-renderer-neutral pentru verdict/asserțiuni de nivel test, acesta trebuie definit
-în modelul de reporting și consumat de adaptoarele de test.
+Scor de prioritate: **95/100** în [registrul feedback-ului](README.md).
 
-## Owneri normativi
+## 2. Derularea comună pentru tabelele `TECHNICAL TRACE`
 
-- [ATF Reporting Contract](../ATF_Reporting_Contract.md) — semantica și
-  ierarhia publicată.
-- [README-ul atf-reporting](../../atf-reporting/README.md) — proiecția, markup-ul,
-  summary-ul și Network Inspector.
-- [README-ul atf-reporting-tests](../../atf-reporting-tests/README.md) — matricea
-  de coverage și probele componentelor rendererului.
+### Situația din cod
+
+Detaliile de răspuns sunt randate ca tabelul `helm-trace-table` în disclosure-ul
+`Response details`. CSS-ul îi stabilește tipografia și coloanele, dar tabelul nu
+este învelit într-un container cu derulare verticală. În consecință, un trace cu
+multe câmpuri poate extinde excesiv zona de detalii, deși ATF are deja tokenul
+comun `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT` și folosește acel plafon pentru
+alte tabele.
+
+Acesta este gol de implementare și acoperire. Testul browser actual verifică
+suprafețele scrollabile pentru Overview, audit, acțiuni Playwright, aserțiuni și
+agregatele Network Inspector, dar nu măsoară tabelul `TECHNICAL TRACE` din
+`Response details`.
+
+### Contractul de randare cerut
+
+```text
+Response details
+├── TECHNICAL TRACE — tabel cu derulare verticală comună
+│   ├── înălțime naturală cât timp încape
+│   ├── plafon: --atf-table-scroll-height (token unic, în prezent 500px)
+│   ├── antet fix în timpul derulării
+│   └── ultimul rând accesibil
+└── JSON de răspuns — disclosure/panou de cod cu limita proprie
+```
+
+Se derulează numai zona tabelului. Disclosure-ul exterior rămâne compact, iar
+JSON-ul nu este absorbit în wrapper-ul tabelului și nu își pierde limita proprie.
+Regula este aceeași în rapoartele Extent și motorul alternativ și pentru trace-ul API
+direct, respectiv schimburile API atașate unui pas UI.
+
+### Condiții de acceptare
+
+1. Tabelul `TECHNICAL TRACE` folosește același token și plafon ca
+   `Overview → System/Environment`; nu introduce valoare CSS separată sau
+   înălțime hardcodată per renderer.
+2. Pentru conținut scurt, containerul rămâne la înălțime naturală și nu rezervă
+   spațiu gol. Pentru conținut lung, containerul nu depășește plafonul comun și
+   derulează până la ultimul rând.
+3. Antetul rămâne vizibil în timpul derulării; celulele se împachetează fără
+   overflow orizontal al paginii.
+4. Derularea tabelului nu extinde pagina prin toate rândurile și nu modifică
+   starea implicit închisă a disclosure-ului `Response details`.
+5. JSON-ul de răspuns rămâne separat și își păstrează politica proprie de
+   afișare/derulare.
+6. Testele verifică DOM-ul randat și stilurile calculate pentru Extent și
+   motorul alternativ, atât cu date scurte, cât și cu suficiente câmpuri pentru depășirea
+   plafonului. Scenariile includ trace API direct și API atașat la un pas UI.
+
+Scor de prioritate: **85/100** în [registrul feedback-ului](README.md).
+
+## Proprietari normativi
+
+- [Contractul de raportare Extent](../ATF_Reporting_Contract.md) — semantica,
+  ierarhia și regulile vizuale comune.
+- [README-ul `atf-reporting`](../../atf-reporting/README.md) — modelul,
+  proiecțiile, markup-ul și stilurile.
+- [README-ul `atf-reporting-tests`](../../atf-reporting-tests/README.md) —
+  matricea de verificare și probele componentelor și randării.
+- [README-ul Practice Shop](../../atf-test-practice-shop/README.md) —
+  compoziția și responsabilitățile specifice consumerului.

@@ -81,10 +81,6 @@ public final class ShopE2eTestSupport {
         public void beforeEach(ExtensionContext context) {
             ShopConfiguration configuration = ShopTestSupport.configurationFor(
                     context.getRequiredTestClass());
-            if (ShopTestSupport.suiteModeEnabled(context)) {
-                configuration = configuration.withScreenshotPolicy(ShopTestSupport.suiteScreenshotPolicy(
-                        System.getProperty(ShopTestSupport.SUITE_SCREENSHOT_POLICY_PROPERTY)));
-            }
             WithE2eHarness harness = context.getRequiredTestClass().getAnnotation(WithE2eHarness.class);
             if (harness != null) configuration = configurationForHarnessProfile(configuration, harness.profile());
             ShopTestSupport.AuthenticatedE2e authenticated =

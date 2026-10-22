@@ -47,6 +47,12 @@ class AtfReportSemanticSnapshotTest {
             assertEquals(1, extentSnapshot.scenarioCount());
             assertEquals(1, extentSnapshot.requestCount());
             assertEquals(1, extentSnapshot.validationCount());
+            var extentPhase = extentSnapshot.classes().getFirst().scenarios().getFirst()
+                    .phases().getFirst();
+            var fallbackPhase = fallbackSnapshot.classes().getFirst().scenarios().getFirst()
+                    .phases().getFirst();
+            assertEquals(List.of("API audit completeness"), extentPhase.detailNames());
+            assertEquals(extentPhase.detailNames(), fallbackPhase.detailNames());
             assertTrue(extentSnapshot.classes().getFirst().scenarios().getFirst()
                     .phases().getFirst().nodes().getFirst() instanceof AtfReportSemanticSnapshot.RequestSnapshot);
         } finally {
@@ -120,6 +126,7 @@ class AtfReportSemanticSnapshotTest {
     private static void publish(AtfReportPorts.Session session) {
         var scenario = session.startScenario("Tests", "scenario", List.of("api", "contract"));
         var phase = scenario.startPhase("TEST BODY");
+        phase.detail("API audit completeness", "1 actual API exchange captured");
         var request = phase.startRequest("read", "GET", ApiReportTestUrls.GENERIC_USER_ONE);
         request.detail("HTTP STATUS", "200");
         request.json("REQUEST JSON", "null");

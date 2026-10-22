@@ -116,4 +116,5 @@ class ShopApiContractReportComponentTest {
                     "API response body must be present for report evidence: " + request.path());
         }
     }
+
 }

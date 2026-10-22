@@ -10,6 +10,8 @@ import atf.api.core.http.response.ApiOperationLabel;
  */
 public enum ShopApiOperation {
     LOGIN(HttpMethod.POST, ShopApiRoutes.LOGIN, "establish API session", "/users/login"),
+    USER_REGISTER(HttpMethod.POST, ShopApiRoutes.USER_REGISTER,
+            "register checkout account", ShopApiRoutes.USER_REGISTER),
     SEARCH(HttpMethod.GET, ShopApiRoutes.PRODUCT_SEARCH,
             "find configured product", "/products/search"),
     PRODUCT_DETAIL(HttpMethod.GET, ShopApiRoutes.PRODUCTS,
@@ -20,6 +22,10 @@ public enum ShopApiOperation {
             "add product to cart", "/carts/{cartId}"),
     CART_READ(HttpMethod.GET, ShopApiRoutes.CART_RESOURCE_PREFIX,
             "verify cart contents", "/carts/{cartId}"),
+    CART_UPDATE(HttpMethod.PUT, ShopApiRoutes.CART_RESOURCE_PREFIX,
+            "update cart quantity", "/carts/{cartId}/product/quantity"),
+    CART_REMOVE(HttpMethod.DELETE, ShopApiRoutes.CART_RESOURCE_PREFIX,
+            "remove cart product", "/carts/{cartId}/product/{productId}"),
     POSTCODE_LOOKUP(HttpMethod.GET, ShopApiRoutes.POSTCODE_LOOKUP,
             "resolve checkout address", ShopApiRoutes.POSTCODE_LOOKUP),
     PAYMENT_CHECK(HttpMethod.POST, ShopApiRoutes.PAYMENT_CHECK,
@@ -68,7 +74,7 @@ public enum ShopApiOperation {
             return false;
         }
         return switch (this) {
-            case LOGIN, SEARCH, CART_CREATE, POSTCODE_LOOKUP, PAYMENT_CHECK ->
+            case LOGIN, USER_REGISTER, SEARCH, CART_CREATE, POSTCODE_LOOKUP, PAYMENT_CHECK ->
                     actualPath.equals(routePrefix) || actualPath.startsWith(routePrefix + "?");
             case ORDER_CREATE -> actualPath.equals(ShopApiRoutes.INVOICE_CREATE)
                     || actualPath.equals(ShopApiRoutes.GUEST_INVOICE_CREATE)
@@ -78,6 +84,11 @@ public enum ShopApiOperation {
                     && !actualPath.startsWith(ShopApiRoutes.PRODUCT_SEARCH);
             case CART_ADD, CART_READ -> actualPath.startsWith(routePrefix)
                     && !actualPath.equals(ShopApiRoutes.CARTS);
+            case CART_UPDATE -> actualPath.startsWith(routePrefix)
+                    && actualPath.endsWith(ShopApiRoutes.CART_PRODUCT_QUANTITY);
+            case CART_REMOVE -> actualPath.startsWith(routePrefix)
+                    && actualPath.contains(ShopApiRoutes.CART_PRODUCT_PREFIX)
+                    && !actualPath.endsWith(ShopApiRoutes.CART_PRODUCT_QUANTITY);
             case UNKNOWN -> false;
         };
     }

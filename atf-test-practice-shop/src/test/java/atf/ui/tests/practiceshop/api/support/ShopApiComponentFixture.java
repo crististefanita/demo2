@@ -79,6 +79,35 @@ public final class ShopApiComponentFixture {
                     invalid ? ShopApiScenarioFixture.UNAUTHORIZED_BODY
                             : ShopApiScenarioFixture.LOGIN_TOKEN_BODY, url);
         }
+        if (is(request, HttpMethod.POST, ShopApiRoutes.USER_REGISTER)) {
+            boolean invalid = hasBlankField(request, ShopApiJsonField.FIRST_NAME,
+                            ShopApiJsonField.LAST_NAME, ShopApiJsonField.EMAIL,
+                            ShopApiJsonField.PASSWORD);
+            return json(invalid ? ShopApiHttpStatus.UNPROCESSABLE_ENTITY
+                            : ShopApiHttpStatus.CREATED,
+                    invalid ? ShopApiScenarioFixture.UNPROCESSABLE_BODY
+                            : ShopApiScenarioFixture.REGISTERED_USER_BODY, url);
+        }
+        if (is(request, HttpMethod.POST, ShopApiRoutes.INVOICE_CREATE)) {
+            boolean invalid = hasBlankField(request, ShopApiJsonField.BILLING_STREET,
+                    ShopApiJsonField.BILLING_CITY, ShopApiJsonField.BILLING_STATE,
+                    ShopApiJsonField.BILLING_COUNTRY, ShopApiJsonField.BILLING_POSTAL_CODE,
+                    ShopApiJsonField.PAYMENT_METHOD, ShopApiJsonField.CART_ID);
+            return json(invalid ? ShopApiHttpStatus.UNPROCESSABLE_ENTITY : ShopApiHttpStatus.OK,
+                    invalid ? ShopApiScenarioFixture.UNPROCESSABLE_BODY
+                            : ShopApiScenarioFixture.CREATED_INVOICE_BODY, url);
+        }
+        if (is(request, HttpMethod.POST, ShopApiRoutes.GUEST_INVOICE_CREATE)) {
+            boolean invalid = hasBlankField(request, ShopApiJsonField.BILLING_STREET,
+                    ShopApiJsonField.BILLING_CITY, ShopApiJsonField.BILLING_STATE,
+                    ShopApiJsonField.BILLING_COUNTRY, ShopApiJsonField.BILLING_POSTAL_CODE,
+                    ShopApiJsonField.PAYMENT_METHOD, ShopApiJsonField.CART_ID,
+                    ShopApiJsonField.GUEST_EMAIL, ShopApiJsonField.GUEST_FIRST_NAME,
+                    ShopApiJsonField.GUEST_LAST_NAME);
+            return json(invalid ? ShopApiHttpStatus.UNPROCESSABLE_ENTITY : ShopApiHttpStatus.OK,
+                    invalid ? ShopApiScenarioFixture.UNPROCESSABLE_BODY
+                            : ShopApiScenarioFixture.CREATED_INVOICE_BODY, url);
+        }
         if (is(request, ShopApiOperation.SEARCH, ShopApiRoutes.PRODUCT_SEARCH)) {
             return json(ShopApiHttpStatus.OK, ShopApiScenarioFixture.PRODUCT_SEARCH_BODY, url);
         }
@@ -101,7 +130,7 @@ public final class ShopApiComponentFixture {
             return json(ShopApiHttpStatus.OK, ShopApiScenarioFixture.PRODUCT_BODY, url);
         }
         if (is(request, HttpMethod.POST, ShopApiRoutes.CARTS)) {
-            return json(ShopApiHttpStatus.OK, ShopApiScenarioFixture.CART_BODY, url);
+            return json(ShopApiHttpStatus.CREATED, ShopApiScenarioFixture.CART_BODY, url);
         }
         if (is(request, HttpMethod.GET,
                 ShopApiRoutes.cart(ShopApiScenarioFixture.CART_ID))) {
@@ -109,10 +138,18 @@ public final class ShopApiComponentFixture {
         }
         if (is(request, HttpMethod.POST,
                 ShopApiRoutes.cart(ShopApiScenarioFixture.CART_ID))) {
+            if (hasInvalidProduct(request)) {
+                return json(ShopApiHttpStatus.UNPROCESSABLE_ENTITY,
+                        ShopApiScenarioFixture.UNPROCESSABLE_BODY, url);
+            }
             return json(ShopApiHttpStatus.OK, ShopApiScenarioFixture.CART_MUTATION_BODY, url);
         }
         if (is(request, HttpMethod.PUT,
                 ShopApiRoutes.updateCartQuantity(ShopApiScenarioFixture.MUTATION_CART_ID))) {
+            if (hasInvalidProduct(request)) {
+                return json(ShopApiHttpStatus.UNPROCESSABLE_ENTITY,
+                        ShopApiScenarioFixture.UNPROCESSABLE_BODY, url);
+            }
             return json(ShopApiHttpStatus.OK, ShopApiScenarioFixture.CART_UPDATE_BODY, url);
         }
         if (is(request, HttpMethod.DELETE,
@@ -138,6 +175,21 @@ public final class ShopApiComponentFixture {
         return operation.wireValue().equals(request.method()) && path.equals(request.path());
     }
 
+    private static boolean hasInvalidProduct(ApiRequest request) {
+        var body = ShopJsonEvidence.parse(request.bodyText());
+        return body != null && ShopApiScenarioFixture.INVALID_PRODUCT_ID.equals(
+                body.path(ShopApiJsonField.PRODUCT_ID.wireValue()).asText());
+    }
+
+    private static boolean hasBlankField(ApiRequest request, ShopApiJsonField... fields) {
+        var body = ShopJsonEvidence.parse(request.bodyText());
+        if (body == null) return true;
+        for (ShopApiJsonField field : fields) {
+            if (body.path(field.wireValue()).asText().isBlank()) return true;
+        }
+        return false;
+    }
+
     private static ApiResponse json(ShopApiHttpStatus status, String body, String url) {
         return response(status, body, JSON_HEADERS, url);
     }
@@ -159,7 +211,7 @@ public final class ShopApiComponentFixture {
             if (is(request, HttpMethod.POST, ShopApiRoutes.CARTS)) {
                 String cartId = ShopApiScenarioFixture.MUTATION_CART_ID;
                 carts.remove(cartId);
-                return json(ShopApiHttpStatus.OK,
+                return json(ShopApiHttpStatus.CREATED,
                         "{\"id\":\"" + cartId + "\"}", url);
             }
 

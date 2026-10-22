@@ -17,14 +17,25 @@ class ShopApiOperationTest {
                 ShopApiRoutes.product("product-42"));
         var cart = ShopApiOperation.resolve(HttpMethod.POST.value(),
                 ShopApiRoutes.cart("cart-7"));
+        var update = ShopApiOperation.resolve(HttpMethod.PUT.value(),
+                ShopApiRoutes.updateCartQuantity("cart-7"));
+        var remove = ShopApiOperation.resolve(HttpMethod.DELETE.value(),
+                ShopApiRoutes.removeCartProduct("cart-7", "product-42"));
         var order = ShopApiOperation.resolve(
                 HttpMethod.POST.value(), ShopApiRoutes.GUEST_INVOICE_CREATE);
+        var registration = ShopApiOperation.resolve(
+                HttpMethod.POST.value(), ShopApiRoutes.USER_REGISTER);
 
         assertEquals(ShopApiOperation.PRODUCT_DETAIL, product);
         assertEquals(ShopApiOperation.CART_ADD, cart);
+        assertEquals(ShopApiOperation.CART_UPDATE, update);
+        assertEquals(ShopApiOperation.CART_REMOVE, remove);
         assertEquals(ShopApiOperation.ORDER_CREATE, order);
+        assertEquals(ShopApiOperation.USER_REGISTER, registration);
         assertTrue(product.routeTemplate().contains("{productId}"));
         assertTrue(cart.routeTemplate().contains("{cartId}"));
+        assertTrue(update.routeTemplate().contains("{cartId}"));
+        assertTrue(remove.routeTemplate().contains("{productId}"));
     }
 
     @Test

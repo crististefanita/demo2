@@ -24,6 +24,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -46,6 +47,42 @@ class ShopApiRequestFactoryTest {
                 body.path(ShopApiJsonField.EMAIL.wireValue()).asText());
         assertEquals(ShopApiScenarioFixture.VALID_PASSWORD,
                 body.path(ShopApiJsonField.PASSWORD.wireValue()).asText());
+    }
+
+    @Test
+    void registrationAndGuestInvoiceBodiesSerializeTheirTypedFieldsAsSnakeCaseJson() {
+        ApiRequest registration = requests.register(ShopApiScenarioFixture.validCredentials());
+        ApiRequest invoice = requests.invoice(ShopApiScenarioFixture.validInvoice(),
+                ShopApiScenarioFixture.BEARER_TOKEN);
+        ApiRequest guestInvoice = requests.guestInvoice(ShopApiScenarioFixture.validGuestInvoice());
+        var registrationBody = ShopJsonEvidence.parse(registration.bodyText());
+        var authenticatedInvoiceBody = ShopJsonEvidence.parse(invoice.bodyText());
+        var invoiceBody = ShopJsonEvidence.parse(guestInvoice.bodyText());
+
+        assertEquals(ShopApiRoutes.USER_REGISTER, registration.path());
+        assertNotNull(registrationBody);
+        assertEquals(ShopApiScenarioFixture.VALID_FIRST_NAME,
+                registrationBody.path(ShopApiJsonField.FIRST_NAME.wireValue()).asText());
+        assertEquals(ShopApiScenarioFixture.VALID_EMAIL,
+                registrationBody.path(ShopApiJsonField.EMAIL.wireValue()).asText());
+        assertNull(registrationBody.get("firstName"));
+
+        assertEquals(ShopApiRoutes.INVOICE_CREATE, invoice.path());
+        assertEquals(ShopApiAuthProfile.BEARER.wireValue(), invoice.authProfile());
+        assertEquals("Bearer " + ShopApiScenarioFixture.BEARER_TOKEN,
+                invoice.headers().get(HttpHeader.AUTHORIZATION.value()));
+        assertNotNull(authenticatedInvoiceBody);
+        assertNull(authenticatedInvoiceBody.get(ShopApiJsonField.GUEST_EMAIL.wireValue()));
+
+        assertEquals(ShopApiRoutes.GUEST_INVOICE_CREATE, guestInvoice.path());
+        assertNotNull(invoiceBody);
+        assertEquals(ShopApiScenarioFixture.CART_ID,
+                invoiceBody.path(ShopApiJsonField.CART_ID.wireValue()).asText());
+        assertEquals(ShopApiScenarioFixture.VALID_EMAIL,
+                invoiceBody.path(ShopApiJsonField.GUEST_EMAIL.wireValue()).asText());
+        assertEquals(ShopApiScenarioFixture.VALID_FIRST_NAME,
+                invoiceBody.path(ShopApiJsonField.GUEST_FIRST_NAME.wireValue()).asText());
+        assertNull(invoiceBody.get("guestEmail"));
     }
 
     @ParameterizedTest

@@ -3,6 +3,7 @@ package atf.ui.practiceshop.support;
 import atf.api.core.http.response.ApiExecutionResult;
 import atf.api.core.http.response.ApiResponse;
 import atf.api.core.http.request.HttpMethod;
+import atf.api.core.http.request.HttpHeader;
 import atf.api.core.http.request.MediaTypes;
 import atf.api.core.http.transport.ApiTransportProvenance;
 import atf.api.core.reporting.console.AtfConsoleEvent;
@@ -108,7 +109,8 @@ public final class ShopApiReportPublisher {
      * assertions; its JUnit result is reported separately by the suite audit.
      */
     public static void publishObserved(AtfReportPorts.Phase phase, ApiExecutionResult execution,
-                                       long sequence) {
+                                       long sequence, String testOutcome, int exchangeCount,
+                                       AtfReportStatus testStatus) {
         Objects.requireNonNull(phase, "phase");
         Objects.requireNonNull(execution, "execution");
         var request = execution.request();
@@ -147,7 +149,52 @@ public final class ShopApiReportPublisher {
                     phaseFor(request.path()), "ApiCallComponentTest", phaseFor(request.path()),
                     title, execution.provenance().reportLabel(),
                     "result asserted by the originating JUnit test", "status=" + response.status()));
-            node.complete(AtfReportStatus.INFO);
+            var validation = node.startValidation("Contract validation");
+            try {
+                boolean requestJsonRequired = requiresJsonRequest(request.method());
+                boolean requestJsonValid = !requestJsonRequired
+                        || ShopJsonEvidence.isJson(request.bodyText());
+                String requestContentType = request.headers().getOrDefault(
+                        HttpHeader.CONTENT_TYPE.value(), "");
+                boolean requestContentTypeValid = !requestJsonRequired
+                        || MediaTypes.APPLICATION_JSON.equalsIgnoreCase(requestContentType);
+                boolean noContent = ShopApiHttpStatus.NO_CONTENT.matches(response.status());
+                boolean responseJsonValid = noContent
+                        ? response.body().isBlank() : ShopJsonEvidence.isJson(response.body());
+                String responseContentType = String.valueOf(response.header(
+                        HttpHeader.CONTENT_TYPE.value()));
+                boolean responseContentTypeValid = noContent
+                        || responseContentType.toLowerCase(java.util.Locale.ROOT)
+                        .contains(MediaTypes.APPLICATION_JSON);
+                validation.assertions(List.of(
+                        new AtfAssertion("HTTP status", "asserted by the component test",
+                                Integer.toString(response.status()), testStatus == AtfReportStatus.PASS),
+                        new AtfAssertion("Request JSON", requestJsonRequired
+                                ? "non-empty parseable JSON" : "not required for " + request.method(),
+                                requestJsonRequired ? (requestJsonValid ? "valid JSON" : "invalid JSON")
+                                        : "not required", requestJsonValid),
+                        new AtfAssertion("Content-Type", requestJsonRequired
+                                ? MediaTypes.APPLICATION_JSON : "not required",
+                                requestJsonRequired ? requestContentType : "not required",
+                                requestContentTypeValid),
+                        new AtfAssertion("Response JSON", noContent
+                                ? "empty body for 204" : "non-empty parseable JSON",
+                                noContent ? (responseJsonValid ? "empty" : "not empty")
+                                        : (responseJsonValid ? "valid JSON" : "invalid JSON"),
+                                responseJsonValid),
+                        new AtfAssertion("Response Content-Type", noContent
+                                ? "not required for 204" : MediaTypes.APPLICATION_JSON,
+                                noContent ? "not required" : responseContentType,
+                                responseContentTypeValid),
+                        new AtfAssertion("JUnit method outcome", "all component assertions pass",
+                                testOutcome, testStatus == AtfReportStatus.PASS),
+                        new AtfAssertion("API exchanges captured", "at least 1",
+                                Integer.toString(exchangeCount), exchangeCount > 0)));
+                validation.complete(testStatus);
+                node.complete(testStatus);
+            } finally {
+                validation.close();
+            }
         } finally {
             node.close();
         }
@@ -376,4 +423,5 @@ public final class ShopApiReportPublisher {
                 || path.startsWith(ShopApiRoutes.POSTCODE_LOOKUP)) return "checkout";
         return "unknown";
     }
+
 }

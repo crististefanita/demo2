@@ -241,7 +241,8 @@ TestCase
 | UI evidence | `SETUP` este setup; `Screen validation` este în `TEST BODY` după acțiuni și observații |
 | layout | `＋/−` este inline înaintea propoziției; Request details, Response details și Execution evidence sunt disclosures surori în request; Contract validation este copilul lui; UI/API validations sunt copii surori ale aceluiași checkpoint Gherkin |
 | responsive evidence | până la breakpoint-ul de lucru (`1300px`), action tables se redimensionează și împachetează conținutul fără scrollbar orizontal; padding-ul lateral al wrapperului este eliminat semantic, nu prin crop | 
-| scrollable tables | wrapper-ele folosesc `height:auto` și `max-height:var(--atf-table-scroll-height)`, derivat din `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT` (`500px` curent); short content nu rezervă spațiu gol, long content derulează sub header sticky, iar JSON/code panes nu intră în acest contract |
+| tabele cu derulare | containerele folosesc `height:auto` și `max-height:var(--atf-table-scroll-height)`, derivat din `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT` (`500px` în prezent); conținutul scurt nu rezervă spațiu gol, conținutul lung derulează sub antetul fix, iar panourile JSON/cod nu intră în acest contract |
+| `TECHNICAL TRACE` | tabelul din `Response details` trebuie să folosească același container și plafon vertical; containerul nu cuprinde disclosure-ul exterior sau corpul JSON. Implementarea și proba de randare lipsă sunt urmărite în [feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md) |
 | action number | fiecare acțiune afișează `#n` într-un token dedicat, `atf-ui-action-number`, compact (`inline-block`/`max-content`); nu se reutilizează clasa extensibilă `atf-ui-action-sequence` |
 | screenshot | link inline cu emoji-ul curent; payload Base64 pentru prima apariție sau referință locală bounded (`screenshot-n`) pentru o stare deduplicată; fingerprint-ul rămâne intern și nu este afișat în locul linkului |
 | action table | acțiunile relevante includ `getText`/text extraction; timpul apare numai pentru acțiuni |
@@ -432,11 +433,14 @@ rândurilor aggregate și nu lasă spațiu vertical gol când titlul încape pe 
 rând. La viewport îngust, textul poate curge natural fără să schimbe înălțimea
 implicită a cazului obișnuit.
 
-Viewport-ul tabelului este un contract separat: `TABLE_SCROLL_HEIGHT` (`500px`)
-este plafonul comun, publicat ca `--atf-table-scroll-height`. Wrapper-ele au
+Înălțimea zonei tabelului este un contract separat: `TABLE_SCROLL_HEIGHT` (`500px`)
+este plafonul comun, publicat ca `--atf-table-scroll-height`. Containerele au
 `height:auto` și `max-height` comun, astfel conținutul scurt nu rezervă spațiu
 gol, iar conținutul lung derulează în interiorul aceluiași plafon. Header-ele
-rămân sticky; contractul acoperă Overview, audit, UI evidence și agregatele API.
+rămân fixe; contractul acoperă Overview, audit, dovezile UI, agregatele API și
+tabelul `TECHNICAL TRACE` din `Response details`. Pentru acesta din urmă, lipsa
+containerului și a probei de randare este un gol deschis, urmărit în
+[feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md).
 
 </details>
 

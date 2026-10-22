@@ -117,13 +117,19 @@ class ShopE2eTestSupportTest {
     }
 
     @Test
-    void suiteCapturePolicyDefaultsToFinalAndFailureAndCanBeConfigured() {
-        assertEquals(ReportScreenshotPolicy.FINAL_AND_FAILURE,
-                ShopTestSupport.suiteScreenshotPolicy(null));
-        assertEquals(ReportScreenshotPolicy.FINAL_ONLY,
-                ShopTestSupport.suiteScreenshotPolicy("final-only"));
-        assertEquals(ReportScreenshotPolicy.EACH_CHECKPOINT,
-                ShopTestSupport.suiteScreenshotPolicy("each-checkpoint"));
+    void suiteHarnessCompositionPreservesTheConfiguredScreenshotPolicy() {
+        var yamlConfiguration = ShopConfigurationLoader.load();
+        for (ReportScreenshotPolicy policy : ReportScreenshotPolicy.values()) {
+            var configured = yamlConfiguration.withScreenshotPolicy(policy);
+            for (ShopE2eTestSupport.HarnessProfile harnessProfile
+                    : ShopE2eTestSupport.HarnessProfile.values()) {
+                var composed = ShopE2eTestSupport.configurationForHarnessProfile(
+                        configured, harnessProfile);
+                assertEquals(policy, ShopE2eTestSupport.reportProfile(composed, null)
+                                .screenshotPolicy(),
+                        () -> harnessProfile + " must preserve YAML screenshotPolicy=" + policy);
+            }
+        }
     }
 
     @Test

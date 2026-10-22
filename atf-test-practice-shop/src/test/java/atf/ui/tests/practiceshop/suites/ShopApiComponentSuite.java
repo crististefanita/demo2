@@ -7,7 +7,10 @@ import org.junit.platform.suite.api.Suite;
 
 /** Runs the Practice Shop API component contracts and their Extent-producing report checks only. */
 @Suite
-@SelectPackages("atf.ui.tests.practiceshop.api.component")
+@SelectPackages({
+        "atf.ui.tests.practiceshop.api.component",
+        "atf.ui.tests.practiceshop.api.reporting"
+})
 @IncludeTags("component")
 @AtfComponentTest
 public class ShopApiComponentSuite { }

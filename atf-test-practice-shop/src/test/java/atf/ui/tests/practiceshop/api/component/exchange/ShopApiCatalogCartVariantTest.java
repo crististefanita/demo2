@@ -112,7 +112,7 @@ class ShopApiCatalogCartVariantTest {
         var removed = client.execute(requests.removeFromCart(cartId, productId));
         var afterRemove = client.execute(requests.readCart(cartId));
 
-        assertEquals(ShopApiHttpStatus.OK.code(), created.response().status());
+        assertEquals(ShopApiHttpStatus.CREATED.code(), created.response().status());
         assertEquals(ShopApiHttpStatus.OK.code(), added.response().status());
         assertEquals(ShopApiHttpStatus.OK.code(), afterAdd.response().status());
         assertEquals(ShopApiScenarioFixture.QUANTITY,
