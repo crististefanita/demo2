@@ -30,8 +30,8 @@ class ShopAuthenticatedLaunchProfileTest {
 
     @Test
     void eachAuthenticatedClassResolvesItsOwnIntelliJProfileWithoutVmOverrides() throws Exception {
-        assertAuthenticatedProfile("atf.ui.tests.practiceshop.e2e.NewAccountPurchaseE2eTest");
-        assertAuthenticatedProfile("atf.ui.tests.practiceshop.e2e.AuthenticatedPurchaseE2eTest");
+        assertAuthenticatedProfile("atf.ui.tests.practiceshop.e2e.ShopNewAccountPurchaseE2eTest");
+        assertAuthenticatedProfile("atf.ui.tests.practiceshop.e2e.ShopAuthenticatedPurchaseE2eTest");
     }
 
     @Test
@@ -102,7 +102,7 @@ class ShopAuthenticatedLaunchProfileTest {
     @Test
     void authenticatedPurchaseProfilesKeepFixtureReuseSeparateFromRegistration() throws ClassNotFoundException {
         Class<?> purchase = Class.forName(
-                "atf.ui.tests.practiceshop.e2e.AuthenticatedPurchaseE2eTest");
+                "atf.ui.tests.practiceshop.e2e.ShopAuthenticatedPurchaseE2eTest");
         var purchaseProfile = purchase.getAnnotation(ShopTestSupport.AuthenticatedE2e.class);
 
         assertFalse(purchase.isAnnotationPresent(ShopTestSupport.AllowsRegistrationPerRun.class));
@@ -110,7 +110,7 @@ class ShopAuthenticatedLaunchProfileTest {
                 purchaseProfile.accountSetup());
         assertEquals(LOCAL_FIXTURE, purchaseProfile.accountFile());
         Class<?> newAccountPurchase = Class.forName(
-                "atf.ui.tests.practiceshop.e2e.NewAccountPurchaseE2eTest");
+                "atf.ui.tests.practiceshop.e2e.ShopNewAccountPurchaseE2eTest");
         var accountProfile = newAccountPurchase.getAnnotation(ShopTestSupport.AuthenticatedE2e.class);
         assertTrue(newAccountPurchase.isAnnotationPresent(
                 ShopTestSupport.AllowsRegistrationPerRun.class));
@@ -133,7 +133,7 @@ class ShopAuthenticatedLaunchProfileTest {
                 "email=registered.customer@practice-shop.dev\npassword=secret-value\n");
 
         String reason = ShopTestSupport.authenticatedSetupSkipReason(
-                Class.forName("atf.ui.tests.practiceshop.e2e.AuthenticatedPurchaseE2eTest"),
+                Class.forName("atf.ui.tests.practiceshop.e2e.ShopAuthenticatedPurchaseE2eTest"),
                 authenticatedConfiguration(fixture));
 
         assertNull(reason);
@@ -142,8 +142,8 @@ class ShopAuthenticatedLaunchProfileTest {
     @Test
     void bothAuthenticatedPurchaseClassesExposeOneBusinessScenario() throws ClassNotFoundException {
         for (String className : new String[]{
-                "atf.ui.tests.practiceshop.e2e.NewAccountPurchaseE2eTest",
-                "atf.ui.tests.practiceshop.e2e.AuthenticatedPurchaseE2eTest"}) {
+                "atf.ui.tests.practiceshop.e2e.ShopNewAccountPurchaseE2eTest",
+                "atf.ui.tests.practiceshop.e2e.ShopAuthenticatedPurchaseE2eTest"}) {
             Class<?> testClass = Class.forName(className);
             long scenarios = java.util.Arrays.stream(testClass.getDeclaredMethods())
                     .filter(method -> method.isAnnotationPresent(org.junit.jupiter.api.Test.class))
@@ -162,11 +162,11 @@ class ShopAuthenticatedLaunchProfileTest {
                 .getAnnotation(SelectClasses.class);
 
         assertArrayEquals(new Class<?>[]{
-                        Class.forName("atf.ui.tests.practiceshop.e2e.NewAccountPurchaseE2eTest"),
-                        Class.forName("atf.ui.tests.practiceshop.e2e.AuthenticatedPurchaseE2eTest"),
-                        Class.forName("atf.ui.tests.practiceshop.e2e.PurchaseE2eTest"),
-                        Class.forName("atf.ui.tests.practiceshop.e2e.UiOnlyPurchaseE2eTest"),
-                        Class.forName("atf.ui.tests.practiceshop.e2e.UiOnlySingleFlowPurchaseE2eTest")},
+                        Class.forName("atf.ui.tests.practiceshop.e2e.ShopNewAccountPurchaseE2eTest"),
+                        Class.forName("atf.ui.tests.practiceshop.e2e.ShopAuthenticatedPurchaseE2eTest"),
+                        Class.forName("atf.ui.tests.practiceshop.e2e.ShopPurchaseE2eTest"),
+                        Class.forName("atf.ui.tests.practiceshop.e2e.ShopUiOnlyPurchaseE2eTest"),
+                        Class.forName("atf.ui.tests.practiceshop.e2e.ShopUiOnlySingleFlowPurchaseE2eTest")},
                 selected.value());
         assertEquals("root-id::practice-shop-authenticated-purchase-suite",
                 ShopAuthenticatedAccountTestSupport.suiteAccountScope("root-id"),

@@ -38,7 +38,7 @@ public final class ExtentTransportEvidenceRenderer {
     void renderDetails(ExtentTest node, List<ReportField> details) {
         List<ReportField> traceDetails = EvidenceTableFormatter.technicalTraceFields(details);
         if (traceDetails.isEmpty()) return;
-        node.info(AtfReportLabels.responseDetails(traceDetails.size()));
+        node.info(AtfReportLabels.auditDetails(traceDetails.size()));
         node.info(AtfReportMarkup.table(AtfReportHtmlVocabulary.classList(
                         AtfReportHtmlVocabulary.CssClass.HELM_EVIDENCE_TABLE,
                         AtfReportHtmlVocabulary.CssClass.HELM_TRACE_TABLE),

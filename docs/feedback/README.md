@@ -1,4 +1,4 @@
-# ATF Java — registrul ToDo curent
+# ATF Java — registrul cerințelor deschise
 
 ## Pe scurt
 
@@ -18,13 +18,12 @@ rapoartele de rulare și istoricul capturilor nu sunt lucrări restante.
 
 | Ordine | Responsabil / feedback | Impact /40 | Lacună /30 | Lucrabil acum /20 | Datorie doc. /10 | Pondere | Scor | Ce mai trebuie făcut |
 |---:|---|---:|---:|---:|---:|---:|---:|---|
-| 1 | [Semantica auditului API](ATF_Reporting_Feedback.md) | 38 | 30 | 18 | 9 | 1.00 | **95** | separă verdictul JUnit de dovezile fiecărui schimb și de validarea contractului; nu plasa verdictul JUnit într-o validare per schimb; aliniază API-ul publisherului cu extensia și testele consumerului |
-| 2 | [Derularea tabelului TECHNICAL TRACE](ATF_Reporting_Feedback.md) | 34 | 26 | 17 | 8 | 1.00 | **85** | aplică plafonul comun de derulare, păstrează JSON-ul separat și adaugă probe browser pentru tabelul din `Response details` în renderer-ele suportate |
-| 3 | [Evaluarea AI](README_AI_Evaluation.md) | 34 | 26 | 12 | 6 | 1.00 | **78** | clasificarea `AMBIGUOUS` (enum-ul există, evaluatorul nu o produce), registrul de dovezi la nivel de rulare, revizuire/stare, paritate de raportare, diferența față de regresia anterioară și calea de publicare; fundamentarea la nivel de câmp, instantaneul imuabil și coeziunea pachetelor sunt deja demonstrate |
+| 1 | [Evaluarea AI](README_AI_Evaluation.md) | 34 | 26 | 12 | 6 | 1.00 | **78** | clasificarea `AMBIGUOUS` (enum-ul există, evaluatorul nu o produce), registrul de dovezi la nivel de rulare, revizuire/stare, paritate de raportare, diferența față de regresia anterioară și calea de publicare; fundamentarea la nivel de câmp, instantaneul imuabil și coeziunea pachetelor sunt deja demonstrate |
 
 - Scorurile din acest registru ordonează lucrul rămas; nu sunt verdicte de calitate.
 
-Feedback-ul ownerului este sursa criteriului de acceptare și a dovezii cerute.
+Feedback-ul responsabilului de domeniu este sursa criteriului de acceptare și a
+dovezii cerute.
 Rândurile de mai sus sunt doar indexul lucrului rămas; nu duplică istoricul sau
 contractele deja implementate.
 
@@ -32,35 +31,35 @@ contractele deja implementate.
 
 | Domeniu | Stare | Documentație oficială |
 |---|---|---|
-| Arhitectura testelor și matricea module × layer | fără ToDo; redeschidere numai la regresie | [ATF Testing Guide](../ATF_Testing_Guide.md), [ATF Code Best Practices](../README_Atf_CodeBestPractices.md) |
-| Reporting: dovezi, trace, agregat, viewport și matricea Network Inspector | semantica auditului API este deschisă, scor 95; derularea tabelului `TECHNICAL TRACE` este deschisă, scor 85 | [ATF Reporting Contract](../ATF_Reporting_Contract.md), [ATF Reporting README](../../atf-reporting/README.md), [ATF Reporting Feedback](ATF_Reporting_Feedback.md) |
-| Inspector UI și politica fără replay | fără ToDo; redeschidere numai la încălcarea contractului | [ATF UI README](../../atf-ui/README.md), [Practice Shop README](../../atf-test-practice-shop/README.md) |
-| Practice Shop action-details selector | selectabil per clasă; maparea păstrează acțiunile capturate și verdictul | [Practice Shop README](../../atf-test-practice-shop/README.md) |
-| Practice Shop purchase trace și journey summary terminal | trace-ul generic, ordinea și captura terminală sunt închise | [Practice Shop README](../../atf-test-practice-shop/README.md) |
-| Practice Shop E2E, API component și API-call audit suites | politica YAML de captură se aplică și în `ShopE2eSuite`; matricea deterministă verifică statusurile de succes ale facturilor conform OpenAPI; nu rămâne ToDo Practice Shop separat | [Practice Shop README](../../atf-test-practice-shop/README.md); semantica publisherului API rămâne la ownerul Reporting |
+| Arhitectura testelor și matricea modul × strat | fără cerințe deschise; redeschidere numai la regresie | [Ghidul de testare ATF](../ATF_Testing_Guide.md), [Bune practici de cod ATF](../README_Atf_CodeBestPractices.md) |
+| Raportare: dovezi, trace, agregat, viewport și matricea Network Inspector | fără cerințe deschise; auditul API și viewportul `TECHNICAL TRACE` sunt implementate și verificate modular/browser | [Contractul de raportare ATF](../ATF_Reporting_Contract.md), [README ATF Reporting](../../atf-reporting/README.md), [README ATF Reporting Tests](../../atf-reporting-tests/README.md) |
+| Inspector UI și politica fără reluare automată | fără cerințe deschise; redeschidere numai la încălcarea contractului | [README ATF UI](../../atf-ui/README.md), [README Practice Shop](../../atf-test-practice-shop/README.md) |
+| Selectorul detaliilor acțiunilor Practice Shop | selectabil per clasă; maparea păstrează acțiunile capturate și verdictul | [README Practice Shop](../../atf-test-practice-shop/README.md) |
+| Urmărirea achiziției și rezumatul final al fluxului Practice Shop | urmărirea generică, ordinea și captura terminală sunt închise | [README Practice Shop](../../atf-test-practice-shop/README.md) |
+| Teste E2E Practice Shop, componente API și suită de audit | politica YAML de captură se aplică și în `ShopE2eSuite`; matricea deterministă verifică statusurile de succes ale facturilor conform OpenAPI; nu rămâne cerință Practice Shop separată | [README Practice Shop](../../atf-test-practice-shop/README.md); semantica publisherului API rămâne la responsabilul Reporting |
 
-Gap-urile active rămân numai în tabelul prioritizat de mai sus. Rândurile fără
-ToDo activ descriu contracte deja promovate în README-urile ownerilor și
+Cerințele deschise rămân numai în tabelul prioritizat de mai sus. Rândurile fără
+cerință deschisă descriu contracte deja promovate în README-urile modulelor și
 verificate de testele aferente.
 
 ## Regula de reconciliere
 
-La fiecare actualizare se inspectează codul și testele ownerului înainte de a
-schimba statusul. Un ToDo se elimină numai când criteriul lui trece cu dovada
-potrivită; comportamentul stabil se promovează în README-ul oficial înainte ca
-detaliul să dispară din feedback.
+La fiecare actualizare se inspectează codul și testele responsabilului înainte de
+a schimba starea. O cerință se închide numai când criteriul ei trece cu dovada
+potrivită; comportamentul stabil se promovează în documentația oficială înainte
+ca detaliul să dispară din feedback.
 
-Un artifact vechi, un screenshot izolat sau un run verde fără legătură cu
-criteriul nu închide un ToDo. Pentru build, staging, E2E și verificare vizuală se
-urmează [ATF Build and Execution Safety](../ATF_Build_And_Execution_Safety.md).
+Un artefact vechi, o captură izolată sau o rulare verde fără legătură cu
+criteriul nu închide o cerință. Pentru compilare, staging, E2E și verificare
+vizuală se urmează [Siguranța compilării și rulării ATF](../ATF_Build_And_Execution_Safety.md).
 
 ## Responsabilitatea documentației
 
 | Contract | Responsabil normativ |
 |---|---|
-| module și dependențe | [ATF Architecture](../ATF_Architecture.md) |
-| test layers, matrice și alegerea proof-ului | [ATF Testing Guide](../ATF_Testing_Guide.md) |
-| API/UI report, trace și aggregate | [ATF Reporting Contract](../ATF_Reporting_Contract.md) |
-| Practice Shop flows și consumer evidence | [Practice Shop README](../../atf-test-practice-shop/README.md) |
-| reguli de cod și test design | [ATF Code Best Practices](../README_Atf_CodeBestPractices.md) |
-| reguli editoriale | [ATF Documentation Best Practices](../README_Atf_DocumentationBestPractices.md) |
+| module și dependențe | [Arhitectura ATF](../ATF_Architecture.md) |
+| straturi de testare, matrice și alegerea dovezii | [Ghidul de testare ATF](../ATF_Testing_Guide.md) |
+| raportare API/UI, trace și agregare | [Contractul de raportare ATF](../ATF_Reporting_Contract.md) |
+| fluxuri Practice Shop și dovezile consumerului | [README Practice Shop](../../atf-test-practice-shop/README.md) |
+| reguli de cod și proiectarea testelor | [Bune practici de cod ATF](../README_Atf_CodeBestPractices.md) |
+| reguli editoriale | [Bune practici de documentare ATF](../README_Atf_DocumentationBestPractices.md) |

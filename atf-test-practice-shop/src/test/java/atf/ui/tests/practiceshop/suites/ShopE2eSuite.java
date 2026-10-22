@@ -1,11 +1,11 @@
 package atf.ui.tests.practiceshop.suites;
 
 import atf.api.testkit.AtfE2eTest;
-import atf.ui.tests.practiceshop.e2e.AuthenticatedPurchaseE2eTest;
-import atf.ui.tests.practiceshop.e2e.NewAccountPurchaseE2eTest;
-import atf.ui.tests.practiceshop.e2e.PurchaseE2eTest;
-import atf.ui.tests.practiceshop.e2e.UiOnlyPurchaseE2eTest;
-import atf.ui.tests.practiceshop.e2e.UiOnlySingleFlowPurchaseE2eTest;
+import atf.ui.tests.practiceshop.e2e.ShopAuthenticatedPurchaseE2eTest;
+import atf.ui.tests.practiceshop.e2e.ShopNewAccountPurchaseE2eTest;
+import atf.ui.tests.practiceshop.e2e.ShopPurchaseE2eTest;
+import atf.ui.tests.practiceshop.e2e.ShopUiOnlyPurchaseE2eTest;
+import atf.ui.tests.practiceshop.e2e.ShopUiOnlySingleFlowPurchaseE2eTest;
 import org.junit.jupiter.api.ClassOrderer;
 import org.junit.jupiter.api.TestClassOrder;
 import org.junit.platform.suite.api.IncludeTags;
@@ -16,11 +16,11 @@ import org.junit.platform.suite.api.Suite;
 @Suite
 @TestClassOrder(ClassOrderer.OrderAnnotation.class)
 @SelectClasses({
-        NewAccountPurchaseE2eTest.class,
-        AuthenticatedPurchaseE2eTest.class,
-        PurchaseE2eTest.class,
-        UiOnlyPurchaseE2eTest.class,
-        UiOnlySingleFlowPurchaseE2eTest.class})
+        ShopNewAccountPurchaseE2eTest.class,
+        ShopAuthenticatedPurchaseE2eTest.class,
+        ShopPurchaseE2eTest.class,
+        ShopUiOnlyPurchaseE2eTest.class,
+        ShopUiOnlySingleFlowPurchaseE2eTest.class})
 @IncludeTags("e2e")
 @AtfE2eTest
 public class ShopE2eSuite { }

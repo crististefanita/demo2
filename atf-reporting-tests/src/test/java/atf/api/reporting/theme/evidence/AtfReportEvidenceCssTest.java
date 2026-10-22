@@ -280,9 +280,21 @@ class AtfReportEvidenceCssTest {
                         "short network aggregate lists must stay content-sized under the shared viewport cap"),
                 () -> assertTrue(theme.contains("max-height:var(--atf-table-scroll-height)!important"),
                         "Extent action/audit/assertion tables must use the shared viewport token"),
+                () -> assertTrue(theme.contains(
+                                ".atf-trace-table-wrap{height:auto!important;max-height:var(--atf-table-scroll-height)!important;overflow-x:hidden!important;overflow-y:auto!important"),
+                        "Extent technical trace tables must use the shared, content-sized scroll viewport"),
+                () -> assertTrue(theme.contains(
+                                ".atf-trace-table-wrap>.helm-trace-table thead th{position:sticky!important;top:0!important"),
+                        "Extent technical trace headers must remain visible while scrolling"),
                 () -> assertTrue(fallback.contains(
                                 ".atf-ui-action-table-wrap,.atf-validation-table-wrap{max-height:var(--atf-table-scroll-height)"),
                         "fallback action and validation tables must use the shared viewport token"),
+                () -> assertTrue(fallback.contains(
+                                ".atf-trace-table-wrap{height:auto;max-height:var(--atf-table-scroll-height);overflow-x:hidden;overflow-y:auto"),
+                        "fallback technical trace tables must use the shared, content-sized scroll viewport"),
+                () -> assertTrue(fallback.contains(
+                                ".atf-trace-table-wrap>.helm-trace-table thead th{position:sticky;top:0"),
+                        "fallback technical trace headers must remain visible while scrolling"),
                 () -> assertTrue(fallback.contains(
                                 ".atf-secondary-body.network-aggregate-scroll{height:auto;max-height:var(--atf-table-scroll-height)"),
                         "short fallback network lists must stay content-sized under the shared viewport cap"),

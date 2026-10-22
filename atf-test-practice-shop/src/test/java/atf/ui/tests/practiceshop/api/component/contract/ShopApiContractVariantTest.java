@@ -9,6 +9,7 @@ import atf.ui.practiceshop.api.ShopPaymentMethod;
 import atf.ui.tests.practiceshop.api.support.ShopApiScenarioFixture;
 import atf.ui.tests.practiceshop.api.support.ShopApiComponentFixture;
 import atf.ui.tests.practiceshop.api.support.ShopApiCallComponentTest;
+import atf.ui.tests.practiceshop.api.support.ShopApiCallAuditContextTestSupport;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -29,7 +30,9 @@ class ShopApiContractVariantTest {
                                                String expectedBody, ApiRequestSupplier request) {
         ShopApiClient client = ShopApiComponentFixture.client();
 
-        var result = client.execute(request.create());
+        ApiRequest apiRequest = request.create();
+        ShopApiCallAuditContextTestSupport.expectNext(name, expectedStatus);
+        var result = client.execute(apiRequest);
         var response = result.response();
 
         assertTrue(expectedStatus.matches(response.status()));

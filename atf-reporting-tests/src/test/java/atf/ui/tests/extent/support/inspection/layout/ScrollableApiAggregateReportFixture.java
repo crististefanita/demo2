@@ -32,6 +32,9 @@ public final class ScrollableApiAggregateReportFixture {
                 ExtentReportConfiguration.DEFAULT_TIMESTAMP_ZONE);
         List<ReportExecutionEvidence> exchanges = new ArrayList<>(
                 ScrollableTableReportFixture.exchanges(density.signatureCount()));
+        if (density.expectsLongContent() && !exchanges.isEmpty()) {
+            exchanges.set(0, ScrollableTableReportFixture.longTraceExchange());
+        }
         exchanges.addAll(ScrollableTableReportFixture.failedExchanges(density.diagnosticCount()));
         var aggregate = ReportNetworkInspector.aggregate(exchanges, List.of());
 

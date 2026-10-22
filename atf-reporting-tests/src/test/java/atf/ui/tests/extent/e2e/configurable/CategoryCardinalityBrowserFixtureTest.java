@@ -1,6 +1,7 @@
 package atf.ui.tests.extent.e2e.configurable;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.theme.tokens.AtfReportThemeTokens;
 import atf.api.testkit.AtfE2eTest;
 import atf.api.reporting.ui.contract.ReportUiContract;
 import atf.api.reporting.ui.audit.vocabulary.UiAuditGherkin;
@@ -143,7 +144,8 @@ class CategoryCardinalityBrowserFixtureTest {
         List<AtfAssertion> assertions = new ArrayList<>();
         result.measurements().forEach(measurement -> assertions.add(new AtfAssertion(
                 measurement.viewport() + " / " + measurement.surface(),
-                "no horizontal clipping; max-height 500px; short content natural; long content reachable",
+                "no horizontal clipping; max-height " + AtfReportThemeTokens.TABLE_SCROLL_HEIGHT
+                        + "; short content natural; long content reachable",
                 measurement.summary(), measurement.valid())));
         result.aggregateSummaries().forEach(summary -> assertions.add(new AtfAssertion(
                 summary.viewport() + " aggregate " + summary.kind() + " summary",

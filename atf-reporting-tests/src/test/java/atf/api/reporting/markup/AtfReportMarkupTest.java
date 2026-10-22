@@ -78,11 +78,38 @@ class AtfReportMarkupTest {
         String html = AtfReportMarkup.tableHtml("helm-trace-table", new String[][]{
                 {"FIELD", "VALUE"}, {"RESPONSE STATUS", "200"}
         });
+        int label = html.indexOf("TECHNICAL TRACE");
+        int wrapper = html.indexOf("class=\"atf-trace-table-wrap\"");
+        int table = html.indexOf("<table class=\"helm-trace-table\">");
+        int tableEnd = html.indexOf("</table>");
+        int wrapperEnd = html.lastIndexOf("</div>");
 
         assertAll(
                 () -> assertTrue(html.contains("helm-api-classification technical")),
                 () -> assertTrue(html.contains("helm-api-classification-label\">" + AtfReportLabels.TECHNICAL_TRACE + "</span>")),
+                () -> assertTrue(label >= 0 && label < wrapper && wrapper < table),
+                () -> assertTrue(tableEnd > table && tableEnd < wrapperEnd),
                 () -> assertTrue(html.contains("<table class=\"helm-trace-table\">")));
+    }
+
+    @Test
+    void emptyTraceTableStillClosesItsScrollableWrapper() {
+        String html = AtfReportMarkup.tableHtml("helm-trace-table", new String[0][]);
+
+        assertAll(
+                () -> assertEquals(1, occurrences(html, "class=\"atf-trace-table-wrap\"")),
+                () -> assertEquals(2, occurrences(html, "</div>")),
+                () -> assertTrue(html.endsWith("</table></div>")));
+    }
+
+    private static int occurrences(String value, String token) {
+        int count = 0;
+        int index = 0;
+        while ((index = value.indexOf(token, index)) >= 0) {
+            count++;
+            index += token.length();
+        }
+        return count;
     }
 
     @Test

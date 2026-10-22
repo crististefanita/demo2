@@ -196,6 +196,21 @@ details.network-diagnostics.network-aggregate-section > summary {
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
 }
+.atf-trace-table-wrap {
+  height: auto;
+  max-height: var(--atf-table-scroll-height);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  width: 100%;
+}
+.atf-trace-table-wrap > .helm-trace-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--atf-panel-2);
+}
 .atf-ui-action-table-wrap > table,
 .atf-validation-table-wrap > table {
   margin: 0;

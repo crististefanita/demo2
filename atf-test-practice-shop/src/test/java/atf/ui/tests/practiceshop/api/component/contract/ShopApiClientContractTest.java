@@ -12,6 +12,7 @@ import atf.ui.practiceshop.config.ShopCredentials;
 import atf.ui.tests.practiceshop.api.support.ShopApiComponentFixture;
 import atf.ui.tests.practiceshop.api.support.ShopApiScenarioFixture;
 import atf.ui.tests.practiceshop.api.support.ShopApiCallComponentTest;
+import atf.ui.tests.practiceshop.api.support.ShopApiCallAuditContextTestSupport;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -32,6 +33,7 @@ class ShopApiClientContractTest {
                         jsonTransport(ShopApiScenarioFixture.LOGIN_TOKEN_BODY),
                         ApiTransportProvenance.ACCEPTANCE_MOCK));
 
+        ShopApiCallAuditContextTestSupport.expectNext("local transport login", ShopApiHttpStatus.OK);
         var result = client.login(ShopApiScenarioFixture.validCredentials());
 
         assertEquals(ApiTransportProvenance.ACCEPTANCE_MOCK,
@@ -45,6 +47,8 @@ class ShopApiClientContractTest {
                         jsonTransport(ShopApiScenarioFixture.LOGIN_TOKEN_BODY),
                         ApiTransportProvenance.ACCEPTANCE_MOCK), ApiTransportMode.LIVE);
 
+        ShopApiCallAuditContextTestSupport.expectNext("explicit live transport login",
+                ShopApiHttpStatus.OK);
         var result = client.login(ShopApiScenarioFixture.validCredentials());
 
         assertEquals(ApiTransportProvenance.LIVE_HTTP,
@@ -57,6 +61,8 @@ class ShopApiClientContractTest {
                 ShopApiComponentFixture.recordedTransport(jsonTransport("not-json"),
                         ApiTransportProvenance.ACCEPTANCE_MOCK));
 
+        ShopApiCallAuditContextTestSupport.expectNext("malformed login still returns HTTP 200",
+                ShopApiHttpStatus.OK);
         assertThrows(IllegalStateException.class, () -> client.login(
                 ShopApiScenarioFixture.validCredentials()));
     }
@@ -65,6 +71,7 @@ class ShopApiClientContractTest {
     void successfulLoginProducesReusableAuthenticatedSession() {
         var client = ShopApiComponentFixture.client();
 
+        ShopApiCallAuditContextTestSupport.expectNext("valid login", ShopApiHttpStatus.OK);
         var session = client.login(ShopApiScenarioFixture.validCredentials());
 
         assertTrue(session.authenticated());
@@ -75,7 +82,11 @@ class ShopApiClientContractTest {
     void invalidLoginClearsPreviousBearer() {
         var client = ShopApiComponentFixture.client();
 
+        ShopApiCallAuditContextTestSupport.expectNext("valid login before invalid login",
+                ShopApiHttpStatus.OK);
         client.login(ShopApiScenarioFixture.validCredentials());
+        ShopApiCallAuditContextTestSupport.expectNext("invalid login is unauthorized",
+                ShopApiHttpStatus.UNAUTHORIZED);
         var invalidSession = client.login(ShopApiScenarioFixture.invalidCredentials());
 
         assertFalse(invalidSession.authenticated());
@@ -87,6 +98,8 @@ class ShopApiClientContractTest {
     @Test
     void closingClientClearsSessionAndRejectsLaterNetworkUse() {
         var client = ShopApiComponentFixture.client();
+        ShopApiCallAuditContextTestSupport.expectNext("valid login before session close",
+                ShopApiHttpStatus.OK);
         client.login(ShopApiScenarioFixture.validCredentials());
 
         client.close();

@@ -130,6 +130,13 @@ card de `Contract validation` nested, când răspunsul a fost evaluat printr-un
 contract. În raportul UI, checkpoint-ul Gherkin deține validările UI și API ca
 evidence soră; exchange-urile aparțin validării API, nu devin pași Gherkin noi.
 
+Auditul consumerului păstrează câte un nod pentru fiecare schimb observat și
+atașează `Contract validation` numai când producătorul a asociat schimbului un
+contract HTTP tipizat. Statusul așteptat este explicit și comparat cu statusul
+observat; statusul observat sau verdictul JUnit nu îl înlocuiește. Completitudinea
+capturii și eșecul metodei JUnit sunt detalii la nivel de fază, publicate o singură
+dată, nu aserțiuni repetate pe fiecare schimb.
+
 Reguli de ownership:
 
 1. request-ul conține metoda, calea, durata, trace-ul tehnic și JSON-ul;
@@ -226,8 +233,9 @@ rendererul fallback:
   System/Environment, Category/Overview, tag audit, Playwright action, audit
   observations, assertions, tabelul `TECHNICAL TRACE` din `Response details` și
   echivalentele API/UI; nu există înălțimi hardcodate per renderer. Tabelul
-  `TECHNICAL TRACE` derulează în containerul său, fără să includă disclosure-ul
-  exterior sau blocul JSON. Blocurile JSON/code sunt payload panes, nu tabele,
+  `TECHNICAL TRACE` folosește wrapperul comun `atf-trace-table-wrap` și
+  derulează în containerul său, fără să includă disclosure-ul exterior sau
+  blocul JSON. Blocurile JSON/code sunt payload panes, nu tabele,
   și își păstrează limita compactă proprie;
 - la viewport-uri înguste (`≤991px`), Overview începe după rail-ul fix de
   navigare (`70px`) și ocupă doar spațiul rămas; layout-ul desktop păstrează

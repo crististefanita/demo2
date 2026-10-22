@@ -134,6 +134,12 @@ class HtmlReportSessionTest {
                 () -> assertTrue(html.contains("response-json-body")),
                 () -> assertTrue(html.contains("helm-api-classification-label\">TECHNICAL TRACE</span>")),
                 () -> assertFalse(html.contains("[+] expand")),
+                () -> assertTrue(html.contains(
+                        "<div class=\"atf-trace-table-wrap\"><table class=\"helm-evidence-table helm-trace-table\">")),
+                () -> assertTrue(html.indexOf("</table></div>", html.indexOf(
+                                "class=\"atf-trace-table-wrap\""))
+                                < html.indexOf("class=\"response-json-body\""),
+                        "the fallback trace viewport must end before the separate response JSON pane"),
                  () -> assertTrue(html.contains("class=\"helm-evidence-table helm-request-table\"")),
                 () -> assertTrue(html.contains("class=\"phase phase-pass\"")),
                 () -> assertTrue(html.contains("class=\"tag\">api</span>")),

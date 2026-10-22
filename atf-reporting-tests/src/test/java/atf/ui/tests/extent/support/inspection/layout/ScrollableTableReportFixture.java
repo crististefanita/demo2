@@ -10,6 +10,7 @@ import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.ui.model.AtfUiActionRecord;
+import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.api.reporting.ui.UiExtentReportOptions;
 import atf.api.reporting.ui.UiExtentReportSession;
 
@@ -48,6 +49,11 @@ public final class ScrollableTableReportFixture {
             var phase = scenario.startPhase("TEST BODY");
             phase.screenValidation(SCREEN_TITLE, "#test-view", ONE_PIXEL_PNG,
                     assertions(density.assertionCount()), actions(density.actionCount()),
+                    AtfReportStatus.PASS);
+            phase.apiTrace(AtfGherkinKeyword.THEN,
+                    "the checkpoint API exchange retains technical trace evidence",
+                    "/viewport/ui-checkpoint",
+                    List.of(density.expectsLongContent() ? longTraceExchange() : exchanges(1).getFirst()),
                     AtfReportStatus.PASS);
             phase.complete(AtfReportStatus.PASS);
             scenario.complete(AtfReportStatus.PASS);
@@ -109,6 +115,19 @@ public final class ScrollableTableReportFixture {
                             "fixture transport failure %02d".formatted(index))),
                     request, ReportTransportProvenance.LIVE_HTTP, trace);
         }).toList();
+    }
+
+    static ReportExecutionEvidence longTraceExchange() {
+        ReportExecutionEvidence exchange = exchanges(1).getFirst();
+        ReportTraceMetadata trace = new ReportTraceMetadata(
+                "VP-TRACE-1", 1, "viewport", "ActionCaused", "viewport-checkpoint",
+                "UI checkpoint", "GET /viewport/items/1", "GET /viewport/items/1#body=none",
+                "request digest present", "response digest present", "UI_BROWSER",
+                "viewport fixture", "response metadata is complete",
+                "status=200; " + "trace evidence remains readable while the table scrolls; ".repeat(18));
+        return new ReportExecutionEvidence(exchange.response(), exchange.attempts(),
+                exchange.totalDuration(), exchange.retryEvents(), exchange.attemptHistory(),
+                exchange.request(), exchange.provenance(), trace);
     }
 
     public enum Density {

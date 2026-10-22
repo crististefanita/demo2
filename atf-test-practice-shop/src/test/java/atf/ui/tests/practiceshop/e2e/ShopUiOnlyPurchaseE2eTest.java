@@ -16,7 +16,7 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 @Execution(ExecutionMode.SAME_THREAD)
 @Order(4)
 @DisplayName("Guest UI-only purchase flow")
-public class UiOnlyPurchaseE2eTest {
+public class ShopUiOnlyPurchaseE2eTest {
     @Test
     @DisplayName("Configured guest completes a purchase using UI evidence only")
     void configuredGuestCanCompletePurchaseWithUiEvidenceOnly(

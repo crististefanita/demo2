@@ -29,16 +29,19 @@ class ShopArchitectureTest {
         String legacyPrefix = "Practice" + "Shop";
         String legacyTypeDeclaration = "(?s).*\\b(?:class|interface|enum|record|@interface)\\s+"
                 + java.util.regex.Pattern.quote(legacyPrefix) + "\\w+.*";
+        String shopTypeDeclaration = "(?s).*\\b(?:class|interface|enum|record|@interface)\\s+Shop\\w+.*";
 
         for (Path path : AtfFileTree.regularFiles(moduleRoot,
                 List.of(Path.of("src/main/java"), Path.of("src/test/java")),
                 candidate -> candidate.getFileName().toString().endsWith(".java"))) {
             String fileName = path.getFileName().toString();
             String source = Files.readString(path);
-            assertFalse(fileName.startsWith(legacyPrefix),
-                    "Java source file must use the Shop prefix: " + path);
+            assertTrue(fileName.startsWith("Shop"),
+                    "every Java source file must use the Shop prefix: " + path);
             assertFalse(source.matches(legacyTypeDeclaration),
                     "declared Java type must use the Shop prefix: " + path);
+            assertTrue(source.matches(shopTypeDeclaration),
+                    "Java source must declare a type using the Shop prefix: " + path);
         }
     }
 
@@ -162,9 +165,9 @@ class ShopArchitectureTest {
     @Test
     void multiJourneyE2eClassCreatesAnIsolatedBrowserContextPerTest() throws IOException {
         Path root = locateModuleRoot().resolve("src/test/java/atf/ui/tests/practiceshop/e2e");
-        for (String name : List.of("PurchaseE2eTest", "UiOnlyPurchaseE2eTest",
-                "UiOnlySingleFlowPurchaseE2eTest", "AuthenticatedPurchaseE2eTest",
-                "NewAccountPurchaseE2eTest")) {
+        for (String name : List.of("ShopPurchaseE2eTest", "ShopUiOnlyPurchaseE2eTest",
+                "ShopUiOnlySingleFlowPurchaseE2eTest", "ShopAuthenticatedPurchaseE2eTest",
+                "ShopNewAccountPurchaseE2eTest")) {
             String text = Files.readString(root.resolve(name + ".java"));
             assertTrue(text.contains("@ShopE2eTestSupport.WithE2eHarness"),
                     name + " must use the per-method browser/report extension");
@@ -180,7 +183,7 @@ class ShopArchitectureTest {
     @Test
     void authenticatedPurchaseScenariosContinueFromSetupThroughOrderConfirmation() throws IOException {
         Path root = locateModuleRoot().resolve("src/test/java/atf/ui/tests/practiceshop/e2e");
-        for (String name : List.of("NewAccountPurchaseE2eTest", "AuthenticatedPurchaseE2eTest")) {
+        for (String name : List.of("ShopNewAccountPurchaseE2eTest", "ShopAuthenticatedPurchaseE2eTest")) {
             String source = Files.readString(root.resolve(name + ".java"));
             assertTrue(source.contains("ShopAuthenticatedAccountTestSupport::prepare"),
                     name + " must complete account setup and login before the business scenario");

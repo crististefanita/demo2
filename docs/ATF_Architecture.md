@@ -583,13 +583,13 @@ flowchart LR
 
 </details>
 
-Un request rămâne deschis până când evidence-ul lui tehnic și contract validation
-asociată au fost publicate. Pentru API direct, validation-ul este nested sub
-request-ul evaluat, nu frate direct în fază; nu este mutat într-o listă globală
-și nu este ascuns într-un teardown. Mai multe assertions pentru același response
-formează un singur tabel. În raportul UI, UI validation și API validation sunt
-copii semantici ai aceluiași checkpoint, iar request-urile sunt dovezi sub API
-validation.
+Lifecycle-ul request-ului păstrează dovezile sub schimbul care le-a produs:
+
+- request-ul se închide numai după publicarea evidence-ului tehnic și a validării;
+- în API direct, `Contract validation` este copilul request-ului evaluat;
+- mai multe assertions pentru același response formează un singur tabel;
+- în UI, `UI validation` și `API validation` sunt copii ai aceluiași checkpoint,
+  iar request-urile rămân sub `API validation`.
 
 Responsabilități obligatorii:
 

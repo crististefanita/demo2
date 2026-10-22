@@ -29,14 +29,14 @@ class ShopE2eTestSupportTest {
     @Test
     void purchaseJourneysDeclareDistinctEvidenceProfiles() throws ClassNotFoundException {
         assertEquals(ShopE2eTestSupport.HarnessProfile.UI_ONLY,
-                Class.forName("atf.ui.tests.practiceshop.e2e.UiOnlyPurchaseE2eTest")
+                Class.forName("atf.ui.tests.practiceshop.e2e.ShopUiOnlyPurchaseE2eTest")
                         .getAnnotation(ShopE2eTestSupport.WithE2eHarness.class).profile());
         assertEquals(ShopE2eTestSupport.HarnessProfile.UI_API,
-                Class.forName("atf.ui.tests.practiceshop.e2e.PurchaseE2eTest")
+                Class.forName("atf.ui.tests.practiceshop.e2e.ShopPurchaseE2eTest")
                         .getAnnotation(ShopE2eTestSupport.WithE2eHarness.class).profile());
 
         var singleFlow = Class.forName(
-                        "atf.ui.tests.practiceshop.e2e.UiOnlySingleFlowPurchaseE2eTest")
+                        "atf.ui.tests.practiceshop.e2e.ShopUiOnlySingleFlowPurchaseE2eTest")
                 .getAnnotation(ShopE2eTestSupport.WithE2eHarness.class);
         assertEquals(ShopE2eTestSupport.HarnessProfile.UI_ONLY, singleFlow.profile());
         assertEquals(ShopE2eTestSupport.ReportFlow.UNIFIED_FLOW,
@@ -69,7 +69,7 @@ class ShopE2eTestSupportTest {
                 "class annotations may choose report flow but cannot override the YAML screenshot policy");
 
         var newAccountPurchaseClass = Class.forName(
-                "atf.ui.tests.practiceshop.e2e.NewAccountPurchaseE2eTest");
+                "atf.ui.tests.practiceshop.e2e.ShopNewAccountPurchaseE2eTest");
         var newAccountPurchaseHarness = newAccountPurchaseClass
                 .getAnnotation(ShopE2eTestSupport.WithE2eHarness.class);
         assertEquals(ReportScreenshotPolicy.EACH_CHECKPOINT,
@@ -86,10 +86,10 @@ class ShopE2eTestSupportTest {
         assertEquals(ReportUiActionDetailsMode.INCLUDED_COLLAPSED, included.actionDetailsMode());
 
         var authenticated = Class.forName(
-                        "atf.ui.tests.practiceshop.e2e.AuthenticatedPurchaseE2eTest")
+                        "atf.ui.tests.practiceshop.e2e.ShopAuthenticatedPurchaseE2eTest")
                 .getAnnotation(ShopTestSupport.AuthenticatedE2e.class);
         var authenticatedHarness = Class.forName(
-                        "atf.ui.tests.practiceshop.e2e.AuthenticatedPurchaseE2eTest")
+                        "atf.ui.tests.practiceshop.e2e.ShopAuthenticatedPurchaseE2eTest")
                 .getAnnotation(ShopE2eTestSupport.WithE2eHarness.class);
         assertEquals(ReportScreenshotPolicy.EACH_CHECKPOINT,
                 ShopE2eTestSupport.reportProfile(ShopConfigurationLoader.load(),

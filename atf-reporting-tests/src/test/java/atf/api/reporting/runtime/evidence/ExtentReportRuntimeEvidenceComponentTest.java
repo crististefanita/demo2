@@ -70,5 +70,15 @@ class ExtentReportRuntimeEvidenceComponentTest {
         assertFalse(ExtentReportRuntimeEvidenceFailures.script().contains("normalizeEvidenceDisclosures"));
         assertFalse(ExtentReportRuntimeEvidenceLifecycle.script().contains("function "));
     }
+
+    @Test
+    void phaseFailureDisclosureRequiresAFailedSourceEvent() {
+        String script = ExtentReportRuntimeEvidenceDisclosure.script();
+
+        assertTrue(script.contains("!row.querySelector('.fail-bg, .badge-danger')"),
+                "a neighboring trace alone must not convert an informational or passing event into Failure details");
+        assertTrue(script.contains("wrapEvidence(row,'failure-evidence','Failure details',failureBody)"),
+                "a genuine failed event must retain the compact failure disclosure");
+    }
 }
 

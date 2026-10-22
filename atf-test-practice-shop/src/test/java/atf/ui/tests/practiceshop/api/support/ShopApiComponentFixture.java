@@ -50,12 +50,11 @@ public final class ShopApiComponentFixture {
     /** Wraps a deterministic test transport so API-call audit suites retain its actual exchanges. */
     public static ApiTransport recordedTransport(ApiTransport delegate,
                                                  ApiTransportProvenance provenance) {
-        var recorder = ShopApiCallAuditContextTestSupport.currentRecorder();
-        if (recorder == null) return delegate;
+        if (!ShopApiCallAuditContextTestSupport.isRecording()) return delegate;
         return (request, url, auth) -> {
             long startedAt = System.nanoTime();
             return delegate.send(request, url, auth).thenApply(response -> {
-                recorder.accept(new ApiExecutionResult(response, 1,
+                ShopApiCallAuditContextTestSupport.capture(new ApiExecutionResult(response, 1,
                         Duration.ofNanos(System.nanoTime() - startedAt), List.of(), List.of(), request,
                         provenance));
                 return response;

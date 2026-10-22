@@ -41,6 +41,9 @@ public final class AtfReportMarkup {
                     .append(AtfReportLabels.TECHNICAL_TRACE)
                     .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.SPAN))
                     .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DIV));
+            html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.DIV,
+                    AtfReportHtmlVocabulary.classAttribute(
+                            AtfReportHtmlVocabulary.CssClass.ATF_TRACE_TABLE_WRAP)));
         }
         html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TABLE,
                 AtfReportHtmlVocabulary.classAttribute(cssClass)));
@@ -60,11 +63,12 @@ public final class AtfReportMarkup {
         html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.THEAD))
                 .append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TR));
         if (safeTable.headers().isEmpty()) {
-            return html.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TR))
+            html.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TR))
                     .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.THEAD))
                     .append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TBODY))
                     .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TBODY))
-                    .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TABLE)).toString();
+                    .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TABLE));
+            return closeTraceWrapper(html, cssClass).toString();
         }
         for (String value : safeTable.headers()) {
                     html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TH))
@@ -94,8 +98,16 @@ public final class AtfReportMarkup {
             }
             html.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TR));
         }
-        return html.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TBODY))
-                .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TABLE)).toString();
+        html.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TBODY))
+                .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TABLE));
+        return closeTraceWrapper(html, cssClass).toString();
+    }
+
+    private static StringBuilder closeTraceWrapper(StringBuilder html, String cssClass) {
+        if (isTraceTable(cssClass)) {
+            html.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DIV));
+        }
+        return html;
     }
 
     private static boolean isTraceTable(String cssClass) {

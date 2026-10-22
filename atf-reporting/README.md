@@ -242,7 +242,7 @@ TestCase
 | layout | `＋/−` este inline înaintea propoziției; Request details, Response details și Execution evidence sunt disclosures surori în request; Contract validation este copilul lui; UI/API validations sunt copii surori ale aceluiași checkpoint Gherkin |
 | responsive evidence | până la breakpoint-ul de lucru (`1300px`), action tables se redimensionează și împachetează conținutul fără scrollbar orizontal; padding-ul lateral al wrapperului este eliminat semantic, nu prin crop | 
 | tabele cu derulare | containerele folosesc `height:auto` și `max-height:var(--atf-table-scroll-height)`, derivat din `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT` (`500px` în prezent); conținutul scurt nu rezervă spațiu gol, conținutul lung derulează sub antetul fix, iar panourile JSON/cod nu intră în acest contract |
-| `TECHNICAL TRACE` | tabelul din `Response details` trebuie să folosească același container și plafon vertical; containerul nu cuprinde disclosure-ul exterior sau corpul JSON. Implementarea și proba de randare lipsă sunt urmărite în [feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md) |
+| `TECHNICAL TRACE` | toate tabelele `helm-trace-table` sunt învelite de markup-ul comun `atf-trace-table-wrap`; wrapperul folosește `height:auto`, `max-height:var(--atf-table-scroll-height)`, scroll vertical și header sticky. Se aplică în Extent și fallback, strict tabelului, nu disclosure-ului exterior sau JSON-ului |
 | action number | fiecare acțiune afișează `#n` într-un token dedicat, `atf-ui-action-number`, compact (`inline-block`/`max-content`); nu se reutilizează clasa extensibilă `atf-ui-action-sequence` |
 | screenshot | link inline cu emoji-ul curent; payload Base64 pentru prima apariție sau referință locală bounded (`screenshot-n`) pentru o stare deduplicată; fingerprint-ul rămâne intern și nu este afișat în locul linkului |
 | action table | acțiunile relevante includ `getText`/text extraction; timpul apare numai pentru acțiuni |
@@ -438,9 +438,9 @@ este plafonul comun, publicat ca `--atf-table-scroll-height`. Containerele au
 `height:auto` și `max-height` comun, astfel conținutul scurt nu rezervă spațiu
 gol, iar conținutul lung derulează în interiorul aceluiași plafon. Header-ele
 rămân fixe; contractul acoperă Overview, audit, dovezile UI, agregatele API și
-tabelul `TECHNICAL TRACE` din `Response details`. Pentru acesta din urmă, lipsa
-containerului și a probei de randare este un gol deschis, urmărit în
-[feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md).
+tabelul `TECHNICAL TRACE` din `Response details`. Markup-ul trace și CSS-ul
+viewportului sunt comune rendererelor Extent și fallback; proba browser verifică
+API direct și trace-ul API publicat ca frate cauzal al unui checkpoint UI.
 
 </details>
 

@@ -16,7 +16,7 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 @Execution(ExecutionMode.SAME_THREAD)
 @Order(3)
 @DisplayName("Guest purchase flow with UI and API evidence")
-public class PurchaseE2eTest {
+public class ShopPurchaseE2eTest {
     @Test
     @DisplayName("Configured guest can complete a demo purchase")
     void configuredGuestCanCompletePurchase(ShopE2eTestSupport.E2eHarness harness) {

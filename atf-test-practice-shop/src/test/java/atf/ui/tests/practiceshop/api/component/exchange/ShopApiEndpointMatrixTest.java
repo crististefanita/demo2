@@ -10,8 +10,10 @@ import atf.ui.practiceshop.api.ShopApiRoutes;
 import atf.ui.practiceshop.api.ShopPaymentMethod;
 import atf.ui.practiceshop.support.ShopJsonEvidence;
 import atf.ui.tests.practiceshop.api.support.ShopApiCallComponentTest;
+import atf.ui.tests.practiceshop.api.support.ShopApiCallAuditContextTestSupport;
 import atf.ui.tests.practiceshop.api.support.ShopApiComponentFixture;
 import atf.ui.tests.practiceshop.api.support.ShopApiScenarioFixture;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -26,11 +28,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ShopApiEndpointMatrixTest {
     private static final ShopApiRequestFactory REQUESTS = new ShopApiRequestFactory();
 
+    @Test
+    void endpointCasesUseConciseBusinessDisplayNames() {
+        assertTrue(endpointCases().allMatch(scenario -> scenario.toString().equals(scenario.name())
+                        && !scenario.toString().contains("method=")
+                        && !scenario.toString().contains("requestSupplier=")),
+                "parameterized report titles must show the business case, not record implementation fields");
+    }
+
     @ParameterizedTest(name = "{0}")
     @MethodSource("endpointCases")
     void endpointExchangeMatchesItsMethodRouteStatusAndJsonContract(
             ShopApiEndpointCase scenario) {
         ApiRequest request = scenario.requestSupplier().create();
+        ShopApiCallAuditContextTestSupport.expectNext(scenario.name(), scenario.status());
         var execution = ShopApiComponentFixture.client().execute(request);
         var response = execution.response();
 
@@ -142,7 +153,12 @@ class ShopApiEndpointMatrixTest {
 
     private record ShopApiEndpointCase(String name, String method, String path,
                                        ShopApiHttpStatus status,
-                                       ShopApiRequestSupplier requestSupplier) { }
+                                       ShopApiRequestSupplier requestSupplier) {
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
 
     @FunctionalInterface
     private interface ShopApiRequestSupplier {

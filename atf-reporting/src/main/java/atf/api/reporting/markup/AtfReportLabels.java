@@ -24,6 +24,7 @@ public final class AtfReportLabels {
                     + " not re-embedded to avoid duplicating the same bytes.";
     public static final String REQUEST_DETAILS = "Request details";
     public static final String RESPONSE_DETAILS = "Response details";
+    public static final String AUDIT_DETAILS = "Audit details";
     public static final String TECHNICAL_TRACE = "TECHNICAL TRACE";
     public static final String REQUEST_JSON = "REQUEST JSON";
     public static final String RESPONSE_JSON = "RESPONSE JSON";
@@ -65,6 +66,10 @@ public final class AtfReportLabels {
 
     public static String responseDetails(int fields) {
         return String.format("%s · %d fields", RESPONSE_DETAILS, fields);
+    }
+
+    public static String auditDetails(int fields) {
+        return String.format("%s · %d fields", AUDIT_DETAILS, fields);
     }
 
     public static String requestDetails(int fields) {

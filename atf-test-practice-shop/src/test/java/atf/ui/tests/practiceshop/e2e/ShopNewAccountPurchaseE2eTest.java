@@ -21,7 +21,7 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 @Execution(ExecutionMode.SAME_THREAD)
 @Order(1)
 @DisplayName("New account authenticated purchase")
-public class NewAccountPurchaseE2eTest {
+public class ShopNewAccountPurchaseE2eTest {
     @Test
     @DisplayName("A newly registered and signed-in customer completes a purchase")
     void newAccountCanCompletePurchase(ShopE2eTestSupport.E2eHarness harness) {

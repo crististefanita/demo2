@@ -43,6 +43,9 @@ class AtfReportSemanticSnapshotTest {
             fallback.close();
 
             assertEquals(extentSnapshot, fallbackSnapshot);
+            assertTrue(Files.readString(root.resolve("extent.html"))
+                            .contains("Audit details · 1 fields"),
+                    "phase-level audit metadata must not be mislabeled as HTTP response details");
             assertEquals(1, extentSnapshot.classes().size());
             assertEquals(1, extentSnapshot.scenarioCount());
             assertEquals(1, extentSnapshot.requestCount());

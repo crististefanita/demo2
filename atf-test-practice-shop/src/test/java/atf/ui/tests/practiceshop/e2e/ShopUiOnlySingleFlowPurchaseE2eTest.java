@@ -20,7 +20,7 @@ import java.util.List;
 @Execution(ExecutionMode.SAME_THREAD)
 @Order(5)
 @DisplayName("Guest UI-only single-flow purchase")
-public class UiOnlySingleFlowPurchaseE2eTest {
+public class ShopUiOnlySingleFlowPurchaseE2eTest {
     @Test
     @DisplayName("Configured guest completes one auditable UI purchase flow")
     void configuredGuestCompletesOneUiOnlyFlow(

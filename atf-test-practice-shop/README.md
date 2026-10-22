@@ -252,33 +252,42 @@ Principiul de selecție:
 
 ### Suitele de componente API și auditul apelurilor
 
-`ShopApiComponentSuite` este punctul de lansare pentru toate contractele API
-deterministe din `api/component`. `ShopApiEndpointMatrixTest` verifică printr-o
-matrice parametrizată rutele produse de fabrica de cereri și folosite în fluxul
-de achiziție, inclusiv înregistrarea contului, factura autentificată și factura
-pentru vizitator. Pentru fiecare caz verifică metoda HTTP, ruta, codul de stare,
-antetele JSON, validitatea sintactică a corpurilor și rezultatul transportului de
-test; testele fabricii verifică separat câmpurile din corpul cererii. Cazurile
-negative includ date de autentificare invalide, resursă inexistentă, produs
-invalid în coș și date obligatorii lipsă pentru factura vizitatorului
-(`401`, `404`, `422`); înregistrarea contului și crearea coșului verifică
-răspunsul `201`, facturile autentificată și guest verifică `200`, iar eliminarea
-produsului din coș verifică răspunsul `204`.
+`ShopApiComponentSuite` grupează contractele deterministe din `api/component`:
 
-Body-urile JSON sunt DTO-uri tipizate în `ShopApiRequestBodies`, iar
-`ShopApiRequestFactory` rămâne fabrică pură: selectează metoda, ruta și
-autentificarea, apoi serializează payload-ul. Strategia Jackson transformă
-câmpurile Java în `snake_case`; câmpurile opționale nule ale facturii sunt
-omise. `ShopApiRequestFactoryTest` verifică forma pe fir, inclusiv faptul că
-nu apar chei camelCase. Astfel matricea de schimburi acoperă metoda/ruta/statusul
-și JSON-ul valid, iar testele fabricii protejează schema efectivă a cererilor.
+- `ShopApiEndpointMatrixTest` verifică rutele folosite în achiziție, inclusiv
+  înregistrarea, facturarea autentificată și facturarea guest;
+- fiecare caz verifică metoda, ruta, statusul, antetele JSON, sintaxa body-ului
+  și rezultatul transportului determinist;
+- cazurile negative acoperă credentiale invalide, resursă inexistentă, produs
+  invalid în coș și câmpuri obligatorii lipsă (`401`, `404`, `422`);
+- înregistrarea și crearea coșului verifică `201`, facturile verifică `200`, iar
+  eliminarea produsului verifică `204`;
+- testele fabricii verifică separat schema efectivă a cererii.
 
-Contractul de status pentru crearea facturii este aliniat: matricea de
-schimburi și fixture-ul determinist verifică `200` atât pentru
-`POST /invoices`, cât și pentru `POST /invoices/guest`, conform
-[specificației OpenAPI publicate](https://api.practicesoftwaretesting.com/docs?api-docs.json).
-Fixture-ul verifică determinist contractul ATF; nu este prezentat ca trafic
-real și nu înlocuiește validarea E2E a serviciului.
+Titlul unui caz parametrizat exprimă intenția de business; metadatele protocolului
+rămân la schimbul API:
+
+- titlu: `login rejects invalid fixture identity`;
+- request/report: metoda, ruta, statusul așteptat și probele JSON;
+- nu duplicăm aceste metadate în titlu și nu folosim `toString()` implicit al
+  unui record de fixture.
+
+Responsabilitățile request-ului sunt separate:
+
+- `ShopApiRequestBodies` definește DTO-urile tipizate pentru JSON;
+- `ShopApiRequestFactory` selectează metoda, ruta și autentificarea și
+  serializează payload-ul;
+- strategia Jackson convertește câmpurile în `snake_case` și omite câmpurile
+  opționale nule ale facturii;
+- `ShopApiRequestFactoryTest` protejează forma pe fir și respinge chei
+  `camelCase`; matricea protejează metoda, ruta, statusul și JSON-ul valid.
+
+Contractul facturării este protejat de matrice și fixture-ul determinist:
+
+- `POST /invoices` și `POST /invoices/guest` verifică statusul `200`, conform
+  [specificației OpenAPI](https://api.practicesoftwaretesting.com/docs?api-docs.json);
+- fixture-ul verifică contractul ATF, nu trafic real; validarea serviciului
+  real rămâne responsabilitatea E2E.
 
 Lansare reproductibilă din IntelliJ: rulează `ShopApiComponentSuite`. Din Maven,
 din root-ul ATF:
@@ -287,15 +296,16 @@ din root-ul ATF:
 mvn -pl atf-test-practice-shop -am "-Dtest=ShopApiComponentSuite" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
-Testele de schimb HTTP marcate `@ShopApiCallComponentTest` sunt grupate de
-extensia de audit într-un raport Extent, în directorul API configurat de
-Practice Shop (`artifacts/reports/api`). Verdictul JUnit aparține scenariului;
-fiecare schimb capturat păstrează metoda și ruta, detaliile cererii și
-răspunsului, precum și dovezile execuției. Completitudinea aparține auditului,
-nu unui request. Alinierea publisherului cu această semantică este încă
-deschisă; vezi [feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md).
-Suita nu trimite cereri către serviciul public: schimburile provin din
-transporturi deterministe.
+Extensia grupează testele `@ShopApiCallComponentTest` într-un raport Extent:
+
+- destinație: directorul API configurat de Practice Shop;
+- fiecare schimb păstrează metoda/ruta, detaliile request/response și execuția;
+- `Contract validation` apare doar când schimbului îi este asociat un contract
+  HTTP tipizat; statusul așteptat este comparat cu cel observat;
+- verdictul JUnit aparține scenariului, iar completitudinea capturii este
+  publicată o singură dată la nivel de audit;
+- auditul nu repetă verdictul JUnit sau numărul total de schimburi per request;
+- suita folosește transporturi deterministe și nu apelează serviciul public.
 `ShopApiCallAuditSuite` rulează numai selecția de teste pentru audit, în timp ce
 `ShopApiComponentSuite` include și componentele fără schimburi HTTP.
 

@@ -239,19 +239,17 @@ verificare în browser: verifică 0/1/multe categorii și măsoară fixture-uri 
 pentru conținut scurt/lung, la lățimea configurată și la `591px`. Raportul de
 audit se publică prin `ReportAuditContext` / ATF Debug.
 
-Invarianturile browser sunt:
+Invarianturile de randare sunt:
 
-- în cele șapte suprafețe acoperite în prezent (Overview categories,
-  System/Environment, tag audit, Playwright actions, Audit/Assertions, Unique
-  request signatures, Technical diagnostics), `scrollWidth <= clientWidth`,
+- în cele opt suprafețe măsurate în browser (Overview categories,
+  System/Environment, tag audit, Playwright actions, Audit/Assertions,
+  `TECHNICAL TRACE`, Unique request signatures, Technical diagnostics),
+  `scrollWidth <= clientWidth`,
   `max-height` folosește plafonul comun `500px`, iar conținutul scurt rămâne
   natural, fără înălțime goală;
-- tabelul `TECHNICAL TRACE` din `Response details` nu este încă inclus în proba
-  de dimensiune verticală în browser; trebuie adăugat cu conținut scurt și lung
-  pentru Extent și rendererul alternativ, atât în API direct, cât și în schimbul
-  API atașat unui pas UI.
-  Criteriile de acceptare sunt în
-  [feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md);
+- `TECHNICAL TRACE` este măsurat în API direct și în schimbul API publicat lângă
+  checkpoint-ul UI, pentru date scurte și lungi; testele de markup și CSS
+  verifică aceeași structură și același token în rendererul fallback;
 - pentru conținut lung, ultimul rând rămâne accesibil, antetul tabelului rămâne
   fix, iar zona scrollabilă nu depășește plafonul comun;
 - rândurile Network Inspector `Unique request signatures` și

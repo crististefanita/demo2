@@ -1,30 +1,31 @@
-# ATF Java — cerințe chirurgicale pentru AI evaluation
+# ATF Java — cerințe pentru evaluarea AI
 
 ## Pe scurt
 
-Acest document este feedback normativ pentru două capabilități distincte: workflow-ul
-AI-assisted care propune schimbări și AI evaluation care evaluează output-ul observat.
-Este destinat echipei ATF Java și stabilește contracte, dovezi și guard-uri de
-guvernanță care trebuie validate înaintea implementării.
+Acest document este feedback normativ pentru două capabilități distincte: fluxul
+de lucru asistat de AI, care propune schimbări, și evaluarea AI, care evaluează
+rezultatul observat. Este destinat echipei ATF Java și stabilește contracte,
+dovezi și controale de guvernanță ce trebuie validate înaintea implementării.
 
 Acesta este documentul unic pentru cerințele AI și pentru feedback-ul comparativ
 derivat din ATF1 și suita .NET de referință. Nu există un al doilea contract
 normativ: secțiunile 34–42 păstrează auditul live, deciziile de adoptare,
 limitele de copiere și ordinea de implementare.
 
-- owner: ATF Java, cu validare în `atf-tests`;
-- scope: evaluare AI, creare asistată de teste și handoff auditabil;
-- out of scope: securitate, secrete, CLI și metodologia completă a ATF1;
-- implementat: comparator field-level, missing/invented critical,
-  invocation/evidence, grounding per field și snapshot-ul immutable `COMPLETE`;
-- închis: package cohesion prin separarea semantică a responsabilităților;
+- responsabil: ATF Java, cu validare în `atf-tests`;
+- domeniu: evaluare AI, creare asistată de teste și transfer auditabil;
+- în afara domeniului: securitate, secrete, CLI și metodologia completă a ATF1;
+- implementat: comparator la nivel de câmp, lipsuri/invenții critice,
+  invocare/dovezi, fundamentare per field și instantaneul imuabil `COMPLETE`;
+- închis: coeziunea pachetelor prin separarea semantică a responsabilităților;
 - rămas: clasificarea efectivă `AMBIGUOUS` (valoarea există în enum, dar
-  evaluatorul nu o produce și nu are test negativ), provider, run-level evidence
-  ledger, reporting, review/state și workflow agentic.
+  evaluatorul nu o produce și nu are test negativ), providerul AI, registrul de
+  dovezi la nivel de rulare, raportarea, revizuirea/starea și fluxul agentic.
 
-Regula de integrare este chirurgicală: se preiau contracte observabile, ownership,
-deduplicare, evidence și guard-uri; nu se copiază business-ul, scorurile,
-orchestratorul runtime sau ceremonia de package/run din sursele de comparație.
+Regula de integrare este chirurgicală: se preiau contracte observabile,
+responsabilități, deduplicare, dovezi și controale; nu se copiază logica de
+business, scorurile, orchestratorul de execuție sau ritualul de pachet/rulare din
+sursele de comparație.
 
 ## 1. Scop și limită
 

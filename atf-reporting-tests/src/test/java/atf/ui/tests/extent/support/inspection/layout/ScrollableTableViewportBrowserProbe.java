@@ -1,6 +1,7 @@
 package atf.ui.tests.extent.support.inspection.layout;
 
 import atf.api.reporting.ui.contract.ReportUiContract;
+import atf.api.reporting.theme.tokens.AtfReportThemeTokens;
 import atf.api.ui.config.UiBrowserConfiguration;
 import atf.ui.tests.extent.support.api.ApiReportUiFlow;
 import atf.ui.tests.extent.support.lifecycle.UiAuditFlow;
@@ -16,7 +17,8 @@ import java.util.Objects;
 /** Measures the published table viewport contract at standard and narrow CSS viewports. */
 public final class ScrollableTableViewportBrowserProbe {
     public static final int NARROW_VIEWPORT_WIDTH = 591;
-    public static final int SHARED_SCROLL_CAP_PX = 500;
+    public static final int SHARED_SCROLL_CAP_PX = Integer.parseInt(
+            AtfReportThemeTokens.TABLE_SCROLL_HEIGHT.replace("px", ""));
     public static final int NESTED_AGGREGATE_SUMMARY_HEIGHT_PX = 34;
     private static final String UI_FIXTURE_OWNER = "ScrollableTableFixture";
     private static final String API_FIXTURE_OWNER = "ScrollableApiAggregateFixture";
@@ -93,10 +95,12 @@ public final class ScrollableTableViewportBrowserProbe {
             new NamedSelector("Tag audit", ".atf-tag-scroll"));
     private static final List<NamedSelector> UI_TEST_SELECTORS = List.of(
             new NamedSelector("Playwright actions", ".atf-ui-action-table-wrap"),
-            new NamedSelector("Audit/Assertions", ".atf-validation-table-wrap"));
+            new NamedSelector("Audit/Assertions", ".atf-validation-table-wrap"),
+            new NamedSelector("TECHNICAL TRACE", ".atf-trace-table-wrap"));
     private static final List<NamedSelector> API_TEST_SELECTORS = List.of(
             new NamedSelector("Unique request signatures", ".network-signature-list.network-aggregate-scroll"),
-            new NamedSelector("Technical diagnostics", ".network-diagnostic-list.network-aggregate-scroll"));
+            new NamedSelector("Technical diagnostics", ".network-diagnostic-list.network-aggregate-scroll"),
+            new NamedSelector("TECHNICAL TRACE", ".atf-trace-table-wrap"));
 
     public Result inspect(UiAuditFlow uiFlow, UiAuditFlow apiFlow, UiBrowserConfiguration browser,
                           ScrollableTableReportFixture.Density density) {
@@ -301,7 +305,7 @@ public final class ScrollableTableViewportBrowserProbe {
             if (measurements.stream().anyMatch(measurement -> !measurement.valid())) return false;
             List<String> expectedSurfaces = List.of("Overview categories", "System/Environment",
                     "Tag audit", "Playwright actions", "Audit/Assertions",
-                    "Unique request signatures", "Technical diagnostics");
+                    "TECHNICAL TRACE", "Unique request signatures", "Technical diagnostics");
             if (expectedSurfaces.stream().anyMatch(expected -> measurements.stream()
                     .noneMatch(measurement -> measurement.surface().startsWith(expected)))) return false;
             for (String viewport : List.of("standard", "narrow")) {
@@ -319,6 +323,12 @@ public final class ScrollableTableViewportBrowserProbe {
                         .map(SummaryGeometry::kind).distinct().count() != 2) return false;
                 boolean hasLongContent = atViewport.stream().anyMatch(Measurement::longContent);
                 if (expectsLongContent != hasLongContent) return false;
+                List<Measurement> traces = atViewport.stream()
+                        .filter(measurement -> measurement.surface().startsWith("TECHNICAL TRACE"))
+                        .toList();
+                if (traces.isEmpty() || (expectsLongContent
+                        ? traces.stream().noneMatch(Measurement::longContent)
+                        : traces.stream().anyMatch(Measurement::longContent))) return false;
             }
             return true;
         }
@@ -332,7 +342,7 @@ public final class ScrollableTableViewportBrowserProbe {
             if (measurements.isEmpty()) violations.add("no visible scroll viewport was measured");
             List<String> expectedSurfaces = List.of("Overview categories", "System/Environment",
                     "Tag audit", "Playwright actions", "Audit/Assertions",
-                    "Unique request signatures", "Technical diagnostics");
+                    "TECHNICAL TRACE", "Unique request signatures", "Technical diagnostics");
             for (String viewport : List.of("standard", "narrow")) {
                 List<Measurement> atViewport = measurements.stream()
                         .filter(measurement -> measurement.viewport().equals(viewport)).toList();
@@ -340,6 +350,16 @@ public final class ScrollableTableViewportBrowserProbe {
                         .noneMatch(measurement -> measurement.surface().startsWith(expected)))
                         .map(expected -> "missing " + viewport + " surface: " + expected)
                         .forEach(violations::add);
+                List<Measurement> traces = atViewport.stream()
+                        .filter(measurement -> measurement.surface().startsWith("TECHNICAL TRACE"))
+                        .toList();
+                if (traces.isEmpty()) {
+                    violations.add("missing " + viewport + " TECHNICAL TRACE viewport");
+                } else if (expectsLongContent && traces.stream().noneMatch(Measurement::longContent)) {
+                    violations.add("long " + viewport + " TECHNICAL TRACE did not overflow into its own scroll viewport");
+                } else if (!expectsLongContent && traces.stream().anyMatch(Measurement::longContent)) {
+                    violations.add("short " + viewport + " TECHNICAL TRACE reserved a scroll viewport");
+                }
                 List<SummaryGeometry> summariesAtViewport = aggregateSummaries.stream()
                         .filter(summary -> summary.viewport().equals(viewport)).toList();
                 if (summariesAtViewport.size() != 2) {

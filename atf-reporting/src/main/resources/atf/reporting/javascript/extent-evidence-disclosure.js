@@ -193,6 +193,7 @@ function normalizePhaseFailureDisclosures() {
       if (
         !next ||
         row.querySelector('details') ||
+        !row.querySelector('.fail-bg, .badge-danger') ||
         !next.querySelector('.helm-trace-table')
       )
         continue;
