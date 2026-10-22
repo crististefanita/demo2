@@ -5,6 +5,9 @@ import atf.api.core.config.ApiTransportMode;
 import atf.api.reporting.configuration.ReportingSettings;
 import atf.api.reporting.configuration.ReportEnvironmentField;
 import atf.api.reporting.configuration.ReportEnvironmentSnapshot;
+import atf.api.reporting.evidence.ReportScreenshotPolicy;
+import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
+import atf.api.reporting.evidence.profile.ReportEvidenceProfile;
 
 import java.net.URI;
 import java.time.Duration;
@@ -24,7 +27,7 @@ public final class PracticeShopReportSystemMetadata {
     /** Builds the allowlisted form consumed by the reporting composition root. */
     public static ReportEnvironmentSnapshot snapshot(PracticeShopConfiguration configuration) {
         if (configuration == null) return ReportEnvironmentSnapshot.empty();
-        return snapshotValues(configuration).build();
+        return snapshotValues(configuration, configuredEvidenceProfile(configuration)).build();
     }
 
     /**
@@ -34,12 +37,24 @@ public final class PracticeShopReportSystemMetadata {
      */
     public static ReportEnvironmentSnapshot snapshot(PracticeShopConfiguration configuration,
                                                      ReportingSettings reportingSettings) {
+        return snapshot(configuration, reportingSettings,
+                configuration == null ? ReportEvidenceProfile.defaults()
+                        : configuredEvidenceProfile(configuration));
+    }
+
+    /** Uses the resolved profile actually passed to the reporting session. */
+    public static ReportEnvironmentSnapshot snapshot(PracticeShopConfiguration configuration,
+                                                     ReportingSettings reportingSettings,
+                                                     ReportEvidenceProfile evidenceProfile) {
         if (reportingSettings == null) throw new NullPointerException("reportingSettings");
-        return snapshot(configuration);
+        if (configuration == null) return ReportEnvironmentSnapshot.empty();
+        if (evidenceProfile == null) throw new NullPointerException("evidenceProfile");
+        return snapshotValues(configuration, evidenceProfile).build();
     }
 
     private static ReportEnvironmentSnapshot.Builder snapshotValues(
-            PracticeShopConfiguration configuration) {
+            PracticeShopConfiguration configuration,
+            ReportEvidenceProfile evidenceProfile) {
         return ReportEnvironmentSnapshot.builder()
                 .put(ReportEnvironmentField.ENVIRONMENT,
                         System.getProperty(ENVIRONMENT_PROPERTY, "LOCAL"))
@@ -71,9 +86,9 @@ public final class PracticeShopReportSystemMetadata {
                         String.format("%,d characters · full JSON remains in checkpoint evidence",
                                 configuration.reporting().systemBodyPreviewCharacters()))
                 .put(ReportEnvironmentField.SCREENSHOT_POLICY,
-                        PracticeShopScreenshotPolicy.profile(
-                                configuration.browser().screenshotOnFailure())
-                                .screenshotPolicy().configValue())
+                        screenshotPolicy(evidenceProfile.screenshotPolicy()))
+                .put(ReportEnvironmentField.UI_EVIDENCE_LAYOUT,
+                        evidenceLayout(evidenceProfile.flowMode()))
                 .put(ReportEnvironmentField.UI_TIMEOUT,
                         humanDuration(configuration.browser().timeout()))
                 .put(ReportEnvironmentField.NAVIGATION_TIMEOUT,
@@ -86,6 +101,26 @@ public final class PracticeShopReportSystemMetadata {
                                 : "Fixture transport boundary")
                 .put(ReportEnvironmentField.REPORTING,
                         "Extent offline HTML · UI/API output roles separated");
+    }
+
+    private static ReportEvidenceProfile configuredEvidenceProfile(
+            PracticeShopConfiguration configuration) {
+        return PracticeShopScreenshotPolicy.profile(configuration.browser().screenshotOnFailure());
+    }
+
+    private static String evidenceLayout(ReportEvidenceFlowMode flowMode) {
+        return flowMode == ReportEvidenceFlowMode.UNIFIED_FLOW
+                ? "One consolidated flow" : "Checkpoint-by-checkpoint";
+    }
+
+    private static String screenshotPolicy(ReportScreenshotPolicy policy) {
+        return switch (policy) {
+            case EACH_CHECKPOINT -> "Each checkpoint";
+            case FINAL_ONLY -> "Final screenshot only";
+            case FAILURE_ONLY -> "Failures only";
+            case FINAL_AND_FAILURE -> "Final screenshot + failures";
+            case NONE -> "Disabled";
+        };
     }
 
     /**

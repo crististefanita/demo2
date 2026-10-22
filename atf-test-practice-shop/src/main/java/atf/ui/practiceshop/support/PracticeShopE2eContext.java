@@ -6,6 +6,7 @@ import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.configuration.AtfReportConfigurationLoader;
+import atf.api.reporting.evidence.profile.ReportEvidenceProfile;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.model.ReportScreenshot;
 import atf.api.reporting.model.ReportExecutionEvidence;
@@ -54,7 +55,7 @@ public final class PracticeShopE2eContext implements AutoCloseable {
     }
 
     public static PracticeShopE2eContext open(PracticeShopConfiguration configuration,
-                                               atf.api.reporting.evidence.profile.ReportEvidenceProfile evidenceProfile) {
+                                               ReportEvidenceProfile evidenceProfile) {
         String file = "ui-atf-practice-shop-e2e_"
                 + STAMP.withZone(Clock.systemDefaultZone().getZone()).format(Clock.systemDefaultZone().instant())
                 + ".html";
@@ -65,7 +66,7 @@ public final class PracticeShopE2eContext implements AutoCloseable {
                 atf.api.reporting.console.AtfConsoleSink.noOp(),
                 evidenceProfile,
                 PracticeShopReportSystemMetadata.snapshot(configuration,
-                        reportConfiguration.reportingSettings()));
+                        reportConfiguration.reportingSettings(), evidenceProfile));
         try {
             PlaywrightUiSession browser = PlaywrightUiSession.open(configuration.browser(), console);
             PracticeShopBrowserCaptureProvider browserCaptureProvider =

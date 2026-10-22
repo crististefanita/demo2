@@ -25,6 +25,7 @@ public enum ReportEnvironmentField {
     RETRY_POLICY("Retry policy", "Network"),
     BODY_PREVIEW("Body preview", "Evidence"),
     API_EVIDENCE("API evidence", "Evidence"),
+    UI_EVIDENCE_LAYOUT("UI evidence layout", "Evidence"),
     SCREENSHOT_POLICY("Screenshot policy", "Evidence"),
     REPORTING("Reporting", "Reporting"),
     REPORT_ARTIFACT("Report artifact", "Reporting");
