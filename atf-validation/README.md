@@ -96,12 +96,15 @@ publică statusul calculat și se închide determinist. Consumerul poate adapta
 această evidence către portul reporting pe care îl folosește; `atf-reporting`
 nu importă acest modul și nu primește direct `ValidationDecision`.
 
-Același contract este reutilizabil și pentru testele UI. Un pas Playwright nu
-inventează un format de assertions: construiește `AtfAssertion` pentru
-verificările efectuate în pagină și le trimite prin `UiExtentReportSession` către
-același renderer de tabel agregat (`ASSERTION`, `EXPECTED`, `ACTUAL`, `RESULT`).
-Astfel API și UI păstrează aceeași formă de validare, dar fiecare test își
-publică propriul artifact Extent și propriul verdict.
+Și testele UI folosesc același contract de assertions:
+
+```text
+Playwright check → AtfAssertion → UiExtentReportSession
+                 → ASSERTION | EXPECTED | ACTUAL | RESULT
+```
+
+API și UI împart forma tabelului, nu verdictul: fiecare test publică propriul
+artifact Extent și propriul rezultat.
 
 ```mermaid
 sequenceDiagram

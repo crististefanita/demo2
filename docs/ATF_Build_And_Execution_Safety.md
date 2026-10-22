@@ -281,12 +281,12 @@ promovare selectivă numai dacă baseline-ul este neschimbat
 re-citire live și verificare a ownerului/documentației
 ```
 
-Dacă live-ul conține o modificare mai nouă sau o mutare făcută de alt proces,
-acea modificare se păstrează și se integrează punctual; nu se reintroduc fișiere
-șterse din staging doar pentru că existau în copia inițială. Un fișier absent din
-staging nu este autorizație de ștergere în live. Orice conflict devine ToDo
-explicit și oprește doar promovarea fișierului conflictual, nu rulările active
-și nu celelalte fișiere aprobate.
+La reconciliere, live-ul rămâne autoritar pentru modificările apărute în paralel:
+
+- modificările noi și mutările se păstrează și se integrează punctual;
+- fișierul absent din staging nu autorizează ștergerea lui din live;
+- conflictul devine ToDo explicit și oprește promovarea acelui fișier;
+- celelalte fișiere aprobate și rulările active pot continua.
 
 ## Raportul din staging
 

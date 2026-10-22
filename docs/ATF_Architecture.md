@@ -16,12 +16,11 @@ cunoaște rutele sau intenția unui test de produs.
 | Practice Shop consumer | `atf-test-practice-shop` | journey de purchase, config, pages, flow-uri și locatori | component + E2E |
 | guvernanță whole-ATF | `atf-tests` | graph, dependency direction și architecture boundary | architecture/component |
 
-`atf-reporting` este biblioteca reutilizabilă, nu composition root-ul suitei.
-Poate fi construită și testată singură; compoziția API/mock și proof-ul
-component/integration/browser sunt demonstrate de `atf-reporting-tests`, iar
-regulile asupra întregului reactor sunt deținute de `atf-tests`. Feedback-ul
-activ nu redefinește aceste contracte: păstrează doar riscuri reproductibile
-care mai pot schimba codul sau packaging-ul.
+- `atf-reporting` este biblioteca standalone și nu compune suita;
+- `atf-reporting-tests` dovedește integrarea API/mock și randarea browser;
+- `atf-tests` deține guvernanța întregului reactor;
+- feedback-ul activ păstrează numai riscuri reproductibile care pot schimba
+  codul sau packaging-ul; nu redefinește contractele închise.
 
 ### Harta modulelor: platformă și consumatori
 
@@ -134,14 +133,12 @@ Limitele de compoziție și ownership sunt:
 | atf-test-practice-shop | testele aplicației consumatoare, config/flows/locators/pages și purchase E2E | renderer, publisher și guvernanța whole-ATF |
 | atf-tests | guvernanța whole-ATF și gates de arhitectură | teste de produs și contracte interne ale `atf-reporting` |
 
-Regula practică: dacă verificarea este despre renderer, markup, CSS/JavaScript,
-snapshot, contract sau publisher și poate rula cu un fake fără browser, testul
-aparține în `atf-reporting`. Dacă verificarea dovedește un scenariu API/UI,
-setup-ul JUnit, integrarea cu mock-ul ori comportamentul DOM/computed-style al
-raportului aparține în `atf-reporting-tests/src/test/java`; comportamentul unei
-aplicații reale aparține în modulul consumer, de exemplu `atf-test-practice-shop`.
-Un serviciu real este testat doar printr-un scenariu
-explicit opt-in; nu este implicit în niciunul dintre aceste niveluri.
+| **Dovada cerută** | **Owner** |
+|---|---|
+| fake-ul poate valida modelul, rendererul, markup-ul sau publisherul | `atf-reporting` |
+| trebuie verificată compoziția JUnit/mock ori randarea raportului | `atf-reporting-tests` |
+| trebuie verificat comportamentul aplicației | modulul consumer, de exemplu `atf-test-practice-shop` |
+| trebuie contactat un serviciu real | test separat, opt-in explicit |
 
 ## Limitele de responsabilitate ale testelor API și auditului UI
 
@@ -337,12 +334,12 @@ Nu se introduce în raport un URL de fallback inventat și nu se declară că un
 endpoint a fost contactat dacă a fost folosit `AtfMockTransport`. Pentru live,
 operatorul completează credențialele redacted înainte de a executa cURL-ul.
 
-Testele live sunt opt-in prin `-Datf.api.live.optIn=true` sau
-`ATF_API_LIVE_OPT_IN=true`, iar baza URL este explicită prin `api.baseUri`.
-`ApiLiveTransportCatalog` este adaptorul public pentru endpoint-uri live numite;
-el respinge atât politica acceptance, cât și placeholder-ul `https://atf.local`.
-Testele acceptance nu consultă catalogul și nu pot fi convertite implicit în
-teste de rețea.
+| Control live | Contract |
+|---|---|
+| opt-in | `-Datf.api.live.optIn=true` sau `ATF_API_LIVE_OPT_IN=true` |
+| target | `api.baseUri` numit explicit |
+| adapter | `ApiLiveTransportCatalog` respinge politica acceptance și placeholder-ul `https://atf.local` |
+| acceptance | nu consultă catalogul și nu devine implicit test de rețea |
 
 ## Vocabularul rutelor
 
@@ -507,12 +504,14 @@ flowchart LR
 
 </details>
 
-`ReportExecutionModel` rămâne optimizat pentru proiecțiile fallback
-(`Overview`, `Categories`, `Fails`), iar `AtfReportSemanticSnapshot` rămâne
-contractul lifecycle-ului Extent. Adapterul comun compară class → scenario →
-phase → request → validation, package-ul și evidence counts înainte de
-publicare; modelele nu sunt duplicate accidental și nu trebuie unificate prin
-forțarea aceleiași structuri interne.
+| Model | Owner | Rol |
+|---|---|---|
+| `ReportExecutionModel` | fallback | proiecțiile `Overview`, `Categories`, `Fails` |
+| `AtfReportSemanticSnapshot` | Extent lifecycle | contractul semantic al sesiunii |
+
+Adapterul comun verifică înainte de publicare arborele `class → scenario → phase
+→ request → validation`, package-ul și evidence counts. Modelele rămân separate;
+parity-ul nu cere aceeași structură internă.
 
 ### Evoluție controlată și redeschidere
 

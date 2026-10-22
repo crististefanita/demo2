@@ -19,16 +19,16 @@ run și istoricul screenshot-urilor nu sunt backlog.
 |---:|---|---:|---:|---:|---:|---:|---:|---|
 | 1 | [AI evaluation](README_AI_Evaluation.md) | 34 | 26 | 12 | 6 | 0.30 | **23** | clasificarea `AMBIGUOUS` (enum-ul există, evaluatorul nu o produce), run ledger, review-state, reporting parity, regression delta și publication path; grounding per field, snapshot-ul immutable și package cohesion sunt deja demonstrate |
 
-- Protecțiile pentru PNG, redaction, API binding, journal, precondiția guest,
-  ordinale Playwright și journey summary au owneri și teste. Guest purchase
-  `UI_API`, ambele flow-uri `UI_ONLY` și flow-urile E2E autentificate sunt
-  acoperite. `AuthenticatedPurchaseE2eTest` și `NewAccountPurchaseE2eTest`
-  înregistrează și autentifică un cont sintetic în `SETUP`, apoi finalizează
-  purchase-ul; adnotările permit rularea individuală fără VM options. Un test
-  account/catalog separat nu face parte din cerința activă. Read-only assertions
-  nu justifică acțiuni Playwright inventate. Reporting generic nu are gap activ;
-  coverage matrix păstrează dovezile Network Inspector pentru projection,
-  renderer și publication.
+- **Acoperit și testat:** PNG, redaction, API binding, journal, precondiția
+  guest, ordinale Playwright, journey summary și Network Inspector.
+- **Flow-uri existente:** guest `UI_API`, variantele `UI_ONLY` și E2E autentificat.
+- **Auth:** `AuthenticatedPurchaseE2eTest` și `NewAccountPurchaseE2eTest` creează
+  sesiunea în `SETUP`, apoi finalizează purchase-ul; rularea individuală nu cere
+  VM options.
+- **În afara cerinței active:** un flow separat account/catalog; assertions
+  read-only nu justifică acțiuni Playwright inventate.
+- **Reporting generic:** fără gap activ; coverage matrix urmărește projection,
+  renderer și publication pentru Network Inspector.
 - Ponderea `0.30` plasează temporar AI Evaluation sub ToDo-ul Practice Shop,
   fără să modifice readiness-ul de pilot (`78/100`) ori maturitatea implementării
   (`50/100`) din documentul AI.

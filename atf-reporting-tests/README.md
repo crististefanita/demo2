@@ -2,12 +2,12 @@
 
 ## Pe scurt
 
-`atf-reporting-tests` este modulul specializat exclusiv în verificarea
-`atf-reporting` ca librărie: îi probează contractele prin setup API/mock,
-renderer, publisher, browser read-only și ATF Debug. Nu este modulul pentru
-teste de business ale unei aplicații. Acestea aparțin unui modul consumer dedicat,
-precum `atf-test-practice-shop`, sau unui alt modul de aplicație care consumă
-jar-ul `atf-reporting`; `atf-tests` rămâne governance-only.
+`atf-reporting-tests` verifică `atf-reporting` ca librărie reutilizabilă:
+
+- acoperă setup API/mock, renderer, publisher, browser read-only și ATF Debug;
+- nu deține testele de business ale unei aplicații;
+- testele business aparțin modulului consumer, precum `atf-test-practice-shop`;
+- `atf-tests` rămâne dedicat guvernanței whole-ATF.
 
 ```mermaid
 flowchart LR
@@ -52,13 +52,13 @@ poate fi consumat; nu sunt suita unei aplicații reale.
 interfețele și contractele publice `atf-reporting`, nu de clasele testului sau
 de directoarele locale ale repository-ului.
 
-În testele UI de aici, locatorii pentru raport sunt centralizați în
-`src/test/.../support/locators`. Preferința CSS este
-`element[attribute=value]` cu un atribut semantic stabil, de exemplu
-`button[data-atf-action='expand']`. Selectorii structurali sau `nth(...)` sunt
-permisi numai în ownerul locatorului atunci când markup-ul raportului nu oferă
-o identitate mai bună; testele, flow-urile și auditorii nu compun
-`page.locator(...)` direct.
+Locatorii UI sunt centralizați în `src/test/.../support/locators`:
+
+- preferă un selector semantic cu atribut stabil, de exemplu
+  `button[data-atf-action='expand']`;
+- selectorii structurali sau `nth(...)` rămân în ownerul locatorului când
+  markup-ul nu oferă o identitate mai bună;
+- testele, flow-urile și auditorii nu compun direct `page.locator(...)`.
 
 ## Contractul de titlu pentru request-uri API
 
@@ -69,21 +69,20 @@ deschiderea imediată a disclosure-ului:
 HTTP_METHOD relativePath — very-short business intent
 ```
 
-`relativePath` este ruta observată în execution; valorile dinamice rămân în
-path-ul runtime, nu în enum-uri. Un consumer poate folosi un descriptor typed
-precum `ApiOperationDescriptor` pentru intenție, method și route template, dar
-`atf-reporting` nu depinde de acel descriptor și nu derivă semantica prin
-parsarea titlului. Astfel biblioteca rămâne împachetabilă ca JAR independent,
-iar consumerul rămâne owner-ul vocabularului aplicației.
+`relativePath` este ruta observată; valorile dinamice rămân în path-ul runtime,
+nu în enum-uri. Dacă este necesară intenția de business, consumerul poate folosi
+un descriptor typed (`ApiOperationDescriptor`) cu method și route template.
 
-`PracticeShopApiOperation` este exemplul consumerului: `SEARCH` descrie intenția
-de catalog, wire method este `GET`, iar raportul afișează
-`GET /products/search — find configured product`. Dacă browserul expune aliasul
-legacy `QUERY` la capture boundary, consumerul îl poate recunoaște doar pentru
-selecția search și îl publică separat ca metodă observată; `QUERY` nu devine
-niciodată metoda/titlul request-ului. Pentru fiecare execution Practice Shop,
-publisher-ul adaugă separat `OPERATION KIND` și `ROUTE TEMPLATE` în evidence,
-deci un auditor poate reconcilia ruta dinamică cu contractul stabil.
+Boundary-ul rămâne independent:
+
+- `atf-reporting` publică titlul primit și nu parsează semantica din el;
+- consumerul deține vocabularul aplicației și corelarea cu ruta dinamică;
+- example Practice Shop: `SEARCH` → wire `GET` →
+  `GET /products/search — find configured product`;
+- aliasul browser `QUERY`, dacă apare, rămâne metodă observată la capture
+  boundary și nu înlocuiește metoda/titlul request-ului;
+- `OPERATION KIND` și `ROUTE TEMPLATE` oferă auditorului contextul stabil
+  al execuției Practice Shop.
 
 Contractul este verificat pe două seam-uri:
 
@@ -110,12 +109,17 @@ central prin [`WholeAtfGovernanceSuiteTest`](../atf-tests/README.md#suita-whole-
 
 ### Selecția scenariilor pentru un raport API
 
-`@ApiScenarioSetup(tests = ...)` declară metodele API exacte care aparțin
-artifactului; resolver-ul verifică această selecție înaintea colecțiilor mai
-largi. Dacă adnotarea nu declară metode exacte, ordinea de fallback este:
-proprietatea JVM cu familii API, proprietatea de suite, familiile din adnotare,
-apoi configurația YAML. Astfel, un raport selectat nu învață ownerii/scenariile
-așteptate din DOM-ul rezultat.
+`@ApiScenarioSetup(tests = ...)` declară metodele exacte; resolver-ul validează
+selecția înaintea colecțiilor mai largi.
+
+Ordinea fallback-ului, când nu sunt declarate metode exacte:
+
+1. proprietatea JVM cu familii API;
+2. proprietatea suitei;
+3. familiile din adnotare;
+4. configurația YAML.
+
+Ownerii și scenariile așteptate nu sunt deduși din DOM-ul rezultat.
 
 | Contract | Proof component | Limită |
 |---|---|---|
@@ -379,13 +383,14 @@ composition root pentru contractul librăriei reporting.
 
 Rapoartele sunt output de run, nu fixtures păstrate în documentație.
 
-Pentru dovada browser a librăriei există un singur seam generic,
-`StaticHtmlScreenshotAdapter`: primește un HTML local generat de reporting și
-produce un PNG headless prin Playwright. Testul său de integrare verifică doar
-semnătura PNG și viewport-ul; nu pornește un endpoint, nu cunoaște Practice
-Shop și nu intră în production JAR. Contractele DOM/CSS rămân verificabile prin
-validatorii component/ATF Debug, iar această captură este doar dovada că
-artefactul static poate fi rasterizat real.
+Browser proof-ul folosește un singur seam generic, `StaticHtmlScreenshotAdapter`:
+
+- input: HTML local generat de reporting;
+- output: PNG capturat headless prin Playwright;
+- integration test: verifică semnătura PNG și viewport-ul;
+- limită: nu pornește endpoint, nu cunoaște Practice Shop și nu intră în
+  production JAR;
+- contractele DOM/CSS rămân în component validators și ATF Debug.
 
 Detaliul normativ al normalizării evidence este în
 [`atf-reporting/README.md`](../atf-reporting/README.md#normalizarea-evidence-în-artifact).

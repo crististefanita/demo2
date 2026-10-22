@@ -63,12 +63,13 @@ component/integration: contract, JSON, markup, CSS/JS
 E2E: tab, click, collapse, computed-style, wrapping, screenshot, consolă
 ```
 
-`SelectedApiTestsReportUiTest` este composition root-ul configurabil: alege
-metode API concrete prin `@ApiTestRef`, construiește fixture-ul și delegă
-secțiunile către engine/publisher. Nu se clonează testul pentru fiecare tab și
-nu se mută `Page` în `atf.api.tests.api`. Dacă o aserțiune nu observă un efect
-de browser, ea trebuie coborâtă în component/integration pentru rulare rapidă,
-deterministă și reutilizabilă.
+`SelectedApiTestsReportUiTest` este composition root-ul configurabil:
+
+- selectează metodele prin `@ApiTestRef` și construiește fixture-ul;
+- deleagă secțiunile către engine/publisher;
+- nu clonează testul per tab și nu introduce `Page` în `atf.api.tests.api`;
+- aserțiunile fără efect de browser rămân la component/integration pentru
+  rulare rapidă și deterministă.
 
 Acesta este singurul README al test-kit-ului Extent. Pachetele
 `e2e/uireport` și `e2e/failure` nu au README-uri locale: contractele lor sunt
@@ -414,14 +415,15 @@ Regula transversală pentru captură configurabilă este în
 Acest README deține doar auditul browserului și contractele observabile ale
 artifactului; nu deține flow mode-ul sau mapping-ul YAML al unui consumer.
 
-Validarea E2E verifică comportamentul observabil al browserului și contractul
-raportului; nu reimplementează CSS-ul sau HTML-ul în clasele de test. Contractul
-finit al markup-ului (tag-uri, clase, atribute și identificatori de tab) este
-centralizat în `AtfReportHtmlVocabulary`, token-urile vizuale în
-`atf-reporting/.../theme/tokens`, iar stylesheet-ul evidence în
-`theme/evidence/AtfUiEvidenceCss`. Capturile, pașii, body-urile JSON și titlurile
-de execuție rămân date runtime reprezentate prin records/POJO-uri imutabile, nu
-string-uri împrăștiate și nu enum-uri pentru valori dinamice.
+| Contract | Owner | Ce rămâne în test |
+|---|---|---|
+| vocabular HTML și atribute stabile | `AtfReportHtmlVocabulary` | verificarea contractului DOM public |
+| culori și geometrie | `atf-reporting/.../theme/tokens` | verificarea computed style și a randării |
+| stilul evidence UI | `theme/evidence/AtfUiEvidenceCss` | verificarea capturii, pașilor și tabelului |
+| datele fiecărui run | records/POJO-uri immutable | input runtime; nu string-uri împrăștiate sau enum-uri dinamice |
+
+E2E verifică browserul și raportul observabil; nu reimplementează CSS sau HTML
+în clasele de test.
 
 Ordinea de acoperire este:
 
@@ -495,12 +497,14 @@ Contractul semantic este:
 - valorile dinamice rămân extrase din DOM; doar vocabularul structural este
   constantizat.
 
-`OverviewSecondaryContractValidatorTest` protejează regulile pure, iar
-`SelectedApiTestsReportUiTest` le execută pe raportul real. În raport, scenariul
-`ATF metadata sections expansion` trebuie să arate `Audit observations · 6`
-și `Assertions · 7`, cu rânduri verzi și fără overflow. Deep-link-ul de audit
-este `#test-id=48&scenario-index=6&expand=screen-validation`; închiderea
-implicită a restului raportului rămâne parte din contract.
+Proof-ul este împărțit pe niveluri:
+
+- `OverviewSecondaryContractValidatorTest` verifică regulile pure;
+- `SelectedApiTestsReportUiTest` le execută pe raportul real;
+- scenariul trebuie să arate `Audit observations · 6` și `Assertions · 7`, cu
+  rânduri verzi și fără overflow;
+- deep-link-ul este `#test-id=48&scenario-index=6&expand=screen-validation`;
+  restul raportului rămâne închis implicit.
 
 Ordinea evidence-ului este strictă și semantică:
 
@@ -512,23 +516,26 @@ Screenshot: capturat cât timp ambele zone sunt deschise
 Assertions: conținut metrici, tabele, vizibilitate și restore closed
 ```
 
-Click-urile de restore sunt cleanup tehnic și nu se publică drept acțiuni ale
-flow-ului utilizatorului după captură. Raportul trebuie să arate astfel
-`Playwright action sequence (7 entries)`, apoi `Screenshot` ca ultim checkpoint
-vizual din observații, apoi `Assertions · 7`. În acest fel poza este făcută
-imediat după seria de acțiuni care a produs starea verificată, nu după
-închiderea disclosure-urilor.
+Ordinea din artifact rămâne:
+
+- `Playwright action sequence (7 entries)`;
+- `Screenshot` ca ultim checkpoint vizual, imediat după acțiunile care au produs
+  starea verificată;
+- `Assertions · 7` după captură.
+
+Click-urile de restore sunt cleanup tehnic: nu se publică drept acțiuni ale
+flow-ului după captură.
 
 ### Asset-uri native și filtrarea Tests
 
-Asset-urile `.js`/`.css` ale raportului sunt testate ca output public, nu doar ca
-surse Java: resource loader-ul și composer-ul se verifică în `atf-reporting`,
-iar testele UI verifică efectul lor în DOM și în randare. În particular,
-`ExtentReportRuntimeTestFilters` este o facade Java subțire peste
-`extent-tests-filters.js`; selectorii, atributele, valorile și funcțiile stabile
-sunt furnizate de vocabular Java tipizat, în timp ce algoritmul rămâne JavaScript
-valid și lizibil în fișierul nativ. Orice modificare aici cere contract component
-și gate E2E pe raport fresh.
+Asset-urile `.js`/`.css` sunt output public, verificate la ambele limite:
+
+- `atf-reporting` verifică resource loader-ul și composer-ul;
+- testele UI verifică efectul în DOM și randare;
+- `ExtentReportRuntimeTestFilters` este o fațadă Java peste
+  `extent-tests-filters.js`; vocabularul stabil este typed, algoritmul rămâne
+  JavaScript nativ;
+- orice modificare cere component contract și gate E2E pe raport fresh.
 
 ### Checklist executabil pentru un gate E2E
 
@@ -644,25 +651,24 @@ regulilor:
   existenței `documentElement`;
 - teste component și gate-uri E2E complementare pe artefacte reale.
 
-Pentru auditul secundar al Overview, starea implicită este parte din contract,
-nu doar o convenție vizuală: `#atf-execution-metadata` și `#atf-tag-audit`
-trebuie să aibă `open=false`, iar corpurile lor directe trebuie să fie efectiv
-invizibile. Un click pe `summary` trebuie să afișeze corpul, iar un al doilea
-click trebuie să-l ascundă din nou. Verificarea plug-and-play se face în
-`OverviewSecondaryContractValidator.validateExpansion(...)` și reutilizează
-scenariul existent, fără clasă E2E nouă.
+Disclosure-urile secundare Overview au acest ciclu verificabil:
 
-Pentru investigarea punctuală a dovezii complete se folosește deep-link-ul:
+- **fresh:** `#atf-execution-metadata` și `#atf-tag-audit` sunt închise;
+- **expand:** click pe `summary` afișează corpul direct;
+- **collapse:** al doilea click ascunde corpul;
+- **owner:** `OverviewSecondaryContractValidator.validateExpansion(...)`
+  reutilizează scenariul existent, fără clasă E2E nouă.
+
+Deep-link-ul pentru dovada completă:
 
 ```text
 #test-id=48&scenario-index=6&expand=screen-validation
 ```
 
-Link-ul deschide traseul `TEST BODY → THEN ATF metadata sections expansion →
-Screen validation` și extinde cele trei disclosure-uri interne — `Playwright
-action sequence`, `Audit observations`, `Assertions` — astfel încât pasul să fie
-auditabil dintr-o singură vedere. La închiderea scenariului, toate disclosure-
-urile revin colapsate; component testele verifică separat și această revenire.
+Acesta deschide `TEST BODY → THEN ATF metadata sections expansion → Screen
+validation` și extinde `Playwright action sequence`, `Audit observations` și
+`Assertions`. La închiderea scenariului, disclosure-urile revin colapsate;
+component testele verifică și această tranziție.
 
 ### Reîncercări UI: politică publică, oprire implicită la incertitudine
 
@@ -727,19 +733,20 @@ Regulile sunt dinamice, nu depend de un endpoint sau de un fixture anume:
 - păstrează fallback-ul CSS și `table-layout: fixed`, deci nu introduce scroll
   orizontal accidental.
 
-Pentru tabelele `FIELD | VALUE` există o ramură semantică separată: prima
-coloană este calculată din lățimea maximă intrinsecă a cheilor și este limitată
-la `20%..38%`, iar `VALUE` primește restul (minimum `62%` când nu există
-coloane tehnice rezervate). Aceasta este politica pentru trace/API diagnostics,
-nu o regulă globală pentru toate tabelele. Component contract-ul trebuie să
-verifice și markerii `data-atf-key-value-layout` / `data-atf-key-column-width`,
-iar inspectorul trebuie să accepte `VALUE` ca dominantă chiar dacă o cheie
-izolată ar fi mai lungă ca text.
+Tabelele `FIELD | VALUE` folosesc o regulă proprie pentru trace/API diagnostics:
 
-Tabelele agregate de Overview (de exemplu `atf-tag-table`) rămân intenționat în
-afara acestui normalizator: au contract de dashboard propriu, coloane numerice
-fixe, sticky header și semnificație de sumar. Nu sunt evidence tables și nu
-trebuie redimensionate prin aceeași politică.
+| Coloană | Lățime |
+|---|---|
+| `FIELD` | lățimea intrinsecă a cheilor, limitată la `20%..38%` |
+| `VALUE` | spațiul rămas; minimum `62%` fără coloane tehnice rezervate |
+
+Component contract-ul verifică markerii `data-atf-key-value-layout` și
+`data-atf-key-column-width`. Inspectorul acceptă `VALUE` ca dominantă chiar
+dacă o cheie izolată este mai lungă ca text.
+
+Tabelele agregate Overview (de exemplu `atf-tag-table`) sunt excluse: au
+contract de dashboard, coloane numerice fixe și sticky header. Nu sunt evidence
+tables și nu folosesc acest normalizator.
 
 ### Contractul de verificare
 

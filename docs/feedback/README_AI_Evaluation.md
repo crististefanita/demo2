@@ -294,13 +294,14 @@ AiGroundingObservation
 Rezultate minime: `SUPPORTED`, `UNSUPPORTED`, `AMBIGUOUS`, `NOT_REQUIRED`,
 `MISSING_REFERENCE`.
 
-**Slice implementat în `atf-validation`:** `AiGroundingRequirement` declară
-allowlist-ul de `sourceId` pentru un field, `AiSourceReference` păstrează numai
-pointeri opaci, iar evaluatorul produce `AiGroundingObservation` per field.
-Un field cu grounding obligatoriu fără reference sau cu reference în afara
-allowlist-ului produce hard-fail (`MISSING_GROUNDING_REFERENCE` /
-`UNSUPPORTED_GROUNDING`). Payload-ul,
-promptul și credentialele nu pot intra în aceste tipuri.
+**Slice implementat în `atf-validation`:**
+
+- `AiGroundingRequirement` declară allowlist-ul de `sourceId` pentru un field.
+- `AiSourceReference` păstrează numai pointeri opaci; evaluatorul produce un
+  `AiGroundingObservation` per field.
+- Lipsa reference-ului obligatoriu produce `MISSING_GROUNDING_REFERENCE`;
+  reference-ul din afara allowlist-ului produce `UNSUPPORTED_GROUNDING`.
+- Payload-ul, promptul și credentialele nu pot intra în aceste tipuri.
 
 ## 8. Review și workflow state
 
@@ -698,12 +699,15 @@ configurabil pe caz.
 
 ### Incrementul 2 — instantaneu și dovezi
 
-**Parțial implementat:** invocation evidence typed distinge real/mock/fallback/
-unknown; referințele request/response/output sunt opace și mock/fallback nu
-primesc quality score. Snapshot-ul evaluatorului este immutable și `COMPLETE`,
-iar grounding-ul per field păstrează reference-uri opace și hard-fail-uri pentru
-source lipsă/nesuportată. Lipsesc evidence ledger extins și integrarea cu
-lifecycle-ul unui run/raport.
+**Parțial implementat:**
+
+- Invocation evidence typed distinge `real` / `mock` / `fallback` / `unknown`.
+- Referințele request/response/output sunt opace; mock/fallback nu primesc
+  quality score.
+- Snapshot-ul evaluatorului este immutable și `COMPLETE`; grounding-ul per field
+  păstrează reference-uri opace și hard-fail-uri pentru source lipsă/nesuportată.
+- Rămân deschise evidence ledger-ul extins și integrarea cu lifecycle-ul unui
+  run/raport.
 
 **Dovadă:** integration cu provider/mock și validation ledger.
 

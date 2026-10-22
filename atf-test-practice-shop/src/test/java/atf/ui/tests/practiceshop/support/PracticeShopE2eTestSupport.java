@@ -277,16 +277,10 @@ public final class PracticeShopE2eTestSupport {
         public String accountRunScope() { return harness.accountRunScope(); }
         public void checkpoint(AtfGherkinKeyword keyword, String title, Collection<AtfAssertion> assertions,
                                Collection<atf.api.reporting.model.ReportExecutionEvidence> apiEvidence) {
-            checkpoint(keyword, title, assertions, apiEvidence, null);
-        }
-
-        public void checkpoint(AtfGherkinKeyword keyword, String title, Collection<AtfAssertion> assertions,
-                               Collection<atf.api.reporting.model.ReportExecutionEvidence> apiEvidence,
-                               ReportScreenshot screenshot) {
             if (completed || failed) throw new IllegalStateException("SETUP is already finished");
             AtfReportStatus status = assertions.stream().allMatch(AtfAssertion::passed)
                     ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
-            scenario.setupCheckpoint(page(), actions, keyword, title, assertions, apiEvidence, screenshot, status);
+            scenario.setupCheckpoint(page(), actions, keyword, title, assertions, apiEvidence, status);
             if (status == AtfReportStatus.FAIL) {
                 failed = true;
                 scenario.finishSetup(AtfReportStatus.FAIL);

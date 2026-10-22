@@ -289,11 +289,16 @@ Separă patru axe care nu trebuie să schimbe flow-ul de business:
 | Capturi | `reporting.screenshotPolicy` din YAML este singura politică; implicit `each-checkpoint` | fiecare tabel Playwright nevid din `SETUP` și `TEST BODY` primește captura stării rezultate; controalele de formular sunt mascate; `none` dezactivează capturile, fără să elimine acțiunile sau aserțiunile |
 | Pași UI intermediari | `@WithE2eHarness(actionDetails = CONFIGURED \| INCLUDED_COLLAPSED \| SUMMARY_ONLY)` selectează disclosure-ul fără să schimbe capturarea acțiunilor | `CONFIGURED` păstrează profilul compus; `INCLUDED_COLLAPSED` este default-ul sigur; niciun mod nu schimbă validările, verdictul sau arborele Gherkin |
 
-Regula invariantă: **configurația schimbă proiecția evidence-ului, nu journey-ul**.
-Profilul, forma raportului și disclosure-ul se aleg independent prin adnotare;
-politica screenshot-urilor vine exclusiv din YAML, iar `Overview → System` arată
-valoarea efectivă. Acțiunile, aserțiunile, request-urile și verdictul rămân aceleași;
-`UI_ONLY` oprește publicarea API evidence, nu traficul real al browserului.
+**Invariantă:** configurația schimbă proiecția evidence-ului, nu journey-ul.
+
+```text
+annotation → validation profile + report layout + action disclosure
+YAML       → screenshot policy
+business journey, actions, assertions, requests, verdict → unchanged
+```
+
+`Overview → System` arată politica efectivă. `UI_ONLY` oprește publicarea API
+evidence, nu traficul real al browserului.
 
 Selecția curentă: ambele purchase E2E autentificate folosesc
 `REGISTER_PER_RUN + SYNTHETIC`; `REUSE_FIXTURE` este o alternativă documentată,
@@ -829,19 +834,14 @@ Purchase-ul guest păstrează un număr mic de teste și mai multe dovezi locale
   permite, fără PII. Policy-ul din
   System sau un test component nu dovedește singur capturarea.
 
-În profilul `UI_ONLY`, billing-ul urmează contractul vizibil al aplicației:
-raportul indică țara, codul poștal și numărul introduse, apoi așteaptă lookup-ul
-și înregistrează strada, orașul și statul completate de site. Cititorul nu trebuie
-să suprascrie aceste trei câmpuri; valorile efective și validarea `non-empty`
-apar în raport lângă checkpoint-ul `BILLING`. Profilul `UI_API` păstrează
-introducerea explicită a tuturor câmpurilor din fixture pentru verificările sale.
+```text
+UI_ONLY  country + postcode + number → site lookup → keep + verify street/city/state
+UI_API  explicit fixture values ───────────────────→ verify requested values
+```
 
-Valorile completate de postcode lookup sunt date de runtime, nu parte din
-fixture-ul garantat. `UI_ONLY` păstrează valorile generate de aplicație și le
-verifică potrivit contractului vizibil al formularului; `UI_API` folosește
-valorile explicite ale fixture-ului. Raportul trebuie să distingă sugestia
-lookup-ului de valorile finale observate, fără să prezinte date dinamice drept
-constante.
+În `UI_ONLY`, testul nu suprascrie câmpurile completate de site. Raportul
+distinge valorile finale observate de sugestiile lookup-ului; datele runtime nu
+sunt prezentate ca valori constante.
 
 ## Fluxul API prin interfață și dovezi
 
@@ -893,12 +893,13 @@ Variațiile de status, body și query rămân în component tests. Nu se introdu
 catalog mock sau dependency `atf-mock` în acest consumer. Integration folosește
 API-ul live numai prin opt-in explicit.
 
-Regula de evidență este strictă: fixture-ul deterministic este permis pentru
-contracte component, variante și erori izolate; un raport prezentat ca dovadă
-a flow-ului business trebuie să publice provenance `LIVE_HTTP` și să compare
-datele reale ale produsului, cart-ului și payment-ului. Un artifact cu
-`ACCEPTANCE_MOCK` nu este verdict business, chiar dacă assertions-urile
-structurale sunt verzi.
+Transportul și scopul raportului trebuie să se potrivească:
+
+- fixture determinist → contracte component, variante și erori izolate;
+- flow business → provenance `LIVE_HTTP` și comparație cu datele observate ale
+  produsului, cart-ului și payment-ului;
+- `ACCEPTANCE_MOCK` nu este dovadă business, chiar dacă assertions structurale
+  sunt verzi.
 
 Separarea raporturilor este obligatorie:
 
@@ -917,13 +918,14 @@ continuă cu cart/payment simulate. Rularea explicită este:
 mvn -pl atf-test-practice-shop -am "-Dtest=PracticeShopStandaloneApiReportTest" "-Dsurefire.failIfNoSpecifiedTests=false" "-Datf.practice.authenticated-e2e=true" "-Datf.practice.api-mode=live" test
 ```
 
-Raportul live se verifică în MCP pe `Tests`, `Fails` și `Overview`, folosind un
-artifact proaspăt și configurația rulării; un `401` este evidence de precondiție externă eșuată,
-nu un PASS degradat și nu un motiv pentru a activa mock-ul.
-În cazul unui failure UI real, `atf-reporting` proiectează în `Fails` cardul
-`Failure evidence` și cauza concretă înaintea unei validări semantice verzi;
-Practice Shop nu adaugă assertions artificiale pentru a influența această
-proiecție.
+Verificarea raportului live folosește un artifact proaspăt, configurația run-ului
+și tab-urile `Tests`, `Fails` și `Overview` din MCP.
+
+- `401` înseamnă precondiție externă eșuată; nu se degradează la PASS și nu
+  justifică activarea mock-ului;
+- un failure UI real trebuie să proiecteze `Failure evidence` și cauza în
+  `Fails`, chiar dacă există o validare semantică verde;
+- Practice Shop nu adaugă assertions artificiale pentru a influența proiecția.
 
 ### Dovezi API în UI
 
@@ -1134,7 +1136,8 @@ mvn -pl atf-test-practice-shop -am "-Dtest=UiOnlyPurchaseE2eTest" "-Dsurefire.fa
 ```
 
 Pentru un raport condensat într-un singur flow (UI-only, fără copii API,
-un singur tabel de acțiuni și captura stării finale):
+un singur tabel agregat de acțiuni, capturi pe checkpoint și captura finală,
+toate guvernate de politica YAML):
 
 ```text
 mvn -pl atf-test-practice-shop -am "-Dtest=UiOnlySingleFlowPurchaseE2eTest" "-Dsurefire.failIfNoSpecifiedTests=false" test

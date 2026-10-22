@@ -217,23 +217,14 @@ public final class PracticeShopE2eContext implements AutoCloseable {
                                     Collection<AtfAssertion> assertions,
                                     Collection<ReportExecutionEvidence> apiEvidence,
                                     AtfReportStatus status) {
-            setupCheckpoint(page, actions, keyword, stepTitle, assertions, apiEvidence, null, status);
-        }
-
-        public void setupCheckpoint(Page page, PlaywrightActionSequence actions, AtfGherkinKeyword keyword,
-                                    String stepTitle,
-                                    Collection<AtfAssertion> assertions,
-                                    Collection<ReportExecutionEvidence> apiEvidence,
-                                    ReportScreenshot suppliedScreenshot,
-                                    AtfReportStatus status) {
             if (setupPhase == null || setupFinished) {
                 throw new IllegalStateException("Explicit authenticated setup is not open");
             }
             ReportScreenshotPolicy.CapturePoint point = status == AtfReportStatus.PASS
                     ? ReportScreenshotPolicy.CapturePoint.CHECKPOINT
                     : ReportScreenshotPolicy.CapturePoint.FAILURE;
-            ReportScreenshot screenshot = suppliedScreenshot != null ? suppliedScreenshot
-                    : actions.snapshot().isEmpty() ? null : captureCheckpointScreenshot(stepTitle, point);
+            ReportScreenshot screenshot = actions.snapshot().isEmpty()
+                    ? null : captureCheckpointScreenshot(stepTitle, point);
             setupPhase.setup(keyword, stepTitle, page.url(), assertions,
                     PracticeShopReportUiActionAdapters.from(actions.drain()), apiEvidence, screenshot, status);
             setupStepPublished = true;
@@ -265,7 +256,7 @@ public final class PracticeShopE2eContext implements AutoCloseable {
         public void execute(Page page, PlaywrightActionSequence actions, Runnable testBody) {
             try {
                 testBody.run();
-            } catch (RuntimeException | AssertionError failure) {
+            } catch (RuntimeException | AssertionError | LinkageError failure) {
                 fail(page, actions, failure);
                 throw failure;
             } finally {
@@ -340,12 +331,14 @@ public final class PracticeShopE2eContext implements AutoCloseable {
                         AtfAssertion failed = new AtfAssertion("Authenticated account setup",
                                 "registration/login setup passes before TEST BODY",
                                 "setup failed; business flow was not started", false);
-                        setupPhase.step(AtfGherkinKeyword.GIVEN,
+                        ReportScreenshot screenshot = actions.snapshot().isEmpty() ? null
+                                : captureCheckpointScreenshot("authenticated account setup",
+                                ReportScreenshotPolicy.CapturePoint.FAILURE);
+                        setupPhase.setup(AtfGherkinKeyword.GIVEN,
                                 "authenticated account setup completes before the purchase flow",
-                                page.url(), "", List.of(failed),
+                                page.url(), List.of(failed),
                                 PracticeShopReportUiActionAdapters.from(actions.drain()),
-                                setupEvidence(), ReportScreenshotPolicy.CapturePoint.FAILURE,
-                                AtfReportStatus.FAIL);
+                                setupEvidence(), screenshot, AtfReportStatus.FAIL);
                         setupStepPublished = true;
                     }
                     setupPhase.complete(AtfReportStatus.FAIL);

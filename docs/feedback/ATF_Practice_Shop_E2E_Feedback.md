@@ -18,11 +18,13 @@ nu există un ToDo activ pentru această zonă.
 
 ## Statut
 
-Feedback-ul este închis. Captura implicită pe fiecare tabel Playwright este
-acoperită de codul live și de teste de componentă; adnotările E2E nu mai pot
-restrânge politica, iar YAML-ul rămâne punctul unic de configurare. Redeschide-l
-numai dacă o captură permisă lipsește după un tabel de acțiuni, expune un câmp
-mascat sau un flow autentificat nu mai poate fi rulat individual din IntelliJ.
+Feedback-ul este închis:
+
+- Codul live și testele de componentă acoperă captura implicită după fiecare
+  tabel Playwright.
+- Adnotările E2E nu restrâng politica; YAML-ul este punctul unic de configurare.
+- Redeschide numai dacă lipsește o captură permisă, apare un câmp mascat sau un
+  flow autentificat nu mai poate rula individual din IntelliJ.
 
 ## Contracte stabile și owneri normativi
 

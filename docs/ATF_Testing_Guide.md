@@ -65,20 +65,22 @@ Celulele arată doar nivelurile care există în suitele executabile curente.
 | [`atf-tests`](../atf-tests/README.md) | — | ✅ | ✅ | — | boundary și guvernanță whole-reactor |
 | [`atf-test-kit`](../atf-test-kit/README.md) | ✅ | ✅ | — | — | vocabularul layer-elor și contractele test-only |
 
-`atf-reporting` este reprezentat separat în guard ca `standalone-independent`;
-cele trei teste ale sale nu pretind că aparțin reactorului și sunt verificate
-prin politica explicită din `AtfTestLayerArchitectureTest`. Același guard cere
-exact o adnotare pentru fiecare test executabil din reactor și derivă matricea
-din aceste declarații. Matricea din acest ghid este o hartă de navigare, nu un
-validator separat pentru fiecare celulă.
+Guard-ul reflectă ownerii fără a falsifica structura reactorului:
+
+- `atf-reporting` este `standalone-independent`; cele trei teste ale sale nu
+  aparțin reactorului;
+- `AtfTestLayerArchitectureTest` verifică excepția și cere o adnotare per test
+  executabil din reactor;
+- matricea acestui ghid navighează către owneri; nu duplică validatorul pe celulă.
 
 ## Traseul UI/API și ce verifică testele
 
-Forma canonicală a unui checkpoint mixt UI/API și diagrama cu zonele sale sunt
-deținute de [contractul de raportare](ATF_Reporting_Contract.md#evidence-ul-unui-request).
-În acel model, `UI validation` și `API validation` sunt copii frați ai aceluiași
-pas Gherkin; exchange-urile reale rămân nested numai sub `API validation`.
-Inspectorul de journey este un index aggregate, nu o a doua listă de request-uri.
+Contractul checkpoint-ului mixt este deținut de
+[ATF Reporting Contract](ATF_Reporting_Contract.md#evidence-ul-unui-request):
+
+- o propoziție Gherkin are copii frați `UI validation` și `API validation`;
+- exchange-urile reale apar numai sub `API validation`;
+- journey inspectorul indexează sumarul, fără să cloneze lista request-urilor.
 
 | Zonă | Invariant urmărit | Proof potrivit |
 |---|---|---|
@@ -194,12 +196,11 @@ active. Pentru staging extern, source sync, execuții E2E și promovare, urmeaz�
 Practice Shop care ating un serviciu extern se rulează numai cu precondiția și
 opt-in-ul documentate de owner.
 
-Pentru HTML, CSS, JavaScript, disclosure sau ordine vizuală, testele component
-verifică markup-ul și contractul înaintea unui artifact nou. Browser proof-ul
-este cerut numai pentru afirmațiile de randare și interacțiune și se inspectează
-cu ATF Debug/TAB MCP, conform gate-ului din
-[bunele practici](README_Atf_BestPractices.md). Numele artifactului sau un run
-vechi nu devin dovadă permanentă.
+| Afirmație | Dovada minimă |
+|---|---|
+| HTML, CSS, JavaScript, disclosure sau ordine vizuală | component test pentru markup și contract |
+| randare sau interacțiune | artifact fresh verificat în ATF Debug/TAB MCP, conform [gate-ului](README_Atf_BestPractices.md) |
+| run vechi sau nume de artifact | nu reprezintă dovadă permanentă |
 
 ## Criterii de finalizare
 

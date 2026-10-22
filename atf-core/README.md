@@ -56,13 +56,14 @@ acceptat în loc să reproducă bucla de ancestor-walk în fiecare test.
 
 ## Ciclu de viață generic și reutilizabil
 
-`atf-core/src/main/java/atf/api/core/lifecycle` deține mecanica neutră a unui
-scenariu: `ApiScenarioPlan`, `ApiScenarioLifecycleRunner`,
-`ApiScenarioPhaseExecutor`, `ApiScenarioOutcome` și
-`ApiScenarioSkipException`. Aceste clase coordonează ordinea
-`SETUP → TEST BODY → TEARDOWN`, precedence-ul cauzelor și semnalele de
-`PASS/WARNING/SKIP/FAIL`, dar nu cunosc servicii Users/Posts, rute concrete,
-YAML, Extent sau JUnit.
+Pachetul `atf.api.core.lifecycle` deține mecanica neutră a scenariului:
+
+- plan și orchestration: `ApiScenarioPlan`, `ApiScenarioLifecycleRunner`,
+  `ApiScenarioPhaseExecutor`;
+- rezultat: `ApiScenarioOutcome` și `ApiScenarioSkipException`;
+- ordine: `SETUP → TEST BODY → TEARDOWN`, cu precedence pentru cauze și
+  `PASS/WARNING/SKIP/FAIL`;
+- boundary: fără servicii Users/Posts, rute concrete, YAML, Extent sau JUnit.
 
 ```text
 test adapter / library consumer
@@ -72,22 +73,31 @@ core lifecycle ports + immutable outcome
 execution service | reporting publisher | another consumer
 ```
 
-`atf-reporting-tests` păstrează fixture-urile concrete (`ApiModule`, servicii,
-`RoutePaths` și adapter-ele lor) în test scope, iar `CleanupRegistry` rămâne
-în core ca mecanism generic. Un consumer API/UI poate utiliza lifecycle-ul din
-core fără să aducă fixture-uri concrete în librăria de producție; în checkout-ul
-curent, `atf-reporting` rămâne standalone și nu depinde de core. Un lifecycle
-nou se adaugă în core numai dacă rămâne endpoint-neutral
-și este acoperit de teste unitare fără browser sau transport real.
+Boundary-ul lifecycle-ului se citește astfel:
+
+- `CleanupRegistry` rămâne în core ca mecanism generic;
+- fixture-urile concrete (`ApiModule`, servicii, `RoutePaths`) și adapter-ele
+  lor rămân în test scope-ul `atf-reporting-tests`;
+- orice consumer API/UI poate reutiliza lifecycle-ul fără a importa fixture-uri
+  în production;
+- `atf-reporting` rămâne standalone și nu depinde de core;
+- un lifecycle nou intră în core numai dacă este endpoint-neutral și are teste
+  unitare fără browser sau transport real.
 
 ## Coeziune și responsabilitate pentru vocabularul HTTP
 
-Pachetele de producție din core respectă maximum 8 clase: `http.request` deține
-forma request-ului (`ApiRequest`, `ApiPathTemplate`, `ApiRoute`, `ApiUrlBuilder`,
-`HttpMethod`, `HttpHeader`, `MediaTypes`), `http.response` deține rezultatul și
-politica JSON, iar `http.auth`, `http.execution` și `http.transport` dețin câte
-un boundary distinct. `ApiPathTemplate` este mecanismul generic pentru join,
-validare și rezolvare sigură a segmentelor; nu este catalogul unui produs.
+Pachetele production au cel mult opt clase și grupează o singură responsabilitate:
+
+| Pachet | Deține |
+|---|---|
+| `http.request` | forma request-ului: `ApiRequest`, `ApiPathTemplate`, `ApiRoute`, `ApiUrlBuilder`, `HttpMethod`, `HttpHeader`, `MediaTypes` |
+| `http.response` | rezultatul response-ului și politica JSON |
+| `http.auth` | autentificarea |
+| `http.execution` | execuția și rezultatul ei |
+| `http.transport` | boundary-ul transportului |
+
+`ApiPathTemplate` face join, validare și rezolvare sigură a segmentelor; nu este
+catalogul de rute al unui produs.
 
 ### Cataloge concrete și direcția dependency-ului
 
@@ -145,12 +155,12 @@ JUnit sau servicii de business.
 Un port trebuie să fie mic, semantic și
 testabil cu fake-uri în memorie.
 
-Configurația consumată de execuție este typed și immutable în core. Când un
-  aplicația consumatoare are nevoie de integrare plug-and-play, `config.source` citește o
-singură dată YAML/proprietăți/env și produce exact același snapshot validat;
-loaderul nu intră în transport. Astfel
-un test paralel nu poate schimba timeout-ul, retry-ul, auth-ul sau politica de
-redaction a unei alte sesiuni.
+Configurația de execuție este typed și immutable:
+
+- `config.source` citește o singură dată YAML, properties sau environment;
+- loaderul produce snapshot-ul validat și nu intră în transport;
+- fiecare sesiune păstrează propriile timeout, retry, auth și redaction policy;
+- rulările paralele nu își pot suprascrie configurația reciproc.
 
 Exemple de direcții corecte:
 
@@ -171,12 +181,12 @@ core → UsersService / PostsService
 
 ## Contractul reutilizabil pentru selecția API
 
-`atf-core` deține doar vocabularul neutru pentru selecția programatică a unor
-scenarii API. `@ApiScenarioSetup` permite unui consumer să aleagă familii sau
-referințe exacte prin `@ApiTestRef`; `ApiScenarioSelection` este snapshot-ul
-immutable transmis mai departe către composition root. Astfel același contract
-poate fi folosit de un test UI, un runner de acceptance sau un alt consumer fără
-ca `atf-core` să importe catalogul concret al testelor.
+Contractul de selecție din `atf-core` este neutru față de consumer:
+
+- `@ApiScenarioSetup` declară familii sau referințe exacte prin `@ApiTestRef`;
+- `ApiScenarioSelection` transmite snapshot-ul immutable către composition root;
+- UI testele, acceptance runner-ele și alți consumatori pot reutiliza contractul;
+- catalogul concret al testelor nu intră în `atf-core`.
 
 ```text
 consumer annotation
@@ -186,17 +196,20 @@ consumer annotation
   → API/reporting composition root
 ```
 
-Catalogul care știe cum se mapează `UsersApiScenarios`, `PostsApiScenarios` sau
-`LifecycleApiScenarios` rămâne în composition scope-ul `atf-reporting-tests`: este o
-compoziție de produs, nu platformă. Loaderul generic pentru `atf.yaml` este însă în `config.source`,
-fiind reutilizabil de orice composition root; catalogul concret, YAML-ul mock,
-JUnit și orchestration-ul rămân în modulele consumatoare.
+| Responsabilitate | Owner |
+|---|---|
+| mapping `UsersApiScenarios`, `PostsApiScenarios`, `LifecycleApiScenarios` | composition scope-ul `atf-reporting-tests` |
+| loader generic pentru `atf.yaml` | `config.source` din core |
+| catalog concret, YAML mock, JUnit și orchestration | modulele consumatoare |
 
-`atf.api.core.testing.http.RecordingApiTransport` este un decorator de platformă
-pentru evidence: capturează ultimul `ApiRequest`, delegă execuția și nu cunoaște
-reporting, mock sau JUnit. Un consumer îl poate folosi pentru API report,
-component test ori replay fără să copieze fixture-ul din test scope-ul
-`atf-reporting`.
+Catalogul de servicii este compoziție de produs, nu platformă generică.
+
+`RecordingApiTransport` este decoratorul generic pentru evidence:
+
+- capturează ultimul `ApiRequest` și delegă execuția;
+- nu cunoaște reporting, mock sau JUnit;
+- poate fi reutilizat pentru API report, component tests și replay, fără a copia
+  fixture-uri din test scope.
 
 ## Catalogul live explicit
 
@@ -218,12 +231,13 @@ ApiBootstrapConfiguration
   → ApiExecutor
 ```
 
-Catalogul validează schema `http/https`, elimină profilele ambigue, limitează
-fiecare transport la originea endpoint-ului numit și lasă autentificarea în
-`ApiAuthenticator`. Nu expune token-uri și nu construiește cURL sau HTML;
-redaction-ul replay-ului rămâne la boundary-ul de reporting. Pentru teste,
-factory-ul de transport este injectabil, astfel încât contractul catalogului
-se verifică fără rețea reală.
+Catalogul aplică limitele de siguranță înainte de a crea transportul:
+
+- acceptă numai `http/https` și profile endpoint neambigue;
+- limitează fiecare transport la originea endpoint-ului numit;
+- delegă autentificarea la `ApiAuthenticator` și nu expune token-uri;
+- nu construiește cURL sau HTML; redaction-ul replay-ului aparține reporting-ului;
+- factory-ul injectabil permite verificarea contractului fără rețea reală.
 
 Mock-ul rămâne default-ul sigur și este compus separat prin `atf-mock`. Faptul
 că o configurație conține `baseUri` nu este niciodată suficient pentru a deschide
@@ -231,12 +245,13 @@ network-ul.
 
 ## Manifest și promovare guarded
 
-`AtfPromotionManifest` este baseline-ul portabil al fișierelor aprobate înainte
-de lucrul în staging. Pentru fiecare cale relativă reține prezența, iar pentru
-fișierele existente dimensiunea și SHA-256; o intrare absentă aprobă explicit
-crearea unui fișier nou și protejează împotriva unei creații paralele. Nu
-persistă rădăcina checkout-ului și nu ajunge în HTML. Fluxul
-reutilizabil este:
+`AtfPromotionManifest` fixează baseline-ul fișierelor aprobate înainte de staging:
+
+- căile sunt relative; fișierele existente păstrează dimensiunea și SHA-256;
+- o intrare absentă aprobă crearea acelui fișier și detectează crearea paralelă;
+- rădăcina checkout-ului nu este persistată, iar manifestul nu ajunge în HTML.
+
+Promovarea reutilizabilă:
 
 ```text
 live root + approved relative files

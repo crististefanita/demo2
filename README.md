@@ -262,12 +262,9 @@ sequenceDiagram
 
 ## Coerență și modificări guvernate
 
-ATF-ul rămâne coerent când o schimbare este tratată ca o decizie controlată,
-nu ca o editare locală. README-urile ownerilor, testele existente și gate-urile
-arhitecturale sunt contracte de întreținere; nu se modifică, relaxează,
-dezactivează, redenumesc sau elimină incidental. Feedback-ul este excepția
-intenționată: registrul său se actualizează dinamic pe măsură ce apar dovezi
-noi, se închid TODO-uri sau se schimbă limita rămasă.
+Schimbările ATF urmează o decizie controlată, nu o editare izolată. README-urile
+ownerilor, testele și gate-urile rămân contracte stabile; feedback-ul se
+actualizează dinamic când apar dovezi, se închid ToDo-uri sau se schimbă gap-ul.
 
 ```mermaid
 flowchart LR

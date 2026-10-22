@@ -166,12 +166,10 @@ STATIC_*:      HTML existent → ATF Debug/browser MCP
                          UI audit → UI report → ATF Debug/browser MCP
 ```
 
-Se verifică DOM-ul, accessibility tree, computed-style, console/network,
-expand/collapse, taburile și cel puțin un caz pozitiv și unul negativ. Pentru
-`Screen validation`, acțiunile, observațiile și assertions rămân zone-soră fără
-separator orizontal decorativ, iar `📷 base64 img` este link inline, cu aceeași
-încadrare verticală pe rând. POST/PUT trebuie să arate request și response JSON
-valid/nevid și să reconcilieze mock expectation-ul cu `ValidationResult`.
+- **Browser:** DOM, accessibility tree, computed style, console/network și tab-uri;
+- **UI evidence:** expand/collapse, acțiuni/observații/assertions ca zone-soră și screenshot inline;
+- **API report:** POST/PUT cu request/response JSON valide, nevid și reconciliat cu `ValidationResult`;
+- **Verdict:** cel puțin un caz pozitiv și unul negativ.
 
 Build-ul se face în staging extern, sub `${ATF_STAGING_ROOT}`, nu în staging-ul
 proiectului; raportul fresh se copiază în

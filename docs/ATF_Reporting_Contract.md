@@ -257,12 +257,13 @@ Gherkin checkpoint
     └── Unique request signatures  → method/route/status/count + metadate
 ```
 
-`Response details` al inspectorului este doar un index bounded. Nu conține
-request rows, `NETWORK EXCHANGE n` sau propoziții Gherkin complete; acestea
-apar o singură dată în disclosure-ul semantic potrivit. Astfel, aceeași
-propoziție Gherkin nu se repetă pentru UI și API, iar request-urile retry sau
-repetate sunt grupate după semnătură, cu istoricul de attempt păstrat local în
-`Execution evidence`.
+`Response details` din inspector este un index bounded:
+
+- nu repetă request rows, `NETWORK EXCHANGE n` sau propoziții Gherkin;
+- fiecare fapt apare o singură dată în disclosure-ul semantic potrivit;
+- UI și API rămân sub aceeași propoziție Gherkin, fără pași duplicați;
+- request-urile retry/repetate se grupează după semnătură, iar attempt history
+  rămâne în `Execution evidence`.
 
 ```mermaid
 flowchart LR

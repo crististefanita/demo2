@@ -160,14 +160,15 @@ Extent și fallback-ul să împartă aceeași structură internă:
 - modelele rămân separate: `Overview/Categories/Fails` sunt specifice fallback-ului,
   iar snapshot-ul este contractul comun renderer-neutral.
 
-`ReportExecutionModel.projections()` expune aceeași populație printr-un singur
-`ReportExecutionProjections` typed, colectat într-o singură traversare
-renderer-neutrală. Fațadele existente `overview()`,
-`categories()` și `failures()` rămân disponibile pentru compatibilitate, dar
-composition roots și validatorii noi pot transmite agregatul fără să aleagă
-proiecții din surse diferite. Agregatul nu deține lifecycle state și nu schimbă
-arborele immutable; separarea dintre recorderul mutabil și proiecția pură rămâne
-explicită.
+`ReportExecutionModel.projections()` colectează aceeași populație într-o singură
+traversare renderer-neutrală și returnează `ReportExecutionProjections`.
+
+- fațadele `overview()`, `categories()` și `failures()` rămân pentru
+  compatibilitate;
+- composition roots și validatorii noi pot transmite agregatul complet, fără
+  să aleagă proiecții din surse diferite;
+- agregatul este pur: nu deține lifecycle state și nu modifică arborele immutable;
+- recorderul mutabil și proiecția rămân responsabilități separate.
 
 ### Instantaneu tipizat pentru Overview/System
 

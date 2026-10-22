@@ -42,12 +42,10 @@ flowchart LR
 | HTML, CSS, Extent lifecycle și publisher | `atf-reporting` |
 | mock, API scenarios și contract validation | `atf-reporting-tests` test scope + modulele API |
 
-`SectionAuditCheckExecutor` și `ExtentSectionAuditPublisher` NU aparțin
-`atf-ui`. Validarea statică și proiecția de raport aparțin `atf-reporting`;
-execuția browserului și scenariile E2E apar explicit în
-[`atf-reporting-tests/src/test/java/atf/ui/tests/extent/README.md`](../atf-reporting-tests/src/test/java/atf/ui/tests/extent/README.md).
-`atf-ui` nu trebuie să importe acele clase, să publice Extent sau să emită
-assert-uri de secțiune.
+`atf-ui` nu importă executorul de audit și publisherul de secțiune: validarea
+statică și proiecția raportului aparțin `atf-reporting`, iar scenariile E2E sunt
+în [README-ul auditului browser](../atf-reporting-tests/src/test/java/atf/ui/tests/extent/README.md).
+Modulul UI nu publică Extent și nu emite assertions de secțiune.
 
 ## Componentele runtime
 
@@ -126,12 +124,14 @@ Report*Locators
   `waitFor`, `waitForCondition`, `waitForURL`;
 - `waitForTimeout` nu este API de stabilizare acceptat.
 
-În CI/ATF Debug, când revizia Playwright cerută nu este disponibilă în cache,
-runnerul poate primi un browser headless deja provisionat prin
-`-Datf.ui.playwright.executablePath=<chromium-executable>` sau prin
-`ATF_UI_PLAYWRIGHT_EXECUTABLE_PATH`. Este un override de bootstrap, nu o cheie
-de business YAML; în lipsa lui, launcherul păstrează comportamentul Playwright
-standard și fail-closed dacă nu poate provisiona browserul.
+În CI/ATF Debug, browserul headless provisionat poate fi selectat numai ca
+override de bootstrap:
+
+- JVM: `-Datf.ui.playwright.executablePath=<chromium-executable>`;
+- environment: `ATF_UI_PLAYWRIGHT_EXECUTABLE_PATH`;
+- nu este o cheie de business YAML;
+- fără override, launcherul păstrează provisioning-ul Playwright standard și
+  fail-closed dacă browserul nu este disponibil.
 
 `PlaywrightActionSequence` este recorderul, nu auditorul:
 
@@ -172,12 +172,13 @@ markup și randare este în
 
 ## Inspectorul de rețea — limită generică de responsabilitate
 
-`UiNetworkInspector` este opt-in și acceptă numai host-urile configurate.
-Listenerii Playwright observă atât `response`, cât și `request-failed`; nu
-execută replay și nu decid verdictul testului. Observațiile browser sunt
-transformate în date typed, cu URL/query, headers și body redacted/bounded;
-failure-ul înainte de response are status `Unavailable` și motiv explicit,
-fără un response inventat.
+`UiNetworkInspector` este opt-in și restrâns la host-urile configurate:
+
+- listenerii observă `response` și `request-failed`; nu execută replay și nu
+  decid verdictul testului;
+- observațiile devin date typed, cu URL/query, headers și body redacted/bounded;
+- failure-ul fără response are status `Unavailable` și motiv explicit;
+- nu se fabrică un response pentru un request eșuat.
 
 | Contract | Owner |
 |---|---|
@@ -186,11 +187,10 @@ fără un response inventat.
 | aliasul de serviciu, corelarea cu checkpoint-ul și verdictul business | consumerul |
 | cardurile HTML și sumarul agregat | `atf-reporting` |
 
-`capture(UiNetworkObservation)` este și o intrare publică pentru fixture-uri și
-adaptoare. Inspectorul resanitizează observația înainte de storage și de
-notificarea subscriberilor: URL/path, headers, body, auth/source, failure,
-service și signature sunt reconstruite sau limitate. Testul negativ pentru
-input creat de caller protejează acest boundary.
+`capture(UiNetworkObservation)` acceptă și fixture-uri/adaptoare. Înainte de
+storage și notificarea subscriberilor, inspectorul reconstruiește sau limitează
+URL/path, headers, body, auth/source, failure, service și signature. Testul
+negativ pentru input creat de caller protejează acest boundary.
 
 Read-back după acțiune:
 

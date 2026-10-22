@@ -86,7 +86,7 @@ public final class PracticeShopAuthenticatedAccountTestSupport {
         assertions.addAll(setup.apiNetwork().loginConfirmed(setup.configuration().api(), credentials));
         apiEvidence.addAll(setup.apiNetwork().evidence(PracticeShopApiCheckpoint.LOGIN));
         setup.checkpoint(AtfGherkinKeyword.AND, "the account is signed in and its session is confirmed",
-                assertions, apiEvidence, setup.authenticatedAccountScreenScreenshot());
+                assertions, apiEvidence);
         setup.complete();
         return credentials;
     }
