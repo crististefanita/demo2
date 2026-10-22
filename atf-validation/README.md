@@ -161,23 +161,46 @@ Testele modulului protejează separat:
   output nedeclarat, hard-fail critic, threshold configurabil și agregare
   ponderată; fără provider, browser sau renderer.
 
-Evaluarea AI este un increment separat în pachetul `atf.api.validation.ai`:
-
-- evaluează output furnizat de consumer; nu face invocation;
-- numai `REAL_AI` cu referințe complete poate primi quality score;
-- mock, fallback și unknown permit testarea comparatorului, fără AI quality score;
-- grounding-ul obligatoriu lipsă sau din afara allowlist-ului produce hard-fail
-  (`MISSING_GROUNDING_REFERENCE` / `UNSUPPORTED_GROUNDING`); `AMBIGUOUS` există
-  în vocabular, dar evaluatorul nu îl clasifică încă;
-- run-level evidence ledger, corelarea lifecycle-ului și proiecția de raport
-  sunt încă deschise;
-- limitele și criteriile de închidere sunt în
-  [`README_AI_Evaluation.md`](../docs/feedback/README_AI_Evaluation.md).
-
 Testele sunt ratchet tests: când un contract eșuează, se repară
 implementarea, nu se relaxează assertion-ul pentru a face build-ul verde.
 Validarea vizuală a artifactului rămâne responsabilitatea suitei din
 `atf-reporting` și a verificării finale în TAB MCP.
+
+## Comparatorul AI — contract implementat
+
+`atf.api.validation.ai` evaluează output-ul furnizat de consumer. Expected-ul
+versionat se construiește separat, iar evaluatorul produce un instantaneu
+`COMPLETE` fără să invoce un model sau un renderer.
+
+| Contract | Comportament executabil |
+|---|---|
+| Comparații | `EXACT`, `NORMALIZED_TEXT`, `SET`, `ORDERED_LIST`, `RANGE`, `ALLOWED_VARIANTS`, `PRESENT`, `ABSENT` |
+| Expected / observed | copii defensive inclusiv pentru valori nested; căile expected duplicate sunt respinse |
+| Prezența informației | lipsa critică, invenția critică și contradicția dintre sursă și expected au motive distincte |
+| Output nedeclarat | hard-fail implicit; când politica permite câmpul extra, mismatch-ul și penalizarea rămân vizibile |
+| Scor și verdict | scor ponderat, prag explicit; eșecul critic prevalează asupra scorului |
+| Invocare | numai `REAL_AI` cu referințe complete poate primi quality score; mock/fallback sunt `NOT_EVALUATED`; output-ul produs cu mod `UNKNOWN` sau dovezile reale incomplete produc `FAIL` |
+| Fundamentare per field | source IDs allowlisted; `SUPPORTED`, `UNSUPPORTED`, `MISSING_REFERENCE`, `NOT_REQUIRED`; fundamentarea obligatorie lipsă/nesuportată produce hard-fail |
+| Instantaneu | policy, timestamp din `Clock`, invocation, comparații, grounding și hard-fails cu field/expected/observed/reason/evidence reference |
+
+Responsabilitățile sunt separate între pachetul `ai` (comparator și snapshot),
+`ai.grounding` (cerințe și referințe) și `ai.invocation` (proveniența apelului).
+`AiEvaluationValues` păstrează intern mecanica de copiere; guvernanța coeziunii
+protejează inventarul pachetului și limita de opt clase.
+
+| Probă în `AiEvaluationEvaluatorTest` | Ce protejează |
+|---|---|
+| comparații, threshold și critical mismatch | evaluare deterministă și precedența hard-fail |
+| missing/invented/undeclared output | diagnostice distincte și referința la output |
+| real/mock/fallback și invocation incompletă | eligibilitatea scorului și refuzul dovezilor incomplete |
+| grounding lipsă sau în afara allowlist-ului | `MISSING_GROUNDING_REFERENCE` / `UNSUPPORTED_GROUNDING` |
+| clock injectat și mutații ale valorilor nested | finalizare `COMPLETE` și imuabilitate |
+
+Limita curentă: `AMBIGUOUS` există în enum, dar evaluatorul nu îl produce.
+Registrul de dovezi la nivel de run, integrarea lifecycle-ului, review/state,
+reporting și regression delta rămân în [feedback-ul AI](../docs/feedback/README_AI_Evaluation.md).
+`REGEX_RESTRICTED` cere un matcher cu execuție limitată înainte de implementare;
+scorul tehnic existent nu reprezintă încă o rubrică business configurabilă pe caz.
 
 ## Utilizare ca JAR
 

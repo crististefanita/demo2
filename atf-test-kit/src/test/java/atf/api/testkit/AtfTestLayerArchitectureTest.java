@@ -4,6 +4,9 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,6 +27,11 @@ class AtfTestLayerArchitectureTest {
             "@AtfUnitTest", "@AtfComponentTest", "@AtfIntegrationTest", "@AtfE2eTest");
     private static final Pattern TEST_DECLARATION = Pattern.compile(
             "(?m)^\\s*@(Test|ParameterizedTest|TestFactory|TestTemplate|RepeatedTest|Suite|SelectPackages)\\b");
+    private static final Pattern ANNOTATION = Pattern.compile("(?m)^\\s*@([\\w.]+)\\b");
+    private static final Pattern ANNOTATION_TYPE = Pattern.compile(
+            "(?m)^\\s*(?:public\\s+)?@interface\\s+(\\w+)\\b");
+    private static final Pattern PACKAGE = Pattern.compile("(?m)^\\s*package\\s+([\\w.]+)\\s*;");
+    private static final Pattern IMPORT = Pattern.compile("(?m)^\\s*import\\s+([\\w.]+)\\s*;");
     private static final String STANDALONE_REPORTING_LAYER = "standalone-independent";
     private static final Set<String> STANDALONE_REPORTING_TEST_NAMES = Set.of(
             "ReportingStandaloneContractTest.java", "ReportingStandaloneDependencyTest.java",
@@ -33,12 +41,13 @@ class AtfTestLayerArchitectureTest {
     @Test
     void everyConcreteExecutableTestDeclaresExactlyOneLayer() throws Exception {
         Path projectRoot = locateProjectRoot();
+        Map<String, String> annotations = annotationSources(projectRoot);
         for (Path file : testSources(projectRoot)) {
             String source = Files.readString(file);
             if (isStandaloneReportingTest(file, projectRoot)) continue;
             if (!isConcreteExecutable(source)) continue;
 
-            List<String> declared = declaredLayers(source);
+            List<String> declared = declaredLayers(source, annotations);
             assertEquals(1, declared.size(),
                     () -> "Executable test must declare exactly one layer: " + file);
             assertNoForbiddenImports(file, projectRoot, source, declared.getFirst());
@@ -92,15 +101,19 @@ class AtfTestLayerArchitectureTest {
     @Test
     void moduleLayerMatrixIsDerivedFromDeclaredAnnotations() throws Exception {
         Path projectRoot = locateProjectRoot();
+        Map<String, String> annotations = annotationSources(projectRoot);
         Map<String, Set<String>> matrix = new TreeMap<>();
         for (Path file : testSources(projectRoot)) {
             String source = Files.readString(file);
             if (!isConcreteExecutable(source)) continue;
             String relative = projectRoot.relativize(file).toString().replace('\\', '/');
             String module = relative.substring(0, relative.indexOf('/'));
-            String layer = isStandaloneReportingTest(file, projectRoot)
-                    ? STANDALONE_REPORTING_LAYER
-                    : declaredLayers(source).getFirst();
+            List<String> declared = isStandaloneReportingTest(file, projectRoot)
+                    ? List.of(STANDALONE_REPORTING_LAYER)
+                    : declaredLayers(source, annotations);
+            assertEquals(1, declared.size(),
+                    () -> "Executable test must declare exactly one layer: " + file);
+            String layer = declared.getFirst();
             matrix.computeIfAbsent(module, ignored -> new TreeSet<>()).add(layer);
         }
 
@@ -116,11 +129,73 @@ class AtfTestLayerArchitectureTest {
                 && !source.matches("(?s).*\\babstract\\s+class\\s+\\w+.*");
     }
 
-    private static List<String> declaredLayers(String source) {
-        return source.lines()
-                .map(String::trim)
-                .filter(LAYER_ANNOTATIONS::contains)
-                .toList();
+    @Test
+    void composedLayerPreservesTheCanonicalLayerAndRejectsAmbiguousDeclarations() {
+        var annotations = Map.of("fixture.Component", "@AtfComponentTest\npublic @interface Component {}");
+        assertAll(
+                () -> assertEquals(List.of("@AtfComponentTest"), declaredLayers(
+                        "import fixture.Component;\n@Component\nclass Example {}", annotations)),
+                () -> assertEquals(List.of("@AtfUnitTest", "@AtfComponentTest"), declaredLayers(
+                        "import fixture.Component;\n@AtfUnitTest\n@Component\nclass Example {}", annotations)),
+                () -> assertTrue(declaredLayers("@Unknown\nclass Example {}", annotations).isEmpty()));
+    }
+
+    @Test
+    void nestedAnnotationResolutionTerminatesCyclesWithoutInventingALayer() {
+        var annotations = Map.of(
+                "fixture.Outer", "import fixture.Inner;\n@Inner\npublic @interface Outer {}",
+                "fixture.Inner", "@AtfComponentTest\npublic @interface Inner {}",
+                "fixture.Loop", "import fixture.Loop;\n@Loop\npublic @interface Loop {}");
+        assertAll(
+                () -> assertEquals(List.of("@AtfComponentTest"), declaredLayers(
+                        "import fixture.Outer;\n@Outer\nclass Example {}", annotations)),
+                () -> assertTrue(declaredLayers(
+                        "import fixture.Loop;\n@Loop\nclass Example {}", annotations).isEmpty()));
+    }
+
+    private static List<String> declaredLayers(String source, Map<String, String> annotations) {
+        return declaredLayers(source, annotations, new HashSet<>());
+    }
+
+    private static List<String> declaredLayers(String source, Map<String, String> annotations,
+                                                Set<String> resolving) {
+        var imports = new HashMap<String, String>();
+        IMPORT.matcher(source).results().forEach(match -> {
+            String name = match.group(1);
+            imports.put(name.substring(name.lastIndexOf('.') + 1), name);
+        });
+        var packageMatcher = PACKAGE.matcher(source);
+        String packagePrefix = packageMatcher.find() ? packageMatcher.group(1) + "." : "";
+        var result = new ArrayList<String>();
+        ANNOTATION.matcher(source).results().forEach(match -> {
+            String name = match.group(1);
+            String layer = "@" + name.substring(name.lastIndexOf('.') + 1);
+            if (LAYER_ANNOTATIONS.contains(layer)) {
+                result.add(layer);
+                return;
+            }
+            String type = imports.getOrDefault(name, name.contains(".") ? name : packagePrefix + name);
+            String composed = annotations.get(type);
+            if (composed != null && resolving.add(type)) {
+                result.addAll(declaredLayers(composed, annotations, resolving));
+                resolving.remove(type);
+            }
+        });
+        return List.copyOf(result);
+    }
+
+    private static Map<String, String> annotationSources(Path root) throws Exception {
+        var result = new HashMap<String, String>();
+        try (Stream<Path> files = Files.walk(root)) {
+            for (Path file : files.filter(path -> path.toString().replace('\\', '/')
+                    .matches(".*/src/(main|test)/java/.*\\.java$")).toList()) {
+                String source = Files.readString(file);
+                var type = ANNOTATION_TYPE.matcher(source);
+                var owner = PACKAGE.matcher(source);
+                if (type.find() && owner.find()) result.put(owner.group(1) + "." + type.group(1), source);
+            }
+        }
+        return Map.copyOf(result);
     }
 
     private static void assertNoForbiddenImports(Path file, Path projectRoot,

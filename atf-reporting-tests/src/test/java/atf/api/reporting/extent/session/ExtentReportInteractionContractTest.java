@@ -229,8 +229,10 @@ class ExtentReportInteractionContractTest {
                 () -> assertTrue(html.contains("json-evidence")),
                 () -> assertTrue(html.contains("assertion-evidence")),
                 () -> assertTrue(html.contains("helm-validation-table")),
-                 () -> assertTrue(html.contains("panel.style.setProperty('display',open?'block':'none','important')"),
-                         "the shared disclosure helper must own the visible panel state"),
+                 () -> assertTrue(html.contains("attribute==='data-atf-node-open'?nodePanels(card):[panel]")
+                                 && html.contains("panels.forEach(function(child){child.classList.toggle('show',open);")
+                                 && html.contains("child.style.setProperty('display',open?'block':'none','important')"),
+                         "the shared disclosure helper must own every direct panel's visible state"),
                  () -> assertTrue(html.contains("setDisclosureState(card,panel,next,'data-atf-node-open')")),
                 () -> assertFalse(html.contains("class=\"collapse show\""),
                         "evidence must start collapsed in the artifact")

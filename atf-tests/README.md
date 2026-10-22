@@ -51,6 +51,8 @@ src/test/java/atf/api/tests/governance/
 ├── AtfGovernanceTestSupport.java
 ├── AtfSourceReadabilityGovernanceTest.java
 ├── ConstantsOwnershipGovernanceTest.java
+├── changes/          ToDo schema, diferență Git și probe negative
+├── console/          default-uri și composition root-uri UI/API
 ├── documentation/
 │   ├── DocumentationDiagramGovernanceTest.java
 │   ├── DocumentationProseGovernanceTest.java
@@ -139,6 +141,45 @@ repository; păstrează doar boundary-ul API/UI propriu compoziției reporting.
 - orice schimbare se închide prin POM, import scan și testul de arhitectură.
 
 </details>
+
+## Guvernanța schimbării testelor
+
+Testele din modulele ATF se schimbă numai prin ToDo-uri structurate în
+`docs/feedback/*.md`. Singura excepție este `atf-test-practice-shop`; limita
+de coeziune și celelalte reguli de arhitectură continuă să i se aplice.
+
+| Control | Regulă |
+|---|---|
+| Scope | toate fișierele din `<modul>/src/test/`, inclusiv suport, resurse și suite; POM-urile modulelor exclusiv de teste |
+| ToDo | bloc YAML `testChanges`, ID unic, `ACTIVE` sau `VERIFIED`, motiv, comandă Maven de probă, expirare și SHA-ul baseline-ului |
+| Fișiere | căi relative exacte; fără wildcard, traversal sau owneri multipli pentru aceeași schimbare |
+| Ștergere / redenumire | `allowDelete: true` pentru vechea cale; redenumirea este evaluată ca ștergere + adăugare |
+| Diferență Git | committed față de baseline, staged, unstaged și fișiere noi; nici testele noi ignorate de Git nu sunt exceptate |
+| Eșec infrastructură | checkout sau baseline invalid, conflict ori YAML invalid produc FAIL, nu skip |
+
+`TestChangeGovernanceTest`, `TestChangePolicyTest` și `GitTestChangesTest` sunt
+incluse în `WholeAtfGovernanceSuiteTest`. Probe negative verifică cereri lipsă,
+închise, expirate, incomplete, cu baseline străin, duplicate și ștergeri
+neautorizate; fixture-ul Git real verifică și nume cu spații și redenumiri.
+
+La lansare locală, inclusiv IntelliJ, baza implicită este `HEAD`. Pentru o
+ramură completă se setează `-Datf.governance.testChanges.baseRef=<review-base>`;
+CI cere explicit această proprietate sau `ATF_TEST_CHANGE_BASE_REF` și refuză
+valoarea literală `HEAD`. Baza trebuie să fie un strămoș al commitului curent;
+cererea fixează SHA-ul rezolvat, nu un ref mobil.
+
+- Exemplele executabile și scope-ul schimbării curente sunt în
+[ToDo-urile de schimbare a testelor](../docs/feedback/ATF_Test_Changes_Feedback.md).
+După integrare, cererea poate fi eliminată când baseline-ul nu mai include
+schimbarea. Aceste teste validează corespondența diff–ToDo; nu execută comenzile
+din documente și nu substituie aprobarea umană a schimbării unei reguli.
+
+## Guvernanța detaliilor la consolă
+
+`ConsoleDefaultsGovernanceTest` protejează detaliile implicite și conectarea
+UI/API în Reporting și Shop. Testele comportamentale din `atf-console` și
+`ReportingTestConsoleTest` verifică formatarea și livrarea evenimentelor;
+override-ul YAML `false` rămâne suportat.
 
 ## Module consumatoare separate
 

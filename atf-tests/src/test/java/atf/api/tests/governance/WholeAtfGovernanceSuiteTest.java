@@ -1,4 +1,8 @@
 package atf.api.tests.governance;
+import atf.api.tests.governance.changes.TestChangeGovernanceTest;
+import atf.api.tests.governance.changes.TestChangePolicyTest;
+import atf.api.tests.governance.changes.GitTestChangesTest;
+import atf.api.tests.governance.console.ConsoleDefaultsGovernanceTest;
 
 import atf.api.testkit.AtfIntegrationTest;
 import atf.api.tests.governance.documentation.DocumentationDiagramGovernanceTest;
@@ -14,6 +18,10 @@ import org.junit.platform.suite.api.Suite;
 @AtfIntegrationTest
 @Suite
 @SelectClasses({
+        TestChangeGovernanceTest.class,
+        TestChangePolicyTest.class,
+        GitTestChangesTest.class,
+        ConsoleDefaultsGovernanceTest.class,
         ArchitectureModuleBoundaryTest.class,
         ArchitectureOwnershipBoundaryTest.class,
         AtfPackageCohesionGovernanceTest.class,

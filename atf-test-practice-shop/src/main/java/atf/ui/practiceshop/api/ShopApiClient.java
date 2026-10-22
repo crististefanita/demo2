@@ -1,4 +1,8 @@
 package atf.ui.practiceshop.api;
+import atf.api.console.AtfConsoleReporter;
+import atf.api.core.reporting.console.AtfConsoleSink;
+import atf.api.core.reporting.console.AtfConsoleEvent;
+import atf.ui.practiceshop.support.ShopJsonEvidence;
 
 import atf.api.core.config.ApiTransportMode;
 import atf.api.core.http.auth.ConfiguredApiAuthenticator;
@@ -29,7 +33,7 @@ public final class ShopApiClient implements AutoCloseable {
     private ShopApiClient(URI endpoint, ApiTransport transport,
                                   ShopApiRequestFactory requests,
                                   java.time.Duration timeout,
-                                  ApiTransportMode transportMode) {
+                                  ApiTransportMode transportMode, AtfConsoleSink console) {
         this.endpoint = Objects.requireNonNull(endpoint, "endpoint");
         this.transport = Objects.requireNonNull(transport, "transport");
         this.requests = Objects.requireNonNull(requests, "requests");
@@ -37,7 +41,7 @@ public final class ShopApiClient implements AutoCloseable {
                 timeout, java.util.Set.of(), 1);
         // The factory is intentionally transport-agnostic; the explicit mode keeps
         // report provenance aligned with the transport selected by the composition root.
-        this.executor = new ApiExecutor(transport, settings.snapshot(),
+        this.executor = new ApiExecutor(transport, settings.snapshot(), safeConsole(console),
                 Objects.requireNonNull(transportMode, "transportMode"));
     }
 
@@ -53,7 +57,8 @@ public final class ShopApiClient implements AutoCloseable {
                 atf.api.core.config.ApiTransportPolicy.explicitLive(),
                 new ConfiguredApiAuthenticator(Map.of()));
         return new ShopApiClient(configuration.endpoint(), transport,
-                new ShopApiRequestFactory(), configuration.timeout(), ApiTransportMode.LIVE);
+                new ShopApiRequestFactory(), configuration.timeout(), ApiTransportMode.LIVE,
+                AtfConsoleReporter.configuredStdout());
     }
 
     public static ShopApiClient forTransport(URI endpoint, ApiTransport transport) {
@@ -67,13 +72,36 @@ public final class ShopApiClient implements AutoCloseable {
      */
     public static ShopApiClient forTransport(URI endpoint, ApiTransport transport,
                                                      ApiTransportMode transportMode) {
+        return forTransport(endpoint, transport, transportMode, AtfConsoleReporter.configuredStdout());
+    }
+
+    public static ShopApiClient forTransport(URI endpoint, ApiTransport transport,
+                                             ApiTransportMode transportMode, AtfConsoleSink console) {
         return new ShopApiClient(endpoint, transport, new ShopApiRequestFactory(),
-                java.time.Duration.ofSeconds(10), transportMode);
+                java.time.Duration.ofSeconds(10), transportMode, Objects.requireNonNull(console, "console"));
     }
 
     public ApiExecutionResult execute(atf.api.core.http.request.ApiRequest request) {
         ensureOpen();
         return executor.execute(request);
+    }
+
+    /** Consumer-owned PII policy is applied before the generic console formatter. */
+    private static AtfConsoleSink safeConsole(AtfConsoleSink console) {
+        Objects.requireNonNull(console, "console");
+        return event -> {
+            if (event.type() == AtfConsoleEvent.Type.CODE) {
+                console.publish(AtfConsoleEvent.code(event.scope(), event.detailName(),
+                        ShopJsonEvidence.redact(event.detailValue())));
+            } else if (event.type() == AtfConsoleEvent.Type.DETAIL && "url".equals(event.detailName())) {
+                String url = event.detailValue();
+                int query = url.indexOf('?');
+                console.publish(AtfConsoleEvent.detail(event.scope(), event.detailName(),
+                        query < 0 ? url : url.substring(0, query) + "?<redacted>"));
+            } else {
+                console.publish(event);
+            }
+        };
     }
 
     public ShopApiSession login(ShopCredentials credentials) {

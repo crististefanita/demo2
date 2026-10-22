@@ -10,21 +10,38 @@ import atf.api.core.config.ApiBootstrapConfiguration;
 import atf.api.core.config.AtfConfiguration;
 import atf.api.core.config.ReportingSettings;
 import atf.api.core.http.transport.ApiTransportProvenance;
+import atf.api.core.reporting.console.AtfConsoleEvent;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
 import java.time.Duration;
 import java.util.Map;
+import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @AtfComponentTest
 
 class ApiModuleFactoryTest {
+    @Test
+    void bootstrapPreservesConsoleDetailsAndExplicitTransportProvenance() {
+        var events = new ArrayList<AtfConsoleEvent>();
+        ApiTransport acceptance = (request, url, auth) -> CompletableFuture.completedFuture(
+                new ApiResponse(200, "{\"ok\":true}", Map.of(), Duration.ZERO, url));
+        var configuration = ApiBootstrapConfiguration.acceptance(
+                new ApiSettings(URI.create("https://example.test"), "none"));
+        var module = ApiModuleFactory.bootstrap(configuration, acceptance, null, events::add);
+        var result = module.executor().execute(ApiRequest.of("GET", "/health"));
+        assertEquals(ApiTransportProvenance.ACCEPTANCE_MOCK, result.provenance());
+        assertTrue(events.stream().anyMatch(event -> event.type() == AtfConsoleEvent.Type.CODE));
+        assertTrue(events.stream().anyMatch(event -> "response.body".equals(event.detailName())));
+    }
+
     @Test
     void composesOneScopedGraphAndPreservesSettingsSnapshot() {
         ApiTransport transport = (request, url, auth) -> CompletableFuture.completedFuture(

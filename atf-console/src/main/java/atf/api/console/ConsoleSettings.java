@@ -3,7 +3,7 @@ package atf.api.console;
 /** Immutable policy for the diagnostic console projection. */
 public record ConsoleSettings(boolean enabled, boolean detailsEnabled) {
     public static final boolean DEFAULT_ENABLED = true;
-    public static final boolean DEFAULT_DETAILS_ENABLED = false;
+    public static final boolean DEFAULT_DETAILS_ENABLED = true;
 
     public static ConsoleSettings defaults() {
         return new ConsoleSettings(DEFAULT_ENABLED, DEFAULT_DETAILS_ENABLED);

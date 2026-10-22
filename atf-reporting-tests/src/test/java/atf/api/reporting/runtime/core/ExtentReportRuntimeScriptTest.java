@@ -109,17 +109,16 @@ class ExtentReportRuntimeScriptTest {
                         "Evidence must own semantic node roles"),
                 () -> assertTrue(evidence.contains("data-atf-network-aggregate"),
                         "Network aggregate cards must expose a stable responsive layout hook"),
-                () -> assertTrue(evidence.contains("/^NETWORK AGGREGATE\\b/.test(upper)"),
-                        "Only the synthetic Network aggregate card may receive the aggregate layout hook"),
-                () -> assertTrue(evidence.contains("/^TRACE\\s+/.test(upper)"),
-                        "API trace cards must reuse the request role and its UI-equivalent collapse/layout contract"),
+                () -> assertTrue(evidence.contains("function structuralNodeRole(card)"),
+                        "Node roles must follow the typed scenario/phase/request/validation hierarchy"),
+                () -> assertTrue(evidence.contains("function isNetworkAggregateCard(card)"),
+                        "Network aggregate layout must follow its evidence, not its title"),
                 () -> assertTrue(navigation.contains("window.atfOpenTest=function"),
                         "Navigation must own deep links into Tests"),
                 () -> assertTrue(navigation.contains("function bindNodeCollapse("),
                         "Navigation must own disclosure/collapse interaction"),
-                () -> assertTrue(navigation.contains(
-                                "function nodePanel(card){var panel=card.querySelector(':scope>.collapse')||card.querySelector(':scope>div:not(.card-header):not(.accordion)')||card.querySelector(':scope>.accordion')"),
-                        "a request must toggle its own evidence body before its nested validation accordion"));
+                () -> assertTrue(navigation.contains("function nodePanels(card)"),
+                        "a request must toggle its own evidence body and nested validation accordion"));
     }
 
     @Test
@@ -307,8 +306,8 @@ class ExtentReportRuntimeScriptTest {
         String html = ExtentReportRuntimeBehaviour.inject(EMPTY_HTML_DOCUMENT);
 
         assertAll(
-                () -> assertTrue(html.contains("/^(GIVEN|WHEN|THEN|AND|BUT)\\s+/.test(upper)"),
-                        "THEN and all other Gherkin outcome nodes must share the validation card role"),
+                () -> assertTrue(html.contains("if(parentRole==='request')return isNetworkAggregateCard(card)?'request':'validation'"),
+                        "validation cards must be classified by typed parent-child position"),
                 () -> assertTrue(html.contains("data-atf-node-role=\"validation\"]"),
                         "the validation styling and disclosure selectors must apply to the THEN card"),
                 () -> assertTrue(html.contains("function technicalEvidenceType(card)"),
@@ -320,8 +319,8 @@ class ExtentReportRuntimeScriptTest {
                 () -> assertFalse(html.contains("RUNTIME DIAGNOSTIC")
                                 || html.contains("runtime-diagnostic"),
                         "runtime diagnostics are not a published report evidence type"),
-                () -> assertTrue(html.contains("/NETWORK/.test(upper)"),
-                        "the synthetic inspector and its aggregate child must receive the request disclosure role"),
+                () -> assertTrue(html.contains("function isNetworkAggregateCard(card)"),
+                        "the synthetic inspector must be identified by its evidence, not its title"),
                 () -> assertTrue(html.contains("assignNodeRoles();aggregateClassDurations();normalizeEvidenceDisclosures()"),
                         "opening a scenario must recalculate the visible cloned phase tree"),
                 () -> assertTrue(html.contains("if(next){assignNodeRoles();aggregateClassDurations();normalizeEvidenceDisclosures();bindPhaseCollapse();"),

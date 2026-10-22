@@ -119,21 +119,25 @@ public final class HtmlReportTestsView {
 
     private void renderPhaseDetails(StringBuilder html, ReportExecutionModel.Phase phase) {
         if (phase.details().isEmpty()) return;
-        html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TABLE,
+        var table = new StringBuilder(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TABLE,
                         AtfReportHtmlVocabulary.classAttribute(
                                 AtfReportHtmlVocabulary.CssClass.HELM_EVIDENCE_TABLE.value(),
                                 AtfReportHtmlVocabulary.CssClass.HELM_TRACE_TABLE.value(),
                                 AtfReportHtmlVocabulary.CssClass.PHASE_DETAILS.value())))
                 .append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TBODY));
         for (ReportField detail : phase.details()) {
-            html.append(AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.TR,
+            table.append(AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.TR,
                     AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.TH,
                             escape(detail.name()))
                             + AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.TD,
                             escape(redactor.redactField(detail.name(), detail.value())))));
         }
-        html.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TBODY))
+        table.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TBODY))
                 .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TABLE));
+        html.append(ReportEvidenceMarkup.disclosure(
+                AtfReportHtmlVocabulary.CssClass.PHASE_DETAILS.value(),
+                atf.api.reporting.markup.AtfReportLabels.auditDetails(phase.details().size()),
+                table.toString()));
     }
 
     private void renderNode(StringBuilder html, ReportExecutionModel.Node node) {

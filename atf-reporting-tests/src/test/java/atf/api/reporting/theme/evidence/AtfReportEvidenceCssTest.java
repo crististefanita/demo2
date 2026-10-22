@@ -286,6 +286,12 @@ class AtfReportEvidenceCssTest {
                 () -> assertTrue(theme.contains(
                                 ".atf-trace-table-wrap>.helm-trace-table thead th{position:sticky!important;top:0!important"),
                         "Extent technical trace headers must remain visible while scrolling"),
+                () -> assertTrue(theme.contains(
+                                ".atf-api-table-wrap{height:auto!important;max-height:var(--atf-table-scroll-height)!important"),
+                        "request and retry tables must share the bounded viewport"),
+                () -> assertTrue(theme.contains(
+                                ".atf-api-table-wrap>.helm-evidence-table thead th{position:sticky!important;top:0!important"),
+                        "request and retry headers must remain visible while scrolling"),
                 () -> assertTrue(fallback.contains(
                                 ".atf-ui-action-table-wrap,.atf-validation-table-wrap{max-height:var(--atf-table-scroll-height)"),
                         "fallback action and validation tables must use the shared viewport token"),
@@ -295,6 +301,9 @@ class AtfReportEvidenceCssTest {
                 () -> assertTrue(fallback.contains(
                                 ".atf-trace-table-wrap>.helm-trace-table thead th{position:sticky;top:0"),
                         "fallback technical trace headers must remain visible while scrolling"),
+                () -> assertTrue(fallback.contains(
+                                ".atf-api-table-wrap{height:auto;max-height:var(--atf-table-scroll-height)"),
+                        "fallback request and retry tables must share the bounded viewport"),
                 () -> assertTrue(fallback.contains(
                                 ".atf-secondary-body.network-aggregate-scroll{height:auto;max-height:var(--atf-table-scroll-height)"),
                         "short fallback network lists must stay content-sized under the shared viewport cap"),

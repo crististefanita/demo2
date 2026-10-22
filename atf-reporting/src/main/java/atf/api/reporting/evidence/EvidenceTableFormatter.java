@@ -8,6 +8,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import static atf.api.reporting.markup.AtfReportEvidenceKeys.REQUEST_ACTION;
+import static atf.api.reporting.markup.AtfReportEvidenceKeys.REQUEST_TARGET;
+
 /** Gives request evidence one stable, human-readable vocabulary. */
 public final class EvidenceTableFormatter {
     private EvidenceTableFormatter() {
@@ -50,6 +53,7 @@ public final class EvidenceTableFormatter {
         if (details == null || details.isEmpty()) return List.of();
         return details.stream()
                 .filter(detail -> detail != null)
+                .filter(detail -> !isInternalUiContext(detail.name()))
                 .filter(detail -> !isRequestDetail(detail.name()))
                 .filter(detail -> !isExecutionSummaryField(detail.name()))
                 .toList();
@@ -59,6 +63,7 @@ public final class EvidenceTableFormatter {
         if (details == null || details.isEmpty()) return List.of();
         return details.stream()
                 .filter(detail -> detail != null)
+                .filter(detail -> !isInternalUiContext(detail.name()))
                 .filter(detail -> isRequestDetail(detail.name()))
                 .toList();
     }
@@ -74,6 +79,7 @@ public final class EvidenceTableFormatter {
         if (details == null || details.isEmpty()) return List.of();
         return details.stream()
                 .filter(detail -> detail != null && detail.length > 0)
+                .filter(detail -> !isInternalUiContext(detail[0]))
                 .filter(detail -> !isRequestDetail(detail[0]))
                 .filter(detail -> !isExecutionSummaryField(detail[0]))
                 .toList();
@@ -83,8 +89,17 @@ public final class EvidenceTableFormatter {
         if (details == null || details.isEmpty()) return List.of();
         return details.stream()
                 .filter(detail -> detail != null && detail.length > 0)
+                .filter(detail -> !isInternalUiContext(detail[0]))
                 .filter(detail -> isRequestDetail(detail[0]))
                 .toList();
+    }
+
+    /** UI checkpoint identity stays in the model, outside public HTTP evidence. */
+    private static boolean isInternalUiContext(String key) {
+        if (key == null) return false;
+        String normalized = key.trim();
+        return REQUEST_ACTION.equalsIgnoreCase(normalized)
+                || REQUEST_TARGET.equalsIgnoreCase(normalized);
     }
 
     public static boolean isRequestDetail(String key) {
@@ -98,7 +113,8 @@ public final class EvidenceTableFormatter {
                 || normalized.startsWith("params.") || normalized.startsWith("query.")
                 || normalized.startsWith("auth.") || normalized.equals("authorization")
                 || normalized.equals("auth profile") || normalized.equals("auth type")
-                || normalized.equals("transport") || normalized.equals("manual replay")
+                || normalized.equals("transport") || normalized.equals("transport.provenance")
+                || normalized.equals("manual replay") || normalized.equals("manual.replay")
                 || normalized.equals("query params") || normalized.equals("request headers")
                 || normalized.equals("trace.parent.step") || normalized.equals("trace.position")
                 || normalized.equals("trace.exchange")
@@ -124,9 +140,10 @@ public final class EvidenceTableFormatter {
             case "method" -> "METHOD";
             case "path" -> "PATH";
             case "url" -> "URL";
-            case "auth.mode", "auth.profile" -> "AUTHENTICATION";
-            case "transport" -> "TRANSPORT PROVENANCE";
-            case "manual replay" -> "MANUAL REPLAY";
+            case "auth.mode", "auth.type" -> "AUTHENTICATION";
+            case "auth.profile", "auth profile" -> "AUTH PROFILE";
+            case "transport", "transport.provenance" -> "TRANSPORT PROVENANCE";
+            case "manual replay", "manual.replay" -> "MANUAL REPLAY";
             case "response.status" -> "RESPONSE STATUS";
             case "response.content.type" -> "CONTENT TYPE";
             case "response.duration.ms" -> "RESPONSE DURATION";

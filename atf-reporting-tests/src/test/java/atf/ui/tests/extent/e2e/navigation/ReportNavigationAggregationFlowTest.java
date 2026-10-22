@@ -1,5 +1,6 @@
 package atf.ui.tests.extent.e2e.navigation;
 import atf.api.testkit.AtfE2eTest;
+import atf.api.core.testing.api.ApiScenarioSetup;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.ui.tests.extent.support.navigation.ReportNavigationFlow;
 import atf.api.reporting.audit.ReportAuditChecks;
@@ -9,6 +10,7 @@ import atf.api.reporting.ui.audit.vocabulary.UiAuditGherkin;
 
 import atf.ui.tests.extent.support.config.ReportingTestResources;
 import atf.ui.tests.extent.support.config.UiConfiguration;
+import atf.ui.tests.extent.support.audit.ReportAuditInputs;
 import atf.api.ui.playwright.UiScreenValidation;
 import atf.api.reporting.ui.audit.section.OverviewSectionValidator;
 import atf.api.core.config.module.AtfModule;
@@ -18,7 +20,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 
@@ -33,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Gherkin intent only; selector mechanics are delegated to {@link ReportNavigationFlow}. */
-@EnabledIf("isConfigured")
+@ApiScenarioSetup(families = {"users", "posts"})
 @AtfModuleTest(requires = {AtfModule.REPORTING, AtfModule.UI})
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Execution(ExecutionMode.SAME_THREAD)
@@ -47,19 +48,18 @@ class ReportNavigationAggregationFlowTest {
     private UiAuditFlow auditFlow;
     private ReportNavigationFlow reportFlow;
 
-    static boolean isConfigured() { return ReportingTestResources.uiConfiguration().auditInputReport().isPresent(); }
-
     @BeforeAll
     void openConfiguredReport() {
         configuration = ReportingTestResources.uiConfiguration();
-        inputReport = configuration.auditInputReport().orElseThrow(() -> new IllegalStateException("No existing Extent report configured"));
+        var input = ReportAuditInputs.configuredOrGenerated(getClass(), configuration);
+        inputReport = input.report();
         assertTrue(Files.isRegularFile(inputReport), "Configured Extent report does not exist: " + inputReport);
-        auditContext = ReportAuditContext.open(configuration, inputReport, "navigation-flow");
+        auditContext = ReportAuditContext.open(configuration, input, "navigation-flow");
         auditFlow = new UiAuditFlow(auditContext, configuration,
                 "ReportNavigationAggregationFlowTest", "atf.ui.tests.extent.component.architecture",
                 List.of("ui", "flow", "navigation", "aggregation"),
-                UiAuditGherkin.CONFIGURED_REPORT_READY,
-                "Navigation flow audit failure", "configured Extent report");
+                UiAuditGherkin.REPORT_INPUT_READY,
+                "Navigation flow audit failure", "selected or freshly generated API Extent report");
         reportFlow = new ReportNavigationFlow(auditFlow);
         auditReport = auditContext.reportPath();
     }

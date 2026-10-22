@@ -18,9 +18,13 @@ rapoartele de rulare și istoricul capturilor nu sunt lucrări restante.
 
 | Ordine | Responsabil / feedback | Impact /40 | Lacună /30 | Lucrabil acum /20 | Datorie doc. /10 | Pondere | Scor | Ce mai trebuie făcut |
 |---:|---|---:|---:|---:|---:|---:|---:|---|
-| 1 | [Evaluarea AI](README_AI_Evaluation.md) | 34 | 26 | 12 | 6 | 1.00 | **78** | clasificarea `AMBIGUOUS` (enum-ul există, evaluatorul nu o produce), registrul de dovezi la nivel de rulare, revizuire/stare, paritate de raportare, diferența față de regresia anterioară și calea de publicare; fundamentarea la nivel de câmp, instantaneul imuabil și coeziunea pachetelor sunt deja demonstrate |
+| 1 | [Uniformitate și interacțiuni API](ATF_Reporting_Feedback.md) | 40 | 29 | 20 | 7 | 1.00 | **96** | paritate cu modelul API din Reporting Tests: subarbore/ARIA/tastatură, câmpuri și JSON, ownership UI/API, verdict local, metodă/auth/timp fidele, cauzalitate, viewport metadata/retry și validator care respinge zone API eliminate |
+| 2 | [Evaluarea AI](README_AI_Evaluation.md#20-gap-uri-active-pentru-evaluator) | 34 | 26 | 12 | 6 | 1.00 | **78** | clasificarea `AMBIGUOUS`, registrul de dovezi la nivel de rulare, integrarea lifecycle-ului, catalogul business/review/state, publicarea și paritatea de raportare, regression delta și probele pentru fluxul agentic |
 
 - Scorurile din acest registru ordonează lucrul rămas; nu sunt verdicte de calitate.
+
+Contractul comparatorului AI deja executabil și probele sale sunt în
+[README-ul ATF Validation](../../atf-validation/README.md#comparatorul-ai--contract-implementat).
 
 Feedback-ul responsabilului de domeniu este sursa criteriului de acceptare și a
 dovezii cerute.
@@ -32,11 +36,11 @@ contractele deja implementate.
 | Domeniu | Stare | Documentație oficială |
 |---|---|---|
 | Arhitectura testelor și matricea modul × strat | fără cerințe deschise; redeschidere numai la regresie | [Ghidul de testare ATF](../ATF_Testing_Guide.md), [Bune practici de cod ATF](../README_Atf_CodeBestPractices.md) |
-| Raportare: dovezi, trace, agregat, viewport și matricea Network Inspector | fără cerințe deschise; auditul API și viewportul `TECHNICAL TRACE` sunt implementate și verificate modular/browser | [Contractul de raportare ATF](../ATF_Reporting_Contract.md), [README ATF Reporting](../../atf-reporting/README.md), [README ATF Reporting Tests](../../atf-reporting-tests/README.md) |
+| Raportare: dovezi, trace, agregat, viewport și matricea Network Inspector | viewportul și structura de dovezi existente rămân acoperite; uniformitatea și închiderea API au lacune confirmate în feedback-ul Reporting | [Contractul de raportare ATF](../ATF_Reporting_Contract.md), [README ATF Reporting](../../atf-reporting/README.md), [README ATF Reporting Tests](../../atf-reporting-tests/README.md) |
 | Inspector UI și politica fără reluare automată | fără cerințe deschise; redeschidere numai la încălcarea contractului | [README ATF UI](../../atf-ui/README.md), [README Practice Shop](../../atf-test-practice-shop/README.md) |
 | Selectorul detaliilor acțiunilor Practice Shop | selectabil per clasă; maparea păstrează acțiunile capturate și verdictul | [README Practice Shop](../../atf-test-practice-shop/README.md) |
 | Urmărirea achiziției și rezumatul final al fluxului Practice Shop | urmărirea generică, ordinea și captura terminală sunt închise | [README Practice Shop](../../atf-test-practice-shop/README.md) |
-| Teste E2E Practice Shop, componente API și suită de audit | politica YAML de captură se aplică și în `ShopE2eSuite`; matricea deterministă verifică statusurile de succes ale facturilor conform OpenAPI; nu rămâne cerință Practice Shop separată | [README Practice Shop](../../atf-test-practice-shop/README.md); semantica publisherului API rămâne la responsabilul Reporting |
+| Teste E2E Practice Shop, componente API și suită de audit | politica YAML de captură și matricea facturilor rămân acoperite; intenția apelurilor, metadatele auditului și republicarea înregistrării la login sunt urmărite în Reporting, fără backlog duplicat | [README Practice Shop](../../atf-test-practice-shop/README.md), [Feedback Reporting](ATF_Reporting_Feedback.md) |
 
 Cerințele deschise rămân numai în tabelul prioritizat de mai sus. Rândurile fără
 cerință deschisă descriu contracte deja promovate în README-urile modulelor și

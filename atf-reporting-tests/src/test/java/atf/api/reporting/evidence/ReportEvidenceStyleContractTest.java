@@ -19,10 +19,11 @@ class ReportEvidenceStyleContractTest {
     void sharedShellContractCoversBothSemanticFamilies() {
         String css = AtfReportTheme.css();
         String keyboardContract = "summary.setAttribute('aria-expanded','false');details.open?'true':'false'";
-        String ui = "<html><style>" + css + "</style><script>" + keyboardContract + "</script>"
+        String ui = "<html><style>" + css + "</style><script>" + keyboardContract + "</script><body>"
                 + "<details class=\"atf-ui-action-sequence\">"
-                + "<details class=\"atf-ui-observations\"><a class=\"atf-ui-action-screenshot-link\"></a>";
-        String api = "<html><style>" + css + "</style><script>" + keyboardContract + "</script>"
+                + "<details class=\"atf-ui-observations\"><a class=\"atf-ui-action-screenshot-link\"></a>"
+                + "<table class=\"helm-evidence-table helm-validation-table\"></table>";
+        String api = "<html><style>" + css + "</style><script>" + keyboardContract + "</script><body>"
                 + "<details class=\"request-evidence\">"
                 + "<details class=\"response-evidence\"><details class=\"execution-evidence\">"
                 + "<table class=\"helm-evidence-table helm-validation-table\"></table>";
@@ -44,6 +45,15 @@ class ReportEvidenceStyleContractTest {
             var drift = ReportEvidenceStyleContract.compare(uiPath, apiPath);
             assertFalse(drift.compliant());
             assertFalse(drift.crossChecks().get("shared token --atf-evidence-status-column-width"));
+
+            String noApiEvidence = api.replace("<details class=\"request-evidence\">", "")
+                    .replace("<details class=\"response-evidence\">", "")
+                    .replace("<details class=\"execution-evidence\">", "");
+            assertFalse(ReportEvidenceStyleContract.inspectHtml(apiPath, noApiEvidence, false).compliant(),
+                    "CSS selectors alone must not satisfy the API evidence contract");
+            assertFalse(ReportEvidenceStyleContract.inspectHtml(uiPath,
+                    ui.replace("<details class=\"atf-ui-action-sequence\">", ""), true).compliant(),
+                    "CSS selectors alone must not satisfy the UI evidence contract");
         } catch (java.io.IOException error) {
             throw new AssertionError(error);
         }

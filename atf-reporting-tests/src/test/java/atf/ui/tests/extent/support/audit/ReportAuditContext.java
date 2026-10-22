@@ -1,6 +1,7 @@
 package atf.ui.tests.extent.support.audit;
 
 import atf.api.reporting.ui.audit.input.ReportAuditInput;
+import atf.api.tests.support.console.ReportingTestConsole;
 import atf.api.reporting.ui.audit.input.ReportAuditInputKind;
 import atf.api.debugui.DebugUiConfiguration;
 import atf.api.debugui.DebugUiServer;
@@ -77,20 +78,17 @@ public final class ReportAuditContext implements AutoCloseable {
 
         String auditFileName = configuration.timestampedReportFileName(auditSuffix,
                 Clock.systemDefaultZone());
-        atf.api.reporting.console.AtfConsoleSink reportConsole =
-                atf.api.reporting.console.AtfConsoleSink.noOp();
-        atf.api.core.reporting.console.AtfConsoleSink browserConsole =
-                atf.api.core.reporting.console.AtfConsoleSink.noOp();
+        var console = ReportingTestConsole.configured();
         UiExtentReportSession audit = UiExtentReportSession.openConfiguredResolved(
                 configuration.reportDirectory(), auditFileName,
-                reportConsole,
+                console.reporting(),
                 UiReportEnvironmentSnapshotFactory.audit(configuration,
                         "Extent UI audit", "artifact inspection"));
         DebugUiServer debugUi = null;
         PlaywrightUiSession browser = null;
         try {
             debugUi = DebugUiServer.start(DebugUiConfiguration.forHtml(inputReport, 0));
-            browser = PlaywrightUiSession.open(configuration.browser(), browserConsole);
+            browser = PlaywrightUiSession.open(configuration.browser(), console.core());
             CopyOnWriteArrayList<String> consoleErrors = new CopyOnWriteArrayList<>();
             CopyOnWriteArrayList<String> pageErrors = new CopyOnWriteArrayList<>();
             CopyOnWriteArrayList<String> requestFailures = new CopyOnWriteArrayList<>();

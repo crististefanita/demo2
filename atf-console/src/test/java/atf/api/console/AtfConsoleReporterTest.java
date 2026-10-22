@@ -18,6 +18,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AtfConsoleReporterTest {
     @Test
+    void defaultPolicyPrintsDetailAndCodeEvents() {
+        var buffer = new ByteArrayOutputStream();
+        var reporter = new AtfConsoleReporter(new PrintStream(buffer), ConsoleSettings.defaults());
+        reporter.publish(AtfConsoleEvent.detail(AtfConsoleEvent.Scope.REQUEST, "status", "200"));
+        reporter.publish(AtfConsoleEvent.code(AtfConsoleEvent.Scope.REQUEST, "response.body", "{\"ok\":true}"));
+        var output = buffer.toString(StandardCharsets.UTF_8);
+        assertTrue(output.contains("status"));
+        assertTrue(output.contains("200"));
+        assertTrue(output.contains("response.body"));
+        assertTrue(output.contains("ok"));
+    }
+
+    @Test
     void rendersNestedLifecycleWithStatusAndMilliseconds() {
         var bytes = new ByteArrayOutputStream();
         var reporter = new AtfConsoleReporter(new PrintStream(bytes, true, StandardCharsets.UTF_8),
@@ -64,7 +77,7 @@ class AtfConsoleReporterTest {
     }
 
     @Test
-    void keepsDetailsOptInAndCanBeDisabledEntirely() {
+    void explicitDetailOptOutAndConsoleDisableAreRespected() {
         var bytes = new ByteArrayOutputStream();
         var reporter = new AtfConsoleReporter(new PrintStream(bytes, true, StandardCharsets.UTF_8),
                 new ConsoleSettings(true, false));
@@ -92,7 +105,7 @@ class AtfConsoleReporterTest {
     }
 
     @Test
-    void rendersRedactedDetailsOnlyWhenExplicitlyEnabled() {
+    void rendersRedactedDetailsWhenEnabled() {
         var bytes = new ByteArrayOutputStream();
         var reporter = new AtfConsoleReporter(new PrintStream(bytes, true, StandardCharsets.UTF_8),
                 new ConsoleSettings(true, true));

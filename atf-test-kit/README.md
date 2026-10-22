@@ -42,8 +42,10 @@ Fiecare clasă executabilă declară exact un nivel:
 
 - `AtfTestLayerArchitectureTest` inspectează toate directoarele `*/src/test/java`;
 - verifică adnotarea, package-ul, importurile interzise și izolarea `support`;
+- rezolvă din surse și adnotările compuse, prin import sau același package,
+  inclusiv compoziția imbricată; ciclurile nu inventează un nivel;
 - regula este fail-closed: o clasă fără nivel sau cu mai multe niveluri oprește
-  build-ul.
+  build-ul, inclusiv când nivelurile provin din adnotări compuse.
 
 ### Verificări de compoziție
 

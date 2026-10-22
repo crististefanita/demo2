@@ -114,11 +114,11 @@ function normalizeEvidenceDisclosures() {
         }
         var assertion = row.querySelector('.helm-validation-table'),
           assertionContainer = assertion && assertion.closest('.atf-validation-table-wrap'),
-          validationTitle = text(card, '.card-title a.node').trim();
+          hasUiAudit = !!card.querySelector('.atf-ui-action-sequence,.atf-ui-observations');
         if (
           assertion &&
           !assertion.closest('details') &&
-          validationTitle !== 'Contract validation'
+          hasUiAudit
         ) {
           var count =
             assertion.tBodies && assertion.tBodies[0]

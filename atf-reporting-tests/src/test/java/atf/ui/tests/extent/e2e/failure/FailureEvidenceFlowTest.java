@@ -1,5 +1,6 @@
 package atf.ui.tests.extent.e2e.failure;
 import atf.api.testkit.AtfE2eTest;
+import atf.api.core.testing.api.ApiScenarioSetup;
 import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.api.reporting.audit.ReportAuditChecks;
 import atf.ui.tests.extent.support.audit.ReportAuditContext;
@@ -11,6 +12,7 @@ import atf.api.reporting.ui.UiExtentReportSession;
 import atf.api.reporting.ui.contract.ReportUiContract;
 import atf.ui.tests.extent.support.config.ReportingTestResources;
 import atf.ui.tests.extent.support.config.UiConfiguration;
+import atf.ui.tests.extent.support.audit.ReportAuditInputs;
 import atf.ui.tests.extent.support.audit.ReportUiActionAdapters;
 import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.api.ui.playwright.UiScreenValidation;
@@ -22,7 +24,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 
@@ -40,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * scenario with the executed actions and the YAML-controlled screenshot.
  * This package is deliberately separate from happy-path exploratory flows.
  */
-@EnabledIf("isConfigured")
+@ApiScenarioSetup(families = {"users", "posts"})
 @AtfModuleTest(requires = {AtfModule.REPORTING, AtfModule.UI})
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Execution(ExecutionMode.SAME_THREAD)
@@ -53,18 +54,14 @@ class FailureEvidenceFlowTest {
     private ReportAuditContext auditContext;
     private PlaywrightActionSequence actions;
 
-    static boolean isConfigured() {
-        UiConfiguration loaded = ReportingTestResources.uiConfiguration();
-        return loaded.auditInputReport().isPresent();
-    }
-
     @BeforeAll
     void openConfiguredReport() {
         configuration = ReportingTestResources.uiConfiguration();
-        inputReport = configuration.auditInputReport().orElseThrow();
+        var input = ReportAuditInputs.configuredOrGenerated(getClass(), configuration);
+        inputReport = input.report();
         assertTrue(Files.isRegularFile(inputReport),
                 "Configured Extent report does not exist: " + inputReport);
-        auditContext = ReportAuditContext.open(configuration, inputReport, "failure-flow");
+        auditContext = ReportAuditContext.open(configuration, input, "failure-flow");
         auditReport = auditContext.reportPath();
     }
 
@@ -83,7 +80,7 @@ class FailureEvidenceFlowTest {
         String inputReportName = inputReport.getFileName().toString();
         boolean inputReportExists = Files.isRegularFile(inputReport);
         var setup = scenario.startPhase(ReportUiContract.Phase.SETUP.displayName());
-        setup.setup(GIVEN, UiAuditGherkin.CONFIGURED_REPORT_READY, inputReportName,
+        setup.setup(GIVEN, UiAuditGherkin.REPORT_INPUT_READY, inputReportName,
                 List.of(check("Input report", "published HTML", inputReportName,
                         inputReportExists)), AtfReportStatus.PASS);
         setup.complete(AtfReportStatus.PASS);

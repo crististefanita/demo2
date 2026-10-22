@@ -191,6 +191,14 @@ rendererul fallback:
   real de rânduri ale tabelului trace;
 - `Request details` conține method, URL/path, headers, params, auth și request
   body înainte de transport;
+- `request.action` și `request.target` identifică intern checkpoint-ul UI și
+  nu sunt câmpuri HTTP publice. Proiecția Extent/fallback le exclude din ambele
+  tabele request/response, păstrând modelul semantic. Un checkpoint UI fără
+  evidence HTTP proprie nu publică tabelul introductiv `Status / Details / Info`
+  sau un disclosure gol; validările UI/API rămân copiii propoziției;
+- filtrarea acestor două chei nu elimină țintele acțiunilor Playwright și nu
+  suprimă `Request details`, JSON-ul sau execution evidence ale exchange-urilor
+  HTTP din `API validation`;
 - în trace-ul UI, aceleași câmpuri sunt prefixate doar cu `API n ·` pentru
   corelarea mai multor exchange-uri; prefixul nu schimbă vocabularul și nu
   autorizează un nivel diferit de detaliu;

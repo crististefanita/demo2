@@ -30,6 +30,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.version>5.11.0</junit.version>
         <jackson.version>2.17.2</jackson.version>
+        <atf.test.heap.max>2g</atf.test.heap.max>
     </properties>
 
     <dependencyManagement>
@@ -58,7 +59,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <workingDirectory>${project.basedir}</workingDirectory>
-                    <argLine>-Xms64m -Xmx256m -XX:MaxMetaspaceSize=128m</argLine>
+                    <argLine>-Xms64m -Xmx${atf.test.heap.max} -XX:MaxMetaspaceSize=128m</argLine>
                 </configuration>
             </plugin>
         </plugins>

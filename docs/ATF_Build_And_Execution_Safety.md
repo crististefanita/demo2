@@ -167,6 +167,30 @@ working directory-ul IDE/Maven.
 
 </details>
 
+### Staging pentru guvernanța schimbării testelor
+
+`TestChangeGovernanceTest` cere un checkout Git real și baseline-ul revizuirii.
+O copie simplă fără istoric nu constituie dovadă pentru acest gate și eșuează
+explicit; nu se dezactivează verificarea pentru a face staging-ul verde.
+
+- Creează o clonă locală izolată, fără checkout și fără hardlink-uri.
+- Inițializează indexul clonei din `HEAD`, apoi copiază sursele live fără `.git`,
+  `target`, `artifacts` sau configurații locale cu credentiale.
+- Păstrează diferența surselor față de baseline; nu o ascunde printr-un commit
+  artificial al snapshot-ului înaintea verificării.
+- Rulează cu `-Datf.governance.testChanges.baseRef=<review-base>`; ToDo-ul fixează
+  SHA-ul acelei baze. CI cere explicit baza, iar checkout-ul live nu este reutilizat
+  pentru output-uri intermediare.
+
+Exemplul completează sincronizarea de surse de mai sus:
+
+```powershell
+git clone --no-checkout --no-hardlinks . $stage
+git -C $stage read-tree HEAD
+robocopy . $stage /E /XD .git target artifacts spark bin obj /XF '*.log' '*.local.properties'
+mvn -f "$stage\pom.xml" '-Dtest=WholeAtfGovernanceSuiteTest' '-Dsurefire.failIfNoSpecifiedTests=false' '-Datf.governance.testChanges.baseRef=<review-base>' test
+```
+
 ### Reactorul este obligatoriu pentru contracte între module
 
 ```mermaid
@@ -245,6 +269,28 @@ care rulează în paralel își redirecționează output-ul în propriile direct
 de staging; build-ul ATF Java folosește separat `target` și artifactele sale.
 
 </details>
+
+## Memoria JVM pentru teste și publicare
+
+| Proces | Configurație | Rol |
+|---|---|---|
+| Maven | `.mvn/jvm.config`, `MAVEN_OPTS` | Rulează build-ul, nu dimensionează fork-ul de teste |
+| Surefire | `pom.xml`: `atf.test.heap.max=2g` | Heap maxim de 2 GiB per JVM de teste; inițial 64 MiB |
+| IntelliJ JUnit direct | Run Configuration → VM options | Setează explicit `-Xms64m -Xmx2g -XX:MaxMetaspaceSize=128m` |
+
+- Override Maven explicit: `mvn "-Datf.test.heap.max=3g" ... test`; limita se
+  aplică fiecărui fork, nu întregului reactor.
+- `-DargLine=...` nu înlocuiește `argLine` configurat explicit în acest POM;
+  folosește `atf.test.heap.max` pentru override-ul heap-ului.
+- Păstrează fork-ul normal Surefire; `-DforkCount=0` schimbă modul de execuție
+  și nu este remedierea recomandată pentru memoria raportului.
+- Rapoartele cu PNG-uri inline cer memorie și la finalizare: pipeline-ul
+  postprocesează întregul HTML înainte de publicarea atomică.
+- Un `OutOfMemoryError: Java heap space` la finalizare invalidează publicarea,
+  chiar dacă metodele de test au trecut; verifică și exit code-ul Maven.
+- Nu dezactiva capturile pentru a masca lipsa de heap. Cei 2 GiB sunt bugetul
+  implicit, nu o garanție pentru orice volum; fork-urile concurente și
+  browserele consumă memorie suplimentară.
 
 ## Ce se sincronizează și ce nu
 

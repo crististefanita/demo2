@@ -17,8 +17,8 @@ public final class UiAuditGherkin {
             "the generated API Extent report is available for read-only inspection";
     public static final String STATIC_UI_REPORT_READY =
             "the previous UI Extent report is available for read-only inspection";
-    public static final String CONFIGURED_REPORT_READY =
-            "the configured UI Extent report is available for read-only inspection";
+    public static final String REPORT_INPUT_READY =
+            "the selected Extent report is available for read-only inspection";
 
     private UiAuditGherkin() {
     }

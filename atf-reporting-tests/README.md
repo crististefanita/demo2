@@ -2,12 +2,36 @@
 
 ## Pe scurt
 
+UI și API afișează implicit detalii la consolă atât din IntelliJ, cât și din Maven.
+
+- Auditul UI folosește `ReportingTestConsole` pentru browser și raport.
+- API-ul folosește consola configurată și fără lifecycle JUnit curent.
+- `reporting.console.detailsEnabled: false` restrânge detaliile;
+  `enabled: false` oprește proiecția. [ATF Console](../atf-console/README.md)
+  deține politica și output-ul.
+
+Schimbarea testelor, suportului sau resurselor din acest modul cere un ToDo
+`testChanges` valid în feedback; [guvernanța whole-ATF](../atf-tests/README.md#guvernanța-schimbării-testelor)
+verifică diferența Git și probele negative ale regulii.
+
 `atf-reporting-tests` verifică `atf-reporting` ca librărie reutilizabilă:
 
 - acoperă setup API/mock, renderer, publisher, browser read-only și ATF Debug;
 - nu deține testele de business ale unei aplicații;
 - testele business aparțin modulului consumer, precum `atf-test-practice-shop`;
 - `atf-tests` rămâne dedicat guvernanței whole-ATF.
+
+Proiecția contextului UI este verificată la componentă:
+
+| Probă | Contract protejat |
+|---|---|
+| `UiCheckpointEvidenceProjectionTest` | cheile interne `request.action`/`request.target` rămân în model; proiecțiile typed/legacy și fallback nu le publică și nu le mută în response |
+| `ExtentReportUiEvidencePublishingTest` | publisher-ul UI nu adaugă un request HTTP sintetic; exchange-ul nested păstrează request/response/JSON/execution |
+| `ExtentReportDisclosureBrowserComponentTest` | artifact controlat cu PASS/WARNING/FAIL; niciun tabel introductiv `Status / Details / Info` la checkpoint, validări și screenshot disponibile, API exchange complet și close fără subarbore vizibil |
+
+Fixture-ul browser este local și determinist; nu cere o nouă achiziție în
+Practice Shop. Raportul timestamped este dovadă de componentă, iar stările
+FAIL/WARNING sunt date deliberate ale fixture-ului.
 
 ```mermaid
 flowchart LR

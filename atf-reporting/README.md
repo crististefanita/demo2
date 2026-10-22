@@ -263,12 +263,24 @@ creează un test artificial și nu recalculează verdictul; proiectează schimbu
 
 ```text
 UI checkpoint
-├── Request details  → method/path/url/auth profile/type/relevant headers/transport/replay + REQUEST JSON
-├── Response details → status/content-type + RESPONSE JSON
-└── Execution evidence → attempts/retries/duration/outcome
+├── UI validation → actions, observations, assertions și screenshot inline
+└── API validation (numai când există exchange-uri selectate)
+    └── HTTP exchange
+        ├── Request details → method/path/url/auth/headers/transport/replay + REQUEST JSON
+        ├── Response details → status/content-type + RESPONSE JSON
+        └── Execution evidence → attempts/retries/duration/outcome
 ```
 
-- disclosures sunt închise by default și rămân pe același nod UI;
+- `request.action` și `request.target` sunt context intern al checkpoint-ului:
+  rămân în model și în diagnosticul configurat, dar nu se publică în tabelele
+  request/response. `EvidenceTableFormatter` aplică aceeași proiecție Extent,
+  fallback și legacy, cu potrivire exactă a cheilor, indiferent de casing;
+- checkpoint-ul UI nu primește un `Request details · 2 fields` sau un tabel
+  introductiv `Status / Details / Info` doar pentru identitatea propoziției și
+  ținta ei. Fără câmpuri/payload publice, rendererul nu creează un log gol;
+- țintele acțiunilor Playwright, screenshot-urile și aserțiunile rămân în
+  `UI validation`; câmpurile HTTP reale rămân publice la exchange-ul API;
+- disclosures sunt închise by default și aparțin exchange-ului API;
 - în consumerul UI, forma țintă este `un singur pas Gherkin → UI validation +
   API validation → exchange disclosures`; cele două validation nodes sunt copii
   semantici ai aceluiași pas și au statusuri proprii;

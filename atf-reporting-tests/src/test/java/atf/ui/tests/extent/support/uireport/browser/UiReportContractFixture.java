@@ -43,6 +43,15 @@ public final class UiReportContractFixture implements AutoCloseable {
         Objects.requireNonNull(configuration, "configuration");
         UiReportContractSpec spec = UiReportContractSpec.resolve(owner);
         UiReportInput input = UiReportInputResolver.resolve(owner, spec, configuration);
+        return open(owner, configuration, input);
+    }
+
+    public static UiReportContractFixture open(Class<?> owner, UiConfiguration configuration,
+                                               UiReportInput input) {
+        Objects.requireNonNull(owner, "owner");
+        Objects.requireNonNull(configuration, "configuration");
+        Objects.requireNonNull(input, "input");
+        UiReportContractSpec spec = UiReportContractSpec.resolve(owner);
         ReportAuditContext context = ReportAuditContext.open(configuration,
                 ReportAuditInput.existing(input.report()), spec.id());
         ReportUiLocators locators = new ReportUiLocators();

@@ -211,6 +211,21 @@ details.network-diagnostics.network-aggregate-section > summary {
   z-index: 2;
   background: var(--atf-panel-2);
 }
+.atf-api-table-wrap {
+  height: auto;
+  max-height: var(--atf-table-scroll-height);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  width: 100%;
+}
+.atf-api-table-wrap > .helm-evidence-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--atf-panel-2);
+}
 .atf-ui-action-table-wrap > table,
 .atf-validation-table-wrap > table {
   margin: 0;

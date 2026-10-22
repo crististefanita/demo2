@@ -1,4 +1,5 @@
 package atf.ui.tests.extent.support.api;
+import atf.api.console.AtfConsoleReporter;
 import atf.ui.tests.extent.support.config.ReportingTestResources;
 import atf.ui.tests.extent.support.config.ApiReportEnvironmentSnapshotFactory;
 import atf.api.core.config.source.ApiBootstrapConfigurationLoader;
@@ -170,7 +171,7 @@ public class ApiReportAuditSetup {
         if (bootstrap.transportPolicy().mode() != atf.api.core.config.ApiTransportMode.ACCEPTANCE) {
             throw new IllegalStateException("UI API setup requires the acceptance transport; live is never implicit");
         }
-        return ApiModuleFactory.bootstrap(bootstrap, transport, null);
+        return ApiModuleFactory.bootstrap(bootstrap, transport, null, AtfConsoleReporter.configuredStdout());
     }
 
     private static List<String> parseFamilies(String raw, String source) {

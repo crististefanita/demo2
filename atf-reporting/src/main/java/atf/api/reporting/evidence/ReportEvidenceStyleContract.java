@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * Static cross-report gate for the shared evidence shell.
@@ -54,6 +55,7 @@ public final class ReportEvidenceStyleContract {
 
     public static Snapshot inspectHtml(Path report, String html, boolean uiExpected) {
         String source = Objects.requireNonNull(html, "html");
+        String body = reportBody(source);
         Map<String, Boolean> checks = new LinkedHashMap<>();
         Map<String, String> tokens = new LinkedHashMap<>();
         SHARED_TOKENS.forEach(token -> tokenValue(source, token).ifPresent(value -> tokens.put(token, value)));
@@ -65,18 +67,29 @@ public final class ReportEvidenceStyleContract {
                 && source.contains("details.open?'true':'false'"));
         checks.put("no API sibling top divider", !source.contains(
                 "details.step-detail.response-evidence>summary{border-top:1px solid var(--atf-border)!important}"));
-        checks.put("specialized evidence", source.contains("helm-evidence-table")
-                && source.contains("helm-validation-table"));
+        checks.put("specialized evidence", hasClassElement(body, "table", "helm-evidence-table")
+                && hasClassElement(body, "table", "helm-validation-table"));
         if (uiExpected) {
-            checks.put("UI action zone", source.contains("atf-ui-action-sequence"));
-            checks.put("UI observations zone", source.contains("atf-ui-observations"));
-            checks.put("inline screenshot", source.contains("atf-ui-action-screenshot-link"));
+            checks.put("UI action zone", hasClassElement(body, "details", "atf-ui-action-sequence"));
+            checks.put("UI observations zone", hasClassElement(body, "details", "atf-ui-observations"));
+            checks.put("inline screenshot", hasClassElement(body, "a", "atf-ui-action-screenshot-link"));
         } else {
-            checks.put("API request zone", source.contains("request-evidence"));
-            checks.put("API response zone", source.contains("response-evidence"));
-            checks.put("API execution zone", source.contains("execution-evidence"));
+            checks.put("API request zone", hasClassElement(body, "details", "request-evidence"));
+            checks.put("API response zone", hasClassElement(body, "details", "response-evidence"));
+            checks.put("API execution zone", hasClassElement(body, "details", "execution-evidence"));
         }
         return new Snapshot(report, checks, tokens, "");
+    }
+
+    private static String reportBody(String html) {
+        int start = html.toLowerCase(java.util.Locale.ROOT).indexOf("<body");
+        return start < 0 ? "" : html.substring(start);
+    }
+
+    private static boolean hasClassElement(String body, String element, String className) {
+        String openingTag = "<" + element + "\\b[^>]*\\bclass\\s*=\\s*([\"'])(?:(?!\\1)[^>])*?"
+                + "(?<![\\w-])" + Pattern.quote(className) + "(?![\\w-])(?:(?!\\1)[^>])*?\\1";
+        return Pattern.compile(openingTag, Pattern.CASE_INSENSITIVE | Pattern.DOTALL).matcher(body).find();
     }
 
     private static boolean has(Snapshot snapshot, String check) {

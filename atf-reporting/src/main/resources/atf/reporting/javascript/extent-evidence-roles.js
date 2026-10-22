@@ -7,20 +7,9 @@ function assignNodeRoles() {
       card = node.closest('.card');
     if (!card || isScenarioCard(card)) return;
     var upper = title.toUpperCase(),
-      role = '';
-    if (/^NETWORK AGGREGATE\b/.test(upper))
+      role = structuralNodeRole(card);
+    if (isNetworkAggregateCard(card))
       card.setAttribute('data-atf-network-aggregate', 'true');
-    if (upper === 'SETUP' || upper === 'TEST BODY' || upper === 'TEARDOWN')
-      role = 'phase';
-    else if (
-      /^GET |^POST |^PUT |^PATCH |^DELETE |^HEAD /.test(upper) ||
-      /^(GIVEN|WHEN|THEN|AND|BUT)\s+/.test(upper) ||
-      /^TRACE\s+/.test(upper) ||
-      /NETWORK/.test(upper)
-    )
-      role = 'request';
-    else if (/^VALIDATE[: ]/.test(upper)||upper.indexOf('VALIDATION')>=0)
-      role = 'validation';
     if (role) card.setAttribute('data-atf-node-role', role);
     if (role === 'phase')
       card.setAttribute('data-atf-phase-name', upper.toLowerCase().replace(/\s+/g, '-'));
@@ -43,6 +32,20 @@ function assignNodeRoles() {
       if (child) child.setAttribute('data-atf-evidence-family', 'technical');
     });
   });
+}
+function structuralNodeRole(card) {
+  var parent = card.parentElement && card.parentElement.closest('.card');
+  if (!parent) return '';
+  if (isScenarioCard(parent)) return 'phase';
+  var parentRole = parent.getAttribute('data-atf-node-role');
+  if (parentRole === 'phase' || parentRole === 'validation') return 'request';
+  if (parentRole === 'request')
+    return isNetworkAggregateCard(card) ? 'request' : 'validation';
+  return '';
+}
+function isNetworkAggregateCard(card) {
+  var ownBody = card.querySelector(':scope>.collapse,:scope>.card-body');
+  return !!(ownBody && ownBody.querySelector('.network-aggregate-section'));
 }
 function technicalEvidenceType(card) {
   if (!card) return '';

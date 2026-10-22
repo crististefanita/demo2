@@ -185,7 +185,8 @@ class HtmlReportViewsTest {
         String html = new HtmlReportTestsView().render(document.snapshot());
 
         assertAll(
-                () -> assertTrue(html.contains("phase-details")),
+                () -> assertTrue(html.contains("<details class=\"step-detail phase-details\"")),
+                () -> assertTrue(html.contains("Audit details · 1 fields")),
                 () -> assertTrue(html.contains("Failure cause")),
                 () -> assertTrue(html.contains("token=***REDACTED***")),
                 () -> assertTrue(html.contains("mode=full")),

@@ -3,6 +3,7 @@ import atf.api.testkit.AtfUnitTest;
 
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,6 +16,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @AtfUnitTest
 
 class AtfConsoleConfigurationLoaderTest {
+    @Test
+    void missingConsoleSettingsKeepDetailedOutputEnabled(@TempDir Path root) throws Exception {
+        assertTrue(AtfConsoleConfiguration.defaults().settings().detailsEnabled());
+        var absent = AtfConsoleConfigurationLoader.load(new AtfConsoleConfigurationContext(root, null, null));
+        assertTrue(absent.settings().enabled());
+        assertTrue(absent.settings().detailsEnabled());
+        Path config = root.resolve("atf.yaml");
+        Files.writeString(config, "reporting:\n  assertionMaxDisplayCharacters: 120\n");
+        assertTrue(AtfConsoleConfigurationLoader.load(config).settings().detailsEnabled());
+    }
+
+    @Test
+    void explicitFalseSuppressesDetailsWithoutDisablingLifecycle(@TempDir Path root) throws Exception {
+        Path config = root.resolve("atf.yaml");
+        Files.writeString(config, "reporting:\n  console:\n    detailsEnabled: false\n");
+        var settings = AtfConsoleConfigurationLoader.load(config).settings();
+        assertTrue(settings.enabled());
+        assertFalse(settings.detailsEnabled());
+    }
+
     @Test
     void loadsOnlyConsolePolicyFromYaml() throws Exception {
         Path config = Files.createTempFile("atf-console-", ".yaml");

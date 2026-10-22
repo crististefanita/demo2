@@ -14,8 +14,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Converts the vendor Spark output into the self-contained ATF report contract.
@@ -110,10 +108,21 @@ public final class ExtentReportPublicationPipeline {
                 AtfReportHtmlVocabulary.CssClass.CATEGORY_VIEW,
                 AtfReportHtmlVocabulary.CssClass.ATTRIBUTES_VIEW,
                 AtfReportHtmlVocabulary.CssClass.HIDE);
-        html = html.replaceFirst(Pattern.quote(VENDOR_TEST_VIEW), Matcher.quoteReplacement(testView));
-        html = html.replaceFirst(Pattern.quote(VENDOR_CATEGORY_VIEW),
-                Matcher.quoteReplacement(categoryView));
+        html = replaceFirstLiteral(html, VENDOR_TEST_VIEW, testView);
+        html = replaceFirstLiteral(html, VENDOR_CATEGORY_VIEW, categoryView);
         return html;
+    }
+
+    private static String replaceFirstLiteral(String source, String target, String replacement) {
+        int start = source.indexOf(target);
+        if (start < 0) return source;
+
+        int end = start + target.length();
+        return new StringBuilder(source.length() - target.length() + replacement.length())
+                .append(source, 0, start)
+                .append(replacement)
+                .append(source, end, source.length())
+                .toString();
     }
 
     private static String injectOverviewMetadata(String html) {

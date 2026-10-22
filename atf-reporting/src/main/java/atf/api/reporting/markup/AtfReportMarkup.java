@@ -41,9 +41,11 @@ public final class AtfReportMarkup {
                     .append(AtfReportLabels.TECHNICAL_TRACE)
                     .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.SPAN))
                     .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DIV));
+        }
+        String viewport = tableViewport(cssClass);
+        if (viewport != null) {
             html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.DIV,
-                    AtfReportHtmlVocabulary.classAttribute(
-                            AtfReportHtmlVocabulary.CssClass.ATF_TRACE_TABLE_WRAP)));
+                    AtfReportHtmlVocabulary.classAttribute(viewport)));
         }
         html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TABLE,
                 AtfReportHtmlVocabulary.classAttribute(cssClass)));
@@ -68,7 +70,7 @@ public final class AtfReportMarkup {
                     .append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TBODY))
                     .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TBODY))
                     .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TABLE));
-            return closeTraceWrapper(html, cssClass).toString();
+            return closeTableViewport(html, viewport).toString();
         }
         for (String value : safeTable.headers()) {
                     html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TH))
@@ -100,14 +102,23 @@ public final class AtfReportMarkup {
         }
         html.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TBODY))
                 .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TABLE));
-        return closeTraceWrapper(html, cssClass).toString();
+        return closeTableViewport(html, viewport).toString();
     }
 
-    private static StringBuilder closeTraceWrapper(StringBuilder html, String cssClass) {
-        if (isTraceTable(cssClass)) {
+    private static StringBuilder closeTableViewport(StringBuilder html, String viewport) {
+        if (viewport != null) {
             html.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DIV));
         }
         return html;
+    }
+
+    private static String tableViewport(String cssClass) {
+        if (isTraceTable(cssClass)) return AtfReportHtmlVocabulary.CssClass.ATF_TRACE_TABLE_WRAP.value();
+        if (cssClass != null && (cssClass.contains(AtfReportHtmlVocabulary.CssClass.HELM_REQUEST_TABLE.value())
+                || cssClass.contains(AtfReportHtmlVocabulary.CssClass.RETRY_HISTORY_TABLE.value()))) {
+            return AtfReportHtmlVocabulary.CssClass.ATF_API_TABLE_WRAP.value();
+        }
+        return null;
     }
 
     private static boolean isTraceTable(String cssClass) {

@@ -2,7 +2,9 @@ package atf.api.reporting.markup;
 
 /** Canonical metadata keys and values shared by report evidence publishers. */
 public final class AtfReportEvidenceKeys {
+    /** Internal checkpoint identity; excluded from public request/response tables. */
     public static final String REQUEST_ACTION = "request.action";
+    /** Internal checkpoint target; selected UI actions retain their own public targets. */
     public static final String REQUEST_TARGET = "request.target";
     public static final String OUTCOME_TYPE = "outcome.type";
     public static final String ARTIFACT_PUBLICATION = "artifact-publication";

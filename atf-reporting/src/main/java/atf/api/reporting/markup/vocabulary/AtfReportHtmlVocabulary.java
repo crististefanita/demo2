@@ -150,6 +150,7 @@ public final class AtfReportHtmlVocabulary {
         HELM_RESPONSE_DETAILS("helm-response-details"),
         HELM_TRACE_TABLE("helm-trace-table"),
         ATF_TRACE_TABLE_WRAP("atf-trace-table-wrap"),
+        ATF_API_TABLE_WRAP("atf-api-table-wrap"),
         HELM_SCROLL_BLOCK_TITLE("helm-scroll-block-title"),
         HELM_SCROLL_BLOCK_BODY("helm-scroll-block-body"),
         JSON_CODE("json-code"),

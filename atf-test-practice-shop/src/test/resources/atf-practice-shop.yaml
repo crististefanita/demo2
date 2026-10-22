@@ -54,7 +54,7 @@ practiceShop:
   # Use a sellable catalog item for repeatable live purchase journeys; out-of-stock
   # products disable the quantity control and correctly fail the purchase precondition.
   # Name-based selection avoids coupling the fixture to rotating product ids.
-  productName: Combination Pliers
+  productName: Pliers
   productPath: auto
   checkout:
     quantity: 2

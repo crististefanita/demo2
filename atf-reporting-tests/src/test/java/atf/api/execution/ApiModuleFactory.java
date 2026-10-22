@@ -35,12 +35,18 @@ public final class ApiModuleFactory {
     public static ApiModule bootstrap(ApiBootstrapConfiguration configuration,
                                       ApiTransport acceptanceTransport,
                                       ApiTransport liveTransport) {
+        return bootstrap(configuration, acceptanceTransport, liveTransport, AtfConsoleSink.noOp());
+    }
+
+    public static ApiModule bootstrap(ApiBootstrapConfiguration configuration,
+                                      ApiTransport acceptanceTransport,
+                                      ApiTransport liveTransport, AtfConsoleSink console) {
         Objects.requireNonNull(configuration, "configuration");
         ApiTransport selected = configuration.transportPolicy().mode() == ApiTransportMode.ACCEPTANCE
                 ? Objects.requireNonNull(acceptanceTransport, "acceptanceTransport")
                 : Objects.requireNonNull(liveTransport, "liveTransport");
         return new ApiModule(configuration.settings().snapshot(),
-                new ApiExecutor(selected, configuration.settings().snapshot(),
+                new ApiExecutor(selected, configuration.settings().snapshot(), console,
                         configuration.transportPolicy().mode()));
     }
 

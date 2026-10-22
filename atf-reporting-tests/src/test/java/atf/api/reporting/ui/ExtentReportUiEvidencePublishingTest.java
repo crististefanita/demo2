@@ -9,6 +9,7 @@ import atf.api.reporting.api.ReportRequest;
 import atf.api.reporting.api.ReportResponse;
 import atf.api.reporting.api.ReportTransportProvenance;
 import atf.api.reporting.model.ReportExecutionEvidence;
+import atf.api.reporting.model.ReportScreenshot;
 import atf.api.reporting.ui.contract.ReportUiContract;
 import atf.api.reporting.ui.network.ReportNetworkInspector;
 import atf.api.reporting.ui.model.AtfUiActionRecord;
@@ -56,6 +57,9 @@ class ExtentReportUiEvidencePublishingTest {
                 () -> assertTrue(html.contains("<span>SETUP</span>")),
                 () -> assertTrue(html.contains("<span>TEST BODY</span>")),
                 () -> assertFalse(html.contains("<span>TEARDOWN</span>")),
+                () -> assertFalse(html.contains("<details class=\"step-detail request-evidence\"")),
+                () -> assertFalse(html.contains("REQUEST ACTION")),
+                () -> assertFalse(html.contains("REQUEST TARGET")),
                 () -> assertTrue(html.contains("the report is visually auditable")));
     }
 
@@ -183,7 +187,7 @@ class ExtentReportUiEvidencePublishingTest {
                     List.of(action), List.of(apiExecution), AtfReportStatus.PASS);
             setup.setup(AND, "the account is signed in", "/account", List.of(
                     new AtfAssertion("Account session", "authenticated", "authenticated", true)),
-                    List.of(action), List.of(), new atf.api.reporting.model.ReportScreenshot(
+                    List.of(action), List.of(), new ReportScreenshot(
                             "Authenticated account screen",
                             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="),
                     AtfReportStatus.PASS);
@@ -252,8 +256,8 @@ class ExtentReportUiEvidencePublishingTest {
                 () -> assertTrue(html.contains("Execution evidence")),
                 () -> assertTrue(html.contains("REQUEST JSON")),
                 () -> assertTrue(html.contains("RESPONSE JSON")),
-                () -> assertTrue(html.contains("AUTH TYPE")),
-                () -> assertTrue(html.contains("AUTHENTICATION")),
+                () -> assertTrue(html.contains("<td>AUTH PROFILE</td><td>bearer</td>")),
+                () -> assertTrue(html.contains("<td>AUTHENTICATION</td><td>bearer</td>")),
                 () -> assertTrue(html.contains("REQUEST HEADERS")),
                 () -> assertTrue(html.contains("MANUAL REPLAY")),
                 () -> assertTrue(html.contains("API validation")),
@@ -309,10 +313,14 @@ class ExtentReportUiEvidencePublishingTest {
         int requestJson = html.indexOf("REQUEST JSON");
         assertAll(
                 () -> assertTrue(uiStep >= 0),
-                // The title is also recorded as REQUEST ACTION inside the evidence table.
-                // Count the semantic card title, not the repeated diagnostic value.
+                // The checkpoint context remains internal; only its card publishes the proposition.
                 () -> assertEquals(1, ExtentReportUiEvidenceTestSupport.count(
                         html, "<span>GIVEN the payment response is visible</span>")),
+                () -> assertFalse(html.contains("REQUEST ACTION")),
+                () -> assertFalse(html.contains("REQUEST TARGET")),
+                () -> assertEquals(1, ExtentReportUiEvidenceTestSupport.count(html,
+                        "<details class=\"step-detail request-evidence\""),
+                        "only the actual API exchange may publish request details"),
                  () -> assertTrue(html.contains("UI validation")),
                  () -> assertTrue(html.contains("API validation")),
                  () -> assertTrue(html.contains("Request details")),

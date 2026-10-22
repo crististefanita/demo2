@@ -45,7 +45,9 @@ atf-reporting  produce numai artifacte HTML/Extent
 
 - `AtfConsoleReporter` consumă doar `AtfConsoleEvent` din `atf-core` și
   `ConsoleSettings` din propriul modul;
-- detaliile sunt opt-in prin `reporting.console.detailsEnabled`;
+- consola și detaliile sunt active implicit, inclusiv când YAML-ul lipsește;
+- `reporting.console.detailsEnabled: false` ascunde detaliile și body-urile;
+  `reporting.console.enabled: false` oprește întreaga proiecție;
 - consola nu modifică statusul și nu cauzează un test.
 
 ### Responsabilitatea asupra fluxurilor de ieșire
@@ -94,6 +96,15 @@ Ordinea de rezolvare este explicită: context injectat, proprietatea
 `atf.report.config`, variabila `ATF_REPORT_CONFIG`, apoi căutare ascendentă după
 `atf.yaml`/`atf.yml`. Configurația este citită o singură dată la bootstrap și
 devine `AtfConsoleConfiguration` immutable.
+
+Lansarea din Maven și IntelliJ folosește aceeași politică. Nu sunt necesare
+VM options pentru detalii; fișierele temporare ori testele de renderer care
+cer liniște pot injecta explicit un sink `noOp`. Body-urile publicate trebuie
+să fie deja redactate înainte să ajungă la formatter.
+
+- `ConsoleDefaultsGovernanceTest` din `atf-tests` protejează fallback-ul,
+configurația rezolvată din directoarele modulelor și composition root-urile
+UI/API. Testele modulului verifică efectiv output-ul și override-ul `false`.
 
 ## Integrare
 

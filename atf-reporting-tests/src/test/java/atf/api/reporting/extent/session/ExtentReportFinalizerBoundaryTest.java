@@ -49,6 +49,35 @@ class ExtentReportFinalizerBoundaryTest {
         }
     }
 
+    @Test
+    void publicFacadePreservesLargeEvidenceWhilePublishingReportContract() throws Exception {
+        Path root = Files.createTempDirectory("atf-finalizer-large-report-");
+        Path report = root.resolve("report.html");
+        String evidence = "evidence-payload-".repeat(350_000);
+        try {
+            Files.writeString(report, """
+                    <!doctype html>
+                    <html><head></head>
+                    <body class="spa -report dark">
+                    <div class="test-wrapper row view test-view">%s</div>
+                    <div class="test-wrapper row view category-view attributes-view"></div>
+                    <div class="container-fluid p-4 view dashboard-view"></div>
+                    </body></html>
+                    """.formatted(evidence));
+
+            ExtentReportFinalizer.finalizeReport(report);
+            String html = Files.readString(report);
+
+            assertAll(
+                    () -> assertTrue(html.contains("id=\"atf-report-theme\""), "theme is published"),
+                    () -> assertTrue(html.contains("atf-overview-default"), "overview default is published"),
+                    () -> assertTrue(html.contains(evidence), "large evidence remains intact"),
+                    () -> assertTrue(html.contains("</html>"), "document remains complete"));
+        } finally {
+            deleteTree(root);
+        }
+    }
+
     private static void deleteTree(Path root) throws Exception {
         if (!Files.exists(root)) return;
         try (var paths = Files.walk(root)) {

@@ -329,6 +329,18 @@ este deținută de [ATF Reporting Contract](ATF_Reporting_Contract.md#evidence-u
 
 ## Consolă și raportare
 
+Consola și detaliile UI/API sunt active implicit în Reporting și Shop,
+inclusiv fără YAML; opt-out-ul este explicit prin `reporting.console`.
+Producătorul redactează datele, `atf-console` le formatează, iar proiecția nu
+schimbă verdictul. `ConsoleDefaultsGovernanceTest` protejează configurația și
+composition root-urile.
+
+Testele modulelor, suportul și resursele lor se schimbă numai cu un ToDo
+structurat în feedback, exceptând `atf-test-practice-shop`. Guvernanța verifică
+SHA-ul baseline-ului, scope-ul exact, starea, expirarea și comanda de probă;
+regula include testele de guvernanță înseși. Procedura și configurarea CI sunt
+în [README-ul atf-tests](../atf-tests/README.md#guvernanța-schimbării-testelor).
+
 Regula de separare pentru consolă și reporting este:
 
 - consola este responsabilitatea modulului `atf-console`;

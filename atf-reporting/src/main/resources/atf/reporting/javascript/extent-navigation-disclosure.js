@@ -21,8 +21,18 @@ function setDisclosureState(card, panel, open, attribute) {
   card.setAttribute(attribute, state);
   if (header) header.setAttribute('aria-expanded', state);
   if (node) node.classList.toggle('collapsed', !open);
-  panel.classList.toggle('show', open);
-  panel.style.setProperty('display', open ? 'block' : 'none', 'important');
+  var panels = attribute === 'data-atf-node-open' ? nodePanels(card) : [panel];
+  panels.forEach(function (child) {
+    child.classList.toggle('show', open);
+    child.style.setProperty('display', open ? 'block' : 'none', 'important');
+  });
+}
+function bindDisclosureKeyboard(header, toggle) {
+  if (!header.hasAttribute('tabindex')) header.setAttribute('tabindex', '0');
+  if (!header.hasAttribute('role')) header.setAttribute('role', 'button');
+  header.addEventListener('keydown', function (e) {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target === header) toggle(e);
+  }, true);
 }
 function openDeepLinkCard(card, open) {
   if (!card || card.getAttribute('data-atf-node-open') === String(open)) return;
@@ -147,6 +157,7 @@ function bindScenarioCollapse() {
       if (node && e.target && node.contains(e.target)) return;
       toggle(e);
     });
+    bindDisclosureKeyboard(header, toggle);
   });
   q('#test-view .test-content-detail [data-atf-node-role="phase"]').forEach(
     function (card) {
@@ -228,20 +239,18 @@ function bindPhaseCollapse() {
         atfPerformanceRecordDisclosureToggle(startedAt);
       };
       header.addEventListener('click', toggle, true);
+      bindDisclosureKeyboard(header, toggle);
     }
   );
 }
 function nodePanel(card) {
-  var panel =
-    card.querySelector(':scope>.collapse') ||
-    card.querySelector(':scope>div:not(.card-header):not(.accordion)') ||
-    card.querySelector(':scope>.accordion');
-  if (panel) return panel;
+  return nodePanels(card)[0] || null;
+}
+function nodePanels(card) {
   var header = card.querySelector(':scope>.card-header');
-  for (var i = 0; i < card.children.length; i++) {
-    if (card.children[i] !== header) return card.children[i];
-  }
-  return null;
+  return [].filter.call(card.children, function (child) {
+    return child !== header;
+  });
 }
 function bindNodeCollapse() {
   q(
@@ -268,14 +277,6 @@ function bindNodeCollapse() {
       atfPerformanceRecordDisclosureToggle(startedAt);
     };
     header.addEventListener('click', toggle, true);
-    header.addEventListener(
-      'keydown',
-      function (e) {
-        if (e.key === 'Enter' || e.key === ' ') {
-          toggle(e);
-        }
-      },
-      true
-    );
+    bindDisclosureKeyboard(header, toggle);
   });
 }

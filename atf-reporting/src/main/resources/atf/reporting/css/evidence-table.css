@@ -117,6 +117,22 @@ table.helm-validation-table td:last-child {
   z-index: 2 !important;
   background: var(--atf-surface) !important;
 }
+.atf-api-table-wrap {
+  height: auto !important;
+  max-height: var(--atf-table-scroll-height) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  scrollbar-gutter: stable !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+}
+.atf-api-table-wrap > .helm-evidence-table thead th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 2 !important;
+  background: var(--atf-surface) !important;
+}
 .helm-api-classification {
   padding: 8px 10px !important;
   border-bottom: 1px solid var(--atf-border) !important;

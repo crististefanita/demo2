@@ -395,6 +395,9 @@ să concureze cu README-urile stabile.
       unui run ca documentație permanentă;
 - [ ] când gap-ul este închis, regula stabilă se promovează în README-ul
       ownerului, iar itemul se elimină sau se arhivează justificat;
+- [ ] înainte de eliminarea fișierului, se verifică linkurile și țintele
+      `@DocumentationTarget`; o țintă încă guvernată se reduce la un index scurt
+      către owner până la schimbarea explicită a selecției, fără relaxarea testelor;
 - [ ] dacă codul și testul nu confirmă închiderea, feedback-ul rămâne deschis;
 - [ ] conflictul sau drift-ul live/staging devine feedback auditabil, nu
       overwrite implicit.

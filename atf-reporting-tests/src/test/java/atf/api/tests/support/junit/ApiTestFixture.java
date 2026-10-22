@@ -5,6 +5,7 @@ import atf.api.core.reporting.contract.AtfReportStatus;
 
 import atf.api.core.http.response.ApiExecutionResult;
 import atf.api.console.junit.AtfConsoleTestContext;
+import atf.api.console.AtfConsoleReporter;
 import atf.api.execution.ApiModule;
 import atf.api.execution.ApiModuleFactory;
 import atf.api.core.testing.http.RecordingApiTransport;
@@ -29,10 +30,8 @@ public final class ApiTestFixture {
     public ApiTestFixture() {
         var lifecycle = AtfConsoleTestContext.current();
         recordingTransport = new RecordingApiTransport(ReportingTestResources.mockTransport());
-        api = lifecycle == null
-                ? ApiModuleFactory.fromTransport(recordingTransport, ApiEnvironment.MOCK_BASE_URI)
-                : ApiModuleFactory.fromTransport(recordingTransport, ApiEnvironment.MOCK_BASE_URI,
-                lifecycle.console());
+        api = ApiModuleFactory.fromTransport(recordingTransport, ApiEnvironment.MOCK_BASE_URI,
+                lifecycle == null ? AtfConsoleReporter.configuredStdout() : lifecycle.console());
         evaluator = new ValidationEvaluator();
     }
 

@@ -38,11 +38,14 @@ public final class ExtentTransportEvidenceRenderer {
     void renderDetails(ExtentTest node, List<ReportField> details) {
         List<ReportField> traceDetails = EvidenceTableFormatter.technicalTraceFields(details);
         if (traceDetails.isEmpty()) return;
-        node.info(AtfReportLabels.auditDetails(traceDetails.size()));
-        node.info(AtfReportMarkup.table(AtfReportHtmlVocabulary.classList(
+        String table = AtfReportMarkup.tableHtml(AtfReportHtmlVocabulary.classList(
                         AtfReportHtmlVocabulary.CssClass.HELM_EVIDENCE_TABLE,
-                        AtfReportHtmlVocabulary.CssClass.HELM_TRACE_TABLE),
-                EvidenceTableFormatter.toTable(traceDetails)));
+                        AtfReportHtmlVocabulary.CssClass.HELM_TRACE_TABLE,
+                        AtfReportHtmlVocabulary.CssClass.PHASE_DETAILS),
+                EvidenceTableFormatter.toTable(traceDetails));
+        node.info(ReportEvidenceMarkup.disclosure(
+                AtfReportHtmlVocabulary.CssClass.PHASE_DETAILS.value(),
+                AtfReportLabels.auditDetails(traceDetails.size()), table));
     }
 
     void renderRequestDetails(ExtentTest node, List<ReportField> details,

@@ -42,6 +42,19 @@ class AtfReportMarkupTest {
     }
 
     @Test
+    void requestAndRetryTablesShareABoundedViewportWithoutChangingTraceClassification() {
+        String request = AtfReportMarkup.tableHtml("helm-evidence-table helm-request-table",
+                new String[][]{{"FIELD", "VALUE"}, {"URL", "https://atf.local/resource"}});
+        String retry = AtfReportMarkup.tableHtml("helm-evidence-table retry-history-table",
+                new String[][]{{"ATTEMPT", "STATUS"}, {"1", "429"}});
+        assertAll(
+                () -> assertTrue(request.contains("<div class=\"atf-api-table-wrap\"><table")),
+                () -> assertTrue(retry.contains("<div class=\"atf-api-table-wrap\"><table")),
+                () -> assertFalse(request.contains("TECHNICAL TRACE")),
+                () -> assertFalse(retry.contains("TECHNICAL TRACE")));
+    }
+
+    @Test
     void longFieldLabelsDoNotOverrideTheSharedColumnContract() {
         String html = AtfReportMarkup.tableHtml("helm-trace-table", new String[][]{
                 {"FIELD", "VALUE"},
@@ -182,5 +195,20 @@ class AtfReportMarkupTest {
         assertAll(
                 () -> assertEquals(5, requestDetails.size()),
                 () -> assertTrue(responseDetails.isEmpty()));
+    }
+
+    @Test
+    void normalizedReplayAndProvenanceAliasesRemainRequestMetadata() {
+        var details = List.of(
+                new String[]{"manual.replay", "curl example"},
+                new String[]{"transport.provenance", "captured"},
+                new String[]{"auth.profile", "shop-user"},
+                new String[]{"response.content.type", "application/json"});
+        assertAll(
+                () -> assertEquals(3, EvidenceTableFormatter.requestDetails(details).size()),
+                () -> assertEquals(1, EvidenceTableFormatter.technicalTraceDetails(details).size()),
+                () -> assertEquals("MANUAL REPLAY", EvidenceTableFormatter.displayName("manual.replay")),
+                () -> assertEquals("TRANSPORT PROVENANCE", EvidenceTableFormatter.displayName("transport.provenance")),
+                () -> assertEquals("AUTH PROFILE", EvidenceTableFormatter.displayName("auth.profile")));
     }
 }

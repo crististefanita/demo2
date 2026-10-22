@@ -14,11 +14,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ExtentReportRuntimeNavigationComponentTest {
     private static final List<String> FUNCTIONS = List.of(
             "normalizeCodeBlocks", "normalizeDisclosureState", "captureDomContract",
-            "openScenarioCard", "setDisclosureState", "openDeepLinkCard", "openScenarioAuditPath",
+            "openScenarioCard", "setDisclosureState", "bindDisclosureKeyboard", "openDeepLinkCard", "openScenarioAuditPath",
             "collapseDirectScenarioCards", "collapseScenarioCards",
             "toggleScenario", "initializeScenarioCard", "bindScenarioCollapse",
             "hasRelevantScenarioNodes", "watchScenarioCards", "phaseDirectBody", "applyPhaseBodyState",
-            "bindPhaseCollapse", "nodePanel", "bindNodeCollapse", "activateFromHash",
+            "bindPhaseCollapse", "nodePanel", "nodePanels", "bindNodeCollapse", "activateFromHash",
             "normalizeNavigationLinks", "normalizeTestViewContent",
             "scheduleTestViewNormalization", "scheduleTestViewNormalizationAt");
 
@@ -53,6 +53,10 @@ class ExtentReportRuntimeNavigationComponentTest {
                 () -> assertTrue(disclosure.contains("collapseScenarioCards(true)")),
                 () -> assertTrue(disclosure.contains("function bindNodeCollapse(")),
                 () -> assertTrue(disclosure.contains("function nodePanel(")),
+                () -> assertTrue(disclosure.contains("function nodePanels(")),
+                () -> assertTrue(disclosure.contains("attribute==='data-atf-node-open'?nodePanels(card):[panel]")),
+                () -> assertTrue(disclosure.contains("child.style.setProperty('display',open?'block':'none','important')")),
+                () -> assertTrue(disclosure.contains("function bindDisclosureKeyboard(")),
                 () -> assertTrue(controller.contains("window.atfOpenTest=function")),
                 () -> assertTrue(performance.contains("window.__atfReportPerformance")),
                 () -> assertTrue(performance.contains("function atfPerformanceSnapshot(")),

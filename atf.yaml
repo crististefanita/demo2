@@ -21,9 +21,9 @@ reporting:
   # The block remains scrollable; this bounds artifact size and DOM cost.
   bodyMaxDisplayCharacters: 12000
   console:
-    # Compact lifecycle messages are useful both from Maven and IntelliJ.
+    # Lifecycle and detailed diagnostics are enabled by default in Maven and IntelliJ.
     enabled: true
-    # Pretty, redacted request/response bodies are visible when enabled.
+    # Explicit false opts out of detail and redacted request/response body output.
     detailsEnabled: true
   extent:
     # Direct JUnit resource tests may open the same configured report session.
