@@ -43,7 +43,7 @@ flowchart LR
     Teardown -->|curăță| Cleanup[Cleanup/read-back]
     Setup -. local evidence .-> SetupRequest[Setup request]
     Body -. local evidence .-> BodyRequest[Request + trace<br/>response evidence]
-    Body -. local evidence .-> BodyValidation[Validation + aggregate<br/>assertion table]
+    BodyRequest -. owns .-> BodyValidation[Contract validation + aggregate<br/>assertion table]
 ```
 
 <details>
@@ -52,7 +52,8 @@ flowchart LR
 - linia solidă arată `TEST API → plan → SETUP → TEST BODY → TEARDOWN`;
 - ramificațiile punctate arată numai evidence-ul local al fazei;
 - `SETUP` pregătește numai precondițiile care există în scenariu;
-- `TEST BODY` păstrează request-ul și validation-ul ca responsabilități surori;
+- `TEST BODY` păstrează contract validation nested sub request-ul al cărui
+  response îl verifică;
 - `TEARDOWN` apare doar când există cleanup sau read-back real;
 - tabelul de assertions este verdictul semantic, nu un rezumat duplicat în fază.
 
@@ -155,7 +156,7 @@ După testele offline și rularea scenariului:
 - [ ] verifică `Tests → Category → Fails → Overview`, cu `Overview` implicit;
 - [ ] selectează un test pozitiv și unul cu warning/fail/skip;
 - [ ] expandează request, trace, JSON și validation;
-- [ ] confirmă `validation` ca frate al request-ului și un singur tabel;
+- [ ] confirmă `Contract validation` nested sub request-ul evaluat și un singur tabel;
 - [ ] confirmă JSON scrollabil intern, fără overflow al paginii;
 - [ ] verifică tag-urile în detaliile scenariului;
 - [ ] verifică Fails: o singură zonă, sumar schematic și link stabil;

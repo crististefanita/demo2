@@ -1,6 +1,6 @@
 practiceShop:
   # The only owner of the external UI host. Tests and page objects use relative
-  # paths from PracticeShopUiRoutes and resolve them through typed configuration.
+  # paths from ShopUiRoutes and resolve them through typed configuration.
   baseUrl: https://practicesoftwaretesting.com
   browser: chromium
   headless: false
@@ -51,9 +51,10 @@ practiceShop:
     # Set to none only when this evidence is explicitly prohibited.
     screenshotPolicy: each-checkpoint
   authenticatedE2eEnabled: false
-  # The external catalog rotates product ids; use auto for a stable name-based fixture.
-  # Set an exact /product/<id> route when a deterministic fixture is required.
-  productName: Pliers
+  # Use a sellable catalog item for repeatable live purchase journeys; out-of-stock
+  # products disable the quantity control and correctly fail the purchase precondition.
+  # Name-based selection avoids coupling the fixture to rotating product ids.
+  productName: Combination Pliers
   productPath: auto
   checkout:
     quantity: 2

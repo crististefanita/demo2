@@ -85,7 +85,8 @@ asserțiile ori verdictul.
   `Checkpoint N` și fără duplicarea propoziției în details;
 - **implementat**: toate acțiunile/assertions UI sunt publicate într-o singură
   validare `Screen validation`; dacă profilul conține API evidence, exchange-urile
-  rămân într-o singură validare sibling `API validation`, în ordinea execuției;
+  rămân într-o singură validare `API validation`, soră cu validarea UI sub același
+  checkpoint Gherkin și în ordinea execuției;
 - **independent**: screenshot policy decide capturile înainte de buffer; numai
   capturile permise ajung în validarea UI agregată (`FINAL_ONLY` → captura finală);
 - **implementat**: `INCLUDED_COLLAPSED` și `SUMMARY_ONLY` schimbă disclosure-ul

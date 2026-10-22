@@ -166,8 +166,11 @@ Evaluarea AI este un increment separat în pachetul `atf.api.validation.ai`:
 - evaluează output furnizat de consumer; nu face invocation;
 - numai `REAL_AI` cu referințe complete poate primi quality score;
 - mock, fallback și unknown permit testarea comparatorului, fără AI quality score;
-- grounding per câmp este implementat și testat; run-level evidence ledger,
-  corelarea lifecycle-ului și proiecția de raport sunt încă deschise;
+- grounding-ul obligatoriu lipsă sau din afara allowlist-ului produce hard-fail
+  (`MISSING_GROUNDING_REFERENCE` / `UNSUPPORTED_GROUNDING`); `AMBIGUOUS` există
+  în vocabular, dar evaluatorul nu îl clasifică încă;
+- run-level evidence ledger, corelarea lifecycle-ului și proiecția de raport
+  sunt încă deschise;
 - limitele și criteriile de închidere sunt în
   [`README_AI_Evaluation.md`](../docs/feedback/README_AI_Evaluation.md).
 

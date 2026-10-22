@@ -1,0 +1,390 @@
+package atf.ui.tests.practiceshop.support;
+
+import atf.api.reporting.contract.AtfAssertion;
+import atf.api.reporting.contract.AtfGherkinKeyword;
+import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.ui.UiExtentReportSession;
+import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
+import atf.api.reporting.evidence.profile.ReportEvidenceProfile;
+import atf.api.reporting.evidence.profile.ReportUiActionDetailsMode;
+import atf.api.ui.playwright.PlaywrightActionSequence;
+import atf.ui.practiceshop.config.ShopConfiguration;
+import atf.ui.practiceshop.config.ShopConfigurationLoader;
+import atf.ui.practiceshop.config.ShopCredentials;
+import atf.ui.practiceshop.config.ShopValidationProfile;
+import atf.ui.practiceshop.flow.ShopPurchaseFlow;
+import atf.ui.practiceshop.locators.ShopLocators;
+import atf.ui.practiceshop.support.ShopApiNetworkJournal;
+import atf.ui.practiceshop.support.ShopE2eContext;
+import atf.ui.practiceshop.support.ShopPurchaseCheckpoint;
+import atf.ui.practiceshop.support.ShopScreenshotPolicy;
+import com.microsoft.playwright.Page;
+import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.ParameterContext;
+import org.junit.jupiter.api.extension.ParameterResolutionException;
+import org.junit.jupiter.api.extension.ParameterResolver;
+
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Consumer;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+import java.nio.file.Path;
+
+/** Per-method browser lifecycle and the small composition API used by Practice Shop E2E tests. */
+public final class ShopE2eTestSupport {
+    private static final ExtensionContext.Namespace NAMESPACE =
+            ExtensionContext.Namespace.create(ShopE2eTestSupport.class);
+    private static final String HARNESS_KEY = "e2e-harness";
+    private static final String SUITE_REPORT_KEY = "practice-shop-suite-report";
+
+    private ShopE2eTestSupport() { }
+
+    public enum HarnessProfile {
+        CONFIGURED,
+        UI_ONLY,
+        UI_API
+    }
+
+    public enum ReportFlow {
+        CONFIGURED,
+        SCREEN_CHECKPOINTS,
+        UNIFIED_FLOW
+    }
+
+    public enum ActionDetailsMode {
+        CONFIGURED,
+        INCLUDED_COLLAPSED,
+        SUMMARY_ONLY
+    }
+
+    @Target(ElementType.TYPE)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ExtendWith(E2eExtension.class)
+    public @interface WithE2eHarness {
+        HarnessProfile profile() default HarnessProfile.CONFIGURED;
+        ReportFlow reportFlow() default ReportFlow.CONFIGURED;
+        ActionDetailsMode actionDetails() default ActionDetailsMode.CONFIGURED;
+    }
+
+    /** JUnit opens and closes one harness per test method, including failed methods. */
+    public static final class E2eExtension implements BeforeEachCallback, AfterEachCallback, ParameterResolver {
+        @Override
+        public void beforeEach(ExtensionContext context) {
+            ShopConfiguration configuration = ShopTestSupport.configurationFor(
+                    context.getRequiredTestClass());
+            if (ShopTestSupport.suiteModeEnabled(context)) {
+                configuration = configuration.withScreenshotPolicy(ShopTestSupport.suiteScreenshotPolicy(
+                        System.getProperty(ShopTestSupport.SUITE_SCREENSHOT_POLICY_PROPERTY)));
+            }
+            WithE2eHarness harness = context.getRequiredTestClass().getAnnotation(WithE2eHarness.class);
+            if (harness != null) configuration = configurationForHarnessProfile(configuration, harness.profile());
+            ShopTestSupport.AuthenticatedE2e authenticated =
+                    context.getRequiredTestClass().getAnnotation(ShopTestSupport.AuthenticatedE2e.class);
+            ShopTestSupport.AccountSetupMode accountSetup = authenticated == null
+                    ? ShopTestSupport.AccountSetupMode.REUSE_FIXTURE : authenticated.accountSetup();
+            ShopTestSupport.RegistrationProfileMode registrationProfileMode = authenticated == null
+                    ? ShopTestSupport.RegistrationProfileMode.LOCAL : authenticated.registrationProfile();
+            Path registrationProfile = authenticated != null
+                    && accountSetup == ShopTestSupport.AccountSetupMode.REGISTER_PER_RUN
+                    && authenticated.registrationProfile() == ShopTestSupport.RegistrationProfileMode.LOCAL
+                    ? ShopConfigurationLoader.resolveRegistrationProfileFile(
+                            authenticated.registrationProfileFile()) : null;
+            ReportEvidenceProfile presentation = reportProfile(configuration, harness);
+            UiExtentReportSession sharedReport = null;
+            if (ShopTestSupport.suiteModeEnabled(context)) {
+                SuiteReportResource suiteReport = context.getRoot().getStore(NAMESPACE)
+                        .getOrComputeIfAbsent(SUITE_REPORT_KEY,
+                                ignored -> new SuiteReportResource(context.getRoot().getUniqueId()),
+                                SuiteReportResource.class);
+                sharedReport = suiteReport.open(configuration, presentation);
+            }
+            ShopE2eContext browser = ShopE2eContext.open(
+                    configuration, presentation, sharedReport);
+            String rootId = context.getRoot().getUniqueId();
+            String accountRunScope = ShopTestSupport.suiteModeEnabled(context)
+                    ? ShopAuthenticatedAccountTestSupport.suiteAccountScope(rootId)
+                    : rootId + "::" + context.getRequiredTestClass().getName();
+            context.getStore(NAMESPACE).put(HARNESS_KEY, new E2eResource(
+                    new E2eHarness(configuration, browser, new ShopLocators(),
+                            context.getRequiredTestClass().getSimpleName(), accountSetup, registrationProfile,
+                            accountRunScope)));
+        }
+
+        @Override
+        public void afterEach(ExtensionContext context) throws Exception {
+            E2eResource resource = context.getStore(NAMESPACE).remove(HARNESS_KEY, E2eResource.class);
+            if (resource != null) closeAfterTest(resource, context.getExecutionException().orElse(null));
+        }
+
+        @Override
+        public boolean supportsParameter(ParameterContext parameter, ExtensionContext context) {
+            return parameter.getParameter().getType() == E2eHarness.class;
+        }
+
+        @Override
+        public Object resolveParameter(ParameterContext parameter, ExtensionContext context) {
+            E2eResource resource = context.getStore(NAMESPACE).get(HARNESS_KEY, E2eResource.class);
+            if (resource == null) throw new ParameterResolutionException("Practice Shop E2E harness was not opened");
+            return resource.harness();
+        }
+    }
+
+    /** Root-store owner: all suite scenarios share one reporter, flushed after the last child test. */
+    private static final class SuiteReportResource implements ExtensionContext.Store.CloseableResource {
+        private final String rootId;
+        private UiExtentReportSession report;
+
+        private SuiteReportResource(String rootId) {
+            this.rootId = rootId;
+        }
+
+        synchronized UiExtentReportSession open(ShopConfiguration configuration,
+                                                ReportEvidenceProfile profile) {
+            if (report == null) report = ShopE2eContext.openReport(configuration, profile);
+            return report;
+        }
+
+        @Override
+        public synchronized void close() {
+            if (report != null) {
+                report.close();
+                report = null;
+            }
+            ShopAuthenticatedAccountTestSupport.clearSuiteAccount(rootId);
+        }
+    }
+
+    static ShopConfiguration configurationForHarnessProfile(
+            ShopConfiguration configuration, HarnessProfile profile) {
+        return switch (Objects.requireNonNull(profile, "profile")) {
+            case CONFIGURED -> Objects.requireNonNull(configuration, "configuration");
+            case UI_ONLY -> configuration.withValidationProfile(ShopValidationProfile.UI_ONLY);
+            case UI_API -> configuration.withValidationProfile(ShopValidationProfile.UI_API);
+        };
+    }
+
+    static ReportEvidenceProfile reportProfile(ShopConfiguration configuration,
+                                               WithE2eHarness harness) {
+        ReportEvidenceProfile configured = ShopScreenshotPolicy.profile(
+                Objects.requireNonNull(configuration, "configuration")
+                        .reporting().screenshotPolicy());
+        if (harness == null) return configured;
+        return configured.toBuilder()
+                .flowMode(resolve(harness.reportFlow(), configured.flowMode()))
+                .actionDetailsMode(resolve(harness.actionDetails(), configured.actionDetailsMode()))
+                .build();
+    }
+
+    private static ReportUiActionDetailsMode resolve(ActionDetailsMode selected,
+                                                      ReportUiActionDetailsMode configured) {
+        return switch (Objects.requireNonNull(selected, "actionDetails")) {
+            case CONFIGURED -> Objects.requireNonNull(configured, "configured action details mode");
+            case INCLUDED_COLLAPSED -> ReportUiActionDetailsMode.INCLUDED_COLLAPSED;
+            case SUMMARY_ONLY -> ReportUiActionDetailsMode.SUMMARY_ONLY;
+        };
+    }
+
+    private static ReportEvidenceFlowMode resolve(ReportFlow selected,
+                                                  ReportEvidenceFlowMode configured) {
+        return switch (Objects.requireNonNull(selected, "reportFlow")) {
+            case CONFIGURED -> configured;
+            case SCREEN_CHECKPOINTS -> ReportEvidenceFlowMode.SCREEN_CHECKPOINTS;
+            case UNIFIED_FLOW -> ReportEvidenceFlowMode.UNIFIED_FLOW;
+        };
+    }
+
+    /** Holds the resource after opening so teardown is idempotent even when it fails. */
+    static final class E2eResource implements AutoCloseable {
+        private final AutoCloseable delegate;
+        private boolean closed;
+
+        E2eResource(AutoCloseable delegate) {
+            this.delegate = Objects.requireNonNull(delegate, "delegate");
+        }
+
+        E2eHarness harness() {
+            return (E2eHarness) delegate;
+        }
+
+        @Override
+        public void close() throws Exception {
+            if (closed) return;
+            closed = true;
+            delegate.close();
+        }
+    }
+
+    static void closeAfterTest(E2eResource resource, Throwable testFailure) throws Exception {
+        try {
+            resource.close();
+        } catch (Exception | Error teardownFailure) {
+            if (testFailure == null) {
+                if (teardownFailure instanceof Exception exception) throw exception;
+                throw teardownFailure;
+            }
+            testFailure.addSuppressed(teardownFailure);
+        }
+    }
+
+    public record E2eHarness(ShopConfiguration configuration,
+                             ShopE2eContext context,
+                             ShopLocators locators,
+                             String reportClass,
+                             ShopTestSupport.AccountSetupMode accountSetupMode,
+                             Path registrationProfileFile,
+                             String accountRunScope) implements AutoCloseable {
+        public E2eHarness(ShopConfiguration configuration,
+                          ShopE2eContext context,
+                          ShopLocators locators, String reportClass) {
+            this(configuration, context, locators, reportClass,
+                    ShopTestSupport.AccountSetupMode.REUSE_FIXTURE, null, "standalone");
+        }
+
+        public E2eHarness {
+            Objects.requireNonNull(configuration, "configuration");
+            Objects.requireNonNull(context, "context");
+            Objects.requireNonNull(locators, "locators");
+            if (reportClass == null || reportClass.isBlank()) {
+                throw new IllegalArgumentException("reportClass is required");
+            }
+            Objects.requireNonNull(accountSetupMode, "accountSetupMode");
+            if (accountRunScope == null || accountRunScope.isBlank()) {
+                throw new IllegalArgumentException("accountRunScope is required");
+            }
+        }
+
+        public void run(String title, String overview, Consumer<E2eJourney> businessFlow) {
+            Objects.requireNonNull(businessFlow, "businessFlow");
+            PlaywrightActionSequence actions = context.actions();
+            ShopE2eContext.Scenario scenario = context.scenario(reportClass, title, overview);
+            E2eJourney journey = new E2eJourney(this, actions, scenario);
+            scenario.execute(context.page(), actions, () -> businessFlow.accept(journey));
+        }
+
+        /** Runs account acquisition in SETUP and opens TEST BODY only after it has passed. */
+        public void run(String title, String overview,
+                        Function<E2eSetup, ShopCredentials> accountSetup,
+                        BiConsumer<E2eJourney, ShopCredentials> businessFlow) {
+            Objects.requireNonNull(accountSetup, "accountSetup");
+            Objects.requireNonNull(businessFlow, "businessFlow");
+            PlaywrightActionSequence actions = context.actions();
+            ShopE2eContext.Scenario scenario = context.scenarioWithExplicitSetup(reportClass, title, overview);
+            scenario.execute(context.page(), actions, () -> {
+                E2eSetup setup = new E2eSetup(this, actions, scenario);
+                ShopCredentials credentials = Objects.requireNonNull(
+                        accountSetup.apply(setup), "accountSetup credentials");
+                if (!setup.completed()) {
+                    throw new IllegalStateException("account setup must publish a passing SETUP step before TEST BODY");
+                }
+                businessFlow.accept(new E2eJourney(this, actions, scenario), credentials);
+            });
+        }
+
+        @Override
+        public void close() {
+            context.close();
+        }
+    }
+
+    /** Setup-only view; raw values stay excluded and each action table follows the YAML capture policy. */
+    public static final class E2eSetup {
+        private final E2eHarness harness;
+        private final PlaywrightActionSequence actions;
+        private final ShopE2eContext.Scenario scenario;
+        private boolean completed;
+        private boolean failed;
+
+        private E2eSetup(E2eHarness harness, PlaywrightActionSequence actions,
+                         ShopE2eContext.Scenario scenario) {
+            this.harness = harness;
+            this.actions = actions;
+            this.scenario = scenario;
+        }
+
+        public ShopConfiguration configuration() { return harness.configuration(); }
+        public ShopLocators locators() { return harness.locators(); }
+        public Page page() { return harness.context().page(); }
+        public PlaywrightActionSequence actions() { return actions; }
+        public ShopApiNetworkJournal apiNetwork() { return harness.context().apiNetwork(); }
+        public ShopTestSupport.AccountSetupMode accountSetupMode() { return harness.accountSetupMode(); }
+        public Path registrationProfileFile() { return harness.registrationProfileFile(); }
+        public String accountRunScope() { return harness.accountRunScope(); }
+        public void checkpoint(AtfGherkinKeyword keyword, String title, Collection<AtfAssertion> assertions,
+                               Collection<atf.api.reporting.model.ReportExecutionEvidence> apiEvidence) {
+            if (completed || failed) throw new IllegalStateException("SETUP is already finished");
+            AtfReportStatus status = assertions.stream().allMatch(AtfAssertion::passed)
+                    ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
+            scenario.setupCheckpoint(page(), actions, keyword, title, assertions, apiEvidence, status);
+            if (status == AtfReportStatus.FAIL) {
+                failed = true;
+                scenario.finishSetup(AtfReportStatus.FAIL);
+                throw new AssertionError("Authenticated account setup failed; TEST BODY was not started");
+            }
+        }
+
+        public void complete() {
+            if (completed || failed) throw new IllegalStateException("SETUP is already finished");
+            scenario.finishSetup(AtfReportStatus.PASS);
+            completed = true;
+        }
+
+        public void fail(String title, Collection<AtfAssertion> assertions,
+                         Collection<atf.api.reporting.model.ReportExecutionEvidence> apiEvidence) {
+            if (completed || failed) throw new IllegalStateException("SETUP is already finished");
+            scenario.setupCheckpoint(page(), actions, AtfGherkinKeyword.GIVEN, title,
+                    assertions, apiEvidence, AtfReportStatus.FAIL);
+            scenario.finishSetup(AtfReportStatus.FAIL);
+            failed = true;
+        }
+
+        private boolean completed() { return completed; }
+    }
+
+    /** Test-facing handles; observed assertions and business flow stay in the E2E test. */
+    public record E2eJourney(E2eHarness harness, PlaywrightActionSequence actions,
+                             ShopE2eContext.Scenario scenario) {
+        public ShopConfiguration configuration() { return harness.configuration(); }
+        public ShopE2eContext context() { return harness.context(); }
+        public ShopLocators locators() { return harness.locators(); }
+        public Page page() { return context().page(); }
+        public ShopApiNetworkJournal apiNetwork() { return context().apiNetwork(); }
+
+        public void checkpoint(ShopPurchaseCheckpoint checkpoint) {
+            scenario.checkpoint(page(), actions, checkpoint);
+        }
+
+        public void pass(String evidenceTitle, Collection<AtfAssertion> assertions) {
+            scenario.pass(page(), actions, evidenceTitle, assertions);
+        }
+
+        public void completePurchase() {
+            scenario.complete(AtfReportStatus.PASS);
+        }
+
+        /** Publishes one terminal screen validation with the final browser capture. */
+        public void completePurchase(ShopPurchaseFlow.PurchaseResult result) {
+            pass("final order confirmation", purchaseConfirmationAssertions(result));
+        }
+
+        static List<AtfAssertion> purchaseConfirmationAssertions(
+                ShopPurchaseFlow.PurchaseResult result) {
+            Objects.requireNonNull(result, "purchase result");
+            String confirmation = result.confirmation();
+            boolean confirmed = confirmation != null
+                    && confirmation.contains("Thanks for your order!")
+                    && confirmation.contains("INV-");
+            return List.of(new AtfAssertion(
+                    "Order confirmation", "confirmation includes a successful order and invoice",
+                    confirmation == null ? "no confirmation was observed" : confirmation, confirmed));
+        }
+    }
+}

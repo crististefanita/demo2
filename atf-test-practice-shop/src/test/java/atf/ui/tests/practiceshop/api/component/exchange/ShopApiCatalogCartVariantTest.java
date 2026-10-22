@@ -1,0 +1,135 @@
+package atf.ui.tests.practiceshop.api.component.exchange;
+
+import atf.api.core.http.request.HttpMethod;
+import atf.ui.practiceshop.api.ShopApiClient;
+import atf.ui.practiceshop.api.ShopApiHttpStatus;
+import atf.ui.practiceshop.api.ShopApiJsonField;
+import atf.ui.practiceshop.api.ShopApiRequestFactory;
+import atf.ui.practiceshop.api.ShopApiRoutes;
+import atf.ui.practiceshop.api.ShopProductQuery;
+import atf.ui.practiceshop.api.ShopProductSort;
+import atf.ui.practiceshop.support.ShopJsonEvidence;
+import atf.ui.tests.practiceshop.api.support.ShopApiScenarioFixture;
+import atf.ui.tests.practiceshop.api.support.ShopApiComponentFixture;
+import atf.ui.tests.practiceshop.api.support.ShopApiCallComponentTest;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/** Component matrix for catalog variation and cart mutation boundaries. */
+@ShopApiCallComponentTest
+class ShopApiCatalogCartVariantTest {
+    @Test
+    void categorySortAndOutOfStockRemainObservableWithoutASecondE2e() {
+        ShopApiClient client = ShopApiComponentFixture.client();
+        ShopApiRequestFactory requests = client.requests();
+
+        String categoryId = ShopApiScenarioFixture.CATEGORY_ID;
+        String outOfStockProductId = ShopApiScenarioFixture.OUT_OF_STOCK_PRODUCT_ID;
+        boolean rentalOnly = ShopApiScenarioFixture.FILTER_RENTAL;
+        int page = ShopApiScenarioFixture.FIRST_PAGE;
+
+        var filteredExecution = client.execute(requests.products(
+                new ShopProductQuery(null, categoryId, rentalOnly, null,
+                        ShopProductSort.PRICE_ASC, page)));
+        var categoriesExecution = client.execute(requests.categories());
+        var outOfStockExecution = client.execute(requests.product(outOfStockProductId, ""));
+
+        var filteredResponse = filteredExecution.response();
+        var categoriesResponse = categoriesExecution.response();
+        var outOfStockResponse = outOfStockExecution.response();
+        var filteredBody = ShopJsonEvidence.parse(filteredResponse.body());
+        var categoriesBody = ShopJsonEvidence.parse(categoriesResponse.body());
+        var outOfStockBody = ShopJsonEvidence.parse(outOfStockResponse.body());
+
+        assertTrue(ShopApiHttpStatus.OK.matches(filteredResponse.status()));
+        assertNotNull(filteredBody);
+        assertEquals(categoryId, filteredBody.path(ShopApiJsonField.CATEGORY.wireValue()).asText());
+        assertTrue(filteredBody.path(ShopApiJsonField.DATA.wireValue()).isArray());
+        assertTrue(ShopApiHttpStatus.OK.matches(categoriesResponse.status()));
+        assertNotNull(categoriesBody);
+        assertTrue(categoriesBody.findValuesAsText(ShopApiJsonField.ID.wireValue()).contains(categoryId));
+        assertTrue(ShopApiHttpStatus.OK.matches(outOfStockResponse.status()));
+        assertNotNull(outOfStockBody);
+        assertFalse(outOfStockBody.path(ShopApiJsonField.IN_STOCK.wireValue()).asBoolean(true));
+    }
+
+    @Test
+    void cartUpdateAndRemovalExposeDistinctApiContracts() {
+        ShopApiClient client = ShopApiComponentFixture.client();
+        ShopApiRequestFactory requests = client.requests();
+
+        String cartId = ShopApiScenarioFixture.MUTATION_CART_ID;
+        String productId = ShopApiScenarioFixture.MUTATION_PRODUCT_ID;
+        int expectedQuantity = ShopApiScenarioFixture.UPDATED_QUANTITY;
+
+        var updateExecution = client.execute(
+                requests.updateCartQuantity(cartId, productId, expectedQuantity));
+        var removeExecution = client.execute(requests.removeFromCart(cartId, productId));
+
+        var updateResponse = updateExecution.response();
+        var updateRequest = updateExecution.request();
+        var removeResponse = removeExecution.response();
+        var removeRequest = removeExecution.request();
+        var updateRequestBody = ShopJsonEvidence.parse(updateRequest.bodyText());
+        var updateResponseBody = ShopJsonEvidence.parse(updateResponse.body());
+
+        assertTrue(ShopApiHttpStatus.OK.matches(updateResponse.status()));
+        assertEquals(HttpMethod.PUT.value(), updateRequest.method());
+        assertEquals(ShopApiRoutes.updateCartQuantity(cartId), updateRequest.path());
+        assertNotNull(updateRequestBody);
+        assertEquals(productId,
+                updateRequestBody.path(ShopApiJsonField.PRODUCT_ID.wireValue()).asText());
+        assertEquals(expectedQuantity,
+                updateRequestBody.path(ShopApiJsonField.QUANTITY.wireValue()).asInt());
+        assertNotNull(updateResponseBody);
+        assertEquals(ShopApiScenarioFixture.CART_UPDATE_RESULT,
+                updateResponseBody.path(ShopApiJsonField.RESULT.wireValue()).asText());
+
+        assertTrue(ShopApiHttpStatus.NO_CONTENT.matches(removeResponse.status()));
+        assertEquals(HttpMethod.DELETE.value(), removeRequest.method());
+        assertEquals(ShopApiRoutes.removeCartProduct(cartId, productId), removeRequest.path());
+        assertEquals("", removeRequest.bodyText());
+    }
+
+    @Test
+    void statefulCartLifecycleKeepsReadBackContractAcrossMutations() {
+        ShopApiClient client = ShopApiComponentFixture.statefulCartClient();
+        ShopApiRequestFactory requests = client.requests();
+        String cartId = ShopApiScenarioFixture.MUTATION_CART_ID;
+        String productId = ShopApiScenarioFixture.MUTATION_PRODUCT_ID;
+
+        var created = client.execute(requests.createCart());
+        var added = client.execute(requests.addToCart(cartId, productId,
+                ShopApiScenarioFixture.QUANTITY));
+        var afterAdd = client.execute(requests.readCart(cartId));
+        var updated = client.execute(requests.updateCartQuantity(cartId, productId,
+                ShopApiScenarioFixture.UPDATED_QUANTITY));
+        var afterUpdate = client.execute(requests.readCart(cartId));
+        var removed = client.execute(requests.removeFromCart(cartId, productId));
+        var afterRemove = client.execute(requests.readCart(cartId));
+
+        assertEquals(ShopApiHttpStatus.OK.code(), created.response().status());
+        assertEquals(ShopApiHttpStatus.OK.code(), added.response().status());
+        assertEquals(ShopApiHttpStatus.OK.code(), afterAdd.response().status());
+        assertEquals(ShopApiScenarioFixture.QUANTITY,
+                quantity(afterAdd.response().body()));
+        assertEquals(ShopApiHttpStatus.OK.code(), updated.response().status());
+        assertEquals(ShopApiHttpStatus.OK.code(), afterUpdate.response().status());
+        assertEquals(ShopApiScenarioFixture.UPDATED_QUANTITY,
+                quantity(afterUpdate.response().body()));
+        assertEquals(ShopApiHttpStatus.NO_CONTENT.code(), removed.response().status());
+        assertEquals(ShopApiHttpStatus.OK.code(), afterRemove.response().status());
+        assertTrue(ShopJsonEvidence.parse(afterRemove.response().body())
+                .path(ShopApiJsonField.CART_ITEMS.wireValue()).isEmpty());
+    }
+
+    private static int quantity(String body) {
+        var root = ShopJsonEvidence.parse(body);
+        return root.path(ShopApiJsonField.CART_ITEMS.wireValue()).get(0)
+                .path(ShopApiJsonField.QUANTITY.wireValue()).asInt();
+    }
+}

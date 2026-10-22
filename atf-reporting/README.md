@@ -226,20 +226,20 @@ TestCase
 │   ├── Request
 │   │   ├── Request details + REQUEST JSON / null
 │   │   ├── Response details + RESPONSE JSON / null
-│   │   └── Execution evidence
-│   └── Validation — sibling direct al request-ului
-│       └── aggregate assertion table
+│   │   ├── Execution evidence
+│   │   └── Contract validation (când este evaluat un contract al răspunsului)
+│   │       └── aggregate assertion table
 └── TEARDOWN (opțional; cleanup / read-back)
 ```
 
 | Regula | Contract |
 |---|---|
-| ownership | request și validation sunt surori în aceeași fază |
+| ownership API direct | response contract validation este copilul request-ului care deține schimbul; tabelul de assertions aparține validation-ului |
 | setup evidence | tabelul `CHECK / EXPECTED / ACTUAL / RESULT` rezumă precondiția; exchange-urile reale rămân `API validation` distinctă sub același checkpoint `SETUP` |
 | write body | `POST` și `PUT` au request JSON și response JSON valide, ne-goale |
 | read/no body | `GET`, `204`, `304` păstrează disclosure-urile și afișează explicit `null` când body-ul lipsește |
 | UI evidence | `SETUP` este setup; `Screen validation` este în `TEST BODY` după acțiuni și observații |
-| layout | `＋/−` este inline înaintea propoziției; cele trei zone de validation sunt surori, fără `<hr>` decorativ |
+| layout | `＋/−` este inline înaintea propoziției; Request details, Response details și Execution evidence sunt disclosures surori în request; Contract validation este copilul lui; UI/API validations sunt copii surori ale aceluiași checkpoint Gherkin |
 | responsive evidence | până la breakpoint-ul de lucru (`1300px`), action tables se redimensionează și împachetează conținutul fără scrollbar orizontal; padding-ul lateral al wrapperului este eliminat semantic, nu prin crop | 
 | scrollable tables | wrapper-ele folosesc `height:auto` și `max-height:var(--atf-table-scroll-height)`, derivat din `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT` (`500px` curent); short content nu rezervă spațiu gol, long content derulează sub header sticky, iar JSON/code panes nu intră în acest contract |
 | action number | fiecare acțiune afișează `#n` într-un token dedicat, `atf-ui-action-number`, compact (`inline-block`/`max-content`); nu se reutilizează clasa extensibilă `atf-ui-action-sequence` |
@@ -247,6 +247,11 @@ TestCase
 | action table | acțiunile relevante includ `getText`/text extraction; timpul apare numai pentru acțiuni |
 | failures | `Setup`, `Playwright action`, `Audit observation` și `Assertion` au cauze distincte și `Open in Tests` |
 | navigation | `Tests`, `Overview`, `Categories`, `Fails` folosesc aceeași identitate semantică și deep-link |
+
+Această ierarhie API nu trebuie confundată cu raportarea UI: acolo `UI validation`
+și `API validation` sunt copii semantici ai aceluiași checkpoint Gherkin, iar
+fiecare `API validation` își deține exchange-urile. Verdictul unei metode JUnit
+nu este un request API și nu trebuie introdus ca metodă `ASSERT`/rută sintetică.
 
 ### Dovezi API atașate unui pas UI
 
@@ -714,7 +719,8 @@ publication policy, validarea target-ului și proiecția în artifact.
   checkpoint `THEN` (altfel ultimul checkpoint) și păstrează titlul scenariului
   separat ca metadata, fără duplicate Gherkin sau `Checkpoint N`;
 - acțiunile și assertions UI sunt agregate într-o singură validare UI; exchange-urile
-  API selectate sunt grupate într-o singură validare sibling, în ordinea execuției;
+  API selectate sunt grupate într-o singură validare API, soră cu validarea UI sub
+  același checkpoint Gherkin, în ordinea execuției;
 - screenshot policy rămâne independentă de flow mode: capturile permise se
   publică în validarea UI comună, iar `FINAL_ONLY` include doar captura marcată
   `FINAL`;

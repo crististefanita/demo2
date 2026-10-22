@@ -132,7 +132,7 @@ class ExtentReportUiFailureEvidenceTest {
                     "linkage failure", List.of("ui"));
             var body = scenario.startPhase("TEST BODY");
             body.failureEvidence("external E2E failure", "/checkout", List.of(),
-                    new NoClassDefFoundError("atf/ui/practiceshop/pages/PracticeShopCartPage$CartLine"));
+                    new NoClassDefFoundError("atf/ui/practiceshop/pages/ShopCartPage$CartLine"));
             body.complete(AtfReportStatus.FAIL);
             scenario.complete(AtfReportStatus.FAIL);
         }
@@ -140,10 +140,9 @@ class ExtentReportUiFailureEvidenceTest {
         String html = Files.readString(report);
         assertAll(
                 () -> assertTrue(html.contains("NoClassDefFoundError: "
-                                + "atf/ui/practiceshop/pages/PracticeShopCartPage$CartLine"),
+                                + "atf/ui/practiceshop/pages/ShopCartPage$CartLine"),
                         "linkage error class and message must be present in report evidence"),
-                () -> assertTrue(html.contains("data-atf-evidence-type=\"ui-failure\"")),
-                () -> assertTrue(html.contains("data-atf-evidence-status=\"fail\"")),
+                () -> assertTrue(html.contains("class=\"atf-ui-assertions\" data-atf-evidence-status=\"fail\"")),
                 () -> assertTrue(html.contains("Failure evidence")));
     }
 

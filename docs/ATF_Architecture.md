@@ -247,7 +247,7 @@ sequenceDiagram
     T->>V: contract + response
     V->>V: evaluate rules + warning policy
     V-->>T: ValidationResult
-    V->>R: validation + aggregate assertions
+    V->>R: request-attached contract validation + aggregate assertions
     E->>R: complete phase + scenario verdict
     R->>R: finalizează HTML autonom
 ```
@@ -257,7 +257,8 @@ sequenceDiagram
 
 - executorul publică faptele transportului și istoricul retry;
 - validation-ul calculează verdictul, iar reporting-ul doar proiectează evidence;
-- request-ul și validation-ul rămân surori în aceeași fază;
+- request-ul deține contract validation-ul nested în evidence-ul său; UI/API
+  validation-urile rămân separate sub checkpoint-ul Gherkin UI;
 - finalizarea produce un artifact autonom, fără a muta verdictul.
 
 </details>
@@ -575,16 +576,20 @@ flowchart LR
 - săgeata solidă = progresul lifecycle-ului; fazele apar numai când au
   conținut real;
 - săgeata punctată = grupare vizuală a evidence-ului local, nu o fază nouă;
-- request-ul și validation-ul rămân surori în fiecare grup de evidence;
+- contract validation-ul este nested sub request-ul evaluat; UI/API validation-urile
+  rămân copii semantici ai checkpoint-ului Gherkin UI;
 - cleanup-ul închide resursele create în ordine inversă;
 - precedence-ul verdictului rămâne responsabilitatea lifecycle-ului, nu a rendererului.
 
 </details>
 
-Un request rămâne deschis până când evidence-ul lui tehnic și validarea asociată
-au fost publicate. Validarea este următorul frate direct al request-ului, în
-aceeași fază; nu este mutată într-o listă globală și nu este ascunsă într-un
-teardown. Mai multe assertions pentru același response formează un singur tabel.
+Un request rămâne deschis până când evidence-ul lui tehnic și contract validation
+asociată au fost publicate. Pentru API direct, validation-ul este nested sub
+request-ul evaluat, nu frate direct în fază; nu este mutat într-o listă globală
+și nu este ascuns într-un teardown. Mai multe assertions pentru același response
+formează un singur tabel. În raportul UI, UI validation și API validation sunt
+copii semantici ai aceluiași checkpoint, iar request-urile sunt dovezi sub API
+validation.
 
 Responsabilități obligatorii:
 

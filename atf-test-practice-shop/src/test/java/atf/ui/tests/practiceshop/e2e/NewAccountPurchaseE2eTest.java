@@ -1,32 +1,34 @@
 package atf.ui.tests.practiceshop.e2e;
 
 import atf.api.testkit.AtfE2eTest;
-import atf.ui.practiceshop.flow.PracticeShopPurchaseFlow;
-import atf.ui.tests.practiceshop.support.PracticeShopAuthenticatedAccountTestSupport;
-import atf.ui.tests.practiceshop.support.PracticeShopE2eTestSupport;
-import atf.ui.tests.practiceshop.support.PracticeShopTestSupport;
+import atf.ui.practiceshop.flow.ShopPurchaseFlow;
+import atf.ui.tests.practiceshop.support.ShopAuthenticatedAccountTestSupport;
+import atf.ui.tests.practiceshop.support.ShopE2eTestSupport;
+import atf.ui.tests.practiceshop.support.ShopTestSupport;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 
 /** Creates a synthetic account, proves login, then completes one authenticated purchase. */
-@PracticeShopTestSupport.AuthenticatedE2e(
-        accountSetup = PracticeShopTestSupport.AccountSetupMode.REGISTER_PER_RUN,
-        registrationProfile = PracticeShopTestSupport.RegistrationProfileMode.SYNTHETIC)
-@PracticeShopTestSupport.AllowsRegistrationPerRun
+@ShopTestSupport.AuthenticatedE2e(
+        accountSetup = ShopTestSupport.AccountSetupMode.REGISTER_PER_RUN,
+        registrationProfile = ShopTestSupport.RegistrationProfileMode.SYNTHETIC)
+@ShopTestSupport.AllowsRegistrationPerRun
 @AtfE2eTest
-@PracticeShopE2eTestSupport.WithE2eHarness
+@ShopE2eTestSupport.WithE2eHarness
 @Execution(ExecutionMode.SAME_THREAD)
+@Order(1)
 @DisplayName("New account authenticated purchase")
-class NewAccountPurchaseE2eTest {
+public class NewAccountPurchaseE2eTest {
     @Test
     @DisplayName("A newly registered and signed-in customer completes a purchase")
-    void newAccountCanCompletePurchase(PracticeShopE2eTestSupport.E2eHarness harness) {
+    void newAccountCanCompletePurchase(ShopE2eTestSupport.E2eHarness harness) {
         harness.run("New-account purchase flow",
                 "a synthetic account is registered and signed in before the complete purchase journey",
-                PracticeShopAuthenticatedAccountTestSupport::prepare, (journey, credentials) -> {
-                    var purchase = new PracticeShopPurchaseFlow(journey.locators())
+                ShopAuthenticatedAccountTestSupport::prepare, (journey, credentials) -> {
+                    var purchase = new ShopPurchaseFlow(journey.locators())
                             .purchaseConfiguredProductAuthenticated(
                             journey.page(), journey.actions(), journey.configuration(),
                             journey::checkpoint, journey.apiNetwork());

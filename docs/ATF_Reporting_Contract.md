@@ -103,7 +103,8 @@ flowchart LR
     Setup -->|execută| Body[TEST BODY]
     Body -->|închide| Teardown[TEARDOWN]
     Setup -. local evidence .-> SetupEvidence[Request sau setup evidence]
-    Body -. local evidence .-> BodyEvidence[Request + validation<br/>aggregate assertions]
+    Body -. local evidence .-> BodyRequest[Request + trace<br/>response evidence]
+    BodyRequest -. owns .-> BodyValidation[Contract validation<br/>aggregate assertions]
     Teardown -. local evidence .-> Cleanup[Request sau cleanup]
 ```
 
@@ -114,22 +115,26 @@ flowchart LR
   real;
 - ramificațiile punctate grupează local evidence-ul și nu introduc pași noi;
 - `SETUP` poate publica setup evidence, iar `TEST BODY` publică request și
-  validation când există contract;
-- request-ul și validation-ul sunt surori în aceeași fază;
+  response-contract validation când există un contract evaluat;
+- în raportul API direct, validation-ul contractului este copilul request-ului
+  care deține schimbul; în raportul UI, UI/API validation rămân copii semantici
+  ai aceluiași checkpoint Gherkin;
 - `TEARDOWN` publică numai cleanup/read-back real;
 - tabelul agregat aparține validation-ului, nu request-ului și nu fazei;
 - failure-ul se afișează o singură dată, în zona care îl produce.
 
 </details>
 
-În fiecare fază, request-ul și validation-ul sunt ramuri surori ale fazei;
-legătura lor semantică este aceeași, dar validation-ul nu este copil vizual al
-request-ului.
+În raportul API direct, request-ul și dovezile sale tehnice sunt urmate în același
+card de `Contract validation` nested, când răspunsul a fost evaluat printr-un
+contract. În raportul UI, checkpoint-ul Gherkin deține validările UI și API ca
+evidence soră; exchange-urile aparțin validării API, nu devin pași Gherkin noi.
 
 Reguli de ownership:
 
 1. request-ul conține metoda, calea, durata, trace-ul tehnic și JSON-ul;
-2. validation-ul este fratele direct al request-ului, în aceeași fază;
+2. pentru API direct, validation-ul contractului este nested sub request-ul
+   evaluat; pentru UI, validările UI și API sunt atașate checkpoint-ului Gherkin;
 3. tabelul de assertions aparține validation-ului;
 4. faza nu repetă failure-ul deja detaliat în tabel;
 5. scenariul arată verdictul agregat, nu duplică evidence-ul fiecărei faze.

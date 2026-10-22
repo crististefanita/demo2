@@ -187,7 +187,7 @@ flowchart LR
   `SUMMARY_ONLY` păstrează un disclosure colapsat, fără tabelul detaliat sau
   schimbarea capturii; rendererul nu execută acțiuni UI.
 - `ReportEvidenceProfileIntegrationTest` dovedește provider mock → sesiune → HTML local pentru ambele flow mode-uri.
-- `UNIFIED_FLOW` păstrează un singur request cu propoziția Gherkin finală, fără checkpoint-uri numerotate sau Gherkin duplicat; UI actions și assertions sunt agregate, iar validarea API rămâne un sibling cu exchange-urile sale. Sub `FINAL_ONLY` se publică doar captura `FINAL`.
+- `UNIFIED_FLOW` păstrează un singur request cu propoziția Gherkin finală, fără checkpoint-uri numerotate sau Gherkin duplicat; UI actions și assertions sunt agregate, iar `API validation` este soră cu `UI validation` sub același checkpoint Gherkin și deține exchange-urile sale. Sub `FINAL_ONLY` se publică doar captura `FINAL`.
 - `SCREEN_CHECKPOINTS` păstrează request-urile Gherkin independente.
 - Profilul typed combină flow mode, screenshot policy, capture source și action-details mode.
   Grouping-ul aparține lifecycle/publisher-ului din `atf-reporting`; alegerea modului

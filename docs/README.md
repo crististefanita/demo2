@@ -179,10 +179,11 @@ sunt interzise.
 
 ## Vocabular scurt
 
-test = intenția de produs verificată  
-request = schimbul HTTP și evidence-ul lui tehnic  
-validation = fratele direct al request-ului, cu tabelul agregat de assertions  
-phase = SETUP, TEST BODY sau TEARDOWN; fazele SETUP și TEARDOWN sunt opționale
-scenario = testul complet, cu fazele și verdictul final  
-artifact = raportul HTML autonom rezultat după finalizarea sesiunii
+- `test` = intenția de produs verificată
+- `request` = schimbul HTTP și evidence-ul lui tehnic
+- `API contract validation` = copilul request-ului evaluat, cu tabelul agregat de assertions
+- `UI/API validation` = evidence semantică atașată checkpoint-ului Gherkin comun
+- `phase` = SETUP, TEST BODY sau TEARDOWN; fazele SETUP și TEARDOWN sunt opționale
+- `scenario` = testul complet, cu fazele și verdictul final
+- `artifact` = raportul HTML autonom rezultat după finalizarea sesiunii
 

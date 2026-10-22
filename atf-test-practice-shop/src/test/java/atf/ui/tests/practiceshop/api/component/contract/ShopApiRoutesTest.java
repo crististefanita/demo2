@@ -1,0 +1,28 @@
+package atf.ui.tests.practiceshop.api.component.contract;
+
+import atf.api.testkit.AtfComponentTest;
+import atf.ui.practiceshop.api.ShopApiRoutes;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+@AtfComponentTest
+class ShopApiRoutesTest {
+    @Test
+    void dynamicRoutesUseTheSameCanonicalPathVocabularyAsTheFactory() {
+        assertEquals("/products/product-1", ShopApiRoutes.product("product-1"));
+        assertEquals("/carts/cart-1", ShopApiRoutes.cart("cart-1"));
+        assertEquals("/carts/cart-1/product/quantity", ShopApiRoutes.updateCartQuantity("cart-1"));
+        assertEquals("/carts/cart-1/product/product-1",
+                ShopApiRoutes.removeCartProduct("cart-1", "product-1"));
+    }
+
+    @Test
+    void dynamicRouteArgumentsFailFastInsteadOfProducingMalformedPaths() {
+        assertThrows(IllegalArgumentException.class, () -> ShopApiRoutes.product(" "));
+        assertThrows(IllegalArgumentException.class, () -> ShopApiRoutes.cart(null));
+        assertThrows(IllegalArgumentException.class,
+                () -> ShopApiRoutes.removeCartProduct("cart-1", ""));
+    }
+}

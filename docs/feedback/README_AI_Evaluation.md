@@ -734,7 +734,7 @@ Review/state/read-back numai pentru efectele observabile.
 
 | ID | Cerință lipsă | Criteriu de închidere |
 |---|---|---|
-| `AI-EVAL-04` | grounding | **implementat per field:** allowlist de source IDs, `SUPPORTED`, `UNSUPPORTED`, `MISSING_REFERENCE` și hard-fail pentru field critic; `AMBIGUOUS` este doar reprezentabil în enum, nu produs de evaluator și fără test negativ; run ledger rămâne deschis |
+| `AI-EVAL-04` | grounding | **implementat per field:** allowlist de source IDs, `SUPPORTED`, `UNSUPPORTED`, `MISSING_REFERENCE` și hard-fail când grounding-ul obligatoriu lipsește sau nu este suportat; `AMBIGUOUS` este doar reprezentabil în enum, nu produs de evaluator și fără test negativ; run ledger rămâne deschis |
 | `AI-EVAL-05` | review/state | action și tranziții evaluate separat |
 | `AI-EVAL-06` | invocation/fallback | **contract implementat:** real/mock/fallback/unknown; numai REAL_AI cu evidence completă poate produce score; lifecycle integration încă lipsește |
 | `AI-EVAL-07` | hard-fail precedence | **probat pentru critical missing/invented/source contradiction și output nedeclarat:** `FAIL` domină score; catalogul AI complet și scenariile business încă lipsesc |
@@ -1298,7 +1298,7 @@ Implementarea vertical slice analizată live:
 - `atf-ui/src/main/java/atf/api/ui/network/UiNetworkObservation.java`;
 - `atf-ui/src/main/java/atf/api/ui/config/UiNetworkInspectionConfiguration.java`;
 - `atf-ui/src/main/java/atf/api/ui/config/UiNetworkSettlementPolicy.java`;
-- `atf-test-practice-shop/src/main/java/atf/ui/practiceshop/support/PracticeShopApiNetworkJournal.java`;
+- `atf-test-practice-shop/src/main/java/atf/ui/practiceshop/support/ShopApiNetworkJournal.java`;
 - `atf-reporting/src/main/java/atf/api/reporting/ui/network/ReportNetworkInspector.java`.
 
 ## 34. Readiness snapshot față de ATF Java live
@@ -1331,7 +1331,7 @@ frumos sau transportul `LIVE_HTTP` nu demonstrează evaluare AI.
 |---|---|---:|
 | expected separat de observed | `AiEvaluationCase` versionat și immutable se construiește separat de harta observed | **65/100** |
 | field-level typed comparison | opt moduri sigure, type/reason codes, weight, critical, source presence și output extra detectat implicit; regex restrâns este deferred | **86/100** |
-| missing information și non-invention | missing/invented critical, source/expected contradiction și undeclared output au probe negative; grounding critical este evaluat separat | **86/100** |
+| missing information și non-invention | missing/invented critical, source/expected contradiction și undeclared output au probe negative; grounding-ul obligatoriu este evaluat separat și produce hard-fail când reference-ul lipsește ori nu este permis | **86/100** |
 | grounding și source references | allowlist per field, reference opac și probe `SUPPORTED` / `UNSUPPORTED` / `MISSING_REFERENCE` sunt implementate; `AMBIGUOUS` există numai ca valoare enum, fără clasificare în evaluator sau test; run ledger lipsește | **58/100** |
 | review și state transitions | există lifecycle/report status și consumeri UI, nu contract AI pentru review obligatoriu și tranziții permise | **22/100** |
 | invocation mode și fallback | `AiInvocationEvidence` distinge `REAL_AI`, `MOCK_MODEL`, `EXPLICIT_FALLBACK`, `UNKNOWN`; numai real cu references complete poate primi quality score | **74/100** |
@@ -1430,9 +1430,10 @@ testele, iar package cohesion este guvernată explicit; însă clasificarea
 `AMBIGUOUS`, run-level evidence ledger și publication path lipsesc. Pragurile
 următoare sunt:
 
-- run-level evidence index/correlation și probă `AMBIGUOUS`;
-- evidence index/run correlation stabil și diagnostic mismatch cu
-  `ruleId`, field, expected/observed și evidence reference în publish boundary;
+- run-level evidence ledger cu index/correlation și un rezultat `AMBIGUOUS`
+  produs de evaluator, acoperit de probă negativă;
+- diagnostic mismatch în publish boundary cu `ruleId`, field,
+  expected/observed și evidence reference;
 - component/integration tests care leagă invocation, grounding, snapshot și
   verdict pentru cazuri nominale și negative;
 - catalogul de reason/hard-fail și cazuri business negative versionate.
