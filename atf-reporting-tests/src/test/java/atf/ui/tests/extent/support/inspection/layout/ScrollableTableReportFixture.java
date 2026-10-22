@@ -105,7 +105,7 @@ public final class ScrollableTableReportFixture {
     }
 
     public enum Density {
-        SHORT(3, 1, 1, 1, 0),
+        SHORT(3, 1, 1, 1, 1),
         LONG(36, 36, 36, 30, 24);
 
         private final int systemRows;

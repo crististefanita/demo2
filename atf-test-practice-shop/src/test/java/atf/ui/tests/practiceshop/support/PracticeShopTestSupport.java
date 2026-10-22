@@ -1,13 +1,17 @@
 package atf.ui.tests.practiceshop.support;
 
 import atf.api.core.config.ApiTransportMode;
+import atf.ui.practiceshop.config.PracticeShopCredentials;
 import atf.ui.practiceshop.config.PracticeShopConfiguration;
 import atf.ui.practiceshop.config.PracticeShopConfigurationLoader;
+import atf.ui.practiceshop.config.PracticeShopRegistrationProfile;
 import org.junit.jupiter.api.extension.ConditionEvaluationResult;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ExecutionCondition;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -27,6 +31,11 @@ public final class PracticeShopTestSupport {
         HEADLESS
     }
 
+    public enum AccountSetupMode {
+        REUSE_FIXTURE,
+        REGISTER_PER_RUN
+    }
+
     /**
      * Declares a directly runnable authenticated E2E composition root.
      * Defaults intentionally point to the ignored local fixture and headed
@@ -42,6 +51,11 @@ public final class PracticeShopTestSupport {
         BrowserMode browserMode() default BrowserMode.HEADED;
 
         int zoomPercent() default 70;
+
+        AccountSetupMode accountSetup() default AccountSetupMode.REUSE_FIXTURE;
+
+        String registrationProfileFile() default
+                "atf-test-practice-shop/src/test/resources/practice-software-testing-registration.local.properties";
     }
 
     /** Selects only tests that have an external account fixture available. */
@@ -82,13 +96,78 @@ public final class PracticeShopTestSupport {
         public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext context) {
             try {
                 PracticeShopConfiguration configuration = configurationFor(context.getRequiredTestClass());
-                return configuration.authenticatedE2eAllowed()
+                String skipReason = authenticatedSetupSkipReason(context.getRequiredTestClass(), configuration);
+                return skipReason == null
                         ? ConditionEvaluationResult.enabled("authenticated IntelliJ E2E profile is configured")
-                        : ConditionEvaluationResult.disabled(AUTHENTICATED_REASON);
+                        : ConditionEvaluationResult.disabled(skipReason);
             } catch (RuntimeException error) {
                 return ConditionEvaluationResult.disabled(
-                        AUTHENTICATED_REASON + ": " + error.getMessage());
+                        AUTHENTICATED_REASON + "; check the ignored local account fixture and class profile");
             }
+        }
+    }
+
+    /** Safe, actionable skip explanation; credential contents are never included. */
+    static String authenticatedFixtureSkipReason(PracticeShopConfiguration configuration) {
+        if (configuration == null) return AUTHENTICATED_REASON;
+        if (!configuration.authenticatedE2eEnabled()) {
+            return "authenticated E2E profile is disabled; use the class-level @AuthenticatedE2e profile";
+        }
+        Path fixture = configuration.accountFile();
+        if (!configuration.accountPolicy().accepts(fixture)) {
+            return "account fixture must be stored under the module's src/test/resources directory";
+        }
+        if (!Files.isRegularFile(fixture)) {
+            return "local account fixture is missing; create the ignored practice-software-testing-account.local.properties "
+                    + "file with a registered account's email and password";
+        }
+        final var credentials = safeLoad(fixture);
+        if (credentials == null) {
+            return "local account fixture is unreadable or lacks required email/password fields; "
+                    + "credential values are not shown";
+        }
+        if (!credentials.hasLiveAccountCandidate()) {
+            return "fixture must use a registered, non-reserved account email; credential values are not shown";
+        }
+        return null;
+    }
+
+    /** Preflight follows the class annotation and never includes configured values in its message. */
+    static String authenticatedSetupSkipReason(Class<?> testClass, PracticeShopConfiguration configuration) {
+        AuthenticatedE2e profile = testClass == null ? null : testClass.getAnnotation(AuthenticatedE2e.class);
+        if (profile == null) return AUTHENTICATED_REASON;
+        if (configuration == null || !configuration.authenticatedE2eEnabled()) {
+            return "authenticated E2E is disabled; enable the class-level @AuthenticatedE2e profile";
+        }
+        if (profile.accountSetup() == AccountSetupMode.REUSE_FIXTURE) {
+            return authenticatedFixtureSkipReason(configuration);
+        }
+        if (!"PracticeShopAuthenticatedPurchaseE2eTest".equals(testClass.getSimpleName())) {
+            return "REGISTER_PER_RUN is currently supported only by PracticeShopAuthenticatedPurchaseE2eTest; "
+                    + "use REUSE_FIXTURE for this class";
+        }
+        try {
+            Path registrationFile = PracticeShopConfigurationLoader.resolveRegistrationProfileFile(
+                    profile.registrationProfileFile());
+            if (!Files.isRegularFile(registrationFile)) {
+                return "local registration profile is missing; copy the example to "
+                        + "practice-software-testing-registration.local.properties and configure it; "
+                        + "values are never shown";
+            }
+            PracticeShopRegistrationProfile.load(registrationFile)
+                    .newRegistrationData("preflight000000000000000000000000");
+            return null;
+        } catch (RuntimeException invalidProfile) {
+            return "local registration profile is invalid or uses a reserved email domain; "
+                    + "check the required keys and controlled email domain; values are never shown";
+        }
+    }
+
+    private static PracticeShopCredentials safeLoad(Path fixture) {
+        try {
+            return PracticeShopCredentials.load(fixture);
+        } catch (RuntimeException invalidFixture) {
+            return null;
         }
     }
 

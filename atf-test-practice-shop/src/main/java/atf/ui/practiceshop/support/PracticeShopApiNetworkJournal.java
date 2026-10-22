@@ -126,6 +126,37 @@ public final class PracticeShopApiNetworkJournal {
         return PracticeShopApiAssertions.login(login);
     }
 
+    /** Sequence fence used to associate only the browser submission that followed the registration form. */
+    public long sequenceMarker() {
+        return sequence.get();
+    }
+
+    /** Validates and owns the observed form POST; the route is discovered from this browser run, not guessed. */
+    public List<AtfAssertion> registrationConfirmed(long afterSequence) {
+        if (!enabled(PracticeShopApiCheckpoint.REGISTRATION)) return List.of();
+        List<Exchange> submissions = exchanges.stream()
+                .filter(exchange -> exchange.sequence() > afterSequence)
+                .filter(exchange -> HttpMethod.POST.value().equalsIgnoreCase(exchange.method()))
+                .toList();
+        List<Exchange> safeSubmissions = submissions.stream()
+                .map(exchange -> exchange.withPhase("account-setup").withRegistrationRedaction())
+                .toList();
+        if (!safeSubmissions.isEmpty()) {
+            store(PracticeShopApiCheckpoint.REGISTRATION,
+                    safeSubmissions.stream().map(this::toEvidence).toList());
+        }
+        boolean singleSubmission = safeSubmissions.size() == 1;
+        boolean successfulResponse = singleSubmission
+                && safeSubmissions.getFirst().status() >= 200
+                && safeSubmissions.getFirst().status() < 300;
+        return List.of(
+                new AtfAssertion("Registration browser exchange", "exactly one observed form POST",
+                        safeSubmissions.size() + " observed form POST(s)", singleSubmission),
+                new AtfAssertion("Registration response", "HTTP 2xx",
+                        singleSubmission ? "HTTP " + safeSubmissions.getFirst().status() : "not uniquely observed",
+                        successfulResponse));
+    }
+
     private static Exchange recoverLoginBody(Exchange login,
                                              PracticeShopApiConfiguration apiConfiguration,
                                              PracticeShopCredentials credentials) {
@@ -402,6 +433,23 @@ public final class PracticeShopApiNetworkJournal {
                     requestHeaders, responseHeaders, sequence, capturedAt, phase, signature,
                     digest(method, path, status, requestBody, body), role, stepId, initiator,
                     evidenceSource, expected, observed, observedAuthMethod, failureReason);
+        }
+
+        public Exchange withPhase(String selectedPhase) {
+            return new Exchange(method, path, url, status, requestBody, responseBody,
+                    requestHeaders, responseHeaders, sequence, capturedAt, selectedPhase,
+                    signature, digest, role, stepId, initiator, evidenceSource,
+                    expected, observed, observedAuthMethod, failureReason);
+        }
+
+        public Exchange withRegistrationRedaction() {
+            return new Exchange(method, path, url, status,
+                    PracticeShopJsonEvidence.redactRegistration(requestBody),
+                    PracticeShopJsonEvidence.redactRegistration(responseBody),
+                    requestHeaders, responseHeaders, sequence, capturedAt, phase,
+                    signature, digest(method, path, status, requestBody, responseBody),
+                    role, stepId, initiator, evidenceSource, expected, observed,
+                    observedAuthMethod, failureReason);
         }
 
         public Exchange withObservedAuthMethod(String authMethod) {

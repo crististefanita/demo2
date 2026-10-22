@@ -217,9 +217,15 @@ class AtfReportEvidenceCssTest {
                 () -> assertTrue(extentCss.contains("height:var(--atf-evidence-summary-height)!important"),
                         "ordinary API/UI evidence keeps the compact 34px geometry"),
                 () -> assertTrue(extentCss.contains("padding:var(--atf-evidence-summary-padding)!important")),
-                () -> assertTrue(extentCss.contains("details.step-detail.network-signatures > summary"),
-                        "API aggregates override the more-specific compact request disclosure rule"),
-                () -> assertTrue(extentCss.contains("details.step-detail.network-diagnostics > summary")),
+                () -> assertTrue(extentCss.contains(
+                                "details.step-detail.network-signatures:not(.network-aggregate-section) > summary"),
+                        "only standalone API aggregate summaries may use the tall summary treatment"),
+                () -> assertTrue(extentCss.contains(
+                                "details.step-detail.network-diagnostics:not(.network-aggregate-section) > summary"),
+                        "nested Network Inspector rows must retain the compact shared summary geometry"),
+                () -> assertTrue(extentCss.contains(
+                                "details.network-signatures.network-aggregate-section>summary,details.network-diagnostics.network-aggregate-section>summary{height:auto!important;min-height:var(--atf-evidence-summary-height)!important;max-height:none!important"),
+                        "nested rows use a compact minimum and may grow only when their title wraps"),
                 () -> assertTrue(extentCss.contains(
                         "height:var(--atf-evidence-aggregate-summary-height)!important")),
                 () -> assertTrue(extentCss.contains("line-height:var(--atf-evidence-summary-line-height)!important")),
@@ -235,6 +241,11 @@ class AtfReportEvidenceCssTest {
                         "fallback API aggregates and UI evidence must share one disclosure rule"),
                 () -> assertTrue(fallbackCss.contains(
                         "height:var(--atf-evidence-aggregate-summary-height)")),
+                () -> assertTrue(fallbackCss.contains(
+                                "details.network-signatures:not(.network-aggregate-section)>summary")
+                                && fallbackCss.contains(
+                                "details.network-diagnostics:not(.network-aggregate-section)>summary"),
+                        "fallback nested Network Inspector summaries must not inherit standalone tall geometry"),
                 () -> assertFalse(fallback.contains("evidence-tall-summary")),
                 () -> assertTrue(tokens.contains("--atf-evidence-summary-height:34px")),
                 () -> assertTrue(tokens.contains("--atf-evidence-aggregate-summary-height:68px")),

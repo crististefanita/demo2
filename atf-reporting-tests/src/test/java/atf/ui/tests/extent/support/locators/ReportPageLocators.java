@@ -26,6 +26,8 @@ final class ReportPageLocators {
             "details" + ReportLocatorSupport.idSelector("atf-execution-metadata") + ",details"
                     + ReportLocatorSupport.idSelector("atf-tag-audit");
     private static final String OPEN_DISCLOSURES = "details[open], [class~='collapse'][class~='show']";
+    private static final String ALL_DISCLOSURES = "details";
+    private static final String COLLAPSED_REPORT_PANELS = "[class~='collapse']:not([class~='show'])";
     private static final String DECORATIVE_SEPARATORS = "hr, [class~='atf-ui-zone-separator']";
     private static final String IMAGES = "img";
     private static final String SECONDARY_BODY = "[class~='atf-secondary-body']";
@@ -90,6 +92,8 @@ final class ReportPageLocators {
                 + " " + AtfReportCssSelectors.Component.NODE.attributeSelector());
     }
     Locator openDisclosures(Locator scope) { return scope.locator(OPEN_DISCLOSURES); }
+    Locator allDisclosures(Locator scope) { return scope.locator(ALL_DISCLOSURES); }
+    Locator collapsedReportPanels(Locator scope) { return scope.locator(COLLAPSED_REPORT_PANELS); }
     Locator overviewCard(Page page) {
         return overviewView(page).locator(AtfReportCssSelectors.Component.CARD.attributeSelector()).first();
     }

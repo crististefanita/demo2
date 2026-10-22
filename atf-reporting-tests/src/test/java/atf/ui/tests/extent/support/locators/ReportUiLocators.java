@@ -48,6 +48,8 @@ public final class ReportUiLocators {
         return pages.disclosureHeaderNodes(header);
     }
     public Locator openDisclosures(Locator scope) { return pages.openDisclosures(scope); }
+    public Locator allDisclosures(Locator scope) { return pages.allDisclosures(scope); }
+    public Locator collapsedReportPanels(Locator scope) { return pages.collapsedReportPanels(scope); }
     public Locator overviewCard(Page page) { return pages.overviewCard(page); }
     public Locator categoryList(Page page) { return pages.categoryList(page); }
     public Locator categoryList(Locator category) { return pages.categoryList(category); }

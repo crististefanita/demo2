@@ -109,7 +109,7 @@ class ExtentReportUiScreenshotContractTest {
     }
 
     @Test
-    void rejectsUiActionTableWithoutExactlyOneBase64Screenshot() throws Exception {
+    void allowsUiActionTableWhenScreenshotPolicyOmitsCheckpointImage() throws Exception {
         Path root = Files.createTempDirectory("atf-ui-action-screenshot-contract-");
         Path report = root.resolve("ui-actions-without-screenshot.html");
 
@@ -120,10 +120,17 @@ class ExtentReportUiScreenshotContractTest {
             step.uiActions(List.of(new AtfUiActionRecord(1, "Click", "#submit",
                     "page changes", "click completed", 12, AtfReportStatus.PASS)));
 
-            assertThrows(IllegalStateException.class,
-                    () -> step.complete(AtfReportStatus.PASS),
-                    "an action table without its local screenshot must not be published");
+            step.complete(AtfReportStatus.PASS);
+            phase.complete(AtfReportStatus.PASS);
+            scenario.complete(AtfReportStatus.PASS);
         }
+
+        String html = Files.readString(report);
+        assertAll(
+                () -> assertTrue(html.contains("atf-ui-action-sequence"),
+                        "Playwright actions remain reportable when the configured policy omits screenshots"),
+                () -> assertFalse(html.contains("class=\"atf-ui-action-screenshot-link\""),
+                        "an omitted screenshot policy must not synthesize image evidence"));
     }
 
     @Test

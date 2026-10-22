@@ -131,6 +131,32 @@ class ExtentReportUiEvidenceRenderingTest {
     }
 
     @Test
+    void rendersPlaywrightActionsWhenScreenshotPolicyOmitsTheCheckpointImage() throws Exception {
+        Path root = Files.createTempDirectory("atf-ui-actions-without-screenshot-");
+        Path report = root.resolve("actions-without-screenshot.html");
+        try (var session = new ExtentReportSession(report)) {
+            var scenario = session.startScenario("UiTest", EXTENT_UI_TEST_PACKAGE,
+                    "checkpoint without image", List.of("ui"));
+            var phase = scenario.startPhase("TEST BODY");
+            var step = phase.startRequest("THEN the checkpoint remains auditable", "", "");
+            step.uiActions(List.of(new AtfUiActionRecord(1, "Get text", "#status",
+                    "status is visible", "Ready", 3, AtfReportStatus.PASS)));
+            step.complete(AtfReportStatus.PASS);
+            phase.complete(AtfReportStatus.PASS);
+            scenario.complete(AtfReportStatus.PASS);
+        }
+
+        String html = Files.readString(report);
+        assertAll(
+                () -> assertTrue(html.contains("class=\"atf-ui-action-sequence\"")),
+                () -> assertTrue(html.contains("Playwright action sequence (1 entries)")),
+                () -> assertTrue(html.contains("Get text")),
+                () -> assertTrue(html.contains("Ready")),
+                () -> assertFalse(html.contains("data-atf-screenshot=\"base64\"")),
+                () -> assertFalse(html.contains("class=\"atf-ui-action-screenshot-link\"")));
+    }
+
+    @Test
     void rendersAConfiguredReadOnlyRetryAsAnInlineInfoAction() throws Exception {
         Path root = Files.createTempDirectory("atf-ui-retry-evidence-");
         Path report = root.resolve("ui-retry-evidence.html");

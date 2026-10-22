@@ -407,12 +407,12 @@
 .test-view
   .test-content-detail
   .card[data-atf-node-role='request']
-  details.step-detail.network-signatures
+  details.step-detail.network-signatures:not(.network-aggregate-section)
   > summary,
 .test-view
   .test-content-detail
   .card[data-atf-node-role='request']
-  details.step-detail.network-diagnostics
+  details.step-detail.network-diagnostics:not(.network-aggregate-section)
   > summary {
   box-sizing: border-box !important;
   height: var(--atf-evidence-aggregate-summary-height) !important;

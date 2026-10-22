@@ -2,6 +2,7 @@ package atf.ui.tests.practiceshop.support;
 
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.evidence.profile.ReportEvidenceProfile;
 import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.ui.practiceshop.config.PracticeShopConfiguration;
 import atf.ui.practiceshop.config.PracticeShopConfigurationLoader;
@@ -37,7 +38,13 @@ public final class PracticeShopE2eTestSupport {
 
     public enum HarnessProfile {
         CONFIGURED,
-        UI_ONLY
+        UI_ONLY,
+        UI_API
+    }
+
+    public enum ReportPresentation {
+        STANDARD,
+        SINGLE_FLOW_FINAL_SCREENSHOT
     }
 
     @Target(ElementType.TYPE)
@@ -45,6 +52,7 @@ public final class PracticeShopE2eTestSupport {
     @ExtendWith(E2eExtension.class)
     public @interface WithE2eHarness {
         HarnessProfile profile() default HarnessProfile.CONFIGURED;
+        ReportPresentation presentation() default ReportPresentation.STANDARD;
     }
 
     /** JUnit opens and closes one harness per test method, including failed methods. */
@@ -54,11 +62,9 @@ public final class PracticeShopE2eTestSupport {
             PracticeShopConfiguration configuration = PracticeShopTestSupport.configurationFor(
                     context.getRequiredTestClass());
             WithE2eHarness harness = context.getRequiredTestClass().getAnnotation(WithE2eHarness.class);
-            if (harness != null && harness.profile() == HarnessProfile.UI_ONLY) {
-                configuration = configuration.withValidationProfile(
-                        atf.ui.practiceshop.config.PracticeShopValidationProfile.UI_ONLY);
-            }
-            PracticeShopE2eContext browser = PracticeShopE2eContext.open(configuration);
+            if (harness != null) configuration = configurationForHarnessProfile(configuration, harness.profile());
+            ReportEvidenceProfile presentation = reportProfile(configuration, harness);
+            PracticeShopE2eContext browser = PracticeShopE2eContext.open(configuration, presentation);
             context.getStore(NAMESPACE).put(HARNESS_KEY, new E2eResource(
                     new E2eHarness(configuration, browser, new PracticeShopLocators(),
                             context.getRequiredTestClass().getSimpleName())));
@@ -81,6 +87,28 @@ public final class PracticeShopE2eTestSupport {
             if (resource == null) throw new ParameterResolutionException("Practice Shop E2E harness was not opened");
             return resource.harness();
         }
+    }
+
+    static PracticeShopConfiguration configurationForHarnessProfile(
+            PracticeShopConfiguration configuration, HarnessProfile profile) {
+        return switch (Objects.requireNonNull(profile, "profile")) {
+            case CONFIGURED -> Objects.requireNonNull(configuration, "configuration");
+            case UI_ONLY -> configuration.withValidationProfile(
+                    atf.ui.practiceshop.config.PracticeShopValidationProfile.UI_ONLY);
+            case UI_API -> configuration.withValidationProfile(
+                    atf.ui.practiceshop.config.PracticeShopValidationProfile.UI_API);
+        };
+    }
+
+    static ReportEvidenceProfile reportProfile(PracticeShopConfiguration configuration,
+                                               WithE2eHarness harness) {
+        if (harness != null
+                && harness.presentation() == ReportPresentation.SINGLE_FLOW_FINAL_SCREENSHOT) {
+            return atf.ui.practiceshop.support.PracticeShopScreenshotPolicy.singleFlowFinalScreenshot();
+        }
+        return atf.ui.practiceshop.support.PracticeShopScreenshotPolicy.profile(
+                Objects.requireNonNull(configuration, "configuration")
+                        .browser().screenshotOnFailure());
     }
 
     /** Holds the resource after opening so teardown is idempotent even when it fails. */

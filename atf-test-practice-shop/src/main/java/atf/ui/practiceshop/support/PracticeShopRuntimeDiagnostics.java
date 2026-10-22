@@ -11,9 +11,10 @@ import java.util.Objects;
 
 /** Captures browser runtime failures while excluding non-contract ambient session probes. */
 public final class PracticeShopRuntimeDiagnostics {
+    private static final long GUEST_PROBE_ECHO_WINDOW_NANOS = java.time.Duration.ofSeconds(2).toNanos();
     private final List<Diagnostic> diagnostics = new ArrayList<>();
     private Diagnostic lastUnauthorizedResponse;
-    private boolean lastUnauthorizedResponseSuppressed;
+    private long guestProbeObservedAtNanos = Long.MIN_VALUE;
     private int authenticatedBoundary = -1;
 
     public void attach(Page page) {
@@ -56,15 +57,14 @@ public final class PracticeShopRuntimeDiagnostics {
         String route = route(url);
         var request = response.request();
         String method = request == null ? "" : request.method();
-        if (!PracticeShopApiTrafficCapture.isPublishable(method, route)) {
+        if (isKnownGuestSessionProbe(method, url)) {
             lastUnauthorizedResponse = null;
-            lastUnauthorizedResponseSuppressed = true;
+            rememberGuestProbeForConsoleEcho();
             return;
         }
         Diagnostic diagnostic = new Diagnostic("response", method, url,
                 route, response.status(), "HTTP 401");
         lastUnauthorizedResponse = diagnostic;
-        lastUnauthorizedResponseSuppressed = false;
         diagnostics.add(diagnostic);
     }
 
@@ -72,16 +72,24 @@ public final class PracticeShopRuntimeDiagnostics {
         if (!"error".equalsIgnoreCase(message.type())) return;
         String text = message.text();
         boolean unauthorizedSignal = isUnauthorizedSignal(text);
+        String location = message.location();
+        String detail = location == null || location.isBlank()
+                ? text : text + " [console location: " + location + "]";
+        if (unauthorizedSignal && isGuestProbeLocation(location)) {
+            rememberGuestProbeForConsoleEcho();
+            return;
+        }
+        if (unauthorizedSignal && isGuestProbeApplicationEcho(location)) {
+            return;
+        }
         Diagnostic related = unauthorizedSignal ? lastUnauthorizedResponse : null;
         if (related != null) {
             diagnostics.add(new Diagnostic("console", related.method(), related.url(), related.route(),
-                    related.status(), text));
+                    related.status(), detail));
             lastUnauthorizedResponse = null;
-        } else if (unauthorizedSignal && lastUnauthorizedResponseSuppressed) {
-            lastUnauthorizedResponseSuppressed = false;
         } else {
             diagnostics.add(new Diagnostic("console", "", "", "", -1,
-                    text == null ? "console error" : text));
+                    detail == null ? "console error" : detail));
         }
     }
 
@@ -89,6 +97,55 @@ public final class PracticeShopRuntimeDiagnostics {
         if (text == null) return false;
         String normalized = text.toLowerCase(Locale.ROOT);
         return normalized.contains("401") || normalized.contains("unauthorized");
+    }
+
+    private void rememberGuestProbeForConsoleEcho() {
+        guestProbeObservedAtNanos = System.nanoTime();
+    }
+
+    private boolean isGuestProbeApplicationEcho(String location) {
+        if (location == null || guestProbeObservedAtNanos == Long.MIN_VALUE
+                || System.nanoTime() - guestProbeObservedAtNanos > GUEST_PROBE_ECHO_WINDOW_NANOS) {
+            return false;
+        }
+        try {
+            java.net.URI uri = java.net.URI.create(stripConsoleCoordinates(location));
+            return "https".equalsIgnoreCase(uri.getScheme())
+                    && "practicesoftwaretesting.com".equalsIgnoreCase(uri.getHost())
+                    && uri.getRawPath() != null
+                    && uri.getRawPath().startsWith("/chunk-")
+                    && uri.getRawPath().endsWith(".js");
+        } catch (RuntimeException ignored) {
+            return false;
+        }
+    }
+
+    private static boolean isGuestProbeLocation(String location) {
+        if (location == null) return false;
+        try {
+            java.net.URI uri = java.net.URI.create(stripConsoleCoordinates(location));
+            return "https".equalsIgnoreCase(uri.getScheme())
+                    && "api.practicesoftwaretesting.com".equalsIgnoreCase(uri.getHost())
+                    && "/users/me".equals(uri.getRawPath());
+        } catch (RuntimeException ignored) {
+            return false;
+        }
+    }
+
+    private static boolean isKnownGuestSessionProbe(String method, String url) {
+        if (!"GET".equalsIgnoreCase(method) || url == null) return false;
+        try {
+            java.net.URI uri = java.net.URI.create(url);
+            return "https".equalsIgnoreCase(uri.getScheme())
+                    && "api.practicesoftwaretesting.com".equalsIgnoreCase(uri.getHost())
+                    && "/users/me".equals(uri.getRawPath());
+        } catch (RuntimeException ignored) {
+            return false;
+        }
+    }
+
+    private static String stripConsoleCoordinates(String location) {
+        return location.replaceFirst(":\\d+:\\d+$", "");
     }
 
     private static boolean isUnauthorizedBootstrapSignal(Diagnostic diagnostic) {

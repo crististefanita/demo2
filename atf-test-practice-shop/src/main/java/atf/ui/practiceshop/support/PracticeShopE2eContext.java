@@ -48,13 +48,17 @@ public final class PracticeShopE2eContext implements AutoCloseable {
     }
 
     public static PracticeShopE2eContext open(PracticeShopConfiguration configuration) {
+        return open(configuration, PracticeShopScreenshotPolicy.profile(
+                configuration.browser().screenshotOnFailure()));
+    }
+
+    public static PracticeShopE2eContext open(PracticeShopConfiguration configuration,
+                                               atf.api.reporting.evidence.profile.ReportEvidenceProfile evidenceProfile) {
         String file = "ui-atf-practice-shop-e2e_"
                 + STAMP.withZone(Clock.systemDefaultZone().getZone()).format(Clock.systemDefaultZone().instant())
                 + ".html";
         AtfConsoleSink console = AtfConsoleReporter.configuredStdout();
         var reportConfiguration = AtfReportConfigurationLoader.load();
-        var evidenceProfile = PracticeShopScreenshotPolicy.profile(
-                configuration.browser().screenshotOnFailure());
         UiExtentReportSession report = UiExtentReportSession.openConfiguredResolved(
                 configuration.uiReportDirectory(), file,
                 atf.api.reporting.console.AtfConsoleSink.noOp(),

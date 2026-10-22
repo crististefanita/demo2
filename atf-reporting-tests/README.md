@@ -177,12 +177,11 @@ flowchart LR
 
 </details>
 
-`ReportEvidenceProfileTest` verifică filtrarea înainte de captură, potrivirea
-sursei și payload-ul PNG; `ReportEvidenceProfileIntegrationTest` dovedește
-provider mock → sesiune → HTML local. Profile-ul typed combină flow mode, policy
-și source, iar Practice Shop mapează configurația sa într-un adapter subțire.
-`flowMode` nu regrupează implicit pașii în renderer; orchestrarea lor rămâne
-responsabilitatea consumerului.
+- `ReportEvidenceProfileTest` verifică filtrarea înainte de captură, potrivirea sursei și payload-ul PNG.
+- `ReportEvidenceProfileIntegrationTest` dovedește provider mock → sesiune → HTML local pentru ambele flow mode-uri.
+- `UNIFIED_FLOW` păstrează un singur request cu propoziția Gherkin finală, fără checkpoint-uri numerotate sau Gherkin duplicat; UI actions și assertions sunt agregate, iar validarea API rămâne un sibling cu exchange-urile sale. Sub `FINAL_ONLY` se publică doar captura `FINAL`.
+- `SCREEN_CHECKPOINTS` păstrează request-urile Gherkin independente.
+- Profilul typed combină flow mode, policy și source. Grouping-ul aparține lifecycle/publisher-ului din `atf-reporting`, nu consumerului; nu este necesar Practice Shop.
 
 ## Matricea integration și boundary-ul verificat
 
@@ -232,7 +231,9 @@ Invarianturile browser sunt:
   plafonul comun `500px`, iar conținutul scurt rămâne natural, fără înălțime goală;
 - pentru conținut lung, ultimul rând rămâne accesibil, header-ul tabelului rămâne
   sticky, iar viewport-ul nu depășește plafonul comun;
-- summary-urile de agregare API măsoară `68px` și sunt collapsed implicit;
+- rândurile Network Inspector `Unique request signatures` și
+  `Technical diagnostics` măsoară `34px` la ambele viewport-uri și sunt
+  collapsed implicit, aliniate cu celelalte detalii API/UI;
 - nu apar erori browser console/page/request în rapoartele UI și API măsurate;
 - raportul păstrează secțiunile, disclosure-urile collapsed la sosire,
   `SETUP → TEST BODY → Screen validation`, request/response JSON și glyph-ul
@@ -306,6 +307,11 @@ rămâne entry-point-ul agregat pentru întregul E2E; `AtfReportingUiAuditSuite`
 este entry-point-ul îngust pentru auditul UI al reportingului. Astfel un run
 rapid nu pornește browserul, un run API fixture nu pornește UI, iar un run E2E
 nu ascunde failure-uri lower-level.
+
+- importă root `pom.xml` ca proiect Maven și folosește **Reload All Maven Projects** înainte de prima rulare sau după schimbări de module;
+- run configuration-ul suitei reporting folosește modulul `atf-reporting-tests`, nu modulul legacy `atf-tests`;
+- pentru `NoClassDefFoundError` în IntelliJ, verifică modulele `atf-reporting` și `atf-reporting-tests` și dependency graph-ul testului; nu duplica sau muta clasa pentru a compensa un model IDE stale;
+- reproduce întâi cu testul forked `ReportStagingWorkspaceTest` în reactorul Maven.
 
 ## Boundary-ul aplicațiilor consumatoare
 

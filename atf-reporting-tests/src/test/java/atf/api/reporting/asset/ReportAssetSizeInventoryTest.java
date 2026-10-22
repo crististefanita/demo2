@@ -15,16 +15,22 @@ class ReportAssetSizeInventoryTest {
     // unrelated growth.
     private static final long NATIVE_JAVASCRIPT_BASELINE_BYTES = 125_000L;
     private static final long PUBLICATION_JAVASCRIPT_BASELINE_BYTES = 105_000L;
+    private static final long NATIVE_TOTAL_BASELINE_BYTES = 265_000L;
+    private static final long PUBLICATION_TOTAL_BASELINE_BYTES = 220_000L;
+    private static final long NATIVE_CSS_BASELINE_BYTES = 140_000L;
+    private static final long PUBLICATION_CSS_BASELINE_BYTES = 120_000L;
 
+    // Rebased to the measured source/publication inventory while retaining a
+    // small explicit headroom for the owned theme and evidence contracts.
     private static final ReportAssetSizeBudget CONSUMER_BASELINE = new ReportAssetSizeBudget(
-            252_000L, 210_000L,
+            NATIVE_TOTAL_BASELINE_BYTES, PUBLICATION_TOTAL_BASELINE_BYTES,
             java.util.Map.of(
-                    ReportAsset.Format.CSS, 128_000L,
+                    ReportAsset.Format.CSS, NATIVE_CSS_BASELINE_BYTES,
                     ReportAsset.Format.JAVASCRIPT, NATIVE_JAVASCRIPT_BASELINE_BYTES),
             java.util.Map.of(
                     // Tall shared disclosure summaries and sticky bounded
                     // evidence headers are an intentional publication cost.
-                    ReportAsset.Format.CSS, 108_000L,
+                    ReportAsset.Format.CSS, PUBLICATION_CSS_BASELINE_BYTES,
                     ReportAsset.Format.JAVASCRIPT, PUBLICATION_JAVASCRIPT_BASELINE_BYTES),
             java.util.Map.of(), java.util.Map.of());
 

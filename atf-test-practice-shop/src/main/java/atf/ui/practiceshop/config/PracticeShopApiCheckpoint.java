@@ -9,6 +9,7 @@ package atf.ui.practiceshop.config;
  */
 public enum PracticeShopApiCheckpoint {
     PRODUCT("product"),
+    REGISTRATION("registration"),
     LOGIN("login"),
     CART("cart"),
     PAYMENT("payment"),
@@ -32,6 +33,6 @@ public enum PracticeShopApiCheckpoint {
             }
         }
         throw new IllegalArgumentException("Unsupported Practice Shop API evidence checkpoint: " + value
-                + ". Expected product, login, cart, payment or order");
+                + ". Expected product, registration, login, cart, payment or order");
     }
 }

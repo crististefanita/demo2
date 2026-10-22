@@ -18,4 +18,13 @@ public final class PracticeShopScreenshotPolicy {
                 .captureSource(ReportEvidenceCaptureSource.BROWSER)
                 .build();
     }
+
+    /** One consolidated UI flow with only its final browser state published. */
+    public static ReportEvidenceProfile singleFlowFinalScreenshot() {
+        return ReportEvidenceProfile.builder()
+                .flowMode(ReportEvidenceFlowMode.UNIFIED_FLOW)
+                .screenshotPolicy(ReportScreenshotPolicy.FINAL_ONLY)
+                .captureSource(ReportEvidenceCaptureSource.BROWSER)
+                .build();
+    }
 }

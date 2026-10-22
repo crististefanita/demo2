@@ -101,7 +101,9 @@ class PracticeShopArchitectureTest {
     @Test
     void multiJourneyE2eClassCreatesAnIsolatedBrowserContextPerTest() throws IOException {
         Path root = locateModuleRoot().resolve("src/test/java/atf/ui/tests/practiceshop/e2e");
-        for (String name : List.of("PracticeShopPurchaseE2eTest", "PracticeShopAuthenticatedPurchaseE2eTest",
+        for (String name : List.of("PracticeShopPurchaseE2eTest", "PracticeShopPurchaseUiOnlyE2eTest",
+                "PracticeShopPurchaseUiOnlySingleFlowE2eTest",
+                "PracticeShopAuthenticatedPurchaseE2eTest",
                 "PracticeShopAccountAndCatalogE2eTest")) {
             String text = Files.readString(root.resolve(name + ".java"));
             assertTrue(text.contains("@PracticeShopE2eTestSupport.WithE2eHarness"),

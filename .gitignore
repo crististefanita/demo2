@@ -7,6 +7,7 @@ _render_*.mmd
 _render_*.png
 hs_err_pid*.log
 atf-test-practice-shop/src/test/resources/practice-software-testing-account.local.properties
+atf-test-practice-shop/src/test/resources/practice-software-testing-registration.local.properties
 
 # IDE-uri și fișiere locale.
 .idea/

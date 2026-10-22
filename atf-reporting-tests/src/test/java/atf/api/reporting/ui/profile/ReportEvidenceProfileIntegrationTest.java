@@ -17,6 +17,7 @@ import atf.api.reporting.api.ReportTransportProvenance;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.support.ReportTestScreenshots;
 import atf.api.reporting.ui.AtfUiActionRecord;
+import atf.api.reporting.ui.AtfUiEvidenceSource;
 import atf.api.reporting.ui.UiExtentReportSession;
 import atf.api.testkit.AtfIntegrationTest;
 import org.junit.jupiter.api.Test;
@@ -65,8 +66,13 @@ class ReportEvidenceProfileIntegrationTest {
                     ReportTestScreenshots.ONE_PIXEL_PNG,
                     List.of(new AtfAssertion("Payment form", "visible", "visible", true)),
                     List.of(new AtfUiActionRecord(1, "Get text", "#payment-title",
-                            "payment heading", "Payment", 4, AtfReportStatus.PASS)),
+                                    "payment heading", "Payment", 4, AtfReportStatus.PASS),
+                            new AtfUiActionRecord(1, "Visible text", "#payment-title",
+                                    "Payment", "Payment", 2, AtfReportStatus.PASS,
+                                    AtfUiEvidenceSource.OBSERVE)),
                     List.of(apiEvidence), AtfReportStatus.PASS);
+            body.step(AtfGherkinKeyword.WHEN, "checkout is submitted", "#checkout",
+                    null, List.of(), List.of(), List.of(apiEvidence), AtfReportStatus.PASS);
             var finalCapture = profile.capture(ReportScreenshotPolicy.CapturePoint.FINAL,
                     "confirmation is visible", "#confirmation", provider).orElseThrow();
             body.screenValidation(finalCapture.title(), "#confirmation", finalCapture.base64Png(),
@@ -82,15 +88,26 @@ class ReportEvidenceProfileIntegrationTest {
 
         String html = Files.readString(report);
         assertAll(
-                () -> assertEquals(1, count(html, "data-atf-evidence-type=\"unified-ui-flow\"")),
-                () -> assertTrue(html.contains("UNIFIED FLOW — typed checkout")),
-                () -> assertTrue(html.contains("flow.checkpoint.count")),
-                () -> assertTrue(html.contains("Checkpoint 1 — GIVEN payment is ready")),
-                () -> assertTrue(html.contains("Checkpoint 2 — THEN confirmation is visible")),
-                () -> assertTrue(html.contains("API validation — Checkpoint 1")),
+                () -> assertEquals(1, count(html,
+                        "<td>EVIDENCE TYPE</td><td>unified-ui-flow</td>")),
+                () -> assertEquals(1, count(html,
+                        "<span>THEN confirmation is visible</span>")),
+                () -> assertTrue(html.contains("<td>FLOW SCENARIO</td><td>typed checkout</td>")),
+                () -> assertFalse(html.contains("Checkpoint 1")),
+                () -> assertFalse(html.contains("Checkpoint 2")),
+                () -> assertFalse(html.contains("GIVEN payment is ready")),
+                () -> assertFalse(html.contains("WHEN checkout is submitted")),
+                () -> assertFalse(html.contains("FLOW CHECKPOINT COUNT")),
+                () -> assertEquals(1, count(html, "API validation")),
                 () -> assertTrue(html.contains("Exchange 1")),
+                () -> assertTrue(html.contains("Exchange 2")),
                 () -> assertTrue(html.contains("Get text")),
+                () -> assertTrue(html.contains("Payment form")),
+                () -> assertTrue(html.contains("Payment")),
                 () -> assertTrue(html.contains("Order confirmed")),
+                () -> assertEquals(1, count(html, "Playwright action sequence (2 entries)")),
+                () -> assertTrue(html.contains("Audit observations · 1 checkpoint")),
+                () -> assertTrue(html.contains("class=\"atf-ui-observations\"")),
                 () -> assertEquals(1, count(html, "data-atf-screenshot=\"base64\"")),
                 () -> assertTrue(html.contains("href=\"data:image/png;base64,"
                         + ReportTestScreenshots.SECOND_PIXEL_PNG + "\"")),
@@ -125,7 +142,9 @@ class ReportEvidenceProfileIntegrationTest {
 
         String html = Files.readString(report);
         assertAll(
-                () -> assertEquals(0, count(html, "data-atf-evidence-type=\"unified-ui-flow\"")),
+                () -> assertEquals(0, count(html, "unified-ui-flow")),
+                () -> assertEquals(1, count(html, "<span>GIVEN the page is open</span>")),
+                () -> assertEquals(1, count(html, "<span>THEN the result is visible</span>")),
                 () -> assertTrue(html.contains("GIVEN the page is open")),
                 () -> assertTrue(html.contains("THEN the result is visible")));
     }

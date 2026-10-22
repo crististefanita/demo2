@@ -162,10 +162,11 @@ rendererul fallback:
   repete titlul sau request-urile în părinte;
 - summary-ul compact comun are înălțimea de bază `34px`; excepțiile sunt
   deliberate și trebuie să rămână puține;
-- `Unique request signatures` și `Technical diagnostics` au summary disclosure
-  de 2× înălțimea de bază și sunt collapsed implicit pentru scanare; accentul
-  este exclusiv de prezentare și nu schimbă cardinalitatea, verdictul sau
-  deduplicarea;
+- `Unique request signatures` și `Technical diagnostics`, când sunt randate ca
+  rânduri în Network Inspector aggregate, folosesc același summary compact de
+  `34px` și sunt collapsed implicit. Titlul poate curge natural pe mai multe
+  linii la viewport îngust, fără să rezerve o înălțime dublă când încape pe un
+  singur rând;
 - `Playwright action sequence`, `Audit observations` și `Assertions` păstrează
   summary-ul compact de bază, dar tabelele lor folosesc același viewport
   vertical bounded și scrollabil, cu header sticky; wrapper-ul este comun

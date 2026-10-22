@@ -147,6 +147,10 @@ public record PracticeShopConfiguration(
         PracticeShopValidationProfile selected = Objects.requireNonNull(profile, "profile");
         PracticeShopApiEvidenceBinding binding = selected.apiEvidenceRequired()
                 ? api.evidenceBinding() : PracticeShopApiEvidenceBinding.none();
+        if (selected.apiEvidenceRequired() && binding.checkpoints().isEmpty()
+                && !validationProfile.apiEvidenceRequired()) {
+            binding = PracticeShopApiEvidenceBinding.all();
+        }
         PracticeShopApiConfiguration selectedApi = new PracticeShopApiConfiguration(
                 api.endpoint(), api.mode(), api.precondition(), api.timeout(), binding);
         return new PracticeShopConfiguration(baseUrl, accountFile, productName, productPath,

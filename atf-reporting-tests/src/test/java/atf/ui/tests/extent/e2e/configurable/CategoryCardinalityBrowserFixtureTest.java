@@ -147,7 +147,7 @@ class CategoryCardinalityBrowserFixtureTest {
                 measurement.summary(), measurement.valid())));
         result.aggregateSummaries().forEach(summary -> assertions.add(new AtfAssertion(
                 summary.viewport() + " aggregate " + summary.kind() + " summary",
-                "68px; collapsed by default", "height=" + summary.heightPx()
+                "34px; collapsed by default", "height=" + summary.heightPx()
                         + "px; open=" + summary.open() + "; defaultState=" + summary.defaultState(),
                 summary.valid())));
         return List.copyOf(assertions);

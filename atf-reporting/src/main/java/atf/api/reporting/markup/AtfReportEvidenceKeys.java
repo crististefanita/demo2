@@ -15,6 +15,7 @@ public final class AtfReportEvidenceKeys {
     public static final String UI_FAILURE = "ui-failure";
     public static final String UNIFIED_UI_FLOW = "unified-ui-flow";
     public static final String FLOW_MODE = "flow.mode";
+    public static final String FLOW_SCENARIO = "flow.scenario";
     public static final String FLOW_PHASE = "flow.phase";
     public static final String FLOW_CHECKPOINT_COUNT = "flow.checkpoint.count";
     public static final String FLOW_CHECKPOINT_PREFIX = "flow.checkpoint.";

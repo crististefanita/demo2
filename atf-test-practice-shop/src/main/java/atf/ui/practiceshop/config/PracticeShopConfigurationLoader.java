@@ -56,6 +56,17 @@ public final class PracticeShopConfigurationLoader {
         return accountPath(configured);
     }
 
+    /** Resolves an ignored, module-local properties file used only by explicit register-per-run opt-in. */
+    public static Path resolveRegistrationProfileFile(String configured) {
+        Path path = resolvePath(configured);
+        PracticeShopAccountFixturePolicy.SOURCE_TEST_RESOURCE.validate(path);
+        if (!path.getFileName().toString().endsWith(".local.properties")) {
+            throw new IllegalArgumentException(
+                    "Registration profiles must use a module-local .local.properties file ignored by Git");
+        }
+        return path;
+    }
+
     private static PracticeShopConfiguration load(InputStream stream) throws IOException {
             Path account = Path.of("atf-test-practice-shop", "src", "test", "resources",
                     "practice-software-testing-account.properties");

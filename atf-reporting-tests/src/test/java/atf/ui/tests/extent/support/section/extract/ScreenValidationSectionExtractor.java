@@ -245,6 +245,11 @@ public final class ScreenValidationSectionExtractor {
                     element => {
                       const rect = element.getBoundingClientRect();
                       const style = getComputedStyle(element);
+                      const rootZoomValue = Number.parseFloat(
+                        getComputedStyle(document.documentElement).zoom);
+                      const zoom = Number.isFinite(rootZoomValue) && rootZoomValue > 0
+                        ? (rootZoomValue > 1 ? rootZoomValue / 100 : rootZoomValue)
+                        : 1;
                       const glyph = element.querySelector('.atf-disclosure-glyph');
                       const glyphRect = glyph?.getBoundingClientRect();
                       const markerStyle = glyph
@@ -255,11 +260,13 @@ public final class ScreenValidationSectionExtractor {
                       const badgeRect = badge?.getBoundingClientRect();
                       return {
                         height: rect.height,
+                        zoom,
                         padding: style.padding,
                         display: style.display,
                         marker: markerStyle.content,
-                        glyphWidth: glyphRect?.width ?? Number.parseFloat(
-                          getComputedStyle(element, '::before').width),
+                        glyphWidth: glyphRect
+                          ? glyphRect.width / zoom
+                          : Number.parseFloat(getComputedStyle(element, '::before').width),
                         badgeCenterOffset: badgeRect
                           ? (badgeRect.top + badgeRect.height / 2) - (rect.top + rect.height / 2)
                           : null
@@ -267,10 +274,13 @@ public final class ScreenValidationSectionExtractor {
                     }
                     """);
             double height = number(geometry, "height");
+            double zoom = number(geometry, "zoom");
+            if (!Double.isFinite(zoom) || zoom <= 0) zoom = 1;
             double badgeCenterOffset = number(geometry, "badgeCenterOffset");
             String padding = String.valueOf(geometry.get("padding"));
             String marker = String.valueOf(geometry.get("marker"));
-            boolean compact = Math.abs(height - expectedHeight) <= SUMMARY_GEOMETRY_TOLERANCE_PX
+            boolean compact = Math.abs(height - expectedHeight * zoom)
+                    <= SUMMARY_GEOMETRY_TOLERANCE_PX
                     && AtfReportThemeTokens.EVIDENCE_SUMMARY_PADDING.equals(padding);
             boolean inline = "flex".equals(geometry.get("display"))
                     && (marker.contains("＋") || marker.contains("−"))
@@ -280,7 +290,8 @@ public final class ScreenValidationSectionExtractor {
             if (!compact || !inline || !badgeAligned) {
                 violations.add(label + " disclosure differs from compact API evidence geometry: height="
                         + height + ", padding=" + padding + ", display=" + geometry.get("display")
-                        + ", glyph=" + marker + ", badge-center-offset=" + badgeCenterOffset);
+                        + ", zoom=" + zoom + ", glyph=" + marker
+                        + ", badge-center-offset=" + badgeCenterOffset);
             }
         }
     }

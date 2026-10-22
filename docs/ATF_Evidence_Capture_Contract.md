@@ -48,7 +48,7 @@ flowchart LR
 
 | Axă | Întrebarea | Valori de contract | Owner conceptual |
 |---|---|---|---|
-| flow mode | cum este reprezentat flow-ul? | `SCREEN_CHECKPOINTS`, `UNIFIED_FLOW` | test-kit / consumer composition |
+| flow mode | cum este reprezentat flow-ul? | `SCREEN_CHECKPOINTS`, `UNIFIED_FLOW` | `atf-reporting` lifecycle/publisher, configurat de consumer |
 | screenshot policy | când se publică imaginea? | `EACH_CHECKPOINT`, `FINAL_ONLY`, `FAILURE_ONLY`, `FINAL_AND_FAILURE`, `NONE` | contract evidence + publisher |
 | capture source | de unde vine payload-ul? | `BROWSER`, `MOCK`, `CUSTOM_PROVIDER` | adapterul consumerului / test scope |
 
@@ -65,7 +65,7 @@ poate păstra `EACH_CHECKPOINT` fără să schimbe rendererul.
   policy-ul fără browser;
 - **existent**: `ReportEvidenceProfile` compune typed `ReportEvidenceFlowMode`,
   `ReportScreenshotPolicy` și `ReportEvidenceCaptureSource`; mapping-ul se poate
-  face prin `fromConfig(...)` sau builder și poate traversa `UiExtentReportSession`;
+  face prin `fromConfig(...)` sau builder și traversează `UiExtentReportSession`;
 - **distincție**: setările `reporting.extent` rămân configurarea publisherului;
   `evidence.flowMode` și mapping-ul unui flow nu se ascund în acel loader;
 - **implementat**: `ReportEvidenceCaptureProvider` este seam-ul browser-neutral;
@@ -73,11 +73,19 @@ poate păstra `EACH_CHECKPOINT` fără să schimbe rendererul.
   de apel, verifică source-ul declarat și refuză target-ul lipsă ori payload-ul
   care nu este PNG Base64. Mock-ul determinist și adapterul Playwright folosesc
   același contract;
-- **limită explicită**: `flowMode` descrie reprezentarea cerută de consumer;
-  nu schimbă singur grouping-ul din renderer. Coordonarea unui flow unificat
-  rămâne în consumer/test-kit, nu în publisher;
-- **regulă**: Practice Shop doar mapează YAML-ul propriu la acest contract și nu
-  introduce politica în page objects sau în flow-uri de business.
+- **implementat**: `SCREEN_CHECKPOINTS` păstrează fiecare request Gherkin;
+  `UNIFIED_FLOW` bufferizează checkpoint-urile UI dintr-o fază și publică un
+  singur request Gherkin: ultimul `THEN` disponibil, sau ultimul checkpoint ca
+  fallback. Numele scenariului/fazei rămân metadata distinctă, fără children
+  `Checkpoint N` și fără duplicarea propoziției în details;
+- **implementat**: toate acțiunile/assertions UI sunt publicate într-o singură
+  validare `Screen validation`; dacă profilul conține API evidence, exchange-urile
+  rămân într-o singură validare sibling `API validation`, în ordinea execuției;
+- **independent**: screenshot policy decide capturile înainte de buffer; numai
+  capturile permise ajung în validarea UI agregată (`FINAL_ONLY` → captura finală);
+- **boundary**: consumerul furnizează semantică și profile, iar reporting-ul
+  deține grouping-ul generic. Practice Shop doar mapează config-ul propriu și nu
+  conține reguli de publisher;
 
 Policy-ul de publicare existent rămâne API public al librăriei reporting. Contractul
 transversal este evidențiat separat pentru a putea fi reutilizat ulterior de un
@@ -92,7 +100,7 @@ flowchart LR
     Adapter -->|folosește| Ui[atf-ui<br/>browser operations]
     Consumer -->|înregistrează| Ledger[evidence ledger]
     Adapter -->|implementează providerul| Capture[typed capture payload]
-    Ledger -->|alimentează| Reporting[atf-reporting<br/>model + publication]
+    Ledger -->|alimentează| Reporting[atf-reporting<br/>flow grouping + model + publication]
     Capture -->|alimentează| Reporting
     ReportingTests[atf-reporting-tests<br/>fixtures + component/integration] -. dovedește .-> Reporting
     PracticeShop[Practice Shop<br/>consumer mapping] -. folosește .-> TestKit

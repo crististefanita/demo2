@@ -396,11 +396,12 @@ hash sunt contractul static, iar controllerul nativ le activează prin hash.
 
 Geometria disclosure-urilor este un contract comun în Extent și fallback:
 summary-urile obișnuite API/UI folosesc `34px`, padding-ul `9px 12px` și
-line-height-ul comun; cele două summary-uri de agregare API (`Unique request
-signatures`, `Technical diagnostics`) folosesc excepția explicită de `68px`,
-prin `AtfReportThemeTokens.EVIDENCE_AGGREGATE_SUMMARY_HEIGHT`. Excepția este
-semantică și limitată la agregate, nu se aplică exchange-urilor sau evidence-ului
-UI.
+line-height-ul comun. Rândurile `Unique request signatures` și
+`Technical diagnostics` din Network Inspector păstrează aceeași înălțime
+compactă `34px`, collapsed implicit; stilul de summary dublu nu se aplică
+rândurilor aggregate și nu lasă spațiu vertical gol când titlul încape pe un
+rând. La viewport îngust, textul poate curge natural fără să schimbe înălțimea
+implicită a cazului obișnuit.
 
 Viewport-ul tabelului este un contract separat: `TABLE_SCROLL_HEIGHT` (`500px`)
 este plafonul comun, publicat ca `--atf-table-scroll-height`. Wrapper-ele au
@@ -680,8 +681,16 @@ publication policy, validarea target-ului și proiecția în artifact.
 - `ReportEvidenceCaptureProvider` este seam-ul public pentru browser sau mock;
   `ReportEvidenceProfile.capture(...)` aplică policy înainte de provider,
   verifică source-ul și cere PNG Base64 valid când captura este permisă;
-- `flowMode` este metadata pentru composition root: publisherul nu modifică
-  singur gruparea pașilor în funcție de această valoare;
+- `flowMode` este aplicat de lifecycle-ul reporting, nu doar păstrat ca metadata;
+- `SCREEN_CHECKPOINTS` publică fiecare propoziție Gherkin independent, ca înainte;
+- `UNIFIED_FLOW` publică un singur request Gherkin pentru fază: preferă ultimul
+  checkpoint `THEN` (altfel ultimul checkpoint) și păstrează titlul scenariului
+  separat ca metadata, fără duplicate Gherkin sau `Checkpoint N`;
+- acțiunile și assertions UI sunt agregate într-o singură validare UI; exchange-urile
+  API selectate sunt grupate într-o singură validare sibling, în ordinea execuției;
+- screenshot policy rămâne independentă de flow mode: capturile permise se
+  publică în validarea UI comună, iar `FINAL_ONLY` include doar captura marcată
+  `FINAL`;
 - profilul se construiește prin builder sau `fromConfig(...)` și se pasează în
   `UiExtentReportSession.openConfigured(..., profile)`;
 - profilul descrie policy și proveniență, nu execută browserul; mock-ul și

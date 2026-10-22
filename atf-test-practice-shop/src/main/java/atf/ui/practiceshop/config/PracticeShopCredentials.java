@@ -54,7 +54,7 @@ public record PracticeShopCredentials(String email, String password,
 
     @Override
     public String toString() {
-        return "PracticeShopCredentials[email=" + email + ", displayName=" + displayName() + "]";
+        return "PracticeShopCredentials[email=<redacted>, displayName=<redacted>]";
     }
 
     private static String required(String value, String name) {

@@ -198,7 +198,9 @@ public final class UiPhaseLifecycle implements AutoCloseable {
         ensureOpen();
         if (flowMode == ReportEvidenceFlowMode.UNIFIED_FLOW) {
             unifiedCheckpoints.add(new UiUnifiedFlowCheckpoint(
-                    AtfGherkinKeyword.THEN.text(), title, target, base64Png,
+                    AtfGherkinKeyword.THEN.text(), title, target,
+                    checkpointScreenshot(base64Png,
+                            ReportScreenshotPolicy.CapturePoint.CHECKPOINT),
                     assertions == null ? List.of() : List.copyOf(assertions), status,
                     "Screen validation", immutableCopy(actions), List.of(),
                     ReportScreenshotPolicy.CapturePoint.CHECKPOINT, true));
@@ -252,8 +254,9 @@ public final class UiPhaseLifecycle implements AutoCloseable {
                         ReportScreenshotPolicy.CapturePoint capturePoint) {
         ensureOpen();
         if (flowMode == ReportEvidenceFlowMode.UNIFIED_FLOW) {
+            String eligibleScreenshot = checkpointScreenshot(base64Png, capturePoint);
             unifiedCheckpoints.add(new UiUnifiedFlowCheckpoint(keyword, title, target,
-                    base64Png, immutableCopy(assertions), status, validationTitle,
+                    eligibleScreenshot, immutableCopy(assertions), status, validationTitle,
                     immutableCopy(actions), immutableCopy(apiEvidence), capturePoint, false));
             return;
         }
@@ -266,9 +269,8 @@ public final class UiPhaseLifecycle implements AutoCloseable {
                         AtfReportStatus status, String validationTitle,
                         Collection<AtfUiActionRecord> actions,
                         ReportScreenshotPolicy.CapturePoint capturePoint) {
-        ensureOpen();
-        evidencePublisher.publishAction(keyword, title, target, base64Png, assertions,
-                status, validationTitle, actions, List.of(), capturePoint);
+        action(keyword, title, target, base64Png, assertions, status,
+                validationTitle, actions, List.of(), capturePoint);
     }
 
     private void ensureOpen() {
@@ -286,5 +288,10 @@ public final class UiPhaseLifecycle implements AutoCloseable {
 
     private static <T> List<T> immutableCopy(Collection<T> values) {
         return values == null ? List.of() : List.copyOf(values);
+    }
+
+    private String checkpointScreenshot(String base64Png,
+                                        ReportScreenshotPolicy.CapturePoint capturePoint) {
+        return evidencePublisher.acceptsScreenshot(base64Png, capturePoint) ? base64Png : "";
     }
 }

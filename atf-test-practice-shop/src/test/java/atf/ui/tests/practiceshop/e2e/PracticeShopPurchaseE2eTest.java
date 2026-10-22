@@ -10,7 +10,8 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 
 /** One complete, guest-safe purchase proof; no account secret is required. */
 @AtfE2eTest
-@PracticeShopE2eTestSupport.WithE2eHarness
+@PracticeShopE2eTestSupport.WithE2eHarness(
+        profile = PracticeShopE2eTestSupport.HarnessProfile.UI_API)
 @Execution(ExecutionMode.SAME_THREAD)
 @DisplayName("Practice Shop complete purchase flow")
 class PracticeShopPurchaseE2eTest {

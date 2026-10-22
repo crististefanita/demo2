@@ -10,6 +10,8 @@ import atf.ui.practiceshop.support.PracticeShopPageContract;
 import atf.ui.practiceshop.routes.PracticeShopUiRoutes;
 import com.microsoft.playwright.Page;
 
+import java.net.URI;
+
 /** Registration page object; account creation is explicit and never implicit in a purchase test. */
 @PracticeShopPageContract(screen = PracticeShopScreen.REGISTRATION, route = PracticeShopUiRoutes.AUTH_REGISTER,
         requiredControls = {PracticeShopControl.REGISTER_FIRST_NAME, PracticeShopControl.REGISTER_LAST_NAME,
@@ -54,5 +56,31 @@ public final class PracticeShopRegistrationPage {
 
     public void submit() {
         actions.click(locators.registerSubmit(page), "registration form is submitted");
+    }
+
+    /**
+     * Submits once and waits for the API response from the configured host.
+     * There is deliberately no retry: a timeout leaves the external outcome
+     * uncertain and the caller must stop rather than replay account creation.
+     */
+    public int submitAndAwaitApiResponse(URI apiEndpoint) {
+        URI endpoint = java.util.Objects.requireNonNull(apiEndpoint, "apiEndpoint");
+        var response = page.waitForResponse(candidate -> isApiPost(candidate, endpoint),
+                () -> actions.click(locators.registerSubmit(page), "registration form is submitted once"));
+        int status = response.status();
+        if (status < 200 || status >= 300) {
+            throw new AssertionError("Practice Shop registration response was not successful; HTTP " + status);
+        }
+        return status;
+    }
+
+    static boolean isApiPost(com.microsoft.playwright.Response response, URI apiEndpoint) {
+        if (response == null || response.request() == null || apiEndpoint == null) return false;
+        if (!"POST".equalsIgnoreCase(response.request().method())) return false;
+        try {
+            return apiEndpoint.getHost().equalsIgnoreCase(URI.create(response.url()).getHost());
+        } catch (RuntimeException malformedUrl) {
+            return false;
+        }
     }
 }

@@ -27,4 +27,9 @@ public record PracticeShopRegistrationData(String firstName, String lastName, St
         if (normalized.isEmpty()) throw new IllegalArgumentException(field + " must not be blank");
         return normalized;
     }
+
+    @Override
+    public String toString() {
+        return "PracticeShopRegistrationData[identity=<redacted>, address=<redacted>, contact=<redacted>]";
+    }
 }

@@ -164,12 +164,20 @@ summary {
   display: flex;
   align-items: center;
 }
-details.network-signatures > summary,
-details.network-diagnostics > summary {
+details.network-signatures:not(.network-aggregate-section) > summary,
+details.network-diagnostics:not(.network-aggregate-section) > summary {
   height: var(--atf-evidence-aggregate-summary-height);
   min-height: var(--atf-evidence-aggregate-summary-height);
   max-height: var(--atf-evidence-aggregate-summary-height);
   white-space: normal;
+}
+details.network-signatures.network-aggregate-section > summary,
+details.network-diagnostics.network-aggregate-section > summary {
+  height: auto;
+  min-height: var(--atf-evidence-summary-height);
+  max-height: none;
+  padding: var(--atf-evidence-summary-padding);
+  line-height: var(--atf-evidence-summary-line-height);
 }
 .atf-secondary-body.network-aggregate-scroll {
   height: auto;

@@ -17,7 +17,7 @@ import java.util.Objects;
 public final class ScrollableTableViewportBrowserProbe {
     public static final int NARROW_VIEWPORT_WIDTH = 591;
     public static final int SHARED_SCROLL_CAP_PX = 500;
-    public static final int AGGREGATE_SUMMARY_HEIGHT_PX = 68;
+    public static final int NESTED_AGGREGATE_SUMMARY_HEIGHT_PX = 34;
     private static final String UI_FIXTURE_OWNER = "ScrollableTableFixture";
     private static final String API_FIXTURE_OWNER = "ScrollableApiAggregateFixture";
     private static final double GEOMETRY_TOLERANCE_PX = 1.0;
@@ -123,17 +123,17 @@ public final class ScrollableTableViewportBrowserProbe {
             ApiReportUiFlow.Owner uiOwner = uiReportFlow.openOwner(uiPage, UI_FIXTURE_OWNER);
             uiReportFlow.expandAll(uiOwner.detail());
             expandValidationNodes(uiFlow, uiLocators, uiOwner.detail());
-            expandDisclosures(uiOwner.detail());
+            expandDisclosures(uiLocators, uiOwner.detail());
 
             uiPage = uiFlow.openTabContinuing(ReportUiContract.Tab.OVERVIEW.hash());
-            expandDisclosures(uiLocators.tabView(uiPage, ReportUiContract.Tab.OVERVIEW));
+            expandDisclosures(uiLocators, uiLocators.tabView(uiPage, ReportUiContract.Tab.OVERVIEW));
             measurements.addAll(measure(uiPage, viewport, "Overview", OVERVIEW_SELECTORS));
 
             uiPage = uiFlow.openTabContinuing(ReportUiContract.Tab.TESTS.hash());
             uiOwner = uiReportFlow.openOwner(uiPage, UI_FIXTURE_OWNER);
             uiReportFlow.expandAll(uiOwner.detail());
             expandValidationNodes(uiFlow, uiLocators, uiOwner.detail());
-            expandDisclosures(uiOwner.detail());
+            expandDisclosures(uiLocators, uiOwner.detail());
             diagnostics.addAll(surfaceDiagnostics(uiPage, UI_TEST_SELECTORS,
                     viewport.name() + " UI"));
             measurements.addAll(measure(uiPage, viewport, "UI Tests", UI_TEST_SELECTORS));
@@ -145,7 +145,7 @@ public final class ScrollableTableViewportBrowserProbe {
             apiReportFlow.expandAll(apiOwner.detail());
             recordExpandedRequests(apiReportFlow, apiOwner, viewport.name(), diagnostics);
             summaries.addAll(summaries(apiPage, viewport.name(), viewport.width(), true));
-            expandDisclosures(apiOwner.detail());
+            expandDisclosures(apiLocators, apiOwner.detail());
             diagnostics.addAll(surfaceDiagnostics(apiPage, API_TEST_SELECTORS,
                     viewport.name() + " API"));
             measurements.addAll(measure(apiPage, viewport, "API Tests", API_TEST_SELECTORS));
@@ -162,9 +162,10 @@ public final class ScrollableTableViewportBrowserProbe {
         }
     }
 
-    private static void expandDisclosures(Locator scope) {
-        scope.locator("details").evaluateAll("items => items.forEach(item => { item.open = true; })");
-        scope.locator(".collapse:not(.show)").evaluateAll(
+    private static void expandDisclosures(ReportUiLocators locators, Locator scope) {
+        locators.allDisclosures(scope).evaluateAll(
+                "items => items.forEach(item => { item.open = true; })");
+        locators.collapsedReportPanels(scope).evaluateAll(
                 "items => items.forEach(item => { item.classList.add('show'); })");
         Page page = scope.page();
         settle(page);
@@ -252,7 +253,8 @@ public final class ScrollableTableViewportBrowserProbe {
                                   double heightPx, boolean open, boolean defaultState) {
         public boolean valid() {
             return ("signatures".equals(kind) || "diagnostics".equals(kind))
-                    && Math.abs(heightPx - AGGREGATE_SUMMARY_HEIGHT_PX) <= GEOMETRY_TOLERANCE_PX
+                    && Math.abs(heightPx - NESTED_AGGREGATE_SUMMARY_HEIGHT_PX)
+                    <= GEOMETRY_TOLERANCE_PX
                     && (!defaultState || !open);
         }
     }

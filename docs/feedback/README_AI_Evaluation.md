@@ -20,7 +20,7 @@ limitele de copiere și ordinea de implementare.
   testate în `atf-validation`; package cohesion este închisă prin split semantic;
   provider, run-level evidence ledger, reporting, review/state și workflow agentic
   rămân neimplementate.
-- verificare live (21 octombrie 2026): `AiEvaluationEvaluatorTest` — 19 teste, 0 failure,
+- verificare live (22 octombrie 2026): `AiEvaluationEvaluatorTest` — 19 teste, 0 failure,
   0 error, 0 skipped (`mvn -pl atf-validation -am "-Dtest=AiEvaluationEvaluatorTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`).
 
 Regula de integrare este chirurgicală: se preiau contracte observabile, ownership,

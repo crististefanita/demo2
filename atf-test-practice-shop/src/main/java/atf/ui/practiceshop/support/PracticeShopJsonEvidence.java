@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.Set;
 import java.util.Locale;
 import java.util.Map;
 
@@ -13,6 +14,10 @@ import java.util.Map;
 public final class PracticeShopJsonEvidence {
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final String REDACTED = "<redacted>";
+    private static final Set<String> PERSONAL_FIELDS = Set.of(
+            "firstname", "lastname", "dob", "dateofbirth", "birthdate", "country",
+            "postalcode", "zipcode", "housenumber", "street", "address", "addressline1",
+            "addressline2", "city", "state", "province", "phone", "phonenumber", "mobile");
 
     private PracticeShopJsonEvidence() { }
 
@@ -31,10 +36,19 @@ public final class PracticeShopJsonEvidence {
     }
 
     public static String redact(String value) {
+        return redact(value, false);
+    }
+
+    /** Stronger field-aware policy for registration evidence, which contains an entire identity. */
+    public static String redactRegistration(String value) {
+        return redact(value, true);
+    }
+
+    private static String redact(String value, boolean redactPersonalFields) {
         if (value == null || value.isBlank()) return value == null ? "" : value;
         JsonNode root = parse(value);
         if (root != null) {
-            redactNode(root);
+            redactNode(root, redactPersonalFields);
             try {
                 return JSON.writerWithDefaultPrettyPrinter().writeValueAsString(root);
             } catch (JsonProcessingException error) {
@@ -60,21 +74,28 @@ public final class PracticeShopJsonEvidence {
         return Map.copyOf(result);
     }
 
-    private static void redactNode(JsonNode node) {
+    private static void redactNode(JsonNode node, boolean redactPersonalFields) {
         if (node == null) return;
         if (node.isObject()) {
             Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
             while (fields.hasNext()) {
                 Map.Entry<String, JsonNode> field = fields.next();
-                if (isSensitive(field.getKey())) {
+                if (isSensitive(field.getKey())
+                        || redactPersonalFields && isPersonalField(field.getKey())) {
                     field.setValue(JSON.getNodeFactory().textNode(REDACTED));
                 } else {
-                    redactNode(field.getValue());
+                    redactNode(field.getValue(), redactPersonalFields);
                 }
             }
         } else if (node.isArray()) {
-            node.forEach(PracticeShopJsonEvidence::redactNode);
+            node.forEach(child -> redactNode(child, redactPersonalFields));
         }
+    }
+
+    private static boolean isPersonalField(String name) {
+        String normalized = name == null ? "" : name.toLowerCase(Locale.ROOT)
+                .replace("_", "").replace("-", "");
+        return PERSONAL_FIELDS.contains(normalized);
     }
 
     private static boolean isSensitive(String name) {

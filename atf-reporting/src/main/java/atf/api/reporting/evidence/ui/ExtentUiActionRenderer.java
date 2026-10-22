@@ -34,9 +34,9 @@ public final class ExtentUiActionRenderer {
                        List<ReportScreenshot> screenshots) {
         if (actions == null || actions.isEmpty()) return;
         List<ReportScreenshot> distinctScreenshots = ExtentReportAssets.distinctScreenshotModels(screenshots);
-        if (distinctScreenshots.size() != 1) {
+        if (distinctScreenshots.size() > 1) {
             throw new IllegalStateException(
-                    "A UI action sequence requires exactly one Base64 screenshot; found "
+                    "A UI action sequence supports at most one Base64 screenshot; found "
                             + distinctScreenshots.size());
         }
         StringBuilder html = actionTable(actions)
