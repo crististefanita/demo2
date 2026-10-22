@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -80,8 +81,12 @@ public class GitTestChangesTest {
         Files.move(tests.resolve("Renamed.java"), tests.resolve("New name.java"));
         Files.writeString(tests.resolve("Added.java"), "staged");
         GitTestChanges.command(root, "add", "atf-core/src/test/Added.java");
-        Files.writeString(root.resolve(".gitignore"), "atf-core/src/test/Ignored.java\n");
+        Files.writeString(root.resolve(".gitignore"),
+                "atf-core/src/test/Ignored.java\npom.xml\nnew-module/pom.xml\n");
         Files.writeString(tests.resolve("Ignored.java"), "ignored but still compiled by Maven");
+        Files.writeString(root.resolve("pom.xml"), "ignored root build configuration");
+        Path ignoredModule = Files.createDirectories(root.resolve("new-module"));
+        Files.writeString(ignoredModule.resolve("pom.xml"), "ignored module build configuration");
 
         var changes = GitTestChanges.read(root, base).changes();
         assertTrue(changes.contains(new GitTestChanges.Change("M", "atf-core/src/test/Staged.java")));
@@ -91,6 +96,12 @@ public class GitTestChangesTest {
         assertTrue(changes.contains(new GitTestChanges.Change("A", "atf-core/src/test/New name.java")));
         assertTrue(changes.contains(new GitTestChanges.Change("A", "atf-core/src/test/Added.java")));
         assertTrue(changes.contains(new GitTestChanges.Change("A", "atf-core/src/test/Ignored.java")));
+        for (String path : new String[]{"pom.xml", "new-module/pom.xml"}) {
+            assertTrue(changes.contains(new GitTestChanges.Change("A", path)), path);
+            assertTrue(TestChangePolicy.validate(changes, List.of(), base, LocalDate.now())
+                    .stream().anyMatch(violation -> violation.contains(" " + path + ":")),
+                    "ignored build configuration must require an explicit feedback scope: " + path);
+        }
     }
 
     @Test

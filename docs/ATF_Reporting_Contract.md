@@ -64,6 +64,26 @@ flowchart LR
 
 </details>
 
+## Schema auth a dovezilor API
+
+| Câmp din request | Valoare | Regulă comună |
+|---|---|---|
+| `AUTH PROFILE` | Identitatea profilului configurat, de exemplu `shop-user` | Nu este mecanismul auth; browserul nu inventează un profil |
+| `AUTH TYPE` | Mecanismul observat, de exemplu `bearer`, `basic`, `none`, `other/unknown` | Nu se înlocuiește cu numele profilului |
+
+- API standalone, auditul API, API din UI+API și fallback HTML folosesc aceeași
+  pereche de câmpuri, în aceeași ordine, în `Request details`.
+- Headerul sau query-ul observat are prioritate față de un indiciu din numele
+  profilului. Clasificarea profilului rămâne fallback de compatibilitate.
+- Observația typed se păstrează când headerele sunt redactate; mecanismul auth
+  nu se recalculează din credentiale deja mascate.
+- Aliasurile `auth.type` și `Auth type` produc `AUTH TYPE`;
+  aliasurile legacy per exchange păstrează doar calificarea `API n ·`.
+- `auth.mode` rămâne modul operațional, cu eticheta `AUTHENTICATION`; nu este
+  un alias pentru mecanismul observat al request-ului.
+- `Authentication` din System și `Authentication evidence` din inspector sunt
+  alte suprafețe; nu se redenumesc pentru a repara schema unui request.
+
 ## Ordinea suprafețelor
 
 Ordinea aprobată și rolul fiecărei suprafețe sunt vizibile într-un singur flux:
@@ -193,8 +213,8 @@ rendererul fallback:
   body înainte de transport;
 - `request.action` și `request.target` identifică intern checkpoint-ul UI și
   nu sunt câmpuri HTTP publice. Proiecția Extent/fallback le exclude din ambele
-  tabele request/response, păstrând modelul semantic. Un checkpoint UI fără
-  evidence HTTP proprie nu publică tabelul introductiv `Status / Details / Info`
+  tabele request/response, păstrând modelul semantic. Un checkpoint ale cărui
+  singure detalii sunt aceste chei nu publică tabelul `Status / Details / Info`
   sau un disclosure gol; validările UI/API rămân copiii propoziției;
 - filtrarea acestor două chei nu elimină țintele acțiunilor Playwright și nu
   suprimă `Request details`, JSON-ul sau execution evidence ale exchange-urilor

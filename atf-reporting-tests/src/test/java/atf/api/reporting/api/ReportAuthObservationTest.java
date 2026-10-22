@@ -4,6 +4,7 @@ import atf.api.testkit.AtfUnitTest;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -54,5 +55,32 @@ class ReportAuthObservationTest {
                         "token-acquisition", "basic", "other/unknown"),
                 java.util.Arrays.stream(ReportAuthMethod.values())
                         .map(ReportAuthMethod::wireValue).collect(java.util.stream.Collectors.toSet()));
+    }
+
+    @Test
+    void observedSchemeWinsOverAnArbitraryOrMisleadingProfileName() {
+        for (String profile : List.of("shop-user", "basic-profile", "none")) {
+            var request = new ReportRequest("GET", "/private", Map.of(),
+                    Map.of("aUtHoRiZaTiOn", "Bearer private-token"), profile, "");
+            assertEquals(profile, request.authProfile());
+            assertEquals(ReportAuthMethod.BEARER, request.authMethod());
+            assertEquals(ReportAuthSource.HEADER, request.authObservation().source());
+        }
+        var unknown = new ReportRequest("GET", "/private", Map.of(),
+                Map.of("Authorization", "Bearerish private-token"), "bearer-profile", "");
+        assertEquals(ReportAuthMethod.OTHER_UNKNOWN, unknown.authMethod());
+    }
+
+    @Test
+    void typedObservationSurvivesRedactionWithoutReclassifyingTheMaskedHeader() {
+        var original = new ReportRequest("GET", "/private", Map.of(),
+                Map.of("Authorization", "Basic private-credential"), "shop-user", "");
+        var redacted = new ReportRequest(original.method(), original.path(), original.query(),
+                Map.of("Authorization", "<redacted>"), original.authProfile(), "",
+                original.authObservation());
+        assertEquals(ReportAuthMethod.BASIC, redacted.authMethod());
+        assertEquals(ReportAuthSource.HEADER, redacted.authObservation().source());
+        assertEquals(original.authObservation(), ReportAuthObservation.from(redacted));
+        assertFalse(redacted.toString().contains("private-credential"));
     }
 }

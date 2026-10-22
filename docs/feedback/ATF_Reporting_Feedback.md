@@ -11,19 +11,12 @@ Contractele deja promovate au următorii owneri:
 | Audit API per schimb și publicarea contractului asociat | [Contractul de raportare](../ATF_Reporting_Contract.md), [README Practice Shop](../../atf-test-practice-shop/README.md) |
 | `TECHNICAL TRACE`, viewport comun și paritate Extent/fallback | [README ATF Reporting](../../atf-reporting/README.md) |
 | Matricea probelor de componentă și browser | [README Reporting Tests](../../atf-reporting-tests/README.md) |
+| Checkpoint UI fără request HTTP sintetic; context păstrat intern | [README ATF Reporting](../../atf-reporting/README.md), [Contractul de raportare](../ATF_Reporting_Contract.md) |
 
 Fișierul păstrează ținta existentă `@DocumentationTarget`; cerințele de mai jos
 sunt corelate cu sursele live și cu interacțiunile din rapoarte randate.
 
 ## Cerințe deschise, în ordinea implementării
-
-Increment în lucru `UI-CHECKPOINT-CONTEXT-01`: `UiEvidencePublisher` păstrează
-`request.action` și `request.target` pentru context, dar formatterul comun le
-clasifică drept câmpuri HTTP și creează un `Request details` artificial înainte
-de `UI validation`. Proiecția publică trebuie să excludă ambele chei în Extent
-și fallback, inclusiv pe ruta legacy, fără să le mute în `Response details`.
-Închiderea cere metadata internă păstrată, niciun tabel/log gol la checkpoint,
-exchange API nested complet, probe negative și artifact fresh verificat în MCP.
 
 | Prioritate | Cerință | Responsabil | Dovada pentru închidere |
 |---|---|---|---|
@@ -32,7 +25,7 @@ exchange API nested complet, probe negative și artifact fresh verificat în MCP
 | P1 — API-02 | Rolul și prezentarea provin din tipul nodului | Reporting: model și proiecție | Titluri personalizate și metode variate păstrează formatul |
 | P1 — API-03 | Aceeași schemă de dovezi pentru toate intrările API | Reporting și adaptoare | Paritate semantică/vizuală, corp absent și replay |
 | P1 — API-06 | Aserțiuni și verdicte atribuite canalului și exchange-ului corect | Reporting și contractul checkpoint-ului | UI PASS/API FAIL și invers, fără contaminarea fraților |
-| P1 — API-07 | Metoda, profilul auth și timpul reflectă captura | Adaptor captură și Reporting | `QUERY` păstrat; măsurat, necapturat și timp de publicare distincte |
+| P1 — API-07 | Metoda și timpul reflectă captura | Adaptor captură și Reporting | `QUERY` păstrat; măsurat, necapturat și timp de publicare distincte |
 | P1 — API-04 | Intenție lizibilă și publicare cauzală fără dubluri | Shop la intrare; Reporting la randare | Apeluri distincte, retry și republicare diferențiate |
 | P2 — API-05 | Completitudinea auditului are o zonă secundară coerentă | Reporting și adaptor audit API | Metadate colapsate, fără tabel brut introductiv |
 | P1 — gate comun | Teste de componentă care resping abaterile | `atf-reporting-tests` | Matrice pozitivă și probe negative explicite |
@@ -71,9 +64,14 @@ viewport-ul îngust nu închid celelalte cerințe din matrice.
 - **Remediere de configurație:** bugetul implicit este 2 GiB per fork,
   configurabil prin `atf.test.heap.max`; nu schimbăm politica de captură și
   nu dezactivăm fork-ul. Configurația nu dovedește scalabilitatea pipeline-ului.
-- **Rămâne de făcut:** test de componentă într-un proces cu `-Xmx` explicit,
-  folosind volum reprezentativ, text Unicode și PNG-uri distincte/repetate;
-  limite documentate pentru volum, durată și heap, fără dependență de E2E live.
+- **Probă măsurată:** `LargeReportPublicationComponentTest` pornește un JVM
+  separat cu `-Xmx384m`, generează 1.500 linkuri PNG inline cu două imagini
+  distincte/repetate și text Unicode; artifactul final depășește 9 MB,
+  păstrează ambele ancore, markerul final, tema și runtime-ul. Vârful heap
+  observat în proba locală a fost de circa 264 MB, cu exit code 0 și fără E2E live.
+- **Rămâne de făcut:** praguri reprezentative pentru volume mai mari și PNG-uri
+  mari/distincte, plus buget de durată calibrat; această fixture demonstrează
+  doar profilul explicit de 384 MiB, nu scalarea generală a pipeline-ului.
 - **Gate:** publicare completă și autonomă, capturi păstrate, exit code valid;
   failure-path fără artifact parțial promovat și fără pierderea diagnosticului.
   Optimizează copiile HTML numai după măsurare; nu trata creșterea heap-ului
@@ -134,7 +132,7 @@ Scenariile modelului sunt publicate prin `ApiAcceptancePublisher`, folosesc
 | Replay | În request; mock explicat ca neexecutabil | Lipsește | Există, dar `manual.replay` ajunge în response | Același câmp în request, fidel transportului |
 | Status HTTP | Explicit în response | Lipsește din response în standalone; apare în audit | Explicit în response | Status vizibil în același loc; contractul separat |
 | Content type | `CONTENT-TYPE` | `CONTENT TYPE` | `CONTENT TYPE` | Un singur label canonic |
-| Auth | Profil și tip separate | Profilul lipsește din tabel | Profilul apare ca `AUTHENTICATION` | Identitatea profilului distinctă de mecanism |
+| Auth | `AUTH PROFILE` și `AUTH TYPE` | Aceeași schemă, inclusiv audit | Aceeași schemă; fără profil inventat | Profilul și mecanismul rămân distincte după redactare |
 | Corp request absent | `REQUEST JSON` cu `null` | Canalul este omis | Publicare condiționată de corp nevid | Absența confirmată rămâne dovadă explicită |
 | Context operație/captură | Exchange cu metadatele relevante | Operation/route/capture amestecate în response | `TRACE EXCHANGE` în request; corelare în execution | Contextul și răspunsul HTTP au domenii distincte |
 | Contract | Decizie și expected/actual explicite | Standalone are 2xx/JSON; auditul folosește contractul asociat | Aserțiuni API în UI; starea exchange-ului este preluată din grup | Același format, reguli furnizate de owner |
@@ -203,17 +201,10 @@ titlul nu conține HTTP, Gherkin, `NETWORK` sau `VALIDATION`.
 Rendererul comun există, însă producătorii încă asamblează separat câmpurile și
 JSON-ul; astfel diferă nivelul de detaliu din API direct, audit și UI+API.
 
-- **Guard activ:** `ShopApiContractReportComponentTest` cere celula `AUTH TYPE`,
-  dar `EvidenceTableFormatter` publică `AUTHENTICATION` pentru `auth.type`;
-  aliasul legacy `request.api.<n>.auth.type` păstrează `AUTH TYPE`.
-  Failure-ul se reproduce și cu heap de 256 MiB, și cu 2 GiB; nu este OOM.
-- **Semantica înaintea etichetei:** `ShopApiReportPublisher` pune
-  `request.authProfile()` în `auth.type`; profilul și mecanismul nu sunt
-  interschimbabile. O fixture cu profil `shop-user` și mecanism `Bearer`
-  trebuie să păstreze ambele valori distincte în toate intrările API.
-- **Închidere necesară:** o singură schemă și vocabular canonic pentru auth,
-  probe de componentă direct/Shop/UI+API și aliasuri legacy; nu se elimină
-  aserțiunea existentă doar pentru a obține verde.
+Schema auth comună și păstrarea mecanismului după redactare sunt acoperite prin
+`ApiAuthenticationEvidence` și probe de componentă. Contractul stabil este în
+[schema auth oficială](../ATF_Reporting_Contract.md#schema-auth-a-dovezilor-api);
+restul diferențelor de request/response rămân deschise în această cerință.
 
 ```text
 METHOD /route — intenția apelului
@@ -311,14 +302,13 @@ negativ așteptat și două exchange-uri diferite demonstrează ownership-ul loc
 ## API-07 — fidelitatea snapshot-ului de transport
 
 `ShopApiEvidenceMapper` rescrie metoda prin vocabularul operației și construiește
-duratele browserului cu zero; profilul auth este populat din tipul autentificării.
+duratele browserului cu zero. Separarea profilului de mecanism este deja acoperită
+de schema auth comună și nu mai reprezintă un ToDo.
 
 - Metoda HTTP capturată se păstrează în titlu, request, semnătură și replay;
   aliasul operației business este o informație separată.
 - `QUERY` cu un corp nu devine `GET` doar pentru un titlu cunoscut; orice
   adaptare de protocol cere o echivalență demonstrată și ambele valori explicite.
-- Profilul configurat, mecanismul auth și headers observate rămân concepte
-  distincte; lipsa unui profil numit în browser nu se înlocuiește cu tipul auth.
 - O durată necapturată se explică drept nemăsurată; nu este zero măsurat.
 - Response time, totalul cu retry/backoff și timpul scope-ului de raportare
   se disting; nu se prezintă timpul publicării Extent drept latență HTTP.
@@ -447,7 +437,7 @@ completă de proiecții și interacțiuni rămâne deschisă.
 | [Publisherul modelului API](../../atf-reporting-tests/src/test/java/atf/api/reporting/api/acceptance/ApiAcceptancePublisher.java) și [generarea fixture-ului](../../atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/api/ApiReportAuditSetup.java) | Reper: provenance/replay în request, JSON explicit și contract evaluat |
 | [Formatter comun](../../atf-reporting/src/main/java/atf/api/reporting/evidence/EvidenceTableFormatter.java) | API-03: aliasuri recunoscute diferit și context care ajunge implicit în response |
 | [Contract checkpoint Shop](../../atf-test-practice-shop/src/main/java/atf/ui/practiceshop/support/ShopPurchaseCheckpoint.java) | API-06: lista de aserțiuni nu păstrează ownerul UI/API |
-| [Mapper Shop](../../atf-test-practice-shop/src/main/java/atf/ui/practiceshop/support/ShopApiEvidenceMapper.java) și [vocabular operații](../../atf-test-practice-shop/src/main/java/atf/ui/practiceshop/api/ShopApiOperation.java) | API-07: metodă normalizată, profil din mecanism, durate zero |
+| [Mapper Shop](../../atf-test-practice-shop/src/main/java/atf/ui/practiceshop/support/ShopApiEvidenceMapper.java) și [vocabular operații](../../atf-test-practice-shop/src/main/java/atf/ui/practiceshop/api/ShopApiOperation.java) | API-07: metodă normalizată și durate zero; schema auth este acoperită separat |
 | [Contract static de stil](../../atf-reporting/src/main/java/atf/api/reporting/evidence/ReportEvidenceStyleContract.java) și [testul său](../../atf-reporting-tests/src/test/java/atf/api/reporting/evidence/ReportEvidenceStyleContractTest.java) | Gate: false-green după eliminarea zonelor API |
 | [Probe viewport](../../atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/inspection/layout/ScrollableTableViewportBrowserProbe.java) | API-08: request metadata/retry history nu sunt suprafețe măsurate |
 
@@ -482,6 +472,11 @@ Testul browser declară numai intențiile; fixture-ul dedicat din `support`
 deține generarea controlată și verificările interacțiunilor.
 Selectorii probei sunt centralizați separat în `support/locators/disclosure`;
 fixture-ul consumă această interfață semantică, fără selectori Playwright direcți.
+Același owner deservește și proba de viewport API în Extent/fallback, fără
+duplicarea selectorilor pentru request, execution, wrapper și rânduri.
+
+Scope-ul include concordanța singular/plural deja introdusă în probele Extent,
+fallback și UI; rămân aceleași aserțiuni stricte, cu vocabularul comun actual.
 
 ```yaml
 testChanges:
@@ -490,7 +485,7 @@ testChanges:
     base: 521135291e642194294f9734ee1410ede0f19ef6
     expires: 2026-11-21
     reason: Probe pentru uniformitatea dovezilor API, inchiderea subarborelui si viewport-ul comun.
-    proof: mvn -pl atf-reporting-tests -am -Dtest=HtmlReportViewsTest,AtfReportMarkupTest,ExtentReportRuntimeScriptTest,ExtentReportRuntimeNavigationComponentTest,ExtentReportDisclosureBrowserComponentTest,ReportApiViewportParityComponentTest,AtfReportEvidenceCssTest -Dsurefire.failIfNoSpecifiedTests=false test
+    proof: mvn -pl atf-reporting-tests -am -Dtest=HtmlReportViewsTest,AtfReportMarkupTest,ExtentReportRuntimeScriptTest,ExtentReportRuntimeNavigationComponentTest,ExtentReportDisclosureBrowserComponentTest,ReportApiViewportParityComponentTest,AtfReportEvidenceCssTest,ReportEvidenceMarkupTest,ExtentReportSessionContractTest,HtmlReportSessionTest,AtfReportSemanticSnapshotTest,ExtentReportUiEvidenceRenderingTest,ExtentReportUiFailureEvidenceTest -Dsurefire.failIfNoSpecifiedTests=false test
     paths:
       - atf-reporting-tests/src/test/java/atf/api/reporting/html/HtmlReportViewsTest.java
       - atf-reporting-tests/src/test/java/atf/api/reporting/markup/AtfReportMarkupTest.java
@@ -502,13 +497,19 @@ testChanges:
       - atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/inspection/viewport/ReportApiViewportProbe.java
       - atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/locators/disclosure/ReportDisclosureLocators.java
       - atf-reporting-tests/src/test/java/atf/api/reporting/theme/evidence/AtfReportEvidenceCssTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/evidence/markup/ReportEvidenceMarkupTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/extent/session/ExtentReportSessionContractTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/html/HtmlReportSessionTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/semantic/AtfReportSemanticSnapshotTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/ui/ExtentReportUiEvidenceRenderingTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/ui/ExtentReportUiFailureEvidenceTest.java
 ```
 
 ## Scope executabil — publicarea rapoartelor voluminoase
 
-Înregistrarea delimitează schimbările existente pentru PUB-01: buget JVM
-configurabil și păstrarea dovezilor la finalizare. Proba verifică integritatea
-artifactului; măsurarea memoriei într-un proces separat rămâne criteriul PUB-01.
+Înregistrarea delimitează PUB-01: buget JVM configurabil, păstrarea dovezilor
+și măsurarea într-un proces separat. Fixture-ul bounded este implementat;
+failure-path-ul și profiluri mai mari rămân criterii de închidere.
 
 ```yaml
 testChanges:
@@ -517,8 +518,36 @@ testChanges:
     base: 521135291e642194294f9734ee1410ede0f19ef6
     expires: 2026-11-21
     reason: Verificarea bugetului JVM configurabil si a integritatii dovezilor din rapoarte voluminoase.
-    proof: mvn -pl atf-reporting-tests -am -Dtest=ExtentReportFinalizerBoundaryTest -Dsurefire.failIfNoSpecifiedTests=false test
+    proof: mvn -pl atf-reporting-tests -am -Dtest=ExtentReportFinalizerBoundaryTest,LargeReportPublicationComponentTest -Dsurefire.failIfNoSpecifiedTests=false test
     paths:
       - pom.xml
       - atf-reporting-tests/src/test/java/atf/api/reporting/extent/session/ExtentReportFinalizerBoundaryTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/extent/publication/LargeReportPublicationComponentTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/support/publication/LargeReportPublicationProbe.java
+```
+
+## Scope executabil — schema auth comună
+
+Cerut direct: păstrează testul Shop existent și aliniază profilul, mecanismul,
+aliasurile și redactarea între standalone și UI+API. Probele compară și
+fallback-ul, mecanismul necunoscut și accesul anonim. Aserțiunile UI existente
+rămân în scope-ul `UI-CHECKPOINT-CONTEXT-01`; se schimbă numai eticheta
+contractuală în `AUTH TYPE` și se adaugă controlul negativ pentru vechea celulă.
+
+Suita Shop verifică strict default-ul `Pliers`, deja prezent în YAML și în
+fallback-ul loaderului din codul de bază; o probă separată păstrează alegerea
+explicită `Pliers` sau `Combination Pliers`. Nu se schimbă fixture-ul live
+și nu se înlocuiește egalitatea strictă printr-o aserțiune permisivă.
+
+```yaml
+testChanges:
+  - id: API-AUTH-SCHEMA-01
+    status: VERIFIED
+    base: 521135291e642194294f9734ee1410ede0f19ef6
+    expires: 2026-11-21
+    reason: Schema auth comuna trebuie sa pastreze distinct profilul si mecanismul dupa redactare.
+    proof: mvn -pl atf-reporting-tests,atf-test-practice-shop -am -Dtest=ApiAuthenticationSchemaContractTest,ReportAuthObservationTest,ExtentReportUiEvidencePublishingTest,ShopComponentSuite -Dsurefire.failIfNoSpecifiedTests=false test
+    paths:
+      - atf-reporting-tests/src/test/java/atf/api/reporting/api/auth/ApiAuthenticationSchemaContractTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/api/ReportAuthObservationTest.java
 ```

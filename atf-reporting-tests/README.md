@@ -252,6 +252,11 @@ Boundary-urile suportului rămân mici și verificabile:
 
 `ReportingCoverageMatrixTest` este harta executabilă a seam-urilor publice:
 
+Pentru publicarea unui HTML voluminos, `LargeReportPublicationComponentTest`
+folosește un JVM copil cu `-Xmx384m`, fixture Unicode și PNG-uri inline
+distincte/repetate. Verifică exit code, vârf heap raportat și integritatea
+artifactului final; nu substituie probele pentru volume mai mari sau failure-path.
+
 | Verificare | Dovadă obligatorie | Limită intenționată |
 |---|---|---|
 | coverage | fiecare seam are test `unit`, `component`, `integration` sau `e2e` | un seam nou fără dovadă lower-level e regresie de guvernanță |

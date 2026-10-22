@@ -7,6 +7,7 @@ import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.api.ReportRequest;
 import atf.api.reporting.api.ReportResponse;
 import atf.api.reporting.api.ApiManualReplay;
+import atf.api.reporting.api.auth.ApiAuthenticationEvidence;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
 
@@ -31,8 +32,6 @@ public final class UiEvidencePublisher {
     private static final String METHOD = "method";
     private static final String PATH = "path";
     private static final String URL = "url";
-    private static final String AUTH_TYPE = "auth.type";
-    private static final String AUTH_PROFILE = "auth.profile";
     private static final String REQUEST_HEADERS = "request.headers";
     private static final String MANUAL_REPLAY = "manual.replay";
     private static final String QUERY_PARAMS = "query.params";
@@ -358,9 +357,7 @@ public final class UiEvidencePublisher {
             request.detail(METHOD, apiRequest.method());
             request.detail(PATH, apiRequest.path());
             request.detail(URL, apiResponse.url());
-            request.detail(AUTH_PROFILE, apiRequest.authProfile());
-            request.detail(AUTH_TYPE,
-                    apiRequest.authMethod().wireValue());
+            ApiAuthenticationEvidence.publishTo(request, apiRequest);
             if (!apiRequest.query().isEmpty()) {
                 request.detail(QUERY_PARAMS, format(apiRequest.query()));
             }

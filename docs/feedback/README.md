@@ -18,7 +18,7 @@ rapoartele de rulare și istoricul capturilor nu sunt lucrări restante.
 
 | Ordine | Responsabil / feedback | Impact /40 | Lacună /30 | Lucrabil acum /20 | Datorie doc. /10 | Pondere | Scor | Ce mai trebuie făcut |
 |---:|---|---:|---:|---:|---:|---:|---:|---|
-| 1 | [Uniformitate și interacțiuni API](ATF_Reporting_Feedback.md) | 40 | 29 | 20 | 7 | 1.00 | **96** | paritate cu modelul API din Reporting Tests: subarbore/ARIA/tastatură, câmpuri și JSON, ownership UI/API, verdict local, metodă/auth/timp fidele, cauzalitate, viewport metadata/retry și validator care respinge zone API eliminate |
+| 1 | [Uniformitate și interacțiuni API](ATF_Reporting_Feedback.md) | 40 | 29 | 20 | 7 | 1.00 | **96** | paritate cu modelul API din Reporting Tests: subarbore/ARIA/tastatură în toate proiecțiile, câmpuri și JSON, ownership UI/API, verdict local, metodă/auth/timp fidele, cauzalitate; PUB-01 mai cere failure-path și volum mare, iar API-08 viewport metadata/retry este închis |
 | 2 | [Evaluarea AI](README_AI_Evaluation.md#20-gap-uri-active-pentru-evaluator) | 34 | 26 | 12 | 6 | 1.00 | **78** | clasificarea `AMBIGUOUS`, registrul de dovezi la nivel de rulare, integrarea lifecycle-ului, catalogul business/review/state, publicarea și paritatea de raportare, regression delta și probele pentru fluxul agentic |
 
 - Scorurile din acest registru ordonează lucrul rămas; nu sunt verdicte de calitate.

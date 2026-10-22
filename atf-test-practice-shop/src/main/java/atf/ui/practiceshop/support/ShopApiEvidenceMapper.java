@@ -2,6 +2,8 @@ package atf.ui.practiceshop.support;
 
 import atf.api.reporting.api.ReportAttemptRecord;
 import atf.api.reporting.api.ReportRequest;
+import atf.api.reporting.api.ReportAuthObservation;
+import atf.api.reporting.api.ReportAuthMethod;
 import atf.api.reporting.api.ReportResponse;
 import atf.api.reporting.api.ReportTransportProvenance;
 import atf.api.reporting.api.ReportRequestSignature;
@@ -31,9 +33,15 @@ public final class ShopApiEvidenceMapper {
                 exchange.method(), exchange.path());
         String reportMethod = operation == ShopApiOperation.UNKNOWN
                 ? exchange.method() : operation.reportMethod();
+        var query = query(exchange.url());
+        var authentication = ReportAuthObservation.from("none", exchange.requestHeaders(), query);
+        var capturedMethod = ReportAuthMethod.fromProfile(exchange.authType());
+        if (capturedMethod != ReportAuthMethod.NONE) {
+            authentication = new ReportAuthObservation(capturedMethod, authentication.source());
+        }
         ReportRequest request = new ReportRequest(reportMethod, exchange.path(),
-                query(exchange.url()), ShopJsonEvidence.redactHeaders(exchange.requestHeaders()),
-                exchange.authType(), redactJson(exchange.requestBody()));
+                query, ShopJsonEvidence.redactHeaders(exchange.requestHeaders()),
+                "none", redactJson(exchange.requestBody()), authentication);
         ReportResponse response = new ReportResponse(exchange.status(), redactJson(exchange.responseBody()),
                 ShopJsonEvidence.redactHeaders(exchange.responseHeaders()), Duration.ZERO, exchange.url());
         var attempt = new ReportAttemptRecord(1, exchange.status(), Duration.ZERO,
@@ -68,7 +76,7 @@ public final class ShopApiEvidenceMapper {
         }
         ReportRequest reportRequest = new ReportRequest(request.method(), request.path(), request.query(),
                 ShopJsonEvidence.redactHeaders(request.headers()), request.authProfile(),
-                redactJson(request.bodyText()));
+                redactJson(request.bodyText()), request.authObservation());
         ReportResponse reportResponse = new ReportResponse(response.status(), redactJson(response.body()),
                 ShopJsonEvidence.redactHeaders(response.headers()), response.duration(), response.url());
         ReportTraceMetadata trace = ReportTraceMetadata.from(reportRequest).withCapture(

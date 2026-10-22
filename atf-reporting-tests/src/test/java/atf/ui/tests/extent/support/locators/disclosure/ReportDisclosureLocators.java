@@ -36,10 +36,14 @@ public final class ReportDisclosureLocators {
     public Locator viewport(Locator disclosure) {
         return disclosure.locator("[class~='" + CssClass.ATF_API_TABLE_WRAP.value() + "']");
     }
+    public Locator viewport(Locator card, CssClass kind) { return viewport(evidence(card, kind)); }
+    public Locator rows(Locator viewport) { return viewport.locator("tbody tr"); }
     public Locator finalAttempt(Locator viewport) {
-        return viewport.locator("tbody tr").last().locator("td").first();
+        return rows(viewport).last().locator("td").first();
     }
     public Locator separators(Page page) { return page.locator("hr"); }
+    public Locator fallbackTestsTab(Page page) { return page.locator("button[data-tab='tests']"); }
+    public Locator fallbackRequests(Page page) { return page.locator("[id='tests'] [class~='request']"); }
 
     private static String evidenceSelector(CssClass kind) {
         return "details[class~='" + kind.value() + "']";

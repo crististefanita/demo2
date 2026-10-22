@@ -55,7 +55,7 @@ final class GitTestChanges {
             if (!path.isEmpty()) changes.putIfAbsent(path, new Change("A", path));
         }
         for (String path : command(root, "ls-files", "--others", "--ignored", "--exclude-standard", "-z",
-                "--", ":(glob)*/src/test/**").split("\u0000")) {
+                "--", "pom.xml", ":(glob)*/pom.xml", ":(glob)*/src/test/**").split("\u0000")) {
             if (!path.isEmpty()) changes.putIfAbsent(path, new Change("A", path));
         }
         return new Snapshot(base, List.copyOf(changes.values()));

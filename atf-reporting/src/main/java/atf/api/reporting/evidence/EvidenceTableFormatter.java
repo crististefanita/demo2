@@ -1,5 +1,6 @@
 package atf.api.reporting.evidence;
 import atf.api.reporting.duration.AtfDurationFormatter;
+import atf.api.reporting.api.ApiEvidenceField;
 import atf.api.reporting.markup.AtfReportLabels;
 import atf.api.reporting.model.ReportField;
 
@@ -141,8 +142,10 @@ public final class EvidenceTableFormatter {
             case "path" -> "PATH";
             case "url" -> "URL";
             case "auth.mode" -> "AUTHENTICATION";
-            case "auth.type" -> "AUTH TYPE";
-            case "auth.profile", "auth profile" -> "AUTH PROFILE";
+            case "auth.type", "auth type" ->
+                    ApiEvidenceField.AUTH_TYPE.label().toUpperCase(Locale.ROOT);
+            case "auth.profile", "auth profile" ->
+                    ApiEvidenceField.AUTH_PROFILE.label().toUpperCase(Locale.ROOT);
             case "transport", "transport.provenance" -> "TRANSPORT PROVENANCE";
             case "manual replay", "manual.replay" -> "MANUAL REPLAY";
             case "response.status" -> "RESPONSE STATUS";
@@ -175,8 +178,7 @@ public final class EvidenceTableFormatter {
             case "method" -> "METHOD";
             case "path" -> "PATH";
             case "url" -> "URL";
-            case "auth.type" -> "AUTH TYPE";
-            case "auth.profile" -> "AUTH PROFILE";
+            case "auth.mode", "auth.type", "auth.profile" -> displayName(field);
             case "query.params" -> "QUERY PARAMS";
             case "request.headers" -> "REQUEST HEADERS";
             case "transport" -> "TRANSPORT PROVENANCE";

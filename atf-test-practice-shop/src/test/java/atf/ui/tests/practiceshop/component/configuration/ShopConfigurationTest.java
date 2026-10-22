@@ -15,6 +15,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -29,7 +30,7 @@ class ShopConfigurationTest {
 
         assertTrue(configuration.baseUrl().isAbsolute());
         assertTrue(configuration.baseUrl().getHost().endsWith("practicesoftwaretesting.com"));
-        assertEquals("Combination Pliers", configuration.productName());
+        assertEquals("Pliers", configuration.productName());
         assertTrue(configuration.usesDynamicProductPath());
         assertTrue(configuration.matchesProductPath(ShopUiRoutes.product("current-external-fixture")));
         assertFalse(configuration.matchesProductPath(ShopUiRoutes.category("pliers")));
@@ -77,6 +78,20 @@ class ShopConfigurationTest {
                 configuration.uri(ShopUiRoutes.product("1")));
         assertEquals(configuration.baseUrl().resolve("checkout"),
                 configuration.uri(ShopUiRoutes.CHECKOUT));
+    }
+
+    @Test
+    void explicitYamlRetainsTheExactProductNameInsteadOfReplacingItWithTheDefault(@TempDir Path temp)
+            throws Exception {
+        Path yaml = temp.resolve("practice-shop.yaml");
+        for (String product : List.of("Pliers", "Combination Pliers")) {
+            Files.writeString(yaml, """
+                    practiceShop:
+                      baseUrl: https://practicesoftwaretesting.com
+                      productName: "%s"
+                    """.formatted(product));
+            assertEquals(product, ShopConfigurationLoader.load(yaml).productName());
+        }
     }
 
     @Test

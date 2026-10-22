@@ -48,11 +48,13 @@ public enum ReportAuthMethod {
         if (headers == null || headers.isEmpty()) return NONE;
         String authorization = value(headers, "authorization");
         if (authorization != null) {
-            String scheme = normalize(authorization);
-            if (scheme.startsWith("bearer")) return BEARER;
-            if (scheme.startsWith("basic")) return BASIC;
-            if (scheme.startsWith("token")) return TOKEN_ACQUISITION;
-            return OTHER_UNKNOWN;
+            String scheme = normalize(authorization).split("\\s+", 2)[0];
+            return switch (scheme) {
+                case "bearer" -> BEARER;
+                case "basic" -> BASIC;
+                case "token" -> TOKEN_ACQUISITION;
+                default -> OTHER_UNKNOWN;
+            };
         }
         if (contains(headers, "cookie")) return COOKIE;
         if (contains(headers, "x-api-key") || contains(headers, "api-key")

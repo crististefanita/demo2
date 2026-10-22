@@ -1,5 +1,7 @@
 package atf.api.reporting.api;
 
+import java.util.Map;
+
 /**
  * Safe auth projection for report summaries.  It intentionally contains only
  * the typed method and its source, never a header, cookie, query value or
@@ -13,20 +15,25 @@ public record ReportAuthObservation(ReportAuthMethod method, ReportAuthSource so
 
     public static ReportAuthObservation from(ReportRequest request) {
         if (request == null) return new ReportAuthObservation(ReportAuthMethod.NONE, ReportAuthSource.NONE);
+        return request.authObservation();
+    }
 
-        ReportAuthMethod profile = ReportAuthMethod.fromProfile(request.authProfile());
-        if (profile != ReportAuthMethod.NONE) {
-            return new ReportAuthObservation(profile, ReportAuthSource.PROFILE);
-        }
-
-        ReportAuthMethod header = ReportAuthMethod.fromHeaders(request.headers());
+    /** Observed transport evidence wins; profile-name inference is compatibility-only. */
+    public static ReportAuthObservation from(String authProfile, Map<String, String> headers,
+                                              Map<String, String> queryParameters) {
+        ReportAuthMethod header = ReportAuthMethod.fromHeaders(headers);
         if (header != ReportAuthMethod.NONE) {
             return new ReportAuthObservation(header, ReportAuthSource.HEADER);
         }
 
-        ReportAuthMethod query = ReportAuthMethod.fromQuery(request.query());
+        ReportAuthMethod query = ReportAuthMethod.fromQuery(queryParameters);
         if (query != ReportAuthMethod.NONE) {
             return new ReportAuthObservation(query, ReportAuthSource.QUERY);
+        }
+
+        ReportAuthMethod profile = ReportAuthMethod.fromProfile(authProfile);
+        if (profile != ReportAuthMethod.NONE) {
+            return new ReportAuthObservation(profile, ReportAuthSource.PROFILE);
         }
 
         return new ReportAuthObservation(ReportAuthMethod.NONE, ReportAuthSource.NONE);

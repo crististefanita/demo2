@@ -5,10 +5,12 @@ import atf.api.reporting.api.ReportRequest;
 import atf.api.reporting.api.ReportResponse;
 import atf.api.reporting.api.ReportTransportProvenance;
 import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.contract.AtfReportPorts.Phase;
 import atf.api.reporting.extent.session.ExtentReportSession;
 import atf.api.reporting.html.HtmlReportSession;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.support.TestReportPaths;
+import atf.ui.tests.extent.support.locators.disclosure.ReportDisclosureLocators;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Locator;
@@ -21,12 +23,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.EXECUTION_EVIDENCE;
+import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.REQUEST_EVIDENCE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Controlled fallback fixture and computed-style assertions for the common API viewport. */
 public final class ReportApiViewportProbe {
     private static final int LONG_ROWS = 40;
+    private static final ReportDisclosureLocators LOCATORS = new ReportDisclosureLocators();
 
     private ReportApiViewportProbe() { }
 
@@ -44,19 +49,18 @@ public final class ReportApiViewportProbe {
             Page page = browser.newPage();
             page.setViewportSize(1280, 900);
             page.navigate(report.toUri() + "#test-view");
-            page.locator("#test-view .test-list .test-item").first().click();
+            LOCATORS.firstOwner(page).click();
             page.waitForFunction("() => document.documentElement.getAttribute('data-atf-test-view-ready') === 'true'");
-            Locator scenario = page.locator(
-                    "#test-view .test-content-detail:visible .test-contents > .mt-4 > .accordion > .card").first();
+            Locator scenario = LOCATORS.scenarios(page).first();
             openNode(scenario, "data-atf-scenario-open");
-            Locator phase = scenario.locator(":scope > .accordion > [data-atf-node-role='phase']").first();
+            Locator phase = LOCATORS.firstPhase(scenario);
             openNode(phase, "data-atf-phase-open");
-            Locator request = phase.locator(":scope > .accordion > [data-atf-node-role='request']").first();
+            Locator request = LOCATORS.requests(phase).first();
             openNode(request, "data-atf-node-open");
-            request.locator("details.request-evidence > summary").click();
-            request.locator("details.execution-evidence > summary").click();
-            Locator requestTable = request.locator(".request-evidence .atf-api-table-wrap");
-            Locator retryTable = request.locator(".execution-evidence .atf-api-table-wrap");
+            LOCATORS.summary(LOCATORS.evidence(request, REQUEST_EVIDENCE)).click();
+            LOCATORS.summary(LOCATORS.evidence(request, EXECUTION_EVIDENCE)).click();
+            Locator requestTable = LOCATORS.viewport(request, REQUEST_EVIDENCE);
+            Locator retryTable = LOCATORS.viewport(request, EXECUTION_EVIDENCE);
             assertNatural(requestTable);
             assertNatural(retryTable);
             page.setViewportSize(760, 900);
@@ -74,13 +78,13 @@ public final class ReportApiViewportProbe {
             Page page = browser.newPage();
             page.setViewportSize(1280, 900);
             page.navigate(report.toUri().toString());
-            page.locator("button[data-tab='tests']").click();
-            Locator requests = page.locator("#tests .request");
+            LOCATORS.fallbackTestsTab(page).click();
+            Locator requests = LOCATORS.fallbackRequests(page);
             assertEquals(2, requests.count());
             for (int index = 0; index < requests.count(); index++) {
                 Locator request = requests.nth(index);
-                request.locator("details.request-evidence > summary").click();
-                request.locator("details.execution-evidence > summary").click();
+                LOCATORS.summary(LOCATORS.evidence(request, REQUEST_EVIDENCE)).click();
+                LOCATORS.summary(LOCATORS.evidence(request, EXECUTION_EVIDENCE)).click();
             }
             verifyAtWidth(page, requests);
             page.setViewportSize(760, 900);
@@ -91,10 +95,10 @@ public final class ReportApiViewportProbe {
     private static void verifyAtWidth(Page page, Locator requests) {
         Locator shortRequest = requests.nth(0);
         Locator longRequest = requests.nth(1);
-        assertNatural(shortRequest.locator(".request-evidence .atf-api-table-wrap"));
-        assertNatural(shortRequest.locator(".execution-evidence .atf-api-table-wrap"));
-        assertScrollable(longRequest.locator(".request-evidence .atf-api-table-wrap"), LONG_ROWS);
-        assertScrollable(longRequest.locator(".execution-evidence .atf-api-table-wrap"), LONG_ROWS);
+        assertNatural(LOCATORS.viewport(shortRequest, REQUEST_EVIDENCE));
+        assertNatural(LOCATORS.viewport(shortRequest, EXECUTION_EVIDENCE));
+        assertScrollable(LOCATORS.viewport(longRequest, REQUEST_EVIDENCE), LONG_ROWS);
+        assertScrollable(LOCATORS.viewport(longRequest, EXECUTION_EVIDENCE), LONG_ROWS);
         assertEquals(Boolean.TRUE, page.evaluate(
                 "document.documentElement.scrollWidth <= document.documentElement.clientWidth"),
                 "API tables must not create document-level horizontal overflow");
@@ -102,7 +106,7 @@ public final class ReportApiViewportProbe {
 
     private static void openNode(Locator node, String attribute) {
         if (!"true".equals(node.getAttribute(attribute))) {
-            node.locator(":scope > .card-header").click();
+            LOCATORS.header(node).click();
         }
     }
 
@@ -115,7 +119,7 @@ public final class ReportApiViewportProbe {
     }
 
     private static void assertScrollable(Locator viewport, int expectedRows) {
-        assertEquals(expectedRows, viewport.locator("tbody tr").count());
+        assertEquals(expectedRows, LOCATORS.rows(viewport).count());
         assertTrue(Boolean.TRUE.equals(viewport.evaluate("element => {"
                 + "const style=getComputedStyle(element), header=element.querySelector('thead th'),"
                 + "last=element.querySelector('tbody tr:last-child');"
@@ -142,7 +146,7 @@ public final class ReportApiViewportProbe {
         return report;
     }
 
-    private static void addRequest(atf.api.reporting.contract.AtfReportPorts.Phase phase,
+    private static void addRequest(Phase phase,
                                    String title, int rows) {
         var scope = phase.startRequest(title, "GET", "/resource");
         for (int index = 1; index <= rows; index++) {

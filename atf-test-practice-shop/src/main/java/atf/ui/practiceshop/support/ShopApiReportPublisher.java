@@ -10,6 +10,7 @@ import atf.api.core.reporting.console.AtfConsoleEvent;
 import atf.api.core.reporting.console.AtfConsoleSink;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.api.ReportRequestSignature;
+import atf.api.reporting.api.auth.ApiAuthenticationEvidence;
 import atf.api.reporting.contract.AtfReportPorts;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.extent.session.ExtentReportSession;
@@ -117,6 +118,10 @@ public final class ShopApiReportPublisher {
         String title = ShopApiOperation.reportTitle(request.method(), request.path());
         String method = operation == ShopApiOperation.UNKNOWN
                 ? request.method() : operation.reportMethod();
+        var evidence = ShopApiEvidenceMapper.toExecution(execution, sequence,
+                phaseFor(request.path()), "ApiCallComponentTest", phaseFor(request.path()),
+                title, execution.provenance().reportLabel(),
+                expectedContractSummary(contractValidation), "status=" + response.status());
         var node = phase.startRequest(title, method, request.path());
         try {
             node.detail("operation.kind", operation.name());
@@ -128,7 +133,7 @@ public final class ShopApiReportPublisher {
                             phaseFor(request.path())).signature()));
             node.detail("capture.sequence", Long.toString(sequence));
             node.detail("url", response.url());
-            node.detail("auth.type", request.authProfile());
+            ApiAuthenticationEvidence.publishTo(node, evidence.request());
             node.detail("transport.provenance", execution.provenance().reportLabel());
             node.detail("query.params", request.query().toString());
             node.detail("request.headers", ShopApiEvidenceMapper.redactHeaders(
@@ -143,10 +148,7 @@ public final class ShopApiReportPublisher {
             if (!response.body().isBlank()) {
                 node.json("RESPONSE JSON", ShopApiEvidenceMapper.redactJson(response.body()));
             }
-            node.execution(ShopApiEvidenceMapper.toExecution(execution, sequence,
-                    phaseFor(request.path()), "ApiCallComponentTest", phaseFor(request.path()),
-                    title, execution.provenance().reportLabel(),
-                    expectedContractSummary(contractValidation), "status=" + response.status()));
+            node.execution(evidence);
             if (contractValidation == null) {
                 node.complete(AtfReportStatus.INFO);
             } else {
@@ -200,10 +202,16 @@ public final class ShopApiReportPublisher {
         String requestName = ShopApiOperation.reportTitle(request.method(), request.path());
         String reportMethod = operation == ShopApiOperation.UNKNOWN
                 ? request.method() : operation.reportMethod();
+        var evidence = ShopApiEvidenceMapper.toExecution(execution, sequence,
+                phaseFor(request.path()), "BusinessFlow", phaseFor(request.path()),
+                requestName, execution.provenance().reportLabel(),
+                "2xx response with JSON contract", "status=" + response.status());
         long requestStartedAt = System.nanoTime();
         consolePublish(console, AtfConsoleEvent.started(AtfConsoleEvent.Scope.REQUEST, requestName));
         consolePublish(console, AtfConsoleEvent.detail(AtfConsoleEvent.Scope.REQUEST,
-                "auth.type", request.authProfile()));
+                "auth.profile", request.authProfile()));
+        consolePublish(console, AtfConsoleEvent.detail(AtfConsoleEvent.Scope.REQUEST,
+                "auth.type", evidence.request().authMethod().wireValue()));
         consolePublish(console, AtfConsoleEvent.detail(AtfConsoleEvent.Scope.REQUEST,
                 "transport", execution.provenance().reportLabel()));
         AtfReportPorts.Request node = phase.startRequest(
@@ -220,7 +228,7 @@ public final class ShopApiReportPublisher {
                 node.detail("route.template", operation.routeTemplate());
             }
             node.detail("url", response.url());
-            node.detail("auth.type", request.authProfile());
+            ApiAuthenticationEvidence.publishTo(node, evidence.request());
             node.detail("transport.provenance", execution.provenance().reportLabel());
             if (sequence > 0) {
                 var traced = ShopApiExecutionExchange.from(execution, sequence,
@@ -238,10 +246,7 @@ public final class ShopApiReportPublisher {
             node.detail("response.headers", ShopApiEvidenceMapper.redactHeaders(
                     response.headers()).toString());
             node.json("RESPONSE JSON", redactedResponseBody);
-            node.execution(ShopApiEvidenceMapper.toExecution(execution, sequence,
-                    phaseFor(request.path()), "BusinessFlow", phaseFor(request.path()),
-                    requestName, execution.provenance().reportLabel(),
-                    "2xx response with JSON contract", "status=" + response.status()));
+            node.execution(evidence);
             AtfReportPorts.Validation validation = node.startValidation("Contract validation");
             validationStarted = true;
             long validationStartedAt = System.nanoTime();

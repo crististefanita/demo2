@@ -41,18 +41,20 @@ Cerut direct: diferența Git se validează contra cererilor de mai sus și din
 celelalte documente feedback. Testele noi protejează inclusiv propria suită;
 nu se acceptă wildcard-uri, cereri expirate/închise sau un baseline străin.
 
-Scope-ul protejează și POM-ul rădăcină, respectiv POM-urile modulelor:
-ele pot configura ori dezactiva testele. Excepția Shop se păstrează.
-Proba de transfer cere închiderea vechiului owner înainte de activarea celui nou.
+- POM-ul rădăcină și POM-urile modulelor sunt protejate: pot configura ori dezactiva testele.
+- Excepția Shop rămâne exactă, nu se extinde la module cu nume asemănătoare.
+- Transferul de ownership cere închiderea vechiului scope înainte de activarea celui nou.
+- Inventarul include POM-urile noi ignorate prin `.gitignore`; proba negativă
+  verifică rădăcina și un modul nou, alături de testele ignorate deja acoperite.
 
 ```yaml
 testChanges:
   - id: TEST-CHANGE-GOVERNANCE-01
-    status: ACTIVE
+    status: VERIFIED
     base: 521135291e642194294f9734ee1410ede0f19ef6
     expires: 2026-11-21
     reason: Guvernanta explicita a schimbarilor testelor si probe negative ale politicii.
-    proof: mvn -pl atf-tests -am -Dtest=TestChangeGovernanceTest,TestChangePolicyTest,GitTestChangesTest,ConsoleDefaultsGovernanceTest -Dsurefire.failIfNoSpecifiedTests=false test
+    proof: mvn -pl atf-tests -am -Dtest=WholeAtfGovernanceSuiteTest -Datf.governance.testChanges.baseRef=521135291e642194294f9734ee1410ede0f19ef6 -Dsurefire.failIfNoSpecifiedTests=false test
     paths:
       - atf-tests/pom.xml
       - atf-tests/src/test/java/atf/api/tests/governance/WholeAtfGovernanceSuiteTest.java
@@ -85,11 +87,11 @@ ancestori spre copii; un nod ascuns nu este confundat cu o dovadă absentă.
 ```yaml
 testChanges:
   - id: REPORT-AUDIT-INPUT-01
-    status: ACTIVE
+    status: VERIFIED
     base: 521135291e642194294f9734ee1410ede0f19ef6
     expires: 2026-11-21
     reason: Verificarea schimbarilor existente pentru selectia inputului auditului UI.
-    proof: mvn -pl atf-reporting-tests -am -Dtest=ReportAuditInputsTest,AtfTestLayerArchitectureTest,FailureEvidenceFlowTest,StaticUiExtentReportContractTest,DeclarativeUiTestArchitectureTest,UiTestLayerArchitectureTest -Dsurefire.failIfNoSpecifiedTests=false test
+    proof: mvn -pl atf-reporting-tests -am -Dtest=ReportAuditInputsTest,AtfTestLayerArchitectureTest,FailureEvidenceFlowTest,ReportNavigationAggregationFlowTest,StaticUiExtentReportContractTest,DeclarativeUiTestArchitectureTest,UiTestLayerArchitectureTest -Dsurefire.failIfNoSpecifiedTests=false test
     paths:
       - atf-reporting-tests/src/test/java/atf/ui/tests/extent/e2e/failure/FailureEvidenceFlowTest.java
       - atf-reporting-tests/src/test/java/atf/ui/tests/extent/e2e/navigation/ReportNavigationAggregationFlowTest.java
@@ -166,7 +168,7 @@ comanda de probă îl execută și aici, fără să-i dubleze ownership-ul.
 ```yaml
 testChanges:
   - id: UI-CHECKPOINT-CONTEXT-01
-    status: ACTIVE
+    status: VERIFIED
     base: 521135291e642194294f9734ee1410ede0f19ef6
     expires: 2026-11-21
     reason: Contextul intern al checkpoint-ului UI nu trebuie publicat ca request HTTP sintetic.
@@ -187,7 +189,7 @@ Nu se adaugă un alias specific Practice Shop sau o excepție de modul.
 ```yaml
 testChanges:
   - id: TEST-LAYER-COMPOSITION-01
-    status: ACTIVE
+    status: VERIFIED
     base: 521135291e642194294f9734ee1410ede0f19ef6
     expires: 2026-11-21
     reason: Inventarul recunoaste stratul canonic prin adnotari compuse fara sa relaxeze unicitatea.
@@ -209,7 +211,7 @@ obligatorie; nu se schimbă runtime-ul pentru a satisface textul depășit.
 ```yaml
 testChanges:
   - id: REPORT-DISCLOSURE-CONTRACT-01
-    status: ACTIVE
+    status: VERIFIED
     base: 521135291e642194294f9734ee1410ede0f19ef6
     expires: 2026-11-21
     reason: Guard-ul static trebuie sa verifice helper-ul live pentru toate panourile directe.
@@ -224,10 +226,14 @@ Scope-ul înregistrează actualizările existente ale consumatorilor pentru
 vocabularul comun: `1 field`, `1 attempt`, `1 entry` și `1 check`.
 Probele păstrează paritatea Extent/fallback și snapshot-ul semantic.
 
+Înregistrarea este închisă prin transfer către `REPORT-API-UNIFORMITY-01`
+din feedback-ul Reporting, care deține acum aceleași șase fișiere și probele
+lor. Nu se mențin doi owneri eligibili pentru aceeași schimbare.
+
 ```yaml
 testChanges:
   - id: REPORT-EVIDENCE-LABELS-01
-    status: ACTIVE
+    status: CLOSED
     base: 521135291e642194294f9734ee1410ede0f19ef6
     expires: 2026-11-21
     reason: Consumatorii verifica singularul si pluralul vocabularului comun fara a schimba verdictele.
@@ -241,20 +247,26 @@ testChanges:
       - atf-reporting-tests/src/test/java/atf/api/reporting/ui/ExtentReportUiFailureEvidenceTest.java
 ```
 
+## Dovezi și limite
+
+| Scope | Dovada verificată |
+|---|---|
+| Guvernanța schimbărilor | `WholeAtfGovernanceSuiteTest`: scope exact, parser strict, baseline Git, ownership unic și documentație |
+| POM-uri ignorate | Testul întărit eșuează cu inventarul vechi, apoi trece cu includerea POM-ului rădăcină și al modulului nou |
+| Input și stratificare | Input explicit/generat, meta-adnotări, navigare, failure evidence și contractul UI în headless |
+| Dovezi UI/API | Proiecții, publisher, paritate semantică și componente browser; etichetele sunt transferate ownerului Reporting |
+| Checkpoint UI | Verificarea MCP consemnată pentru increment confirmă contextul fără tabel HTTP sintetic și păstrarea dovezilor imbricate |
+
+Verificarea MCP consemnată nu certifică automat un artifact generat ulterior.
+Raportul nou cere propriul gate interactiv înainte de publicare; probele
+headless și capturile automate nu sunt prezentate drept click-uri manuale.
+
 ## Închidere
 
 - Cererea rămâne `ACTIVE` în timpul verificării; `VERIFIED` păstrează scope-ul
   verificat până la integrare. `CLOSED` nu autorizează modificări noi.
 - După integrare se poate elimina înregistrarea când baseline-ul verificării
   nu mai include schimbarea. Regulile stabile aparțin README-ului `atf-tests`.
-- Probe rapide și negative pentru console, parserul ToDo, baseline-ul Git și
-  zonele structurale de evidence sunt verificate separat, cu scope exact.
-- Verificări staging, 2026-10-22: consola **29 teste**, inputurile de audit
-  **4**, contractul structural **1**, readability + publicarea dovezii UI **14**
-  și guvernanța focalizată **16**; toate au trecut fără skip-uri.
-- `WholeAtfGovernanceSuiteTest` rămâne un diagnostic mai larg, nu proba de
-  închidere a acestui feedback: la 2026-10-22 raportează probleme de densitate
-  a prozei din README-urile `atf-reporting-tests` și `atf-test-practice-shop`.
-  Actualizarea contractului checkpoint-ului în aceste documente nu închide
-  refactorizarea întregii proze; proba Console de mai sus nu verifică această
-  cerință editorială.
+- Transferurile închise nu ascund lucrări restante: criteriile funcționale
+  API/UI și publicarea voluminoasă rămân la ownerul din
+  [feedback-ul Reporting](ATF_Reporting_Feedback.md).
