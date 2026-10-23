@@ -1,12 +1,15 @@
 package atf.ui.tests.practiceshop.api.component.exchange;
 
+import atf.api.core.http.protocol.HttpHeaderProfiles;
 import atf.api.core.http.request.HttpMethod;
+import atf.api.core.http.request.HttpHeader;
+import atf.api.core.http.request.MediaTypes;
 import atf.api.testkit.AtfComponentTest;
 import atf.ui.practiceshop.api.ShopApiOperation;
-import atf.ui.practiceshop.api.ShopApiHttpStatus;
+import atf.ui.practiceshop.api.contract.ShopApiHttpStatus;
 import atf.ui.practiceshop.api.ShopApiRoutes;
-import atf.ui.practiceshop.support.ShopApiAssertions;
-import atf.ui.practiceshop.support.ShopApiNetworkJournal;
+import atf.ui.practiceshop.support.api.ShopApiAssertions;
+import atf.ui.practiceshop.support.api.ShopApiNetworkJournal;
 import atf.ui.tests.practiceshop.api.support.ShopApiScenarioFixture;
 import org.junit.jupiter.api.Test;
 
@@ -36,12 +39,12 @@ class ShopApiAssertionsTest {
     @Test
     void catalogQueryUsesSharedUriDecoderForPlusAndPercentEncodedValues() {
         var search = new ShopApiNetworkJournal.Exchange(
-                "GET", ShopApiRoutes.PRODUCT_SEARCH,
+                HttpMethod.GET.value(), ShopApiRoutes.PRODUCT_SEARCH,
                 ShopApiScenarioFixture.API_ENDPOINT + ShopApiRoutes.PRODUCT_SEARCH
                         + "?q=Pliers+Pro&unused=a%2Bb",
                 ShopApiHttpStatus.OK.code(), "",
                 "{\"data\":[{\"id\":\"p-1\",\"name\":\"Pliers Pro\"}]}",
-                Map.of(), Map.of("content-type", atf.api.core.http.request.MediaTypes.APPLICATION_JSON));
+                Map.of(), HttpHeaderProfiles.JSON_CONTENT);
         var detail = exchange(HttpMethod.GET.value(), ShopApiRoutes.product("p-1"),
                 ShopApiHttpStatus.OK, "", "{\"id\":\"p-1\",\"name\":\"Pliers Pro\"}");
 
@@ -71,8 +74,8 @@ class ShopApiAssertionsTest {
                 ShopApiHttpStatus.OK,
                 "{\"email\":\"shop@example.test\",\"password\":\"secret\"}",
                 "{}",
-                Map.of("content-type", atf.api.core.http.request.MediaTypes.APPLICATION_JSON,
-                        "content-length", "0"));
+                Map.of(HttpHeader.CONTENT_TYPE.value(), MediaTypes.APPLICATION_JSON,
+                        HttpHeader.CONTENT_LENGTH.value(), "0"));
 
         var assertions = ShopApiAssertions.login(login);
 
@@ -100,7 +103,7 @@ class ShopApiAssertionsTest {
                                                                      ShopApiHttpStatus status,
                                                                      String requestBody, String responseBody) {
         return exchange(method, path, status, requestBody, responseBody,
-                Map.of("content-type", atf.api.core.http.request.MediaTypes.APPLICATION_JSON));
+                HttpHeaderProfiles.JSON_CONTENT);
     }
 
     private static ShopApiNetworkJournal.Exchange exchange(String method, String path,

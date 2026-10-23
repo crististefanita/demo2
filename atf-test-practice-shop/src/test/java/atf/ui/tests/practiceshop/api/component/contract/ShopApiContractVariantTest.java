@@ -1,11 +1,12 @@
 package atf.ui.tests.practiceshop.api.component.contract;
 
 import atf.api.core.http.request.ApiRequest;
+import atf.api.core.http.request.HttpHeader;
 import atf.api.core.http.request.MediaTypes;
 import atf.ui.practiceshop.api.ShopApiClient;
-import atf.ui.practiceshop.api.ShopApiHttpStatus;
+import atf.ui.practiceshop.api.contract.ShopApiHttpStatus;
 import atf.ui.practiceshop.api.ShopApiRequestFactory;
-import atf.ui.practiceshop.api.ShopPaymentMethod;
+import atf.ui.practiceshop.api.contract.ShopPaymentMethod;
 import atf.ui.tests.practiceshop.api.support.ShopApiScenarioFixture;
 import atf.ui.tests.practiceshop.api.support.ShopApiComponentFixture;
 import atf.ui.tests.practiceshop.api.support.ShopApiCallComponentTest;
@@ -37,7 +38,7 @@ class ShopApiContractVariantTest {
 
         assertTrue(expectedStatus.matches(response.status()));
         assertEquals(expectedBody, response.body());
-        assertTrue(response.header("content-type").contains(MediaTypes.APPLICATION_JSON));
+        assertTrue(response.header(HttpHeader.CONTENT_TYPE.value()).contains(MediaTypes.APPLICATION_JSON));
     }
 
     private static Stream<Arguments> variants() {

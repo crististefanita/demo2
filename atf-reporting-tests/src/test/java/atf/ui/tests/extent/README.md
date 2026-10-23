@@ -27,23 +27,26 @@ flowchart LR
 <details>
 <summary><strong>Legendă — separarea testelor Extent</strong></summary>
 
-- `component` verifică inputul, modelul, markup-ul și politicile fără browser;
-- `e2e` verifică efectul observabil al artifactului în Playwright/Chromium;
+- `component` verifică inputul, modelul, markup-ul și politicile; componentele browser folosesc fixture-uri locale determinate;
+- `e2e` verifică journey-ul de audit al artifactului și integrarea setup/browser;
 - `support` reutilizează setup, locatori și validatori, dar nu este test root;
-- un test care deschide HTML-ul sau folosește `Page` aparține `e2e`.
+- browserul și locatorii sunt adaptați în `support`; layer-ul se alege după boundary-ul verificat.
 </details>
 
 Regula este intenționat strictă:
 
 | Zonă | Responsabilitate | Poate conține Playwright? | Se rulează implicit? |
 |---|---|---:|---:|
-| `component` | contracte, modele, politici, validatori și teste de arhitectură | nu | da |
+| `component` | contracte, modele, politici, validatori și fixture-uri browser locale | da, prin `support`, numai pentru fixture locală | da |
 | `e2e` | scenarii browser și validarea randării reale | da, prin `support` | numai explicit |
 | `support` | cod reutilizabil pentru testele de mai sus | da, când este adaptor browser | nu ca test root |
 
-Un `*Test` care deschide raportul sau folosește `Page` aparține lui `e2e`.
-Un flow, locator, fixture, inspector sau dynamic engine aparține lui
+Un journey complet de audit aparține lui `e2e`; o componentă browser izolată
+verifică numai fixture-ul local și boundary-ul declarat. Un flow, locator, fixture, inspector sau dynamic engine aparține lui
 `support`. `component` nu are voie să devină un depozit pentru helper-e.
+
+Nivelul, canalul și output-ul se declară prin
+[adnotările TestKit](../../../../../../../../docs/ATF_Test_Infrastructure_Annotations.md).
 
 ## Pregătirea prin API față de validarea UI
 

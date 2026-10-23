@@ -1,5 +1,8 @@
 package atf.ui.practiceshop.api;
 
+import atf.ui.practiceshop.api.contract.ShopApiQueryParameter;
+import atf.ui.practiceshop.api.contract.ShopProductSort;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 

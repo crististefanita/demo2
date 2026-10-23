@@ -4,10 +4,10 @@ import atf.api.core.http.request.ApiRequest;
 import atf.api.core.http.request.HttpHeader;
 import atf.api.core.http.request.HttpMethod;
 import atf.api.core.http.request.MediaTypes;
-import atf.ui.practiceshop.api.ShopApiHttpStatus;
+import atf.ui.practiceshop.api.contract.ShopApiHttpStatus;
 import atf.ui.practiceshop.api.ShopApiRequestFactory;
 import atf.ui.practiceshop.api.ShopApiRoutes;
-import atf.ui.practiceshop.api.ShopPaymentMethod;
+import atf.ui.practiceshop.api.contract.ShopPaymentMethod;
 import atf.ui.practiceshop.support.ShopJsonEvidence;
 import atf.ui.tests.practiceshop.api.support.ShopApiCallComponentTest;
 import atf.ui.tests.practiceshop.api.support.ShopApiCallAuditContextTestSupport;
@@ -59,7 +59,7 @@ class ShopApiEndpointMatrixTest {
         if (ShopApiHttpStatus.NO_CONTENT.matches(response.status())) {
             assertTrue(response.body().isEmpty(), scenario.name());
         } else {
-            assertTrue(response.header("content-type").contains(MediaTypes.APPLICATION_JSON),
+            assertTrue(response.header(HttpHeader.CONTENT_TYPE.value()).contains(MediaTypes.APPLICATION_JSON),
                     scenario.name());
             assertNotNull(ShopJsonEvidence.parse(response.body()), scenario.name());
         }

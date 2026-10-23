@@ -1,5 +1,6 @@
 package atf.api.core.config;
 
+import atf.api.core.http.auth.AuthProfiles;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Set;
@@ -14,7 +15,7 @@ public record ApiSettings(URI baseUri, String defaultAuthProfile, Duration timeo
     public ApiSettings {
         Objects.requireNonNull(baseUri, "baseUri");
         if (defaultAuthProfile == null || defaultAuthProfile.isBlank()) {
-            defaultAuthProfile = "none";
+            defaultAuthProfile = AuthProfiles.NONE;
         }
         if (timeout == null || timeout.isZero() || timeout.isNegative()) {
             throw new IllegalArgumentException("timeout must be positive");

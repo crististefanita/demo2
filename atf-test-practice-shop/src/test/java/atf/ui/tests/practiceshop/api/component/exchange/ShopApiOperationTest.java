@@ -7,7 +7,6 @@ import atf.ui.practiceshop.api.ShopApiRoutes;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @AtfComponentTest
 class ShopApiOperationTest {
@@ -32,10 +31,10 @@ class ShopApiOperationTest {
         assertEquals(ShopApiOperation.CART_REMOVE, remove);
         assertEquals(ShopApiOperation.ORDER_CREATE, order);
         assertEquals(ShopApiOperation.USER_REGISTER, registration);
-        assertTrue(product.routeTemplate().contains("{productId}"));
-        assertTrue(cart.routeTemplate().contains("{cartId}"));
-        assertTrue(update.routeTemplate().contains("{cartId}"));
-        assertTrue(remove.routeTemplate().contains("{productId}"));
+        assertEquals(ShopApiRoutes.PRODUCT_DETAIL_TEMPLATE, product.routeTemplate());
+        assertEquals(ShopApiRoutes.CART_RESOURCE_TEMPLATE, cart.routeTemplate());
+        assertEquals(ShopApiRoutes.CART_QUANTITY_TEMPLATE, update.routeTemplate());
+        assertEquals(ShopApiRoutes.CART_PRODUCT_TEMPLATE, remove.routeTemplate());
     }
 
     @Test
@@ -49,9 +48,11 @@ class ShopApiOperationTest {
     @Test
     void classifiesObservedQueryAsSearchWithoutChangingItsCapturedMethod() {
         assertEquals(ShopApiOperation.SEARCH,
-                ShopApiOperation.resolve("QUERY", ShopApiRoutes.PRODUCT_SEARCH));
+                ShopApiOperation.resolve(ShopApiOperation.OBSERVED_QUERY_METHOD,
+                        ShopApiRoutes.PRODUCT_SEARCH));
         assertEquals("QUERY /products/search — find configured product",
-                ShopApiOperation.reportTitle("QUERY", ShopApiRoutes.PRODUCT_SEARCH));
+                ShopApiOperation.reportTitle(ShopApiOperation.OBSERVED_QUERY_METHOD,
+                        ShopApiRoutes.PRODUCT_SEARCH));
     }
 
     @Test

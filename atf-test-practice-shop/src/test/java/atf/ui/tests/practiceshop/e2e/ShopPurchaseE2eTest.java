@@ -14,8 +14,7 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 /** One complete, guest-safe purchase proof; no account secret is required. */
 @AtfE2eTest
 @AtfTestChannel(TestChannel.UI_API)
-@ShopE2eTestSupport.WithE2eHarness(
-        profile = ShopE2eTestSupport.HarnessProfile.UI_API)
+@ShopE2eTestSupport.WithE2eHarness
 @Execution(ExecutionMode.SAME_THREAD)
 @Order(3)
 @DisplayName("Guest purchase flow with UI and API evidence")

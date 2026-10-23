@@ -66,12 +66,16 @@ class ShopArchitectureTest {
         Path source = locateModuleRoot().resolve("src/main/java/atf/ui/practiceshop/locators/ShopLocators.java");
         String locators = Files.readString(source);
 
-        assertTrue(locators.contains("input[id='email']"));
-        assertTrue(locators.contains("input[id='search-query']"));
-        assertTrue(locators.contains("*[data-test='login-submit']"));
+        assertTrue(locators.contains("HtmlElement.INPUT.attributeEquals(ID, \"email\")"));
+        assertTrue(locators.contains("HtmlElement.INPUT.attributeEquals(ID, \"search-query\")"));
+        assertTrue(locators.contains(
+                "HtmlElement.BUTTON.attributeEquals(DATA_TEST, \"login-submit\")"));
         assertFalse(locators.contains("input#"), "ID shorthand must not be the default selector form");
-        assertFalse(locators.contains("= \"[data-test='login-submit']\""),
+        assertFalse(locators.contains("DATA_TEST.equalsSelector(\"login-submit\")"),
                 "known button tag must not be hidden behind a generic attribute selector");
+        assertTrue(locators.contains("atf.api.ui.dom.HtmlElement")
+                        && locators.contains("atf.api.ui.dom.HtmlAttribute"),
+                "physical DOM vocabulary must be reused from atf-ui");
         assertTrue(locators.contains("external Practice Shop contract guarantees data-test"),
                 "wildcard selectors require a local external-contract justification");
     }

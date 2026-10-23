@@ -26,6 +26,7 @@ Acest fișier păstrează cerințele Reporting încă deschise, lacunele observa
 | P1 — gate comun | Teste de componentă care resping abaterile | `atf-reporting-tests` | Matrice pozitivă și probe negative explicite |
 | P1 — GOV-API-01 | Guvernanță pentru aceeași structură API, fără excepții per consumer | `atf-tests` și `atf-reporting-tests` | Boundary comun, matrice executată și fixture-uri neconforme respinse |
 | P2 — CATEGORIES-EMPTY-01 | Filtrul fără rezultate păstrează detaliul categoriei precedente | Reporting: Categories | Cu filtrul Fail pe fixture fără FAIL: listă și detaliu goale explicit; Clear restaurează selecția |
+| P2 — PUB-FS-02 | Pe Windows, ștergerea unui asset temporar vendor poate bloca finalizarea cu `FileSystemException` | Reporting: publication | probă cu asset temporar blocat, cleanup bounded și rezultat explicit; fără oprirea altor procese, artifact parțial promovat sau suprimarea diagnosticului |
 | P2 — documentație | Eliminarea contradicțiilor contract/cod | Responsabilii README-urilor | Un contract actual, promovat după implementare |
 
 ### Progres verificat în implementarea curentă
@@ -51,19 +52,19 @@ Acest fișier păstrează cerințele Reporting încă deschise, lacunele observa
   [contractul de display și layout](../ATF_Reporting_Display_Contract.md) și
   [matricea responsive](../../atf-reporting-tests/README.md#verificarea-randării-responsive).
 
-### Dependență deschisă — adnotările directorului de output
+### Dependență de infrastructură — verificări de output rămase
 
-Extracția în TestKit și ancora project-relative pentru E2E Reporting sunt
-urmărite exclusiv în [feedback-ul infrastructurii de adnotări](ATF_Test_Infrastructure_Annotations_Feedback.md).
-Această analiză nu schimbă sensul actual al lui `UiReportSubdirectory` și nu
-închide cerințele de prezentare ale raportului.
+Adnotările sunt implementate în TestKit conform
+[contractului de infrastructură](../ATF_Test_Infrastructure_Annotations.md).
+Probele symlink/junction, launcher și matricea output rămân în
+[feedback-ul infrastructurii](ATF_Test_Infrastructure_Annotations_Feedback.md).
 
 ### Dependență deschisă — selecția canalului testului
 
-Standardizarea UI, API și UI+API prin TestKit este analizată în
-[feedback-ul adnotărilor de canal](ATF_Test_Channel_Annotations_Feedback.md).
+Resolverul TestKit și preflight-ul sunt implementate; matricea de integrare
+UI/API/UI+API rămâne în [feedback-ul canalelor](ATF_Test_Channel_Annotations_Feedback.md).
 API-06, API-04 și GOV-API-01 rămân ownerii separării verdictelor, cauzalității
-și structurii comune; adnotarea propusă nu închide aceste cerințe.
+și structurii comune; selecția canalului nu închide aceste cerințe.
 
 ### PUB-01 — bugetul de memorie al publicării
 

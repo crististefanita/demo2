@@ -1,6 +1,10 @@
 package atf.ui.tests.practiceshop.api.component.reporting;
 
+import atf.api.core.http.protocol.ApiUris;
+import atf.api.core.http.protocol.HttpHeaderProfiles;
+import atf.api.core.http.request.HttpMethod;
 import atf.api.core.http.request.ApiRequest;
+import atf.api.core.http.request.HttpHeader;
 import atf.api.core.http.response.ApiExecutionResult;
 import atf.api.core.http.response.ApiResponse;
 import atf.api.core.http.transport.ApiTransportProvenance;
@@ -13,16 +17,15 @@ import atf.api.testkit.AtfComponentTest;
 import atf.api.ui.config.UiNetworkInspectionConfiguration;
 import atf.api.ui.network.UiNetworkInspector;
 import atf.api.ui.network.UiNetworkObservation;
-import atf.ui.practiceshop.config.ShopApiCheckpoint;
-import atf.ui.practiceshop.config.ShopApiEvidenceBinding;
+import atf.ui.practiceshop.config.api.ShopApiCheckpoint;
+import atf.ui.practiceshop.config.api.ShopApiEvidenceBinding;
 import atf.ui.practiceshop.config.ShopValidationProfile;
-import atf.ui.practiceshop.support.ShopApiEvidenceMapper;
-import atf.ui.practiceshop.support.ShopApiNetworkJournal;
-import atf.ui.practiceshop.support.ShopApiReportPublisher;
+import atf.ui.practiceshop.support.api.ShopApiEvidenceMapper;
+import atf.ui.practiceshop.support.api.ShopApiNetworkJournal;
+import atf.ui.practiceshop.support.reporting.ShopApiReportPublisher;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import java.net.URI;
 import java.net.http.HttpRequest;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,10 +44,12 @@ class ShopApiAuthenticationSchemaTest {
 
     @Test
     void directAndAuditedPublishersKeepTheProfileSeparateFromTheCapturedMechanism() throws Exception {
-        var request = new ApiRequest(HttpRequest.BodyPublishers.noBody(), "GET", "/private", Map.of(),
-                Map.of("Authorization", "Bearer auth-schema-private-token"), "shop-user", null);
-        var response = new ApiResponse(200, "{}", Map.of("Content-Type", "application/json"),
-                Duration.ofMillis(1), "https://api.example.test/private");
+        var request = new ApiRequest(HttpRequest.BodyPublishers.noBody(), HttpMethod.GET.value(), "/private", Map.of(),
+                Map.of(HttpHeader.AUTHORIZATION.value(), "Bearer auth-schema-private-token"),
+                "shop-user", null);
+        var response = new ApiResponse(200, "{}",
+                HttpHeaderProfiles.JSON_CONTENT,
+                Duration.ofMillis(1), ApiUris.httpsUrl("api.example.test", "/private"));
         var execution = new ApiExecutionResult(response, 1, Duration.ofMillis(1),
                 List.of(), List.of(), request, ApiTransportProvenance.ACCEPTANCE_MOCK);
         var adapted = ShopApiEvidenceMapper.toExecution(execution).request();
@@ -79,11 +84,12 @@ class ShopApiAuthenticationSchemaTest {
         var inspector = new UiNetworkInspector(
                 UiNetworkInspectionConfiguration.forHosts(List.of("api.example.test")));
         journal.attach(inspector);
-        inspector.capture(new UiNetworkObservation(1, Instant.EPOCH, "POST",
-                "https://api.example.test/users/register", "/users/register", 201,
-                Map.of("Authorization", "Bearer auth-schema-private-token"), Map.of(),
+        inspector.capture(new UiNetworkObservation(1, Instant.EPOCH, HttpMethod.POST.value(),
+                ApiUris.httpsUrl("api.example.test", "/users/register"),
+                "/users/register", 201,
+                Map.of(HttpHeader.AUTHORIZATION.value(), "Bearer auth-schema-private-token"), Map.of(),
                 "{}", "{}", "bearer", "header", "api.example.test", "UI_BROWSER", "", true));
-        journal.registrationConfirmed(0, URI.create("https://api.example.test"));
+        journal.registrationConfirmed(0, ApiUris.httpsEndpoint("api.example.test"));
         var request = journal.evidence(ShopApiCheckpoint.REGISTRATION).getFirst().request();
         assertEquals("none", request.authProfile(), "a browser capture does not know a configured API profile");
         assertEquals(ReportAuthMethod.BEARER, request.authMethod());

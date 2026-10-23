@@ -21,6 +21,7 @@ particular.
 | evidence transversal | `ATF_Evidence_Capture_Contract.md` | cum se separă flow-ul, policy-ul, sursa și publisherul? |
 | practică | `README_Atf_BestPractices.md` | cum adăugăm cod fără drift? |
 | testare | `ATF_Testing_Guide.md` | ce layer, modul și proof aleg pentru un comportament? |
+| infrastructură de test | `ATF_Test_Infrastructure_Annotations.md` | cum declar nivelul, canalul, output-ul, setup-ul și documentația? |
 | design propus | `ATF_AI_Evaluation_Design.md` | ce boundary și contract țintă discutăm, fără a le declara livrate? |
 | execuție | `ATF_Build_And_Execution_Safety.md` | cum lucrăm fără să oprim run-uri? |
 | feedback / guvernanță | `feedback/README.md`, documentele active pe owner și `ATF_Test_Changes_Baseline.md` | ce gap observabil, regulă sau control tehnic de tranziție rămâne? |
@@ -58,6 +59,7 @@ flowchart LR
 |---|---|
 | Orientare și ownership | [Arhitectură](ATF_Architecture.md) · [README root](../README.md) |
 | Scriere și stratificarea testelor | [Ghid de testare](ATF_Testing_Guide.md) · [Ghid API](ATF_Api_Test_Guide.md) · [Bune practici de cod](README_Atf_CodeBestPractices.md) |
+| Adnotări reutilizabile și tag-uri | [Contractul implementat](ATF_Test_Infrastructure_Annotations.md) · [TestKit](../atf-test-kit/README.md) |
 | Reporting și evidence | [Contract reporting](ATF_Reporting_Contract.md) · [Contract display/layout](ATF_Reporting_Display_Contract.md) · [Contract evidence](ATF_Evidence_Capture_Contract.md) · [README reporting](../atf-reporting/README.md) |
 | Consumatori și guvernanță | [Practice Shop](../atf-test-practice-shop/README.md) · [ATF Tests](../atf-tests/README.md) · [registrul feedback](feedback/README.md) |
 | Design și implementare AI | [Design de referință](ATF_AI_Evaluation_Design.md) · [comparator implementat](../atf-validation/README.md#comparatorul-ai--contract-implementat) · [gap-uri active](feedback/README_AI_Evaluation.md) |
@@ -114,6 +116,8 @@ Indexul complet și ordinea detaliată rămân disponibile la cerere:
     tehnice `VERIFIED` de tranziție, separate de cerințele funcționale.
 23. [ATF_AI_Evaluation_Design.md](ATF_AI_Evaluation_Design.md) — modelele țintă și
     deciziile de boundary pentru AI evaluation/workflow; design propus, nu inventar de funcționalități livrate.
+24. [ATF_Test_Infrastructure_Annotations.md](ATF_Test_Infrastructure_Annotations.md) —
+    niveluri și tag-uri, canale, output project-relative, setup API și documentație; contract implementat și limitele probelor.
 
 </details>
 

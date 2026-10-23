@@ -29,7 +29,7 @@ public interface ExtentSectionAuditModule {
     }
 
     default Page evidencePage(SectionAuditFixture fixture) {
-        return fixture.audit().openTab(evidenceTab().hash());
+        return fixture.audit().evidencePage(evidenceTab());
     }
 
     default ReportUiContract.Tab evidenceTab() {

@@ -70,6 +70,45 @@ public class ConstantsOwnershipGovernanceTest {
     }
 
     @Test
+    void reusableProtocolDomAuthAndDiagnosticVocabularyStayWithPlatformOwners() throws Exception {
+        Path root = locateProjectRoot();
+        List<String> requiredOwners = List.of(
+                "atf-core/src/main/java/atf/api/core/http/protocol/ApiUris.java",
+                "atf-core/src/main/java/atf/api/core/http/protocol/HttpHeaderProfiles.java",
+                "atf-core/src/main/java/atf/api/core/http/auth/AuthProfiles.java",
+                "atf-core/src/main/java/atf/api/core/diagnostics/ThrowableDiagnostics.java",
+                "atf-ui/src/main/java/atf/api/ui/dom/HtmlElement.java",
+                "atf-ui/src/main/java/atf/api/ui/dom/HtmlAttribute.java",
+                "atf-ui/src/main/java/atf/api/ui/dom/CssPseudoClass.java");
+        assertTrue(requiredOwners.stream().map(root::resolve).allMatch(Files::isRegularFile),
+                () -> "Reusable vocabulary owner is missing: " + requiredOwners);
+
+        Path shopLocators = root.resolve(
+                "atf-test-practice-shop/src/main/java/atf/ui/practiceshop/locators/ShopLocators.java");
+        String locatorSource = Files.readString(shopLocators);
+        Pattern rawHtmlSelector = Pattern.compile(
+                "\\\"(?:body|nav|span|h1|input|textarea|select|option|button|a|img|form|table|footer)"
+                        + "(?:\\[|\\.|:|\\s|,|\\\")");
+        assertFalse(rawHtmlSelector.matcher(locatorSource).find(),
+                "Practice Shop locators must compose canonical element names through atf-ui HtmlElement");
+        assertFalse(locatorSource.contains(".attributeEquals(\""),
+                "Practice Shop locators must compose canonical attribute names through atf-ui HtmlAttribute");
+        assertFalse(locatorSource.contains("\":checked\""),
+                "Practice Shop locators must compose reusable pseudo-classes through atf-ui CssPseudoClass");
+        assertTrue(locatorSource.contains("HtmlElement.INPUT")
+                        && locatorSource.contains("HtmlElement.TEXTAREA")
+                        && locatorSource.contains("HtmlElement.SELECT")
+                        && locatorSource.contains("DATA_TEST")
+                        && locatorSource.contains("CssPseudoClass.CHECKED"),
+                "Practice Shop locators must reuse the canonical atf-ui DOM vocabulary");
+
+        assertFalse(Files.exists(root.resolve(
+                "atf-test-practice-shop/src/main/java/atf/ui/practiceshop/api/contract/ShopApiAuthType.java")));
+        assertFalse(Files.exists(root.resolve(
+                "atf-test-practice-shop/src/main/java/atf/ui/practiceshop/api/contract/ShopApiAuthProfile.java")));
+    }
+
+    @Test
     void reportingTestsDoNotRepeatConcreteRouteOrEnvironmentLiterals() throws Exception {
         Path root = locateProjectRoot();
         Path reportingTests = root.resolve("atf-reporting-tests/src/test/java");

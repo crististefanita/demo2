@@ -1,10 +1,13 @@
 package atf.ui.practiceshop.support;
 
 import atf.api.core.http.request.HttpMethod;
+import atf.api.core.http.request.HttpHeader;
+import atf.api.core.http.request.MediaTypes;
 import atf.ui.practiceshop.api.ShopApiRequestFactory;
 import atf.ui.practiceshop.api.ShopApiRoutes;
-import atf.ui.practiceshop.config.ShopApiConfiguration;
-import atf.ui.practiceshop.config.ShopCredentials;
+import atf.ui.practiceshop.config.api.ShopApiConfiguration;
+import atf.ui.practiceshop.config.model.ShopCredentials;
+import atf.ui.practiceshop.support.api.ShopApiBodyEvidence;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -79,8 +82,8 @@ public final class ShopLoginBodyRecovery {
             connection.setReadTimeout((int) configuration.timeout().toMillis());
             connection.setRequestMethod(HttpMethod.POST.value());
             connection.setDoOutput(true);
-            connection.setRequestProperty("Accept", "application/json");
-            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setRequestProperty(HttpHeader.ACCEPT.value(), MediaTypes.APPLICATION_JSON);
+            connection.setRequestProperty(HttpHeader.CONTENT_TYPE.value(), MediaTypes.APPLICATION_JSON);
             byte[] body = request.bodyText().getBytes(StandardCharsets.UTF_8);
             try (var output = connection.getOutputStream()) {
                 output.write(body);

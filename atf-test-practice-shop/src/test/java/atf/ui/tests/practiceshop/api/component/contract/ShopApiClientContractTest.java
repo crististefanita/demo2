@@ -1,14 +1,12 @@
 package atf.ui.tests.practiceshop.api.component.contract;
 
+import atf.api.core.http.protocol.HttpHeaderProfiles;
 import atf.api.core.http.response.ApiResponse;
 import atf.api.core.config.ApiTransportMode;
-import atf.api.core.http.request.HttpHeader;
-import atf.api.core.http.request.MediaTypes;
 import atf.api.core.http.transport.ApiTransport;
 import atf.api.core.http.transport.ApiTransportProvenance;
 import atf.ui.practiceshop.api.ShopApiClient;
-import atf.ui.practiceshop.api.ShopApiHttpStatus;
-import atf.ui.practiceshop.config.ShopCredentials;
+import atf.ui.practiceshop.api.contract.ShopApiHttpStatus;
 import atf.ui.tests.practiceshop.api.support.ShopApiComponentFixture;
 import atf.ui.tests.practiceshop.api.support.ShopApiScenarioFixture;
 import atf.ui.tests.practiceshop.api.support.ShopApiCallComponentTest;
@@ -16,7 +14,6 @@ import atf.ui.tests.practiceshop.api.support.ShopApiCallAuditContextTestSupport;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -112,7 +109,7 @@ class ShopApiClientContractTest {
     private static ApiTransport jsonTransport(String responseBody) {
         return (request, url, auth) -> CompletableFuture.completedFuture(new ApiResponse(
                 ShopApiHttpStatus.OK.code(), responseBody,
-                Map.of(HttpHeader.CONTENT_TYPE.value(), MediaTypes.APPLICATION_JSON),
+                HttpHeaderProfiles.JSON_CONTENT,
                 Duration.ZERO, url));
     }
 }

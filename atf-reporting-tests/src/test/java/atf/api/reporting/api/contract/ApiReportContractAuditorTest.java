@@ -7,6 +7,11 @@ import atf.api.mock.MockRoute;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import static atf.api.reporting.support.MockApiReportContractFixtures.JSON;
+import static atf.api.reporting.support.MockApiReportContractFixtures.PLAIN_TEXT;
 
 import static atf.api.reporting.support.MockApiReportContractFixtures.OK_BODY;
 import static atf.api.reporting.support.MockApiReportContractFixtures.REQUEST_BODY;
@@ -29,6 +34,58 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** Verifies the reporting module directly against the mock catalog port. */
 @AtfComponentTest
 class ApiReportContractAuditorTest {
+    @Test
+    void acceptsCanonicalAndLegacyContentTypeFieldsWithoutHidingContradictions() {
+        var input = acceptedInput();
+        var auditor = new ApiReportContractAuditor(catalog(acceptedPostRoute()));
+        for (String field : List.of(ApiReportEvidenceField.CONTENT_TYPE.key(),
+                "CONTENT-TYPE", "response.content.type", "content type")) {
+            var response = new LinkedHashMap<>(input.responseFields());
+            response.remove("CONTENT-TYPE");
+            response.put(field, JSON);
+            var result = auditor.inspect(withMetadata(input, input.requestUrl(), response, input.executionFields()));
+            assertTrue(result.compliant(), () -> field + ": " + result.violations());
+        }
+        for (Map<String, String> fields : List.of(Map.<String, String>of(),
+                Map.of(ApiReportEvidenceField.CONTENT_TYPE.key(), PLAIN_TEXT),
+                Map.of(ApiReportEvidenceField.CONTENT_TYPE.key(), JSON, "CONTENT-TYPE", PLAIN_TEXT))) {
+            var response = new LinkedHashMap<>(input.responseFields());
+            response.remove("CONTENT-TYPE");
+            response.putAll(fields);
+            var result = auditor.inspect(withMetadata(input, input.requestUrl(), response, input.executionFields()));
+            assertFalse(result.compliant(), "missing, wrong or contradictory evidence must fail");
+            assertTrue(result.violations().stream().anyMatch(value -> value.contains("expected CONTENT-TYPE")));
+        }
+    }
+
+    @Test
+    void queryMustComeFromTheRequestUrlEvenWhenExecutionRetainsTheExpectedUrl() {
+        var input = acceptedInput();
+        var auditor = new ApiReportContractAuditor(catalog(acceptedPostRoute()));
+        for (String url : List.of(input.requestUrl().split("\\?")[0],
+                input.requestUrl().replace("validate", "wrong"), "")) {
+            var result = auditor.inspect(withMetadata(input, url, input.responseFields(), input.executionFields()));
+            assertFalse(result.compliant());
+            assertTrue(result.violations().stream().anyMatch(value -> value.contains("expected query mode")));
+        }
+    }
+
+    @Test
+    void canonicalExecutionFieldsRemainStrictIncludingConflictingAliases() {
+        var input = acceptedInput();
+        var auditor = new ApiReportContractAuditor(catalog(acceptedPostRoute()));
+        var canonical = Map.of(ApiReportEvidenceField.RESPONSE_STATUS.key(), String.valueOf(input.actualStatus()),
+                ApiReportEvidenceField.RESPONSE_URL.key(), input.requestUrl());
+        assertTrue(auditor.inspect(withMetadata(input, input.requestUrl(), input.responseFields(), canonical)).compliant());
+        for (Map<String, String> drift : List.of(
+                Map.of(ApiReportEvidenceField.RESPONSE_STATUS.key(), "500"),
+                Map.of(ApiReportEvidenceField.RESPONSE_URL.key(), input.requestUrl() + "&unexpected=true"),
+                Map.of(ApiReportEvidenceField.RESPONSE_STATUS.key(), String.valueOf(input.actualStatus()),
+                        "response.status", "500"))) {
+            assertFalse(auditor.inspect(withMetadata(input, input.requestUrl(), input.responseFields(), drift)).compliant());
+        }
+    }
+
     @Test
     void reconcilesRenderedRequestResponseAndExecutionMetadataWithMockCatalog() {
         var result = new ApiReportContractAuditor(catalog(acceptedPostRoute())).inspect(acceptedInput());
@@ -96,5 +153,12 @@ class ApiReportContractAuditorTest {
                         route.body(), route.headers(), route.authProfile(), route.queryParameters(),
                         route.requiredHeaders(), route.requestBodyMode(), route.expectedRequestBody()))
                 .toList();
+    }
+
+    private static ApiReportContractInput withMetadata(ApiReportContractInput input, String requestUrl,
+                                                       Map<String, String> response, Map<String, String> execution) {
+        return new ApiReportContractInput(input.requestTitle(), requestUrl, input.actualStatus(),
+                input.requestBody(), input.responseBody(), input.evidenceViolations(),
+                input.requestFields(), response, execution);
     }
 }

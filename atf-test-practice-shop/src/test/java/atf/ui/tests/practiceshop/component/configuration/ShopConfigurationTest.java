@@ -2,10 +2,10 @@ package atf.ui.tests.practiceshop.component.configuration;
 
 import atf.api.testkit.AtfComponentTest;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
-import atf.ui.practiceshop.config.ShopAccountFixturePolicy;
-import atf.ui.practiceshop.config.ShopApiCheckpoint;
-import atf.ui.practiceshop.config.ShopApiConfiguration;
-import atf.ui.practiceshop.config.ShopApiPrecondition;
+import atf.ui.practiceshop.config.model.ShopAccountFixturePolicy;
+import atf.ui.practiceshop.config.api.ShopApiCheckpoint;
+import atf.ui.practiceshop.config.api.ShopApiConfiguration;
+import atf.ui.practiceshop.config.api.ShopApiPrecondition;
 import atf.ui.practiceshop.config.ShopConfigurationLoader;
 import atf.ui.practiceshop.config.ShopReportConfiguration;
 import atf.ui.practiceshop.config.ShopValidationProfile;

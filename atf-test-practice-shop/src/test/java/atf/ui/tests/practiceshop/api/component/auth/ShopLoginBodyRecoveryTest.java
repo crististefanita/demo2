@@ -1,7 +1,7 @@
 package atf.ui.tests.practiceshop.api.component.auth;
 
 import atf.api.testkit.AtfComponentTest;
-import atf.ui.practiceshop.support.ShopApiBodyEvidence;
+import atf.ui.practiceshop.support.api.ShopApiBodyEvidence;
 import atf.ui.practiceshop.support.ShopLoginBodyRecovery;
 import org.junit.jupiter.api.Test;
 

@@ -1,7 +1,7 @@
 package atf.ui.tests.practiceshop.component.configuration;
 
 import atf.api.testkit.AtfComponentTest;
-import atf.ui.practiceshop.config.ShopCredentials;
+import atf.ui.practiceshop.config.model.ShopCredentials;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 

@@ -5,6 +5,7 @@ import atf.api.core.config.source.ApiEnvironment;
 import atf.api.core.config.ApiTransportMode;
 import atf.api.core.config.ApiTransportPolicy;
 import atf.api.core.http.auth.ApiAuthenticator;
+import atf.api.core.http.auth.AuthProfiles;
 import atf.api.core.http.request.ApiRequest;
 
 import java.net.URI;
@@ -98,7 +99,7 @@ public final class ApiLiveTransportCatalog {
                 return CompletableFuture.failedFuture(new IllegalArgumentException(
                         "Live request escaped endpoint origin: " + endpoint.name()));
             }
-            String authProfile = request.authProfile().equals("none")
+            String authProfile = request.authProfile().equals(AuthProfiles.NONE)
                     ? endpoint.authProfile() : request.authProfile();
             return delegate.send(request, url, authProfile);
         };
@@ -116,7 +117,7 @@ public final class ApiLiveTransportCatalog {
             if (baseUri.getUserInfo() != null || baseUri.getFragment() != null) {
                 throw new IllegalArgumentException("baseUri must not contain credentials or a fragment");
             }
-            authProfile = authProfile == null || authProfile.isBlank() ? "none" : authProfile.trim();
+            authProfile = AuthProfiles.normalize(authProfile);
             timeout = Objects.requireNonNull(timeout, "timeout");
             if (timeout.isZero() || timeout.isNegative()) throw new IllegalArgumentException("timeout must be positive");
         }

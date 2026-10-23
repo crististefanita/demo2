@@ -18,7 +18,6 @@ import java.util.List;
 @AtfE2eTest
 @AtfTestChannel(TestChannel.UI)
 @ShopE2eTestSupport.WithE2eHarness(
-        profile = ShopE2eTestSupport.HarnessProfile.UI_ONLY,
         reportFlow = ShopE2eTestSupport.ReportFlow.UNIFIED_FLOW)
 @Execution(ExecutionMode.SAME_THREAD)
 @Order(5)

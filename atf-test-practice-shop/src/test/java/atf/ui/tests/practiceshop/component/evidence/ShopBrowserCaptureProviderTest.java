@@ -1,5 +1,6 @@
 package atf.ui.tests.practiceshop.component.evidence;
 
+import atf.api.core.http.protocol.ApiUris;
 import atf.api.reporting.evidence.profile.ReportEvidenceCaptureSource;
 import atf.api.testkit.AtfComponentTest;
 import atf.api.ui.config.UiScreenValidationConfiguration;
@@ -41,7 +42,8 @@ class ShopBrowserCaptureProviderTest {
         var provider = new ShopBrowserCaptureProvider(page,
                 UiScreenValidationConfiguration.defaults());
 
-        var screenshot = provider.capture("final state", "https://example.test/checkout");
+        var screenshot = provider.capture("final state",
+                ApiUris.httpsUrl("example.test", "/checkout"));
 
         assertEquals(ReportEvidenceCaptureSource.BROWSER, provider.source());
         assertEquals("final state", screenshot.title());

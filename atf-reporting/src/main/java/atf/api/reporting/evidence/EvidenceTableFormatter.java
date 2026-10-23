@@ -1,6 +1,7 @@
 package atf.api.reporting.evidence;
 import atf.api.reporting.duration.AtfDurationFormatter;
 import atf.api.reporting.api.ApiEvidenceField;
+import atf.api.reporting.api.contract.ApiReportEvidenceField;
 import atf.api.reporting.markup.AtfReportLabels;
 import atf.api.reporting.model.ReportField;
 
@@ -170,7 +171,7 @@ public final class EvidenceTableFormatter {
             case "transport", "transport.provenance" -> "TRANSPORT PROVENANCE";
             case "manual replay", "manual.replay" -> "MANUAL REPLAY";
             case "response.status" -> "RESPONSE STATUS";
-            case "response.content.type" -> "CONTENT TYPE";
+            case "response.content.type" -> ApiReportEvidenceField.CONTENT_TYPE.key();
             case "response.duration.ms" -> "RESPONSE DURATION";
             case "exchange.duration.ms", "total.duration.ms" -> "TOTAL DURATION";
             case "trace.parent.step" -> "TRACE PARENT STEP";

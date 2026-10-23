@@ -15,10 +15,26 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @AtfUnitTest
 class AtfUiConfigurationLoaderTest {
+    @Test
+    void reportingOutputRootComesFromItsResourceWhenTheWorkingDirectoryIsUnrelated() throws Exception {
+        Path unrelated = Files.createTempDirectory("foreign-ide-working-directory-");
+        var process = new AtfUiConfigurationContext(unrelated, null, null);
+
+        Path root = ReportingTestResources.projectRoot(process);
+        Path resource = ReportingTestResources.resourcePath(ReportingTestResources.UI_RESOURCE);
+
+        assertNotEquals(unrelated, root);
+        assertTrue(Files.isRegularFile(root.resolve("atf-reporting/pom.xml")));
+        assertTrue(resource.startsWith(root));
+        assertEquals(root.resolve("artifacts/reports/ui"),
+                ReportingTestResources.uiConfiguration().reportDirectory());
+    }
+
     @Test
     void loadsTheUiSectionAndResolvesReportDirectoryRelativeToYaml() throws Exception {
         Path root = Files.createTempDirectory("atf-ui-config-");

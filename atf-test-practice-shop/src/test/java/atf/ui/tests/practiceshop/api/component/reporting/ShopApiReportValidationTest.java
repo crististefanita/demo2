@@ -2,7 +2,7 @@ package atf.ui.tests.practiceshop.api.component.reporting;
 
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.testkit.AtfComponentTest;
-import atf.ui.practiceshop.support.ShopApiReportValidation;
+import atf.ui.practiceshop.support.api.ShopApiReportValidation;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

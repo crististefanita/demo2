@@ -3,11 +3,11 @@ package atf.ui.practiceshop.flow;
 import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.ui.practiceshop.config.ShopConfiguration;
 import atf.ui.practiceshop.locators.ShopLocators;
-import atf.ui.practiceshop.support.ShopApiNetworkJournal;
-import atf.ui.practiceshop.support.ShopHomeScreenValidator;
-import atf.ui.practiceshop.support.ShopPageValidator;
+import atf.ui.practiceshop.support.api.ShopApiNetworkJournal;
+import atf.ui.practiceshop.support.validation.ShopHomeScreenValidator;
+import atf.ui.practiceshop.support.validation.ShopPageValidator;
 import atf.ui.practiceshop.support.ShopPurchaseCheckpoint;
-import atf.ui.practiceshop.support.ShopPurchaseScreenValidator;
+import atf.ui.practiceshop.support.validation.ShopPurchaseScreenValidator;
 import com.microsoft.playwright.Page;
 
 import java.util.Objects;

@@ -386,10 +386,19 @@ repetă statusul response-ului sau mecanica execuției:
 
 ```text
 URL
-CONTENT-TYPE
+CONTENT TYPE
 FAILURE CAUSE (dacă există)
 alte facts HTTP non-duplicative
 ```
+
+Etichetele randate sunt distincte de numele headerelor HTTP: `CONTENT TYPE`
+este câmpul de raport, iar `Content-Type` este headerul transportului.
+`ApiReportEvidenceField` definește etichetele canonice și aliasurile legacy
+explicite, inclusiv `CONTENT-TYPE`, `response.status` și `response.url`.
+Auditul nu alege tăcut o valoare favorabilă dacă aliasurile se contrazic.
+Query-ul se reconciliază din URL-ul complet al request-ului; URL-ul efectiv
+al răspunsului rămâne dovadă separată. Câmpurile response se citesc numai din
+disclosure-ul lor, fără trace-ul tehnic al execuției.
 
 `Execution evidence · N attempts` este disclosure-ul separat pentru mecanica
 transportului. El păstrează URL-ul efectiv, durata response-ului, numărul de

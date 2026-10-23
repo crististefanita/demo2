@@ -34,13 +34,12 @@ public final class EvidenceSectionExtractor {
         auditFlow.actions().waitForVisible(new AtfLocator(locators.boundScenarioHeader(scenario),
                 ".test-content-detail .card[data-atf-scenario-id] > .card-header"
                         + "[data-atf-scenario-collapse-bound='true']"));
-        Locator testBody = locators.visiblePhase(scenario, ReportUiContract.Phase.TEST_BODY).first();
-        for (int attempt = 0; attempt < 3 && testBody.count() == 0; attempt++) {
+        if (!"true".equals(scenario.getAttribute("data-atf-scenario-open"))) {
             auditFlow.actions().click(locators.scenarioNodeAction(scenario), "scenario is expanded");
             auditFlow.actions().waitForAttribute(page, scenarioTarget, "data-atf-scenario-open", "true",
                     "scenario expansion is ready");
-            testBody = locators.visiblePhase(scenario, ReportUiContract.Phase.TEST_BODY).first();
         }
+        Locator testBody = locators.visiblePhase(scenario, ReportUiContract.Phase.TEST_BODY).first();
         if (testBody.count() == 0) return missing("TEST BODY is missing");
         auditFlow.actions().waitForVisible(new AtfLocator(locators.boundPhaseHeader(testBody),
                 ".test-content-detail [data-atf-node-role='phase'] > .card-header"
@@ -48,6 +47,8 @@ public final class EvidenceSectionExtractor {
         if (!"true".equals(locators.nodeHeader(testBody).getAttribute("aria-expanded"))) {
             auditFlow.actions().click(locators.phaseNodeAction(testBody), "TEST BODY is expanded");
         }
+        auditFlow.actions().waitForAttribute(page, locators.phaseStateTarget(testBody),
+                "data-atf-phase-open", "true", "TEST BODY expansion is ready");
         Locator requests = locators.requestsInPhase(testBody);
         if (requests.count() == 0) {
             // Keep the semantic leaf-request contract while tolerating an
@@ -59,6 +60,8 @@ public final class EvidenceSectionExtractor {
         if (!"true".equals(request.getAttribute("data-atf-node-open"))) {
             auditFlow.actions().click(locators.requestNodeToggleAction(request), "request evidence is expanded");
         }
+        auditFlow.actions().waitForAttribute(page, locators.nodeCardAction(request),
+                "data-atf-node-open", "true", "request expansion is ready");
         expand(locators.requestEvidenceDisclosure(request), locators.requestEvidenceDisclosureAction(request), "request evidence");
         expand(locators.responseEvidenceDisclosure(request), locators.responseEvidenceDisclosureAction(request), "response evidence");
         expand(locators.executionEvidenceDisclosure(request), locators.executionEvidenceDisclosureAction(request), "execution evidence");
@@ -92,6 +95,7 @@ public final class EvidenceSectionExtractor {
         if (summary.count() == 0) return;
         Locator disclosure = locators.parentDisclosure(summary);
         if (disclosure.getAttribute("open") == null) auditFlow.actions().click(action, target + " is expanded");
+        auditFlow.actions().waitForDisclosureOpen(summary.page(), action, target + " is ready");
     }
 
     private static ReportAuditSnapshot.RequestEvidence missing(String message) {

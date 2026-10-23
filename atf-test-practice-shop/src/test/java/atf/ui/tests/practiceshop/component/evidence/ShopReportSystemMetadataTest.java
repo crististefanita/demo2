@@ -2,7 +2,7 @@ package atf.ui.tests.practiceshop.component.evidence;
 
 import atf.api.testkit.AtfComponentTest;
 import atf.ui.practiceshop.config.ShopConfigurationLoader;
-import atf.ui.practiceshop.support.ShopReportSystemMetadata;
+import atf.ui.practiceshop.support.reporting.ShopReportSystemMetadata;
 import atf.ui.practiceshop.config.ShopReportConfiguration;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.configuration.ReportEnvironmentField;

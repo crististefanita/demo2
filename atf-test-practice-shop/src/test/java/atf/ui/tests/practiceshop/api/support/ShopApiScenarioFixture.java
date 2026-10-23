@@ -1,9 +1,9 @@
 package atf.ui.tests.practiceshop.api.support;
 
-import atf.ui.practiceshop.config.ShopApiConfiguration;
-import atf.ui.practiceshop.config.ShopCredentials;
+import atf.ui.practiceshop.config.api.ShopApiConfiguration;
+import atf.ui.practiceshop.config.model.ShopCredentials;
 import atf.ui.practiceshop.api.ShopApiRequestBodies;
-import atf.ui.practiceshop.api.ShopPaymentMethod;
+import atf.ui.practiceshop.api.contract.ShopPaymentMethod;
 
 import java.net.URI;
 

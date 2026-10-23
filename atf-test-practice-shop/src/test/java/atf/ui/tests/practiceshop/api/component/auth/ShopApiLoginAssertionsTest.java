@@ -1,12 +1,14 @@
 package atf.ui.tests.practiceshop.api.component.auth;
 
+import atf.api.core.http.protocol.HttpHeaderProfiles;
 import atf.api.core.http.request.HttpMethod;
+import atf.api.core.http.request.HttpHeader;
 import atf.api.core.http.request.MediaTypes;
 import atf.api.testkit.AtfComponentTest;
-import atf.ui.practiceshop.support.ShopApiAssertions;
-import atf.ui.practiceshop.support.ShopApiNetworkJournal;
+import atf.ui.practiceshop.support.api.ShopApiAssertions;
+import atf.ui.practiceshop.support.api.ShopApiNetworkJournal;
 import atf.ui.practiceshop.api.ShopApiRoutes;
-import atf.ui.practiceshop.api.ShopApiHttpStatus;
+import atf.ui.practiceshop.api.contract.ShopApiHttpStatus;
 import atf.ui.tests.practiceshop.api.support.ShopApiScenarioFixture;
 import org.junit.jupiter.api.Test;
 
@@ -25,8 +27,9 @@ class ShopApiLoginAssertionsTest {
                 ShopApiScenarioFixture.API_ENDPOINT + ShopApiRoutes.LOGIN,
                 ShopApiHttpStatus.OK.code(),
                 "{\"email\":\"<redacted>\",\"password\":\"<redacted>\"}", "",
-                Map.of("content-type", MediaTypes.APPLICATION_JSON), Map.of(
-                "content-type", MediaTypes.APPLICATION_JSON, "content-length", "384"));
+                HttpHeaderProfiles.JSON_CONTENT, Map.of(
+                HttpHeader.CONTENT_TYPE.value(), MediaTypes.APPLICATION_JSON,
+                HttpHeader.CONTENT_LENGTH.value(), "384"));
 
         var assertions = ShopApiAssertions.login(login);
 
@@ -42,8 +45,9 @@ class ShopApiLoginAssertionsTest {
                 ShopApiHttpStatus.OK.code(),
                 "{\"email\":\"<redacted>\",\"password\":\"***REDACTED***\"}",
                 "<body unavailable: Chromium released response payload>",
-                Map.of("content-type", MediaTypes.APPLICATION_JSON), Map.of(
-                "content-type", MediaTypes.APPLICATION_JSON, "content-length", "384"))
+                Map.of(HttpHeader.CONTENT_TYPE.value(), MediaTypes.APPLICATION_JSON), Map.of(
+                HttpHeader.CONTENT_TYPE.value(), MediaTypes.APPLICATION_JSON,
+                HttpHeader.CONTENT_LENGTH.value(), "384"))
                 .withTrace(7, java.time.Instant.parse("2026-10-20T10:00:00Z"), "authentication");
 
         var recovered = captured.withResponseBody("{\"token\":\"raw-token\",\"user\":\"ATF Practice\"}");

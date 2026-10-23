@@ -2,12 +2,12 @@ package atf.ui.tests.practiceshop.api.integration;
 
 import atf.ui.practiceshop.api.ShopApiClient;
 import atf.ui.practiceshop.api.ShopApiScreenFlow;
-import atf.ui.practiceshop.api.ShopApiHttpStatus;
-import atf.ui.practiceshop.api.ShopPaymentMethod;
+import atf.ui.practiceshop.api.contract.ShopApiHttpStatus;
+import atf.ui.practiceshop.api.contract.ShopPaymentMethod;
 import atf.api.testkit.AtfIntegrationTest;
 import atf.ui.practiceshop.config.ShopConfiguration;
 import atf.ui.practiceshop.config.ShopConfigurationLoader;
-import atf.ui.practiceshop.config.ShopCredentials;
+import atf.ui.practiceshop.config.model.ShopCredentials;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;

@@ -172,8 +172,8 @@ final class ReportTreeLocators {
                 + "[data-atf-scenario-collapse-bound='true']");
     }
     Locator boundPhaseHeader(Locator phase) {
-        return phase.locator(":scope[data-atf-phase-header-bound='true'] > "
-                + classToken("card-header"));
+        return phase.locator(":scope > " + classToken("card-header")
+                + "[data-atf-phase-header-bound='true']");
     }
     Locator nodeControl(Locator header) { return header.locator(classToken("node")); }
     Locator nodeHeader(Locator scope, String text) {

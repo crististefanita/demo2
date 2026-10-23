@@ -26,13 +26,13 @@ public final class ApiReportResponseMetadataValidator {
                                 + (actual == null ? "<missing>" : actual));
                     }
                 });
-        String contentType = ApiReportContractValueSupport.value(input.responseFields(),
-                ApiReportEvidenceField.CONTENT_TYPE.key());
+        List<String> contentTypes = ApiReportEvidenceField.CONTENT_TYPE.valuesIn(input.responseFields());
         String expectedContentType = ApiReportContractValueSupport.caseInsensitiveValue(
                 expected.responseHeaders(), ReportHttpHeaders.CONTENT_TYPE);
-        if (expectedContentType != null && !expectedContentType.equals(contentType)) {
+        if (expectedContentType != null && (contentTypes.isEmpty()
+                || contentTypes.stream().anyMatch(actual -> !expectedContentType.equals(actual)))) {
             violations.add(expected.key() + " expected CONTENT-TYPE " + expectedContentType
-                    + " but report rendered " + (contentType.isBlank() ? "<missing>" : contentType));
+                    + " but report rendered " + (contentTypes.isEmpty() ? "<missing>" : contentTypes));
         }
         String renderedStatus = ApiReportContractValueSupport.value(input.responseFields(),
                 ApiReportEvidenceField.HTTP_STATUS.key());

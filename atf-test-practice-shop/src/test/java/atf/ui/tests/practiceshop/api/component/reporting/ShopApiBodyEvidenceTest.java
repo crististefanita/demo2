@@ -1,7 +1,7 @@
 package atf.ui.tests.practiceshop.api.component.reporting;
 
 import atf.api.testkit.AtfComponentTest;
-import atf.ui.practiceshop.support.ShopApiBodyEvidence;
+import atf.ui.practiceshop.support.api.ShopApiBodyEvidence;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;

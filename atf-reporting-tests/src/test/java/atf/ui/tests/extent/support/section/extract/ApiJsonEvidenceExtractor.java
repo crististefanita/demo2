@@ -1,5 +1,6 @@
 package atf.ui.tests.extent.support.section.extract;
 
+import atf.api.ui.dom.HtmlElement;
 import atf.ui.tests.extent.support.locators.ReportUiLocators;
 import atf.api.reporting.audit.ReportAuditSnapshot;
 import com.microsoft.playwright.Locator;
@@ -31,7 +32,7 @@ public final class ApiJsonEvidenceExtractor {
         }
         Locator body = bodies.first();
         String tagName = String.valueOf(body.evaluate("element => element.tagName"));
-        String value = "TEXTAREA".equalsIgnoreCase(tagName)
+        String value = HtmlElement.TEXTAREA.selector().equalsIgnoreCase(tagName)
                 ? body.inputValue().trim() : body.innerText().trim();
         if (value.isBlank()) violations.add(side + " JSON body must not be blank");
         return value;

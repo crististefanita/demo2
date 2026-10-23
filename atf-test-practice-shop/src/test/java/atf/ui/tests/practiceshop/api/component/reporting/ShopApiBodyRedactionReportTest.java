@@ -1,12 +1,15 @@
 package atf.ui.tests.practiceshop.api.component.reporting;
 
+import atf.api.core.http.protocol.ApiUris;
+import atf.api.core.http.protocol.HttpHeaderProfiles;
+import atf.api.core.http.request.HttpMethod;
 import atf.api.core.http.request.ApiRequest;
 import atf.api.core.http.response.ApiExecutionResult;
 import atf.api.core.http.response.ApiResponse;
 import atf.api.core.http.transport.ApiTransportProvenance;
 import atf.api.core.reporting.console.AtfConsoleSink;
 import atf.api.testkit.AtfComponentTest;
-import atf.ui.practiceshop.support.ShopApiReportPublisher;
+import atf.ui.practiceshop.support.reporting.ShopApiReportPublisher;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -53,11 +56,11 @@ class ShopApiBodyRedactionReportTest {
 
     private static ApiExecutionResult execution(String path, String requestBody, String responseBody) {
         ApiRequest request = new ApiRequest(HttpRequest.BodyPublishers.ofString(requestBody),
-                "POST", path, Map.of(), Map.of("X-User-Email", "header.private@example.test"),
+                HttpMethod.POST.value(), path, Map.of(), Map.of("X-User-Email", "header.private@example.test"),
                 "none", null, requestBody);
         ApiResponse response = new ApiResponse(201, responseBody,
-                Map.of("content-type", "application/json"), Duration.ZERO,
-                "https://api.practicesoftwaretesting.com" + path);
+                HttpHeaderProfiles.JSON_CONTENT, Duration.ZERO,
+                ApiUris.httpsUrl("api.practicesoftwaretesting.com", path));
         return new ApiExecutionResult(response, 1, Duration.ZERO, List.of(), List.of(), request,
                 ApiTransportProvenance.LIVE_HTTP);
     }

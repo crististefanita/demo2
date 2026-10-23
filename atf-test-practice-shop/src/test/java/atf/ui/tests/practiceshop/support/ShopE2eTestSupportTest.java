@@ -7,9 +7,9 @@ import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.evidence.profile.ReportEvidenceCaptureSource;
 import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
 import atf.api.reporting.evidence.profile.ReportUiActionDetailsMode;
-import atf.ui.practiceshop.config.ShopApiCheckpoint;
+import atf.ui.practiceshop.config.api.ShopApiCheckpoint;
 import atf.ui.practiceshop.config.ShopConfigurationLoader;
-import atf.ui.practiceshop.config.ShopCredentials;
+import atf.ui.practiceshop.config.model.ShopCredentials;
 import atf.ui.practiceshop.config.ShopReportConfiguration;
 import atf.ui.practiceshop.config.ShopValidationProfile;
 import atf.api.ui.config.UiNetworkInspectionConfiguration;
@@ -79,17 +79,20 @@ class ShopE2eTestSupportTest {
 
     @Test
     void purchaseJourneysDeclareDistinctEvidenceProfiles() throws ClassNotFoundException {
-        assertEquals(ShopE2eTestSupport.HarnessProfile.UI_ONLY,
+        assertEquals(TestChannel.UI,
                 Class.forName("atf.ui.tests.practiceshop.e2e.ShopUiOnlyPurchaseE2eTest")
-                        .getAnnotation(ShopE2eTestSupport.WithE2eHarness.class).profile());
-        assertEquals(ShopE2eTestSupport.HarnessProfile.UI_API,
+                        .getAnnotation(AtfTestChannel.class).value());
+        assertEquals(TestChannel.UI_API,
                 Class.forName("atf.ui.tests.practiceshop.e2e.ShopPurchaseE2eTest")
-                        .getAnnotation(ShopE2eTestSupport.WithE2eHarness.class).profile());
+                        .getAnnotation(AtfTestChannel.class).value());
 
         var singleFlow = Class.forName(
                         "atf.ui.tests.practiceshop.e2e.ShopUiOnlySingleFlowPurchaseE2eTest")
                 .getAnnotation(ShopE2eTestSupport.WithE2eHarness.class);
-        assertEquals(ShopE2eTestSupport.HarnessProfile.UI_ONLY, singleFlow.profile());
+        assertEquals(ShopE2eTestSupport.HarnessProfile.CONFIGURED, singleFlow.profile());
+        assertEquals(TestChannel.UI,
+                Class.forName("atf.ui.tests.practiceshop.e2e.ShopUiOnlySingleFlowPurchaseE2eTest")
+                        .getAnnotation(AtfTestChannel.class).value());
         assertEquals(ShopE2eTestSupport.ReportFlow.UNIFIED_FLOW,
                 singleFlow.reportFlow());
         var reportProfile = ShopE2eTestSupport.reportProfile(

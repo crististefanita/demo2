@@ -1,5 +1,6 @@
 package atf.ui.practiceshop.support;
 
+import atf.ui.practiceshop.support.api.ShopApiBodyEvidence;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;

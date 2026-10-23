@@ -1,5 +1,8 @@
 package atf.ui.practiceshop.config;
 
+import atf.ui.practiceshop.config.model.ShopCredentials;
+import atf.ui.practiceshop.config.model.ShopRegistrationData;
+
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Files;

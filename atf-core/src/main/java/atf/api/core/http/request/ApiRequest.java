@@ -1,5 +1,7 @@
 package atf.api.core.http.request;
 
+import atf.api.core.http.auth.AuthProfiles;
+
 import java.net.http.HttpRequest;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -48,11 +50,12 @@ public record ApiRequest(
             if (key == null || key.isBlank()) throw new IllegalArgumentException("query names must not be blank");
             if (value == null) throw new IllegalArgumentException("query values must not be null");
         });
-        authProfile = authProfile == null || authProfile.isBlank() ? "none" : authProfile;
+        authProfile = AuthProfiles.normalize(authProfile);
         bodyText = bodyText == null ? "" : bodyText;
     }
 
     public static ApiRequest of(String method, String path) {
-        return new ApiRequest(HttpRequest.BodyPublishers.noBody(), method, path, Map.of(), Map.of(), "none", null);
+        return new ApiRequest(HttpRequest.BodyPublishers.noBody(), method, path,
+                Map.of(), Map.of(), AuthProfiles.NONE, null);
     }
 }

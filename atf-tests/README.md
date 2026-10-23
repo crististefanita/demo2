@@ -58,7 +58,6 @@ src/test/java/atf/api/tests/governance/
 │   ├── DocumentationProseGovernanceTest.java
 │   ├── DocumentationReadmeStructureGovernanceTest.java
 │   ├── DocumentationStyleGovernanceTest.java
-│   ├── DocumentationTarget.java
 │   ├── DocumentationTargetGovernanceTest.java
 │   ├── DocumentationGovernanceSupport.java
 │   └── DynamicPathDocumentationArchitectureTest.java
@@ -125,6 +124,11 @@ class ReportingReadmeGovernanceTest {
 
 Testul țintit apelează aceleași validatoare ca suita whole-ATF: structură,
 stil, proză, diagrame, relocatabilitate și nume de artifacte.
+
+Declarația repeatable `DocumentationTarget` aparține
+`atf.api.testkit.documentation`; lista țintelor și validatorii rămân aici.
+[Contractul adnotărilor](../docs/ATF_Test_Infrastructure_Annotations.md) explică
+ownership-ul și limitele de compoziție.
 
 Astfel, `atf-reporting-tests` nu mai deține verificări care inspectează întregul
 repository; păstrează doar boundary-ul API/UI propriu compoziției reporting.

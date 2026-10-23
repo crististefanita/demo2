@@ -2,7 +2,7 @@ package atf.ui.practiceshop.api.screen;
 
 import atf.api.core.http.response.ApiExecutionResult;
 import atf.ui.practiceshop.api.ShopApiClient;
-import atf.ui.practiceshop.api.ShopPaymentMethod;
+import atf.ui.practiceshop.api.contract.ShopPaymentMethod;
 
 /** Checkout-screen API boundary: advisory postcode lookup followed by payment. */
 public final class ShopCheckoutApi {

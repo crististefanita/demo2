@@ -1,12 +1,13 @@
 package atf.ui.tests.practiceshop.api.component.exchange;
 
+import atf.api.core.http.protocol.HttpHeaderProfiles;
 import atf.api.core.http.request.HttpMethod;
 import atf.api.testkit.AtfComponentTest;
 import atf.ui.practiceshop.api.ShopApiOperation;
 import atf.ui.practiceshop.api.ShopApiRoutes;
-import atf.ui.practiceshop.api.ShopApiHttpStatus;
-import atf.ui.practiceshop.support.ShopApiExchangeSelector;
-import atf.ui.practiceshop.support.ShopApiNetworkJournal;
+import atf.ui.practiceshop.api.contract.ShopApiHttpStatus;
+import atf.ui.practiceshop.support.api.ShopApiExchangeSelector;
+import atf.ui.practiceshop.support.api.ShopApiNetworkJournal;
 import atf.ui.tests.practiceshop.api.support.ShopApiScenarioFixture;
 import org.junit.jupiter.api.Test;
 
@@ -18,7 +19,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @AtfComponentTest
 class ShopApiExchangeSelectorTest {
@@ -94,6 +94,7 @@ class ShopApiExchangeSelectorTest {
             String method, String path, ShopApiHttpStatus status, String body) {
         return new ShopApiNetworkJournal.Exchange(
                 method, path, ShopApiScenarioFixture.API_ENDPOINT + path, status.code(),
-                body, body, Map.of(), Map.of("content-type", "application/json"));
+                body, body, Map.of(),
+                HttpHeaderProfiles.JSON_CONTENT);
     }
 }

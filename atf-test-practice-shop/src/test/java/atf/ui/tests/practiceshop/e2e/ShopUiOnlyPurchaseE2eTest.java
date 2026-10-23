@@ -14,8 +14,7 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 /** Config-driven UI-only proof of the complete guest purchase journey. */
 @AtfE2eTest
 @AtfTestChannel(TestChannel.UI)
-@ShopE2eTestSupport.WithE2eHarness(
-        profile = ShopE2eTestSupport.HarnessProfile.UI_ONLY)
+@ShopE2eTestSupport.WithE2eHarness
 @Execution(ExecutionMode.SAME_THREAD)
 @Order(4)
 @DisplayName("Guest UI-only purchase flow")

@@ -44,7 +44,7 @@ comun prin care modulele comunică fără să se cunoască implementările concr
 | file/source discovery | `AtfPathLocator` | nu expune căi absolute sau traversal duplicat către consumatori |
 | reporting ports | `AtfReportPorts`, `ValidationSink`, `ReportStepScope`, `AtfConsoleEvent`, `AtfConsoleSink` | nu importă Extent, HTML, `System.out` sau implementarea `atf-console` |
 | redaction | `Redactor`, `RedactionContext`, strategiile de redaction | nu modifică input-ul original |
-| test-platform ports | `ApiScenarioSetup`, `ApiTestRef`, `ApiScenarioSelection` | nu cunoaște catalogul Users/Posts, JUnit, YAML, browserul sau fixture-urile |
+| selecție API neutră | `ApiScenarioSelection` | declarațiile test-only `ApiScenarioSetup` și `ApiTestRef` aparțin TestKit; catalogul rămâne la consumator |
 | live transport adapter | `ApiLiveTransportCatalog` și `ApiTransportPolicy` | nu activează rețeaua din URL, default sau un flag implicit |
 | guarded sync | `AtfPromotionManifest`, `AtfPromotionGuard` | nu promovează fișiere în afara manifestului și nu șterge surse |
 | reactor vocabulary | `config.module.AtfModuleIds` | nu orchestrează modulele și nu introduce dependențe în sus |
@@ -92,9 +92,11 @@ Pachetele production au cel mult opt clase și grupează o singură responsabili
 |---|---|
 | `http.request` | forma request-ului: `ApiRequest`, `ApiPathTemplate`, `ApiRoute`, `ApiUrlBuilder`, `HttpMethod`, `HttpHeader`, `MediaTypes` |
 | `http.response` | rezultatul response-ului și politica JSON |
-| `http.auth` | autentificarea |
+| `http.auth` | autentificarea, tipurile standard și numele normalizate de profil prin `AuthProfiles` |
+| `http.protocol` | URI-uri absolute și profile reutilizabile de headere, fără host-uri de produs |
 | `http.execution` | execuția și rezultatul ei |
 | `http.transport` | boundary-ul transportului |
+| `diagnostics` | mesaje de excepție compacte și bounded, independente de Playwright sau produs |
 
 `ApiPathTemplate` face join, validare și rezolvare sigură a segmentelor; nu este
 catalogul de rute al unui produs.
@@ -119,8 +121,11 @@ ApiPathTemplate (core, generic)
 
 ### Vocabular și guard-uri
 
-- **HTTP vocabulary** — verbe, headere, media type-uri și identificatori ai
-  reactorului sunt constante/enum-uri cu owner semantic;
+- **HTTP vocabulary** — verbe, headere, media type-uri, scheme URI și profile
+  auth sunt constante/enum-uri cu owner semantic; `ApiUris`,
+  `HttpHeaderProfiles` și `AuthProfiles` elimină copiile din consumatori;
+- **diagnostics** — `ThrowableDiagnostics` produce mesaje single-line bounded;
+  consumatorul decide unde sunt publicate și nu mută politica de business în core;
 - **fără bucket global** — nu se introduce un `AtfConstants` global;
 - **write requests** — `HttpHeader.CONTENT_TYPE`,
   `MediaTypes.APPLICATION_JSON`, `HttpMethod.POST` și `HttpMethod.PUT` sunt
@@ -181,16 +186,16 @@ core → UsersService / PostsService
 
 ## Contractul reutilizabil pentru selecția API
 
-Contractul de selecție din `atf-core` este neutru față de consumer:
+Modelul `ApiScenarioSelection` din `atf-core` este neutru față de consumer:
 
-- `@ApiScenarioSetup` declară familii sau referințe exacte prin `@ApiTestRef`;
+- declarațiile `@ApiScenarioSetup` și `@ApiTestRef` sunt în `atf.api.testkit.setup.api`, consumate în test scope;
 - `ApiScenarioSelection` transmite snapshot-ul immutable către composition root;
 - UI testele, acceptance runner-ele și alți consumatori pot reutiliza contractul;
 - catalogul concret al testelor nu intră în `atf-core`.
 
 ```text
 consumer annotation
-  → ApiScenarioSetup / ApiTestRef
+  → ApiScenarioSetup / ApiTestRef (TestKit)
   → consumer catalog resolves owner + method
   → ApiScenarioSelection
   → API/reporting composition root
@@ -203,6 +208,8 @@ consumer annotation
 | catalog concret, YAML mock, JUnit și orchestration | modulele consumatoare |
 
 Catalogul de servicii este compoziție de produs, nu platformă generică.
+Contractul adnotărilor este în [documentația de infrastructură](../docs/ATF_Test_Infrastructure_Annotations.md);
+Core main nu depinde de TestKit.
 
 `RecordingApiTransport` este decoratorul generic pentru evidence:
 

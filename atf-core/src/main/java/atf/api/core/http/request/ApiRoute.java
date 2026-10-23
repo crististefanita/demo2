@@ -1,6 +1,7 @@
 package atf.api.core.http.request;
 import atf.api.core.http.auth.AuthRequirement;
 import atf.api.core.http.auth.AuthType;
+import atf.api.core.http.auth.AuthProfiles;
 import atf.api.core.http.response.JsonBodyPolicy;
 import atf.api.core.routing.ApiPathTemplate;
 
@@ -32,7 +33,7 @@ public record ApiRoute(
         require(pathTemplate, "pathTemplate");
         require(resource, "resource");
         require(operation, "operation");
-        authProfile = authProfile == null || authProfile.isBlank() ? "none" : authProfile;
+        authProfile = AuthProfiles.normalize(authProfile);
         authType = authType == null ? AuthType.NONE : authType;
         authRequirement = authRequirement == null ? AuthRequirement.NONE : authRequirement;
         authPolicy = authPolicy == null || authPolicy.isBlank() ? authRequirement.name().toLowerCase() : authPolicy;

@@ -1,7 +1,7 @@
 package atf.ui.practiceshop.pages;
 
 import atf.api.ui.playwright.PlaywrightActionSequence;
-import atf.ui.practiceshop.config.ShopGuest;
+import atf.ui.practiceshop.config.model.ShopGuest;
 import atf.ui.practiceshop.config.ShopScreen;
 import atf.ui.practiceshop.locators.ShopControl;
 import atf.ui.practiceshop.locators.ShopLocators;

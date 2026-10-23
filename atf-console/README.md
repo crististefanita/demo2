@@ -6,6 +6,11 @@ ExtentReports și nu calculează verdicturi.
 
 ## Pe scurt
 
+Politica declarativă a mesajelor de consolă este o evoluție propusă, urmărită
+prin ANN-CONSOLE-11/12/13 în [feedback-ul infrastructurii](../docs/feedback/ATF_Test_Infrastructure_Annotations_Feedback.md).
+API-ul implementat folosește în continuare `ConsoleSettings`, configurația
+YAML și extensia `AtfConsoleTestExtension`.
+
 | Intrare | Output | Limită |
 |---|---|---|
 | `AtfConsoleEvent` + `ConsoleSettings` | diagnostic stdout/stderr | nu produce artifact |

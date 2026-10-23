@@ -23,7 +23,7 @@ flowchart LR
 
 | Conține | Nu conține | Gate |
 |---|---|---|
-| meta-anotații, layer guard și loaderul YAML pentru test-kit | renderer, mock, browser | `AtfTestLayerArchitectureTest` |
+| adnotări de nivel/canal/output/setup/docs, resolvere neutre și layer guard | renderer, mock, browser | teste TestKit și `AtfTestLayerArchitectureTest` |
 | clasificare test | business flow | fiecare clasă are un singur nivel |
 | reguli transversale | runtime dependency | fail-closed la drift |
 
@@ -54,21 +54,30 @@ Fiecare clasă executabilă declară exact un nivel:
 - un modul lipsă poate produce `SKIPPED` prin gate-ul dedicat;
 - kit-ul nu introduce o booleană UI paralelă.
 
-### Limite de responsabilitate pentru extensii viitoare
+### Adnotări de infrastructură implementate
 
-- selecția transversală `UI` / `API` / `UI_API`, distinctă de layer, este propusă în
-  [feedback-ul adnotărilor de canal](../docs/feedback/ATF_Test_Channel_Annotations_Feedback.md);
-  nu este încă implementată și nu înlocuiește adaptoarele consumerilor;
-- extracția adnotărilor output/setup/docs este analizată în
-  [feedback-ul infrastructurii de adnotări](../docs/feedback/ATF_Test_Infrastructure_Annotations_Feedback.md);
-  contractele propuse nu sunt încă implementate în kit;
+| Package | API | Aplicare |
+|---|---|---|
+| `atf.api.testkit.channel` | `AtfTestChannel`, `TestChannelPlan`, resolver | canal UI/API/UI_API, separat de tag-ul JUnit al nivelului |
+| `atf.api.testkit.output` | cele două adnotări de director și `ReportOutputDirectory` | ancoră UI sau project-relative furnizată de consumator |
+| `atf.api.testkit.setup.api` | `ApiScenarioSetup`, `ApiTestRef` | declarații; catalogul și executarea rămân la consumator |
+| `atf.api.testkit.documentation` | `DocumentationTarget` repeatable | selecție de documente; validatorii rămân în ATF Tests |
+
+Contractul complet, precedența, exemplele și probele sunt în
+[Adnotări de infrastructură pentru teste](../docs/ATF_Test_Infrastructure_Annotations.md).
+Feedback-urile de [canal](../docs/feedback/ATF_Test_Channel_Annotations_Feedback.md)
+și [infrastructură](../docs/feedback/ATF_Test_Infrastructure_Annotations_Feedback.md)
+păstrează numai criteriile restante.
+
+### Limite de responsabilitate
+
 - contractul generic pentru flow mode, screenshot policy și capture source este în
   [`docs/ATF_Evidence_Capture_Contract.md`](../docs/ATF_Evidence_Capture_Contract.md);
 - `atf-test-kit` poate deține mapping-ul transversal numai după un contract typed
   și un gate lower-level;
 - politica publisherului și flow-urile Practice Shop rămân în ownerii lor.
 
-## Limite de responsabilitate
+## Dependențe
 
 ```text
 module tests → atf-test-kit (test scope)

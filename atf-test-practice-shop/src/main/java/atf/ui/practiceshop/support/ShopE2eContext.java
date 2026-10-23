@@ -18,7 +18,11 @@ import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.api.ui.playwright.PlaywrightUiSession;
 import atf.api.ui.playwright.UiScreenValidation;
 import atf.ui.practiceshop.config.ShopConfiguration;
+import atf.ui.practiceshop.support.api.ShopApiNetworkJournal;
 import atf.ui.practiceshop.support.evidence.ShopBrowserCaptureProvider;
+import atf.ui.practiceshop.support.reporting.ShopReportSystemMetadata;
+import atf.ui.practiceshop.support.reporting.ShopReportUiActionAdapters;
+import atf.ui.practiceshop.support.reporting.ShopScreenshotPolicy;
 import com.microsoft.playwright.Page;
 
 import java.nio.file.Path;
@@ -441,8 +445,10 @@ public final class ShopE2eContext implements AutoCloseable {
 
         private List<ReportExecutionEvidence> setupEvidence() {
             List<ReportExecutionEvidence> evidence = new ArrayList<>();
-            evidence.addAll(apiNetwork.evidence(atf.ui.practiceshop.config.ShopApiCheckpoint.REGISTRATION));
-            evidence.addAll(apiNetwork.evidence(atf.ui.practiceshop.config.ShopApiCheckpoint.LOGIN));
+            evidence.addAll(apiNetwork.evidence(
+                    atf.ui.practiceshop.config.api.ShopApiCheckpoint.REGISTRATION));
+            evidence.addAll(apiNetwork.evidence(
+                    atf.ui.practiceshop.config.api.ShopApiCheckpoint.LOGIN));
             return List.copyOf(evidence);
         }
 

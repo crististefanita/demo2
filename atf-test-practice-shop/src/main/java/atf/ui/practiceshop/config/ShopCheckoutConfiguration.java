@@ -1,5 +1,8 @@
 package atf.ui.practiceshop.config;
 
+import atf.ui.practiceshop.config.model.ShopBillingAddress;
+import atf.ui.practiceshop.config.model.ShopGuest;
+
 import java.util.Objects;
 
 /** Typed, YAML-driven purchase inputs; no checkout value is hidden in a flow. */

@@ -9,23 +9,23 @@ import atf.api.core.http.response.ApiOperationLabel;
  * the request/path, never in this enum.
  */
 public enum ShopApiOperation {
-    LOGIN(HttpMethod.POST, ShopApiRoutes.LOGIN, "establish API session", "/users/login"),
+    LOGIN(HttpMethod.POST, ShopApiRoutes.LOGIN, "establish API session", ShopApiRoutes.LOGIN),
     USER_REGISTER(HttpMethod.POST, ShopApiRoutes.USER_REGISTER,
             "register checkout account", ShopApiRoutes.USER_REGISTER),
     SEARCH(HttpMethod.GET, ShopApiRoutes.PRODUCT_SEARCH,
-            "find configured product", "/products/search"),
+            "find configured product", ShopApiRoutes.PRODUCT_SEARCH),
     PRODUCT_DETAIL(HttpMethod.GET, ShopApiRoutes.PRODUCTS,
-            "read selected product", "/products/{productId}"),
+            "read selected product", ShopApiRoutes.PRODUCT_DETAIL_TEMPLATE),
     CART_CREATE(HttpMethod.POST, ShopApiRoutes.CARTS,
             "create cart", ShopApiRoutes.CARTS),
     CART_ADD(HttpMethod.POST, ShopApiRoutes.CART_RESOURCE_PREFIX,
-            "add product to cart", "/carts/{cartId}"),
+            "add product to cart", ShopApiRoutes.CART_RESOURCE_TEMPLATE),
     CART_READ(HttpMethod.GET, ShopApiRoutes.CART_RESOURCE_PREFIX,
-            "verify cart contents", "/carts/{cartId}"),
+            "verify cart contents", ShopApiRoutes.CART_RESOURCE_TEMPLATE),
     CART_UPDATE(HttpMethod.PUT, ShopApiRoutes.CART_RESOURCE_PREFIX,
-            "update cart quantity", "/carts/{cartId}/product/quantity"),
+            "update cart quantity", ShopApiRoutes.CART_QUANTITY_TEMPLATE),
     CART_REMOVE(HttpMethod.DELETE, ShopApiRoutes.CART_RESOURCE_PREFIX,
-            "remove cart product", "/carts/{cartId}/product/{productId}"),
+            "remove cart product", ShopApiRoutes.CART_PRODUCT_TEMPLATE),
     POSTCODE_LOOKUP(HttpMethod.GET, ShopApiRoutes.POSTCODE_LOOKUP,
             "resolve checkout address", ShopApiRoutes.POSTCODE_LOOKUP),
     PAYMENT_CHECK(HttpMethod.POST, ShopApiRoutes.PAYMENT_CHECK,
@@ -34,7 +34,7 @@ public enum ShopApiOperation {
             "create order", ShopApiRoutes.INVOICE_CREATE),
     UNKNOWN(null, "", "API request", "");
 
-    private static final String OBSERVED_QUERY_METHOD = "QUERY";
+    public static final String OBSERVED_QUERY_METHOD = "QUERY";
 
     private final HttpMethod method;
     private final String routePrefix;

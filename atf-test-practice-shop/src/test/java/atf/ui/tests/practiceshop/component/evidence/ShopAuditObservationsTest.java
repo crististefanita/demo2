@@ -1,5 +1,7 @@
 package atf.ui.tests.practiceshop.component.evidence;
 
+import atf.api.core.http.protocol.HttpHeaderProfiles;
+import atf.api.core.http.request.HttpMethod;
 import atf.api.reporting.api.ReportAttemptRecord;
 import atf.api.reporting.api.ReportRequest;
 import atf.api.reporting.api.ReportResponse;
@@ -12,7 +14,7 @@ import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.api.ui.playwright.UiScreenValidation;
 import atf.ui.practiceshop.support.ShopAuditObservations;
 import atf.ui.practiceshop.support.ShopPurchaseCheckpoint;
-import atf.ui.practiceshop.config.ShopApiConfiguration;
+import atf.ui.practiceshop.config.api.ShopApiConfiguration;
 import atf.ui.practiceshop.config.ShopConfiguration;
 import atf.ui.practiceshop.config.ShopConfigurationLoader;
 import atf.ui.practiceshop.routes.ShopUiRoutes;
@@ -55,7 +57,7 @@ class ShopAuditObservationsTest {
                 AtfGherkinKeyword.GIVEN,
                 "product screen displays configured fields",
                 List.of(new AtfAssertion("Product", "ready", "ready", true)),
-                List.of(execution("GET", "/products/1", 200)));
+                List.of(execution(HttpMethod.GET.value(), "/products/1", 200)));
 
         ShopAuditObservations.recordCheckpoint(actions, page, checkpoint,
                 new UiScreenValidation.Evidence("product", "", false));
@@ -134,9 +136,9 @@ class ShopAuditObservationsTest {
 
     private static ReportExecutionEvidence execution(String method, String path, int status) {
         var request = new ReportRequest(method, path, Map.of(),
-                Map.of("Content-Type", "application/json"), "bearer", "");
+                HttpHeaderProfiles.JSON_CONTENT, "bearer", "");
         var response = new ReportResponse(status, "{}",
-                Map.of("Content-Type", "application/json"), Duration.ofMillis(3),
+                HttpHeaderProfiles.JSON_CONTENT, Duration.ofMillis(3),
                 ShopApiConfiguration.defaults().endpoint().resolve(path.substring(1)).toString());
         return new ReportExecutionEvidence(response, 1, Duration.ofMillis(3), List.of(),
                 List.of(new ReportAttemptRecord(1, status, Duration.ofMillis(3), "SUCCESS", "final response")),

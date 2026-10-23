@@ -51,7 +51,7 @@ public final class ApiReportContractValidation {
                     Locator request = requests.nth(requestIndex);
                     requestCount++;
                     String title = locators.requestTitle(request);
-                    String url = locators.responseUrl(request);
+                    String url = locators.requestUrl(request);
                     ApiJsonEvidenceAuditor.Result json = jsonAuditor.inspect(request);
                     MockReportContractAuditor.Result mock = mockAuditor.inspect(
                             title, url,

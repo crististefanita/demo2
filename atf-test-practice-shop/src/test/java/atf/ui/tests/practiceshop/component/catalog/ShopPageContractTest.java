@@ -8,12 +8,12 @@ import atf.ui.practiceshop.pages.ShopCartPage;
 import atf.ui.practiceshop.pages.ShopConfirmationPage;
 import atf.ui.practiceshop.pages.ShopGuestCheckoutPage;
 import atf.ui.practiceshop.pages.ShopHomePage;
-import atf.ui.practiceshop.pages.ShopLoginPage;
-import atf.ui.practiceshop.pages.ShopAccountPage;
+import atf.ui.practiceshop.pages.account.ShopLoginPage;
+import atf.ui.practiceshop.pages.account.ShopAccountPage;
 import atf.ui.practiceshop.pages.ShopPaymentPage;
 import atf.ui.practiceshop.pages.ShopProductPage;
 import atf.ui.practiceshop.support.ShopPageContract;
-import atf.ui.practiceshop.support.ShopPageValidationResult;
+import atf.ui.practiceshop.support.validation.ShopPageValidationResult;
 import atf.ui.practiceshop.routes.ShopUiRoutes;
 import org.junit.jupiter.api.Test;
 

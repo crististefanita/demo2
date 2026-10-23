@@ -2,12 +2,12 @@ package atf.ui.tests.practiceshop.api.component.exchange;
 
 import atf.api.core.http.request.HttpMethod;
 import atf.ui.practiceshop.api.ShopApiClient;
-import atf.ui.practiceshop.api.ShopApiHttpStatus;
-import atf.ui.practiceshop.api.ShopApiJsonField;
+import atf.ui.practiceshop.api.contract.ShopApiHttpStatus;
+import atf.ui.practiceshop.api.contract.ShopApiJsonField;
 import atf.ui.practiceshop.api.ShopApiRequestFactory;
 import atf.ui.practiceshop.api.ShopApiRoutes;
 import atf.ui.practiceshop.api.ShopProductQuery;
-import atf.ui.practiceshop.api.ShopProductSort;
+import atf.ui.practiceshop.api.contract.ShopProductSort;
 import atf.ui.practiceshop.support.ShopJsonEvidence;
 import atf.ui.tests.practiceshop.api.support.ShopApiScenarioFixture;
 import atf.ui.tests.practiceshop.api.support.ShopApiComponentFixture;

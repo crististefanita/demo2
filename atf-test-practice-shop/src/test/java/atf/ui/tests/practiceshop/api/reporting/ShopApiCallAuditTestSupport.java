@@ -6,7 +6,7 @@ import atf.api.reporting.extent.session.ExtentReportSession;
 import atf.api.testkit.channel.AtfTestChannelResolver;
 import atf.api.testkit.channel.TestChannel;
 import atf.ui.practiceshop.config.ShopConfigurationLoader;
-import atf.ui.practiceshop.support.ShopApiReportPublisher;
+import atf.ui.practiceshop.support.reporting.ShopApiReportPublisher;
 import atf.ui.tests.practiceshop.api.support.ShopApiCallAuditContextTestSupport;
 import atf.ui.tests.practiceshop.api.support.ShopApiCallAuditContextTestSupport.CapturedExchange;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -43,10 +43,14 @@ public final class ShopApiCallAuditTestSupport implements BeforeEachCallback, Af
 
     @Override
     public void afterEach(ExtensionContext context) {
+        TestCalls captured = context.getStore(NAMESPACE).remove(CALLS_KEY, TestCalls.class);
+        if (captured == null) {
+            // A failed channel preflight never starts an audit run or opens an output file.
+            return;
+        }
         List<String> associationGaps = ShopApiCallAuditContextTestSupport.unconsumedExpectations();
         ShopApiCallAuditContextTestSupport.clear();
-        TestCalls captured = context.getStore(NAMESPACE).remove(CALLS_KEY, TestCalls.class);
-        List<CapturedExchange> calls = captured == null ? List.of() : captured.exchanges();
+        List<CapturedExchange> calls = captured.exchanges();
         SuiteReport report = context.getRoot().getStore(NAMESPACE)
                 .getOrComputeIfAbsent(RUN_KEY, ignored -> new SuiteReport(), SuiteReport.class);
         report.record(context, calls, associationGaps);

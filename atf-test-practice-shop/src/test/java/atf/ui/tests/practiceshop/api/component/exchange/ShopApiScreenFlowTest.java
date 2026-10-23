@@ -1,10 +1,10 @@
 package atf.ui.tests.practiceshop.api.component.exchange;
 
 import atf.ui.practiceshop.api.ShopApiClient;
-import atf.ui.practiceshop.api.ShopApiHttpStatus;
-import atf.ui.practiceshop.api.ShopApiJsonField;
+import atf.ui.practiceshop.api.contract.ShopApiHttpStatus;
+import atf.ui.practiceshop.api.contract.ShopApiJsonField;
 import atf.ui.practiceshop.api.ShopApiScreenFlow;
-import atf.ui.practiceshop.api.ShopPaymentMethod;
+import atf.ui.practiceshop.api.contract.ShopPaymentMethod;
 import atf.ui.practiceshop.api.screen.ShopCheckoutApi.AddressLookupPolicy;
 import atf.ui.practiceshop.support.ShopJsonEvidence;
 import atf.ui.tests.practiceshop.api.support.ShopApiScenarioFixture;

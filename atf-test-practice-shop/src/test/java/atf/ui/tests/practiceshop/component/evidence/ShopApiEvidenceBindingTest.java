@@ -1,8 +1,8 @@
 package atf.ui.tests.practiceshop.component.evidence;
 
 import atf.api.testkit.AtfComponentTest;
-import atf.ui.practiceshop.config.ShopApiCheckpoint;
-import atf.ui.practiceshop.config.ShopApiEvidenceBinding;
+import atf.ui.practiceshop.config.api.ShopApiCheckpoint;
+import atf.ui.practiceshop.config.api.ShopApiEvidenceBinding;
 import atf.ui.practiceshop.config.ShopValidationProfile;
 import org.junit.jupiter.api.Test;
 

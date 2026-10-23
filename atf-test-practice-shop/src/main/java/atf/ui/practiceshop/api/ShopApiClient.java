@@ -5,14 +5,17 @@ import atf.api.core.reporting.console.AtfConsoleEvent;
 import atf.ui.practiceshop.support.ShopJsonEvidence;
 
 import atf.api.core.config.ApiTransportMode;
+import atf.api.core.http.auth.AuthProfiles;
 import atf.api.core.http.auth.ConfiguredApiAuthenticator;
 import atf.api.core.http.execution.ApiExecutor;
 import atf.api.core.http.response.ApiExecutionResult;
 import atf.api.core.http.transport.ApiLiveTransportCatalog;
 import atf.api.core.http.transport.ApiTransport;
 import atf.api.core.http.transport.UrlConnectionTransport;
-import atf.ui.practiceshop.config.ShopApiConfiguration;
-import atf.ui.practiceshop.config.ShopCredentials;
+import atf.ui.practiceshop.api.contract.ShopApiHttpStatus;
+import atf.ui.practiceshop.api.contract.ShopApiJsonField;
+import atf.ui.practiceshop.config.api.ShopApiConfiguration;
+import atf.ui.practiceshop.config.model.ShopCredentials;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -37,7 +40,7 @@ public final class ShopApiClient implements AutoCloseable {
         this.endpoint = Objects.requireNonNull(endpoint, "endpoint");
         this.transport = Objects.requireNonNull(transport, "transport");
         this.requests = Objects.requireNonNull(requests, "requests");
-        var settings = new atf.api.core.config.ApiSettings(endpoint, ShopApiAuthProfile.NONE.wireValue(),
+        var settings = new atf.api.core.config.ApiSettings(endpoint, AuthProfiles.NONE,
                 timeout, java.util.Set.of(), 1);
         // The factory is intentionally transport-agnostic; the explicit mode keeps
         // report provenance aligned with the transport selected by the composition root.
@@ -51,7 +54,7 @@ public final class ShopApiClient implements AutoCloseable {
             throw new IllegalArgumentException("Practice Shop live API client requires api.mode=live");
         }
         ApiLiveTransportCatalog catalog = ApiLiveTransportCatalog.single("practice-shop",
-                configuration.endpoint(), ShopApiAuthProfile.NONE.wireValue(), configuration.timeout(),
+                configuration.endpoint(), AuthProfiles.NONE, configuration.timeout(),
                 (endpoint, authenticator) -> new UrlConnectionTransport(authenticator, endpoint.timeout()));
         ApiTransport transport = catalog.open("practice-shop",
                 atf.api.core.config.ApiTransportPolicy.explicitLive(),

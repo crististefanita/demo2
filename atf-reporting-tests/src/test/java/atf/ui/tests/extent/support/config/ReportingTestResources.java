@@ -73,8 +73,17 @@ public final class ReportingTestResources {
         return loaded.withReportDirectory(directory);
     }
 
-    private static Path projectRoot(AtfUiConfigurationContext process) {
-        Path current = process.startDirectory();
+    static Path projectRoot(AtfUiConfigurationContext process) {
+        Path fromResource = locateProjectRoot(resourcePath(UI_RESOURCE).getParent());
+        if (fromResource != null) return fromResource;
+        Path fromProcess = locateProjectRoot(process.startDirectory());
+        if (fromProcess != null) return fromProcess;
+        throw new IllegalStateException("Cannot locate the ATF reactor root from the Reporting "
+                + "test resource or working directory: " + process.startDirectory());
+    }
+
+    private static Path locateProjectRoot(Path start) {
+        Path current = start;
         while (current != null) {
             if (Files.isRegularFile(current.resolve("atf-reporting/pom.xml"))) {
                 return current.toAbsolutePath().normalize();
@@ -86,6 +95,6 @@ public final class ReportingTestResources {
             }
             current = current.getParent();
         }
-        return process.startDirectory();
+        return null;
     }
 }

@@ -2,10 +2,10 @@ package atf.ui.practiceshop.flow;
 
 import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.ui.practiceshop.config.ShopConfiguration;
-import atf.ui.practiceshop.config.ShopCredentials;
+import atf.ui.practiceshop.config.model.ShopCredentials;
 import atf.ui.practiceshop.locators.ShopLocators;
-import atf.ui.practiceshop.pages.ShopAccountPage;
-import atf.ui.practiceshop.pages.ShopLoginPage;
+import atf.ui.practiceshop.pages.account.ShopAccountPage;
+import atf.ui.practiceshop.pages.account.ShopLoginPage;
 import com.microsoft.playwright.Page;
 
 /** Reusable authentication flow shared by each external E2E scenario. */

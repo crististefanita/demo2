@@ -331,8 +331,10 @@ real. Fluxul E2E rămâne proba separată a integrării și a rezultatului de bu
 | Achiziție cu un cont sintetic nou | `ShopNewAccountPurchaseE2eTest` | `SETUP` creează și autentifică un cont sintetic; `TEST BODY` finalizează achiziția |
 | Achiziție cu un cont înregistrat anterior | `ShopAuthenticatedPurchaseE2eTest` | citește fixture-ul `.local.properties`, demonstrează login în `SETUP`, apoi rulează purchase complet fără registration |
 
-- `@WithE2eHarness(profile = UI_ONLY | UI_API)` selectează profilul în testul
-  lansat din IntelliJ, fără VM options.
+- `@AtfTestChannel(UI | UI_API)` selectează canalul în testul lansat din
+  IntelliJ; harness-ul îl aplică înaintea browserului.
+- `@WithE2eHarness` păstrează layout-ul și detaliile acțiunilor; parametrul
+  legacy `profile` rămâne compatibil și un profil explicit contradictoriu este refuzat.
 - `ShopPurchaseE2eTest` fixează `UI_API`, iar
   `ShopUiOnlyPurchaseE2eTest` fixează `UI_ONLY`; lansarea ambelor repetă
   purchase-ul demo.
@@ -341,10 +343,10 @@ real. Fluxul E2E rămâne proba separată a integrării și a rezultatului de bu
 - Ambele moduri lasă traficul browserului să continue normal. `UI_ONLY` oprește
   numai capturarea/publicarea API evidence.
 
-Standardizarea acestor profile și a testelor API-only printr-o adnotare
-reutilizabilă TestKit este analizată în
-[feedback-ul adnotărilor de canal](../docs/feedback/ATF_Test_Channel_Annotations_Feedback.md).
-Este o propunere, nu un API disponibil; selecția locală de mai sus rămâne activă.
+Canalul TestKit și preflight-ul sunt implementate conform
+[contractului adnotărilor](../docs/ATF_Test_Infrastructure_Annotations.md).
+Harness-ul browser acceptă UI/UI_API, iar auditul API cere API; lacunele de
+paritate și lifecycle sunt în [feedback-ul canalelor](../docs/feedback/ATF_Test_Channel_Annotations_Feedback.md).
 
 Cele două E2E autentificate au aceeași structură de purchase; setup-ul contului
 este intenționat diferit:
@@ -361,7 +363,7 @@ Separă patru axe care nu trebuie să schimbe flow-ul de business:
 
 | Axă | Ce există acum | Ce trebuie să poată selecta testul |
 |---|---|---|
-| Validare | profile typed `UI_ONLY` / `UI_API` prin `@WithE2eHarness`; clasele guest actuale sunt presetate | funcționalitatea există; profilul se selectează explicit pe clasa E2E, independent de presentation și capturi |
+| Validare | `@AtfTestChannel(UI / UI_API)` este mapat în profilul typed local; profilele legacy rămân compatibile | canal explicit pe clasa E2E, independent de presentation și capturi; API-only este refuzat de harness-ul browser |
 | Forma raportului | `reportFlow = CONFIGURED`, `SCREEN_CHECKPOINTS` sau `UNIFIED_FLOW` în `@WithE2eHarness`; implicit moștenește profilul configurat | layout-ul efectiv apare în Overview → System → `UI evidence layout` |
 | Capturi | `reporting.screenshotPolicy` din YAML este autoritară atât pentru clasele individuale, cât și pentru `ShopE2eSuite`; adnotările aleg layout-ul și detaliile acțiunilor, nu politica de captură | `each-checkpoint` atașează captura stării rezultate fiecărui tabel Playwright nevid din `SETUP` și `TEST BODY`; controalele de formular sunt mascate; `none` dezactivează capturile fără să elimine acțiunile sau aserțiunile |
 | Pași UI intermediari | `@WithE2eHarness(actionDetails = CONFIGURED \| INCLUDED_COLLAPSED \| SUMMARY_ONLY)` selectează disclosure-ul fără să schimbe capturarea acțiunilor | `CONFIGURED` păstrează profilul compus; `INCLUDED_COLLAPSED` este default-ul sigur; niciun mod nu schimbă validările, verdictul sau arborele Gherkin |
@@ -369,7 +371,7 @@ Separă patru axe care nu trebuie să schimbe flow-ul de business:
 **Invariantă:** configurația schimbă proiecția evidence-ului, nu journey-ul.
 
 ```text
-adnotare → profil de validare + layout-ul raportului + detaliile acțiunilor
+AtfTestChannel → profil de validare; WithE2eHarness → layout + detalii acțiuni
 YAML     → screenshot policy pentru rulări individuale și ShopE2eSuite
 flow business, acțiuni, aserțiuni, request-uri, verdict → neschimbate
 ```
@@ -677,7 +679,7 @@ src/test/java/atf/ui/tests/practiceshop
 │   ├── configuration/  config, credentials și politici UI
 │   ├── evidence/       API/UI evidence, observații și metadata
 │   ├── purchase/       checkpoint-uri și pași de purchase
-│   └── validation/     profile și diagnostics de validare
+│   └── validation/     profilul de validare al consumerului
 ├── api/
 │   ├── component/
 │   │   ├── auth/       contracte de autentificare
@@ -821,10 +823,9 @@ limite.
 | `reporting.screenshotPolicy` | valoarea YAML se aplică identic rulărilor individuale și `ShopE2eSuite`; opțiuni: `each-checkpoint`, `final-only`, `failure-only`, `final-and-failure`, `none`. Adnotările nu modifică politica. Cheia legacy `screenshotOnFailure` se folosește numai când politica typed lipsește: `true` → `each-checkpoint`, `false` → `failure-only` |
 | `accountFile` | fixture de cont în `src/test/resources`; `ShopAuthenticatedPurchaseE2eTest` reutilizează un cont de test deja înregistrat, iar `ShopNewAccountPurchaseE2eTest` folosește profil sintetic; căile externe sunt respinse și valorile nu ajung în evidence |
 
-Exemplele guest presetate fixează profilul în adnotarea clasei (`UI_API` sau
-`UI_ONLY`); o lansare IntelliJ folosește adnotarea clasei selectate, fără
-override global YAML/system-property. Clasele cu profil `CONFIGURED` moștenesc
-`validation.profile` din YAML:
+Exemplele guest presetate declară canalul clasei (`UI_API` sau `UI`) și îl
+mapează în profilul local. Fără canal și cu harness `CONFIGURED`, fallback-ul
+legacy păstrează `validation.profile` din YAML:
 
 ```yaml
 practiceShop:
@@ -1199,7 +1200,7 @@ VM options.
   detaliilor.
 
 `ConsoleDefaultsGovernanceTest` protejează această conectare. Excepția Shop de
-la regula schimbării testelor prin ToDo nu exclude modulul din guvernanța
+la regula controlului schimbărilor de teste nu exclude modulul din guvernanța
 consolei, coeziunii sau arhitecturii.
 
 ```mermaid
@@ -1226,21 +1227,28 @@ flowchart LR
 
 ## Vocabular typed și citire semantică
 
-Valorile stabile sunt owner-uite local:
+Valorile stabile de produs sunt owner-uite local, iar vocabularul generic este
+reutilizat din ATF:
 
 ```text
 ShopApiHttpStatus      → statusuri HTTP
 ShopApiJsonField       → chei JSON
 ShopApiQueryParameter  → chei query
-ShopApiAuthProfile     → profil auth
-ShopApiAuthType        → auth observat
 ShopApiOperation       → intenție + method + route template
 ShopPaymentMethod      → metode de plată suportate
+AuthProfiles/AuthType  → profiluri și tipuri auth generice (atf-core)
+ReportAuthMethod       → clasificarea auth observată (atf-reporting)
+ApiUris/HttpHeaderProfiles/ThrowableDiagnostics → protocol și diagnostic generic (atf-core)
+HtmlElement/HtmlAttribute/CssPseudoClass → vocabular DOM și compoziție CSS (atf-ui)
 ```
 
 Reguli:
 
 - enum-urile păstrează vocabular stabil, nu date dinamice;
+- Shop nu menține copii pentru `none`/`bearer`, clasificarea headerelor auth,
+  scheme URI, profile de headere sau compactarea excepțiilor;
+- `ShopLocators` păstrează semantica aplicației, dar reutilizează tag-urile,
+  atributele și pseudo-clasele canonice din `atf-ui`;
 - ID-urile, credentials și payload-urile rămân în config/fixture typed;
 - testele capturează response/request o singură dată în aliasuri semantice;
 - se preferă `ShopApiHttpStatus.OK.matches(status)` în loc de numere brute;

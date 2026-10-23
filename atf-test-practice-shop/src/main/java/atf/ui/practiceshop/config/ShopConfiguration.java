@@ -3,6 +3,11 @@ package atf.ui.practiceshop.config;
 import atf.api.core.config.ApiTransportMode;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.ui.config.UiBrowserConfiguration;
+import atf.ui.practiceshop.config.api.ShopApiConfiguration;
+import atf.ui.practiceshop.config.api.ShopApiEvidenceBinding;
+import atf.ui.practiceshop.config.api.ShopApiPrecondition;
+import atf.ui.practiceshop.config.model.ShopAccountFixturePolicy;
+import atf.ui.practiceshop.config.model.ShopCredentials;
 import atf.ui.practiceshop.routes.ShopUiRoutes;
 
 import java.net.URI;

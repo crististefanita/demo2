@@ -1,5 +1,6 @@
 package atf.ui.tests.extent.support.locators;
 import atf.api.reporting.ui.contract.ReportUiContract;
+import atf.api.reporting.api.contract.ApiReportEvidenceField;
 import atf.api.reporting.theme.tokens.AtfReportCssSelectors;
 
 import atf.api.ui.playwright.AtfLocator;
@@ -18,14 +19,16 @@ final class ReportEvidenceLocators {
             AtfReportCssSelectors.Component.TEST_CONTENT_DETAIL.attributeSelector();
     private static final String VISIBLE_TEST_CONTENT_DETAIL =
             AtfReportCssSelectors.Component.TEST_CONTENT_DETAIL.attributeSelector() + ":visible";
+    private static final String RESPONSE_TABLE = "details" + classToken("response-evidence") + " "
+            + elementClass("table", "helm-trace-table");
     Locator requestDetails(Locator request) { return request.locator(elementClass("table", "helm-request-table")); }
-    Locator responseDetails(Locator request) { return request.locator(elementClass("table", "helm-trace-table")); }
+    Locator responseDetails(Locator request) { return request.locator(RESPONSE_TABLE); }
     Locator executionEvidence(Locator request) { return request.locator(elementClass("table", "execution-table")); }
     Locator requestTable(Locator scope) { return scope.locator(elementClass("table", "helm-request-table")); }
-    Locator responseTable(Locator scope) { return scope.locator(elementClass("table", "helm-trace-table")); }
+    Locator responseTable(Locator scope) { return scope.locator(RESPONSE_TABLE); }
     Locator executionTable(Locator scope) { return scope.locator(elementClass("table", "execution-table")); }
     Locator visibleRequestTable(Locator scope) { return scope.locator(elementClass("table", "helm-request-table") + ":visible"); }
-    Locator visibleResponseTable(Locator scope) { return scope.locator(elementClass("table", "helm-trace-table") + ":visible"); }
+    Locator visibleResponseTable(Locator scope) { return scope.locator(RESPONSE_TABLE + ":visible"); }
     Locator visibleExecutionTable(Locator scope) { return scope.locator(elementClass("table", "execution-table") + ":visible"); }
     Locator retryHistoryTable(Locator scope) { return scope.locator(elementClass("table", "retry-history-table") + ":visible"); }
     Locator retryHistoryRows(Locator table) { return table.locator("tbody tr"); }
@@ -52,7 +55,7 @@ final class ReportEvidenceLocators {
     }
     String requestTitle(Locator request) { return requestNodeToggle(request).innerText().trim(); }
 
-    String requestUrl(Locator request) { return cellValue(requestDetails(request), "URL"); }
+    String requestUrl(Locator request) { return cellValue(requestDetails(request), ApiReportEvidenceField.REQUEST_URL); }
 
     Map<String, String> requestFields(Locator request) {
         return fieldValues(requestDetails(request));
@@ -67,11 +70,12 @@ final class ReportEvidenceLocators {
     }
 
     int responseStatus(Locator request) {
-        int status = statusFromRows(responseDetails(request).locator("tbody tr"), "HTTP STATUS");
-        return status >= 0 ? status : statusFromRows(executionEvidence(request).locator("tbody tr"), "response.status");
+        int status = statusFromRows(responseDetails(request).locator("tbody tr"), ApiReportEvidenceField.HTTP_STATUS);
+        return status >= 0 ? status : statusFromRows(executionEvidence(request).locator("tbody tr"),
+                ApiReportEvidenceField.RESPONSE_STATUS);
     }
 
-    String responseUrl(Locator request) { return cellValue(executionEvidence(request), "response.url"); }
+    String responseUrl(Locator request) { return cellValue(executionEvidence(request), ApiReportEvidenceField.RESPONSE_URL); }
 
     Locator requestJsonBodies(Locator request) { return request.locator(classToken(ReportUiContract.JSON_REQUEST_CLASS)); }
     Locator responseJsonBodies(Locator request) { return request.locator(classToken(ReportUiContract.JSON_RESPONSE_CLASS)); }
@@ -190,11 +194,11 @@ final class ReportEvidenceLocators {
                 nodeScopedSelector(nodeId(requestNodeHeader(request)), suffix));
     }
 
-    private String cellValue(Locator table, String field) {
+    private String cellValue(Locator table, ApiReportEvidenceField field) {
         Locator rows = table.locator("tbody tr");
         for (int index = 0; index < rows.count(); index++) {
             Locator row = rows.nth(index);
-            if (field.equalsIgnoreCase(row.locator("td").first().innerText().trim())) {
+            if (field.matches(row.locator("td").first().innerText())) {
                 return row.locator("td").nth(1).innerText().trim();
             }
         }
@@ -213,10 +217,10 @@ final class ReportEvidenceLocators {
         return Map.copyOf(values);
     }
 
-    private int statusFromRows(Locator rows, String field) {
+    private int statusFromRows(Locator rows, ApiReportEvidenceField field) {
         for (int index = 0; index < rows.count(); index++) {
             Locator row = rows.nth(index);
-            if (!field.equalsIgnoreCase(row.locator("td").first().innerText().trim())) continue;
+            if (!field.matches(row.locator("td").first().innerText())) continue;
             try {
                 return Integer.parseInt(row.locator("td").nth(1).innerText().trim());
             } catch (NumberFormatException ignored) {

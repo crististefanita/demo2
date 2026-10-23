@@ -11,7 +11,7 @@ nu enumerate ca un inventar Maven:
 
 | Zonă | Module live | Responsabilitate | Întrebarea cititorului |
 |---|---|---|---|
-| **Contract & foundation** | `atf-test-kit`, `atf-core` | adnotări de layer, modele neutre, lifecycle, transport ports | ce poate fi reutilizat fără reporting sau business? |
+| **Contract & foundation** | `atf-test-kit`, `atf-core` | adnotări de test, resolvere neutre, lifecycle, transport ports | ce poate fi reutilizat fără reporting sau business? |
 | **Execution & verdict** | `atf-mock`, `atf-validation`, `atf-console` | schimb determinist, verdict semantic și diagnostic | cum devine un test reproductibil și explicabil? |
 | **Reporting & UI audit** | `atf-reporting`, `atf-ui`, `atf-debug-ui` | artifact standalone, browser audit și publicare read-only | cum devine rezultatul observabil și verificabil? |
 | **Consumers** | `atf-reporting-tests`, `atf-test-practice-shop` | composition roots, fixture-uri, flows și testele concrete | cine compune platforma pentru un scop real? |
@@ -67,7 +67,7 @@ a aceleiași legende.
 
 | Boundary | Owner | Rol | Verificare |
 |---|---|---|---|
-| test contract | `atf-test-kit` | adnotări unit/component/integration/e2e și guard transversal | architecture/unit |
+| test contract | `atf-test-kit` | adnotări nivel/canal/output/setup/docs și guard transversal | architecture/unit |
 | kernel | `atf-core` | modele neutre, lifecycle, transport și porturi | unit |
 | transport determinist | `atf-mock` | rute și răspunsuri fake configurabile | component |
 | verdict | `atf-validation` | contracte response, evaluare și evidence | unit |
@@ -120,7 +120,7 @@ flowchart LR
 
 | Grup | Module | Deține | Nu deține |
 |---|---|---|---|
-| platform | `atf-test-kit` | layer annotations și guard-uri | runtime sau fixture-uri de business |
+| platform | `atf-test-kit` | adnotări, resolvere neutre și guard-uri | runtime sau fixture-uri de business |
 | platform | `atf-core` | request/response, lifecycle, transport și porturi | HTML, Extent, business services |
 | platform | `atf-mock` | fake transport și catalog determinist | HTTP live sau verdicturi |
 | platform | `atf-validation` | response contracts, verdict și evidence | transport sau HTML |
@@ -329,7 +329,7 @@ fără să parcurgă aceeași explicație în root și în fiecare modul; indexu
 
 | Zonă | Document owner | Întrebarea la care răspunde |
 |---|---|---|
-| contract transversal | [`atf-test-kit/README.md`](atf-test-kit/README.md) | cum declarăm și protejăm nivelul unui test? |
+| contract transversal | [TestKit](atf-test-kit/README.md), [adnotări implementate](docs/ATF_Test_Infrastructure_Annotations.md) | cum declarăm nivelul, canalul, output-ul și setup-ul unui test? |
 | kernel reutilizabil | [`atf-core/README.md`](atf-core/README.md) | ce modele, lifecycle și porturi sunt neutre? |
 | transport determinist | [`atf-mock/README.md`](atf-mock/README.md) | cum obținem schimburi API reproducibile? |
 | verdict semantic | [`atf-validation/README.md`](atf-validation/README.md) | cum se transformă un response într-un verdict? |

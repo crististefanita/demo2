@@ -1,14 +1,15 @@
 package atf.ui.practiceshop.flow;
 
 import atf.ui.practiceshop.config.ShopScreen;
+import atf.ui.practiceshop.config.model.ShopBillingAddress;
 import atf.ui.practiceshop.locators.ShopControl;
 import atf.ui.practiceshop.pages.ShopBillingPage;
 import atf.ui.practiceshop.pages.ShopCartPage;
 import atf.ui.practiceshop.pages.ShopConfirmationPage;
 import atf.ui.practiceshop.pages.ShopGuestCheckoutPage;
 import atf.ui.practiceshop.pages.ShopPaymentPage;
-import atf.ui.practiceshop.support.ShopPageValidationResult;
-import atf.ui.practiceshop.config.ShopApiCheckpoint;
+import atf.ui.practiceshop.support.validation.ShopPageValidationResult;
+import atf.ui.practiceshop.config.api.ShopApiCheckpoint;
 import atf.ui.practiceshop.support.ShopPurchaseTraceStep;
 
 import java.util.List;
@@ -116,7 +117,7 @@ final class ShopCheckoutPurchaseStage {
 
     private static ShopPageValidationResult validateConfiguredBilling(
             ShopBillingPage billing, ShopPurchaseJourneyContext context,
-            atf.ui.practiceshop.config.ShopBillingAddress address) {
+            ShopBillingAddress address) {
         billing.fill(address);
         return context.pageValidator().validateValues(context.page(), ShopBillingPage.class, Map.of(
                 ShopControl.COUNTRY, address.country(),
@@ -129,7 +130,7 @@ final class ShopCheckoutPurchaseStage {
 
     private static ShopPageValidationResult validateLookupBilling(
             ShopBillingPage billing, ShopPurchaseJourneyContext context,
-            atf.ui.practiceshop.config.ShopBillingAddress address) {
+            ShopBillingAddress address) {
         billing.fillFromPostalLookup(address);
         return context.pageValidator().validatePopulatedValues(context.page(), ShopBillingPage.class,
                 Map.of(ShopControl.COUNTRY, address.country(),

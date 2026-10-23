@@ -45,7 +45,7 @@ public final class ConfiguredApiAuthenticator implements ApiAuthenticator {
     }
 
     private AuthProfile profile(String name) {
-        String key = name == null || name.isBlank() ? "none" : name;
+        String key = AuthProfiles.normalize(name);
         return profiles.getOrDefault(key, AuthProfile.none(key));
     }
 

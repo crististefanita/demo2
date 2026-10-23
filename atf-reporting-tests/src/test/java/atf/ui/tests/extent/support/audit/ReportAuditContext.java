@@ -143,6 +143,14 @@ public final class ReportAuditContext implements AutoCloseable {
                 && locators.tabView(browser.page(), tab).isVisible();
     }
 
+    /** Read-only evidence access; never reloads the page or collapses the inspected subtree. */
+    public Page selectedTab(ReportUiContract.Tab tab) {
+        if (!isTabSelected(tab)) {
+            throw new IllegalStateException("Report evidence tab is not selected: " + tab);
+        }
+        return browser.page();
+    }
+
     /** Captures the current page only when the configured failure policy enables it. */
     public UiScreenValidation.Evidence captureFailure(UiConfiguration configuration, String title) {
         Objects.requireNonNull(configuration, "configuration");

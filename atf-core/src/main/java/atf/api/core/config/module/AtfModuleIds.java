@@ -26,7 +26,7 @@ public final class AtfModuleIds {
 
     /** Modules whose production/test source boundaries are governed by the whole-ATF guard. */
     public static final List<String> SOURCE_GOVERNED_MODULES = List.of(
-            CORE, MOCK, VALIDATION, CONSOLE, REPORTING, UI, DEBUG_UI, TESTS);
+            CORE, MOCK, VALIDATION, CONSOLE, REPORTING, UI, DEBUG_UI, PRACTICE_SHOP, TESTS);
 
     private AtfModuleIds() {
     }

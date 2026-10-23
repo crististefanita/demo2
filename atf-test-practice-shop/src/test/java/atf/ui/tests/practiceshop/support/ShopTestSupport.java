@@ -1,7 +1,7 @@
 package atf.ui.tests.practiceshop.support;
 
 import atf.api.core.config.ApiTransportMode;
-import atf.ui.practiceshop.config.ShopCredentials;
+import atf.ui.practiceshop.config.model.ShopCredentials;
 import atf.ui.practiceshop.config.ShopConfiguration;
 import atf.ui.practiceshop.config.ShopConfigurationLoader;
 import atf.ui.practiceshop.config.ShopRegistrationProfile;

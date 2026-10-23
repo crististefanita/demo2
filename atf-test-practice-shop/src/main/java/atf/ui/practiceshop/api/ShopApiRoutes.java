@@ -17,6 +17,11 @@ public final class ShopApiRoutes {
     public static final String INVOICE_CREATE = "/invoices";
     public static final String GUEST_INVOICE_CREATE = INVOICE_CREATE + "/guest";
 
+    public static final String PRODUCT_DETAIL_TEMPLATE = "/products/{productId}";
+    public static final String CART_RESOURCE_TEMPLATE = "/carts/{cartId}";
+    public static final String CART_QUANTITY_TEMPLATE = CART_RESOURCE_TEMPLATE + CART_PRODUCT_QUANTITY;
+    public static final String CART_PRODUCT_TEMPLATE = CART_RESOURCE_TEMPLATE + "/product/{productId}";
+
     private ShopApiRoutes() { }
 
     public static String product(String id) {

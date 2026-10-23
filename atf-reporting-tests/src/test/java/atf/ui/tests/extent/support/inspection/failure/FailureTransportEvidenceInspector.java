@@ -1,4 +1,6 @@
 package atf.ui.tests.extent.support.inspection.failure;
+
+import atf.api.ui.dom.HtmlElement;
 import atf.api.reporting.audit.RetryEvidenceValidator;
 import atf.ui.tests.extent.support.lifecycle.UiAuditFlow;
 
@@ -158,7 +160,8 @@ public final class FailureTransportEvidenceInspector {
     private static String body(Locator locator) {
         if (locator.count() == 0) return "";
         String tag = locator.evaluate("element => element.tagName").toString();
-        return "TEXTAREA".equalsIgnoreCase(tag) ? locator.inputValue() : locator.innerText();
+        return HtmlElement.TEXTAREA.selector().equalsIgnoreCase(tag)
+                ? locator.inputValue() : locator.innerText();
     }
 
     private static boolean hasJsonDocument(String value) {

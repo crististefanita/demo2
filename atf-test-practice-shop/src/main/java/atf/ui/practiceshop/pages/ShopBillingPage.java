@@ -1,7 +1,8 @@
 package atf.ui.practiceshop.pages;
 
+import atf.api.ui.dom.HtmlElement;
 import atf.api.ui.playwright.PlaywrightActionSequence;
-import atf.ui.practiceshop.config.ShopBillingAddress;
+import atf.ui.practiceshop.config.model.ShopBillingAddress;
 import atf.ui.practiceshop.config.ShopScreen;
 import atf.ui.practiceshop.locators.ShopControl;
 import atf.ui.practiceshop.locators.ShopLocators;
@@ -12,6 +13,8 @@ import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 
 import java.util.List;
+
+import static atf.api.ui.dom.HtmlAttribute.VALUE;
 
 /** Billing address page object with no raw selectors outside the locator owner. */
 @ShopPageContract(screen = ShopScreen.BILLING, route = ShopUiRoutes.CHECKOUT,
@@ -76,11 +79,11 @@ public final class ShopBillingPage {
     }
 
     private String countrySelectionLabel(String configuredCountry) {
-        Locator options = locators.country(page).locator().locator("option");
+        Locator options = locators.country(page).locator().locator(HtmlElement.OPTION.selector());
         ShopCountryOption match = null;
         for (int index = 0; index < options.count(); index++) {
             Locator option = options.nth(index);
-            var candidate = new ShopCountryOption(option.getAttribute("value"),
+            var candidate = new ShopCountryOption(option.getAttribute(VALUE.attributeName()),
                     option.getAttribute("label"), option.innerText());
             if (!candidate.matches(configuredCountry)) continue;
             if (match != null) {

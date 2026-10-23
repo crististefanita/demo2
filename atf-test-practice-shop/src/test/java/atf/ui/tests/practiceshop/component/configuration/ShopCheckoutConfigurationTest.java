@@ -1,9 +1,9 @@
 package atf.ui.tests.practiceshop.component.configuration;
 
 import atf.api.testkit.AtfComponentTest;
-import atf.ui.practiceshop.config.ShopBillingAddress;
+import atf.ui.practiceshop.config.model.ShopBillingAddress;
 import atf.ui.practiceshop.config.ShopCheckoutConfiguration;
-import atf.ui.practiceshop.config.ShopGuest;
+import atf.ui.practiceshop.config.model.ShopGuest;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

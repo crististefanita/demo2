@@ -5,16 +5,17 @@ import atf.api.core.http.request.HttpHeader;
 import atf.api.core.http.request.HttpMethod;
 import atf.api.core.http.request.MediaTypes;
 import atf.api.testkit.AtfComponentTest;
-import atf.ui.practiceshop.api.ShopApiAuthProfile;
-import atf.ui.practiceshop.api.ShopApiJsonField;
+import atf.api.core.http.auth.AuthProfiles;
+import atf.api.core.http.auth.AuthType;
+import atf.ui.practiceshop.api.contract.ShopApiJsonField;
 import atf.ui.practiceshop.api.ShopApiOperation;
-import atf.ui.practiceshop.api.ShopApiQueryParameter;
+import atf.ui.practiceshop.api.contract.ShopApiQueryParameter;
 import atf.ui.practiceshop.api.ShopApiRequestFactory;
 import atf.ui.practiceshop.api.ShopApiRoutes;
-import atf.ui.practiceshop.api.ShopPaymentMethod;
+import atf.ui.practiceshop.api.contract.ShopPaymentMethod;
 import atf.ui.practiceshop.api.ShopProductQuery;
-import atf.ui.practiceshop.api.ShopProductSort;
-import atf.ui.practiceshop.config.ShopCredentials;
+import atf.ui.practiceshop.api.contract.ShopProductSort;
+import atf.ui.practiceshop.config.model.ShopCredentials;
 import atf.ui.practiceshop.support.ShopJsonEvidence;
 import atf.ui.tests.practiceshop.api.support.ShopApiScenarioFixture;
 import org.junit.jupiter.api.Test;
@@ -39,7 +40,7 @@ class ShopApiRequestFactoryTest {
 
         assertEquals(HttpMethod.POST.value(), request.method());
         assertEquals(ShopApiRoutes.LOGIN, request.path());
-        assertEquals(ShopApiAuthProfile.NONE.wireValue(), request.authProfile());
+        assertEquals(AuthProfiles.NONE, request.authProfile());
         assertEquals(MediaTypes.APPLICATION_JSON, request.headers().get(HttpHeader.CONTENT_TYPE.value()));
         var body = ShopJsonEvidence.parse(request.bodyText());
         assertNotNull(body);
@@ -68,7 +69,7 @@ class ShopApiRequestFactoryTest {
         assertNull(registrationBody.get("firstName"));
 
         assertEquals(ShopApiRoutes.INVOICE_CREATE, invoice.path());
-        assertEquals(ShopApiAuthProfile.BEARER.wireValue(), invoice.authProfile());
+        assertEquals(AuthProfiles.standard(AuthType.BEARER), invoice.authProfile());
         assertEquals("Bearer " + ShopApiScenarioFixture.BEARER_TOKEN,
                 invoice.headers().get(HttpHeader.AUTHORIZATION.value()));
         assertNotNull(authenticatedInvoiceBody);

@@ -2,10 +2,10 @@ package atf.ui.tests.practiceshop.support;
 
 import atf.api.core.config.ApiTransportMode;
 import atf.api.testkit.AtfComponentTest;
-import atf.ui.practiceshop.config.ShopApiPrecondition;
+import atf.ui.practiceshop.config.api.ShopApiPrecondition;
 import atf.ui.practiceshop.config.ShopConfiguration;
 import atf.ui.practiceshop.config.ShopConfigurationLoader;
-import atf.ui.practiceshop.config.ShopCredentials;
+import atf.ui.practiceshop.config.model.ShopCredentials;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.platform.suite.api.SelectClasses;

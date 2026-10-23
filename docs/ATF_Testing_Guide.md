@@ -46,6 +46,10 @@ loader-ele și adapters rămân auxiliare; metoda de test deține assertion-ul �
 clasa executabilă declară exact o adnotare `@AtfUnitTest`, `@AtfComponentTest`,
 `@AtfIntegrationTest` sau `@AtfE2eTest`.
 
+Canalul `UI`/`API`/`UI_API` este separat de nivel și de tag-urile JUnit.
+API-ul implementat pentru canale, output, setup și documentație este în
+[Adnotări de infrastructură pentru teste](ATF_Test_Infrastructure_Annotations.md).
+
 ## Matricea detaliată module × nivel de testare
 
 Celulele arată doar nivelurile care există în suitele executabile curente.

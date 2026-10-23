@@ -27,9 +27,9 @@ se elimină după promovarea conținutului stabil și actualizarea referințelor
 
 | Ordine | Responsabil / feedback | Impact /40 | Lacună /30 | Lucrabil acum /20 | Datorie doc. /10 | Pondere | Scor | Ce mai trebuie făcut |
 |---:|---|---:|---:|---:|---:|---:|---:|---|
-| 1 | [Uniformitate și interacțiuni UI/API](ATF_Reporting_Feedback.md) | 40 | 29 | 20 | 7 | 1.00 | **96** | GOV-API-01 structural, ownership/verdict local, cauzalitate, matricea extinsă, starea Categories fără rezultate și PUB-01 |
-| 2 | [Adnotări UI, API și UI+API](ATF_Test_Channel_Annotations_Feedback.md) | 38 | 28 | 20 | 6 | 1.00 | **92** | resolverul typed și preflight-ul sunt implementate parțial; rămân contractele locale, Network Inspector UI+API și matricea completă de probe |
-| 3 | [Infrastructură de adnotări și output project-relative](ATF_Test_Infrastructure_Annotations_Feedback.md) | 35 | 26 | 20 | 6 | 1.00 | **87** | extracția output/setup/docs este în curs de integrare; rămân reconcilierea live, proba IntelliJ și probele symlink cu privilegiile necesare |
+| 1 | [Uniformitate și interacțiuni UI/API](ATF_Reporting_Feedback.md) | 40 | 28 | 20 | 6 | 1.00 | **94** | GOV-API-01, ownership/verdict local, cauzalitate, Categories fără rezultate, scalabilitate PUB-01 și cleanup Windows PUB-FS-02 |
+| 2 | [Adnotări UI, API și UI+API](ATF_Test_Channel_Annotations_Feedback.md) | 38 | 28 | 20 | 6 | 1.00 | **92** | resolverul typed și preflight-ul sunt implementate; rămân migrarea aliasului YAML, integrarea contractelor/inspectorului și matricea verdict/JUnit |
+| 3 | [Infrastructură de adnotări și output project-relative](ATF_Test_Infrastructure_Annotations_Feedback.md) | 35 | 26 | 20 | 6 | 1.00 | **87** | extracțiile sunt în live; rămân symlink/junction, IntelliJ, matricea output și compatibilitatea; evoluții noi: politica declarativă a consolei, metadata și evaluarea bugetelor |
 
 - Scorurile din acest registru ordonează lucrul rămas; nu sunt verdicte de calitate.
 
@@ -51,7 +51,7 @@ contractele deja implementate.
 
 | Domeniu | Stare | Documentație oficială |
 |---|---|---|
-| Arhitectura testelor și matricea modul × strat | straturile și matricea sunt stabile; extracția adnotărilor transversale este urmărită separat | [Ghidul de testare ATF](../ATF_Testing_Guide.md), [Bune practici de cod ATF](../README_Atf_CodeBestPractices.md), [feedback infrastructură](ATF_Test_Infrastructure_Annotations_Feedback.md) |
+| Arhitectura testelor și adnotări transversale | nivelurile, resolverul de canal și extracțiile output/setup/docs sunt implementate; feedback-ul păstrează criteriile neprobate și evoluțiile propuse | [Ghidul de testare ATF](../ATF_Testing_Guide.md), [Contractul adnotărilor](../ATF_Test_Infrastructure_Annotations.md), [feedback infrastructură](ATF_Test_Infrastructure_Annotations_Feedback.md) |
 | Detalii implicite la consolă | contractul și probele negative sunt la owner | [ATF Console](../../atf-console/README.md) |
 | Raportare: dovezi, trace, agregat, display/layout, viewport și matricea Network Inspector | TABLE-VIEWPORT-01 și fidelitatea metodei/timpilor API sunt promovate la owneri; bugetele asset-urilor au guard de regresie, nu ToDo separat; matricea extinsă și lacunele UI/API rămase sunt în feedback | [Contractul semantic de raportare](../ATF_Reporting_Contract.md), [contractul display/layout](../ATF_Reporting_Display_Contract.md), [README ATF Reporting](../../atf-reporting/README.md), [README ATF Reporting Tests](../../atf-reporting-tests/README.md) |
 | Inspector UI și politica fără reluare automată | fără cerințe deschise; redeschidere numai la încălcarea contractului | [README ATF UI](../../atf-ui/README.md), [README Practice Shop](../../atf-test-practice-shop/README.md) |

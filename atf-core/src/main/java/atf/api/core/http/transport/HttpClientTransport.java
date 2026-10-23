@@ -1,8 +1,7 @@
 package atf.api.core.http.transport;
 import atf.api.core.http.auth.ApiAuthenticator;
+import atf.api.core.http.protocol.HttpHeaderProfiles;
 import atf.api.core.http.request.ApiRequest;
-import atf.api.core.http.request.HttpHeader;
-import atf.api.core.http.request.MediaTypes;
 import atf.api.core.http.response.ApiResponse;
 
 import java.net.URI;
@@ -27,9 +26,8 @@ public final class HttpClientTransport implements ApiTransport {
     public CompletableFuture<ApiResponse> send(ApiRequest request, String url, String authProfile) {
         var builder = HttpRequest.newBuilder(URI.create(url))
                 .timeout(timeout)
-                .header(HttpHeader.ACCEPT.value(), MediaTypes.APPLICATION_JSON)
-                .header(HttpHeader.CONTENT_TYPE.value(), MediaTypes.APPLICATION_JSON)
                 .method(request.method(), request.body());
+        HttpHeaderProfiles.JSON_REQUEST.forEach(builder::header);
         request.headers().forEach(builder::header);
         authenticator.apply(builder, authProfile);
         long started = System.nanoTime();

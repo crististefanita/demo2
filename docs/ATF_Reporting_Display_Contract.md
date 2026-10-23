@@ -64,6 +64,8 @@ de textul `Contract validation`, de metoda HTTP sau de numărul de câmpuri.
   spațiere și ierarhia semantică;
 - screenshot-ul este un link inline cu emoji-ul curent; fingerprint-ul sau
   digest-ul deduplicării rămâne intern și nu înlocuiește linkul uman;
+- o captură deduplicată deschide aceeași imagine prin click sau Enter, inclusiv
+  când sursa este într-un scenariu colapsat; nu face doar salt la o ancoră ascunsă;
 - controalele de navigare și deep-link-urile păstrează aceeași identitate în
   `Tests`, `Overview`, `Categories` și `Fails`.
 

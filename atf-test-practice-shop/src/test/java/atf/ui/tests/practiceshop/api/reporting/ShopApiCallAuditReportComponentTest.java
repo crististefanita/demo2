@@ -1,14 +1,15 @@
 package atf.ui.tests.practiceshop.api.reporting;
 
+import atf.api.core.http.request.HttpMethod;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.extent.session.ExtentReportSession;
 import atf.api.reporting.semantic.AtfReportSemanticSnapshot;
 import atf.api.testkit.AtfComponentTest;
-import atf.ui.practiceshop.support.ShopApiReportPublisher;
+import atf.ui.practiceshop.support.reporting.ShopApiReportPublisher;
 import atf.ui.tests.practiceshop.api.support.ShopApiCallAuditContextTestSupport;
 import atf.ui.tests.practiceshop.api.support.ShopApiComponentFixture;
 import atf.ui.tests.practiceshop.api.support.ShopApiScenarioFixture;
-import atf.ui.practiceshop.api.ShopApiHttpStatus;
+import atf.ui.practiceshop.api.contract.ShopApiHttpStatus;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
@@ -51,7 +52,7 @@ class ShopApiCallAuditReportComponentTest {
             assertEquals(1, snapshot.validationCount());
             var request = (AtfReportSemanticSnapshot.RequestSnapshot) snapshot.classes().getFirst()
                     .scenarios().getFirst().phases().getFirst().nodes().getFirst();
-            assertEquals("POST", request.method());
+            assertEquals(HttpMethod.POST.value(), request.method());
             assertEquals("/users/login", request.path());
             var validation = request.validations().getFirst();
             assertEquals("Contract validation", validation.title());

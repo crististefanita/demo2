@@ -3,8 +3,8 @@ package atf.ui.tests.practiceshop.api.support;
 import atf.api.core.http.response.ApiExecutionResult;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
-import atf.ui.practiceshop.api.ShopApiHttpStatus;
-import atf.ui.practiceshop.support.ShopApiReportValidation;
+import atf.ui.practiceshop.api.contract.ShopApiHttpStatus;
+import atf.ui.practiceshop.support.api.ShopApiReportValidation;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;

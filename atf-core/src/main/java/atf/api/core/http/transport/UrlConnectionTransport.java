@@ -1,8 +1,7 @@
 package atf.api.core.http.transport;
 import atf.api.core.http.auth.ApiAuthenticator;
+import atf.api.core.http.protocol.HttpHeaderProfiles;
 import atf.api.core.http.request.ApiRequest;
-import atf.api.core.http.request.HttpHeader;
-import atf.api.core.http.request.MediaTypes;
 import atf.api.core.http.response.ApiResponse;
 
 import java.io.ByteArrayOutputStream;
@@ -58,8 +57,7 @@ public final class UrlConnectionTransport implements ApiTransport {
             connection.setReadTimeout(timeoutMillis);
             connection.setRequestMethod(request.method());
             connection.setDoInput(true);
-            connection.setRequestProperty(HttpHeader.ACCEPT.value(), MediaTypes.APPLICATION_JSON);
-            connection.setRequestProperty(HttpHeader.CONTENT_TYPE.value(), MediaTypes.APPLICATION_JSON);
+            HttpHeaderProfiles.JSON_REQUEST.forEach(connection::setRequestProperty);
             request.headers().forEach(connection::setRequestProperty);
             applyAuthentication(connection, url, authProfile);
 

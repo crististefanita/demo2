@@ -10,8 +10,8 @@ UI și API afișează implicit detalii la consolă atât din IntelliJ, cât și 
   `enabled: false` oprește proiecția. [ATF Console](../atf-console/README.md)
   deține politica și output-ul.
 
-Schimbarea testelor, suportului sau resurselor din acest modul cere un ToDo
-`testChanges` valid în feedback; [guvernanța whole-ATF](../atf-tests/README.md#guvernanța-schimbării-testelor)
+Schimbarea testelor, suportului sau resurselor din acest modul cere un control
+tehnic `testChanges` eligibil; [guvernanța whole-ATF](../atf-tests/README.md#guvernanța-schimbării-testelor)
 verifică diferența Git și probele negative ale regulii.
 
 `atf-reporting-tests` verifică `atf-reporting` ca librărie reutilizabilă:
@@ -33,7 +33,7 @@ Proiecția contextului UI este verificată la componentă:
 |---|---|
 | `UiCheckpointEvidenceProjectionTest` | identitatea checkpoint-ului și `evidence.type`/`evidence.policy` rămân în model; proiecțiile typed/legacy și fallback nu le publică și nu le mută în response |
 | `ExtentReportUiEvidencePublishingTest` | publisher-ul UI nu adaugă un request HTTP sintetic; exchange-ul nested păstrează request/response/JSON/execution |
-| `ExtentReportDisclosureBrowserComponentTest` | artifact controlat cu PASS/WARNING/FAIL; niciun tabel introductiv la checkpoint, validări și screenshot disponibile, API exchange complet, close fără subarbore vizibil și titluri custom identificate semantic |
+| `ExtentReportDisclosureBrowserComponentTest` | artifact controlat cu PASS/WARNING/FAIL; niciun tabel introductiv la checkpoint, validări și screenshot disponibile, API exchange complet, close fără subarbore vizibil și titluri custom identificate semantic; captură deduplicată deschisă prin click/Enter cu sursa colapsată, fără salt la ancoră |
 | `ReportPhaseDiagnosticTest` | conversie explicită, statusul fazei sursă, chei legacy delimitate, context nemodificat și rezultat imutabil; portul diagnostic nu creează HTTP |
 | `ReportPhaseAuditBrowserComponentTest` | Extent/fallback cu zero/unul/mai multe exchange-uri și cu/fără metadata; eșec JUnit, asociere lipsă, redacție și închiderea diagnosticului; Fails exclude notele fazei PASS; probe negative pentru bandă ascunsă, redenumită sau goală |
 
@@ -142,6 +142,21 @@ Contractul este verificat pe două seam-uri:
 - semantica este în [`ATF_Reporting_Contract.md`](../docs/ATF_Reporting_Contract.md),
   iar forma vizibilă este în
   [`ATF_Reporting_Display_Contract.md`](../docs/ATF_Reporting_Display_Contract.md).
+
+## Reconcilierea dovezilor API și navigarea fazei
+
+| Boundary | Contract | Probă |
+|---|---|---|
+| Câmpuri randate | `ApiReportEvidenceField` deține eticheta canonică și aliasurile legacy explicite; aliasurile contradictorii nu ascund o valoare greșită | `ApiReportContractAuditorTest` |
+| Query | se extrage din `URL` al request-ului, nu din path sau din URL-ul răspunsului; un răspuns corect nu repară artificial un request incomplet | `ApiReportRenderedEvidenceComponentTest` — nominal și query lipsă |
+| Ownership tabel | câmpurile response provin numai din disclosure-ul `Response details`, nu din trace-ul tehnic al execuției | aceeași componentă cere exact un tabel pentru fiecare canal de evidence |
+| Fază | binding-ul se verifică pe header, apoi se așteaptă starea open pe card; nu se mărește timeout-ul și nu se face toggle repetat fără citirea stării | aceeași componentă: reselectare, tab round-trip, reîncărcare și TEST BODY absent |
+| Captură de audit | publisherul reutilizează tab-ul deja inspectat fără reload sau resetarea acțiunilor; schimbarea tab-ului pentru evidence păstrează istoricul | aceeași componentă verifică identitatea paginii, trace-ul și disclosure-ul deschis |
+| Compoziție | setup exact → mock → API artifact → toate secțiunile randate și reconciliere | `SelectedApiTestsReportUiTest` |
+
+Probele de componentă folosesc o publicație Extent controlată și aceleași
+locatoare/extractoare ca E2E, fără endpoint extern. Scenariile negative sunt
+date ale fixture-ului, nu motive de a dezactiva verificări sau de a inventa PASS.
 
 ## Ordinea testelor și responsabilitatea protecțiilor
 
@@ -290,6 +305,7 @@ limitat; nu execută journey-uri pe aplicația externă și nu reduce capturile.
 | Parametru / dovadă | Contractul fixture-ului |
 |---|---|
 | Heap | `-Xms64m -Xmx384m`, separat de fork-ul Surefire |
+| Output | directorul configurabil este creat înaintea logului JVM copil; proba poate porni într-un director nou |
 | Conținut | Unicode, 1.500 referințe PNG inline; două imagini distincte repetate |
 | Integritate | exit code 0, heap peak raportat, HTML peste 9 MB, marker final, temă, runtime și ambele referințe media |
 | Limită | nu dovedește volume arbitrare, PNG-uri mari/distincte sau failure-path fără artifact parțial |
@@ -428,20 +444,22 @@ este entry-point-ul îngust pentru auditul UI al reportingului. Astfel un run
 rapid nu pornește browserul, un run API fixture nu pornește UI, iar un run E2E
 nu ascunde failure-uri lower-level.
 
-Rapoartele UI publicate de clasele E2E care poartă `@UiReportSubdirectory("e2e")`
+Rapoartele UI publicate de clasele E2E care poartă
+`@ProjectRelativeUiReportDirectory("artifacts/reports/ui/e2e")`
 se salvează în `artifacts/reports/ui/e2e`; rapoartele celorlalte layer-e rămân
-în `artifacts/reports/ui`. Valoarea adnotării este relativă la directorul UI și
-nu poate ieși din acesta.
+în `artifacts/reports/ui`. Valoarea adnotării project-relative este ancorată
+în rădăcina reactorului furnizată de compoziție, inclusiv în staging extern.
 
 | Politica de output | Responsabilitate |
 |---|---|
-| `support.config.output` | Adnotarea și `UiReportOutputDirectory`; rezolvare sigură, separată de YAML |
+| `atf.api.testkit.output` | Adnotări și resolver neutru; baza UI și rădăcina proiectului sunt primite explicit |
 | `ReportingTestResources` | Deleagă alegerea directorului după încărcarea configurației |
 | Probe unitare | Director implicit și E2E păstrate; valori goale, absolute sau cu traversare respinse |
 
-- Migrarea în TestKit și adnotarea project-relative pentru E2E sunt
-  [propuneri urmărite în feedback](../docs/feedback/ATF_Test_Infrastructure_Annotations_Feedback.md),
-  nu modificări ale contractului actual de output.
+- API-ul implementat, precedence-ul și limitele sunt în
+  [documentația adnotărilor](../docs/ATF_Test_Infrastructure_Annotations.md);
+  [feedback-ul infrastructurii](../docs/feedback/ATF_Test_Infrastructure_Annotations_Feedback.md)
+  păstrează numai probele restante.
 - importă root `pom.xml` ca proiect Maven și folosește **Reload All Maven Projects** înainte de prima rulare sau după schimbări de module;
 - run configuration-ul suitei reporting folosește modulul `atf-reporting-tests`, nu modulul legacy `atf-tests`;
 - pentru `NoClassDefFoundError` în IntelliJ, verifică modulele `atf-reporting` și `atf-reporting-tests` și dependency graph-ul testului; nu duplica sau muta clasa pentru a compensa un model IDE stale;

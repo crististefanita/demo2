@@ -1,16 +1,15 @@
 package atf.ui.tests.practiceshop.api.support;
 
+import atf.api.core.http.protocol.HttpHeaderProfiles;
 import atf.api.core.http.request.ApiRequest;
-import atf.api.core.http.request.HttpHeader;
 import atf.api.core.http.request.HttpMethod;
-import atf.api.core.http.request.MediaTypes;
 import atf.api.core.http.response.ApiExecutionResult;
 import atf.api.core.http.response.ApiResponse;
 import atf.api.core.http.transport.ApiTransport;
 import atf.api.core.http.transport.ApiTransportProvenance;
 import atf.ui.practiceshop.api.ShopApiClient;
-import atf.ui.practiceshop.api.ShopApiHttpStatus;
-import atf.ui.practiceshop.api.ShopApiJsonField;
+import atf.ui.practiceshop.api.contract.ShopApiHttpStatus;
+import atf.ui.practiceshop.api.contract.ShopApiJsonField;
 import atf.ui.practiceshop.api.ShopApiOperation;
 import atf.ui.practiceshop.api.ShopApiRoutes;
 import atf.ui.practiceshop.support.ShopJsonEvidence;
@@ -25,9 +24,6 @@ import java.util.concurrent.CompletableFuture;
 /** Deterministic component boundary; live integration remains a separate test level. */
 public final class ShopApiComponentFixture {
     private static final ObjectMapper JSON = new ObjectMapper();
-    private static final Map<String, String> JSON_HEADERS =
-            Map.of(HttpHeader.CONTENT_TYPE.value(), MediaTypes.APPLICATION_JSON);
-
     private ShopApiComponentFixture() { }
 
     public static ShopApiClient client() {
@@ -190,7 +186,7 @@ public final class ShopApiComponentFixture {
     }
 
     private static ApiResponse json(ShopApiHttpStatus status, String body, String url) {
-        return response(status, body, JSON_HEADERS, url);
+        return response(status, body, HttpHeaderProfiles.JSON_CONTENT, url);
     }
 
     private static ApiResponse response(ShopApiHttpStatus status, String body,

@@ -1,5 +1,6 @@
 package atf.ui.tests.practiceshop.api.network;
 
+import atf.api.core.http.request.HttpMethod;
 import atf.api.testkit.AtfComponentTest;
 import atf.ui.practiceshop.support.ShopJsonEvidence;
 import atf.ui.tests.practiceshop.api.support.ShopUiNetworkSettlementFixture;
@@ -50,7 +51,7 @@ class ShopUiNetworkSettlementComponentTest {
 
             Optional<?> readBack = inspector.awaitAfter(beforeMutation, observation ->
                             ShopUiNetworkSettlementFixture.CART_PATH.equals(observation.path())
-                                    && "GET".equals(observation.method())
+                                    && HttpMethod.GET.value().equals(observation.method())
                                     && ShopJsonEvidence.parse(observation.responseBody())
                                             .path("cart_items").path(0).path("quantity").asInt() == 1,
                     Duration.ofMillis(200));
@@ -70,7 +71,7 @@ class ShopUiNetworkSettlementComponentTest {
 
             Optional<?> readBack = inspector.awaitAfter(beforeMutation, observation ->
                             ShopUiNetworkSettlementFixture.CART_PATH.equals(observation.path())
-                                    && "GET".equals(observation.method()),
+                                    && HttpMethod.GET.value().equals(observation.method()),
                     Duration.ofMillis(20));
 
             assertTrue(readBack.isEmpty());
@@ -88,13 +89,13 @@ class ShopUiNetworkSettlementComponentTest {
 
             var premature = inspector.awaitAfter(beforeMutation,
                     observation -> ShopUiNetworkSettlementFixture.CART_PATH.equals(observation.path())
-                            && "GET".equals(observation.method()), Duration.ofMillis(20));
+                            && HttpMethod.GET.value().equals(observation.method()), Duration.ofMillis(20));
 
             assertTrue(premature.isEmpty(), "a matching pre-action GET is stale evidence");
             inspector.capture(ShopUiNetworkSettlementFixture.readBack(3, 1));
             var current = inspector.awaitAfter(beforeMutation,
                     observation -> ShopUiNetworkSettlementFixture.CART_PATH.equals(observation.path())
-                            && "GET".equals(observation.method()), Duration.ofMillis(20));
+                            && HttpMethod.GET.value().equals(observation.method()), Duration.ofMillis(20));
             assertEquals(3, current.orElseThrow().sequence());
         }
     }

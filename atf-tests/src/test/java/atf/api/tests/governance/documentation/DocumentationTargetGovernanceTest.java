@@ -30,6 +30,7 @@ import static atf.api.tests.governance.AtfGovernanceTestSupport.locateProjectRoo
 @DocumentationTarget("docs/ATF_Reporting_Contract.md")
 @DocumentationTarget("docs/ATF_Testing_Guide.md")
 @DocumentationTarget("docs/ATF_Test_Changes_Baseline.md")
+@DocumentationTarget("docs/ATF_Test_Infrastructure_Annotations.md")
 @DocumentationTarget("docs/README_Atf_BestPractices.md")
 @DocumentationTarget("docs/README_Atf_CodeBestPractices.md")
 @DocumentationTarget("docs/README_Atf_DocumentationBestPractices.md")

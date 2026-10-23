@@ -12,14 +12,13 @@ import java.util.List;
 public final class ApiReportExecutionEvidenceValidator {
     public ValidationResult validate(ApiReportRouteContract expected, ApiReportContractInput input) {
         List<String> violations = new ArrayList<>();
-        String status = ApiReportContractValueSupport.value(input.executionFields(),
-                ApiReportEvidenceField.RESPONSE_STATUS.key());
-        if (!status.isBlank() && !String.valueOf(input.actualStatus()).equals(status)) {
+        if (ApiReportEvidenceField.RESPONSE_STATUS.valuesIn(input.executionFields()).stream()
+                .anyMatch(status -> !String.valueOf(input.actualStatus()).equals(status))) {
             violations.add(expected.key() + " execution evidence response.status differs from report status");
         }
-        String url = ApiReportContractValueSupport.value(input.executionFields(),
-                ApiReportEvidenceField.RESPONSE_URL.key());
-        if (!url.isBlank() && !input.requestUrl().isBlank() && !input.requestUrl().equals(url)) {
+        if (!input.requestUrl().isBlank()
+                && ApiReportEvidenceField.RESPONSE_URL.valuesIn(input.executionFields()).stream()
+                .anyMatch(url -> !input.requestUrl().equals(url))) {
             violations.add(expected.key() + " execution evidence response.url differs from request URL");
         }
         return ValidationResult.ofViolations(violations);

@@ -2,7 +2,7 @@ package atf.ui.practiceshop.api.screen;
 
 import atf.ui.practiceshop.api.ShopApiClient;
 import atf.ui.practiceshop.api.ShopApiSession;
-import atf.ui.practiceshop.config.ShopCredentials;
+import atf.ui.practiceshop.config.model.ShopCredentials;
 
 /** Login-screen API precondition; it is executed once and reused by later screens. */
 public final class ShopLoginApi {

@@ -69,6 +69,12 @@ public final class UiAuditFlow {
         return openTab(hash, true);
     }
 
+    /** Captures the inspected state when possible, retaining its action history even across tabs. */
+    public Page evidencePage(ReportUiContract.Tab tab) {
+        Objects.requireNonNull(tab, "tab");
+        return context.isTabSelected(tab) ? context.selectedTab(tab) : openTabContinuing(tab.hash());
+    }
+
     private Page openTab(String hash, boolean continueActions) {
         if (!continueActions || actions == null) {
             actions = context.newActionSequence();

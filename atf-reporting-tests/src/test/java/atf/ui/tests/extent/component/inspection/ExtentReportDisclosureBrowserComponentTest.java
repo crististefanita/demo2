@@ -8,6 +8,11 @@ import org.junit.jupiter.api.Test;
 @AtfComponentTest
 class ExtentReportDisclosureBrowserComponentTest {
     @Test
+    void duplicateScreenshotOpensItsCanonicalImageFromACollapsedScenario() {
+        ExtentReportDisclosureProbe.verifyReferencedScreenshot();
+    }
+
+    @Test
     void customUiValidationTitleIsResolvedByRoleAndActionEvidence() {
         ExtentReportDisclosureProbe.verifyCustomValidationTitleLocator();
     }

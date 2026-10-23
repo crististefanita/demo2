@@ -2,7 +2,7 @@ package atf.ui.practiceshop.flow;
 
 import atf.ui.practiceshop.pages.ShopHomePage;
 import atf.ui.practiceshop.pages.ShopProductPage;
-import atf.ui.practiceshop.config.ShopApiCheckpoint;
+import atf.ui.practiceshop.config.api.ShopApiCheckpoint;
 import atf.ui.practiceshop.support.ShopPurchaseTraceStep;
 
 import java.util.List;

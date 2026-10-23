@@ -2,14 +2,14 @@ package atf.ui.tests.practiceshop.support;
 
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfGherkinKeyword;
-import atf.ui.practiceshop.config.ShopApiCheckpoint;
-import atf.ui.practiceshop.config.ShopCredentials;
-import atf.ui.practiceshop.config.ShopRegistrationData;
+import atf.ui.practiceshop.config.api.ShopApiCheckpoint;
+import atf.ui.practiceshop.config.model.ShopCredentials;
+import atf.ui.practiceshop.config.model.ShopRegistrationData;
 import atf.ui.practiceshop.config.ShopRegistrationProfile;
 import atf.ui.practiceshop.flow.ShopAccountFlow;
-import atf.ui.practiceshop.pages.ShopAccountPage;
-import atf.ui.practiceshop.pages.ShopRegistrationPage;
-import atf.ui.practiceshop.support.ShopPageValidator;
+import atf.ui.practiceshop.pages.account.ShopAccountPage;
+import atf.ui.practiceshop.pages.account.ShopRegistrationPage;
+import atf.ui.practiceshop.support.validation.ShopPageValidator;
 
 import java.util.ArrayList;
 import java.util.List;

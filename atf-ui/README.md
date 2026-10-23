@@ -106,6 +106,24 @@ ui:
 și nu știe intenția business. Locator facade-urile sunt în `atf-reporting-tests`
 test scope:
 
+Vocabularul DOM reutilizabil este însă deținut aici, aproape de runtime-ul UI:
+
+- `HtmlElement` definește tag-urile canonice (`input`, `textarea`, `select`,
+  `option`, `button`, `a`, `img` și elementele structurale folosite frecvent);
+- `HtmlAttribute` definește atribute HTML/automation stabile și compune selectori
+  exacți ori prefixați cu escaping centralizat;
+- `CssPseudoClass` compune pseudo-clasele reutilizabile, de exemplu `:checked`;
+- modulele consumatoare păstrează local doar valorile și semantica produsului,
+  nu copii ale vocabularului fizic DOM.
+
+Exemplu:
+
+```java
+HtmlElement.INPUT.attributeEquals(HtmlAttribute.ID, "email");
+HtmlElement.ANCHOR.attributeStartsWith(HtmlAttribute.DATA_TEST, "product-");
+CssPseudoClass.CHECKED.applyTo(HtmlElement.OPTION.selector());
+```
+
 ```text
 Report*Locators
     → AtfLocator(selector + Locator)

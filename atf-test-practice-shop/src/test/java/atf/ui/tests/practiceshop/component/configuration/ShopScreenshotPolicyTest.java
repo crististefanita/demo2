@@ -1,5 +1,6 @@
 package atf.ui.tests.practiceshop.component.configuration;
 
+import atf.api.core.http.protocol.ApiUris;
 import atf.api.testkit.AtfComponentTest;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.evidence.profile.ReportEvidenceCaptureProvider;
@@ -7,7 +8,7 @@ import atf.api.reporting.evidence.profile.ReportEvidenceCaptureSource;
 import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
 import atf.api.reporting.model.ReportScreenshot;
 import atf.ui.practiceshop.config.ShopConfigurationLoader;
-import atf.ui.practiceshop.support.ShopScreenshotPolicy;
+import atf.ui.practiceshop.support.reporting.ShopScreenshotPolicy;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -52,9 +53,11 @@ class ShopScreenshotPolicyTest {
         var enabled = ShopScreenshotPolicy.profile(ReportScreenshotPolicy.EACH_CHECKPOINT);
         var disabled = ShopScreenshotPolicy.profile(ReportScreenshotPolicy.NONE);
         assertTrue(enabled.capture(ReportScreenshotPolicy.CapturePoint.CHECKPOINT,
-                "UI checkpoint", "https://example.test", provider).isPresent());
+                "UI checkpoint", ApiUris.httpsEndpoint("example.test").toString(),
+                provider).isPresent());
         assertTrue(disabled.capture(ReportScreenshotPolicy.CapturePoint.CHECKPOINT,
-                "UI checkpoint", "https://example.test", provider).isEmpty());
+                "UI checkpoint", ApiUris.httpsEndpoint("example.test").toString(),
+                provider).isEmpty());
         assertEquals(1, captures.get(), "YAML-prohibited captures must not invoke Playwright");
     }
 

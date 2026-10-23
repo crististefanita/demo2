@@ -1,5 +1,8 @@
 package atf.ui.tests.practiceshop.api.support;
 
+import atf.api.core.http.protocol.ApiUris;
+import atf.api.core.http.protocol.HttpHeaderProfiles;
+import atf.api.core.http.request.HttpMethod;
 import atf.api.ui.config.UiNetworkInspectionConfiguration;
 import atf.api.ui.config.UiNetworkSettlementPolicy;
 import atf.api.ui.network.UiNetworkInspector;
@@ -8,7 +11,6 @@ import atf.ui.practiceshop.api.ShopApiRoutes;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Map;
 
 /**
  * Consumer-owned network fixture for settlement and presentation contracts.
@@ -33,13 +35,13 @@ public final class ShopUiNetworkSettlementFixture {
 
     public static UiNetworkObservation mutation(long sequence, int quantity) {
         String body = "{\"product_id\":\"" + PRODUCT_ID + "\",\"quantity\":" + quantity + "}";
-        return observation(sequence, "POST", MUTATION_PATH, body,
+        return observation(sequence, HttpMethod.POST.value(), MUTATION_PATH, body,
                 "{\"result\":\"item added or updated\",\"quantity\":" + quantity + "}",
                 "POST " + MUTATION_PATH + "#body=cart-line");
     }
 
     public static UiNetworkObservation readBack(long sequence, int quantity) {
-        return observation(sequence, "GET", CART_PATH, "",
+        return observation(sequence, HttpMethod.GET.value(), CART_PATH, "",
                 "{\"cart_items\":[{\"product_id\":\"" + PRODUCT_ID
                         + "\",\"quantity\":" + quantity + "}]}",
                 "GET " + CART_PATH + "#body=empty");
@@ -49,9 +51,8 @@ public final class ShopUiNetworkSettlementFixture {
                                                      String requestBody, String responseBody,
                                                      String signature) {
         return new UiNetworkObservation(sequence, Instant.EPOCH, method,
-                "https://" + API_HOST + path, path, 200,
-                Map.of("content-type", "application/json"),
-                Map.of("content-type", "application/json"), requestBody, responseBody,
+                ApiUris.httpsUrl(API_HOST, path), path, 200,
+                HttpHeaderProfiles.JSON_CONTENT, HttpHeaderProfiles.JSON_CONTENT, requestBody, responseBody,
                 "none", "none", API_HOST, "UI_BROWSER", signature, true);
     }
 }

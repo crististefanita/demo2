@@ -20,6 +20,7 @@ class LargeReportPublicationComponentTest {
     void publishesLargeUnicodeAndRepeatedInlinePngsWithinBoundedHeap() throws Exception {
         Path report = TestReportPaths.report("large-publication-memory-probe.html");
         Path log = report.resolveSibling("large-publication-memory-probe.log");
+        Files.createDirectories(report.getParent());
         String java = Path.of(System.getProperty("java.home"), "bin", "java").toString();
         var command = List.of(java, "-Xms64m", "-Xmx384m", "-cp",
                 System.getProperty("java.class.path"),

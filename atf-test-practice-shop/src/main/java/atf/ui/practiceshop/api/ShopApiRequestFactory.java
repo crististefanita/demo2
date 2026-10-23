@@ -3,8 +3,12 @@ package atf.ui.practiceshop.api;
 import atf.api.core.http.request.ApiRequest;
 import atf.api.core.http.request.HttpHeader;
 import atf.api.core.http.request.HttpMethod;
-import atf.api.core.http.request.MediaTypes;
-import atf.ui.practiceshop.config.ShopCredentials;
+import atf.api.core.http.auth.AuthProfiles;
+import atf.api.core.http.auth.AuthType;
+import atf.api.core.http.protocol.HttpHeaderProfiles;
+import atf.ui.practiceshop.api.contract.ShopApiQueryParameter;
+import atf.ui.practiceshop.api.contract.ShopPaymentMethod;
+import atf.ui.practiceshop.config.model.ShopCredentials;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -15,12 +19,9 @@ import java.util.Map;
 /** Pure request factory; screen APIs own the order in which requests run. */
 public final class ShopApiRequestFactory {
     private static final ObjectMapper JSON = new ObjectMapper();
-    private static final String NO_AUTH = ShopApiAuthProfile.NONE.wireValue();
-    private static final String BEARER_AUTH = ShopApiAuthProfile.BEARER.wireValue();
+    private static final String NO_AUTH = AuthProfiles.NONE;
+    private static final String BEARER_AUTH = AuthProfiles.standard(AuthType.BEARER);
     private static final String BEARER_PREFIX = "Bearer ";
-    private static final Map<String, String> JSON_HEADERS = Map.of(
-            HttpHeader.ACCEPT.value(), MediaTypes.APPLICATION_JSON,
-            HttpHeader.CONTENT_TYPE.value(), MediaTypes.APPLICATION_JSON);
 
     public ApiRequest login(ShopCredentials credentials) {
         return json(HttpMethod.POST.value(), ShopApiRoutes.LOGIN,
@@ -121,7 +122,7 @@ public final class ShopApiRequestFactory {
     private static ApiRequest query(String method, String path, Map<String, String> query,
                                     String authProfile) {
         return new ApiRequest(HttpRequest.BodyPublishers.noBody(), method, path, query,
-                JSON_HEADERS, authProfile, null, "");
+                HttpHeaderProfiles.JSON_REQUEST, authProfile, null, "");
     }
 
     private static ApiRequest json(String method, String path, Object body, String authProfile) {
@@ -136,7 +137,7 @@ public final class ShopApiRequestFactory {
         } catch (JsonProcessingException error) {
             throw new IllegalStateException("Cannot serialize Practice Shop API JSON body", error);
         }
-        Map<String, String> headers = new LinkedHashMap<>(JSON_HEADERS);
+        Map<String, String> headers = new LinkedHashMap<>(HttpHeaderProfiles.JSON_REQUEST);
         headers.putAll(additionalHeaders);
         return new ApiRequest(HttpRequest.BodyPublishers.ofString(bodyText), method, path,
                 Map.of(), headers, authProfile, null, bodyText);

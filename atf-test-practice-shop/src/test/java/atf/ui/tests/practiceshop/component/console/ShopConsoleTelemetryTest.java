@@ -4,7 +4,7 @@ import atf.api.core.config.ApiTransportMode;
 import atf.api.core.reporting.console.AtfConsoleEvent;
 import atf.api.testkit.AtfComponentTest;
 import atf.ui.practiceshop.api.ShopApiClient;
-import atf.ui.practiceshop.config.ShopCredentials;
+import atf.ui.practiceshop.config.model.ShopCredentials;
 import atf.ui.tests.practiceshop.api.support.ShopApiComponentFixture;
 import atf.ui.tests.practiceshop.api.support.ShopApiScenarioFixture;
 import org.junit.jupiter.api.Test;

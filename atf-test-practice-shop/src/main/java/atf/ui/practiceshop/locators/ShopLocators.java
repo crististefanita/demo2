@@ -1,79 +1,123 @@
 package atf.ui.practiceshop.locators;
 
+import atf.api.ui.dom.CssPseudoClass;
+import atf.api.ui.dom.HtmlElement;
 import atf.api.ui.playwright.AtfLocator;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
 
-import java.util.Objects;
 import java.util.List;
+import java.util.Objects;
+
+import static atf.api.ui.dom.HtmlAttribute.ALT;
+import static atf.api.ui.dom.HtmlAttribute.CONTENTEDITABLE;
+import static atf.api.ui.dom.HtmlAttribute.DATA_TEST;
+import static atf.api.ui.dom.HtmlAttribute.HREF;
+import static atf.api.ui.dom.HtmlAttribute.ID;
+import static atf.api.ui.dom.HtmlAttribute.NAME;
+import static atf.api.ui.dom.HtmlAttribute.ROLE;
+import static atf.api.ui.dom.HtmlAttribute.TYPE;
 
 /** The only selector owner for the Practice Software Testing application. */
 public final class ShopLocators {
-    private static final String SENSITIVE_FIELDS = "input, textarea, select, [contenteditable='true']";
-    private static final String LOGIN_EMAIL = "input[id='email']";
-    private static final String LOGIN_PASSWORD = "input[id='password']";
-    private static final String LOGIN_SUBMIT = "*[data-test='login-submit']";
-    private static final String REGISTER_FIRST_NAME = "input[id='first_name']";
-    private static final String REGISTER_LAST_NAME = "input[id='last_name']";
-    private static final String REGISTER_DOB = "input[id='dob']";
-    private static final String REGISTER_COUNTRY = "select[id='country']";
-    private static final String REGISTER_POSTAL_CODE = "input[id='postal_code']";
-    private static final String REGISTER_HOUSE_NUMBER = "input[id='house_number']";
-    private static final String REGISTER_STREET = "input[id='street']";
-    private static final String REGISTER_CITY = "input[id='city']";
-    private static final String REGISTER_STATE = "input[id='state']";
-    private static final String REGISTER_PHONE = "input[id='phone']";
-    private static final String REGISTER_EMAIL = "input[id='email']";
-    private static final String REGISTER_PASSWORD = "input[id='password']";
-    private static final String REGISTER_SUBMIT = "button[data-test='register-submit']";
-    private static final String SEARCH_QUERY = "input[id='search-query']";
-    private static final String HOME_NAVIGATION = "nav.navbar";
-    private static final String HOME_BRAND = "a.navbar-brand";
-    private static final String HOME_BANNER = "img[alt='Banner']";
-    private static final String HOME_SORT = "select[data-test='sort']";
-    private static final String HOME_PRICE_RANGE = "span[role='slider']";
-    private static final String HOME_SEARCH_RESET = "button[data-test='search-reset']";
-    private static final String HOME_SEARCH_SUBMIT = "button[data-test='search-submit']";
-    private static final String HOME_CATEGORY_FILTERS = "input[name='category_id']";
-    private static final String HOME_BRAND_FILTERS = "input[name='brand_id']";
-    private static final String HOME_ECO_FILTER = "input[data-test='eco-friendly-filter']";
-    private static final String HOME_PRODUCT_GRID = "a[data-test^='product-']";
-    private static final String HOME_PRODUCT_NAMES = "a[data-test^='product-'] [data-test='product-name']";
-    private static final String HOME_PRODUCT_IMAGES = "a[data-test^='product-'] img.card-img-top";
-    private static final String HOME_PAGINATION = "nav:has([data-test='pagination-next'])";
-    private static final String HOME_FOOTER = "footer";
+    private static final String SENSITIVE_FIELDS = HtmlElement.selectorList(
+            HtmlElement.INPUT, HtmlElement.TEXTAREA, HtmlElement.SELECT)
+            + ", " + CONTENTEDITABLE.equalsSelector("true");
+    private static final String LOGIN_EMAIL = HtmlElement.INPUT.attributeEquals(ID, "email");
+    private static final String LOGIN_PASSWORD = HtmlElement.INPUT.attributeEquals(ID, "password");
+    private static final String LOGIN_SUBMIT =
+            HtmlElement.BUTTON.attributeEquals(DATA_TEST, "login-submit");
+    private static final String REGISTER_FIRST_NAME =
+            HtmlElement.INPUT.attributeEquals(ID, "first_name");
+    private static final String REGISTER_LAST_NAME =
+            HtmlElement.INPUT.attributeEquals(ID, "last_name");
+    private static final String REGISTER_DOB = HtmlElement.INPUT.attributeEquals(ID, "dob");
+    private static final String REGISTER_COUNTRY = HtmlElement.SELECT.attributeEquals(ID, "country");
+    private static final String REGISTER_POSTAL_CODE =
+            HtmlElement.INPUT.attributeEquals(ID, "postal_code");
+    private static final String REGISTER_HOUSE_NUMBER =
+            HtmlElement.INPUT.attributeEquals(ID, "house_number");
+    private static final String REGISTER_STREET = HtmlElement.INPUT.attributeEquals(ID, "street");
+    private static final String REGISTER_CITY = HtmlElement.INPUT.attributeEquals(ID, "city");
+    private static final String REGISTER_STATE = HtmlElement.INPUT.attributeEquals(ID, "state");
+    private static final String REGISTER_PHONE = HtmlElement.INPUT.attributeEquals(ID, "phone");
+    private static final String REGISTER_EMAIL = HtmlElement.INPUT.attributeEquals(ID, "email");
+    private static final String REGISTER_PASSWORD = HtmlElement.INPUT.attributeEquals(ID, "password");
+    private static final String REGISTER_SUBMIT =
+            HtmlElement.BUTTON.attributeEquals(DATA_TEST, "register-submit");
+    private static final String SEARCH_QUERY = HtmlElement.INPUT.attributeEquals(ID, "search-query");
+    private static final String HOME_NAVIGATION = HtmlElement.NAVIGATION.selector() + ".navbar";
+    private static final String HOME_BRAND = HtmlElement.ANCHOR.selector() + ".navbar-brand";
+    private static final String HOME_BANNER = HtmlElement.IMAGE.attributeEquals(ALT, "Banner");
+    private static final String HOME_SORT = HtmlElement.SELECT.attributeEquals(DATA_TEST, "sort");
+    private static final String HOME_PRICE_RANGE = HtmlElement.SPAN.attributeEquals(ROLE, "slider");
+    private static final String HOME_SEARCH_RESET =
+            HtmlElement.BUTTON.attributeEquals(DATA_TEST, "search-reset");
+    private static final String HOME_SEARCH_SUBMIT =
+            HtmlElement.BUTTON.attributeEquals(DATA_TEST, "search-submit");
+    private static final String HOME_CATEGORY_FILTERS =
+            HtmlElement.INPUT.attributeEquals(NAME, "category_id");
+    private static final String HOME_BRAND_FILTERS =
+            HtmlElement.INPUT.attributeEquals(NAME, "brand_id");
+    private static final String HOME_ECO_FILTER =
+            HtmlElement.INPUT.attributeEquals(DATA_TEST, "eco-friendly-filter");
+    private static final String HOME_PRODUCT_GRID =
+            HtmlElement.ANCHOR.attributeStartsWith(DATA_TEST, "product-");
+    private static final String HOME_PRODUCT_NAMES =
+            HOME_PRODUCT_GRID + " " + DATA_TEST.equalsSelector("product-name");
+    private static final String HOME_PRODUCT_IMAGES = HOME_PRODUCT_GRID + " "
+            + HtmlElement.IMAGE.selector() + ".card-img-top";
+    private static final String HOME_PAGINATION = HtmlElement.NAVIGATION.selector()
+            + ":has(" + DATA_TEST.equalsSelector("pagination-next") + ")";
+    private static final String HOME_FOOTER = HtmlElement.FOOTER.selector();
     private static final String PRODUCT_LINK = ShopProductSelector.PRODUCT_CARD;
     // The external Practice Shop contract guarantees data-test, not a stable tag.
-    private static final String PRODUCT_NAME = "*[data-test='product-name']";
-    private static final String PRODUCT_PRICE = "*[data-test='unit-price']";
-    private static final String PRODUCT_DESCRIPTION = "*[data-test='product-description']";
-    private static final String PRODUCT_QUANTITY = "input[data-test='quantity']";
-    private static final String ADD_TO_CART = "button[data-test='add-to-cart']";
-    private static final String CART = "a[data-test='nav-cart']";
-    private static final String CART_PRODUCT_TITLE = "[data-test='product-title']";
-    private static final String CART_PRODUCT_QUANTITY = "input[data-test='product-quantity']";
-    private static final String CART_PROCEED = "button[data-test='proceed-1']";
-    private static final String GUEST_TAB = "a[href='#guest-tab']";
-    private static final String GUEST_EMAIL = "input[data-test='guest-email']";
-    private static final String GUEST_FIRST_NAME = "input[data-test='guest-first-name']";
-    private static final String GUEST_LAST_NAME = "input[data-test='guest-last-name']";
-    private static final String GUEST_SUBMIT = "input[data-test='guest-submit']";
-    private static final String GUEST_PROCEED = "button[data-test='proceed-2-guest']";
-    private static final String AUTHENTICATED_PROCEED = "button[data-test='proceed-2']";
-    private static final String COUNTRY = "select[data-test='country']";
-    private static final String COUNTRY_SELECTED_OPTION = COUNTRY + " option:checked";
-    private static final String POSTAL_CODE = "input[data-test='postal_code']";
-    private static final String HOUSE_NUMBER = "input[data-test='house_number']";
-    private static final String STREET = "input[data-test='street']";
-    private static final String CITY = "input[data-test='city']";
-    private static final String STATE = "input[data-test='state']";
-    private static final String BILLING_PROCEED = "button[data-test='proceed-3']";
-    private static final String PAYMENT_METHOD = "select[data-test='payment-method']";
-    private static final String PAYMENT_METHOD_SELECTED_OPTION =
-            PAYMENT_METHOD + " option:checked";
-    private static final String PAYMENT_CHECK = "button[data-test='finish']";
-    private static final String ACCOUNT_HEADING = "h1";
+    private static final String PRODUCT_NAME = DATA_TEST.equalsSelector("product-name");
+    private static final String PRODUCT_PRICE = DATA_TEST.equalsSelector("unit-price");
+    private static final String PRODUCT_DESCRIPTION = DATA_TEST.equalsSelector("product-description");
+    private static final String PRODUCT_QUANTITY =
+            HtmlElement.INPUT.attributeEquals(DATA_TEST, "quantity");
+    private static final String ADD_TO_CART =
+            HtmlElement.BUTTON.attributeEquals(DATA_TEST, "add-to-cart");
+    private static final String CART = HtmlElement.ANCHOR.attributeEquals(DATA_TEST, "nav-cart");
+    private static final String CART_PRODUCT_TITLE = DATA_TEST.equalsSelector("product-title");
+    private static final String CART_PRODUCT_QUANTITY =
+            HtmlElement.INPUT.attributeEquals(DATA_TEST, "product-quantity");
+    private static final String CART_PROCEED =
+            HtmlElement.BUTTON.attributeEquals(DATA_TEST, "proceed-1");
+    private static final String GUEST_TAB = HtmlElement.ANCHOR.attributeEquals(HREF, "#guest-tab");
+    private static final String GUEST_EMAIL =
+            HtmlElement.INPUT.attributeEquals(DATA_TEST, "guest-email");
+    private static final String GUEST_FIRST_NAME =
+            HtmlElement.INPUT.attributeEquals(DATA_TEST, "guest-first-name");
+    private static final String GUEST_LAST_NAME =
+            HtmlElement.INPUT.attributeEquals(DATA_TEST, "guest-last-name");
+    private static final String GUEST_SUBMIT =
+            HtmlElement.INPUT.attributeEquals(DATA_TEST, "guest-submit");
+    private static final String GUEST_PROCEED =
+            HtmlElement.BUTTON.attributeEquals(DATA_TEST, "proceed-2-guest");
+    private static final String AUTHENTICATED_PROCEED =
+            HtmlElement.BUTTON.attributeEquals(DATA_TEST, "proceed-2");
+    private static final String COUNTRY = HtmlElement.SELECT.attributeEquals(DATA_TEST, "country");
+    private static final String COUNTRY_SELECTED_OPTION = CssPseudoClass.CHECKED.applyTo(
+            COUNTRY + " " + HtmlElement.OPTION.selector());
+    private static final String POSTAL_CODE =
+            HtmlElement.INPUT.attributeEquals(DATA_TEST, "postal_code");
+    private static final String HOUSE_NUMBER =
+            HtmlElement.INPUT.attributeEquals(DATA_TEST, "house_number");
+    private static final String STREET = HtmlElement.INPUT.attributeEquals(DATA_TEST, "street");
+    private static final String CITY = HtmlElement.INPUT.attributeEquals(DATA_TEST, "city");
+    private static final String STATE = HtmlElement.INPUT.attributeEquals(DATA_TEST, "state");
+    private static final String BILLING_PROCEED =
+            HtmlElement.BUTTON.attributeEquals(DATA_TEST, "proceed-3");
+    private static final String PAYMENT_METHOD =
+            HtmlElement.SELECT.attributeEquals(DATA_TEST, "payment-method");
+    private static final String PAYMENT_METHOD_SELECTED_OPTION = CssPseudoClass.CHECKED.applyTo(
+            PAYMENT_METHOD + " " + HtmlElement.OPTION.selector());
+    private static final String PAYMENT_CHECK =
+            HtmlElement.BUTTON.attributeEquals(DATA_TEST, "finish");
+    private static final String ACCOUNT_HEADING = HtmlElement.HEADING_1.selector();
     private static final String PAYMENT_SUCCESS =
             "xpath=//*[contains(normalize-space(text()), 'Payment was successful')]";
 
@@ -122,11 +166,11 @@ public final class ShopLocators {
         return new AtfLocator(matchingProducts.locator().first(), matchingProducts.selector());
     }
     public AtfLocator productLinkByPath(Page page, String productPath) {
-        return css(page, "a[href='" + ShopCssEscaper.quoted(productPath) + "']");
+        return css(page, HtmlElement.ANCHOR.attributeEquals(HREF, productPath));
     }
     public AtfLocator accountBody(Page page) { return pageBody(page); }
     public AtfLocator accountHeading(Page page) { return css(page, ACCOUNT_HEADING); }
-    public AtfLocator pageBody(Page page) { return css(page, "body"); }
+    public AtfLocator pageBody(Page page) { return css(page, HtmlElement.BODY.selector()); }
     public AtfLocator productName(Page page) { return css(page, PRODUCT_NAME); }
     public AtfLocator productPrice(Page page) { return css(page, PRODUCT_PRICE); }
     public AtfLocator productDescription(Page page) { return css(page, PRODUCT_DESCRIPTION); }
@@ -234,7 +278,9 @@ public final class ShopLocators {
         };
     }
     public AtfLocator searchSubmit(Page page) {
-        return css(page, "form:has(" + SEARCH_QUERY + ") button[type='submit']");
+        String selector = HtmlElement.FORM.selector() + ":has(" + SEARCH_QUERY + ") "
+                + HtmlElement.BUTTON.attributeEquals(TYPE, "submit");
+        return css(page, selector);
     }
 
     private static AtfLocator css(Page page, String selector) {

@@ -36,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static com.microsoft.playwright.options.WaitForSelectorState.VISIBLE;
 
 /** Controlled report fixtures and browser probes; executable tests declare only intent. */
 public final class ExtentReportDisclosureProbe {
@@ -44,6 +45,47 @@ public final class ExtentReportDisclosureProbe {
     private static final ReportDisclosureLocators LOCATORS = new ReportDisclosureLocators();
 
     private ExtentReportDisclosureProbe() { }
+
+    public static void verifyReferencedScreenshot() {
+        Path report = checkpointReport();
+        var common = new ReportUiLocators();
+        try (Playwright playwright = Playwright.create();
+             Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true))) {
+            Page page = browser.newPage();
+            List<String> errors = new ArrayList<>();
+            page.onPageError(errors::add);
+            page.navigate(report.toUri() + "#test-view");
+            LOCATORS.firstOwner(page).click();
+            page.waitForFunction("() => document.documentElement.getAttribute('data-atf-test-view-ready') === 'true'");
+            Locator scenarios = LOCATORS.scenarios(page);
+            assertEquals("false", scenarios.first().getAttribute("data-atf-scenario-open"),
+                    "the canonical image belongs to an unexpanded scenario");
+            Locator duplicateScenario = scenarios.nth(1);
+            openIfClosed(duplicateScenario, "data-atf-scenario-open");
+            Locator phase = LOCATORS.firstPhase(duplicateScenario);
+            openIfClosed(phase, "data-atf-phase-open");
+            Locator checkpoint = LOCATORS.requests(phase).first();
+            openIfClosed(checkpoint, "data-atf-node-open");
+            Locator validation = LOCATORS.validations(checkpoint).first();
+            openIfClosed(validation, "data-atf-node-open");
+            LOCATORS.summary(common.actionSequences(validation).first()).click();
+            Locator duplicate = common.duplicateScreenshotMarkers(validation).first();
+            assertEquals(1, duplicate.count());
+            String originalUrl = page.url();
+            for (boolean keyboard : List.of(false, true)) {
+                if (keyboard) duplicate.press("Enter");
+                else duplicate.click();
+                Locator lightbox = common.lightbox(page);
+                lightbox.waitFor(new Locator.WaitForOptions().setState(VISIBLE));
+                Locator image = common.lightboxImage(lightbox);
+                assertTrue(image.getAttribute("src").startsWith("data:image/png;base64,"));
+                assertEquals(originalUrl, page.url(), "media access must not jump to a hidden anchor");
+                assertEquals("false", scenarios.first().getAttribute("data-atf-scenario-open"));
+                common.lightboxClose(lightbox).click();
+            }
+            assertTrue(errors.isEmpty(), () -> "Report runtime errors: " + errors);
+        }
+    }
 
     public static void verifyCustomValidationTitleLocator() {
         try (Playwright playwright = Playwright.create();
