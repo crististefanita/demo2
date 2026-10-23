@@ -702,12 +702,12 @@ Comparator → snapshot și referințe → lifecycle → proiecții → regresii
 
 Fiecare increment păstrează boundary-ul precedent și cere caz nominal și
 negativ. Starea și criteriile de livrare nu se dublează aici; sunt în
-[feedback-ul activ](feedback/README_AI_Evaluation.md#20-gap-uri-active-pentru-evaluator).
+[feedback-ul activ](feedback/README_AI_Evaluation.md#gap-uri-rămase-pentru-evaluator).
 
 ## 20. Starea evaluatorului
 
 Cerințele nelivrate și criteriile lor sunt exclusiv în
-[gap-urile evaluatorului](feedback/README_AI_Evaluation.md#20-gap-uri-active-pentru-evaluator).
+[gap-urile evaluatorului](feedback/README_AI_Evaluation.md#gap-uri-rămase-pentru-evaluator).
 
 <details>
 <summary>Workflow agentic — proposal, handoff, guard-uri și plan de validare propuse</summary>
@@ -1216,7 +1216,7 @@ extind guard-urile către restul reactorului.
 ## 31. Starea workflow-ului agentic
 
 Proposal, handoff, facts și separarea scorurilor sunt urmărite în
-[gap-urile workflow-ului](feedback/README_AI_Evaluation.md#31-gap-uri-active-pentru-workflow-ul-agentic).
+[gap-urile workflow-ului](feedback/README_AI_Evaluation.md#gap-uri-de-design-pentru-workflow-ul-agentic).
 Acest design nu este autorizație pentru implementarea claselor sau a modulelor propuse.
 
 ## 32. Surse analizate pentru această extindere
@@ -1264,7 +1264,7 @@ Implementarea vertical slice analizată live:
 ## 34. Readiness și dovezi
 
 Scorurile, capabilitățile efective și limitele se calibrează numai în
-[scorecard-ul feedback-ului](feedback/README_AI_Evaluation.md#341-scorecard-executiv).
+[scorecard-ul feedback-ului](feedback/README_AI_Evaluation.md#scorecard-executiv).
 Acest document nu păstrează un al doilea set de scoruri sau rezultate de rulare.
 
 <details>
@@ -1591,7 +1591,7 @@ mutațiilor. Nu mai există un ToDo AI pentru această capabilitate.
 
 Contractul executabil și probele sunt promovate în
 [ATF Validation](../atf-validation/README.md#comparatorul-ai--contract-implementat).
-Munca rămasă este indexată numai în [gap-urile active](feedback/README_AI_Evaluation.md#20-gap-uri-active-pentru-evaluator),
+Munca rămasă este indexată numai în [gap-urile active](feedback/README_AI_Evaluation.md#gap-uri-rămase-pentru-evaluator),
 inclusiv clasificarea `AMBIGUOUS`, registrul de dovezi și publicarea.
 
 ### Respingem explicit

@@ -6,6 +6,7 @@ import atf.ui.autoex.locator.AutoExRoutes;
 import atf.ui.autoex.locator.AutoExSelectors;
 import atf.ui.autoex.support.account.AutoExAccountCleanupAction;
 import atf.ui.autoex.support.account.AutoExAccountCleanupDecision;
+import atf.ui.autoex.support.account.AutoExAccountDeletionAttempt;
 import atf.ui.autoex.support.account.AutoExTestAccount;
 import atf.ui.autoex.support.trace.AutoExCustomerTraceStep;
 import atf.ui.autoex.support.journey.AutoExPurchaseSession;
@@ -22,6 +23,7 @@ import static atf.ui.autoex.support.validation.AutoExUiText.ACCOUNT_DELETED;
 public final class AccountPage extends AutoExPage {
     private boolean creationConfirmed;
     private boolean creationAttempted;
+    private boolean deletionRequestStarted;
 
     public AccountPage(AutoExPurchaseSession run) { super(run); }
 
@@ -101,28 +103,84 @@ public final class AccountPage extends AutoExPage {
     }
 
     public String accountDeletionResult(AutoExTestAccount account) {
+        requireDeletionNotStarted();
         run.dismissGoogleVignetteIfPresent();
-        String identity = loggedInName();
-        if (!account.signupName().equals(identity)) {
-            throw new IllegalStateException("Refusing account deletion: signed-in customer is not this run's identity");
+        String identity = requireOwnIdentity(account);
+        URI destination = AutoExRoutes.DELETE_ACCOUNT.resolve(run.configuration().baseUrl());
+        try (var attempt = new AutoExAccountDeletionAttempt(run.page(), destination)) {
+            try {
+                return completeDeletion(account, identity, destination, attempt);
+            } finally {
+                deletionRequestStarted |= attempt.startedRequests() > 0;
+            }
         }
+    }
+
+    private String completeDeletion(AutoExTestAccount account, String identity, URI destination,
+                                    AutoExAccountDeletionAttempt attempt) {
         click(AutoExSelectors.DELETE_ACCOUNT, "this run's disposable customer account is deleted");
-        String result = text(AutoExSelectors.ACCOUNT_RESULT_HEADING, "account-deletion result is read");
+        boolean dismissed = awaitDeletionOrDismissAdvert(destination);
+        if (attempt.progressAfter(dismissed).mayResumeNavigation()) {
+            resumeDeletionNavigation(account, attempt);
+            awaitDeletionOrDismissAdvert(destination);
+        }
+        run.page().waitForURL(destination.toString());
+        run.waitForText(AutoExSelectors.ACCOUNT_DELETED_HEADING, ACCOUNT_DELETED.text(),
+                "the deletion destination displays its visible account-deleted confirmation");
+        String result = text(AutoExSelectors.ACCOUNT_DELETED_HEADING, "account-deletion result is read");
+        String actualUrl = run.currentUrl();
         AtfAssertion deletion = AutoExStoreAssertions.accountDeleted(result);
-        if (deletion.passed()) run.clearFailureCleanup();
+        boolean reachedDestination = destination.toString().equals(actualUrl);
+        boolean singleRequest = attempt.startedRequests() == 1;
+        if (deletion.passed() && reachedDestination && singleRequest) run.clearFailureCleanup();
         run.checkpoint(AutoExPurchaseTraceStep.ACCOUNT_DELETED,
                 List.of(new AtfAssertion("Disposable customer identity", account.signupName(), identity,
                                 account.signupName().equals(identity)),
-                        deletion));
+                        new AtfAssertion("Account deletion destination", destination.toString(), actualUrl,
+                                reachedDestination),
+                        new AtfAssertion("Account deletion requests", "1",
+                                Integer.toString(attempt.startedRequests()), singleRequest), deletion));
         click(AutoExSelectors.CONTINUE, "deleted account flow returns to the store");
         return result;
     }
 
+    private String requireOwnIdentity(AutoExTestAccount account) {
+        String identity = loggedInName();
+        if (!account.signupName().equals(identity)) {
+            throw new IllegalStateException("Refusing account deletion: signed-in customer is not this run's identity");
+        }
+        return identity;
+    }
+
+    private boolean awaitDeletionOrDismissAdvert(URI destination) {
+        String expectedUrl = destination.toString();
+        run.page().waitForURL(url -> expectedUrl.equals(url)
+                || url.contains(AutoExRoutes.GOOGLE_VIGNETTE_FRAGMENT));
+        return run.dismissGoogleVignetteIfPresent();
+    }
+
+    private void resumeDeletionNavigation(AutoExTestAccount account, AutoExAccountDeletionAttempt attempt) {
+        String interruptedUrl = run.currentUrl();
+        run.navigate(AutoExRoutes.HOME.resolve(run.configuration().baseUrl()));
+        String identity = requireOwnIdentity(account);
+        boolean deleteAvailable = visible(AutoExSelectors.DELETE_ACCOUNT);
+        int startedRequests = attempt.startedRequests();
+        run.checkpoint(AutoExCustomerTraceStep.ACCOUNT_DELETION_RESUMED,
+                List.of(new AtfAssertion("Deletion request before continuation", "0",
+                                Integer.toString(startedRequests), startedRequests == 0),
+                        new AtfAssertion("Disposable customer after reloading the store", account.signupName(),
+                                identity, account.signupName().equals(identity)),
+                        new AtfAssertion("Account deletion is still offered", "visible Delete account",
+                                "available=" + deleteAvailable + "; interrupted=" + interruptedUrl, deleteAvailable)));
+        click(AutoExSelectors.DELETE_ACCOUNT, "account deletion navigation resumes once after the visible advert");
+    }
+
     private void deleteIfCreatedAndLoggedIn(AutoExTestAccount account) {
-        if (accountResultContains(ACCOUNT_DELETED.text())) {
+        if (deletionWasConfirmed()) {
             run.clearFailureCleanup();
             return;
         }
+        requireDeletionNotStarted();
         creationConfirmed |= accountCreationWasConfirmed();
         recoverObservedVignette();
         recoverUnavailableStoreDocument();
@@ -141,7 +199,7 @@ public final class AccountPage extends AutoExPage {
     }
 
     private void cleanupFromCurrentPage(AutoExTestAccount account) {
-        if (accountResultContains(ACCOUNT_DELETED.text())) {
+        if (deletionWasConfirmed()) {
             run.clearFailureCleanup();
             return;
         }
@@ -168,6 +226,20 @@ public final class AccountPage extends AutoExPage {
 
     private boolean accountCreationWasConfirmed() {
         return accountResultContains(ACCOUNT_CREATED.text());
+    }
+
+    private boolean deletionWasConfirmed() {
+        URI destination = AutoExRoutes.DELETE_ACCOUNT.resolve(run.configuration().baseUrl());
+        if (!destination.toString().equals(run.currentUrl())) return false;
+        var heading = run.page().locator(AutoExSelectors.ACCOUNT_DELETED_HEADING);
+        return heading.count() == 1 && heading.isVisible() && heading.innerText().contains(ACCOUNT_DELETED.text());
+    }
+
+    private void requireDeletionNotStarted() {
+        if (deletionRequestStarted) {
+            throw new IllegalStateException("Account deletion request already started without a confirmed result; "
+                    + "neither business continuation nor failure cleanup may replay it");
+        }
     }
 
     private boolean accountResultContains(String expected) {

@@ -11,6 +11,7 @@ public enum AutoExCustomerTraceStep implements AutoExTraceStep {
     CUSTOMER_SIGNED_IN("the disposable customer signs in with the same identity"),
     CUSTOMER_SIGNED_OUT("the customer signs out before starting a guest cart"),
     CART_SESSION_RESTORED("signing in preserves the guest cart and its calculated total"),
+    ACCOUNT_DELETION_RESUMED("the same customer resumes account deletion after the advert cancelled navigation"),
     CLEANUP_RECOVERED("account cleanup returns from the observed vignette to the store"),
     CLEANUP_DOCUMENT_RECOVERED("account cleanup reopens the store after its document became unavailable");
 

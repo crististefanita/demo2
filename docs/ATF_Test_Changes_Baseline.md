@@ -99,6 +99,16 @@ flowchart LR
 
 ```yaml
 testChanges:
+  - id: UI-JAVASCRIPT-CLICK-01
+    status: VERIFIED
+    base: 5eb3fd3cb099fc67b49be3c17de564db63755db7
+    expires: 2026-11-23
+    reason: Integreaza activarea DOM explicita cu postconditie atomica si probe neutre la ownerul UI; inlocuieste fallback-ul AutoEx 100 cu profilul 70 fara schimbarea click-urilor business.
+    proof: mvn "-pl=atf-test-auto-ex,atf-tests" -am "-Dtest=PlaywrightJavaScriptClickComponentTest,PlaywrightActionSequenceTest,PlaywrightUiSessionTest,AutoExComponentSuite,AutoExBusinessSuite,AutoExPurchaseUiApiE2eTest,WholeAtfGovernanceSuiteTest" "-Datf.autoex.e2e.enabled=true" "-Datf.governance.testChanges.baseRef=5eb3fd3cb099fc67b49be3c17de564db63755db7" "-Dsurefire.failIfNoSpecifiedTests=false" test
+    paths:
+      - atf-ui/src/test/java/atf/api/ui/playwright/PlaywrightJavaScriptClickComponentTest.java
+      - atf-ui/src/test/resources/atf/ui/playwright/javascript-click.html
+      - atf-test-auto-ex/src/test/resources/atf-auto-ex.yaml
   - id: API-BODY-SECURITY-COMPONENT-02
     status: VERIFIED
     base: 5eb3fd3cb099fc67b49be3c17de564db63755db7

@@ -17,6 +17,7 @@ public final class AutoExSelectors {
     public static final String SEARCH_INPUT = "#search_product";
     public static final String SEARCH_BUTTON = "#submit_search";
     public static final String ACCOUNT_RESULT_HEADING = "h2.title.text-center";
+    public static final String ACCOUNT_DELETED_HEADING = "h2[data-qa='account-deleted']";
     public static final String SEARCH_RESULT_PRODUCT_NAME = ".features_items .productinfo p";
     public static final String PRODUCT_DETAILS_LINK = "a[href^='/product_details/']";
     public static final String PRODUCT_INFORMATION = ".product-information";

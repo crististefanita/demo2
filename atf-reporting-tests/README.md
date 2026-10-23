@@ -50,8 +50,8 @@ failure UI în Extent:
 - renderer-ul redă targetul locatorului prin redactor; fără cauză, publicarea o
   derivează dintr-o acțiune FAIL sau respinge input-ul fără diagnostic;
 - contractul browser păstrează timeout-ul în scenariul curent și îl exclude din
-  scenariile sibling; istoricul cerinței este în
-  [feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md).
+  scenariile sibling; regula stabilă este în
+  [contractul de raportare](../docs/ATF_Reporting_Contract.md#fails-și-legături).
 
 Contractul stabil pentru ierarhia vizibilă, layout, responsive viewport,
 disclosure-uri și dovezile browser este

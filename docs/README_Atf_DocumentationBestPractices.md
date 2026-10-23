@@ -128,6 +128,8 @@ secțiune cu codul, testul ownerului și README-ul normativ:
   execuției ca substitut pentru cerință;
 - șterge fișierul de feedback numai dacă nu mai conține niciun criteriu
   neîndeplinit și niciun control activ care trebuie reconciliat;
+- un README de modul sau un contract stabil nu se șterge pentru că nu are
+  ToDo-uri: este documentație de utilizare, nu backlog;
 - păstrează fișierul dacă există cel puțin un gap real sau un control `testChanges`
   activ, chiar dacă restul conținutului poate fi promovat ori eliminat;
 - nu închide, rescrie sau șterge un control `testChanges` doar pentru că a
@@ -452,11 +454,15 @@ primul segment, iar segmentele următoare au doar inițiala mare.
 </details>
 
 - [ ] linkurile sunt relative și au destinație existentă;
+- [ ] fragmentul `#secțiune` indică un heading existent, inclusiv după promovarea
+      sau ștergerea feedback-ului; existența fișierului nu validează ancora;
 - [ ] nu există căi absolute în text, comentarii sau diagrame;
 - [ ] nu există `file:///`, nume de rapoarte reale sau timestamp-uri;
 - [ ] `${ATF_STAGING_ROOT}` și `<configured-report-file>` sunt folosite doar ca
       placeholder-e, nu ca valori de run;
 - [ ] o redenumire actualizează toate linkurile și indexurile;
+- [ ] clasamentul reunește toate feedback-urile active din perimetrul declarat;
+      un criteriu doar parțial verificat nu dispare din top ca efect al mutării textului;
 - [ ] documentația rămâne validă după mutarea checkout-ului și următoarea
       execuție.
 

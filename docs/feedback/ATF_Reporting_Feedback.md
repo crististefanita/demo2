@@ -77,42 +77,6 @@ Artifactul publică `Configured per execution`, conform contractului neutru și
       unit, astfel că suita componentă nu vede această divergență. Migrarea
       cere inventar înainte/după, control exact și păstrarea aserțiunilor de stil.
 
-## REPORT-TIMESTAMP-01 — format coerent în Categories
-
-**Stare: închis — format exclusiv 24h, componentă nativă și audit TAB MCP.**
-
-- [x] Folosiți exclusiv format 24h (`HH:mm:ss`), fără `AM/PM`, în toate
-      tab-urile; păstrați aceeași zonă temporală pentru același instant.
-- [x] Probați la owner ore după prânz, miezul nopții și deep-link-ul din
-      Categories, fără modificarea timestamp-ului semantic al evenimentului.
-
-- `ExtentReportTimestampReporter` este adaptorul de prezentare Spark folosit
-  de sesiunea canonică. Configurează timpul și data/ora în 24h; adaptează în
-  memorie numai expresia Categories hardcodată de vendor ca `HH:mm:ss a`.
-  Nu modifică JAR-ul, instanții, fusul orar, duratele sau payload-urile.
-- `ReportingTimestampComponentTest` locuiește în `atf-reporting/src/test`, în
-  pachetul standalone și cu tag JUnit `component`; nu importă Test Kit sau
-  alt modul ATF. Probează `00`, `12`, `15`, `23`, navbar/Overview/Tests/log/Categories,
-  conservarea instanților și duratei, plus integrarea sesiunii canonice.
-- Gate-uri în staging extern: 14 teste native Reporting, inclusiv cele cinci
-  cazuri noi, și 36 de regresii de compoziție trecute, fără teste sărite.
-- TAB MCP prin ATF Debug: Categories afișează `15:05:07` și `00:05:07`;
-  linkurile deschid testul original, Overview păstrează începutul/sfârșitul în
-  24h, iar durata rămâne `2 s`. Zero console error/warn și zero overflow la 1280 px.
-
-## Contracte închise, promovate în documentația proiectului
-
-| Contract stabil | Owner canonic |
-|---|---|
-| Direcție/format body, JSON/form/text, absent/not-captured, MIME și escaping | [Dovezi body în Reporting](../../atf-reporting/README.md#dovezi-json-și-componentele-de-randare-ui) |
-| Pornire atomică, rollback și cauză primară/suppressed | [Lifecycle Reporting](../../atf-reporting/README.md#pornirea-atomică-a-scenariilor-și-fazelor) |
-| Profil per scenariu, izolare și flow unificat peste faze | [Contractul raportului](../../atf-reporting/README.md#contractul-raportului) și [mapping-ul Shop](../../atf-test-practice-shop/README.md#raport-partajat--starea-consumerului) |
-| Audit terminal, separarea ACTION/OBSERVE și captură conform profilului | [Audit terminal](../../atf-reporting/README.md#audit-terminal-în-screen-validation) |
-
-Multipart și whitespace sunt implementate la owner și au probe componente;
-nu mai sunt TODO-uri. Regresiile de failure fără captură, oracolul Client și
-formatul timestamp rămân distincte; o suită componentă verde nu le închide.
-
 ## Aprobări temporare pentru modificări de teste
 
 Aceste controale sunt aprobări temporare pentru schimbările exacte de probe
@@ -126,11 +90,11 @@ testChanges:
     base: 5eb3fd3cb099fc67b49be3c17de564db63755db7
     expires: 2026-11-23
     reason: Păstrează toate cazurile Network la ownerul UI component, reclasifică publicarea HTML ca probă componentă și verifică motivul capturii și Client neutru sau explicit redactat. Ștergerea vechiului path Network este deja autorizată de UI-NETWORK-CAPTURE-PROOFS-01.
-    proof: mvn -pl atf-reporting-tests,atf-test-kit -am "-Dtest=AtfReportingComponentSuite,UiAuditLifecycleTest,UiFailureCaptureComponentTest,ExtentReportSessionContractTest,NetworkCaptureEvidenceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+    proof: mvn -pl atf-reporting-tests -am "-Dtest=AtfReportingComponentSuite,UiAuditLifecycleTest,ExtentReportSessionContractTest,NetworkCaptureEvidenceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
     paths:
       - atf-reporting-tests/src/test/java/atf/ui/tests/extent/component/inspection/network/NetworkCaptureEvidenceTest.java
+      - atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/locators/network/ReportNetworkCaptureLocators.java
       - atf-reporting-tests/src/test/java/atf/api/reporting/ui/UiAuditLifecycleTest.java
-      - atf-reporting-tests/src/test/java/atf/api/reporting/ui/failure/UiFailureCaptureComponentTest.java
       - atf-reporting-tests/src/test/java/atf/api/reporting/extent/session/ExtentReportSessionContractTest.java
   - id: REPORT-NATIVE-CLOCK-LAYER-03
     status: ACTIVE

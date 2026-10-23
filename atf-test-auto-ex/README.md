@@ -200,7 +200,7 @@ punctele următoare descriu numai ce afirmă testele specifice Automation Exerci
 - ownership-ul cross-consumer este definit în [arhitectura ATF](../docs/ATF_Architecture.md)
   și în [ghidul de testare](../docs/ATF_Testing_Guide.md);
 - limita de opt clase per pachet este definită în
-  [bunele practici de cod](../docs/README_Atf_CodeBestPractices.md#coeziunea-pachetelor-pragul-de-opt-clase).
+  [bunele practici de cod](../docs/README_Atf_CodeBestPractices.md#coeziunea-pachetelor--pragul-de-opt-clase).
 Contractele generice pentru browser și renderer sunt descrise în
 [README-ul `atf-ui`](../atf-ui/README.md) și
 [README-ul `atf-reporting`](../atf-reporting/README.md).
@@ -227,7 +227,7 @@ de guvernanța whole-ATF, iar
 `AutoExCatalogApiPrecondition` și proba sa sunt acum incluse în package-urile
 owner corespunzătoare. Testele componente sunt împărțite pe subpachete tematice;
 pragul de coeziune este regula ATF comună din
-[bunele practici de cod](../docs/README_Atf_CodeBestPractices.md#coeziunea-pachetelor-pragul-de-opt-clase),
+[bunele practici de cod](../docs/README_Atf_CodeBestPractices.md#coeziunea-pachetelor--pragul-de-opt-clase),
 nu un număr de clase duplicat aici.
 
 Rutele, payload-urile, browser handlers, trace-ul și purchase journey-ul rămân
@@ -332,6 +332,36 @@ Ordinea generică a capturii, conservarea cauzei primare și a erorilor
 reală a confirmat recuperarea și ștergerea contului, păstrând eroarea inițială.
 Activarea reclamei și recuperarea business sunt mecanisme distincte: închiderea
 overlay-ului nu este acceptată drept confirmare a creării sau ștergerii contului.
+
+### Delete account — navigare întreruptă
+
+Ștergerea este legată de contul sintetic al rulării, nu de un heading generic.
+`AutoExAccountDeletionAttempt` observă pasiv request-urile către endpoint-ul
+configurat, dinaintea click-ului până la confirmare; nu schimbă traficul și nu
+depinde de activarea inspectorului UI_API.
+
+| Stare observată | Decizie business |
+|---|---|
+| Request de ștergere deja pornit | așteaptă destinația; fără replay, inclusiv la failure cleanup |
+| Vignette închisă, zero request-uri, destinație neatinsă | permite cel mult o continuare a navigării, nu retry de ștergere executată |
+| Înaintea continuării | reîncarcă Home; cere aceeași identitate exactă, Delete account vizibil și încă zero request-uri |
+| Altă identitate sau stare ambiguă | FAIL; nu șterge alt cont și nu repetă plata, înregistrarea sau login-ul arbitrar |
+| Confirmare | URL exact `/delete_account`, heading `account-deleted` vizibil și un singur request; apoi dezarmează cleanup-ul |
+| A doua întrerupere fără confirmare | FAIL cu evidence înainte de recuperare; fără buclă de continuări |
+
+- Continuarea observată publică un pas Gherkin separat, numărul de request-uri
+  de dinaintea continuării și identitatea revalidată; două click-uri UI nu sunt
+  prezentate drept două request-uri de ștergere.
+- `AutoExAccountDeletionProgress` este regula pură de siguranță; proba de
+  componentă verifică inclusiv refuzul după orice request pornit și absența
+  permisiunii când nu există întrerupere observată.
+- Probele E2E folosesc numai flow-uri business reale la 70%; nu injectează
+  overlay-uri, hash-uri, răspunsuri sau navigări de reclamă fabricate.
+
+`AutoExAccountUiE2eTest` verifică direct self-service-ul contului: deschide
+magazinul, înregistrează un client sintetic, verifică identitatea, șterge contul
+și confirmă revenirea pe Home. Se selectează manual ca regresie focalizată,
+independent de checkout/plată și fără a mări suita business implicită.
 
 ## Coș și continuitatea sesiunii
 

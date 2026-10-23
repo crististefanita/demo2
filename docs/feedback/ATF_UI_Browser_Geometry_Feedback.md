@@ -2,6 +2,9 @@
 
 ## UI-FRAME-POINTER-01 — coordonate corecte la zoom CSS non-nativ
 
+**Prioritate:** 72/100 = impact 31 + lacună 25 + lucrabil 10 + documentare 6,
+conform [registrului comun](README.md#top-feedback-uri-active).
+
 **Stare: deschis.** Un click normal pe un control din iframe la zoom CSS 70%
 poate fi respins cu `body/html intercepts pointer events`. Efectul a apărut
 pe vignette-ul real AutoEx și se reproduce independent cu un control HTML
@@ -31,10 +34,11 @@ rezolvă această regresie fără proba locală echivalentă.
 
 ### Criterii rămase
 
-- [ ] Publicați viewport-ul și scala efectiv rezolvate în metadatele operaționale
-      ale rapoartelor celorlalți consumeri; AutoEx publică deja engine, headless,
-      viewport și zoom CSS rezolvat prin snapshot-ul Reporting.
-      Reutilizați mapping-ul comun, nu un renderer în consumer.
+- [ ] Întăriți proba harness-ului Reporting pentru viewport și scala efectiv
+      rezolvate, inclusiv override peste default. `UiReportEnvironmentSnapshotFactory`
+      le publică deja; testul său nu afirmă încă aceste valori. Shop are proba
+      `ShopReportSystemMetadataTest`, iar AutoEx publică și el configurația rezolvată;
+      nu este necesară o nouă implementare de renderer în consumer.
 
 - [ ] Alegeți și probați la owner o soluție pentru pointer și iframe la zoom
       non-nativ: compatibilitate driver/browser sau mecanism de scalare cu

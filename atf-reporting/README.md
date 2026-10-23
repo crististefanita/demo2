@@ -174,6 +174,19 @@ traversare renderer-neutrală și returnează `ReportExecutionProjections`.
 - agregatul este pur: nu deține lifecycle state și nu modifică arborele immutable;
 - recorderul mutabil și proiecția rămân responsabilități separate.
 
+### Ora afișată și timestamp-ul fișierului
+
+- Ora vizibilă folosește `HH:mm:ss`, fără `AM/PM`, în navbar, Overview, Tests,
+  loguri și Categories; data/ora completă folosește `yyyy-MM-dd HH:mm:ss`.
+- `ExtentReportTimestampReporter` adaptează numai prezentarea Spark, inclusiv
+  expresia Categories a vendorului, în memorie. Nu schimbă JAR-ul, instanții,
+  fusul orar, duratele sau payload-urile.
+- `ReportingTimestampComponentTest`, în testele standalone ale bibliotecii,
+  verifică miezul nopții, prânzul, orele de după prânz și sesiunea canonică.
+  Rămâne o probă nativă cu tag JUnit `component`, fără dependență către Test Kit.
+- Politica numelui fișierului este separată de ora afișată; opțiunile sale sunt în
+  [contractul de output](../docs/ATF_Reporting_Contract.md#numele-raportului-și-diferențierea-rulărilor).
+
 ### Instantaneu tipizat pentru Overview/System
 
 Configurația relevantă a unui run se publică printr-un snapshot allowlist-uit,

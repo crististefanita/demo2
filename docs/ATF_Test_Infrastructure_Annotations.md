@@ -189,10 +189,13 @@ Mapping-ul adnotării este responsabilitatea adaptorului consumer:
 | AutoEx | aplică `flow` și `screenshots` în profilul scenariului |
 | Practice Shop | aplică `flow` și `screenshots` în profilul selectat; `ShopE2eContext.open/openReport` păstrează profilul primit. Într-o suită cu raport partajat, aplicarea izolată a profilului fiecărui scenariu rămâne în lifecycle-ul consumerului |
 
-Adnotarea absentă lasă ambele axe la configurația consumerului. Testele de
-compoziție Shop verifică profilul efectiv la deschiderea raportului standalone;
-profilurile per scenariu în raportul partajat sunt urmărite separat în
-[feedback-ul Reporting](feedback/ATF_Reporting_Feedback.md#shop-capture-01--profil-per-scenariu-și-flow-unificat-peste-faze).
+- Adnotarea absentă lasă ambele axe la configurația consumerului.
+- Mapping-ul și lifecycle-ul raportului partajat sunt documentate în
+  [README-ul Shop](../atf-test-practice-shop/README.md#raport-partajat--starea-consumerului).
+- `ShopE2eContextEvidenceProfileTest` verifică profilul explicit și agregarea fazelor;
+  `ReportEvidenceProfileIntegrationTest` verifică izolarea generică a scenariilor.
+- Reducerea suitei live are criterii distincte în
+  [feedback-ul consumerilor](feedback/ATF_Consumer_Business_Test_Focus_Feedback.md#consumer-e2e-profiles-01--variantele-de-evidence-și-acoperirea-business).
 
 ## Opt-in pentru calea raportului
 

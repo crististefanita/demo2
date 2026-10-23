@@ -111,8 +111,10 @@ ui:
   de geometrie cunoscută; activarea DOM explicită descrisă mai jos nu o repară;
 - `viewport.width` și `viewport.height` rămân neschimbate;
 - valoarea este validată în intervalul `25..200`, iar lipsa cheii păstrează `100`;
-- YAML loading, override-ul `-Datf.ui.config`/`-Datf.ui.report` și rezoluția
-  inputului audit aparțin exclusiv test scope-ului `atf-reporting`.
+- YAML-ul auditului Extent, override-urile `-Datf.ui.config`/`-Datf.ui.report`
+  și rezoluția raportului inspectat aparțin harness-ului din
+  `atf-reporting-tests`, nu bibliotecii `atf-reporting` sau adaptorului `atf-ui`.
+  Fiecare consumer deține separat configurația aplicației sale.
 
 `PlaywrightUiSessionTest` verifică separarea scalei între documente și click-ul
 real pe un control embedded la scara nativă. Limitarea coordonatelor la zoom CSS
