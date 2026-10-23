@@ -26,6 +26,7 @@ public interface AutoExPurchaseSession {
     void select(String selector, String label, String expected);
     boolean visible(String selector);
     void checkpoint(AutoExTraceStep step, List<AtfAssertion> assertions);
+    void apiCheckpoint(AutoExTraceStep step, List<AtfAssertion> assertions);
     void finalScreenshot(AutoExTraceStep step, List<AtfAssertion> assertions);
     AutoExCatalogSnapshot inspectCatalogApi(String productName);
     boolean observesApiTraffic();

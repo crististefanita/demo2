@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 
+import static atf.api.reporting.ui.validation.UiApiValidationFixtures.observedExchanges;
+
 /** Creates authentic Extent artifacts with bounded or overflowing table data for browser proof. */
 public final class ScrollableTableReportFixture {
     private static final String REPORT_PREFIX = "scroll-viewport-";
@@ -53,7 +55,7 @@ public final class ScrollableTableReportFixture {
             phase.apiTrace(AtfGherkinKeyword.THEN,
                     "the checkpoint API exchange retains technical trace evidence",
                     "/viewport/ui-checkpoint",
-                    List.of(density.expectsLongContent() ? longTraceExchange() : exchanges(1).getFirst()),
+                    observedExchanges(List.of(density.expectsLongContent() ? longTraceExchange() : exchanges(1).getFirst())),
                     AtfReportStatus.PASS);
             phase.complete(AtfReportStatus.PASS);
             scenario.complete(AtfReportStatus.PASS);

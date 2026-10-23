@@ -33,6 +33,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
+import static atf.api.reporting.ui.validation.UiApiValidationFixtures.observedExchanges;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -131,10 +132,10 @@ class NetworkCaptureEvidenceTest {
             var phase = scenario.startPhase("TEST BODY");
             phase.setup(AtfGherkinKeyword.GIVEN, "catalog precondition", "/catalog",
                     List.of(new AtfAssertion("Product", "available", "available", true)),
-                    List.of(), List.of(setup), AtfReportStatus.PASS);
+                    List.of(), observedExchanges(List.of(setup)), AtfReportStatus.PASS);
             var assertions = List.of(new AtfAssertion("Cart", "contains product", "contains product", true));
             phase.step(AtfGherkinKeyword.WHEN, "item is added to cart", "/cart", "",
-                    assertions, List.of(), List.of(causal), AtfReportStatus.PASS);
+                    assertions, List.of(), observedExchanges(List.of(causal)), ReportScreenshotPolicy.CapturePoint.CHECKPOINT, AtfReportStatus.PASS);
             phase.networkInspector("Browser network summary", List.of(causal),
                     List.of(ReportNetworkInspector.Step.from("WHEN", "item is added to cart", assertions, List.of(causal))),
                     capture);
@@ -152,7 +153,7 @@ class NetworkCaptureEvidenceTest {
             var scenario = session.startScenario("TerminalJourney", "component.network", "Terminal document", List.of("ui"));
             var phase = scenario.startPhase("TEST BODY");
             phase.screenValidation("cleanup is confirmed", "/account/deleted", "", List.of(), List.of(),
-                    List.of(exchange("/account/delete")),
+                    observedExchanges(List.of(exchange("/account/delete"))),
                     ReportScreenshotPolicy.CapturePoint.FINAL, AtfReportStatus.PASS);
             phase.complete(AtfReportStatus.PASS);
             scenario.complete(AtfReportStatus.PASS);

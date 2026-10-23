@@ -15,6 +15,11 @@ public record UiApiValidationEvidence(List<AtfAssertion> assertions,
         exchanges = exchanges == null ? List.of() : List.copyOf(exchanges);
     }
 
+    /** Explicit empty API channel for UI-only checkpoints. */
+    public static UiApiValidationEvidence empty() {
+        return new UiApiValidationEvidence(List.of(), List.of());
+    }
+
     public boolean isEmpty() { return assertions.isEmpty() && exchanges.isEmpty(); }
 
     public AtfReportStatus status() {

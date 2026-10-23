@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import static atf.api.reporting.ui.validation.UiApiValidationFixtures.observedExchanges;
 import static atf.api.reporting.contract.AtfGherkinKeyword.THEN;
 
 /** Controlled HTTP snapshots; only the real publisher is exercised, never a remote service. */
@@ -53,7 +54,7 @@ final class ApiBodyArtifactFixture {
                 var scenario = session.startScenario("BodyAuditMock", "audit.component", name, List.of("mock"));
                 var phase = scenario.startPhase("TEST BODY");
                 phase.apiTrace(THEN, "captured body evidence preserves its contract", "/body-audit",
-                        exchanges, AtfReportStatus.PASS);
+                        observedExchanges(exchanges), AtfReportStatus.PASS);
                 phase.complete(AtfReportStatus.PASS);
                 scenario.complete(AtfReportStatus.PASS);
             }

@@ -87,49 +87,35 @@ public final class UiPhaseLifecycle implements AutoCloseable {
                 "UI validation", actions, capturePoint);
     }
 
-    void step(String keyword, String title, String target, String base64Png,
-              Collection<AtfAssertion> assertions, Collection<AtfUiActionRecord> actions,
-              Collection<ReportExecutionEvidence> apiEvidence, AtfReportStatus status) {
-        step(keyword, title, target, base64Png, assertions, actions, apiEvidence,
-                ReportScreenshotPolicy.CapturePoint.CHECKPOINT, status);
-    }
-
-    void step(String keyword, String title, String target, String base64Png,
-              Collection<AtfAssertion> assertions, Collection<AtfUiActionRecord> actions,
-              Collection<ReportExecutionEvidence> apiEvidence,
-              ReportScreenshotPolicy.CapturePoint capturePoint, AtfReportStatus status) {
-        action(keyword, title, target, base64Png, assertions, status,
-                "UI validation", actions, apiEvidence, capturePoint);
-    }
-
     void setup(String keyword, String title, String target,
                Collection<AtfAssertion> assertions, AtfReportStatus status) {
-        setup(keyword, title, target, assertions, List.of(), List.of(), status);
+        setup(keyword, title, target, assertions, List.of(), UiApiValidationEvidence.empty(), status);
     }
 
     void setup(String keyword, String title, String target,
                Collection<AtfAssertion> assertions,
                Collection<AtfUiActionRecord> actions,
-               Collection<ReportExecutionEvidence> apiEvidence,
+               UiApiValidationEvidence apiValidation,
                AtfReportStatus status) {
-        setup(keyword, title, target, assertions, actions, apiEvidence, null, status);
+        setup(keyword, title, target, assertions, actions, apiValidation, null, status);
     }
 
     void setup(String keyword, String title, String target,
                Collection<AtfAssertion> assertions,
                Collection<AtfUiActionRecord> actions,
-               Collection<ReportExecutionEvidence> apiEvidence,
+               UiApiValidationEvidence apiValidation,
                atf.api.reporting.model.ReportScreenshot screenshot,
                AtfReportStatus status) {
         ensureOpen();
+        java.util.Objects.requireNonNull(apiValidation, "apiValidation");
         if (scenario.crossPhaseUnifiedFlow()) {
             unifiedCheckpoints.add(new UiUnifiedFlowCheckpoint(keyword, title, target,
                     screenshot == null ? "" : screenshot.base64Png(), immutableCopy(assertions),
-                    status, "Setup validation", immutableCopy(actions), immutableCopy(apiEvidence),
+                    status, "Setup validation", immutableCopy(actions), apiValidation,
                     ReportScreenshotPolicy.CapturePoint.CHECKPOINT, false));
             return;
         }
-        evidencePublisher.publishSetup(keyword, title, target, assertions, actions, apiEvidence, screenshot, status);
+        evidencePublisher.publishSetup(keyword, title, target, assertions, actions, apiValidation, screenshot, status);
     }
 
     void setup(AtfGherkinKeyword keyword, String title, String target,
@@ -140,18 +126,18 @@ public final class UiPhaseLifecycle implements AutoCloseable {
     void setup(AtfGherkinKeyword keyword, String title, String target,
                Collection<AtfAssertion> assertions,
                Collection<AtfUiActionRecord> actions,
-               Collection<ReportExecutionEvidence> apiEvidence,
+               UiApiValidationEvidence apiValidation,
                AtfReportStatus status) {
-        setup(keyword.text(), title, target, assertions, actions, apiEvidence, status);
+        setup(keyword.text(), title, target, assertions, actions, apiValidation, status);
     }
 
     void setup(AtfGherkinKeyword keyword, String title, String target,
                Collection<AtfAssertion> assertions,
                Collection<AtfUiActionRecord> actions,
-               Collection<ReportExecutionEvidence> apiEvidence,
+               UiApiValidationEvidence apiValidation,
                atf.api.reporting.model.ReportScreenshot screenshot,
                AtfReportStatus status) {
-        setup(keyword.text(), title, target, assertions, actions, apiEvidence, screenshot, status);
+        setup(keyword.text(), title, target, assertions, actions, apiValidation, screenshot, status);
     }
 
     void networkInspector(String title,
@@ -214,9 +200,9 @@ public final class UiPhaseLifecycle implements AutoCloseable {
     }
 
     void apiTrace(AtfGherkinKeyword keyword, String title, String target,
-                  Collection<ReportExecutionEvidence> apiEvidence, AtfReportStatus status) {
+                  UiApiValidationEvidence apiValidation, AtfReportStatus status) {
         ensureOpen();
-        evidencePublisher.publishApiTrace(keyword.text(), title, target, apiEvidence, status);
+        evidencePublisher.publishApiTrace(keyword.text(), title, target, apiValidation, status);
     }
 
     void screenValidation(String title, String target, String base64Png,
@@ -244,10 +230,10 @@ public final class UiPhaseLifecycle implements AutoCloseable {
 
     void screenValidation(String title, String target, String base64Png,
                           Collection<AtfAssertion> assertions, Collection<AtfUiActionRecord> actions,
-                          Collection<ReportExecutionEvidence> apiEvidence,
+                          UiApiValidationEvidence apiValidation,
                           ReportScreenshotPolicy.CapturePoint capturePoint, AtfReportStatus status) {
         action(AtfGherkinKeyword.THEN.text(), title, target, base64Png, assertions, status,
-                "Screen validation", actions, apiEvidence, capturePoint);
+                "Screen validation", actions, apiValidation, capturePoint);
     }
 
     void screenValidationAsMedia(String title, String target, String base64Png,
@@ -261,7 +247,7 @@ public final class UiPhaseLifecycle implements AutoCloseable {
                     checkpointScreenshot(base64Png,
                             ReportScreenshotPolicy.CapturePoint.CHECKPOINT),
                     assertions == null ? List.of() : List.copyOf(assertions), status,
-                    "Screen validation", immutableCopy(actions), List.of(),
+                    "Screen validation", immutableCopy(actions), UiApiValidationEvidence.empty(),
                     ReportScreenshotPolicy.CapturePoint.CHECKPOINT, true));
             return;
         }
@@ -311,7 +297,7 @@ public final class UiPhaseLifecycle implements AutoCloseable {
                         AtfReportStatus status, String validationTitle,
                         Collection<AtfUiActionRecord> actions) {
         action(keyword, title, target, base64Png, assertions, status,
-                validationTitle, actions, List.of());
+                validationTitle, actions, UiApiValidationEvidence.empty(), ReportScreenshotPolicy.CapturePoint.CHECKPOINT);
     }
 
     private void action(String keyword, String title, String target,
@@ -321,6 +307,7 @@ public final class UiPhaseLifecycle implements AutoCloseable {
                         UiApiValidationEvidence apiValidation,
                         ReportScreenshotPolicy.CapturePoint capturePoint) {
         ensureOpen();
+        java.util.Objects.requireNonNull(apiValidation, "apiValidation");
         if (flowMode == ReportEvidenceFlowMode.UNIFIED_FLOW) {
             String eligibleScreenshot = checkpointScreenshot(base64Png, capturePoint);
             unifiedCheckpoints.add(new UiUnifiedFlowCheckpoint(keyword, title, target,
@@ -336,36 +323,9 @@ public final class UiPhaseLifecycle implements AutoCloseable {
                         String base64Png, Collection<AtfAssertion> assertions,
                         AtfReportStatus status, String validationTitle,
                         Collection<AtfUiActionRecord> actions,
-                        Collection<ReportExecutionEvidence> apiEvidence) {
-        action(keyword, title, target, base64Png, assertions, status, validationTitle,
-                actions, apiEvidence, ReportScreenshotPolicy.CapturePoint.CHECKPOINT);
-    }
-
-    private void action(String keyword, String title, String target,
-                        String base64Png, Collection<AtfAssertion> assertions,
-                        AtfReportStatus status, String validationTitle,
-                        Collection<AtfUiActionRecord> actions,
-                        Collection<ReportExecutionEvidence> apiEvidence,
-                        ReportScreenshotPolicy.CapturePoint capturePoint) {
-        ensureOpen();
-        if (flowMode == ReportEvidenceFlowMode.UNIFIED_FLOW) {
-            String eligibleScreenshot = checkpointScreenshot(base64Png, capturePoint);
-            unifiedCheckpoints.add(new UiUnifiedFlowCheckpoint(keyword, title, target,
-                    eligibleScreenshot, immutableCopy(assertions), status, validationTitle,
-                    immutableCopy(actions), immutableCopy(apiEvidence), capturePoint, false));
-            return;
-        }
-        evidencePublisher.publishAction(keyword, title, target, base64Png, assertions,
-                status, validationTitle, actions, apiEvidence, capturePoint);
-    }
-
-    private void action(String keyword, String title, String target,
-                        String base64Png, Collection<AtfAssertion> assertions,
-                        AtfReportStatus status, String validationTitle,
-                        Collection<AtfUiActionRecord> actions,
                         ReportScreenshotPolicy.CapturePoint capturePoint) {
         action(keyword, title, target, base64Png, assertions, status,
-                validationTitle, actions, List.of(), capturePoint);
+                validationTitle, actions, UiApiValidationEvidence.empty(), capturePoint);
     }
 
     private void ensureOpen() {

@@ -21,6 +21,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
+import static atf.api.reporting.ui.validation.UiApiValidationFixtures.observedExchanges;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -81,7 +82,7 @@ class NetworkInspectorSummaryRoleTest {
                 var phase = scenario.startPhase("TEST BODY");
                 phase.step(AtfGherkinKeyword.GIVEN, "product page is ready", "/products/1", "",
                         List.of(new AtfAssertion("Product", "visible", "visible", true)),
-                        List.of(), List.of(evidence), AtfReportStatus.PASS);
+                        List.of(), observedExchanges(List.of(evidence)), atf.api.reporting.evidence.ReportScreenshotPolicy.CapturePoint.CHECKPOINT, AtfReportStatus.PASS);
                 phase.networkInspector(summaryTitle, List.of(evidence),
                         List.of(new ReportNetworkInspector.Step("GIVEN", "product page is ready", 1,
                                 true, List.of(evidence))));
@@ -90,7 +91,7 @@ class NetworkInspectorSummaryRoleTest {
                         "A UI phase has one journey summary, not one per API exchange");
                 phase.step(AtfGherkinKeyword.THEN, "purchase confirmation is displayed", "/orders/order-1", "",
                         List.of(new AtfAssertion("Confirmation", "displayed", "displayed", true)),
-                        List.of(), List.of(evidence), AtfReportStatus.PASS);
+                        List.of(), observedExchanges(List.of(evidence)), atf.api.reporting.evidence.ReportScreenshotPolicy.CapturePoint.CHECKPOINT, AtfReportStatus.PASS);
                 phase.failureEvidence("late E2E failure evidence", "/checkout", List.of(),
                         new AssertionError("failure evidence is published before phase close"));
                 phase.complete(AtfReportStatus.FAIL);

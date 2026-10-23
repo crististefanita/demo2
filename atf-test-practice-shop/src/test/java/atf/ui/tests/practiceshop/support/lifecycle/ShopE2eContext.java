@@ -1,5 +1,7 @@
 package atf.ui.tests.practiceshop.support.lifecycle;
 
+import atf.api.reporting.ui.validation.UiApiValidationEvidence;
+
 import atf.api.console.AtfConsoleReporter;
 import atf.api.console.junit.AtfConsoleTestContext;
 import atf.api.core.diagnostics.ThrowableDiagnostics;
@@ -328,7 +330,8 @@ public final class ShopE2eContext implements AutoCloseable {
             ReportScreenshot screenshot = actions.snapshot().isEmpty()
                     ? null : captureCheckpointScreenshot(stepTitle, point);
             setupPhase.setup(keyword, stepTitle, page.url(), assertions,
-                    ShopReportUiActionAdapters.from(actions.drain()), apiEvidence, screenshot, status);
+                    ShopReportUiActionAdapters.from(actions.drain()), new UiApiValidationEvidence(List.of(), (apiEvidence).stream()
+                            .map(exchange -> new UiApiValidationEvidence.Exchange(exchange, List.of())).toList()), screenshot, status);
             setupStepPublished = true;
         }
 
@@ -420,7 +423,7 @@ public final class ShopE2eContext implements AutoCloseable {
                         ReportScreenshotPolicy.CapturePoint.FINAL, AtfReportStatus.PASS);
             } else {
                 body.step(AtfGherkinKeyword.THEN, title, page.url(), "", assertions,
-                        actionEvidence, List.of(), ReportScreenshotPolicy.CapturePoint.FINAL,
+                        actionEvidence, UiApiValidationEvidence.empty(), ReportScreenshotPolicy.CapturePoint.FINAL,
                         AtfReportStatus.PASS);
             }
             publishNetworkInspector();
@@ -458,7 +461,8 @@ public final class ShopE2eContext implements AutoCloseable {
                         setupPhase.setup(ShopPurchaseTraceStep.ACCOUNT_SETUP_FAILED.keyword(),
                                 ShopPurchaseTraceStep.ACCOUNT_SETUP_FAILED.title(),
                                 page.url(), List.of(failed),
-                                List.of(), setupEvidence(), null, AtfReportStatus.FAIL);
+                                List.of(), new UiApiValidationEvidence(List.of(), (setupEvidence()).stream()
+                            .map(exchange -> new UiApiValidationEvidence.Exchange(exchange, List.of())).toList()), null, AtfReportStatus.FAIL);
                         setupStepPublished = true;
                     }
                     publishSetupFailureEvidence(page, actions, failure);

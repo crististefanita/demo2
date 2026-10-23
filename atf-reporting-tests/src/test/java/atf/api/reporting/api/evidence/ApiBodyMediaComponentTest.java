@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import static atf.api.reporting.ui.validation.UiApiValidationFixtures.observedExchanges;
 import static atf.api.reporting.contract.AtfGherkinKeyword.THEN;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -111,7 +112,7 @@ class ApiBodyMediaComponentTest {
                 report = session.reportPath();
                 var scenario = session.startScenario("MediaContract", getClass().getPackageName(), "media", List.of());
                 var phase = scenario.startPhase("TEST BODY");
-                phase.apiTrace(THEN, "media exchange", "/media", List.of(evidence), AtfReportStatus.PASS);
+                phase.apiTrace(THEN, "media exchange", "/media", observedExchanges(List.of(evidence)), AtfReportStatus.PASS);
                 phase.complete(AtfReportStatus.PASS);
                 scenario.complete(AtfReportStatus.PASS);
             }

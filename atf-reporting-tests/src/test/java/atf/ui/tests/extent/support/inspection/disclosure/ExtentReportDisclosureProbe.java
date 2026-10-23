@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static atf.api.reporting.ui.validation.UiApiValidationFixtures.observedExchanges;
 import static atf.api.reporting.contract.AtfGherkinKeyword.AND;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.EXECUTION_EVIDENCE;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.PHASE_DETAILS;
@@ -287,7 +288,7 @@ public final class ExtentReportDisclosureProbe {
                         "product name", "Pliers", 2, status);
                 phase.step(AND, CATALOG_CHECKPOINT, UI_TARGET, ReportTestScreenshots.ONE_PIXEL_PNG,
                         List.of(assertion), List.of(action),
-                        status == AtfReportStatus.PASS ? List.of(checkpointExchange()) : List.of(), status);
+                        observedExchanges(status == AtfReportStatus.PASS ? List.of(checkpointExchange()) : List.of()), atf.api.reporting.evidence.ReportScreenshotPolicy.CapturePoint.CHECKPOINT, status);
                 phase.complete(status);
                 scenario.complete(status);
             }

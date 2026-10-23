@@ -1,69 +1,71 @@
-# ATF Reporting — stare și controale temporare
+# ATF Reporting — lacune active
 
-Revizia capturilor invalide este verificată; gate-ul cleanup adăugat în paralel
-rămâne separat, până la probele sale proprii.
+Aici rămân lacunele deschise și controalele tehnice încă necesare.
 Contractele stabile aparțin [Reporting](../../atf-reporting/README.md),
 [Reporting Tests](../../atf-reporting-tests/README.md),
 [contractului semantic](../ATF_Reporting_Contract.md) și
 [contractului de display](../ATF_Reporting_Display_Contract.md).
 
-## REPORT-ASSET-CLEANUP-LOCK-05 — sharing violation la publicare
+## REPORT-OBSERVED-HEADERS-01 — fidelitatea request-ului observat
 
-Windows poate raporta un fișier Spark ocupat prin `FileSystemException`,
-nu numai `AccessDeniedException`; retry-ul existent acoperă numai subclasa.
+**Stare: deschis, confirmat în cod și în artifactul UI/API fresh.**
 
-- [ ] Păstrați limita existentă de încercări și intervalul bounded pentru ambele
-      forme; eșecul persistent și întreruperea trebuie propagate, nu ascunse.
-- [ ] Probați politica injectată și reluați suita componentă completă, inclusiv
-      publicarea raportului de contract și randarea prin ATF Debug/MCP.
+`ApiManualReplay.effectiveHeaders(...)` adaugă implicit `Accept` și
+`Content-Type: application/json` înaintea headerelor capturate. La XHR-ul GET
+fără body, Request details și replay-ul arată un Content-Type neobservat;
+aceeași zonă afișează și `REQUEST JSON: null` deși capturarea declară body absent.
 
-## Reconcilierea cerințelor
+- [ ] Distingeți explicit în model observația browser autoritativă de
+      default-urile efective ale clientului API; nu creați alt overload legacy.
+      Un header absent din observație nu devine header executat.
+- [ ] Aliniați Request details și replay-ul sanitizat la aceeași proiecție;
+      nu deduceți Content-Type-ul request-ului din răspuns sau din URL.
+- [ ] Pentru body absent ori necapturat nu inventați un payload JSON `null`;
+      păstrați distinct cazul în care textul JSON literal `null` a fost trimis.
+- [ ] Probați Extent, fallback și UI/API în `atf-reporting-tests`: GET fără body,
+      headere observate explicite, body necapturat, JSON literal null și
+      default-uri reale ale clientului API. Păstrați redacția și istoricul retry.
+- [ ] Reconciliați regula istorică „body absent → JSON null” din
+      [contractul semantic](../ATF_Reporting_Contract.md#dovezile-unei-cereri)
+      cu distincția body absent / necapturat / JSON literal `null`, odată cu fixul.
 
-| ID | Stare | Rezultatul verificat |
-|---|---|---|
-| `UI-FAILURE-CAPTURE-03` | închis | Base64 malformed și non-PNG sunt indisponibile, nu capturate. Patru regresii noi Extent/fallback păstrează cauza originală fără link fals; fixture-ul inspectabil include cazul invalid. |
-| `REPORT-README-SCAN-04` | închis | Contractele celor două componente sunt grupate într-un tabel; informația și completările paralele rămân păstrate. Gate-ul documentației trece. |
-| `REPORT-LIVE-CONTROL-04` | închis | Cele cinci diferențe au fost revizuite explicit față de HEAD și reverificate prin componente și Test Kit; controlul exact nu rebazează și nu înlocuiește aprobările anterioare. |
-| `REPORT-BROWSER-PLACEMENT-02` | închis | Proba Network păstrează toate cele cinci cazuri în ownerul UI component; selectorii aparțin fațadei `ReportNetworkCaptureLocators`. Guard-urile browser/locatori nu au fost relaxate. |
-| `UI-FAILURE-CAPTURE-02` | închis | `Failure evidence` explică starea capturii prin `OBSERVE/INFO`, fără HTTP fictiv, link fals sau aserțiune business nouă. Extent și fallback păstrează acțiunea și cauza. |
-| `REPORT-CLIENT-EXPECTATION-02` | închis | Oracol neutru exact `Configured per execution`; Clientul explicit este păstrat și redactat în System. Probele de publicare HTML sunt componente. |
+## REPORT-API-FAILURE-OWNER-01 — owner API corect în Fails
 
-## Boundary și probe
+**Stare: deschis, reprodus în MCP pe fixture neutră cu model tipizat.**
 
-- **Dovezi:** calea fără captură închide disclosure-ul acțiunilor înaintea
-  observațiilor și aserțiunilor; snapshot-ul fallback păstrează conținutul,
-  nu numai numărătorile.
-- **Redactare:** captura folosește ținta `current page`, fără a copia un
-  locator cu secrete; proba existentă de redactare rămâne intactă.
-- **Gate-uri:** suita componentă completă, suita unit, probele standalone,
-  Test Kit și controalele selectate de schimbare/coeziune/documentație sunt
-  verificate în staging extern.
-- **Standalone:** inventarul finit include proba nativă de ceas; Reporting
-  nu primește dependență către Test Kit.
-- **TAB MCP:** ATF Debug confirmă cauza, starea capturii, imaginea validă,
-  Fails → Open in Tests și System Client; fără link fals, overflow sau erori
-  de consolă în suprafețele verificate.
-- **Scope:** rapoartele controlate de failure sunt fixture-uri, nu rulări
-  business Shop/AutoEx.
-- **Revizia capturilor invalide:** 251 de probe în rularea componentă extinsă,
-  401 unit, 14 standalone, 52 Test Kit și 7 controale selectate trec în staging
-  extern. Matricea capturilor are 35 de cazuri; verificarea comună inspectează
-  encoding-ul Base64 și semnătura PNG, nu decodarea integrală a imaginii.
-- **Limită live:** rezultatele acestei revizii nu certifică schimbările cleanup
-  sau AutoEx apărute ulterior în paralel; gate-ul lor rămâne explicit separat.
+UI rămâne PASS, API validation și exchange-ul invalid sunt FAIL, iar cauza
+concretă este păstrată. Totuși Fails afișează `STEP UI assertion` pentru
+`API assertions`; detecția generică din `extent-failure-detection.js`
+setează `ui: true` și poate înlocui contextul request-ului API.
 
-Controalele acestei revizii au fost transferate în
-[baseline-ul tehnic](../ATF_Test_Changes_Baseline.md). Aprobările altor
-incrementuri rămân mai jos, fără a fi confundate cu ToDo-uri funcționale.
+- [ ] Derivați ownerul din contextul semantic tipizat al validării și al
+      request-ului, nu din titlul liber sau dintr-un tabel de assertions comun.
+- [ ] Păstrați metoda/ruta și checkpoint-ul Gherkin proprietar pentru eșecul API;
+      un API FAIL nu este redenumit UI assertion și nu recolorează UI PASS.
+- [ ] Extindeți proba browser neutră din `atf-reporting-tests` pentru ambele
+      combinații UI/API și pentru exchange-uri surori, inclusiv Fails și
+      Open in Tests. Nu adăugați teste generice în AutoEx ori Shop.
 
-## Aprobări temporare pentru modificări de teste
+## Controale tehnice încă necesare
 
-Aceste controale sunt aprobări temporare pentru schimbările exacte de probe
-enumerate mai jos; nu sunt TODO-uri funcționale și nu autorizează modificarea
-testelor de guvernanță.
+Aceste aprobări protejează diferențe Git, nu sunt ToDo-uri funcționale.
+Transferul și eliminarea lor urmează
+[baseline-ul tehnic](../ATF_Test_Changes_Baseline.md#reguli-de-folosire),
+fără rebazare, extindere de scope sau relaxarea guard-urilor.
+
+<details>
+<summary><strong>Aprobări ACTIVE — baze, probe și path-uri exacte</strong></summary>
 
 ```yaml
 testChanges:
+  - id: REPORT-ASSET-CLEANUP-COMPONENT-06
+    status: ACTIVE
+    base: 5eb3fd3cb099fc67b49be3c17de564db63755db7
+    expires: 2026-11-24
+    reason: Adaugă numai fixture-ul Spark offline pentru două cazuri componente ale pipeline-ului de publicare; probele existente ale cleanup-ului și sesiunii păstrează controalele lor exacte, fără dublare de owner sau rebazare automată.
+    proof: mvn -pl atf-reporting-tests -am "-Dtest=ExtentReportAssetCleanupTest,ExtentReportSessionContractTest,AtfReportingComponentSuite,UiFailureReportContractTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+    paths:
+      - atf-reporting-tests/src/test/java/atf/api/reporting/support/publication/CleanupPublicationFixture.java
   - id: REPORT-LIVE-CONTROL-04
     status: ACTIVE
     base: b9b1325c28d665be6289bb2cf9286666513e7a05
@@ -77,31 +79,6 @@ testChanges:
       - atf-reporting-tests/src/test/java/atf/ui/tests/extent/component/inspection/network/NetworkCaptureEvidenceTest.java
       - atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/locators/network/ReportNetworkCaptureLocators.java
       - atf-test-kit/src/test/java/atf/api/testkit/AtfTestLayerArchitectureTest.java
-  - id: REPORT-ASSET-CLEANUP-LOCK-05
-    status: ACTIVE
-    base: 5eb3fd3cb099fc67b49be3c17de564db63755db7
-    expires: 2026-11-24
-    reason: Probează ambele forme de lock Windows, epuizarea bounded și întreruperea, fără a schimba plafonul cleanup-ului sau a ignora erorile de publicare. Revizuirea exactă a fișierului confirmă același conținut de bază în 5eb3fd3 și b9b1325; controlul folosește baza comună a gate-ului, fără extindere de path-uri și fără a declara incrementul verificat.
-    proof: mvn -pl atf-reporting-tests -am "-Dtest=ExtentReportAssetCleanupTest,AtfReportingComponentSuite,UiFailureReportContractTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
-    paths:
-      - atf-reporting-tests/src/test/java/atf/api/reporting/markup/ExtentReportAssetCleanupTest.java
-  - id: REPORT-INVALID-CAPTURE-03
-    status: ACTIVE
-    base: b9b1325c28d665be6289bb2cf9286666513e7a05
-    expires: 2026-11-24
-    reason: Adaugă payload-uri Base64 invalide și non-PNG în matricea Extent/fallback, fără a elimina cazurile integrate în paralel; verifică absența linkurilor false și păstrarea cauzei originale.
-    proof: mvn -pl atf-reporting-tests -am "-Dtest=UiAuditLifecycleTest,ReportEvidenceProfileIntegrationTest,ReportScreenshotTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
-    paths:
-      - atf-reporting-tests/src/test/java/atf/api/reporting/ui/UiAuditLifecycleTest.java
-  - id: REPORT-FAILURE-CLIENT-COMPONENT-04
-    status: ACTIVE
-    base: 7b365028ac8356960614e35023556e757311e633
-    expires: 2026-11-24
-    reason: Păstrează cazurile originale și cele integrate în paralel; adaugă matricea politicilor, snapshot-uri Extent/fallback și cazul fără acțiuni, păstrând Client exact o dată și starea capturii într-un vocabular tipizat.
-    proof: mvn -pl atf-reporting-tests -am "-Dtest=AtfReportingComponentSuite" "-Dsurefire.failIfNoSpecifiedTests=false" test
-    paths:
-      - atf-reporting-tests/src/test/java/atf/api/reporting/ui/UiAuditLifecycleTest.java
-      - atf-reporting-tests/src/test/java/atf/api/reporting/extent/session/ExtentReportSessionContractTest.java
   - id: SHOP-CAPTURE-01
     status: ACTIVE
     base: 0f6a95265024a78c20754d5c18937d24434a2d2d
@@ -119,12 +96,6 @@ testChanges:
     paths:
       - atf-ui/src/test/java/atf/api/ui/playwright/PlaywrightActionSequenceTest.java
       - atf-reporting-tests/src/test/java/atf/api/reporting/ui/ExtentReportUiEvidenceRenderingTest.java
-  - id: REPORT-CLIENT-METADATA-01
-    status: ACTIVE
-    base: a23c76e662516504f55a4369c58ca98bbf2f26ec
-    expires: 2026-10-30
-    reason: Verify the generic System Client fallback is neutral when consumer metadata is absent.
-    proof: mvn -pl atf-reporting-tests -am "-Dtest=ReportEnvironmentSnapshotTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
-    paths:
-      - atf-reporting-tests/src/test/java/atf/api/reporting/configuration/ReportEnvironmentSnapshotTest.java
 ```
+
+</details>

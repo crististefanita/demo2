@@ -357,6 +357,11 @@ UI checkpoint
 - în consumerul UI, forma țintă este `un singur pas Gherkin → UI validation +
   API validation → exchange disclosures`; cele două validation nodes sunt copii
   semantici ai aceluiași pas și au statusuri proprii;
+- `UiApiValidationEvidence` este unicul input API pentru checkpoint, setup,
+  captură finală, trace și bufferul flow-ului unificat. Intrările cu liste brute
+  de exchange-uri sunt eliminate, fără overload sau fallback. UI-only folosește
+  explicit `UiApiValidationEvidence.empty()`; o observație fără checks rămâne
+  un exchange typed, fără a moșteni verdictul UI;
 - publisher-ul tipizat `UiApiValidationEvidence` separă aserțiunile UI de cele
   API: corelările sunt atașate validării API, iar fiecare exchange își păstrează
   assertions/status propriu. Statusul de checkpoint se agregă în sus, fără să
@@ -394,16 +399,24 @@ UI checkpoint
 Verdictul este calculat de execution/validation și doar publicat de reporting.
 Rendererul nu inventează statusuri.
 
-La eșec UI, `Failure evidence` păstrează acțiunile executate și cauza.
+### Captura la failure
 
-- Observația `Screenshot` cu sursa `OBSERVE` și statusul `INFO` distinge
-  captura publicată, absența unui payload și excluderea prin politica configurată.
-- `UiFailureScreenshotState` deține vocabularul `CAPTURED`, `UNAVAILABLE` și
-  `DISABLED_BY_POLICY`; politica este evaluată înaintea payload-ului, inclusiv
-  când există o imagine pe care scenariul nu permite să o publicăm.
-- Nu devine aserțiune business și nu creează un al doilea checkpoint.
-- Extent și fallback păstrează dovezile efective; numai o captură furnizată și
-  permisă primește link Base64, fără metadate HTTP fictive la pasul UI.
+`Failure evidence` păstrează acțiunile executate și cauza inițială.
+`UiFailureScreenshotState` evaluează politica înaintea payload-ului:
+
+| Stare | Condiție | Link imagine |
+|---|---|---|
+| `DISABLED_BY_POLICY` | Politica exclude captura la failure | absent |
+| `UNAVAILABLE` | Payload null, gol sau whitespace | absent |
+| `INVALID` | Base64 incorect ori semnătură non-PNG | absent |
+| `CAPTURED` | Captură permisă, encoding Base64 și semnătură PNG acceptate | inline, cu emoji |
+
+- `ReportScreenshot.hasPngSignature(...)` verifică encoding-ul și semnătura PNG;
+  nu decodează pixelii și nu garantează integritatea completă a imaginii.
+- Observația `Screenshot` are sursa `OBSERVE` și statusul `INFO`; nu devine
+  aserțiune business și nu creează un al doilea checkpoint.
+- Extent și fallback păstrează conținutul acțiunilor și capturilor publicate,
+  nu numai contoarele; pasul UI nu primește metadate HTTP fictive.
 
 ### Audit terminal în Screen validation
 
@@ -879,7 +892,8 @@ publication policy, validarea target-ului și proiecția în artifact.
   sau verdictul;
 - `ReportEvidenceCaptureProvider` este seam-ul public pentru browser sau mock;
   `ReportEvidenceProfile.capture(...)` aplică policy înainte de provider,
-  verifică source-ul și cere PNG Base64 valid când captura este permisă;
+  verifică source-ul și validează encoding-ul/semnătura prin
+  `ReportScreenshot.hasPngSignature(...)` când captura este permisă;
 - `flowMode` este aplicat de lifecycle-ul reporting, nu doar păstrat ca metadata;
 - `SCREEN_CHECKPOINTS` publică fiecare propoziție Gherkin independent, ca înainte;
 - `UNIFIED_FLOW` publică un singur request Gherkin pentru fază: preferă ultimul
@@ -1010,7 +1024,6 @@ Cleanup-ul asset-urilor Spark tratează bounded atât `AccessDeniedException`, c
 și celelalte `FileSystemException`: maximum patru încercări, cu 50 ms între ele.
 O eroare I/O de alt tip nu este reîncercată; epuizarea limitei se propagă, iar
 întreruperea oprește cleanup-ul și păstrează flag-ul thread-ului.
-
 
 ### Prospețimea dovezii vizuale
 

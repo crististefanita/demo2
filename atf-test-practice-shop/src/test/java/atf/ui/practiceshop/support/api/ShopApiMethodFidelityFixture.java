@@ -1,5 +1,7 @@
 package atf.ui.practiceshop.support.api;
 
+import atf.api.reporting.ui.validation.UiApiValidationEvidence;
+
 import atf.api.core.http.request.ApiRequest;
 import atf.api.core.http.request.HttpMethod;
 import atf.api.core.http.protocol.ApiUris;
@@ -119,7 +121,8 @@ final class ShopApiMethodFidelityFixture {
                 phase.step(THEN, "captured " + method + " is preserved by the API evidence adapter",
                         "component-fixture", null,
                         List.of(new AtfAssertion("Captured method", method,
-                                evidence.request().method(), preserved)), List.of(), List.of(evidence), status);
+                                evidence.request().method(), preserved)), List.of(), new UiApiValidationEvidence(List.of(), (List.of(evidence)).stream()
+                            .map(exchange -> new UiApiValidationEvidence.Exchange(exchange, List.of())).toList()), atf.api.reporting.evidence.ReportScreenshotPolicy.CapturePoint.CHECKPOINT, status);
                 phase.complete(status);
                 scenario.complete(status);
             }

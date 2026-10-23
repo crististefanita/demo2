@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import static atf.api.reporting.ui.validation.UiApiValidationFixtures.observedExchanges;
 import static atf.api.reporting.ui.support.ExtentReportUiEvidenceTestSupport.EXTENT_UI_TEST_PACKAGE;
 import static atf.api.reporting.contract.AtfGherkinKeyword.AND;
 import static atf.api.reporting.contract.AtfGherkinKeyword.GIVEN;
@@ -187,10 +188,10 @@ class ExtentReportUiEvidencePublishingTest {
                     "registration before authenticated flow", List.of("ui", "authenticated"));
             var setup = scenario.startPhase(ReportUiContract.Phase.SETUP.displayName());
             setup.setup(GIVEN, "a new account is registered", "/auth/register", List.of(assertion),
-                    List.of(action), List.of(apiExecution), AtfReportStatus.PASS);
+                    List.of(action), observedExchanges(List.of(apiExecution)), AtfReportStatus.PASS);
             setup.setup(AND, "the account is signed in", "/account", List.of(
                     new AtfAssertion("Account session", "authenticated", "authenticated", true)),
-                    List.of(action), List.of(), new ReportScreenshot(
+                    List.of(action), UiApiValidationEvidence.empty(), new ReportScreenshot(
                             "Authenticated account screen",
                             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="),
                     AtfReportStatus.PASS);
@@ -247,7 +248,7 @@ class ExtentReportUiEvidencePublishingTest {
             var body = scenario.startPhase(ReportUiContract.Phase.TEST_BODY.displayName());
             body.step(GIVEN, "the payment response is visible", "/checkout", null,
                     List.of(new AtfAssertion("Payment", "success", "success", true)), List.of(),
-                    List.of(execution), AtfReportStatus.PASS);
+                    observedExchanges(List.of(execution)), atf.api.reporting.evidence.ReportScreenshotPolicy.CapturePoint.CHECKPOINT, AtfReportStatus.PASS);
             body.complete(AtfReportStatus.PASS);
             scenario.complete(AtfReportStatus.PASS);
         }
@@ -306,7 +307,7 @@ class ExtentReportUiEvidencePublishingTest {
             var body = scenario.startPhase(ReportUiContract.Phase.TEST_BODY.displayName());
             body.step(GIVEN, "the payment response is visible", "/checkout", null,
                     List.of(new AtfAssertion("Payment", "success", "success", true)), List.of(),
-                    List.of(execution), AtfReportStatus.PASS);
+                    observedExchanges(List.of(execution)), atf.api.reporting.evidence.ReportScreenshotPolicy.CapturePoint.CHECKPOINT, AtfReportStatus.PASS);
             body.complete(AtfReportStatus.PASS);
             scenario.complete(AtfReportStatus.PASS);
         }
@@ -468,7 +469,7 @@ class ExtentReportUiEvidencePublishingTest {
             var scenario = session.startScenario("UiTest", EXTENT_UI_TEST_PACKAGE,
                     "two causal exchanges", List.of("ui", "api"));
             var body = scenario.startPhase(ReportUiContract.Phase.TEST_BODY.displayName());
-            body.apiTrace(THEN, "cart is ready", "/checkout", List.of(first, second), AtfReportStatus.PASS);
+            body.apiTrace(THEN, "cart is ready", "/checkout", observedExchanges(List.of(first, second)), AtfReportStatus.PASS);
             body.complete(AtfReportStatus.PASS);
             scenario.complete(AtfReportStatus.PASS);
         }
@@ -511,7 +512,7 @@ class ExtentReportUiEvidencePublishingTest {
             var scenario = session.startScenario("UiTest", EXTENT_UI_TEST_PACKAGE,
                     "retry is one exchange", List.of("ui", "api"));
             var body = scenario.startPhase(ReportUiContract.Phase.TEST_BODY.displayName());
-            body.apiTrace(THEN, "product is ready", "/products/1", List.of(evidence), AtfReportStatus.PASS);
+            body.apiTrace(THEN, "product is ready", "/products/1", observedExchanges(List.of(evidence)), AtfReportStatus.PASS);
             body.complete(AtfReportStatus.PASS);
             scenario.complete(AtfReportStatus.PASS);
         }
@@ -622,7 +623,7 @@ class ExtentReportUiEvidencePublishingTest {
             var scenario = session.startScenario("UiTest", EXTENT_UI_TEST_PACKAGE,
                     "browser request failure", List.of("ui", "api"));
             var body = scenario.startPhase(ReportUiContract.Phase.TEST_BODY.displayName());
-            body.apiTrace(THEN, "cart mutation is observable", "/carts", List.of(evidence),
+            body.apiTrace(THEN, "cart mutation is observable", "/carts", observedExchanges(List.of(evidence)),
                     AtfReportStatus.PASS);
             body.networkInspector("API network inspector", List.of(evidence));
             body.complete(AtfReportStatus.PASS);

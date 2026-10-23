@@ -26,27 +26,9 @@ record UiUnifiedFlowCheckpoint(String keyword, String title, String target,
         status = status == null ? AtfReportStatus.PASS : status;
         validationTitle = validationTitle == null ? "" : validationTitle.trim();
         actions = actions == null ? List.of() : List.copyOf(actions);
-        apiValidation = apiValidation == null
-                ? new UiApiValidationEvidence(List.of(), List.of()) : apiValidation;
+        java.util.Objects.requireNonNull(apiValidation, "apiValidation");
         capturePoint = capturePoint == null
                 ? ReportScreenshotPolicy.CapturePoint.CHECKPOINT : capturePoint;
-    }
-
-    UiUnifiedFlowCheckpoint(String keyword, String title, String target,
-                            String base64Png, List<AtfAssertion> assertions,
-                            AtfReportStatus status, String validationTitle,
-                            List<AtfUiActionRecord> actions,
-                            List<ReportExecutionEvidence> apiEvidence,
-                            ReportScreenshotPolicy.CapturePoint capturePoint,
-                            boolean mediaScreenshot) {
-        this(keyword, title, target, base64Png, assertions, status, validationTitle,
-                actions, new UiApiValidationEvidence(List.of(), apiEvidence == null ? List.of()
-                        : apiEvidence.stream().filter(java.util.Objects::nonNull)
-                        .map(evidence -> new UiApiValidationEvidence.Exchange(evidence, List.of(),
-                                evidence.response() != null && evidence.response().status() < 0
-                                        ? AtfReportStatus.worst(AtfReportStatus.orInfo(status), AtfReportStatus.WARNING)
-                                        : status))
-                        .toList()), capturePoint, mediaScreenshot);
     }
 
     List<ReportExecutionEvidence> apiEvidence() {

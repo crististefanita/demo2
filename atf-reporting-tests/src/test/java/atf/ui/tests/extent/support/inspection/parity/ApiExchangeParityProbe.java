@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import static atf.api.reporting.ui.validation.UiApiValidationFixtures.observedExchanges;
 import static atf.api.reporting.contract.AtfGherkinKeyword.THEN;
 import static atf.api.reporting.contract.AtfReportStatus.INFO;
 import static atf.api.reporting.contract.AtfReportStatus.PASS;
@@ -150,7 +151,7 @@ public final class ApiExchangeParityProbe {
                 direct(html, "TypedEvidence", index, evidence, false);
                 var scenario = ui.startScenario("NestedEvidence", "atf.component", CASES.get(index), List.of("component", "captured-snapshot"));
                 var phase = scenario.startPhase("TEST BODY");
-                phase.step(THEN, CASES.get(index), "https://ui.example.test/checkpoint", "", List.of(), List.of(), List.of(evidence), PASS);
+                phase.step(THEN, CASES.get(index), "https://ui.example.test/checkpoint", "", List.of(), List.of(), observedExchanges(List.of(evidence)), atf.api.reporting.evidence.ReportScreenshotPolicy.CapturePoint.CHECKPOINT, PASS);
                 phase.complete(PASS);
                 scenario.complete(PASS);
             }

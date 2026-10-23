@@ -102,7 +102,7 @@ public final class UiExtentReportSession implements AutoCloseable {
                 .build());
     }
 
-    /** Canonical typed entry point; all legacy overloads delegate here. */
+    /** Canonical typed configuration entry point; convenience factories delegate here. */
     public static UiExtentReportSession openConfigured(UiExtentReportOptions options) {
         var configuration = AtfReportConfigurationLoader.load();
         return open(configuration, options);
@@ -295,26 +295,6 @@ public final class UiExtentReportSession implements AutoCloseable {
                     apiValidation, capturePoint, uiStatus);
         }
 
-        public void step(AtfGherkinKeyword keyword, String title, String target,
-                         String base64Png, Collection<AtfAssertion> assertions,
-                         Collection<AtfUiActionRecord> actions,
-                         Collection<ReportExecutionEvidence> apiEvidence,
-                         AtfReportStatus status) {
-            lifecycle.step(keyword.text(), title, target, base64Png, assertions, actions,
-                    apiEvidence, status);
-        }
-
-        /** Keeps API evidence on the same checkpoint with an explicit capture point. */
-        public void step(AtfGherkinKeyword keyword, String title, String target,
-                         String base64Png, Collection<AtfAssertion> assertions,
-                         Collection<AtfUiActionRecord> actions,
-                         Collection<ReportExecutionEvidence> apiEvidence,
-                         ReportScreenshotPolicy.CapturePoint capturePoint,
-                         AtfReportStatus status) {
-            lifecycle.step(keyword.text(), title, target, base64Png, assertions, actions,
-                    apiEvidence, capturePoint, status);
-        }
-
         /**
          * Registers the phase's single journey summary. Reporting publishes it
          * after all other phase evidence, immediately before phase close; an
@@ -354,19 +334,19 @@ public final class UiExtentReportSession implements AutoCloseable {
         public void setup(AtfGherkinKeyword keyword, String title, String target,
                           Collection<AtfAssertion> assertions,
                           Collection<AtfUiActionRecord> actions,
-                          Collection<ReportExecutionEvidence> apiEvidence,
+                          UiApiValidationEvidence apiValidation,
                           AtfReportStatus status) {
-            lifecycle.setup(keyword, title, target, assertions, actions, apiEvidence, status);
+            lifecycle.setup(keyword, title, target, assertions, actions, apiValidation, status);
         }
 
         /** Publishes optional sanitized screenshot evidence after the setup action table. */
         public void setup(AtfGherkinKeyword keyword, String title, String target,
                           Collection<AtfAssertion> assertions,
                           Collection<AtfUiActionRecord> actions,
-                          Collection<ReportExecutionEvidence> apiEvidence,
+                          UiApiValidationEvidence apiValidation,
                           ReportScreenshot screenshot,
                           AtfReportStatus status) {
-            lifecycle.setup(keyword, title, target, assertions, actions, apiEvidence, screenshot, status);
+            lifecycle.setup(keyword, title, target, assertions, actions, apiValidation, screenshot, status);
         }
 
         public void outcome(String keyword, String title, String target,
@@ -381,9 +361,9 @@ public final class UiExtentReportSession implements AutoCloseable {
 
         /** Publishes API evidence as a causal sibling immediately after its UI checkpoint. */
         public void apiTrace(AtfGherkinKeyword keyword, String title, String target,
-                             Collection<ReportExecutionEvidence> apiEvidence,
+                             UiApiValidationEvidence apiValidation,
                              AtfReportStatus status) {
-            lifecycle.apiTrace(keyword, title, target, apiEvidence, status);
+            lifecycle.apiTrace(keyword, title, target, apiValidation, status);
         }
 
         public void screenValidation(String title, String target, String base64Png,
@@ -420,10 +400,10 @@ public final class UiExtentReportSession implements AutoCloseable {
         public void screenValidation(String title, String target, String base64Png,
                                      Collection<AtfAssertion> assertions,
                                      Collection<AtfUiActionRecord> actions,
-                                     Collection<atf.api.reporting.model.ReportExecutionEvidence> apiEvidence,
+                                     UiApiValidationEvidence apiValidation,
                                      ReportScreenshotPolicy.CapturePoint capturePoint,
                                      AtfReportStatus status) {
-            lifecycle.screenValidation(title, target, base64Png, assertions, actions, apiEvidence,
+            lifecycle.screenValidation(title, target, base64Png, assertions, actions, apiValidation,
                     capturePoint, status);
         }
 

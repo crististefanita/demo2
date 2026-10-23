@@ -72,6 +72,7 @@ Proiecția contextului UI este verificată la componentă:
 | Probă | Contract protejat |
 |---|---|
 | `UiCheckpointEvidenceProjectionTest` | identitatea checkpoint-ului și `evidence.type`/`evidence.policy` rămân în model; proiecțiile typed/legacy și fallback nu le publică și nu le mută în response |
+| `UiApiValidationContractComponentTest` | interzice intrările cu exchange-uri brute în API, lifecycle, publisher și buffer; verifică verdictele UI/API independente și exchange-urile surori în checkpoint, setup, final și unified, plus markup-ul request/response/execution real |
 | `ExtentReportUiEvidencePublishingTest` | publisher-ul UI nu adaugă un request HTTP sintetic; exchange-ul nested păstrează request/response/JSON/execution |
 | `ExtentReportDisclosureBrowserComponentTest` | artifact controlat cu PASS/WARNING/FAIL; niciun tabel introductiv la checkpoint, validări și screenshot disponibile, API exchange complet, close fără subarbore vizibil și titluri custom identificate semantic; captură deduplicată deschisă prin click/Enter cu sursa colapsată, fără salt la ancoră |
 | `ReportPhaseDiagnosticTest` | conversie explicită, statusul fazei sursă, chei legacy delimitate, context nemodificat și rezultat imutabil; portul diagnostic nu creează HTTP |
@@ -289,6 +290,8 @@ flowchart LR
 
 - `ReportEvidenceProfileTest` verifică filtrarea înainte de captură, potrivirea sursei,
   payload-ul PNG și selecția typed a detaliilor acțiunilor.
+- `ReportScreenshotTest` verifică encoding-ul Base64 și semnătura PNG;
+  contractul nu presupune decodarea completă a imaginii.
 - `ExtentReportUiEvidenceRenderingTest` verifică tabelul implicit și că
   `SUMMARY_ONLY` păstrează un disclosure colapsat, fără tabelul detaliat sau
   schimbarea capturii; rendererul nu execută acțiuni UI.
@@ -316,10 +319,14 @@ publicare; mapping-ul local rămâne în probele Shop, fără copierea rendereru
 | `ExtentReportSessionContractTest` | Artifact și stil comun; Client implicit exact `Configured per execution` sau Client explicit păstrat și redactat în System | Un consumer fără transport declarat nu primește implicit identitatea unui client API. |
 
 - Matricea suplimentară compară snapshot-ul semantic cu HTML-ul public pentru
-  toate politicile, inclusiv payload gol și failure fără acțiuni.
+  toate politicile, inclusiv payload gol, Base64 incorect, non-PNG și failure
+  fără acțiuni executate.
 - Oracolul Client verifică și unicitatea rândului din System.
 - Fixture-ul inspectabil al capturii conține failure-uri sintetice intenționate
-  și un scenariu-frate PASS.
+  și un scenariu-frate PASS; nu reprezintă o rulare business Shop/AutoEx.
+- Componenta verifică modelul și markup-ul; randarea, click-ul capturii și
+  Fails → Open in Tests rămân responsabilitatea
+  [probei browser de failure](src/test/java/atf/ui/tests/extent/e2e/failure/UiFailureReportContractTest.java).
 
 ## Matricea de integrare și limitele verificate
 

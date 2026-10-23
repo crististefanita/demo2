@@ -4,6 +4,8 @@ import atf.api.testkit.AtfComponentTest;
 import atf.api.core.http.request.HttpMethod;
 import atf.api.reporting.support.TestReportPaths;
 import atf.api.reporting.support.ApiReportTestUrls;
+import atf.api.reporting.support.publication.CleanupPublicationFixture;
+import atf.api.reporting.markup.ExtentReportAssets;
 import atf.api.mock.MockRoutePaths;
 import atf.api.core.http.response.ApiAttemptOutcome;
 import atf.api.core.http.response.ApiAttemptRecord;
@@ -21,8 +23,12 @@ import atf.api.reporting.security.SensitiveDataRedactor;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.nio.file.Files;
+import java.io.IOException;
+import java.nio.file.AccessDeniedException;
+import java.nio.file.FileSystemException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Map;
@@ -33,6 +39,39 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @AtfComponentTest
 class ExtentReportSessionContractTest {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void cleanupFailurePreservesTheCompleteOfflineArtifact(boolean sharingViolation) throws Exception {
+        String kind = sharingViolation ? "sharing-violation" : "access-denied";
+        Path report = CleanupPublicationFixture.rawReport(
+                TestReportPaths.report("cleanup-publication-" + kind + "/report.html"));
+        Path spark = report.getParent().resolve(ExtentReportAssets.SPARK_DIRECTORY);
+        IOException original = sharingViolation
+                ? new FileSystemException(spark.toString(), null, "simulated sharing violation")
+                : new AccessDeniedException(spark.toString(), null, "simulated access denial");
+        assertTrue(Files.isDirectory(spark), "the real vendor must supply assets to inline");
+        assertTrue(Files.readString(report).contains("spark/"));
+
+        IOException actual = assertThrows(IOException.class, () ->
+                ExtentReportPublicationPipeline.publish(report, assetDirectory -> {
+                    assertEquals(spark, assetDirectory);
+                    throw original;
+                }));
+
+        String html = Files.readString(report);
+        assertAll(
+                () -> assertSame(original, actual),
+                () -> assertTrue(html.contains("AssetCleanupContract")),
+                () -> assertTrue(html.contains("<body class=\"spa -report dark atf-overview-default\">")),
+                () -> assertTrue(html.contains("id=\"atf-report-theme\"")),
+                () -> assertTrue(html.contains("id=\"atf-report-behaviour\"")),
+                () -> assertTrue(html.contains("data-atf-inline=\"spark-style.css\"")),
+                () -> assertFalse(html.contains("spark/"), "the final HTML must not depend on retained assets"),
+                () -> assertTrue(html.stripTrailing().endsWith("</html>")),
+                () -> assertTrue(Files.isDirectory(spark), "a rejected cleanup must not pretend assets were removed"),
+                () -> assertEquals(List.of(), CleanupPublicationFixture.temporaryOutputs(report)));
+    }
+
     @ParameterizedTest
     @CsvSource({
             "Browser automation client,Browser automation client",

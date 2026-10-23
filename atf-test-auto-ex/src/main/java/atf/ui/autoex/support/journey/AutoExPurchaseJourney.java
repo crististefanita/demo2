@@ -103,7 +103,7 @@ public final class AutoExPurchaseJourney {
         if (run.observesApiTraffic()) {
             AutoExCatalogApiPrecondition.verifyAndMarkBaseline(product.productName(), product.unitPrice(),
                     run::inspectCatalogApi,
-                    assertions -> run.checkpoint(AutoExPurchaseTraceStep.CATALOG_API_PRECONDITION, assertions),
+                    assertions -> run.apiCheckpoint(AutoExPurchaseTraceStep.CATALOG_API_PRECONDITION, assertions),
                     run::markCausalApiTrafficBaseline);
         }
 

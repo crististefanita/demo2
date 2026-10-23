@@ -34,6 +34,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
+import static atf.api.reporting.ui.validation.UiApiValidationFixtures.observedExchanges;
 import static atf.api.reporting.contract.AtfGherkinKeyword.THEN;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.EXECUTION_EVIDENCE;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.REQUEST_EVIDENCE;
@@ -138,7 +139,7 @@ class ApiRetryProjectionContractTest {
                 var scenario = session.startScenario("UiContract", "neutral.contract", "session ready",
                         List.of("component", "ui", "api"));
                 var phase = scenario.startPhase(TEST_BODY);
-                phase.apiTrace(THEN, "session is ready", "/account", List.of(evidence), status);
+                phase.apiTrace(THEN, "session is ready", "/account", observedExchanges(List.of(evidence)), status);
                 phase.complete(status);
                 scenario.complete(status);
                 return session.reportPath();

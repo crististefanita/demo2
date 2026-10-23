@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import static atf.api.reporting.ui.validation.UiApiValidationFixtures.observedExchanges;
 import static atf.api.reporting.contract.AtfGherkinKeyword.GIVEN;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -91,7 +92,7 @@ class ApiAuthenticationSchemaContractTest {
             var phase = scenario.startPhase("TEST BODY");
             phase.step(GIVEN, "account is ready", "/account", null,
                     List.of(new AtfAssertion("Account", "ready", "ready", true)), List.of(),
-                    List.of(evidence), AtfReportStatus.PASS);
+                    observedExchanges(List.of(evidence)), atf.api.reporting.evidence.ReportScreenshotPolicy.CapturePoint.CHECKPOINT, AtfReportStatus.PASS);
             phase.complete(AtfReportStatus.PASS);
             scenario.complete(AtfReportStatus.PASS);
         }

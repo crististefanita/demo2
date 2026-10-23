@@ -30,6 +30,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
+import static atf.api.reporting.ui.validation.UiApiValidationFixtures.observedExchanges;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -56,7 +57,7 @@ class ReportEvidenceProfileIntegrationTest {
             setup.setup(AtfGherkinKeyword.GIVEN, "account is ready", "/login",
                     List.of(new AtfAssertion("Account", "ready", "ready", true)),
                     List.of(new AtfUiActionRecord(1, "Fill account", "#email", "email entered",
-                            "entered", 2, AtfReportStatus.PASS)), List.of(paymentEvidence()),
+                            "entered", 2, AtfReportStatus.PASS)), observedExchanges(List.of(paymentEvidence())),
                     AtfReportStatus.PASS);
             setup.complete(AtfReportStatus.PASS);
             var body = scenario.startPhase("TEST BODY");
@@ -174,9 +175,9 @@ class ReportEvidenceProfileIntegrationTest {
                             new AtfUiActionRecord(1, "Visible text", "#payment-title",
                                     "Payment", "Payment", 2, AtfReportStatus.PASS,
                                     AtfUiEvidenceSource.OBSERVE)),
-                    List.of(apiEvidence), AtfReportStatus.PASS);
+                    observedExchanges(List.of(apiEvidence)), atf.api.reporting.evidence.ReportScreenshotPolicy.CapturePoint.CHECKPOINT, AtfReportStatus.PASS);
             body.step(AtfGherkinKeyword.WHEN, "checkout is submitted", "#checkout",
-                    null, List.of(), List.of(), List.of(apiEvidence), AtfReportStatus.PASS);
+                    null, List.of(), List.of(), observedExchanges(List.of(apiEvidence)), atf.api.reporting.evidence.ReportScreenshotPolicy.CapturePoint.CHECKPOINT, AtfReportStatus.PASS);
             var finalCapture = profile.capture(ReportScreenshotPolicy.CapturePoint.FINAL,
                     "confirmation is visible", "#confirmation", provider).orElseThrow();
             body.screenValidation(finalCapture.title(), "#confirmation", finalCapture.base64Png(),
@@ -283,14 +284,14 @@ class ReportEvidenceProfileIntegrationTest {
                     List.of(new AtfAssertion("Page", "open", "open", true)),
                     List.of(new AtfUiActionRecord(1, "Navigate", "/start", "page is loaded",
                             "document loaded", 8, AtfReportStatus.PASS)),
-                    List.of(),
+                    UiApiValidationEvidence.empty(), atf.api.reporting.evidence.ReportScreenshotPolicy.CapturePoint.CHECKPOINT,
                     AtfReportStatus.PASS);
             body.step(AtfGherkinKeyword.THEN, "the result is visible", "#result",
                     ReportTestScreenshots.SECOND_PIXEL_PNG,
                     List.of(new AtfAssertion("Result", "visible", "visible", true)),
                     List.of(new AtfUiActionRecord(2, "Get text", "#result", "read result",
                             "visible", 3, AtfReportStatus.PASS)),
-                    List.of(),
+                    UiApiValidationEvidence.empty(), atf.api.reporting.evidence.ReportScreenshotPolicy.CapturePoint.CHECKPOINT,
                     AtfReportStatus.PASS);
             body.complete(AtfReportStatus.PASS);
             scenario.complete(AtfReportStatus.PASS);
@@ -346,7 +347,7 @@ class ReportEvidenceProfileIntegrationTest {
                     ReportTestScreenshots.ONE_PIXEL_PNG,
                     List.of(new AtfAssertion("Initial state", "ready", "ready", true)),
                     List.of(new AtfUiActionRecord(1, "Navigate", "/start", "page loaded",
-                            "document loaded", 5, AtfReportStatus.PASS)), List.of(), AtfReportStatus.PASS);
+                            "document loaded", 5, AtfReportStatus.PASS)), UiApiValidationEvidence.empty(), atf.api.reporting.evidence.ReportScreenshotPolicy.CapturePoint.CHECKPOINT, AtfReportStatus.PASS);
             finalOnlyBody.screenValidation("terminal state is confirmed", "#confirmation",
                     ReportTestScreenshots.SECOND_PIXEL_PNG,
                     List.of(new AtfAssertion("Confirmation", "visible", "visible", true)),
@@ -363,12 +364,12 @@ class ReportEvidenceProfileIntegrationTest {
                     ReportTestScreenshots.ONE_PIXEL_PNG,
                     List.of(new AtfAssertion("Start", "visible", "visible", true)),
                     List.of(new AtfUiActionRecord(1, "Navigate", "/start", "page loaded",
-                            "document loaded", 5, AtfReportStatus.PASS)), List.of(), AtfReportStatus.PASS);
+                            "document loaded", 5, AtfReportStatus.PASS)), UiApiValidationEvidence.empty(), atf.api.reporting.evidence.ReportScreenshotPolicy.CapturePoint.CHECKPOINT, AtfReportStatus.PASS);
             checkpointBody.step(AtfGherkinKeyword.THEN, "checkpoint result is visible", "#result",
                     ReportTestScreenshots.SECOND_PIXEL_PNG,
                     List.of(new AtfAssertion("Result", "visible", "visible", true)),
                     List.of(new AtfUiActionRecord(2, "Get text", "#result", "read result",
-                            "visible", 3, AtfReportStatus.PASS)), List.of(), AtfReportStatus.PASS);
+                            "visible", 3, AtfReportStatus.PASS)), UiApiValidationEvidence.empty(), atf.api.reporting.evidence.ReportScreenshotPolicy.CapturePoint.CHECKPOINT, AtfReportStatus.PASS);
             checkpointBody.complete(AtfReportStatus.PASS);
             checkpointScenario.complete(AtfReportStatus.PASS);
         }
@@ -413,12 +414,12 @@ class ReportEvidenceProfileIntegrationTest {
                     ReportTestScreenshots.ONE_PIXEL_PNG,
                     List.of(new AtfAssertion("Start page", "visible", "visible", true)),
                     List.of(new AtfUiActionRecord(1, "Navigate", "/start", "page loaded",
-                            "document loaded", 5, AtfReportStatus.PASS)), List.of(), AtfReportStatus.PASS);
+                            "document loaded", 5, AtfReportStatus.PASS)), UiApiValidationEvidence.empty(), atf.api.reporting.evidence.ReportScreenshotPolicy.CapturePoint.CHECKPOINT, AtfReportStatus.PASS);
             checkpointBody.step(AtfGherkinKeyword.THEN, "checkpoint result appears", "#result",
                     ReportTestScreenshots.SECOND_PIXEL_PNG,
                     List.of(new AtfAssertion("Result", "visible", "visible", true)),
                     List.of(new AtfUiActionRecord(2, "Get text", "#result", "read result",
-                            "visible", 3, AtfReportStatus.PASS)), List.of(), AtfReportStatus.PASS);
+                            "visible", 3, AtfReportStatus.PASS)), UiApiValidationEvidence.empty(), atf.api.reporting.evidence.ReportScreenshotPolicy.CapturePoint.CHECKPOINT, AtfReportStatus.PASS);
             checkpointBody.complete(AtfReportStatus.PASS);
             checkpointScenario.complete(AtfReportStatus.PASS);
 
@@ -428,7 +429,7 @@ class ReportEvidenceProfileIntegrationTest {
             finalBody.step(AtfGherkinKeyword.GIVEN, "discarded initial state", "#start",
                     ReportTestScreenshots.ONE_PIXEL_PNG, List.of(),
                     List.of(new AtfUiActionRecord(1, "Navigate", "/start", "page loaded",
-                            "document loaded", 5, AtfReportStatus.PASS)), List.of(), AtfReportStatus.PASS);
+                            "document loaded", 5, AtfReportStatus.PASS)), UiApiValidationEvidence.empty(), atf.api.reporting.evidence.ReportScreenshotPolicy.CapturePoint.CHECKPOINT, AtfReportStatus.PASS);
             finalBody.screenValidation("terminal state appears", "#confirmation",
                     ReportTestScreenshots.SECOND_PIXEL_PNG, List.of(),
                     List.of(new AtfUiActionRecord(2, "Get text", "#confirmation",

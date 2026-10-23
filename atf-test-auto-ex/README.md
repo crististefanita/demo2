@@ -517,6 +517,12 @@ Diagrama comună pentru captură, baseline și publicare este în
 - Politica implicită selectează XHR/fetch first-party înainte de body capture
   și buget. XHR-ul real `GET /add_to_cart/1`, cu răspuns `text/html`, rămâne
   în checkpoint-ul coșului; nu există filtrare după prefix `/api/`.
+- Validarea API folosește exclusiv `UiApiValidationEvidence`, același contract
+  ca Shop. Precondiția catalogului își publică checks sub exchange-ul propriu,
+  nu în `UI validation`; verdictul UI nu este copiat pe request-uri.
+- Numărul pașilor UI nu este un oracol pentru numărul de request-uri API.
+  Navigările și formularele de tip document sunt în afara scope-ului implicit;
+  includerea lor este opt-in și nu transformă orice pagină HTML într-un API.
 - `UI_API` așteaptă bounded răspunsul XHR pornit de aceeași acțiune.
   Confirmarea vizibilă „Added!” este așteptată înainte de citire; template-ul
   ascuns nu certifică încheierea acțiunii. Nu se reexecută request-ul pentru
@@ -553,8 +559,9 @@ Setup-ul folosește exact același origin configurat ca browserul.
 - `AccountPage.trackDisposableAccountCreation` armează cleanup-ul înainte de
   request, inclusiv pentru rezultatul de creare incert; cleanup-ul păstrează
   verificarea identității și refuzul replay-ului unei ștergeri deja începute.
-- `GIVEN` publică evidence de setup și exchange-ul real, separat de validarea
-  UI; HTTP 200, JSON `responseCode: 201` și mesajul sunt verificate distinct.
+- `GIVEN` este un checkpoint API-only: HTTP 200, JSON `responseCode: 201` și
+  mesajul sunt verificate sub exchange-ul real; nu publică validare UI sau
+  un disclosure `Setup evidence` fără checks.
 - Parola form-encoded este redactată de Reporting. Body-ul este form-urlencoded,
   conform API-ului public, nu convertit artificial în JSON; răspunsul JSON este
   validat independent de headerul MIME primit.

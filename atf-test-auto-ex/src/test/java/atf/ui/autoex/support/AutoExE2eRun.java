@@ -16,6 +16,7 @@ import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.evidence.profile.ReportEvidenceProfile;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.ui.UiExtentReportSession;
+import atf.api.reporting.ui.validation.UiApiValidationEvidence;
 import atf.api.reporting.ui.UiExtentReportOptions;
 import atf.api.reporting.ui.network.ReportNetworkInspector;
 import atf.api.reporting.ui.network.ReportNetworkCaptureStatus;
@@ -232,10 +233,6 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
                 .filter(product -> productName.equals(product.get(NAME.path())))
                 .map(product -> Objects.toString(product.get(PRICE.path()), ""))
                 .findFirst().orElse("");
-        actions.observation("API " + GET.value(), AutoExRoutes.PRODUCTS_API.path(),
-                "HTTP 200; configured product is listed", "HTTP " + status.intValue()
-                        + "; products=" + products.size() + "; " + productName + " price="
-                        + (price.isBlank() ? "not found" : price));
         return new AutoExCatalogSnapshot(status.intValue(), products.size(), price);
     }
 
@@ -303,14 +300,14 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
         boolean passed = assertions.stream().allMatch(AtfAssertion::passed);
         String screenshot = evidenceProfile.captures(ReportScreenshotPolicy.CapturePoint.CHECKPOINT)
                 ? capture(title) : "";
-        List<ReportExecutionEvidence> apiEvidence = channel == TestChannel.UI_API
-                ? networkEvidenceSinceCursor() : List.of();
+        UiApiValidationEvidence apiValidation = channel == TestChannel.UI_API
+                ? networkValidationSinceCursor() : UiApiValidationEvidence.empty();
         var actionEvidence = ReportModelAdapters.uiActions(actions.drain());
         AtfReportStatus status = passed ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
         phase.step(keyword, title, currentUrl(), screenshot, assertions, actionEvidence,
-                apiEvidence, ReportScreenshotPolicy.CapturePoint.CHECKPOINT, status);
+                apiValidation, ReportScreenshotPolicy.CapturePoint.CHECKPOINT, status);
         if (channel == TestChannel.UI_API) {
-            networkSteps.add(ReportNetworkInspector.Step.from(keyword.text(), title, assertions, apiEvidence));
+            networkSteps.add(ReportNetworkInspector.Step.from(keyword.text(), title, assertions, exchangeEvidence(apiValidation)));
         }
         if (!passed) throw new AssertionError("UI checkpoint failed: " + title
                 + ". Failed assertions: " + failedAssertionSummary(assertions));
@@ -318,6 +315,33 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
 
     public void checkpoint(AutoExTraceStep step, List<AtfAssertion> assertions) {
         checkpoint(step.keyword(), step.title(), assertions);
+    }
+
+    /** API checks own their actual catalog exchange; they are never UI assertions. */
+    public void apiCheckpoint(AutoExTraceStep step, List<AtfAssertion> assertions) {
+        String catalogPath = AutoExRoutes.PRODUCTS_API.path();
+        browser.networkInspector().awaitAfter(networkCursor,
+                observation -> GET.value().equals(observation.method())
+                        && catalogPath.equals(observation.path()), null);
+        UiApiValidationEvidence captured = networkValidationSinceCursor();
+        boolean found = captured.exchanges().stream()
+                .anyMatch(exchange -> catalogPath.equals(exchange.evidence().request().path()));
+        List<AtfAssertion> correlations = found ? List.of() : List.of(
+                new AtfAssertion("Catalog API evidence", catalogPath, "not observed", false));
+        var apiValidation = new UiApiValidationEvidence(correlations, captured.exchanges().stream()
+                .map(exchange -> catalogPath.equals(exchange.evidence().request().path())
+                        ? new UiApiValidationEvidence.Exchange(exchange.evidence(), assertions)
+                        : exchange).toList());
+        phase.step(step.keyword(), step.title(), currentUrl(), "", List.of(), List.of(),
+                apiValidation, ReportScreenshotPolicy.CapturePoint.CHECKPOINT, AtfReportStatus.INFO);
+        if (apiValidation.status() == AtfReportStatus.FAIL) {
+            throw new AssertionError("API checkpoint failed: " + step.title()
+                    + ". Failed assertions: " + failedAssertionSummary(assertions));
+        }
+    }
+
+    private static List<ReportExecutionEvidence> exchangeEvidence(UiApiValidationEvidence validation) {
+        return validation.exchanges().stream().map(UiApiValidationEvidence.Exchange::evidence).toList();
     }
 
     /** Publishes the terminal state; FINAL_ONLY creates exactly this one screenshot. */
@@ -328,15 +352,15 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
                 ? capture(title) : "";
         AutoExScreenAuditObservations.recordTerminalScreenContract(
                 actions, title, currentUrl(), assertions, !screenshot.isBlank(), passed);
-        List<ReportExecutionEvidence> apiEvidence = channel == TestChannel.UI_API
-                ? networkEvidenceSinceCursor() : List.of();
+        UiApiValidationEvidence apiValidation = channel == TestChannel.UI_API
+                ? networkValidationSinceCursor() : UiApiValidationEvidence.empty();
         phase.screenValidation(title, currentUrl(), screenshot, assertions,
-                ReportModelAdapters.uiActions(actions.drain()), apiEvidence,
+                ReportModelAdapters.uiActions(actions.drain()), apiValidation,
                 ReportScreenshotPolicy.CapturePoint.FINAL,
                 passed ? AtfReportStatus.PASS : AtfReportStatus.FAIL);
         if (channel == TestChannel.UI_API) {
             networkSteps.add(ReportNetworkInspector.Step.from(AtfGherkinKeyword.THEN.text(),
-                    title, assertions, apiEvidence));
+                    title, assertions, exchangeEvidence(apiValidation)));
         }
         if (!passed) throw new AssertionError("Final screen validation failed: " + title
                 + ". Failed assertions: " + failedAssertionSummary(assertions));
@@ -351,11 +375,13 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
                 List.of(page().locator(AutoExSelectors.SENSITIVE_FIELDS))).base64Png();
     }
 
-    private List<ReportExecutionEvidence> networkEvidenceSinceCursor() {
+    private UiApiValidationEvidence networkValidationSinceCursor() {
         var inspector = browser.networkInspector();
         var observations = inspector.observationsSince(networkCursor);
         networkCursor += observations.size();
-        return observations.stream().map(AutoExE2eRun::toExecutionEvidence).toList();
+        return new UiApiValidationEvidence(List.of(), observations.stream()
+                .map(AutoExE2eRun::toExecutionEvidence)
+                .map(evidence -> new UiApiValidationEvidence.Exchange(evidence, List.of())).toList());
     }
 
     public void onFailureCleanup(AutoExPurchaseSession.AutoExAccountCleanup cleanup) {
@@ -444,12 +470,13 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
 
     public TestChannel channel() { return channel; }
 
-    /** Direct preparation is setup evidence, never an exchange attributed to a browser action. */
+    /** An API-only GIVEN; direct preparation is never attributed to a browser action. */
     public void apiSetup(String title, ApiExecutionResult execution, List<AtfAssertion> assertions) {
         boolean passed = assertions.stream().allMatch(AtfAssertion::passed);
-        phase.setup(AtfGherkinKeyword.GIVEN, title, execution.request().path(), assertions,
-                List.of(), List.of(ReportModelAdapters.execution(execution)),
-                passed ? AtfReportStatus.PASS : AtfReportStatus.FAIL);
+        var exchange = new UiApiValidationEvidence.Exchange(ReportModelAdapters.execution(execution), assertions);
+        var apiValidation = new UiApiValidationEvidence(List.of(), List.of(exchange));
+        phase.step(AtfGherkinKeyword.GIVEN, title, execution.request().path(), "", List.of(), List.of(),
+                apiValidation, ReportScreenshotPolicy.CapturePoint.CHECKPOINT, AtfReportStatus.INFO);
         markCausalApiTrafficBaseline();
         if (!passed) throw new AssertionError("API setup failed: " + failedAssertionSummary(assertions));
     }

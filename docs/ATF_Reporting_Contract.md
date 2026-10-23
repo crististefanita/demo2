@@ -48,7 +48,10 @@ flowchart LR
 - `ReportEnvironmentSnapshot` ignoră valorile goale și filtrează câmpurile
   invizibile în System;
 - `ReportEnvironment` aplică redaction la boundary-ul de publicare;
-- `Client` este metadata operațională opțională;
+- `Client` explicit este metadata operațională păstrată și redactată înainte
+  de publicare; valoarea absentă folosește exact `Configured per execution`;
+- System publică un singur rând `Client`; lipsa metadatei nu autorizează
+  atribuirea unui transport API fictiv;
 - categoriile (`Run`, `Targets`, `Browser`, `Time`, `Flow`, `Auth`, `Network`,
   `Evidence`, `Reporting`) nu devin grupuri sau headere vizuale în tabel.
 
@@ -225,9 +228,15 @@ singură listă clasificată după prefixe din nume:
 - corelarea UI/API rămâne sub `API validation`, nu este duplicată în tabelul UI
   și nu creează un al doilea pas Gherkin.
 
-Contractul public renderer-neutral este `UiApiValidationEvidence`; consumerii
-leagă exchange-ul și aserțiunile sale explicit. Calea legacy cu evidence fără
-asserțiuni rămâne compatibilă; nu deduce ownerul din textul assertion-ului.
+Contractul public renderer-neutral unic este `UiApiValidationEvidence`.
+
+- Consumerii leagă exchange-ul și aserțiunile sale explicit; nu există intrare
+  legacy cu `Collection<ReportExecutionEvidence>` pentru validări.
+- Regula se aplică în checkpoint, setup, trace, captură finală și flow unificat.
+- UI-only transmite `UiApiValidationEvidence.empty()`; un exchange observat
+  fără checks se reprezintă tot typed și nu primește verdictul UI.
+- Ownerul nu este dedus din textul assertion-ului. Inspectorul agregat rămâne
+  diagnostic de transport, nu o cale alternativă pentru validarea API.
 
 ## Dovezile unei cereri
 
