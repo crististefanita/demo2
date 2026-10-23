@@ -297,6 +297,14 @@ negativ așteptat și două exchange-uri diferite demonstrează ownership-ul loc
 
 ## API-07 — fidelitatea snapshot-ului de transport
 
+Increment delimitat: păstrarea metodei capturate în `ShopApiOperation`,
+`ShopApiEvidenceMapper`, rezumatul jurnalului și ambii publisheri Shop.
+Clasificarea `SEARCH` poate selecta `QUERY`, fără echivalare cu `GET` în dovezi.
+
+- Probe: `QUERY` cu JSON, control `GET`, metodă necunoscută, semnătură și replay.
+- Gate: `ShopComponentSuite`, fixture nouă prin publisherul UI/API și inspecție MCP.
+- Acest increment nu închide duratele necapturate ori latența versus timpul publicării.
+
 `ShopApiEvidenceMapper` rescrie metoda prin vocabularul operației și construiește
 duratele browserului cu zero. Separarea profilului de mecanism este deja acoperită
 de schema auth comună și nu mai reprezintă un ToDo.

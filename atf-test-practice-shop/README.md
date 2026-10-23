@@ -307,8 +307,10 @@ Extensia grupează testele `@ShopApiCallComponentTest` într-un raport Extent:
 - fiecare schimb păstrează metoda/ruta, detaliile request/response și execuția;
 - `Contract validation` apare doar când schimbului îi este asociat un contract
   HTTP tipizat; statusul așteptat este comparat cu cel observat;
-- verdictul JUnit aparține scenariului, iar completitudinea capturii este
-  publicată o singură dată la nivel de audit;
+- verdictul JUnit aparține scenariului; completitudinea capturii rămâne
+  metadata internă, fără bandă `Audit details` în faza API;
+- cauzele JUnit și asocierile lipsă folosesc portul diagnostic typed și apar
+  redactate în scenariu; Fails păstrează diagnosticul fazelor eșuate;
 - auditul nu repetă verdictul JUnit sau numărul total de schimburi per request;
 - suita folosește transporturi deterministe și nu apelează serviciul public.
 `ShopApiCallAuditSuite` rulează numai selecția de teste pentru audit, în timp ce

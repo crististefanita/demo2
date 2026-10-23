@@ -28,6 +28,8 @@ Proiecția contextului UI este verificată la componentă:
 | `UiCheckpointEvidenceProjectionTest` | cheile interne `request.action`/`request.target` rămân în model; proiecțiile typed/legacy și fallback nu le publică și nu le mută în response |
 | `ExtentReportUiEvidencePublishingTest` | publisher-ul UI nu adaugă un request HTTP sintetic; exchange-ul nested păstrează request/response/JSON/execution |
 | `ExtentReportDisclosureBrowserComponentTest` | artifact controlat cu PASS/WARNING/FAIL; niciun tabel introductiv la checkpoint, validări și screenshot disponibile, API exchange complet, close fără subarbore vizibil și titluri custom identificate semantic |
+| `ReportPhaseDiagnosticTest` | conversie explicită, chei legacy delimitate, context nemodificat și rezultat imutabil; portul diagnostic nu creează HTTP |
+| `ReportPhaseAuditBrowserComponentTest` | Extent/fallback cu zero/unul/mai multe exchange-uri și cu/fără metadata; eșec JUnit și asociere lipsă, redacție, Fails și închiderea diagnosticului; probe negative pentru bandă ascunsă, redenumită sau goală |
 
 Fixture-ul browser este local și determinist; nu cere o nouă achiziție în
 Practice Shop. Raportul timestamped este dovadă de componentă, iar stările

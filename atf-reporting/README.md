@@ -256,6 +256,26 @@ Această ierarhie API nu trebuie confundată cu raportarea UI: acolo `UI validat
 fiecare `API validation` își deține exchange-urile. Verdictul unei metode JUnit
 nu este un request API și nu trebuie introdus ca metodă `ASSERT`/rută sintetică.
 
+### Context de fază și diagnostic de execuție
+
+| Intrare | Owner și proiecție |
+|---|---|
+| `Phase.detail` | Context intern; nu publică `Audit details`, tabel de log sau wrapper gol în fază |
+| `Phase.diagnostic(Kind, message)` | Diagnostic explicit al scenariului, redactat; nu creează request sau aserțiune business |
+| Request / validation | Păstrează dovezile HTTP și contractele efectiv evaluate |
+
+`ReportPhaseDiagnostic` delimitează compatibilitatea pentru `Failure cause`,
+`JUnit failure` și `API contract association`. Restul detaliilor de fază nu
+devin diagnostic prin deducție. `ReportPhaseDiagnosticMarkup` este proiecția
+comună Extent/fallback; Fails păstrează cauza reală a fazelor eșuate.
+
+În Extent, `extent-scenarios.js` include diagnosticul în panoul scenariului și
+elimină wrapper-ul vendor al logului. Închiderea scenariului ascunde și
+diagnosticul; normalizarea repetată nu îl dublează. Fără exchange-uri nu se
+inventează HTTP sau PASS contractual, iar un diagnostic de asociere nu schimbă
+singur verdictul JUnit. `Setup evidence` și inspectorul agregat rămân canale
+distincte.
+
 ### Dovezi API atașate unui pas UI
 
 Un consumer poate atașa unul sau mai multe `ReportExecutionEvidence` la același

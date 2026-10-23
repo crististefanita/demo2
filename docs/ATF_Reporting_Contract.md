@@ -166,6 +166,26 @@ Reguli de ownership:
 4. faza nu repetă failure-ul deja detaliat în tabel;
 5. scenariul arată verdictul agregat, nu duplică evidence-ul fiecărei faze.
 
+### Context intern și diagnostic al scenariului
+
+Faza organizează pașii reali, fără o bandă proprie
+`Status / Details → Info → Audit details`. `Phase.detail` păstrează contextul
+intern și numele câmpurilor în snapshot-ul semantic, nu un disclosure public.
+Absența se verifică structural, inclusiv pentru wrapper-e goale sau ascunse.
+
+Diagnosticul explicit folosește `Phase.diagnostic(Kind, message)` și modelul
+`ReportPhaseDiagnostic`; cheile legacy de execuție/asociere au conversie
+delimitată. Scenariul deține `Execution diagnostics`, cu redacție înaintea
+publicării. Fails păstrează cauza reală și legătura către scenariul exact,
+inclusiv fără exchange sau aserțiune contractuală. Un diagnostic nu schimbă
+singur verdictul furnizat de consumer.
+
+Închiderea scenariului ascunde și diagnosticul, iar normalizarea nu îl
+republică. Nu se elimină incidental precondițiile `Setup evidence`,
+request/response/execution reale, validările de contract ori inspectorul API.
+Ownership-ul rendererului și probele sunt descrise în
+[README Reporting](../atf-reporting/README.md#context-de-fază-și-diagnostic-de-execuție).
+
 ## Dovezile configurării inițiale
 
 `SETUP` deține precondițiile și achiziția/verificarea fixture-ului; nu este
