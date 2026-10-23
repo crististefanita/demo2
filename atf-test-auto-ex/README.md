@@ -63,10 +63,13 @@ Configurația implicită este [`atf-auto-ex.yaml`](src/test/resources/atf-auto-e
   demo și directorul raportului sunt configurate acolo;
 - YAML-ul dezactivează E2E-ul implicit pentru rulările Maven obișnuite; extensia
   recunoaște markerul IntelliJ și îl poate activa chiar dacă `e2eEnabled: false`.
-- `AutoExE2eActivationPolicy` deține precedența și motivul deciziei: proprietatea
-  JVM explicită prevalează, urmată de YAML și apoi de heuristică IntelliJ.
-- Proprietatea explicită `-Datf.autoex.e2e.enabled=false` oprește testul în orice
-  runner; `AutoExE2eActivationPolicyComponentTest` probează sursele și override-ul.
+- `AutoExE2eExtension` extrage semnalele specifice AutoEx (proprietate JVM,
+  `e2eEnabled` din YAML și marker IntelliJ) și le transmite resolverului neutru
+  `AtfE2eActivationPolicy` din `atf-test-kit`.
+- Precedența comună este override JVM explicit → opt-in configurat → fallback
+  IDE → dezactivat; `false` explicit oprește testul în orice runner, iar valorile
+  invalide eșuează închis. Test Kit probează politica, iar guvernanța whole-ATF
+  protejează wiring-ul consumatorilor.
 
 Profilul conține numai date sintetice și date de plată demonstrative; nu introduce
 în YAML date personale reale, parole sau instrumente de plată reale. Modelul
@@ -183,9 +186,10 @@ sub pragul comun de opt clase:
 | `support.browser` | consimțământ și tratarea vignette-ului |
 | `api` | rute, request factory și cont API typed; folosit de probele API directe |
 
-`AutoExConsumerArchitectureComponentTest` protejează boundary-ul source-set-ului
-și compoziția entry-point-urilor; nu verifică inventory-ul exact al claselor de
-producție. Inventarul este verificat separat de guvernanța whole-ATF, iar
+`ConsumerModuleArchitectureGovernanceTest` din `atf-tests` protejează boundary-ul
+source-set-ului și compoziția entry-point-urilor Shop/AutoEx; nu verifică
+inventory-ul exact al claselor de producție. Inventarul este verificat separat
+de guvernanța whole-ATF, iar
 `AutoExCatalogApiPrecondition` și proba sa sunt acum incluse în package-urile
 owner corespunzătoare. Testele componente sunt împărțite pe subpachete tematice;
 pragul de coeziune este regula ATF comună din

@@ -101,17 +101,24 @@ este infrastructură de test, nu un al treilea tip de test.
 
 `ShopE2eTestSupport` compune testele, iar
 [`ShopE2eContext`](src/test/java/atf/ui/tests/practiceshop/support/lifecycle/ShopE2eContext.java)
-deține resursele browser/report doar pentru rulări E2E. `ShopArchitectureTest`
-verifică explicit source-set-ul harness-ului și al adaptoarelor și cere ca
-`atf-test-kit` să rămână `test` scope; paginile, flow-urile și locatoarele rămân
+deține resursele browser/report doar pentru rulări E2E. Guvernanța whole-ATF
+verifică source-set-ul harness-ului și al adaptoarelor, limitele locatorilor,
+suitele și dependențele consumerului; paginile, flow-urile și locatoarele rămân
 în `src/main`.
 
 Cleanup-ul generic failure-aware este furnizat de `atf-test-kit` și consumat
 numai din test scope; contextul, browserul, raportarea și ownership-ul rămân
-adaptoare locale Shop. `ShopE2eActivationExtension` activează direct rularea
-IntelliJ, dezactivează implicit alte runnere și permite override JVM explicit;
-`false` prevalează asupra detectării IDE, iar valoarea invalidă eșuează închis.
-Politica este probată în `ShopE2eActivationPolicyComponentTest`.
+adaptoare locale Shop. `ShopE2eActivationExtension` păstrează detecția IntelliJ
+și transmite override-ul JVM către `AtfE2eActivationPolicy` din `atf-test-kit`.
+Resolverul generic aplică precedența override explicit → opt-in configurat →
+fallback IDE → dezactivat; `false` prevalează asupra IDE, iar o valoare invalidă
+eșuează închis. Test Kit probează politica, iar guvernanța whole-ATF verifică
+wiring-ul Shop.
+
+Testele locale rămase verifică contracte specifice Shop: raportarea proprie,
+captura, profilele, maparea API și regulile de business. Primitivele neutre nu
+se dublează aici: escaping-ul selectorilor este în `atf-ui`, iar diagnosticul
+generic pentru body API indisponibil este în `atf-core`.
 
 Pachetul `support.reporting` rămâne în `src/test`: `ShopReportSystemMetadata`
 proiectează numai configurația Shop în allowlist-ul System, iar

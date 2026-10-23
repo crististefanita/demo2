@@ -65,16 +65,21 @@ Fiecare clasă executabilă declară exact un nivel:
 | `atf.api.testkit.setup.api` | `ApiScenarioSetup`, `ApiTestRef` | declarații; catalogul și executarea rămân la consumator |
 | `atf.api.testkit.documentation` | `DocumentationTarget` repeatable | selecție de documente; validatorii rămân în ATF Tests |
 | `atf.api.testkit.evidence` | `AtfUiEvidence`, `AtfUiEvidenceFlow`, `AtfUiScreenshotPolicy` | declară independent gruparea flow-ului și intenția capturilor; adaptorii consumer le mapează în profilul Reporting |
-| `atf.api.testkit.lifecycle` | `FailureAwareCleanup`, `FailureEvidenceCleanup` | primitive test-only pentru agregarea erorilor, capturarea failure evidence înainte de cleanup/închiderea resursei și close invers; fără API UI/Reporting |
+| `atf.api.testkit.lifecycle` | `FailureAwareCleanup`, `FailureEvidenceCleanup`, `AtfE2eActivationPolicy` | primitive test-only pentru cleanup sigur și decizia neutră de activare E2E; fără API UI/Reporting |
 
-`FailureAwareCleanup` păstrează prima eroare ca primară, atașează eșecurile
-ulterioare ca `suppressed`, încearcă toate etapele declarate și închide
-resursele dobândite în ordine inversă. `FailureEvidenceCleanup` adaugă ordinea
-generică pentru capturi: surprinde eșecul testului înaintea cleanup-ului care
-poate schimba pagina, apoi încearcă cleanup și diagnostic; dacă eroarea apare
-abia acolo, o capturează înainte de close. Ambele primitive sunt folosite numai
-din source set-ul de teste; consumerul păstrează decizia despre resurse și
-callback-urile sale. Contractul generic este probat în `FailureAwareCleanupTest`.
+`FailureAwareCleanup` păstrează prima eroare, atașează erorile ulterioare ca
+`suppressed`, încearcă toate etapele și închide resursele în ordine inversă.
+`FailureEvidenceCleanup` capturează failure evidence înaintea cleanup-ului care
+poate schimba pagina și încearcă apoi cleanup, diagnostic și close. Consumerul
+deține resursele și callback-urile; kit-ul deține numai ordonarea generică.
+Contractele sunt probate de `FailureAwareCleanupTest` și
+`FailureEvidenceCleanupTest`.
+
+`AtfE2eActivationPolicy` aplică aceeași precedență fără să citească YAML, să
+detecteze IDE-ul sau să pornească browserul: override JVM explicit, opt-in deja
+rezolvat de consumer, fallback IDE deja detectat, apoi dezactivare. Extensiile
+Shop și AutoEx păstrează citirea configurației și semnalele runnerului, iar
+guvernanța whole-ATF verifică integrarea lor.
 
 Contractul complet, precedența, exemplele și probele sunt în
 [Adnotări de infrastructură pentru teste](../docs/ATF_Test_Infrastructure_Annotations.md).
@@ -119,8 +124,9 @@ Nu se creează un modul UI nou și nu se mută harness-urile consumerilor ca ata
 | `FailureAwareCleanup`: închiderea inversă a resurselor dobândite și agregarea eșecurilor | implementat în `atf-test-kit`; probat direct și prin adaptoarele Shop/AutoEx, fără API UI/Reporting |
 | Browser, `Page`, Playwright, Extent, capture profile, network inspector și business | adaptorul `src/test` al fiecărui consumer; nu intră în Test Kit |
 | Lifecycle-ul sau extensia JUnit UI | rămân locale până când ambele consumatoare demonstrează același contract; `atf-ui` consumă deja Test Kit în test scope, deci dependența inversă ar crea ciclu |
-| Scope-ul Shop pentru Test Kit | importurile și dependența Maven sunt în `test` scope; verificat de `ShopArchitectureTest` |
-| Clasificare, evidence, activare și instalare | `@AtfE2eTest` și `@AtfTestChannel` clasifică testul; `@AtfUiEvidence` declară forma dovezii; extensia și politica de activare rămân la consumer. Contractul adnotărilor este în [documentația infrastructurii de test](../docs/ATF_Test_Infrastructure_Annotations.md), iar alegerea layer-ului în [ghidul de testare](../docs/ATF_Testing_Guide.md). |
+| Scope-ul Shop pentru Test Kit | importurile și dependența Maven sunt în `test` scope; verificat de `ConsumerModuleArchitectureGovernanceTest` din `atf-tests` |
+| Clasificare, evidence și instalare | `@AtfE2eTest` și `@AtfTestChannel` clasifică testul; `@AtfUiEvidence` declară forma dovezii; extensia și resursele rămân la consumer. Contractul adnotărilor este în [documentația infrastructurii de test](../docs/ATF_Test_Infrastructure_Annotations.md), iar alegerea layer-ului în [ghidul de testare](../docs/ATF_Testing_Guide.md). |
+| Activare E2E | `AtfE2eActivationPolicy` rezolvă semnalele deja colectate de extensia consumerului; nu citește YAML sau proprietăți de sistem și nu pornește browserul |
 
 ## Dependențe
 

@@ -123,6 +123,7 @@ Vocabularul DOM reutilizabil este însă deținut aici, aproape de runtime-ul UI
   `option`, `button`, `a`, `img` și elementele structurale folosite frecvent);
 - `HtmlAttribute` definește atribute HTML/automation stabile și compune selectori
   exacți ori prefixați cu escaping centralizat;
+- `CssStringEscaper` escapează valori dinamice pentru contexte CSS între ghilimele;
 - `CssPseudoClass` compune pseudo-clasele reutilizabile, de exemplu `:checked`;
 - modulele consumatoare păstrează local doar valorile și semantica produsului,
   nu copii ale vocabularului fizic DOM.
@@ -181,7 +182,7 @@ hook-uri stabile, folosește `data-qa`, `id` ori `name`; pentru navigare, un
   acțiuni raportează selectorul efectiv folosit, nu o descriere precum
   `"selected owner"` sau `"collapse node"`.
 
-Compoziția selectorilor și escaping-ul generic sunt verificate de testele
+Compoziția selectorilor și escaping-ul generic (`CssStringEscaper`) sunt verificate de testele
 componente `atf-ui`; testele consumer verifică apoi selectorii față de markup-ul
 aplicației reale.
 

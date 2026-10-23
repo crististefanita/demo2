@@ -241,7 +241,8 @@ Contractele test-only și adnotările sunt în [`atf-test-kit`](../atf-test-kit/
 | un test țintit într-un modul și dependențele sale | `mvn -pl <modul> -am "-Dtest=<ClasaTest>" "-Dsurefire.failIfNoSpecifiedTests=false" test` |
 | suitea whole-ATF | `mvn -pl atf-tests -am "-Dtest=WholeAtfGovernanceSuiteTest" "-Dsurefire.failIfNoSpecifiedTests=false" test` |
 | librăria `atf-reporting` izolată | `mvn -f atf-reporting/pom.xml test` |
-| Practice Shop — teste component selectate | `mvn -pl atf-test-practice-shop -am "-Dtest=PracticeShopArchitectureTest,PracticeShopConfigurationTest,PracticeShopCheckoutConfigurationTest" test` |
+| Practice Shop — contracte selectate | `mvn -pl atf-test-practice-shop -am "-Dtest=ShopConfigurationTest,ShopCheckoutConfigurationTest" "-Dsurefire.failIfNoSpecifiedTests=false" test` |
+| boundary-uri Shop/AutoEx whole-ATF | `mvn -pl atf-tests -am "-Dtest=ConsumerModuleArchitectureGovernanceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test` |
 
 Aceste comenzi descriu selecția, nu autorizează build în checkout-ul cu procese
 active. Pentru staging extern, source sync, execuții E2E și promovare, urmează

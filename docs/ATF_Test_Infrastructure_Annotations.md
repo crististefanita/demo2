@@ -12,6 +12,7 @@ consumatorul deține resursele, execuția și publicarea dovezilor.
 | Canal | `channel.AtfTestChannel`, `TestChannel`, `AtfTestChannelResolver`, `TestChannelPlan` | selecție `UI`, `API` sau `UI_API` și verificarea suportului |
 | Mesaje consolă | `AtfConsoleMessages`, `console.AtfConsoleMessagePolicyResolver` | politică typed `INHERIT`, `DETAILS`, `SUMMARY`, `OFF`; `atf-console` o aplică peste YAML |
 | UI evidence | `evidence.AtfUiEvidence`, `AtfUiEvidenceFlow`, `AtfUiScreenshotPolicy` | declară separat gruparea checkpoint-urilor și intenția capturilor; adaptorul consumer aplică selecția, fără resolver/YAML în Test Kit |
+| Activare E2E | `lifecycle.AtfE2eActivationPolicy` | rezolvă semnalele deja citite de extensie; nu citește YAML, proprietăți JVM sau markerul IDE și nu creează resurse |
 | Calea raportului | `reporting.AtfReportPath`, `AtfReportPathPolicyResolver` | opt-in pentru notificarea căii absolute după publicare; independentă de detaliile consolei |
 | Output UI | `output.UiReportSubdirectory`, `ProjectRelativeUiReportDirectory`, `ReportOutputDirectory` | director relativ la baza UI sau la proiect |
 | Setup API | `setup.api.ApiScenarioSetup`, `ApiTestRef` | metode exacte sau familii definite de consumator |
@@ -266,7 +267,7 @@ generic de meta-adnotări, superclass sau override per metodă.
 |---|---|---|
 | Nivel / tag | `AtfTestLayerArchitectureTest` | clasifică sursele de teste; nu certifică output-ul Extent |
 | Consolă | `AtfConsoleMessagePolicyResolverTest`, `AtfConsoleMessagePolicyTest`, Shop E2E/API și API resource tests | policy, precedență, conflict, override global și consumatori deterministici; concurența/lifecycle dinamic rămâne o probă separată |
-| Canal | `AtfTestChannelResolverTest`, `ShopE2eTestSupportTest`, `ShopApiCallAuditPreflightTest`, `ShopArchitectureTest` | rezolvarea UI/API/UI_API, verificarea suportului și preflight înainte de I/O; contractul canalului este închis. Paritatea raportului și ownership-ul verdictelor aparțin Reporting, nu resolverului |
+| Canal și activare | `AtfTestChannelResolverTest`, `AtfE2eActivationPolicyTest`, `ShopE2eTestSupportTest`, `ShopApiCallAuditPreflightTest`, `ConsumerModuleArchitectureGovernanceTest` | rezolvarea neutră UI/API/UI_API și precedența activării sunt probate separat; extensiile păstrează semnalele consumerului. Paritatea raportului și ownership-ul verdictelor aparțin Reporting, nu resolverului |
 | UI evidence | `AtfUiEvidenceContractTest`, `AutoExEvidenceProfileComponentTest`, `ShopE2eTestSupportTest`, `ShopE2eContextEvidenceProfileTest`, `ReportEvidenceProfileIntegrationTest` | declarația neutră și mapping-ul consumerilor sunt probate; Reporting testează izolarea profilelor între scenarii-surori, iar Shop verifică override-ul față de YAML. Agregarea cross-phase rămâne în feedback-ul Reporting |
 | Calea raportului | `AtfReportPathPolicyResolverTest`, `AtfReportPathOptInTest`, `AtfConsoleTestExtensionIntegrationTest` | absență/opt-in/override, meta-adnotări, conflict și agregare pentru report owner |
 | Output | `ReportOutputDirectoryTest`, `UiReportSubdirectoryTest`, `AtfUiConfigurationLoaderTest` | ancore, inheritance/compoziție, cicluri, conflicte, path-uri invalide și working directory extern; containment-ul este probat prin symlink când e permis și directory junction ca fallback Windows |

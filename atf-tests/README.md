@@ -263,16 +263,19 @@ atf-test-practice-shop/src/
 └── test/resources/atf-practice-shop.yaml
 ```
 
-Nu se adaugă clase Practice Shop în `atf-tests` sau `atf-reporting-tests`. Dacă
-un test verifică rendererul/raportul, aparține reporting composition; dacă
-verifică aplicația externă, aparține modulului Practice Shop.
+`atf-tests` nu deține clase de business, locatoare, flow-uri sau fixture-uri
+Practice Shop/AutoEx. Poate scana sursele consumerilor pentru reguli whole-ATF
+și arhitectură cross-module, fără să importe clasele lor de test. Testele care
+verifică aplicația externă rămân la consumer; cele care verifică modelul și
+randarea generică a raportului rămân în `atf-reporting-tests`.
 
 ## Rulare și staging
 
 ```text
 mvn -pl atf-tests -am "-Dtest=WholeAtfGovernanceSuiteTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 mvn -pl atf-tests -am test
-mvn -pl atf-test-practice-shop -am -Dtest=PracticeShopArchitectureTest,PracticeShopConfigurationTest,PracticeShopCheckoutConfigurationTest test
+mvn -pl atf-test-practice-shop -am "-Dtest=ShopConfigurationTest,ShopCheckoutConfigurationTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -pl atf-tests -am "-Dtest=ConsumerModuleArchitectureGovernanceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 mvn -pl atf-test-practice-shop -am "-Dtest=PurchaseE2eTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 

@@ -102,7 +102,7 @@ Pachetele production au cel mult opt clase și grupează o singură responsabili
 | Pachet | Deține |
 |---|---|
 | `http.request` | forma request-ului: `ApiRequest`, `ApiPathTemplate`, `ApiRoute`, `ApiUrlBuilder`, `HttpMethod`, `HttpHeader`, `MediaTypes` |
-| `http.response` | rezultatul response-ului și politica JSON |
+| `http.response` | rezultatul response-ului, politica JSON și diagnosticul neutru `ApiBodyEvidence` pentru corpuri indisponibile |
 | `http.auth` | autentificarea, tipurile standard și numele normalizate de profil prin `AuthProfiles` |
 | `http.protocol` | URI-uri absolute și profile reutilizabile de headere, fără host-uri de produs |
 | `http.execution` | execuția și rezultatul ei |
