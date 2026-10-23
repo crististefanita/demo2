@@ -428,7 +428,8 @@ class ExtentReportSessionContractTest {
 
         String html = Files.readString(report);
         assertAll(
-                () -> assertTrue(html.contains("FAILURE CAUSE")),
+                () -> assertTrue(html.contains("<td>Failure cause</td>"),
+                        "the actual diagnostic row must exist, not merely a label in bundled JavaScript"),
                 () -> assertTrue(html.contains("token=***REDACTED***")),
                 () -> assertTrue(html.contains("mode=full")),
                 () -> assertFalse(html.contains("raw-failure-token")));

@@ -159,6 +159,7 @@ public final class AtfReportHtmlVocabulary {
         NODE_TITLE("node-title"),
         PHASE("phase"),
         PHASE_DETAILS("phase-details"),
+        PHASE_DIAGNOSTICS("phase-diagnostics"),
         REQUEST("request"),
         REQUEST_DETAILS_CONTENT("request-details-content"),
         REQUEST_EVIDENCE("request-evidence"),

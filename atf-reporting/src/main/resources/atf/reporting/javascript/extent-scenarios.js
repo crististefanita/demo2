@@ -15,6 +15,7 @@ function normalizeScenarioAnnotations() {
   q(
     '.test-contents > .mt-4 > .accordion > .card[data-atf-scenario-id]'
   ).forEach(function (card) {
+    normalizeScenarioDiagnostics(card);
     var header = card.querySelector(':scope > .card-header'),
       title = header && header.querySelector(':scope > .card-title');
     if (!header || !title) return;
@@ -52,4 +53,25 @@ function normalizeScenarioAnnotations() {
         attrs.remove();
       });
   });
+}
+
+// Extent emits scenario logs outside its disclosure panel. Keep only explicit
+// diagnostics, move them into that panel, and remove their vendor log wrapper.
+function normalizeScenarioDiagnostics(card) {
+  var panel = card.querySelector(':scope > .accordion'),
+    body = card.querySelector(':scope > div:not(.card-header):not(.accordion)');
+  if (!panel || !body) return;
+  var diagnostics = q('details.phase-diagnostics', body),
+    before = panel.firstChild;
+  diagnostics.forEach(function (diagnostic) {
+    var row = diagnostic.closest('tr.event-row');
+    panel.insertBefore(diagnostic, before);
+    if (row && !row.querySelector('details.phase-diagnostics')) row.remove();
+  });
+  if (!diagnostics.length) return;
+  q('table.table', body).forEach(function (table) {
+    if (!table.querySelector('tbody > tr')) table.remove();
+  });
+  if (!String(body.textContent || '').trim() && !body.querySelector('img,details,table'))
+    body.remove();
 }

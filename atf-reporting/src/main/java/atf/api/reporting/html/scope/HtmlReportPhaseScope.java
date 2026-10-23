@@ -39,6 +39,7 @@ public final class HtmlReportPhaseScope implements AtfReportPorts.Phase {
 
     @Override
     public void detail(String name, String value) {
+        ensureOpen();
         model.addDetail(name, value);
         semantic.detail(name);
     }

@@ -68,7 +68,8 @@ class ShopApiCallAuditReportComponentTest {
         assertTrue(html.contains("POST /users/login"));
         assertTrue(html.contains("valid login — OK (200)"));
         assertTrue(html.contains("HTTP status: valid login — OK (200)"));
-        assertTrue(html.contains("1 actual exchange captured; 1 typed HTTP contracts attached"));
+        assertFalse(html.contains("1 actual exchange captured; 1 typed HTTP contracts attached"));
+        assertFalse(html.contains("<details class=\"step-detail phase-details\""));
     }
 
     @Test
@@ -123,7 +124,7 @@ class ShopApiCallAuditReportComponentTest {
                 assertEquals(List.of("HTTP status"), secondRequest.validations().getFirst().assertionNames());
             }
             String html = Files.readString(output);
-            assertEquals(1, occurrences(html,
+            assertEquals(0, occurrences(html,
                     "2 actual exchanges captured; 2 typed HTTP contracts attached"));
             assertFalse(html.contains("JUnit method outcome"));
             assertFalse(html.contains("API exchanges captured"));
@@ -208,7 +209,8 @@ class ShopApiCallAuditReportComponentTest {
         }
 
         var html = Files.readString(output);
-        assertTrue(html.contains("0 actual exchanges captured; 0 typed HTTP contracts attached"));
+        assertFalse(html.contains("0 actual exchanges captured; 0 typed HTTP contracts attached"));
+        assertFalse(html.contains("<details class=\"step-detail phase-details\""));
     }
 
     @Test
@@ -231,6 +233,31 @@ class ShopApiCallAuditReportComponentTest {
 
         var html = Files.readString(output);
         assertTrue(html.contains("AssertionError: observed status mismatch"));
+        assertTrue(html.contains("<details class=\"step-detail phase-diagnostics\""));
+        assertFalse(html.contains("<details class=\"step-detail phase-details\""));
+    }
+
+    @Test
+    void unconsumedAssociationIsDiagnosedWithoutInventingAnExchangeOrChangingJUnitVerdict() throws Exception {
+        var output = Files.createTempDirectory("shop-api-audit-association-").resolve("audit.html");
+        try (var report = new ExtentReportSession(output)) {
+            var scenario = report.startScenario("ShopApiClientContractTest", "api.reporting",
+                    "missing contract association", List.of("api", "component"));
+            var phase = scenario.startPhase(TEST_BODY);
+            ShopApiCallAuditTestSupport.publishAuditDetails(phase, null, 0, 0,
+                    List.of("expected login contract; token=unpublished-secret"));
+            phase.complete(AtfReportStatus.PASS);
+            scenario.complete(AtfReportStatus.PASS);
+            var snapshot = report.semanticSnapshot();
+            assertEquals(AtfReportStatus.PASS, snapshot.classes().getFirst().scenarios().getFirst().status());
+            assertEquals(0, snapshot.requestCount());
+            assertEquals(0, snapshot.validationCount());
+        }
+        String html = Files.readString(output);
+        assertTrue(html.contains("<details class=\"step-detail phase-diagnostics\""));
+        assertTrue(html.contains("expected login contract; token=***REDACTED***"));
+        assertFalse(html.contains("unpublished-secret"));
+        assertFalse(html.contains("<details class=\"step-detail phase-details\""));
     }
 
     private static int occurrences(String value, String token) {

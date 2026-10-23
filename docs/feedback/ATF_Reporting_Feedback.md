@@ -12,6 +12,7 @@ Contractele deja promovate au următorii owneri:
 | `TECHNICAL TRACE`, viewport comun și paritate Extent/fallback | [README ATF Reporting](../../atf-reporting/README.md) |
 | Matricea probelor de componentă și browser | [README Reporting Tests](../../atf-reporting-tests/README.md) |
 | Checkpoint UI fără request HTTP sintetic; context păstrat intern | [README ATF Reporting](../../atf-reporting/README.md), [Contractul de raportare](../ATF_Reporting_Contract.md) |
+| Schema auth: profil, mecanism și redactare | [Schema auth a dovezilor API](../ATF_Reporting_Contract.md#schema-auth-a-dovezilor-api) |
 
 Fișierul păstrează ținta existentă `@DocumentationTarget`; cerințele de mai jos
 sunt corelate cu sursele live și cu interacțiunile din rapoarte randate.
@@ -27,8 +28,9 @@ sunt corelate cu sursele live și cu interacțiunile din rapoarte randate.
 | P1 — API-06 | Aserțiuni și verdicte atribuite canalului și exchange-ului corect | Reporting și contractul checkpoint-ului | UI PASS/API FAIL și invers, fără contaminarea fraților |
 | P1 — API-07 | Metoda și timpul reflectă captura | Adaptor captură și Reporting | `QUERY` păstrat; măsurat, necapturat și timp de publicare distincte |
 | P1 — API-04 | Intenție lizibilă și publicare cauzală fără dubluri | Shop la intrare; Reporting la randare | Apeluri distincte, retry și republicare diferențiate |
-| P2 — API-05 | Completitudinea auditului are o zonă secundară coerentă | Reporting și adaptor audit API | Metadate colapsate, fără tabel brut introductiv |
+| P1 — API-05 | Fără bandă de audit proprie fazei API | Reporting și adaptor audit API | Fără `Audit details` sau wrapper gol; exchange-uri și diagnostic real păstrate |
 | P1 — gate comun | Teste de componentă care resping abaterile | `atf-reporting-tests` | Matrice pozitivă și probe negative explicite |
+| P1 — GOV-API-01 | Guvernanță pentru aceeași structură API, fără excepții per consumer | `atf-tests` și `atf-reporting-tests` | Boundary comun, matrice executată și fixture-uri neconforme respinse |
 | P2 — documentație | Eliminarea contradicțiilor contract/cod | Responsabilii README-urilor | Un contract actual, promovat după implementare |
 
 ### Progres verificat în implementarea curentă
@@ -38,20 +40,19 @@ sunt corelate cu sursele live și cu interacțiunile din rapoarte randate.
 | API-01 | Runtime-ul schimbă starea tuturor panourilor directe ale nodului; componenta browser verifică `.collapse` + `.accordion`, mouse, Enter, Space, ARIA și vizibilitatea calculată. | Aceeași probă pentru Gherkin cu API imbricat, normalizare repetată și frați. |
 | API-02 | Rolurile fază/request/validation provin din ierarhia de noduri, nu din titlu; componenta browser folosește un titlu de validare personalizat. Excepția de prezentare pe textul `Contract validation` a fost înlocuită cu prezența dovezilor UI. | Matricea de titluri/metode și aggregate-ul de rețea în browser, inclusiv copie selectată și Fails. |
 | API-03 | Aliasurile `manual.replay`, `transport.provenance` și `auth.profile` rămân în request și primesc etichete distincte; testul de formatter le apără. | Paritatea completă direct/Shop/UI+API, corp absent versus JSON `null`, provenance și replay. |
-| API-05 | Detaliile fazei sunt un disclosure secundar în Extent și fallback; fallback-ul are test de conținut și redacție, iar browserul verifică disclosure-ul de fază colapsat. | Auditul complet cu/fără exchange-uri și ordinea vizuală în toate proiecțiile. |
-| API-08 — închis | Request metadata și retry history folosesc `atf-api-table-wrap` în Extent și fallback. `ExtentReportDisclosureBrowserComponentTest` verifică tabele lungi și ultimul rând la viewport standard/`760px`; `ReportApiViewportParityComponentTest` verifică tabele scurte în Extent și scurte/lungi în fallback, scroll local, antet sticky și lipsa overflow-ului documentului la ambele lățimi. Ambele artefacte au fost deschise în browser; fallback-ul a fost inspectat și vizual în MCP. | Niciun criteriu API-08 rămas; schimbările viitoare de CSS/markup trebuie să treacă aceleași probe. |
+| API-05 | Ultima versiune verificată publica `Audit details` la fază. În codul live există acum un increment în lucru pentru diagnosticul scenariului și probe browser Extent/fallback; nu este încă atestat aici. | Fără bandă sau wrapper gol, cu diagnosticul real păstrat și probele noi executate; vechea rulare verde nu certifică acest increment. |
 | Gate comun | Verificarea statică cere elemente reale în `<body>`; eliminarea disclosure-urilor cu CSS păstrat este caz negativ. | Fixture reală negativă pentru cascade CSS și toate combinațiile de verdict. |
+| GOV-API-01 | Există guard-uri de ownership și probe de artifact; unele verificări caută doar tokenuri globale în HTML. | Gate structural per nod, cu probe negative, și verificarea executării aceleiași matrice pentru intrările API. |
 
 API-04, API-06 și API-07 rămân deschise; nu s-a schimbat încă semantica
 publicării cauzale, ownership-ul verdictelor ori fidelitatea snapshot-ului Shop.
 Testele de șiruri rămân doar guard-uri auxiliare; probele de browser și
 artefactele generate decid închiderea.
 
-**Corecție de vocabular verificată:** `AtfReportLabels` produce singularul
-pentru `1 field/check/attempt/entry`, inclusiv `Audit details · 1 field`.
-Testele de etichete, renderer Extent/fallback și componenta browser au trecut;
-raportul nou publicat a fost inspectat și în MCP. Nici această corecție, nici
-viewport-ul îngust nu închid celelalte cerințe din matrice.
+Viewportul API-08 și cardinalitatea etichetelor sunt promovate în
+[contractul de raportare](../ATF_Reporting_Contract.md#dovezile-unei-cereri) și
+[matricea responsive](../../atf-reporting-tests/README.md#verificarea-randării-responsive).
+Nu mai sunt lucrări restante și nu închid celelalte cerințe din matrice.
 
 ### PUB-01 — bugetul de memorie al publicării
 
@@ -67,8 +68,8 @@ viewport-ul îngust nu închid celelalte cerințe din matrice.
 - **Probă măsurată:** `LargeReportPublicationComponentTest` pornește un JVM
   separat cu `-Xmx384m`, generează 1.500 linkuri PNG inline cu două imagini
   distincte/repetate și text Unicode; artifactul final depășește 9 MB,
-  păstrează ambele ancore, markerul final, tema și runtime-ul. Vârful heap
-  observat în proba locală a fost de circa 264 MB, cu exit code 0 și fără E2E live.
+  păstrează ambele ancore, markerul final, tema și runtime-ul. Proba raportează
+  vârful heap și cere exit code 0, fără E2E live; măsurătoarea unui run nu devine buget universal.
 - **Rămâne de făcut:** praguri reprezentative pentru volume mai mari și PNG-uri
   mari/distincte, plus buget de durată calibrat; această fixture demonstrează
   doar profilul explicit de 384 MiB, nu scalarea generală a pipeline-ului.
@@ -77,90 +78,33 @@ viewport-ul îngust nu închid celelalte cerințe din matrice.
   Optimizează copiile HTML numai după măsurare; nu trata creșterea heap-ului
   ca dovadă de închidere a acestei cerințe.
 
-## Constatări și comportamente de păstrat
+## Paritatea API — diferențele încă de demonstrat
 
-Comparația a inclus raportul-model API din Reporting Tests, standalone-ul Shop,
-auditul și ierarhia UI+API în browser. Constatările sunt corelate cu sursele
-live; reproducerea nu depinde de fișierul generat sau de ora unei rulări.
-Lista de mai jos consemnează diagnosticul care a deschis cerințele, nu afirmă
-că fiecare defect se reproduce încă în codul curent; starea implementării este
-în tabelul „Progres verificat” și în probele indicate acolo.
+Reperul rămâne `ApiAcceptancePublisher`, cu `ApiJsonEvidence`,
+`ApiManualReplay` și contractul evaluat prin `ResponseContractReporter`.
+Paritatea compară aceeași fixture și același profil, nu un număr fix de câmpuri.
 
-- **Defect comun confirmat:** request-ul poate avea `aria-expanded=false` și
-  glyph `＋`, cu propriul `.collapse` ascuns, dar `.accordion` vizibil;
-  `Contract validation` și tabelul său rămân pe ecran după închiderea părintelui.
-- **Același defect în UI+API:** închiderea propoziției Gherkin lasă vizibile
-  `API validation` și exchange-ul deschis din interior.
-- **Audit:** `Audit details` și un tabel `TECHNICAL TRACE` apar direct în
-  `TEST BODY`, înaintea exchange-urilor; standalone-ul nu are acest bloc.
-- **Corp absent:** auditul omite `REQUEST JSON` pentru GET fără corp și ambele
-  canale JSON pentru DELETE cu răspuns fără conținut; biblioteca oferă deja
-  reprezentarea explicită `null`.
-- **Cauzalitate:** același eveniment de înregistrare, cu aceeași identitate și
-  secvență în același scenariu, apare și sub înregistrare, și sub login.
-- **Responsabilitate:** checkpoint-ul de produs pune verificările de query,
-  răspuns JSON, headers și trace API în `UI validation`; grupul `API validation`
-  are exchange-uri, dar nu primește aceste aserțiuni.
-- **Transport:** captura expune `observed method=QUERY`, iar proiecția UI
-  publică `GET` și generează replay cu `GET`; echivalența nu este demonstrată.
-- **Timp:** mapperul UI introduce `Duration.ZERO` pentru response, total și
-  attempt; tabelul afișează astfel `0 ms` fără o măsurătoare păstrată.
-- **Accesibilitate:** în model, Enter nu deschide scenariul/faza cu
-  `role=button`; deschiderea unui disclosure canonic păstrează ARIA la `false`.
-- **De păstrat:** cele trei disclosure-uri au deja geometria compactă comună
-  și ordinea request → response → execution; antetele API comparate păstrează
-  fontul, culoarea și geometria la viewport standard și îngust.
-- **Închis în continuare:** viewportul comun al tabelelor, wrapperul
-  `atf-trace-table-wrap`, headerul sticky și separarea JSON/tabel au
-  implementare și probe dedicate; nu sunt redeschise prin acest review.
+| Domeniu | Lacună rămasă | Criteriu |
+|---|---|---|
+| Request / execution | Publisherii compun separat provenance, replay și contextul capturii | Același domeniu semantic în direct, audit și UI+API |
+| Response | Statusul și denumirea content-type diferă între intrări | Aceeași schemă, fără a confunda response-ul cu validarea lui |
+| Body absent / indisponibil | Auditul omite unele canale JSON; publicarea UI este condiționată | Absență confirmată → `null`; necapturat → explicație distinctă |
+| Verdict și aserțiuni | Checkpoint-ul mixt nu păstrează ownerul fiecărui contract | API-06: rezultate locale, apoi agregare |
+| Identitate și timp | Apeluri republicate și durate browser construite cu zero | API-04/07: captură fidelă și cauzalitate |
 
-Raportul-model este reper vizual, nu excepție de la contract: dacă același
-defect există și în model, el trebuie corectat în componenta comună.
-
-## Modelul API — ce preluăm și unde diferă proiecțiile
-
-Scenariile modelului sunt publicate prin `ApiAcceptancePublisher`, folosesc
-`ApiJsonEvidence`/`ApiManualReplay` și un contract evaluat prin
-`ResponseContractReporter`; aceste convenții sunt reperul pentru exchange.
-
-<details>
-<summary>Comparația domeniilor de date, nu a unor numere fixe de câmpuri</summary>
-
-| Aspect | Model Reporting Tests | Shop standalone / audit | API din UI+API | Criteriu comun |
-|---|---|---|---|---|
-| Provenance | În request | `transport.provenance` ajunge în response | În request | Același domeniu semantic, indiferent de aliasul cheii |
-| Replay | În request; mock explicat ca neexecutabil | Lipsește | Există, dar `manual.replay` ajunge în response | Același câmp în request, fidel transportului |
-| Status HTTP | Explicit în response | Lipsește din response în standalone; apare în audit | Explicit în response | Status vizibil în același loc; contractul separat |
-| Content type | `CONTENT-TYPE` | `CONTENT TYPE` | `CONTENT TYPE` | Un singur label canonic |
-| Auth | `AUTH PROFILE` și `AUTH TYPE` | Aceeași schemă, inclusiv audit | Aceeași schemă; fără profil inventat | Profilul și mecanismul rămân distincte după redactare |
-| Corp request absent | `REQUEST JSON` cu `null` | Canalul este omis | Publicare condiționată de corp nevid | Absența confirmată rămâne dovadă explicită |
-| Context operație/captură | Exchange cu metadatele relevante | Operation/route/capture amestecate în response | `TRACE EXCHANGE` în request; corelare în execution | Contextul și răspunsul HTTP au domenii distincte |
-| Contract | Decizie și expected/actual explicite | Standalone are 2xx/JSON; auditul folosește contractul asociat | Aserțiuni API în UI; starea exchange-ului este preluată din grup | Același format, reguli furnizate de owner |
-| Încercări | Istoric disponibil în execution | Istoricul direct este păstrat | Modelul le suportă; adaptorul browser publică o încercare | Nu se inventează retry din două apeluri asemănătoare |
-| Geometrie de bază | Antet și disclosures compacte | Aceleași tokenuri | Aceeași familie de componente, sub grupul API | Se păstrează layout-ul comun deja funcțional |
-
-</details>
-
-- `manual.replay` nu este recunoscut de `isRequestDetail`, deși varianta
-  `Manual replay` este recunoscută; `transport.provenance` are aceeași problemă
-  față de `Transport`. Clasificarea prin restul câmpurilor drept response
-  ascunde această nepotrivire dintre publisher și formatter.
-- Paritatea se compară pe identități semantice, ordine, valori și stare; un
-  response cu mai multe headers poate avea legitim mai multe rânduri.
-- Se compară profiluri echivalente: mock/live, contract furnizat/observație și
-  corp absent/corp indisponibil sunt diferențe legitime, explicate în raport.
-- Fontul comun nu compensează un câmp pus în domeniul greșit, un verdict
-  împrumutat sau informații omise.
+Schema auth comună, aliasurile formatterului și geometria existentă nu mai
+sunt ToDo-uri. Contractele și probele lor sunt la ownerii oficiali indicați
+mai sus; profilele mock/live sau observație/contract rămân diferențe legitime.
 
 ## API-01 — închiderea atomică a subarborelui
 
 Reproducere: deschide scenariul, faza, request-ul și validarea; închide apoi
 request-ul, fără să închizi manual validarea.
 
-- `nodePanel(card)` alege primul `.collapse`, înaintea `.accordion`; un request
-  cu ambele suprafețe controlează astfel numai dovezile proprii.
-- `setDisclosureState` actualizează antetul pentru un singur panel; starea
-  declarată și vizibilitatea copiilor se pot contrazice.
+- `nodePanels` și `setDisclosureState` controlează deja ambele corpuri directe;
+  proba browser request → validation acoperă mouse, Enter și Space.
+- Rămâne matricea checkpoint UI+API, frați și normalizare repetată, inclusiv
+  copia selectată și navigarea din Fails.
 - Toate suprafețele nodului trebuie controlate împreună, printr-un container
   comun sau printr-o politică explicită pentru toate corpurile sale.
 - Închis înseamnă că niciun descendent nu este vizibil sau accesibil prin Tab;
@@ -179,8 +123,9 @@ request cu dovezi + copii, nod numai cu copii și validare cu exchange-uri.
 
 ## API-02 — rol semantic explicit, independent de titlu
 
-`assignNodeRoles` clasifică nodurile prin regex-uri pentru titlu; normalizarea
-aserțiunilor are și o excepție literală pentru `Contract validation`.
+Rolurile provin deja din structură, iar excepția literală pentru
+`Contract validation` a fost eliminată. Rămâne verificarea pe toate proiecțiile,
+cu metode și titluri variate, inclusiv aggregate-ul de rețea și Fails.
 
 - Nodurile create prin porturile request/validation își păstrează rolul tipizat
   până în DOM; titlul rămâne conținut pentru cititor.
@@ -256,22 +201,73 @@ respingerea și invalidarea sesiunii.
 **Închidere:** componente pentru două intenții pe același endpoint, retry într-un
 exchange și register → login fără republicarea înregistrării.
 
-## API-05 — completitudinea auditului este secundară
+## API-05 — fără bandă de audit în faza API
 
-Completitudinea este deja publicată o singură dată la nivel de fază; problema
-rămasă este randarea ca rând de text urmat de tabel tehnic brut.
+Increment în lucru: `Phase.detail` rămâne context intern, fără proiecție de
+log în fază. Diagnosticele explicite de execuție/asociere au un model comun,
+redactat și publicat la scenariu, apoi în Fails; nu devin exchange-uri sau
+aserțiuni business. Probele păstrează metadatele semantice și verifică separat
+zero/mai multe exchange-uri, eșecul JUnit și lipsa unei asocieri de contract.
+Compatibilitatea pentru cheile de diagnostic existente este delimitată în
+model, nu dedusă din titlul scenariului ori din consumer.
+Regresia a fost demonstrată în ambele renderere înaintea schimbării. Scope-ul
+de teste folosește baseline-ul de review înregistrat mai jos, explicit prin
+`atf.governance.testChanges.baseRef`; HEAD-ul live a avansat între timp.
+Proba de redacție verifică acum celula reală `Failure cause`, nu un token
+global care poate exista numai în JavaScript.
+Inspecția MCP a descoperit separat că Extent emite logul scenariului în afara
+panoului colapsabil. Normalizarea dedicată mută numai diagnosticul explicit
+în panoul scenariului, elimină wrapper-ul vendor și este idempotentă; proba
+browser cere și absența scurgerii sub un scenariu închis.
 
-- Rezumatul rămâne într-o zonă secundară, colapsată, cu aceeași componentă de
-  disclosure; detaliile se deschid numai la cerere.
-- Numărul de exchange-uri, asocierea contractelor și eșecul JUnit sunt metadate
-  de audit/scenariu, fără pas HTTP sau contract business inventat.
-- Zero exchange-uri se explică fără request fictiv.
-- Nu se reintroduc `Test method outcome`, `Runtime diagnostic` sau alte noduri
-  care dublează verdictul ori schimbă arborele numai pentru acest consumer.
-- Faza cu și fără metadate proprii păstrează aceeași expandare a exchange-urilor.
+Cerința directă înlocuiește soluția anterioară cu disclosure secundar:
+`Status / Details → Info → Audit details` nu trebuie publicat în faza API,
+nici colapsat, nici ascuns cu CSS. Faza organizează pașii reali și păstrează
+formatul standalone; nu introduce un jurnal propriu înaintea exchange-urilor.
 
-**Închidere:** primul nivel pune în față pașii relevanți; metadatele folosesc
-zona lor secundară și păstrează verdictul real.
+<details>
+<summary>Diagnosticul din cod și testele care protejează încă forma nedorită</summary>
+
+| Sursă live | Constatare | Consecință |
+|---|---|---|
+| [Fixture-ul disclosure](../../atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/inspection/disclosure/ExtentReportDisclosureProbe.java) | Adaugă `phase.detail` și cere un disclosure `PHASE_DETAILS` colapsat | Banda provine și din Reporting Tests, nu doar din Shop |
+| [Scope-ul Extent](../../atf-reporting/src/main/java/atf/api/reporting/extent/ExtentPhaseScope.java) | `complete` trimite detaliile fazei către renderer | Publicarea este explicită, nu un artefact de culoare sau spațiere |
+| [Rendererul transport](../../atf-reporting/src/main/java/atf/api/reporting/evidence/ExtentTransportEvidenceRenderer.java) | `renderDetails` emite `node.info` cu `Audit details` | Extent construiește tabelul de log și badge-ul `Info` |
+| [Proiecția fallback](../../atf-reporting/src/main/java/atf/api/reporting/html/HtmlReportTestsView.java) | `renderPhaseDetails` precedă copiii fazei | Același contract trebuie decis explicit și pentru fallback |
+| [Adaptorul de audit Shop](../../atf-test-practice-shop/src/test/java/atf/ui/tests/practiceshop/api/reporting/ShopApiCallAuditTestSupport.java) | Folosește același canal pentru completitudine, asociere și eșec JUnit | Eliminarea necondiționată poate pierde cauza reală a unui eșec |
+| [Paritatea semantică](../../atf-reporting-tests/src/test/java/atf/api/reporting/semantic/AtfReportSemanticSnapshotTest.java), [testul fallback](../../atf-reporting-tests/src/test/java/atf/api/reporting/html/HtmlReportViewsTest.java) | Cer prezența blocului; snapshot-ul comun reține numele detaliilor, nu valorile lor | Egalitatea snapshot-urilor nu dovedește păstrarea mesajului de eșec |
+
+- Sursa HTML confirmă banda la nivel de fază în fixture-ul disclosure;
+  standalone-ul de referință nu o conține.
+- Fixture-ul disclosure testează interacțiuni și nu publică toate datele
+  response; nu poate înlocui fixture-ul complet pentru paritatea API.
+- Numărarea globală a textelor poate include template-uri și copii de
+  navigare; absența și cardinalitatea se verifică pe ownerul și nodul corect.
+- Inspecția HTML și captura explică structura; verificarea interactivă a
+  variantei implementate rămâne obligatorie pentru închidere.
+
+</details>
+
+- Nu se emite banda și nu rămân tabelul gol `Status / Details`, rândul `Info`,
+  containerul gol sau spațiul rezervat ei după normalizarea runtime-ului.
+- Nu se rezolvă prin redenumire, `display:none`, mutarea după exchange-uri
+  ori o excepție pentru titlul testului sau numele consumerului.
+- Se păstrează subarborele API-03: Request → Response → Execution și validarea
+  contractului real. Tabelele `Status / Details` ale dovezilor legitime ale
+  request-ului sau validării nu sunt ținta eliminării.
+- Completitudinea capturii rămâne informație de audit internă; nu este răspuns
+  HTTP, contract business, configurație `System/Environment` sau pas nou.
+- Un eșec JUnit ori o asociere de contract lipsă păstrează verdictul real și
+  diagnosticul redactat în zona dedicată erorii/scenariului, accesibilă din
+  Fails; nu se șterge cauza odată cu rezumatul de completitudine.
+- Zero exchange-uri nu inventează HTTP, validare sau PASS contractual;
+  pierderea capturii rămâne explicabilă fără banda introductivă.
+- Aceleași reguli se aplică Extent și fallback; `SETUP` cu precondiții reale,
+  `Setup evidence` și inspectorul agregat nu se elimină incidental.
+
+**Închidere:** componente cu/fără metadate, zero/mai multe exchange-uri și eșec
+JUnit păstrează dovezile și diagnosticul, fără banda fazei în HTML și în
+randare. Testele care cereau banda sunt revizuite explicit, nu doar șterse.
 
 ## API-06 — aserțiuni și verdict local, înainte de agregare
 
@@ -317,31 +313,8 @@ de schema auth comună și nu mai reprezintă un ToDo.
 - Datele exacte, când există, se păstrează în toate intrările API și în adaptorul
   legacy/core; redacția protejează secretele fără a schimba metoda sau corelarea.
 
-**Închidere:** fixture cu metodă `QUERY`, profil diferit de mecanism, durate
-response/total distincte și durată necunoscută verifică inclusiv replay-ul.
-
-## API-08 — închis: viewport pentru metadate request / istoricul încercărilor
-
-Proba inițială de densitate pe DOM-ul randat arăta tabele request metadata și
-retry history mai înalte decât plafonul comun, fără scroll local sau header
-sticky. Acest defect este rezolvat prin `atf-api-table-wrap` comun.
-
-- Și aceste tabele folosesc `--atf-table-scroll-height`, raportat la
-  System/Environment; conținutul scurt rămâne la înălțime naturală.
-- Headerul și ultimul rând rămân accesibile în scroll local; nu se limitează
-  întregul disclosure și nu se ascunde coada tabelului prin `overflow:hidden`.
-- JSON-ul rămâne în afara viewport-ului metadatelor; execution summary,
-  attempt history și trace își păstrează responsabilitățile și ordinea.
-- Probele browser generează artefacte complete cu date scurte/lungi; clonarea
-  de rânduri în DOM nu este folosită drept dovadă.
-- Suprafețele lipsă sunt verificate de `ExtentReportDisclosureBrowserComponentTest`
-  și `ReportApiViewportParityComponentTest`; nu se suprascrie rolul probei
-  existente pentru celelalte opt suprafețe.
-
-**Dovada închiderii:** date scurte/lungi, viewport standard/`760px`, plafon
-comun, header sticky, ultimul rând accesibil și lipsa overflow-ului orizontal
-pentru ambele suprafețe API, în Extent și fallback. Testele browser au trecut,
-iar artefactele randate au fost inspectate prin MCP.
+**Închidere:** fixture cu metodă `QUERY`, durate response/total distincte și
+durată necunoscută verifică inclusiv replay-ul. Schema auth este verificată separat.
 
 ## Gate de componentă — comportament, nu prezența unor șiruri
 
@@ -349,14 +322,16 @@ Testele existente apără contracte utile, dar nu demonstrează uniformitatea
 completă: verificarea textului unui script sau expandarea tuturor nodurilor
 poate trece când un copil rămâne vizibil sub un părinte închis.
 
-**Probă negativă inițială, remediată în incrementul curent:** eliminarea celor
-trei disclosure-uri API dintr-o copie în memorie a raportului-model lăsa
-`ReportEvidenceStyleContract` cu `compliant=true`, deoarece clasele erau găsite
-în CSS/JavaScript. Contractul cere acum noduri reale în `<body>`, iar testele
-negative elimină disclosure-urile păstrând stylesheet-ul.
+Contractul static respinge deja disclosure-uri absente din `<body>`, chiar
+dacă stylesheet-ul păstrează selectorii. Dovada statică nu închide matricea
+interactivă sau testele negative pentru cascade CSS și verdicte locale.
 
 <details>
-<summary>Matricea obligatorie și exemplele care trebuie respinse</summary>
+<summary>Matricea de închidere — extinderi și regresii de păstrat</summary>
+
+Cazurile deja acoperite rămân regresii obligatorii la orice refactorizare.
+Lucrările restante sunt cele delimitate în tabelul de progres, nu toate
+rândurile acestei matrice.
 
 | Probă | Contract observabil | Abatere care produce FAIL |
 |---|---|---|
@@ -366,6 +341,8 @@ negative elimină disclosure-urile păstrând stylesheet-ul.
 | Disclosure emis direct de Java | `open`, glyph și ARIA identice după toggle | Vizibil deschis, `aria-expanded=false` |
 | Cicluri repetate și normalizare ulterioară | Stare stabilă, frați nemodificați | Toggle dublu sau copil reapărut |
 | API direct, audit, API din UI+API | Același subarbore și tokenuri | Tabele brute ori altă ordine |
+| Fază API cu și fără metadate de completitudine | Exchange-uri directe, fără bandă proprie fazei | `Audit details`, echivalent redenumit sau wrapper gol |
+| Bandă de audit ascunsă prin CSS ori mutată | Nodul nepermis lipsește structural | Gate verde doar fiindcă banda nu este vizibilă |
 | Titlu personalizat, metodă variată, validare redenumită | Rolul semantic decide prezentarea | Rol pierdut ori schimbat după text |
 | GET fără corp, 204, dovadă indisponibilă | Absența și lipsa capturii sunt distincte | Canal omis ori `null` inventat |
 | Succes, negativ așteptat, contract eșuat | Expected/actual și verdict corecte | Status sau aserțiuni falsificate |
@@ -401,54 +378,69 @@ negative elimină disclosure-urile păstrând stylesheet-ul.
 - Review-ul documentează aceste cerințe; implementarea și modificarea testelor
   de guvernanță aparțin incrementului ulterior.
 
-<details>
-<summary>Ce apără probele existente și ce componentă trebuie să completeze dovada</summary>
+## GOV-API-01 — guvernanță mai puternică pentru formatul API
 
-| Probă existentă | Limită verificată în cod | Completare necesară |
+Un singur contract de prezentare trebuie să guverneze modelul Reporting Tests,
+standalone-ul Shop, auditul și API din UI+API. Aceeași intrare semantică produce
+același subarbore API; diferă numai părintele legitim și datele disponibile.
+
+<details>
+<summary>Gate-uri cerute, responsabilitate și probe negative obligatorii</summary>
+
+- [Contractele de artifact](../../atf-reporting/src/main/java/atf/api/reporting/artifact/contract/ReportArtifactEvidenceContracts.java)
+  verifică în principal tokenuri prin `html.contains`; prezența lor nu exclude
+  banda fazei și nu stabilește părintele unui disclosure.
+- [Guvernanța ownership-ului](../../atf-tests/src/test/java/atf/api/tests/governance/ArchitectureOwnershipBoundaryTest.java)
+  protejează separarea modulelor; nu dovedește singură paritatea arborelui API.
+- Probele noi trebuie să completeze aceste limite, nu să redenumească drept
+  „guvernanță de format” verificările de existență deja prezente.
+
+| Gate | Responsabil | Abatere care trebuie respinsă |
 |---|---|---|
-| `ReportEvidenceStyleContractTest` | HTML minim construit din șiruri și drift al unui token | Artefacte reale, zone eliminate și cascade CSS diferite |
-| `ReportEvidenceStyleContract` | Caută clase în întregul fișier și prima valoare a tokenului | Noduri efective, domenii semantice și computed style |
-| `ReportRendererParityTest` | Verifică tokenuri în Fails și Categories | Contract de date și subarbore API, inclusiv UI+API |
-| `AtfReportMarkupTest` | Vocabular și partiționare cu un subset de chei | Toate aliasurile emise efectiv de publisheri |
-| `ExtentReportUiEvidencePublishingTest` | Nume, număr de exchange-uri și istoric în HTML | Ownership aserțiuni, verdict per exchange și interacțiuni |
-| `ScrollableTableViewportBrowserProbe` | Suprafețele enumerate explicit | Request metadata și retry history scurte/lungi |
-| `ReportingCoverageMatrixTest` | Existența clasei, metodei și adnotării | Dovadă comportamentală și exemple negative pentru seam-ul API |
+| Compoziție generică și dependențe | `atf-tests`: guvernanță de arhitectură | Consumer cu renderer/CSS API paralel sau dependență a Reporting de Shop/teste |
+| Schema per exchange și fază | `atf-reporting-tests`: componente | Bandă de audit a fazei, ordine diferită sau validare la alt owner |
+| Câmpuri și corpuri, pe același profil | `atf-reporting-tests`: fixture neutră parametrizată | Auth/replay în alt domeniu, corp omis sau date inventate |
+| Adaptorul de aplicație | Shop: componente proprii | Date pierdute ori bandă reintrodusă la integrarea publisherului |
+| Stare și stil efectiv | Reporting Tests: browser cu runtime real | Copii vizibili sub părinte închis, ARIA fals ori geometrie diferită |
+| Verdict și diagnostic | Componente Reporting și Shop | Eliminarea benzii pierde eșecul, cauza redactată sau legătura Fails |
+| Participare la suită | Guvernanța suitei și configurației de test | Matrice neexecutată, exclusă, dezactivată ori zero cazuri descoperite |
 
 </details>
 
-<details>
-<summary>Punctele diagnosticului inițial și testele de regresie</summary>
+- Contractul executabil generic aparține `atf-reporting`; fixture-urile și
+  componentele îl consumă în `atf-reporting-tests`. Shop verifică propriul
+  adaptor fără importarea publisherilor săi în testele neutre Reporting.
+- Guard-ul de arhitectură inspectează dependențele și limitele de compoziție,
+  nu impune numele unei clase noi sau un singur apel textual la o metodă.
+- Validatorul structural inspectează nodurile reale și ownership-ul lor;
+  simpla prezență a tokenurilor în CSS/JS nu demonstrează formatul.
+- Aceeași fixture completă traversează porturile publice pentru API direct,
+  audit și UI+API, în Extent și fallback; comparația normalizează doar ID-uri,
+  timestamp-uri și valori volatile, nu ordinea, ownerul sau prezența nodurilor.
+- Se probează separat reintroducerea benzii, ascunderea ei cu CSS, redenumirea,
+  pierderea unui disclosure legitim, mutarea validării și modificarea stilului;
+  fiecare variantă neconformă trebuie respinsă de regula corespunzătoare.
+- Fixture-urile minimale de navigare rămân utile, dar nu certifică schema
+  completă; un profil UI fără API nu primește exchange-uri fictive pentru gate.
+- Nu se fixează numere globale de rânduri sau numele endpointurilor business;
+  se fixează rolurile, ordinea, domeniile, tokenurile și starea de expandare.
+- Revizuirea probelor care cer acum `Audit details` păstrează aserțiunile
+  pentru redacție, snapshot, verdict, tastatură și viewport și adaugă absența
+  benzii; nu înlocuiește verificările stricte prin `contains` permisiv.
+- Nu se relaxează testele de guvernanță existente: schimbarea lor cere
+  feedback direct, scope `testChanges` exact, baseline și probe negative.
+  Această analiză nu schimbă scope-urile executabile și nu implementează teste.
 
-Coloana din dreapta explică motivul deschiderii cerinței; nu înlocuiește
-statusul verificat de mai sus. În special `nodePanel`, clasificarea după titlu
-și false-green-ul contractului static au fost corectate local, dar matricea
-completă de proiecții și interacțiuni rămâne deschisă.
-
-| Punct verificat | Legătură cu cerința |
-|---|---|
-| [Navigare/disclosure](../../atf-reporting/src/main/resources/atf/reporting/javascript/extent-navigation-disclosure.js) — `nodePanel`, `bindNodeCollapse`, `setDisclosureState` | API-01: un singur corp pentru nod cu dovezi și copii |
-| [Roluri](../../atf-reporting/src/main/resources/atf/reporting/javascript/extent-evidence-roles.js) și [normalizare dovezi](../../atf-reporting/src/main/resources/atf/reporting/javascript/extent-evidence-disclosure.js) | API-02: clasificare după titlu și excepție literală |
-| [Publisher Shop API](../../atf-test-practice-shop/src/main/java/atf/ui/practiceshop/support/ShopApiReportPublisher.java) și [publisher UI](../../atf-reporting/src/main/java/atf/api/reporting/ui/UiEvidencePublisher.java) | API-03/04: compoziții separate și titlu generic |
-| [Politica JSON](../../atf-reporting/src/main/java/atf/api/reporting/api/ApiJsonEvidence.java) | API-03: convenția există deja; se aplică uniform |
-| [Setup cont](../../atf-test-practice-shop/src/test/java/atf/ui/tests/practiceshop/support/ShopAuthenticatedAccountTestSupport.java) | API-04: listă acumulată trimisă ambelor checkpoint-uri |
-| [Adaptor audit API](../../atf-test-practice-shop/src/test/java/atf/ui/tests/practiceshop/api/reporting/ShopApiCallAuditTestSupport.java) | API-05: metadate trimise prin `phase.detail` |
-| [Contract runtime](../../atf-reporting-tests/src/test/java/atf/api/reporting/runtime/core/ExtentReportRuntimeScriptTest.java) | API-01: fixează selecția `.collapse`, fără probarea ascunderii copiilor |
-| [Flux audit API](../../atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/api/ApiReportUiFlow.java) și [validator](../../atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/audit/api/ApiReportContractValidation.java) | Gate: expandarea și datele nu probează închiderea atomică |
-| [Publisherul modelului API](../../atf-reporting-tests/src/test/java/atf/api/reporting/api/acceptance/ApiAcceptancePublisher.java) și [generarea fixture-ului](../../atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/api/ApiReportAuditSetup.java) | Reper: provenance/replay în request, JSON explicit și contract evaluat |
-| [Formatter comun](../../atf-reporting/src/main/java/atf/api/reporting/evidence/EvidenceTableFormatter.java) | API-03: aliasuri recunoscute diferit și context care ajunge implicit în response |
-| [Contract checkpoint Shop](../../atf-test-practice-shop/src/main/java/atf/ui/practiceshop/support/ShopPurchaseCheckpoint.java) | API-06: lista de aserțiuni nu păstrează ownerul UI/API |
-| [Mapper Shop](../../atf-test-practice-shop/src/main/java/atf/ui/practiceshop/support/ShopApiEvidenceMapper.java) și [vocabular operații](../../atf-test-practice-shop/src/main/java/atf/ui/practiceshop/api/ShopApiOperation.java) | API-07: metodă normalizată și durate zero; schema auth este acoperită separat |
-| [Contract static de stil](../../atf-reporting/src/main/java/atf/api/reporting/evidence/ReportEvidenceStyleContract.java) și [testul său](../../atf-reporting-tests/src/test/java/atf/api/reporting/evidence/ReportEvidenceStyleContractTest.java) | Gate: false-green după eliminarea zonelor API |
-| [Probe viewport](../../atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/inspection/layout/ScrollableTableViewportBrowserProbe.java) | API-08: request metadata/retry history nu sunt suprafețe măsurate |
-
-</details>
+**Închidere:** fiecare variantă neconformă produce un diagnostic cu regula,
+scenariul și nodul afectat; matricea conformă trece și este descoperită în
+suita obligatorie, fără skip. Contractul se promovează în README-urile ownerilor
+numai după implementare și verificarea randării.
 
 ## Documentație și criteriu de închidere comun
 
-- [Contractul de raportare](../ATF_Reporting_Contract.md) încă descrie prefixul
-  `API n ·` în trace-ul UI; proiecția nouă folosește noduri per exchange, iar
-  formatterul păstrează separat cheile legacy. Documentația trebuie să delimiteze
-  compatibilitatea, fără să o prezinte ca formatul implicit al artefactelor noi.
+- [Contractul de raportare](../ATF_Reporting_Contract.md) delimitează formatul
+  nou per exchange de cheile legacy; fiecare implementare viitoare promovează
+  numai contractul demonstrat, fără a prezenta criteriul restant ca funcționalitate livrată.
 - [README Reporting](../../atf-reporting/README.md) deține compoziția și
   tokenurile; [README Reporting Tests](../../atf-reporting-tests/README.md)
   deține probele; [README Shop](../../atf-test-practice-shop/README.md)
@@ -503,6 +495,10 @@ testChanges:
       - atf-reporting-tests/src/test/java/atf/api/reporting/semantic/AtfReportSemanticSnapshotTest.java
       - atf-reporting-tests/src/test/java/atf/api/reporting/ui/ExtentReportUiEvidenceRenderingTest.java
       - atf-reporting-tests/src/test/java/atf/api/reporting/ui/ExtentReportUiFailureEvidenceTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/diagnostic/ReportPhaseDiagnosticTest.java
+      - atf-reporting-tests/src/test/java/atf/ui/tests/extent/component/inspection/ReportPhaseAuditBrowserComponentTest.java
+      - atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/inspection/diagnostic/ReportPhaseAuditProbe.java
+      - atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/locators/diagnostic/ReportPhaseAuditLocators.java
 ```
 
 ## Scope executabil — publicarea rapoartelor voluminoase

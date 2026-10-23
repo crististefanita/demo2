@@ -5,11 +5,13 @@ import atf.api.reporting.evidence.markup.ReportEvidenceMarkup;
 import atf.api.reporting.markup.AtfReportLabels;
 import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
 import atf.api.reporting.model.ReportExecutionModel;
+import atf.api.reporting.security.SensitiveDataRedactor;
 
 import static atf.api.reporting.html.HtmlReportMarkupSupport.escape;
 
-/** Renders the fallback Fails index from validation assertions only. */
+/** Renders failed contract assertions and explicit execution diagnostics from one projection. */
 public final class HtmlReportFailsView {
+    private final SensitiveDataRedactor redactor = new SensitiveDataRedactor();
     String render(ReportExecutionModel snapshot) {
         var html = new StringBuilder();
         html.append(HtmlReportFallbackViewSupport.sectionStart(
@@ -25,7 +27,7 @@ public final class HtmlReportFailsView {
                     + AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.STRONG,
                     escape(failure.assertionName()))
                     + AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.SPAN,
-                    escape(failure.actual()));
+                    escape(redactor.redactField(failure.assertionName(), failure.actual())));
             html.append(AtfReportHtmlVocabulary.element(AtfReportHtmlVocabulary.Tag.A,
                     content,
                     AtfReportHtmlVocabulary.classAttribute(

@@ -219,9 +219,11 @@ rendererul fallback:
 - filtrarea acestor două chei nu elimină țintele acțiunilor Playwright și nu
   suprimă `Request details`, JSON-ul sau execution evidence ale exchange-urilor
   HTTP din `API validation`;
-- în trace-ul UI, aceleași câmpuri sunt prefixate doar cu `API n ·` pentru
-  corelarea mai multor exchange-uri; prefixul nu schimbă vocabularul și nu
-  autorizează un nivel diferit de detaliu;
+- în artefactele noi, fiecare exchange UI+API are propriul nod și cele trei
+  disclosure-uri canonice, fără prefix `API n ·` repetat în fiecare câmp;
+- formatterul recunoaște în continuare cheile flat legacy `request.api.n.*`
+  și `response.api.n.*`; prefixul `API n ·` este compatibilitate de citire,
+  nu formatul implicit sau un nivel diferit de detaliu;
 - pentru `0..N` exchange-uri, prefixul nu este suficient ca structură: fiecare
   exchange trebuie să păstreze disclosure-ul API canonical
   `Request details` → `Response details` → `Execution evidence`; metadata precum

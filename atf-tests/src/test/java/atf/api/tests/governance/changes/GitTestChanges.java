@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -40,25 +40,34 @@ final class GitTestChanges {
             throw new IllegalStateException("TEST-CHANGE-BASE: invalid resolved commit");
         }
         command(root, "merge-base", "--is-ancestor", base, "HEAD");
-        var changes = new LinkedHashMap<String, Change>();
-        String tracked = command(root, "diff", "--no-ext-diff", "--no-textconv", "--relative",
-                "--name-status", "-z", "--no-renames", base, "--", ".");
-        String[] fields = tracked.split("\u0000", -1);
-        for (int i = 0; i < fields.length - 1; i += 2) {
-            if (i + 1 >= fields.length || fields[i].isEmpty() || fields[i + 1].isEmpty()) {
-                throw new IOException("TEST-CHANGE-GIT: invalid name-status protocol");
-            }
-            changes.put(fields[i + 1], new Change(fields[i], fields[i + 1]));
-        }
+        var changes = new LinkedHashSet<Change>();
+        changes.addAll(trackedChanges(root, base));
+        changes.addAll(trackedChanges(root, base, "--cached"));
         for (String path : command(root, "ls-files", "--others", "--exclude-standard", "-z", "--", ".")
                 .split("\u0000")) {
-            if (!path.isEmpty()) changes.putIfAbsent(path, new Change("A", path));
+            if (!path.isEmpty()) changes.add(new Change("A", path));
         }
         for (String path : command(root, "ls-files", "--others", "--ignored", "--exclude-standard", "-z",
                 "--", "pom.xml", ":(glob)*/pom.xml", ":(glob)*/src/test/**").split("\u0000")) {
-            if (!path.isEmpty()) changes.putIfAbsent(path, new Change("A", path));
+            if (!path.isEmpty()) changes.add(new Change("A", path));
         }
-        return new Snapshot(base, List.copyOf(changes.values()));
+        return new Snapshot(base, List.copyOf(changes));
+    }
+
+    private static List<Change> trackedChanges(Path root, String base, String... options) throws Exception {
+        var args = new ArrayList<>(List.of("diff", "--no-ext-diff", "--no-textconv", "--relative",
+                "--name-status", "-z", "--no-renames"));
+        args.addAll(List.of(options));
+        args.addAll(List.of(base, "--", "."));
+        String[] fields = command(root, args.toArray(String[]::new)).split("\u0000", -1);
+        var changes = new ArrayList<Change>();
+        for (int i = 0; i < fields.length - 1; i += 2) {
+            if (fields[i].isEmpty() || fields[i + 1].isEmpty()) {
+                throw new IOException("TEST-CHANGE-GIT: invalid name-status protocol");
+            }
+            changes.add(new Change(fields[i], fields[i + 1]));
+        }
+        return List.copyOf(changes);
     }
 
     static String command(Path root, String... args) throws Exception {

@@ -164,9 +164,10 @@ public final class ExtentReportDisclosureProbe {
             openIfClosed(scenario, "data-atf-scenario-open");
             Locator phase = LOCATORS.firstPhase(scenario);
             openIfClosed(phase, "data-atf-phase-open");
-            Locator audit = LOCATORS.evidence(phase, PHASE_DETAILS).first();
-            assertTrue(audit.count() > 0, "phase audit metadata must be a secondary disclosure");
-            assertEquals("false", LOCATORS.summary(audit).getAttribute("aria-expanded"));
+            assertEquals(0, LOCATORS.evidence(phase, PHASE_DETAILS).count(),
+                    "internal phase metadata must not publish an audit disclosure");
+            assertEquals(0, LOCATORS.directLogTables(phase).count(),
+                    "removing the audit disclosure must not leave a phase log wrapper");
             Locator request = LOCATORS.requests(phase).first();
             assertTrue(request.count() > 0, "request node must be present in the generated report");
             Locator validation = LOCATORS.validations(request).first();

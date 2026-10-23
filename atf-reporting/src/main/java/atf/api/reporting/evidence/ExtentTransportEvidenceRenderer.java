@@ -11,6 +11,8 @@ import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.evidence.markup.ReportEvidenceMarkup;
 import atf.api.reporting.evidence.markup.ReportEvidenceDisclosure;
 import atf.api.reporting.evidence.markup.ReportEvidenceJsonFormatter;
+import atf.api.reporting.evidence.diagnostic.ReportPhaseDiagnosticMarkup;
+import atf.api.reporting.model.diagnostic.ReportPhaseDiagnostic;
 import atf.api.reporting.model.ReportField;
 import atf.api.reporting.model.ReportJsonBody;
 import atf.api.reporting.model.ReportCheck;
@@ -35,17 +37,10 @@ public final class ExtentTransportEvidenceRenderer {
         this.redactor = redactor;
     }
 
-    void renderDetails(ExtentTest node, List<ReportField> details) {
-        List<ReportField> traceDetails = EvidenceTableFormatter.technicalTraceFields(details);
-        if (traceDetails.isEmpty()) return;
-        String table = AtfReportMarkup.tableHtml(AtfReportHtmlVocabulary.classList(
-                        AtfReportHtmlVocabulary.CssClass.HELM_EVIDENCE_TABLE,
-                        AtfReportHtmlVocabulary.CssClass.HELM_TRACE_TABLE,
-                        AtfReportHtmlVocabulary.CssClass.PHASE_DETAILS),
-                EvidenceTableFormatter.toTable(traceDetails));
-        node.info(ReportEvidenceMarkup.disclosure(
-                AtfReportHtmlVocabulary.CssClass.PHASE_DETAILS.value(),
-                AtfReportLabels.auditDetails(traceDetails.size()), table));
+    void renderPhaseDiagnostics(ExtentTest scenario, String phase, List<ReportField> details) {
+        String markup = ReportPhaseDiagnosticMarkup.render(phase,
+                ReportPhaseDiagnostic.from(phase, details), redactor);
+        if (!markup.isBlank()) scenario.info(markup);
     }
 
     void renderRequestDetails(ExtentTest node, List<ReportField> details,

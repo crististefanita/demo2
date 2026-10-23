@@ -2,6 +2,7 @@ package atf.api.reporting.model.projection;
 
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.model.ReportExecutionModel;
+import atf.api.reporting.model.diagnostic.ReportPhaseDiagnostic;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -47,7 +48,15 @@ final class ReportExecutionProjectionAccumulator {
                 // counted as passed/failed/skipped overview verdicts.
             }
         }
-        scenario.phases().forEach(phase -> collectFailures(scenario, phase.children()));
+        scenario.phases().forEach(phase -> {
+            if (phase.status() == AtfReportStatus.FAIL) {
+                ReportPhaseDiagnostic.from(phase.name(), phase.details()).stream()
+                        .map(diagnostic -> new ReportExecutionModel.Failure(scenario.id(),
+                                diagnostic.kind().label(), diagnostic.message()))
+                        .forEach(failures::add);
+            }
+            collectFailures(scenario, phase.children());
+        });
     }
 
     private void collectFailures(ReportExecutionModel.Scenario scenario,

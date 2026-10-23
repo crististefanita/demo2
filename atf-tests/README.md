@@ -150,7 +150,7 @@ de coeziune și celelalte reguli de arhitectură continuă să i se aplice.
 
 | Control | Regulă |
 |---|---|
-| Scope | toate fișierele din `<modul>/src/test/`, inclusiv suport, resurse și suite; POM-urile modulelor exclusiv de teste |
+| Scope | toate fișierele din `<modul>/src/test/`, inclusiv suport, resurse și suite; `pom.xml` rădăcină și POM-urile modulelor, cu excepția exactă Shop |
 | ToDo | bloc YAML `testChanges`, ID unic, `ACTIVE` sau `VERIFIED`, motiv, comandă Maven de probă, expirare și SHA-ul baseline-ului |
 | Fișiere | căi relative exacte; fără wildcard, traversal sau owneri multipli pentru aceeași schimbare |
 | Ștergere / redenumire | `allowDelete: true` pentru vechea cale; redenumirea este evaluată ca ștergere + adăugare |
@@ -170,9 +170,12 @@ cererea fixează SHA-ul rezolvat, nu un ref mobil.
 
 - Exemplele executabile și scope-ul schimbării curente sunt în
 [ToDo-urile de schimbare a testelor](../docs/feedback/ATF_Test_Changes_Feedback.md).
-După integrare, cererea poate fi eliminată când baseline-ul nu mai include
-schimbarea. Aceste teste validează corespondența diff–ToDo; nu execută comenzile
-din documente și nu substituie aprobarea umană a schimbării unei reguli.
+După integrare, cererea poate fi eliminată numai când baseline-ul verificării
+nu mai include schimbarea, nu doar fiindcă există un commit nou.
+
+- `VERIFIED` este scope verificat, nu ToDo funcțional rămas; poate fi colapsat în registru.
+- Un transfer închide vechiul owner numai după ce succesorul acoperă toate căile încă necesare.
+- Testele validează corespondența diff–ToDo; nu execută comenzile din documente și nu substituie aprobarea umană a unei reguli.
 
 ## Guvernanța detaliilor la consolă
 
@@ -186,8 +189,9 @@ override-ul YAML `false` rămâne suportat.
 Testarea site-ului `https://practicesoftwaretesting.com` este izolată în
 `atf-test-practice-shop`. Acolo sunt YAML-ul, configurația checkout-ului,
 locators, page objects, flow-urile și testele component/E2E. Flow-ul principal
-este guest purchase complet și nu cere un secret; login-ul opțional folosește
-doar un fișier extern injectat explicit.
+guest nu cere un secret. `ShopNewAccountPurchaseE2eTest` creează un cont
+sintetic; `ShopAuthenticatedPurchaseE2eTest` folosește fixture-ul local când
+rulează separat și reutilizează contul nou în `ShopE2eSuite`.
 
 ```text
 atf-test-practice-shop/src/

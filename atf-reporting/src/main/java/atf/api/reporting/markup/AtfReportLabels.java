@@ -25,6 +25,7 @@ public final class AtfReportLabels {
     public static final String REQUEST_DETAILS = "Request details";
     public static final String RESPONSE_DETAILS = "Response details";
     public static final String AUDIT_DETAILS = "Audit details";
+    public static final String EXECUTION_DIAGNOSTICS = "Execution diagnostics";
     public static final String TECHNICAL_TRACE = "TECHNICAL TRACE";
     public static final String REQUEST_JSON = "REQUEST JSON";
     public static final String RESPONSE_JSON = "RESPONSE JSON";

@@ -1,5 +1,9 @@
 function failureCauseChain(item) {
   var causes = [];
+  q('details.phase-diagnostics tbody tr', item).forEach(function (row) {
+    var cells = Array.prototype.slice.call(row.cells || []);
+    if (cells.length > 1) causes.push(text(cells[0], '') + ': ' + text(cells[1], ''));
+  });
   q('.card[data-atf-node-role="phase"]', item).forEach(function (card) {
     if (statusOf(card) !== 'fail') return;
     q('.helm-trace-table tbody tr', card).forEach(function (row) {

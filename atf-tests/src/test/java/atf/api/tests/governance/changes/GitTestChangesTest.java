@@ -10,7 +10,9 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -18,6 +20,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @AtfComponentTest
 public class GitTestChangesTest {
+    private static final String TRACKED_EDIT = "atf-core/src/test/Edited.java";
+    private static final String TRACKED_DELETE = "atf-core/src/test/Deleted.java";
+    private static final String STAGED_ADDITION = "atf-core/src/test/Added.java";
+    private static final String BASELINE_CONTENT = "baseline";
+
     @Test
     void realDiffFailsUntilTheMatchingFeedbackTodoExistsAndCannotReuseAnOldBase(@TempDir Path root)
             throws Exception {
@@ -109,6 +116,77 @@ public class GitTestChangesTest {
         assertThrows(IOException.class, () -> GitTestChanges.read(root, "HEAD"));
         GitTestChanges.command(root, "init", "--quiet");
         assertThrows(IOException.class, () -> GitTestChanges.read(root, "no-such-ref"));
+    }
+
+    @Test
+    void stagedChangesRemainVisibleWhenWorkingTreeHidesThem(@TempDir Path root) throws Exception {
+        String base = createBaseline(root);
+        Path edited = root.resolve(TRACKED_EDIT);
+        Path deleted = root.resolve(TRACKED_DELETE);
+        Path added = root.resolve(STAGED_ADDITION);
+        Files.writeString(edited, "staged edit");
+        Files.delete(deleted);
+        Files.writeString(added, "staged addition");
+        GitTestChanges.command(root, "add", "--all");
+
+        Files.writeString(edited, BASELINE_CONTENT);
+        Files.writeString(deleted, BASELINE_CONTENT);
+        Files.delete(added);
+
+        var snapshot = GitTestChanges.read(root, base);
+        var changes = snapshot.changes();
+        assertAll(
+                () -> assertTrue(changes.contains(new GitTestChanges.Change("M", TRACKED_EDIT)),
+                        "the index edit must survive restoration of the working file"),
+                () -> assertTrue(changes.contains(new GitTestChanges.Change("D", TRACKED_DELETE)),
+                        "recreating a file must not conceal its staged deletion"),
+                () -> assertTrue(changes.contains(new GitTestChanges.Change("A", STAGED_ADDITION)),
+                        "removing the working file must not conceal its staged addition"),
+                () -> assertEquals(changes.size(), changes.stream().distinct().count(),
+                        "identical kind/path changes from both views must be deduplicated"));
+
+        LocalDate today = LocalDate.now();
+        Set<String> paths = Set.of(TRACKED_EDIT, TRACKED_DELETE, STAGED_ADDITION);
+        var ordinary = new TestChangeRequest("INDEX-01", "ACTIVE", base, today,
+                "Review index and working tree independently", "mvn test", paths, false, "index.md");
+        var violations = TestChangePolicy.validate(changes, List.of(ordinary), base, today);
+        assertEquals(1, violations.size(), violations.toString());
+        assertTrue(violations.getFirst().contains("D " + TRACKED_DELETE));
+        var deletionApproved = new TestChangeRequest("INDEX-01", "ACTIVE", base, today,
+                ordinary.reason(), ordinary.proof(), paths, true, "index.md");
+        assertTrue(TestChangePolicy.validate(changes, List.of(deletionApproved), base, today).isEmpty());
+    }
+
+    @Test
+    void committedEditRemainsVisibleWhenWorkingTreeMatchesReviewBase(@TempDir Path root) throws Exception {
+        String base = createBaseline(root);
+        Path edited = root.resolve(TRACKED_EDIT);
+        Files.writeString(edited, "committed edit");
+        GitTestChanges.command(root, "add", "--all");
+        GitTestChanges.command(root, "-c", "core.hooksPath=", "commit", "--quiet", "--no-gpg-sign",
+                "-m", "committed edit");
+        Files.writeString(edited, BASELINE_CONTENT);
+
+        var snapshot = GitTestChanges.read(root, base);
+
+        assertEquals(List.of(new GitTestChanges.Change("M", TRACKED_EDIT)), snapshot.changes());
+        assertFalse(TestChangePolicy.validate(snapshot.changes(), List.of(), base, LocalDate.now()).isEmpty(),
+                "a working-tree rollback cannot authorize the committed edit");
+    }
+
+    private static String createBaseline(Path root) throws Exception {
+        GitTestChanges.command(root, "init", "--quiet");
+        GitTestChanges.command(root, "config", "user.name", "Guard Fixture");
+        GitTestChanges.command(root, "config", "user.email", "guard@example.test");
+        for (String relative : List.of(TRACKED_EDIT, TRACKED_DELETE)) {
+            Path file = root.resolve(relative);
+            Files.createDirectories(file.getParent());
+            Files.writeString(file, BASELINE_CONTENT);
+        }
+        GitTestChanges.command(root, "add", "--all");
+        GitTestChanges.command(root, "-c", "core.hooksPath=", "commit", "--quiet", "--no-gpg-sign",
+                "-m", "baseline");
+        return GitTestChanges.command(root, "rev-parse", "HEAD").trim();
     }
 
     @Test

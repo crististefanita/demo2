@@ -252,11 +252,6 @@ Boundary-urile suportului rămân mici și verificabile:
 
 `ReportingCoverageMatrixTest` este harta executabilă a seam-urilor publice:
 
-Pentru publicarea unui HTML voluminos, `LargeReportPublicationComponentTest`
-folosește un JVM copil cu `-Xmx384m`, fixture Unicode și PNG-uri inline
-distincte/repetate. Verifică exit code, vârf heap raportat și integritatea
-artifactului final; nu substituie probele pentru volume mai mari sau failure-path.
-
 | Verificare | Dovadă obligatorie | Limită intenționată |
 |---|---|---|
 | coverage | fiecare seam are test `unit`, `component`, `integration` sau `e2e` | un seam nou fără dovadă lower-level e regresie de guvernanță |
@@ -264,6 +259,22 @@ artifactului final; nu substituie probele pentru volume mai mari sau failure-pat
 | audit semantic | `Overview`, `Categories`, `Fails`, `Screen validation` și `ReportExecutionProjections` | `ReportAuditSnapshot` rămâne renderer-neutral; aceleași proiecții typed pot fi verificate fără browser |
 | convergență | JSON și visual sunt verificate împreună | browserul observă; regulile se verifică fără Playwright |
 | browser proof | `E2eSuiteBudgetArchitectureTest` plafonează la 8 clase `@AtfE2eTest` | orice clasă nouă cere justificare în feedback și modificarea bugetului |
+
+### Publicarea unui raport voluminos — probă de componentă
+
+`LargeReportPublicationComponentTest` rulează într-un JVM copil cu heap
+limitat; nu execută journey-uri pe aplicația externă și nu reduce capturile.
+
+| Parametru / dovadă | Contractul fixture-ului |
+|---|---|
+| Heap | `-Xms64m -Xmx384m`, separat de fork-ul Surefire |
+| Conținut | Unicode, 1.500 referințe PNG inline; două imagini distincte repetate |
+| Integritate | exit code 0, heap peak raportat, HTML peste 9 MB, marker final, temă, runtime și ambele referințe media |
+| Limită | nu dovedește volume arbitrare, PNG-uri mari/distincte sau failure-path fără artifact parțial |
+
+Bugetul fork-ului rămâne configurabil prin `atf.test.heap.max`; un heap mai
+mare nu este dovadă de scalabilitate. Criteriile restante sunt PUB-01 din
+[feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md).
 
 ### Verificarea randării responsive
 
@@ -440,7 +451,7 @@ Browser proof-ul folosește un singur seam generic, `StaticHtmlScreenshotAdapter
 - contractele DOM/CSS rămân în component validators și ATF Debug.
 
 Detaliul normativ al normalizării evidence este în
-[`atf-reporting/README.md`](../atf-reporting/README.md#normalizarea-evidence-în-artifact).
+[`atf-reporting/README.md`](../atf-reporting/README.md#normalizarea-dovezilor-în-artefact).
 Aici rămâne numai dovada de consumer: `ExtentReportRuntimeEvidenceComponentTest`
 și browser proof-ul verifică faptul că request/response JSON supraviețuiesc
 împreună cu execution trace în DOM-ul raportului deschis.

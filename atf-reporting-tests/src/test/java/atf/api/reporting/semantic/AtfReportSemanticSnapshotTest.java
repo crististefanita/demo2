@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -43,9 +44,12 @@ class AtfReportSemanticSnapshotTest {
             fallback.close();
 
             assertEquals(extentSnapshot, fallbackSnapshot);
-            assertTrue(Files.readString(root.resolve("extent.html"))
-                            .contains("Audit details · 1 field"),
-                    "phase-level audit metadata must not be mislabeled as HTTP response details");
+            for (String renderer : List.of("extent.html", "fallback.html")) {
+                String html = Files.readString(root.resolve(renderer));
+                assertFalse(html.contains("<details class=\"step-detail phase-details\""),
+                        "internal phase metadata must not create a public audit band");
+                assertFalse(html.contains("1 actual API exchange captured"));
+            }
             assertEquals(1, extentSnapshot.classes().size());
             assertEquals(1, extentSnapshot.scenarioCount());
             assertEquals(1, extentSnapshot.requestCount());

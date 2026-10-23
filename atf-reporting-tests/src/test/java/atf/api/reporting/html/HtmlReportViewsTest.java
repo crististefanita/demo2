@@ -189,8 +189,10 @@ class HtmlReportViewsTest {
         String html = new HtmlReportTestsView().render(document.snapshot());
 
         assertAll(
-                () -> assertTrue(html.contains("<details class=\"step-detail phase-details\"")),
-                () -> assertTrue(html.contains("Audit details · 1 field")),
+                () -> assertFalse(html.contains("<details class=\"step-detail phase-details\"")),
+                () -> assertTrue(html.contains("<details class=\"step-detail phase-diagnostics\"")),
+                () -> assertTrue(html.indexOf("phase-diagnostics") < html.indexOf("data-atf-node-role=\"phase\""),
+                        "execution diagnostics belong to the scenario, outside the API phase"),
                 () -> assertTrue(html.contains("Failure cause")),
                 () -> assertTrue(html.contains("token=***REDACTED***")),
                 () -> assertTrue(html.contains("mode=full")),

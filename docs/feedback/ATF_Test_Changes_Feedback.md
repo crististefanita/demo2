@@ -1,10 +1,18 @@
-# ATF — ToDo-uri pentru schimbarea testelor
+# ATF — scope-uri de guvernanță pentru schimbarea testelor
 
 ## Pe scurt
 
 Schimbările testelor din modulele ATF, exceptând `atf-test-practice-shop`,
 cer un ToDo structurat înainte de editare. Fiecare cerere fixează baseline-ul
 Git, fișierele exacte, motivul, expirarea și proba cerută.
+
+`VERIFIED` nu înseamnă lucrare funcțională restantă: păstrează autorizarea
+pentru diff-ul încă inclus în baseline. Cerințele API/UI rămase sunt numai la
+[ownerul Reporting](ATF_Reporting_Feedback.md); regulile stabile sunt în
+[README-ul ATF Tests](../../atf-tests/README.md#guvernanța-schimbării-testelor).
+
+<details>
+<summary>Scope-uri verificate — păstrate pentru baseline, nu ToDo-uri deschise</summary>
 
 ## CONSOLE-DEFAULTS-01 — detalii implicite la consolă
 
@@ -46,6 +54,13 @@ nu se acceptă wildcard-uri, cereri expirate/închise sau un baseline străin.
 - Transferul de ownership cere închiderea vechiului scope înainte de activarea celui nou.
 - Inventarul include POM-urile noi ignorate prin `.gitignore`; proba negativă
   verifică rădăcina și un modul nou, alături de testele ignorate deja acoperite.
+- Indexul și working tree-ul sunt comparate separat cu baseline-ul, apoi reunite:
+  restaurarea fișierului de pe disc nu ascunde un edit staged sau committed.
+- Deduplicarea păstrează perechea tip/cale; o recreare nu elimină ștergerea
+  staged și nu ocolește `allowDelete`. Adăugarea staged rămâne vizibilă chiar
+  dacă fișierul de pe disc a fost șters.
+- Fixture-urile Git pentru aceste cazuri eșuează pe inventarul vechi și trec
+  după corecție; proba de închidere rămâne suita whole-ATF, nu numai fixture-ul.
 
 ```yaml
 testChanges:
@@ -124,27 +139,6 @@ testChanges:
       - atf-reporting-tests/src/test/java/atf/api/reporting/evidence/ReportEvidenceStyleContractTest.java
 ```
 
-## TEST-READABILITY-01 — import explicit, contract neschimbat
-
-Gate-ul whole-ATF a identificat o invocație calificată complet într-un test
-existent. Remedierea introduce importul tipului, fără schimbarea aserțiunilor.
-
-Proba importului a trecut; înregistrarea este închisă prin transferul ownership-ului
-fișierului către `UI-CHECKPOINT-CONTEXT-01`, care acoperă modificările ulterioare
-din același baseline. Acest transfer nu reprezintă o integrare Git.
-
-```yaml
-testChanges:
-  - id: TEST-READABILITY-01
-    status: CLOSED
-    base: 521135291e642194294f9734ee1410ede0f19ef6
-    expires: 2026-11-21
-    reason: Remedierea importului explicit cerut de gate fara relaxarea contractului testat.
-    proof: mvn -pl atf-tests,atf-reporting-tests -am -Dtest=AtfSourceReadabilityGovernanceTest,ExtentReportUiEvidencePublishingTest -Dsurefire.failIfNoSpecifiedTests=false test
-    paths:
-      - atf-reporting-tests/src/test/java/atf/api/reporting/ui/ExtentReportUiEvidencePublishingTest.java
-```
-
 ## UI-CHECKPOINT-CONTEXT-01 — context intern fără tabel HTTP în pasul UI
 
 Cerut direct: propoziția UI nu afișează `Status / Details / Info` și
@@ -220,46 +214,7 @@ testChanges:
       - atf-reporting-tests/src/test/java/atf/api/reporting/extent/session/ExtentReportInteractionContractTest.java
 ```
 
-## REPORT-EVIDENCE-LABELS-01 — singular și plural în proiecțiile dovezilor
-
-Scope-ul înregistrează actualizările existente ale consumatorilor pentru
-vocabularul comun: `1 field`, `1 attempt`, `1 entry` și `1 check`.
-Probele păstrează paritatea Extent/fallback și snapshot-ul semantic.
-
-Înregistrarea este închisă prin transfer către `REPORT-API-UNIFORMITY-01`
-din feedback-ul Reporting, care deține acum aceleași șase fișiere și probele
-lor. Nu se mențin doi owneri eligibili pentru aceeași schimbare.
-
-```yaml
-testChanges:
-  - id: REPORT-EVIDENCE-LABELS-01
-    status: CLOSED
-    base: 521135291e642194294f9734ee1410ede0f19ef6
-    expires: 2026-11-21
-    reason: Consumatorii verifica singularul si pluralul vocabularului comun fara a schimba verdictele.
-    proof: mvn -pl atf-reporting-tests -am -Dtest=ReportEvidenceMarkupTest,ExtentReportSessionContractTest,HtmlReportSessionTest,AtfReportSemanticSnapshotTest,ExtentReportUiEvidenceRenderingTest,ExtentReportUiFailureEvidenceTest -Dsurefire.failIfNoSpecifiedTests=false test
-    paths:
-      - atf-reporting-tests/src/test/java/atf/api/reporting/evidence/markup/ReportEvidenceMarkupTest.java
-      - atf-reporting-tests/src/test/java/atf/api/reporting/extent/session/ExtentReportSessionContractTest.java
-      - atf-reporting-tests/src/test/java/atf/api/reporting/html/HtmlReportSessionTest.java
-      - atf-reporting-tests/src/test/java/atf/api/reporting/semantic/AtfReportSemanticSnapshotTest.java
-      - atf-reporting-tests/src/test/java/atf/api/reporting/ui/ExtentReportUiEvidenceRenderingTest.java
-      - atf-reporting-tests/src/test/java/atf/api/reporting/ui/ExtentReportUiFailureEvidenceTest.java
-```
-
-## Dovezi și limite
-
-| Scope | Dovada verificată |
-|---|---|
-| Guvernanța schimbărilor | `WholeAtfGovernanceSuiteTest`: scope exact, parser strict, baseline Git, ownership unic și documentație |
-| POM-uri ignorate | Testul întărit eșuează cu inventarul vechi, apoi trece cu includerea POM-ului rădăcină și al modulului nou |
-| Input și stratificare | Input explicit/generat, meta-adnotări, navigare, failure evidence și contractul UI în headless |
-| Dovezi UI/API | Proiecții, publisher, paritate semantică și componente browser; etichetele sunt transferate ownerului Reporting |
-| Checkpoint UI | Verificarea MCP consemnată pentru increment confirmă contextul fără tabel HTTP sintetic și păstrarea dovezilor imbricate |
-
-Verificarea MCP consemnată nu certifică automat un artifact generat ulterior.
-Raportul nou cere propriul gate interactiv înainte de publicare; probele
-headless și capturile automate nu sunt prezentate drept click-uri manuale.
+</details>
 
 ## Închidere
 

@@ -30,8 +30,8 @@ public final class ExtentEvidenceRenderer {
         this.ui = new ExtentUiEvidenceRenderer(settings, redactor, detailsMode);
     }
 
-    public void renderDetails(ExtentTest node, List<ReportField> details) {
-        transport.renderDetails(node, details);
+    public void renderPhaseDiagnostics(ExtentTest scenario, String phase, List<ReportField> details) {
+        transport.renderPhaseDiagnostics(scenario, phase, details);
     }
 
     public void renderRequestDetails(ExtentTest node, List<ReportField> details,

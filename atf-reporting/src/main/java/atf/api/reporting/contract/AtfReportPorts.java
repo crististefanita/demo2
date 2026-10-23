@@ -2,6 +2,7 @@ package atf.api.reporting.contract;
 
 import atf.api.reporting.inventory.ValidationSink;
 import atf.api.reporting.model.ReportExecutionEvidence;
+import atf.api.reporting.model.diagnostic.ReportPhaseDiagnostic;
 import atf.api.reporting.api.ReportModelAdapters;
 import atf.api.reporting.ui.model.AtfUiActionRecord;
 import atf.api.reporting.ui.network.ReportNetworkInspector;
@@ -25,7 +26,12 @@ public final class AtfReportPorts {
     }
     public interface Phase extends AutoCloseable {
         Request startRequest(String title, String method, String path);
+        /** Internal phase context; not a public log band or transport evidence. */
         default void detail(String name, String value) { }
+        /** Explicit, scenario-owned execution diagnostic; does not invent a business assertion. */
+        default void diagnostic(ReportPhaseDiagnostic.Kind kind, String message) {
+            detail(kind.label(), message);
+        }
         void complete(AtfReportStatus status); @Override void close();
     }
     public interface Request extends ValidationSink, AutoCloseable {

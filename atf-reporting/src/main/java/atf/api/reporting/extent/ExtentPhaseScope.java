@@ -41,6 +41,7 @@ final class ExtentPhaseScope implements AtfReportPorts.Phase {
     }
 
     @Override public void detail(String name, String value) {
+        ensurePhaseOpen();
         String normalizedName = name == null || name.isBlank() ? "DETAIL" : name;
         details.add(new ReportField(normalizedName, tree.redactor().redactField(name, value)));
         semantic.detail(name);
@@ -50,7 +51,7 @@ final class ExtentPhaseScope implements AtfReportPorts.Phase {
 
     @Override public void complete(AtfReportStatus status) {
         ensurePhaseOpen();
-        tree.renderDetails(phase, details);
+        scenario.renderDiagnostics(phaseName, details);
         var effective = AtfReportStatus.worst(statuses.aggregate(), status);
         tree.complete(phase, effective);
         tree.markEnded(phase);

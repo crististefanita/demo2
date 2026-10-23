@@ -16,6 +16,9 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
+import static atf.api.reporting.model.diagnostic.ReportPhaseDiagnostic.Kind.CONTRACT_ASSOCIATION;
+import static atf.api.reporting.model.diagnostic.ReportPhaseDiagnostic.Kind.JUNIT_FAILURE;
+
 /** Captures transport exchanges and keeps JUnit's method verdict on the scenario. */
 public final class ShopApiCallAuditTestSupport implements BeforeEachCallback, AfterEachCallback {
     private static final ExtensionContext.Namespace NAMESPACE =
@@ -93,13 +96,13 @@ public final class ShopApiCallAuditTestSupport implements BeforeEachCallback, Af
                 + contractedCount + " typed HTTP contracts attached";
         phase.detail("API audit completeness", captured);
         if (!associationGaps.isEmpty()) {
-            phase.detail("API contract association", String.join("; ", associationGaps));
+            phase.diagnostic(CONTRACT_ASSOCIATION, String.join("; ", associationGaps));
         }
         if (failure != null) {
             String message = failure.getMessage();
             String reason = failure.getClass().getSimpleName()
                     + (message == null || message.isBlank() ? "" : ": " + message);
-            phase.detail("JUnit failure", reason);
+            phase.diagnostic(JUNIT_FAILURE, reason);
         }
     }
 }

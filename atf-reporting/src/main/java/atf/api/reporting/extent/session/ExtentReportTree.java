@@ -135,8 +135,8 @@ public final class ExtentReportTree {
         evidence.renderRequestDetails(node, details, json);
     }
 
-    public void renderDetails(ExtentTest node, List<ReportField> details) {
-        evidence.renderDetails(node, details);
+    public void renderPhaseDiagnostics(ExtentTest scenario, String phase, List<ReportField> details) {
+        evidence.renderPhaseDiagnostics(scenario, phase, details);
     }
 
     public void renderResponseDetails(ExtentTest node, List<ReportField> details,

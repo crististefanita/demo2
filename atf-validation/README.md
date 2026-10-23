@@ -196,11 +196,12 @@ protejează inventarul pachetului și limita de opt clase.
 | grounding lipsă sau în afara allowlist-ului | `MISSING_GROUNDING_REFERENCE` / `UNSUPPORTED_GROUNDING` |
 | clock injectat și mutații ale valorilor nested | finalizare `COMPLETE` și imuabilitate |
 
-Limita curentă: `AMBIGUOUS` există în enum, dar evaluatorul nu îl produce.
-Registrul de dovezi la nivel de run, integrarea lifecycle-ului, review/state,
-reporting și regression delta rămân în [feedback-ul AI](../docs/feedback/README_AI_Evaluation.md).
-`REGEX_RESTRICTED` cere un matcher cu execuție limitată înainte de implementare;
-scorul tehnic existent nu reprezintă încă o rubrică business configurabilă pe caz.
+Limitele implementării rămân explicite:
+
+- `AMBIGUOUS` există în enum, dar evaluatorul nu îl produce.
+- Run ledger, lifecycle, review/state, reporting și regression delta rămân în [feedback-ul AI](../docs/feedback/README_AI_Evaluation.md).
+- Modelele țintă și deciziile de boundary sunt în [designul AI](../docs/ATF_AI_Evaluation_Design.md); schemele propuse nu sunt semnături suplimentare ale API-ului implementat.
+- `REGEX_RESTRICTED` cere un matcher cu execuție limitată; scorul tehnic existent nu este încă o rubrică business configurabilă pe caz.
 
 ## Utilizare ca JAR
 

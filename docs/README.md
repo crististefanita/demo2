@@ -1,6 +1,7 @@
 # Documentația ATF Java
 
-Acest director este indexul contractelor stabile ale ATF Java.
+Acest director este indexul contractelor stabile ale ATF Java și al
+designurilor de proiect marcate explicit ca propuneri.
 
 - arhitectură și boundaries;
 - adăugare de teste API;
@@ -20,6 +21,7 @@ particular.
 | evidence transversal | `ATF_Evidence_Capture_Contract.md` | cum se separă flow-ul, policy-ul, sursa și publisherul? |
 | practică | `README_Atf_BestPractices.md` | cum adăugăm cod fără drift? |
 | testare | `ATF_Testing_Guide.md` | ce layer, modul și proof aleg pentru un comportament? |
+| design propus | `ATF_AI_Evaluation_Design.md` | ce boundary și contract țintă discutăm, fără a le declara livrate? |
 | execuție | `ATF_Build_And_Execution_Safety.md` | cum lucrăm fără să oprim run-uri? |
 | feedback | `feedback/README.md` și documentele active pe owner | ce gap observabil rămâne? |
 
@@ -58,6 +60,7 @@ flowchart LR
 | Scriere și stratificarea testelor | [Ghid de testare](ATF_Testing_Guide.md) · [Ghid API](ATF_Api_Test_Guide.md) · [Bune practici de cod](README_Atf_CodeBestPractices.md) |
 | Reporting și evidence | [Contract reporting](ATF_Reporting_Contract.md) · [Contract evidence](ATF_Evidence_Capture_Contract.md) · [README reporting](../atf-reporting/README.md) |
 | Consumatori și guvernanță | [Practice Shop](../atf-test-practice-shop/README.md) · [ATF Tests](../atf-tests/README.md) · [registrul feedback](feedback/README.md) |
+| Design și implementare AI | [Design de referință](ATF_AI_Evaluation_Design.md) · [comparator implementat](../atf-validation/README.md#comparatorul-ai--contract-implementat) · [gap-uri active](feedback/README_AI_Evaluation.md) |
 | Contribuție și operare | [Siguranța build-ului](ATF_Build_And_Execution_Safety.md) · [Bune practici ATF](README_Atf_BestPractices.md) · [Bune practici documentație](README_Atf_DocumentationBestPractices.md) |
 
 Indexul complet și ordinea detaliată rămân disponibile la cerere:
@@ -105,6 +108,8 @@ Indexul complet și ordinea detaliată rămân disponibile la cerere:
     module × layer și dovada potrivită pentru UI/API și raportare.
 20. [feedback/README.md](feedback/README.md) — ToDo active, criterii de închidere
     și registrul de ownership pentru API, UI și reporting.
+21. [ATF_AI_Evaluation_Design.md](ATF_AI_Evaluation_Design.md) — modelele țintă și
+    deciziile de boundary pentru AI evaluation/workflow; design propus, nu inventar de funcționalități livrate.
 
 </details>
 
@@ -124,6 +129,7 @@ Detaliile operaționale sunt în
 | Stare | Locul normativ |
 |---|---|
 | Contract stabil | README-ul ownerului și testele sale |
+| Design propus | [Designul AI](ATF_AI_Evaluation_Design.md), separat de implementare și de scorul din feedback |
 | Gap încă deschis | [registrul de feedback](feedback/README.md) și documentul ownerului |
 | Analiză închisă sau datată | În afara documentației normative |
 

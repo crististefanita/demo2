@@ -76,7 +76,7 @@ Guard-ul reflectă ownerii fără a falsifica structura reactorului:
 ## Traseul UI/API și ce verifică testele
 
 Contractul checkpoint-ului mixt este deținut de
-[ATF Reporting Contract](ATF_Reporting_Contract.md#evidence-ul-unui-request):
+[ATF Reporting Contract](ATF_Reporting_Contract.md#dovezile-unei-cereri):
 
 - o propoziție Gherkin are copii frați `UI validation` și `API validation`;
 - exchange-urile reale apar numai sub `API validation`;
@@ -125,7 +125,7 @@ SETUP
 - diagnosticele runtime nu devin pași Gherkin și nu schimbă verdictul business.
 
 Forma raportului și ownership-ul fiecărei dovezi sunt normative în
-[ATF Reporting Contract](ATF_Reporting_Contract.md#evidence-ul-de-setup).
+[ATF Reporting Contract](ATF_Reporting_Contract.md#dovezile-configurării-inițiale).
 
 ### Stabilitatea secțiunilor expandabile — verificare în browser
 
@@ -161,6 +161,17 @@ Detaliile normative și pașii browser-proof sunt în
 [contractul de raportare](ATF_Reporting_Contract.md). Acest gate se aplică
 schimbărilor de disclosure/navigare; nu justifică un E2E nou pentru fiecare
 variație de conținut.
+
+| Probă de regresie existentă | Limită demonstrată |
+|---|---|
+| `ExtentReportDisclosureBrowserComponentTest` | request cu dovezi proprii și validare copil; mouse/Enter/Space, ARIA și ambele corpuri; titlu UI personalizat și checkpoint fără tabel HTTP sintetic |
+| `ReportApiViewportParityComponentTest` | metadate request și retry: conținut scurt Extent, scurt/lung fallback, viewport standard/îngust, scroll local și antet sticky |
+| `ReportEvidenceStyleContractTest` | eliminarea disclosure-urilor cu stylesheet-ul păstrat este respinsă; clasele din CSS/JS nu sunt dovadă de conținut |
+
+Aceste probe nu certifică automat toate proiecțiile sau verdictul local al
+fiecărui exchange. Matricea restantă are un singur owner în
+[feedback-ul Reporting](feedback/ATF_Reporting_Feedback.md), fără a reintroduce
+contractele deja demonstrate în backlog.
 
 ## Principii pentru teste scurte și plug-and-play
 
