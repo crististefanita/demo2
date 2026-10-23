@@ -2,6 +2,7 @@ package atf.api.reporting.markup;
 import atf.api.reporting.evidence.EvidenceTableFormatter;
 import atf.api.reporting.evidence.ReportEvidenceTable;
 import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
+import atf.api.reporting.markup.table.ReportTableViewport;
 import atf.api.reporting.theme.tokens.AtfReportCssProperty;
 
 import com.aventstack.extentreports.markuputils.Markup;
@@ -42,11 +43,7 @@ public final class AtfReportMarkup {
                     .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.SPAN))
                     .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DIV));
         }
-        String viewport = tableViewport(cssClass);
-        if (viewport != null) {
-            html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.DIV,
-                    AtfReportHtmlVocabulary.classAttribute(viewport)));
-        }
+        html.append(tableViewport(cssClass).open());
         html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TABLE,
                 AtfReportHtmlVocabulary.classAttribute(cssClass)));
         if (isKeyValueEvidenceTable(cssClass) && !safeTable.headers().isEmpty()) {
@@ -70,7 +67,7 @@ public final class AtfReportMarkup {
                     .append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TBODY))
                     .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TBODY))
                     .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TABLE));
-            return closeTableViewport(html, viewport).toString();
+            return closeTableViewport(html).toString();
         }
         for (String value : safeTable.headers()) {
                     html.append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.TH))
@@ -87,7 +84,7 @@ public final class AtfReportMarkup {
                 if (isKeyValueEvidenceTable(cssClass) && columnIndex == 1 && !row.isEmpty()) {
                     value = EvidenceTableFormatter.displayValue(row.get(0), value);
                 }
-                var cellTag = table.firstColumnHeader() && columnIndex == 0
+                var cellTag = safeTable.firstColumnHeader() && columnIndex == 0
                         ? AtfReportHtmlVocabulary.Tag.TH
                         : AtfReportHtmlVocabulary.Tag.TD;
                 String cellAttributes = isUrlValueCell(safeTable, row, columnIndex)
@@ -102,23 +99,24 @@ public final class AtfReportMarkup {
         }
         html.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TBODY))
                 .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.TABLE));
-        return closeTableViewport(html, viewport).toString();
+        return closeTableViewport(html).toString();
     }
 
-    private static StringBuilder closeTableViewport(StringBuilder html, String viewport) {
-        if (viewport != null) {
-            html.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DIV));
-        }
-        return html;
+    private static StringBuilder closeTableViewport(StringBuilder html) {
+        return html.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DIV));
     }
 
-    private static String tableViewport(String cssClass) {
-        if (isTraceTable(cssClass)) return AtfReportHtmlVocabulary.CssClass.ATF_TRACE_TABLE_WRAP.value();
+    private static ReportTableViewport tableViewport(String cssClass) {
+        if (isTraceTable(cssClass)) return ReportTableViewport.TRACE;
         if (cssClass != null && (cssClass.contains(AtfReportHtmlVocabulary.CssClass.HELM_REQUEST_TABLE.value())
                 || cssClass.contains(AtfReportHtmlVocabulary.CssClass.RETRY_HISTORY_TABLE.value()))) {
-            return AtfReportHtmlVocabulary.CssClass.ATF_API_TABLE_WRAP.value();
+            return ReportTableViewport.API;
         }
-        return null;
+        if (cssClass != null && cssClass.contains(
+                AtfReportHtmlVocabulary.CssClass.HELM_VALIDATION_TABLE.value())) {
+            return ReportTableViewport.ASSERTIONS;
+        }
+        return ReportTableViewport.DATA;
     }
 
     private static boolean isTraceTable(String cssClass) {

@@ -1,27 +1,28 @@
 package atf.api.reporting.api.acceptance;
 
 import atf.api.core.http.request.ApiRequest;
-import atf.api.core.http.request.HttpHeader;
 import atf.api.core.http.response.ApiExecutionResult;
 import atf.api.core.reporting.contract.AtfReportPorts;
 import atf.api.core.reporting.contract.AtfReportStatus;
-import atf.api.core.security.SensitiveDataRedactor;
 import atf.api.core.lifecycle.ApiScenarioLifecycleRunner;
 import atf.api.reporting.api.ApiEvidenceField;
 import atf.api.reporting.api.ApiJsonEvidence;
-import atf.api.reporting.api.ApiManualReplay;
+import atf.api.reporting.api.ReportModelAdapters;
+import atf.api.reporting.api.ReportRequest;
+import atf.api.reporting.support.CoreReportPortsAdapter;
+import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.validation.contract.ResponseContract;
 import atf.api.validation.evaluation.ApiValidationException;
 import atf.api.validation.evaluation.ValidationFailureEvidence;
 import atf.api.validation.publishing.ResponseContractReporter;
 
 import java.net.URI;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /** Test-scope publisher for API execution evidence and contract decisions. */
 public final class ApiAcceptancePublisher {
     private static final ResponseContractReporter VALIDATOR = new ResponseContractReporter();
-    private static final SensitiveDataRedactor REDACTOR = new SensitiveDataRedactor();
 
     private ApiAcceptancePublisher() { }
 
@@ -100,38 +101,21 @@ public final class ApiAcceptancePublisher {
         String method = capturedRequest == null ? executionRequestMethod(title) : capturedRequest.method();
         String path = capturedRequest == null ? URI.create(response.url()).getPath() : capturedRequest.path();
         var request = phase.startRequest(title, method, path);
-        request.execution(execution);
-        detail(request, ApiEvidenceField.DURATION, response.duration().toMillis() + " ms");
-        detail(request, ApiEvidenceField.URL, response.url());
-        detail(request, ApiEvidenceField.TRANSPORT, execution.provenance().reportLabel());
-        detail(request, ApiEvidenceField.HTTP_STATUS, Integer.toString(response.status()));
-        detail(request, ApiEvidenceField.CONTENT_TYPE, String.valueOf(response.header(HttpHeader.CONTENT_TYPE.value())));
-        detail(request, ApiEvidenceField.ATTEMPTS, Integer.toString(execution.attempts()));
-        if (capturedRequest != null) {
-            detail(request, ApiEvidenceField.AUTH_PROFILE, capturedRequest.authProfile());
-            if (capturedRequest.route() != null) {
-                detail(request, ApiEvidenceField.AUTH_TYPE, capturedRequest.route().authType().name());
-            }
-            if (!capturedRequest.queryParameters().isEmpty()) {
-                detail(request, ApiEvidenceField.QUERY_PARAMS, capturedRequest.queryParameters().display());
-            }
-            detail(request, ApiEvidenceField.REQUEST_HEADERS,
-                    ApiManualReplay.redactedHeaders(capturedRequest));
-        }
-        var responseHeaders = response.headers().entrySet().stream()
-                .filter(entry -> !entry.getKey().equalsIgnoreCase(HttpHeader.CONTENT_TYPE.value()))
-                .toList();
-        if (!responseHeaders.isEmpty()) {
-            detail(request, ApiEvidenceField.RESPONSE_HEADERS, redactHeaders(responseHeaders));
-        }
         String effectiveRequestJson = requestJson;
         if (effectiveRequestJson == null && capturedRequest != null && !capturedRequest.bodyText().isBlank()) {
             effectiveRequestJson = capturedRequest.bodyText();
         }
-        detail(request, ApiEvidenceField.MANUAL_REPLAY,
-                ApiManualReplay.describe(execution.provenance(), capturedRequest,
-                        response.url(), effectiveRequestJson));
-        ApiJsonEvidence.publish(request, effectiveRequestJson, response.body());
+        var adapted = ReportModelAdapters.execution(execution);
+        var reportRequest = capturedRequest == null
+                ? new ReportRequest(method, path, Map.of(), Map.of(), "none", effectiveRequestJson)
+                : ReportModelAdapters.request(capturedRequest);
+        reportRequest = new ReportRequest(reportRequest.method(), reportRequest.path(),
+                reportRequest.query(), reportRequest.headers(), reportRequest.authProfile(),
+                effectiveRequestJson == null ? reportRequest.bodyText() : effectiveRequestJson, reportRequest.authObservation());
+        CoreReportPortsAdapter.publishEvidence(request,
+                new ReportExecutionEvidence(adapted.response(), adapted.attempts(),
+                        adapted.totalDuration(), adapted.retryEvents(), adapted.attemptHistory(), reportRequest, adapted.provenance()),
+                execution);
         var jsonContractViolations = ApiJsonEvidence.writeContractViolations(
                 method, effectiveRequestJson, response.body());
         if (!jsonContractViolations.isEmpty()) {
@@ -176,10 +160,4 @@ public final class ApiAcceptancePublisher {
         request.detail(field.label(), value);
     }
 
-    private static String redactHeaders(Iterable<java.util.Map.Entry<String, String>> headers) {
-        java.util.List<String> values = new java.util.ArrayList<>();
-        headers.forEach(entry -> values.add(entry.getKey() + "="
-                + REDACTOR.redactField(entry.getKey(), entry.getValue())));
-        return values.toString();
-    }
 }

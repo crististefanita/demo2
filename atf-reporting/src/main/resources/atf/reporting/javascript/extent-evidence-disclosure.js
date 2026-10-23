@@ -33,15 +33,8 @@ function bindEvidenceDisclosureAria() {
   }, true);
 }
 function wrapEvidence(row, kind, title, node) {
-  var cell = row && row.cells && row.cells[2];
-  if (!cell || !node) return;
-  var details = document.createElement('details');
-  details.className = 'step-detail ' + kind;
-  var summary = document.createElement('summary');
-  summary.setAttribute('aria-expanded', 'false');
-  summary.innerHTML = disclosureSummary(title);
-  var body = document.createElement('div');
-  body.className = 'body';
+  if (!row || !row.cells || !row.cells[2] || !node) return;
+  var body = document.createDocumentFragment();
   if (kind === 'response-evidence') {
     var classification = document.createElement('div');
     classification.className = 'helm-api-classification technical';
@@ -52,10 +45,7 @@ function wrapEvidence(row, kind, title, node) {
     body.appendChild(classification);
   }
   body.appendChild(node);
-  details.appendChild(summary);
-  details.appendChild(body);
-  cell.innerHTML = '';
-  cell.appendChild(details);
+  wrapSemanticEvidence(row, kind, title, body);
 }
 function normalizeEvidenceDisclosures() {
   q('[data-atf-node-role="request"],[data-atf-node-role="validation"]').forEach(
@@ -67,10 +57,7 @@ function normalizeEvidenceDisclosures() {
         var row = rows[i],
           next = rows[i + 1],
           label = text(row.cells[2], '').trim();
-        // The Java renderer already emits semantic evidence disclosures.
-        // Keep this normalizer safe for both native Extent rows and the
-        // renderer's canonical form; never replace a disclosure that owns
-        // request/response JSON with a neighbouring trace row.
+        // Native disclosures own their JSON; do not replace them with a neighbouring trace row.
         if (row.querySelector('details')) continue;
         if (next && /^Execution evidence/.test(label)) {
           var executionBody = document.createElement('div');

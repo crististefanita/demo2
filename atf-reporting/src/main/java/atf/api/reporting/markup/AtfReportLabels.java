@@ -58,6 +58,7 @@ public final class AtfReportLabels {
     public static final String RESPONSE_STATUS = "response.status";
     public static final String RESPONSE_URL = "response.url";
     public static final String RESPONSE_DURATION_MS = "response.duration.ms";
+    public static final String TOTAL_DURATION_MS = "total.duration.ms";
     public static final String ATTEMPTS = "attempts";
     public static final String RETRY_EVENTS = "retry.events";
     public static final String REQUEST_PREFIX = "REQUEST";

@@ -43,11 +43,6 @@ public final class ExtentUiAssertionRenderer {
         String markup = AtfReportMarkup.table(AtfReportHtmlVocabulary.classList(
                 AtfReportHtmlVocabulary.CssClass.HELM_EVIDENCE_TABLE,
                 AtfReportHtmlVocabulary.CssClass.HELM_VALIDATION_TABLE), table).getMarkup();
-        markup = open(AtfReportHtmlVocabulary.Tag.DIV,
-                        AtfReportHtmlVocabulary.classAttribute(
-                                AtfReportHtmlVocabulary.CssClass.ATF_VALIDATION_TABLE_WRAP))
-                + markup
-                + close(AtfReportHtmlVocabulary.Tag.DIV);
         publish(node, open(AtfReportHtmlVocabulary.Tag.DIV,
                         AtfReportHtmlVocabulary.classAttribute(
                                 AtfReportHtmlVocabulary.CssClass.ATF_UI_ASSERTIONS),

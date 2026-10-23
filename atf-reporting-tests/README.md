@@ -25,7 +25,7 @@ Proiecția contextului UI este verificată la componentă:
 
 | Probă | Contract protejat |
 |---|---|
-| `UiCheckpointEvidenceProjectionTest` | cheile interne `request.action`/`request.target` rămân în model; proiecțiile typed/legacy și fallback nu le publică și nu le mută în response |
+| `UiCheckpointEvidenceProjectionTest` | identitatea checkpoint-ului și `evidence.type`/`evidence.policy` rămân în model; proiecțiile typed/legacy și fallback nu le publică și nu le mută în response |
 | `ExtentReportUiEvidencePublishingTest` | publisher-ul UI nu adaugă un request HTTP sintetic; exchange-ul nested păstrează request/response/JSON/execution |
 | `ExtentReportDisclosureBrowserComponentTest` | artifact controlat cu PASS/WARNING/FAIL; niciun tabel introductiv la checkpoint, validări și screenshot disponibile, API exchange complet, close fără subarbore vizibil și titluri custom identificate semantic |
 | `ReportPhaseDiagnosticTest` | conversie explicită, statusul fazei sursă, chei legacy delimitate, context nemodificat și rezultat imutabil; portul diagnostic nu creează HTTP |
@@ -307,6 +307,14 @@ Invarianturile de randare sunt:
   overflow orizontal al documentului;
 - pentru conținut lung, ultimul rând rămâne accesibil, antetul tabelului rămâne
   fix, iar zona scrollabilă nu depășește plafonul comun;
+- `ReportTableViewportComponentTest` verifică wrapperul implicit, inclusiv
+  familii noi, input gol/null și aceeași politică publicată în ambele teme;
+- `TableViewportBrowserComponentTest` măsoară tabelele reale din toate fazele
+  și matricea de densitate/viewport/token, inclusiv celulă unică înaltă,
+  limita de overflow, mouse/tastatură și păstrarea titlurilor/contoarelor;
+- aceeași probă respinge wrapper lipsă/dublu, plafon greșit, overflow ascuns,
+  antet nefixat și ultim rând inaccesibil; inventarul pornește de la tabele,
+  nu numai de la wrapper-ele deja conforme;
 - rândurile Network Inspector `Unique request signatures` și
   `Technical diagnostics` măsoară `34px` la ambele lățimi și sunt închise
   implicit, aliniate cu celelalte detalii API/UI;
@@ -396,6 +404,15 @@ se salvează în `artifacts/reports/ui/e2e`; rapoartele celorlalte layer-e răm�
 în `artifacts/reports/ui`. Valoarea adnotării este relativă la directorul UI și
 nu poate ieși din acesta.
 
+| Politica de output | Responsabilitate |
+|---|---|
+| `support.config.output` | Adnotarea și `UiReportOutputDirectory`; rezolvare sigură, separată de YAML |
+| `ReportingTestResources` | Deleagă alegerea directorului după încărcarea configurației |
+| Probe unitare | Director implicit și E2E păstrate; valori goale, absolute sau cu traversare respinse |
+
+- Migrarea în TestKit și adnotarea project-relative pentru E2E sunt
+  [propuneri urmărite în feedback](../docs/feedback/ATF_Test_Infrastructure_Annotations_Feedback.md),
+  nu modificări ale contractului actual de output.
 - importă root `pom.xml` ca proiect Maven și folosește **Reload All Maven Projects** înainte de prima rulare sau după schimbări de module;
 - run configuration-ul suitei reporting folosește modulul `atf-reporting-tests`, nu modulul legacy `atf-tests`;
 - pentru `NoClassDefFoundError` în IntelliJ, verifică modulele `atf-reporting` și `atf-reporting-tests` și dependency graph-ul testului; nu duplica sau muta clasa pentru a compensa un model IDE stale;

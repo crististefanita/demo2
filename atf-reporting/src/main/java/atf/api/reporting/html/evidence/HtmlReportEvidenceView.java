@@ -1,4 +1,6 @@
 package atf.api.reporting.html.evidence;
+import atf.api.reporting.api.evidence.ReportExecutionSummary;
+import atf.api.reporting.api.evidence.ReportTransportTiming;
 
 import atf.api.reporting.configuration.ReportingSettings;
 import atf.api.reporting.api.ReportAttemptRecord;
@@ -12,6 +14,7 @@ import atf.api.reporting.evidence.ReportEvidenceTable;
 import atf.api.reporting.evidence.markup.ReportEvidenceMarkup;
 import atf.api.reporting.markup.AtfReportLabels;
 import atf.api.reporting.markup.AtfReportMarkup;
+import atf.api.reporting.markup.table.ReportTableViewport;
 import atf.api.reporting.markup.ExtentReportNodeSupport;
 import atf.api.reporting.evidence.markup.ReportEvidenceJsonFormatter;
 import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
@@ -33,7 +36,6 @@ import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.closeT
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.openTag;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.Attribute.NODE_ROLE;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.ASSERTIONS;
-import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.ATF_VALIDATION_TABLE_WRAP;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.EXECUTION_EVIDENCE;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.EXECUTION_TABLE;
 import static atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary.CssClass.HELM_EVIDENCE_TABLE;
@@ -125,19 +127,13 @@ public final class HtmlReportEvidenceView {
                         EXECUTION_EVIDENCE.value(), AtfReportLabels.executionEvidence(execution.attempts())))
                 .append(AtfReportMarkup.tableHtml(
                         AtfReportHtmlVocabulary.classList(HELM_EVIDENCE_TABLE, EXECUTION_TABLE),
-                        ReportEvidenceTable.of(List.of(AtfReportLabels.FIELD, AtfReportLabels.VALUE), List.of(
-                                List.of(AtfReportLabels.RESPONSE_STATUS, execution.response().statusLabel()),
-                                List.of(AtfReportLabels.RESPONSE_URL, redactor.redactText(execution.response().url())),
-                                List.of(AtfReportLabels.RESPONSE_DURATION_MS,
-                                        AtfDurationFormatter.format(execution.response().duration())),
-                                List.of(AtfReportLabels.ATTEMPTS, String.valueOf(execution.attempts())),
-                                List.of(AtfReportLabels.RETRY_EVENTS, String.valueOf(execution.retryEvents().size()))
-                        )).withFirstColumnHeaders()));
+                        ReportExecutionSummary.table(execution, redactor)
+                                .withFirstColumnHeaders()));
         if (!execution.attemptHistory().isEmpty()) {
             var rows = execution.attemptHistory().stream().map(attempt -> List.of(
                     String.valueOf(attempt.number()),
                     attempt.statusLabel(),
-                    AtfDurationFormatter.format(attempt.duration()),
+                    ReportTransportTiming.display(attempt.duration()),
                     attempt.outcome(),
                     redactor.redactText(attempt.reason()))).toList();
             html.append(AtfReportMarkup.tableHtml(
@@ -186,7 +182,7 @@ public final class HtmlReportEvidenceView {
                 .append(openTag(SPAN)).append(escape(validation.title())).append(closeTag(SPAN))
                 .append(ReportEvidenceMarkup.statusBadge(validation.status()))
                 .append(closeTag(DIV))
-                .append(openTag(DIV, classAttribute(ATF_VALIDATION_TABLE_WRAP)))
+                .append(ReportTableViewport.ASSERTIONS.open())
                 .append(openTag(TABLE, classAttribute(ASSERTIONS)))
                 .append(openTag(THEAD)).append(openTag(TR))
                 .append(openTag(TH)).append(AtfReportLabels.ASSERTION).append(closeTag(TH))

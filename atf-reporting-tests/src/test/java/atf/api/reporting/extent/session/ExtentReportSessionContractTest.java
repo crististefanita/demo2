@@ -159,7 +159,7 @@ class ExtentReportSessionContractTest {
                 () -> assertTrue(html.contains("(column||card||canvas).remove()")),
                 () -> assertTrue(html.contains("setTimeout(removeUnsupportedOverviewCards,150)")),
                 () -> assertTrue(containsJavaScriptSignature(html,
-                                "function collapseScenarioCards(force)")),
+                                "function collapseScenarioCards(force,root,open)")),
                 () -> assertTrue(html.contains("data-atf-collapse-bound")),
                 () -> assertTrue(html.contains("data-atf-scenario-collapse-bound")),
                 () -> assertTrue(html.contains("function watchScenarioCards()")),
@@ -263,7 +263,7 @@ class ExtentReportSessionContractTest {
                 () -> assertTrue(html.contains("data-atf-scenario-open")),
                 () -> assertTrue(html.contains("data-atf-phase-open")),
                 () -> assertTrue(containsJavaScriptSignature(html,
-                                "function collapseScenarioCards(force)")
+                                "function collapseScenarioCards(force,root,open)")
                                 && html.contains("scenario.querySelectorAll(':scope [data-atf-node-role]")),
                 () -> assertFalse(html.contains("--atf-surface:#141d2b")),
                 // The Fails navigation intentionally uses the compact 1.45
@@ -412,7 +412,7 @@ class ExtentReportSessionContractTest {
                         "the URL may retain the query key while the secret value must be redacted"),
                 () -> assertFalse(html.contains("raw-event-token")),
                 () -> assertFalse(html.contains("raw-attempt-token")),
-                () -> assertTrue(html.contains("retry.events")));
+                () -> assertTrue(html.contains("<td>RETRY EVENTS</td><td>1</td>")));
     }
 
     @Test

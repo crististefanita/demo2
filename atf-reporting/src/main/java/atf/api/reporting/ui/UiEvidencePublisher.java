@@ -6,8 +6,7 @@ import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.api.ReportRequest;
 import atf.api.reporting.api.ReportResponse;
-import atf.api.reporting.api.ApiManualReplay;
-import atf.api.reporting.api.auth.ApiAuthenticationEvidence;
+import atf.api.reporting.api.evidence.ApiExchangeEvidence;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
 
@@ -29,16 +28,6 @@ import java.util.Objects;
  */
 public final class UiEvidencePublisher {
     private static final String SCREEN_VALIDATION = "Screen validation";
-    private static final String METHOD = "method";
-    private static final String PATH = "path";
-    private static final String URL = "url";
-    private static final String REQUEST_HEADERS = "request.headers";
-    private static final String MANUAL_REPLAY = "manual.replay";
-    private static final String QUERY_PARAMS = "query.params";
-    private static final String TRANSPORT = "transport";
-    private static final String STATUS = "status";
-    private static final String CONTENT_TYPE = "content.type";
-    private static final String RESPONSE_HEADERS = "response.headers";
     private static final String API_VALIDATION = "API validation";
 
     private final AtfReportPorts.Phase phase;
@@ -354,34 +343,7 @@ public final class UiEvidencePublisher {
             var request = validation.startRequest(exchangeTitle(apiRequest, exchangeNumber),
                     apiRequest.method(), apiRequest.path());
             request.detail("trace.exchange", "#" + exchangeNumber);
-            request.detail(METHOD, apiRequest.method());
-            request.detail(PATH, apiRequest.path());
-            request.detail(URL, apiResponse.url());
-            ApiAuthenticationEvidence.publishTo(request, apiRequest);
-            if (!apiRequest.query().isEmpty()) {
-                request.detail(QUERY_PARAMS, format(apiRequest.query()));
-            }
-            request.detail(REQUEST_HEADERS,
-                    ApiManualReplay.redactedHeaders(apiRequest));
-            request.detail(TRANSPORT,
-                    evidence.provenance().reportLabel());
-            request.detail(MANUAL_REPLAY,
-                    ApiManualReplay.describe(evidence.provenance(), apiRequest,
-                            apiResponse.url(), apiRequest.bodyText()));
-            if (!apiRequest.bodyText().isBlank()) {
-                request.json("REQUEST JSON", apiRequest.bodyText());
-            }
-            request.detail(STATUS, apiResponse.statusLabel());
-            request.detail(CONTENT_TYPE,
-                    header(apiResponse.headers(), "content-type"));
-            String responseHeaders = ApiManualReplay.relevantResponseHeaders(apiResponse.headers());
-            if (!"[]".equals(responseHeaders)) {
-                request.detail(RESPONSE_HEADERS, responseHeaders);
-            }
-            if (apiResponse.status() >= 0 && !apiResponse.body().isBlank()) {
-                request.json("RESPONSE JSON", apiResponse.body());
-            }
-            request.execution(evidence);
+            ApiExchangeEvidence.publish(request, evidence);
             request.complete(apiResponse.status() < 0
                     ? AtfReportStatus.WARNING : exchangeStatus);
         }
@@ -389,17 +351,6 @@ public final class UiEvidencePublisher {
 
     private static String exchangeTitle(ReportRequest request, int number) {
         return "Exchange " + number;
-    }
-
-    private static String header(Map<String, String> headers, String name) {
-        if (headers == null) return "";
-        return headers.entrySet().stream()
-                .filter(entry -> entry.getKey().equalsIgnoreCase(name))
-                .map(Map.Entry::getValue).findFirst().orElse("");
-    }
-
-    private static String format(Map<String, String> values) {
-        return values == null || values.isEmpty() ? "{}" : values.toString();
     }
 
     void publishScreenValidationAsMedia(String title, String target, String base64Png,

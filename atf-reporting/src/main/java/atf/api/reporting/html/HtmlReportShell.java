@@ -24,6 +24,9 @@ final class HtmlReportShell {
                 + AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.HTML,
                 AtfReportHtmlVocabulary.attribute(AtfReportHtmlVocabulary.Attribute.LANG, "en"))
                 + AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.HEAD)
+                + AtfReportHtmlVocabulary.voidElement(AtfReportHtmlVocabulary.Tag.LINK,
+                AtfReportHtmlVocabulary.attribute(AtfReportHtmlVocabulary.Attribute.REL, "icon"),
+                AtfReportHtmlVocabulary.attribute(AtfReportHtmlVocabulary.Attribute.HREF, "data:,"))
                 + AtfReportHtmlVocabulary.voidElement(AtfReportHtmlVocabulary.Tag.META,
                 AtfReportHtmlVocabulary.attribute(AtfReportHtmlVocabulary.Attribute.CHARSET, "utf-8"))
                 + AtfReportHtmlVocabulary.voidElement(AtfReportHtmlVocabulary.Tag.META,

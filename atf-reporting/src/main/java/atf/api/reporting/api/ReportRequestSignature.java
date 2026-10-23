@@ -2,6 +2,7 @@ package atf.api.reporting.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import atf.api.reporting.api.evidence.ReportBodyAvailability;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -22,6 +23,7 @@ import java.util.StringJoiner;
 public final class ReportRequestSignature {
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final String ABSENT_BODY = "<absent>";
+    private static final String UNKNOWN_BODY = "<not-captured>";
     private static final String BODY_FRAGMENT = "#body=";
     private static final String BODY_ABSENT = "absent";
     private static final String BODY_PRESENT = "present";
@@ -34,7 +36,17 @@ public final class ReportRequestSignature {
         if (request == null) return "";
         return request.method().trim().toUpperCase(Locale.ROOT) + " "
                 + safeTarget(request.path(), request.query())
-                + BODY_FRAGMENT + sha256(canonicalBody(request.bodyText()));
+                + BODY_FRAGMENT + requestBodyDigest(request);
+    }
+
+    public static String requestBodyDigest(ReportRequest request) {
+        return request.bodyAvailability() == ReportBodyAvailability.NOT_CAPTURED
+                ? sha256(UNKNOWN_BODY) : bodyDigest(request.bodyText());
+    }
+
+    public static String responseBodyDigest(ReportResponse response) {
+        return response.bodyAvailability() == ReportBodyAvailability.NOT_CAPTURED
+                ? sha256(UNKNOWN_BODY) : bodyDigest(response.body());
     }
 
     public static String bodyDigest(String body) {
@@ -61,6 +73,7 @@ public final class ReportRequestSignature {
     }
 
     private static String bodyState(String digest) {
+        if (sha256(UNKNOWN_BODY).equals(digest)) return "not-captured";
         return bodyDigest(null).equals(digest) ? BODY_ABSENT : BODY_PRESENT;
     }
 

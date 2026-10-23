@@ -147,6 +147,15 @@ Contextul rămâne în model; request/response/execution pentru schimburile API
 rămân publice. Probele acoperă ambele proiecții, metadata mixtă și browserul
 headless cu un checkpoint UI care deține o validare API.
 
+Inspecția MCP a găsit și `evidence.type`/`evidence.policy` proiectate drept
+`Response details` înaintea validării UI. Probele includ aceste câmpuri reale
+ale publisherului, verifică absența ambelor disclosure-uri sintetice și
+păstrează metadatele interne și schimburile HTTP autentice.
+
+Regresia este demonstrată înaintea fixului în ambele probe de proiecție.
+Matricea verde păstrează contractele trace/flow și diagnosticul capturii absente;
+MCP verifică raportul nou, acțiunile, linkul inline și deschiderea capturii.
+
 Controlul de autentificare verifică rândurile și valorile canonice live
 `AUTH PROFILE=bearer` și `AUTH TYPE=bearer`, nu prezența accidentală a
 unei etichete în scriptul inclus. `auth.mode` păstrează separat eticheta

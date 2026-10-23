@@ -62,7 +62,7 @@ public record ReportTraceMetadata(
         return new ReportTraceMetadata("", 0, "", "", "", "",
                 ReportRequestSignature.correlationKey(request),
                 ReportRequestSignature.forRequest(request),
-                ReportRequestSignature.bodyDigest(request.bodyText()), "", "", "", "", "");
+                ReportRequestSignature.requestBodyDigest(request), "", "", "", "", "");
     }
 
     public boolean present() {

@@ -1,4 +1,4 @@
-package atf.ui.tests.extent.support.config;
+package atf.ui.tests.extent.support.config.output;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

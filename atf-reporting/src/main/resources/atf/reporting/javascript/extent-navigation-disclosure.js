@@ -1,3 +1,4 @@
+var atfScenarioCards = '.test-content-detail .test-contents > .mt-4 > .accordion > .card';
 function openScenarioCard(card) {
   if (!card) return;
   var panel = card.querySelector(':scope>.accordion');
@@ -66,7 +67,7 @@ function openScenarioAuditPath(card) {
   }
 }
 function collapseDirectScenarioCards() {
-  q('.test-content-detail .test-contents > .mt-4 > .accordion > .card').forEach(
+  q(atfScenarioCards).forEach(
     function (card) {
       var panel = card.querySelector(':scope > .accordion');
       if (!panel || card.getAttribute('data-atf-scenario-open') === 'true')
@@ -75,9 +76,11 @@ function collapseDirectScenarioCards() {
     }
   );
 }
-function collapseScenarioCards(force) {
-  q('.test-content-detail .test-contents > .mt-4 > .accordion > .card').forEach(
+function collapseScenarioCards(force, root, open) {
+  var bulk = typeof open === 'boolean', next = !!open;
+  q(atfScenarioCards, root).forEach(
     function (scenario) {
+      if (bulk) setDisclosureState(scenario, scenario.querySelector(':scope>.accordion'), next, 'data-atf-scenario-open');
       scenario.querySelectorAll(':scope [data-atf-node-role]').forEach(function (card) {
         var role = card.getAttribute('data-atf-node-role'),
           panel = role === 'phase'
@@ -87,8 +90,8 @@ function collapseScenarioCards(force) {
             ? 'data-atf-phase-open' : 'data-atf-node-open';
         if (!panel) return;
         if (!force && card.getAttribute(attribute) === 'true') return;
-        setDisclosureState(card, panel, false, attribute);
-        if (role === 'phase') applyPhaseBodyState(card, false);
+        setDisclosureState(card, panel, next, attribute);
+        if (role === 'phase') applyPhaseBodyState(card, next);
       });
     }
   );
@@ -120,15 +123,34 @@ function initializeScenarioCard(card, panel) {
   setDisclosureState(card, panel, false, 'data-atf-scenario-open');
 }
 function bindScenarioCollapse() {
+  var controls = '#test-view .test-content-detail :is(.et,.ct)';
+  q(controls).forEach(function (control) {
+    control.setAttribute('role', 'button');
+    control.setAttribute('tabindex', '0');
+    control.setAttribute('aria-label', control.getAttribute('title'));
+  });
+  if (!document.documentElement.hasAttribute('data-atf-bulk-disclosure-bound')) {
+    document.documentElement.setAttribute('data-atf-bulk-disclosure-bound', 'true');
+    var toggleOwner = function (event) {
+      var control = event.target.closest && event.target.closest(controls);
+      if (!control || (event.type === 'keydown' &&
+          (event.target !== control || (event.key !== 'Enter' && event.key !== ' ')))) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      var owner = control.closest('.test-content-detail'),
+        open = control.classList.contains('et');
+      collapseScenarioCards(true, owner, open);
+    };
+    document.addEventListener('click', toggleOwner, true);
+    document.addEventListener('keydown', toggleOwner, true);
+  }
   q('#test-view .test-list .test-item').forEach(function (item) {
     if (item.getAttribute('data-atf-collapse-bound')) return;
     item.setAttribute('data-atf-collapse-bound', 'true');
     item.addEventListener('click', function () {
       setTimeout(function () {
         normalizeScenarioAnnotations();
-        q(
-          '.test-content-detail .test-contents > .mt-4 > .accordion > .card'
-        ).forEach(function (card) {
+        q(atfScenarioCards).forEach(function (card) {
           var panel = card.querySelector(':scope > .accordion');
           if (panel) initializeScenarioCard(card, panel);
         });
@@ -159,24 +181,6 @@ function bindScenarioCollapse() {
     });
     bindDisclosureKeyboard(header, toggle);
   });
-  q('#test-view .test-content-detail [data-atf-node-role="phase"]').forEach(
-    function (card) {
-      var node = card.querySelector(':scope > .card-header .card-title .node'),
-        panel = card.querySelector(':scope > .accordion');
-      if (!node || !panel || node.getAttribute('data-atf-phase-collapse-bound'))
-        return;
-      node.setAttribute('data-atf-phase-collapse-bound', 'true');
-      node.addEventListener('click', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        var open = card.getAttribute('data-atf-phase-open') === 'true',
-          next = !open;
-        atfPerformanceCount('phaseToggles');
-        setDisclosureState(card, panel, next, 'data-atf-phase-open');
-        applyPhaseBodyState(card, next);
-      });
-    }
-  );
 }
 function hasRelevantScenarioNodes(r) {
   var s = '.test-contents > .mt-4 > .accordion > .card,[data-atf-node-role]';
@@ -215,33 +219,7 @@ function applyPhaseBodyState(card, open) {
     body.style.setProperty('display', open ? 'block' : 'none', 'important');
 }
 function bindPhaseCollapse() {
-  q('#test-view .test-content-detail [data-atf-node-role="phase"]').forEach(
-    function (card) {
-      var header = card.querySelector(':scope>.card-header'),
-        panel = card.querySelector(':scope>.accordion');
-      if (!header || !panel) return;
-      var open = card.getAttribute('data-atf-phase-open') === 'true';
-      setDisclosureState(card, panel, open, 'data-atf-phase-open');
-      applyPhaseBodyState(card, open);
-      if (card.getAttribute('data-atf-phase-header-bound')) return;
-      card.setAttribute('data-atf-phase-header-bound', 'true');
-      var toggle = function (e) {
-        if (e) {
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          e.stopPropagation();
-        }
-        var startedAt = atfPerformanceStart(),
-          next = card.getAttribute('data-atf-phase-open') !== 'true';
-        atfPerformanceCount('phaseToggles');
-        setDisclosureState(card, panel, next, 'data-atf-phase-open');
-        applyPhaseBodyState(card, next);
-        atfPerformanceRecordDisclosureToggle(startedAt);
-      };
-      header.addEventListener('click', toggle, true);
-      bindDisclosureKeyboard(header, toggle);
-    }
-  );
+  bindNodeCollapse('phase');
 }
 function nodePanel(card) {
   return nodePanels(card)[0] || null;
@@ -252,28 +230,34 @@ function nodePanels(card) {
     return child !== header;
   });
 }
-function bindNodeCollapse() {
+function bindNodeCollapse(role) {
+  var phase = role === 'phase',
+    attribute = phase ? 'data-atf-phase-open' : 'data-atf-node-open',
+    bound = phase ? 'data-atf-phase-header-bound' : 'data-atf-node-collapse-bound';
   q(
-    '#test-view .test-content-detail [data-atf-node-role="request"],#test-view .test-content-detail [data-atf-node-role="validation"]'
+    phase ? '#test-view .test-content-detail [data-atf-node-role="phase"]' :
+      '#test-view .test-content-detail [data-atf-node-role="request"],#test-view .test-content-detail [data-atf-node-role="validation"]'
   ).forEach(function (card) {
     var header = card.querySelector(':scope>.card-header'),
-      panel = nodePanel(card);
+      panel = phase ? card.querySelector(':scope>.accordion') : nodePanel(card);
     if (!header || !panel) return;
-    var open = card.getAttribute('data-atf-node-open') === 'true';
-    setDisclosureState(card, panel, open, 'data-atf-node-open');
-    if (header.getAttribute('data-atf-node-collapse-bound')) return;
-    header.setAttribute('data-atf-node-collapse-bound', 'true');
+    var open = card.getAttribute(attribute) === 'true';
+    setDisclosureState(card, panel, open, attribute);
+    if (phase) applyPhaseBodyState(card, open);
+    if (header.getAttribute(bound)) return;
+    header.setAttribute(bound, 'true');
     var toggle = function (e) {
       if (e) {
         e.preventDefault();
         e.stopImmediatePropagation();
         e.stopPropagation();
       }
-      var open = card.getAttribute('data-atf-node-open') === 'true',
+      var open = card.getAttribute(attribute) === 'true',
         startedAt = atfPerformanceStart(),
         next = !open;
-      atfPerformanceCount('nodeToggles');
-      setDisclosureState(card, panel, next, 'data-atf-node-open');
+      atfPerformanceCount(phase ? 'phaseToggles' : 'nodeToggles');
+      setDisclosureState(card, panel, next, attribute);
+      if (phase) applyPhaseBodyState(card, next);
       atfPerformanceRecordDisclosureToggle(startedAt);
     };
     header.addEventListener('click', toggle, true);

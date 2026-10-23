@@ -17,9 +17,21 @@ import static atf.ui.practiceshop.support.ShopApiMethodFidelityFixture.REQUEST_J
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 @AtfComponentTest
 class ShopApiMethodFidelityTest {
+    @Test
+    void browserTimingAndUnavailablePayloadAreNotManufacturedAsZeroOrJsonNull() {
+        var unknown = ShopApiMethodFidelityFixture.browserEvidence(QUERY);
+        assertNull(unknown.response().duration());
+        assertNull(unknown.totalDuration());
+        assertNull(unknown.attemptHistory().getFirst().duration());
+        var unavailable = ShopApiMethodFidelityFixture.exchange(QUERY).withResponseBody(
+                ShopApiBodyEvidence.unavailable("Browser", "body not exposed"));
+        assertEquals(atf.api.reporting.api.evidence.ReportBodyAvailability.NOT_CAPTURED,
+                ShopApiEvidenceMapper.toExecution(unavailable).response().bodyAvailability());
+    }
     @Test
     void capturedMethodsRemainFaithfulInModelSignatureAndReplay() throws Exception {
         var json = new ObjectMapper();

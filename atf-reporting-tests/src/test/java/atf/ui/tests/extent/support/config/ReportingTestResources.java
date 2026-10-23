@@ -3,8 +3,8 @@ package atf.ui.tests.extent.support.config;
 import atf.api.mock.AtfMockConfiguration;
 import atf.api.mock.AtfMockConfigurationLoader;
 import atf.api.mock.AtfMockTransport;
+import atf.ui.tests.extent.support.config.output.UiReportOutputDirectory;
 
-import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
@@ -60,25 +60,8 @@ public final class ReportingTestResources {
         if (reportOverride != null) {
             loaded = loaded.withAuditInputReport(reportOverride);
         }
-        return loaded.withReportDirectory(reportDirectory(projectArtifactDirectory(process), testClass));
-    }
-
-    static Path reportDirectory(Path uiReportDirectory, Class<?> testClass) {
-        Path base = uiReportDirectory.toAbsolutePath().normalize();
-        if (testClass == null) return base;
-        UiReportSubdirectory annotation = testClass.getAnnotation(UiReportSubdirectory.class);
-        if (annotation == null) return base;
-        String value = annotation.value() == null ? "" : annotation.value().trim();
-        if (value.isEmpty()) throw new IllegalStateException("UI report subdirectory must not be blank");
-        Path relative = Path.of(value);
-        if (relative.isAbsolute()) {
-            throw new IllegalStateException("UI report subdirectory must be relative: " + value);
-        }
-        Path resolved = base.resolve(relative).normalize();
-        if (!resolved.startsWith(base)) {
-            throw new IllegalStateException("UI report subdirectory escapes the standard output directory: " + value);
-        }
-        return resolved;
+        Path directory = UiReportOutputDirectory.resolve(projectArtifactDirectory(process), testClass);
+        return loaded.withReportDirectory(directory);
     }
 
     private static Path projectArtifactDirectory(AtfUiConfigurationContext process) {

@@ -89,7 +89,7 @@ class ExtentReportInteractionContractTest {
                         "validation must be rendered inside the Gherkin request node, never as a phase sibling"),
                 () -> assertTrue(html.contains("function collapseDirectScenarioCards()")),
                 () -> assertTrue(containsJavaScriptSignature(html,
-                                "function collapseScenarioCards(force)")),
+                                "function collapseScenarioCards(force,root,open)")),
                  () -> assertTrue(html.contains("function setDisclosureState(card,panel,open,attribute)"),
                          "all card transitions must update panel, data state, aria and glyph through one helper"),
                 () -> assertTrue(html.contains("function bindScenarioCollapse()")),
@@ -122,7 +122,7 @@ class ExtentReportInteractionContractTest {
                 () -> assertTrue(html.contains("<td>URL</td><td class=\"atf-evidence-url-value\">"
                                 + ApiReportTestUrls.example(USERS) + "</td>"),
                         "technical trace must expose the request URL"),
-                () -> assertTrue(html.contains("<td>response.url</td><td class=\"atf-evidence-url-value\">"
+                () -> assertTrue(html.contains("<td>RESPONSE URL</td><td class=\"atf-evidence-url-value\">"
                                 + ApiReportTestUrls.example(USERS) + "</td>"),
                         "execution evidence must retain the effective URL"),
                 () -> assertTrue(html.contains("<td>HTTP STATUS</td><td>200</td>"),
@@ -215,7 +215,7 @@ class ExtentReportInteractionContractTest {
                 () -> assertTrue(html.contains("data-atf-node-role=\"request\"]>.card-header{background:#7AA2FF0B!important}")
                                 && html.contains("data-atf-node-role=\"validation\"]>.card-header{background:#FFFFFF06!important}"),
                         "request and validation substeps must remain visually distinct without overpowering the phase"),
-                () -> assertTrue(html.contains("function bindNodeCollapse()")
+                () -> assertTrue(html.contains("function bindNodeCollapse(role)")
                                 && html.contains("data-atf-node-open")
                                 && html.contains("bindNodeCollapse()"),
                         "request and validation disclosures must switch from plus to minus when opened"),
@@ -233,7 +233,8 @@ class ExtentReportInteractionContractTest {
                                  && html.contains("panels.forEach(function(child){child.classList.toggle('show',open);")
                                  && html.contains("child.style.setProperty('display',open?'block':'none','important')"),
                          "the shared disclosure helper must own every direct panel's visible state"),
-                 () -> assertTrue(html.contains("setDisclosureState(card,panel,next,'data-atf-node-open')")),
+                 () -> assertTrue(html.contains("attribute=phase?'data-atf-phase-open':'data-atf-node-open'")
+                                 && html.contains("setDisclosureState(card,panel,next,attribute)")),
                 () -> assertFalse(html.contains("class=\"collapse show\""),
                         "evidence must start collapsed in the artifact")
         );

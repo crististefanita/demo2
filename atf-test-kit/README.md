@@ -56,6 +56,12 @@ Fiecare clasă executabilă declară exact un nivel:
 
 ### Limite de responsabilitate pentru extensii viitoare
 
+- selecția transversală `UI` / `API` / `UI_API`, distinctă de layer, este propusă în
+  [feedback-ul adnotărilor de canal](../docs/feedback/ATF_Test_Channel_Annotations_Feedback.md);
+  nu este încă implementată și nu înlocuiește adaptoarele consumerilor;
+- extracția adnotărilor output/setup/docs este analizată în
+  [feedback-ul infrastructurii de adnotări](../docs/feedback/ATF_Test_Infrastructure_Annotations_Feedback.md);
+  contractele propuse nu sunt încă implementate în kit;
 - contractul generic pentru flow mode, screenshot policy și capture source este în
   [`docs/ATF_Evidence_Capture_Contract.md`](../docs/ATF_Evidence_Capture_Contract.md);
 - `atf-test-kit` poate deține mapping-ul transversal numai după un contract typed

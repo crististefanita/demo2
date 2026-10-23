@@ -1,4 +1,6 @@
 package atf.api.reporting.evidence;
+import atf.api.reporting.api.evidence.ReportExecutionSummary;
+import atf.api.reporting.api.evidence.ReportTransportTiming;
 import atf.api.reporting.api.ReportAttemptRecord;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.duration.AtfDurationFormatter;
@@ -194,13 +196,7 @@ public final class ExtentTransportEvidenceRenderer {
                 .append(AtfReportMarkup.table(AtfReportHtmlVocabulary.classList(
                         AtfReportHtmlVocabulary.CssClass.HELM_EVIDENCE_TABLE,
                         AtfReportHtmlVocabulary.CssClass.EXECUTION_TABLE),
-                        ReportEvidenceTable.of(List.of(AtfReportLabels.FIELD, AtfReportLabels.VALUE), List.of(
-                                List.of(AtfReportLabels.RESPONSE_STATUS, execution.response().statusLabel()),
-                                List.of(AtfReportLabels.RESPONSE_URL, redactor.redactText(execution.response().url())),
-                                List.of(AtfReportLabels.RESPONSE_DURATION_MS, AtfDurationFormatter.format(execution.response().duration())),
-                                List.of(AtfReportLabels.ATTEMPTS, String.valueOf(execution.attempts())),
-                                List.of(AtfReportLabels.RETRY_EVENTS, String.valueOf(execution.retryEvents().size()))
-                        ))).getMarkup());
+                        ReportExecutionSummary.table(execution, redactor)).getMarkup());
         if (!execution.attemptHistory().isEmpty()) {
             body.append(AtfReportMarkup.table(AtfReportHtmlVocabulary.classList(
                             AtfReportHtmlVocabulary.CssClass.HELM_EVIDENCE_TABLE,
@@ -237,7 +233,7 @@ public final class ExtentTransportEvidenceRenderer {
         var rows = attempts.stream().map(attempt -> List.of(
                 String.valueOf(attempt.number()),
                 attempt.statusLabel(),
-                AtfDurationFormatter.format(attempt.duration()),
+                ReportTransportTiming.display(attempt.duration()),
                 attempt.outcome(),
                 redactor.redactText(attempt.reason()))).toList();
         return ReportEvidenceTable.of(List.of(AtfReportLabels.ATTEMPT, AtfReportLabels.STATUS,

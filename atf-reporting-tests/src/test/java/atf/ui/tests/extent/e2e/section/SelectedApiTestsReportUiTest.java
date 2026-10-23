@@ -14,7 +14,7 @@ import atf.api.reporting.ui.audit.plan.UiExtentReportSource;
 import atf.api.reporting.ui.audit.plan.UiExtentSectionAudit;
 import atf.ui.tests.extent.support.config.ReportingTestResources;
 import atf.ui.tests.extent.support.config.UiConfiguration;
-import atf.ui.tests.extent.support.config.UiReportSubdirectory;
+import atf.ui.tests.extent.support.config.output.UiReportSubdirectory;
 import atf.api.core.config.module.AtfModule;
 import atf.api.reporting.test.AtfModuleTest;
 import atf.ui.tests.extent.support.section.runtime.SectionAuditFixture;

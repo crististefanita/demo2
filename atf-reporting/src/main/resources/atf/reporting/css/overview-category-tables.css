@@ -47,15 +47,11 @@
 }
 .dashboard-view .category-container > .card > .card-body,
 .dashboard-view .sysenv-container > .card > .card-body {
-  height: auto !important;
-  max-height: var(--atf-table-scroll-height) !important;
   padding: 0 !important;
   border: 1px solid var(--atf-border) !important;
   border-top: 0 !important;
   border-radius: 0 0 8px 8px !important;
   background: var(--atf-dark) !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
 }
 .dashboard-view .category-container > .card > .card-body > table,
 .dashboard-view .sysenv-container > .card > .card-body > table {

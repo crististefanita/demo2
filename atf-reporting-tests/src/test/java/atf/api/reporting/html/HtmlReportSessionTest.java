@@ -68,6 +68,8 @@ class HtmlReportSessionTest {
         assertFalse(html.contains("font:14px Arial,sans-serif"));
         assertTrue(html.contains("activate('overview')"));
         assertFalse(html.contains("extent/"));
+        assertTrue(html.contains("<link rel=\"icon\" href=\"data:,\""),
+                "the offline fallback must not request the host's implicit favicon");
     }
 
     @Test
@@ -126,7 +128,7 @@ class HtmlReportSessionTest {
                 () -> assertTrue(html.contains("Request details · 2 fields")),
                 () -> assertTrue(html.contains("Response details · 1 field")),
                 () -> assertTrue(html.contains("Execution evidence · 1 attempt")),
-                () -> assertTrue(html.contains("response.duration.ms")),
+                () -> assertTrue(html.contains("RESPONSE DURATION")),
                 () -> assertTrue(html.contains("execution-evidence")),
                 () -> assertTrue(html.contains("request-details-content")),
                 () -> assertTrue(html.contains("response-details-content")),
@@ -135,7 +137,7 @@ class HtmlReportSessionTest {
                 () -> assertTrue(html.contains("helm-api-classification-label\">TECHNICAL TRACE</span>")),
                 () -> assertFalse(html.contains("[+] expand")),
                 () -> assertTrue(html.contains(
-                        "<div class=\"atf-trace-table-wrap\"><table class=\"helm-evidence-table helm-trace-table\">")),
+                        "<div class=\"atf-trace-table-wrap\" tabindex=\"0\"><table class=\"helm-evidence-table helm-trace-table\">")),
                 () -> assertTrue(html.indexOf("</table></div>", html.indexOf(
                                 "class=\"atf-trace-table-wrap\""))
                                 < html.indexOf("class=\"response-json-body\""),

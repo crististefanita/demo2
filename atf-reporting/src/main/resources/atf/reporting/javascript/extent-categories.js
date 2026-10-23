@@ -4,65 +4,43 @@ function categoryItems() {
   return q('#category-view .test-list-wrapper>.test-list-item>.test-item');
 }
 function categoryStatusValues(item, selector) {
-  return q(selector, item)
-    .map(function (node) {
-      return String(node.getAttribute('status') || '')
-        .trim()
-        .toLowerCase();
-    })
+  return q(selector || '.test-contents .info [status],.test-contents tr.tag-test-status[status]', item)
+    .map(node => String(node.getAttribute('status') || '').trim().toLowerCase())
     .filter(Boolean);
 }
 function categoryHasStatus(item, status) {
   var wanted = String(status || '')
       .trim()
       .toLowerCase(),
-    summary = categoryStatusValues(item, '.test-contents .info [status]'),
-    rows = categoryStatusValues(
-      item,
-      '.test-contents tr.tag-test-status[status]'
-    );
-  if (wanted === 'warning')
-    return rows.indexOf('warning') >= 0 || summary.indexOf('warning') >= 0;
-  if (wanted === 'skip')
-    return rows.indexOf('skip') >= 0 || summary.indexOf('skip') >= 0;
-  if (wanted === 'fail')
-    return rows.indexOf('fail') >= 0 || summary.indexOf('fail') >= 0;
-  if (wanted === 'pass')
-    return summary.indexOf('pass') >= 0 || rows.indexOf('pass') >= 0;
-  return false;
+    values = categoryStatusValues(item);
+  return (wanted === 'pass' || wanted === 'fail' || wanted === 'warning' || wanted === 'skip')
+    && values.indexOf(wanted) >= 0;
 }
 function categoryStatus(item) {
-  var summary = categoryStatusValues(item, '.test-contents .info [status]'),
-    rows = categoryStatusValues(
-      item,
-      '.test-contents tr.tag-test-status[status]'
-    );
-  return summary.indexOf('fail') >= 0 || rows.indexOf('fail') >= 0
-    ? 'fail'
-    : rows.indexOf('warning') >= 0 || summary.indexOf('warning') >= 0
-      ? 'warning'
-      : rows.indexOf('skip') >= 0 || summary.indexOf('skip') >= 0
-        ? 'skip'
-        : 'pass';
+  var values = categoryStatusValues(item);
+  return ['fail', 'warning', 'skip'].find(status =>
+    values.indexOf(status) >= 0) || 'pass';
 }
 function categoryName(item) {
   return text(item, '.test-detail .name').trim().toLowerCase();
 }
 function categoryFilterMarkup() {
-  return '<li class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown" aria-label="Filter categories by status"><i class="fa fa-exclamation-circle"></i></a><ul id="category-status-toggle" class="dropdown-menu dropdown-md p-v-0"><a class="dropdown-item" data-filter-kind="status" data-filter-value="pass" href="#"><span>Pass</span><span class="status success"></span></a><a class="dropdown-item" data-filter-kind="status" data-filter-value="fail" href="#"><span>Fail</span><span class="status danger"></span></a><a class="dropdown-item" data-filter-kind="status" data-filter-value="warning" href="#"><span>Warning</span><span class="status warning"></span></a><a class="dropdown-item" data-filter-kind="status" data-filter-value="skip" href="#"><span>Skip</span><span class="status warning"></span></a><div class="dropdown-divider"></div><a class="dropdown-item" data-filter-kind="status" data-filter-value="clear" href="#"><span>Clear</span><span class="pull-right"><i class="fa fa-close"></i></span></a></ul></li><li class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown" aria-label="Filter categories by tag"><i class="fa fa-tag"></i></a><ul id="category-tag-toggle" class="dropdown-menu dropdown-md p-v-0"></ul></li>';
+  var statuses = [['pass', 'Pass', 'success'], ['fail', 'Fail', 'danger'], ['warning', 'Warning', 'warning']];
+  var items = statuses.map(item =>
+    '<a class="dropdown-item" data-filter-kind="status" data-filter-value="' + item[0] +
+    '" href="#"><span>' + item[1] + '</span><span class="status ' + item[2] + '"></span></a>'
+  ).join('');
+  return '<li class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown" aria-label="Filter categories by status"><i class="fa fa-exclamation-circle"></i></a><ul id="category-status-toggle" class="dropdown-menu dropdown-md p-v-0">' + items +
+    '<a class="dropdown-item" data-filter-kind="status" data-filter-value="skip" href="#"><span>Skip</span><span class="status warning"></span></a><div class="dropdown-divider"></div><a class="dropdown-item" data-filter-kind="status" data-filter-value="clear" href="#"><span>Clear</span><span class="pull-right"><i class="fa fa-close"></i></span></a></ul></li><li class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown" aria-label="Filter categories by tag"><i class="fa fa-tag"></i></a><ul id="category-tag-toggle" class="dropdown-menu dropdown-md p-v-0"></ul></li>';
 }
 function refreshCategoryFilterOptions() {
   var menu = document.querySelector('#category-tag-toggle');
   if (!menu) return;
   menu.innerHTML =
     '<a class="dropdown-item" data-filter-kind="tag" data-filter-value="clear" href="#">All categories</a>';
-  categoryItems()
-    .map(categoryName)
-    .filter(function (value, index, values) {
-      return value && values.indexOf(value) === index;
-    })
+  Array.from(new Set(categoryItems().map(categoryName).filter(Boolean)))
     .sort()
-    .forEach(function (value) {
+    .forEach(value => {
       var item = document.createElement('a');
       item.className = 'dropdown-item';
       item.href = '#';
@@ -75,7 +53,7 @@ function refreshCategoryFilterOptions() {
 function refreshCategoryFilterSelection() {
   q(
     '#category-status-toggle .dropdown-item,#category-tag-toggle .dropdown-item'
-  ).forEach(function (item) {
+  ).forEach(item => {
     var kind = item.getAttribute('data-filter-kind'),
       value = item.getAttribute('data-filter-value'),
       selected =
@@ -92,7 +70,7 @@ function applyCategoryFilters() {
     ),
     selectedVisible = false,
     firstVisible = null;
-  categoryItems().forEach(function (item) {
+  categoryItems().forEach(item => {
     var match =
       (!atfCategoryFilterState.status ||
         categoryHasStatus(item, atfCategoryFilterState.status)) &&
@@ -121,7 +99,7 @@ function setCategoryFilter(kind, value) {
 function bindCategoryFilters() {
   q(
     '#category-status-toggle .dropdown-item,#category-tag-toggle .dropdown-item'
-  ).forEach(function (item) {
+  ).forEach(item => {
     if (item.getAttribute('data-atf-filter-bound')) return;
     item.setAttribute('data-atf-filter-bound', 'true');
     item.addEventListener(
@@ -169,11 +147,7 @@ function categoryScenarioIndex(link, id) {
   return 0;
 }
 function openCategoryTest(id, index) {
-  if (index === undefined) {
-    atfOpenTest(id);
-  } else {
-    atfOpenTest(id, index);
-  }
+  atfOpenTest(id, index);
 }
 function normalizeCategoryLinks() {
   q('#category-view .test-content-detail a.linked[test-id]').forEach(
@@ -211,14 +185,14 @@ function renderCategoryDetail(item) {
 }
 function selectCategory(item) {
   if (!item) return;
-  categoryItems().forEach(function (candidate) {
+  categoryItems().forEach(candidate => {
     candidate.classList.toggle('active', candidate === item);
   });
   atfCategoryState.selectedName = text(item, '.test-detail .name');
   renderCategoryDetail(item);
 }
 function bindCategorySelection() {
-  categoryItems().forEach(function (item) {
+  categoryItems().forEach(item => {
     if (item.getAttribute('data-atf-category-bound')) return;
     item.setAttribute('data-atf-category-bound', 'true');
     item.addEventListener(

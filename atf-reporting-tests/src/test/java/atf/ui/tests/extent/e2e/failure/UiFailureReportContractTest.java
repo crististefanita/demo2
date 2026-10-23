@@ -6,7 +6,7 @@ import atf.ui.tests.extent.support.failure.UiFailureReportFixture;
 import atf.api.reporting.ui.failure.UiFailureReportAudit;
 import atf.ui.tests.extent.support.config.ReportingTestResources;
 import atf.ui.tests.extent.support.config.UiConfiguration;
-import atf.ui.tests.extent.support.config.UiReportSubdirectory;
+import atf.ui.tests.extent.support.config.output.UiReportSubdirectory;
 import atf.api.core.config.module.AtfModule;
 import atf.api.reporting.test.AtfModuleTest;
 import org.junit.jupiter.api.AfterAll;

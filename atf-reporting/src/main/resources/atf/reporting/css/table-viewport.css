@@ -1,0 +1,29 @@
+/* One policy for data tables. Vendor layout/event tables are intentionally excluded. */
+:is(${SCROLL_SURFACES}) {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: var(--atf-table-scroll-height) !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  scrollbar-gutter: stable !important;
+}
+:is(${TABLE_VIEWPORTS}) > table {
+  width: 100% !important;
+  max-width: 100% !important;
+  table-layout: fixed !important;
+  margin: 0 !important;
+}
+:is(${TABLE_VIEWPORTS}) > table :is(th, td) {
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+:is(${SCROLL_SURFACES}) > table > thead th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 2 !important;
+  background: var(--atf-panel-2) !important;
+}

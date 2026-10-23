@@ -1,4 +1,4 @@
-package atf.ui.tests.extent.support.config;
+package atf.ui.tests.extent.support.config.output;
 
 import atf.api.testkit.AtfUnitTest;
 import org.junit.jupiter.api.Test;
@@ -7,6 +7,7 @@ import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static atf.ui.tests.extent.support.config.output.UiReportOutputDirectory.resolve;
 
 @AtfUnitTest
 class UiReportSubdirectoryTest {
@@ -20,23 +21,39 @@ class UiReportSubdirectoryTest {
     @Test
     void annotatedSuiteReportUsesRelativeE2eDirectory() {
         assertEquals(UI_REPORTS.resolve("e2e").toAbsolutePath().normalize(),
-                ReportingTestResources.reportDirectory(UI_REPORTS, E2eReportOwner.class));
+                resolve(UI_REPORTS, E2eReportOwner.class));
     }
 
     @Test
     void unannotatedReportsKeepTheExistingUiDirectory() {
         assertEquals(UI_REPORTS.toAbsolutePath().normalize(),
-                ReportingTestResources.reportDirectory(UI_REPORTS, DefaultReportOwner.class));
+                resolve(UI_REPORTS, DefaultReportOwner.class));
         assertEquals(UI_REPORTS.toAbsolutePath().normalize(),
-                ReportingTestResources.reportDirectory(UI_REPORTS, null));
+                resolve(UI_REPORTS, null));
     }
 
     @Test
     void annotationCannotEscapeTheUiReportDirectory() {
         assertThrows(IllegalStateException.class,
-                () -> ReportingTestResources.reportDirectory(UI_REPORTS, TraversalReportOwner.class));
+                () -> resolve(UI_REPORTS, TraversalReportOwner.class));
+    }
+
+    @Test
+    void annotationCannotSelectAnAbsoluteDirectory() {
+        assertThrows(IllegalStateException.class, () -> resolve(UI_REPORTS, AbsoluteReportOwner.class));
+    }
+
+    @Test
+    void annotationCannotSelectABlankDirectory() {
+        assertThrows(IllegalStateException.class, () -> resolve(UI_REPORTS, BlankReportOwner.class));
     }
 
     @UiReportSubdirectory("../api")
     private static final class TraversalReportOwner { }
+
+    @UiReportSubdirectory("C:/outside-ui")
+    private static final class AbsoluteReportOwner { }
+
+    @UiReportSubdirectory("  ")
+    private static final class BlankReportOwner { }
 }

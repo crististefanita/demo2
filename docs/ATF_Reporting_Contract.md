@@ -154,8 +154,8 @@ Auditul consumerului păstrează câte un nod pentru fiecare schimb observat și
 atașează `Contract validation` numai când producătorul a asociat schimbului un
 contract HTTP tipizat. Statusul așteptat este explicit și comparat cu statusul
 observat; statusul observat sau verdictul JUnit nu îl înlocuiește. Completitudinea
-capturii și eșecul metodei JUnit sunt detalii la nivel de fază, publicate o singură
-dată, nu aserțiuni repetate pe fiecare schimb.
+capturii rămâne context intern al fazei; eșecul JUnit și asocierea lipsă sunt
+diagnostice explicite ale scenariului, nu aserțiuni repetate pe fiecare schimb.
 
 Reguli de ownership:
 
@@ -229,12 +229,14 @@ rendererul fallback:
   real de rânduri ale tabelului trace;
 - `Request details` conține method, URL/path, headers, params, auth și request
   body înainte de transport;
-- `request.action` și `request.target` identifică intern checkpoint-ul UI și
-  nu sunt câmpuri HTTP publice. Proiecția Extent/fallback le exclude din ambele
+- `request.action`, `request.target`, `evidence.type` și `evidence.policy` sunt
+  context intern al checkpoint-ului, nu câmpuri HTTP publice. Proiecția Extent/fallback le exclude din ambele
   tabele request/response, păstrând modelul semantic. Un checkpoint ale cărui
   singure detalii sunt aceste chei nu publică tabelul `Status / Details / Info`
   sau un disclosure gol; validările UI/API rămân copiii propoziției;
-- filtrarea acestor două chei nu elimină țintele acțiunilor Playwright și nu
+- tipul `screen-validation` delimitează filtrarea politicii; contractele
+  `api-trace`/`unified-ui-flow` și diagnosticul capturii `ui-failure` se păstrează;
+- filtrarea exactă a acestor chei nu elimină țintele acțiunilor Playwright și nu
   suprimă `Request details`, JSON-ul sau execution evidence ale exchange-urilor
   HTTP din `API validation`;
 - în artefactele noi, fiecare exchange UI+API are propriul nod și cele trei
@@ -280,7 +282,12 @@ rendererul fallback:
   deruleze până la ultimul rând cu header sticky. Regula acoperă
   System/Environment, Category/Overview, tag audit, Playwright action, audit
   observations, assertions, tabelul `TECHNICAL TRACE` din `Response details` și
-  echivalentele API/UI; nu există înălțimi hardcodate per renderer. Tabelul
+  echivalentele API/UI, inclusiv setup și execution din toate fazele; nu există
+  înălțimi hardcodate per renderer. Titlurile și contoarele rămân neschimbate.
+  `ReportTableViewport` aplică implicit politica la emiterea oricărui tabel
+  de date, indiferent de titlu sau numărul rândurilor; wrapperul este focusabil
+  și nu depinde de un părinte `validation`. Tabelele de layout ale evenimentelor
+  nu se învelesc într-un al doilea viewport. Tabelul
   `TECHNICAL TRACE` folosește wrapperul comun `atf-trace-table-wrap` și
   derulează în containerul său, fără să includă disclosure-ul exterior sau
   blocul JSON. Blocurile JSON/code sunt payload panes, nu tabele,

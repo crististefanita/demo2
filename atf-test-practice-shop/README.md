@@ -341,6 +341,11 @@ real. Fluxul E2E rămâne proba separată a integrării și a rezultatului de bu
 - Ambele moduri lasă traficul browserului să continue normal. `UI_ONLY` oprește
   numai capturarea/publicarea API evidence.
 
+Standardizarea acestor profile și a testelor API-only printr-o adnotare
+reutilizabilă TestKit este analizată în
+[feedback-ul adnotărilor de canal](../docs/feedback/ATF_Test_Channel_Annotations_Feedback.md).
+Este o propunere, nu un API disponibil; selecția locală de mai sus rămâne activă.
+
 Cele două E2E autentificate au aceeași structură de purchase; setup-ul contului
 este intenționat diferit:
 

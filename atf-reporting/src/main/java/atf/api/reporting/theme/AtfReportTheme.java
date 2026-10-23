@@ -1,4 +1,5 @@
 package atf.api.reporting.theme;
+import atf.api.reporting.asset.ReportAssetComposer;
 import atf.api.reporting.theme.css.AtfReportThemeBaseCss;
 import atf.api.reporting.theme.css.AtfReportThemeDetailCss;
 import atf.api.reporting.theme.css.AtfReportThemeNavigationCss;
@@ -38,7 +39,8 @@ public final class AtfReportTheme {
                 + AtfReportThemeResponsiveCss.css()
                 + AtfReportFailsLayoutCss.css()
                 + AtfReportThemeDetailCss.css()
-                + AtfReportThemeScenarioCss.css();
+                + AtfReportThemeScenarioCss.css()
+                + ReportAssetComposer.tableViewportCss();
     }
 }
 

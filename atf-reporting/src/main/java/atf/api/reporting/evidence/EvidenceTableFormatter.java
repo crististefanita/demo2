@@ -11,6 +11,9 @@ import java.util.Locale;
 
 import static atf.api.reporting.markup.AtfReportEvidenceKeys.REQUEST_ACTION;
 import static atf.api.reporting.markup.AtfReportEvidenceKeys.REQUEST_TARGET;
+import static atf.api.reporting.markup.AtfReportEvidenceKeys.EVIDENCE_TYPE;
+import static atf.api.reporting.markup.AtfReportEvidenceKeys.EVIDENCE_POLICY;
+import static atf.api.reporting.markup.AtfReportEvidenceKeys.SCREEN_VALIDATION;
 
 /** Gives request evidence one stable, human-readable vocabulary. */
 public final class EvidenceTableFormatter {
@@ -52,9 +55,12 @@ public final class EvidenceTableFormatter {
     /** Canonical typed serializer for Extent evidence tables. */
     public static List<ReportField> technicalTraceFields(List<ReportField> details) {
         if (details == null || details.isEmpty()) return List.of();
+        boolean checkpoint = details.stream().anyMatch(detail -> detail != null
+                && isUiCheckpointType(detail.name(), detail.value()));
         return details.stream()
                 .filter(detail -> detail != null)
                 .filter(detail -> !isInternalUiContext(detail.name()))
+                .filter(detail -> !checkpoint || !isUiCheckpointPolicy(detail.name()))
                 .filter(detail -> !isRequestDetail(detail.name()))
                 .filter(detail -> !isExecutionSummaryField(detail.name()))
                 .toList();
@@ -78,9 +84,12 @@ public final class EvidenceTableFormatter {
      */
     public static List<String[]> technicalTraceDetails(List<String[]> details) {
         if (details == null || details.isEmpty()) return List.of();
+        boolean checkpoint = details.stream().anyMatch(detail -> detail != null && detail.length > 1
+                && isUiCheckpointType(detail[0], detail[1]));
         return details.stream()
                 .filter(detail -> detail != null && detail.length > 0)
                 .filter(detail -> !isInternalUiContext(detail[0]))
+                .filter(detail -> !checkpoint || !isUiCheckpointPolicy(detail[0]))
                 .filter(detail -> !isRequestDetail(detail[0]))
                 .filter(detail -> !isExecutionSummaryField(detail[0]))
                 .toList();
@@ -95,12 +104,22 @@ public final class EvidenceTableFormatter {
                 .toList();
     }
 
-    /** UI checkpoint identity stays in the model, outside public HTTP evidence. */
+    /** Checkpoint identity and evidence policy stay in the model, outside public HTTP evidence. */
     private static boolean isInternalUiContext(String key) {
         if (key == null) return false;
         String normalized = key.trim();
         return REQUEST_ACTION.equalsIgnoreCase(normalized)
                 || REQUEST_TARGET.equalsIgnoreCase(normalized);
+    }
+
+    private static boolean isUiCheckpointType(String key, String value) {
+        return key != null && value != null && EVIDENCE_TYPE.equalsIgnoreCase(key.trim())
+                && SCREEN_VALIDATION.equalsIgnoreCase(value.trim());
+    }
+
+    private static boolean isUiCheckpointPolicy(String key) {
+        return key != null && (EVIDENCE_TYPE.equalsIgnoreCase(key.trim())
+                || EVIDENCE_POLICY.equalsIgnoreCase(key.trim()));
     }
 
     public static boolean isRequestDetail(String key) {
@@ -140,6 +159,8 @@ public final class EvidenceTableFormatter {
         return switch (normalized) {
             case "method" -> "METHOD";
             case "path" -> "PATH";
+            case "request.operation.kind" -> "OPERATION KIND";
+            case "request.route.template" -> "ROUTE TEMPLATE";
             case "url" -> "URL";
             case "auth.mode" -> "AUTHENTICATION";
             case "auth.type", "auth type" ->
@@ -151,7 +172,7 @@ public final class EvidenceTableFormatter {
             case "response.status" -> "RESPONSE STATUS";
             case "response.content.type" -> "CONTENT TYPE";
             case "response.duration.ms" -> "RESPONSE DURATION";
-            case "exchange.duration.ms" -> "TOTAL DURATION";
+            case "exchange.duration.ms", "total.duration.ms" -> "TOTAL DURATION";
             case "trace.parent.step" -> "TRACE PARENT STEP";
             case "trace.position" -> "TRACE POSITION";
             case "trace.exchange" -> "TRACE EXCHANGE";

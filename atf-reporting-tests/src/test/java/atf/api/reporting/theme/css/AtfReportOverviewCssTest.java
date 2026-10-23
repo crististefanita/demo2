@@ -1,6 +1,7 @@
 package atf.api.reporting.theme.css;
 import atf.api.testkit.AtfUnitTest;
 import atf.api.reporting.theme.AtfReportTheme;
+import atf.api.reporting.asset.ReportAssetComposer;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -25,7 +26,8 @@ class AtfReportOverviewCssTest {
                 () -> assertTrue(layout.contains(".atf-secondary-overview[open]>:not(summary)")),
                 () -> assertTrue(tagAudit.contains(".atf-tag-table{width:100%!important")),
                 () -> assertTrue(categoryTables.contains(".dashboard-view .category-container>.card>.card-body")),
-                () -> assertTrue(categoryTables.contains("height:auto!important;max-height:var(--atf-table-scroll-height)!important"),
+                () -> assertTrue(ReportAssetComposer.tableViewportCss()
+                                .contains("height:auto!important;min-height:0!important;max-height:var(--atf-table-scroll-height)!important"),
                         "short Overview/System tables must stay content-sized under the shared scroll cap"),
                 () -> assertTrue(categoryTables.contains("position:sticky!important;top:0!important")),
                 () -> assertTrue(categoryStatus.contains(".category-view .test-list")),

@@ -6,6 +6,7 @@ import atf.api.reporting.api.ReportResponse;
 import atf.api.reporting.api.ReportRetryEvent;
 import atf.api.reporting.api.ReportTraceMetadata;
 import atf.api.reporting.api.ReportTransportProvenance;
+import atf.api.reporting.api.evidence.ReportTransportTiming;
 import java.time.Duration;
 import java.util.List;
 
@@ -17,7 +18,7 @@ public record ReportExecutionEvidence(ReportResponse response, int attempts, Dur
     public ReportExecutionEvidence {
         retryEvents=retryEvents==null?List.of():List.copyOf(retryEvents);
         attemptHistory=attemptHistory==null?List.of():List.copyOf(attemptHistory);
-        totalDuration=totalDuration==null?Duration.ZERO:totalDuration;
+        ReportTransportTiming.validate(totalDuration);
         provenance=provenance==null?ReportTransportProvenance.UNKNOWN:provenance;
         trace=trace==null?ReportTraceMetadata.from(request):trace;
     }

@@ -12,8 +12,12 @@ public final class ApiAuthenticationEvidence {
 
     public static void publishTo(AtfReportPorts.Request target, ReportRequest snapshot) {
         Objects.requireNonNull(target, "target");
+        publishTo(target::detail, snapshot);
+    }
+
+    public static void publishTo(java.util.function.BiConsumer<String, String> detail, ReportRequest snapshot) {
         Objects.requireNonNull(snapshot, "snapshot");
-        target.detail(ApiEvidenceField.AUTH_PROFILE.label(), snapshot.authProfile());
-        target.detail(ApiEvidenceField.AUTH_TYPE.label(), snapshot.authMethod().wireValue());
+        detail.accept(ApiEvidenceField.AUTH_PROFILE.label(), snapshot.authProfile());
+        detail.accept(ApiEvidenceField.AUTH_TYPE.label(), snapshot.authMethod().wireValue());
     }
 }

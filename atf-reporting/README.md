@@ -242,6 +242,9 @@ TestCase
 | layout | `＋/−` este inline înaintea propoziției; Request details, Response details și Execution evidence sunt disclosures surori în request; Contract validation este copilul lui; UI/API validations sunt copii surori ale aceluiași checkpoint Gherkin |
 | responsive evidence | până la breakpoint-ul de lucru (`1300px`), action tables se redimensionează și împachetează conținutul fără scrollbar orizontal; padding-ul lateral al wrapperului este eliminat semantic, nu prin crop | 
 | tabele cu derulare | containerele folosesc `height:auto` și `max-height:var(--atf-table-scroll-height)`, derivat din `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT` (`500px` în prezent); conținutul scurt nu rezervă spațiu gol, conținutul lung derulează sub antetul fix, iar panourile JSON/cod nu intră în acest contract |
+| politica comună de viewport | `ReportTableViewport` și asset-ul `table-viewport.css` sunt comune Extent/fallback; builderul învelește implicit orice tabel de date, inclusiv setup, execution și familii viitoare. Regula nu depinde de titlu, contor, fază sau părinte `validation`; wrapperul este focusabil pentru scroll din tastatură |
+| limitele viewportului | un singur wrapper per tabel; tabelele de layout `Status / Details`, copiii și screenshot-urile nu intră în viewport. Normalizarea legacy verifică numai părintele direct al tabelului candidat și reutilizează wrapperul existent |
+| scroll local la input | `table-viewport.js` izolează rotița și navigarea din tastatură de panoul gazdă; inputurile, linkurile, summary-urile și panourile de cod își păstrează comportamentul. Există un singur binding delegat, fără scanări la fiecare gest |
 | `TECHNICAL TRACE` | toate tabelele `helm-trace-table` sunt învelite de markup-ul comun `atf-trace-table-wrap`; wrapperul folosește `height:auto`, `max-height:var(--atf-table-scroll-height)`, scroll vertical și header sticky. Se aplică în Extent și fallback, strict tabelului, nu disclosure-ului exterior sau JSON-ului |
 | request metadata / retry history | tabelele `helm-request-table` și `retry-history-table` folosesc același wrapper `atf-api-table-wrap`, plafon CSS și header sticky în Extent și fallback; JSON-ul rămâne în afara wrapperului |
 | etichete de cardinalitate | `AtfReportLabels` este sursa comună Extent/fallback: `1 field/check/attempt/entry`, respectiv plural pentru zero și mai multe; publisherii nu compun etichete local |
@@ -294,13 +297,16 @@ UI checkpoint
         └── Execution evidence → attempts/retries/duration/outcome
 ```
 
-- `request.action` și `request.target` sunt context intern al checkpoint-ului:
+- `request.action`, `request.target`, `evidence.type` și `evidence.policy` sunt
+  context intern al checkpoint-ului:
   rămân în model și în diagnosticul configurat, dar nu se publică în tabelele
   request/response. `EvidenceTableFormatter` aplică aceeași proiecție Extent,
   fallback și legacy, cu potrivire exactă a cheilor, indiferent de casing;
-- checkpoint-ul UI nu primește un `Request details · 2 fields` sau un tabel
-  introductiv `Status / Details / Info` doar pentru identitatea propoziției și
-  ținta ei. Fără câmpuri/payload publice, rendererul nu creează un log gol;
+- tipul `screen-validation` delimitează filtrarea politicii; contractele explicite
+  `api-trace`/`unified-ui-flow` și diagnosticul capturii `ui-failure` rămân neschimbate;
+- checkpoint-ul UI nu primește `Request details`, `Response details` sau un
+  tabel introductiv `Status / Details / Info` pentru identitate ori politică.
+  Fără câmpuri/payload publice, rendererul nu creează un log gol;
 - țintele acțiunilor Playwright, screenshot-urile și aserțiunile rămân în
   `UI validation`; câmpurile HTTP reale rămân publice la exchange-ul API;
 - disclosures sunt închise by default și aparțin exchange-ului API;

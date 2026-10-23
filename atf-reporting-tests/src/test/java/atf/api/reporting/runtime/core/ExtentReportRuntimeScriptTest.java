@@ -325,7 +325,7 @@ class ExtentReportRuntimeScriptTest {
                         "opening a scenario must recalculate the visible cloned phase tree"),
                 () -> assertTrue(html.contains("if(next){assignNodeRoles();aggregateClassDurations();normalizeEvidenceDisclosures();bindPhaseCollapse();"),
                         "manual scenario expansion must normalize semantic evidence before the user inspects it"),
-                () -> assertTrue(html.contains("function bindNodeCollapse()")
+                () -> assertTrue(html.contains("function bindNodeCollapse(role)")
                                 && html.contains("data-atf-node-open"),
                         "the THEN card must receive the same plus/minus interaction contract as UI validation"));
     }

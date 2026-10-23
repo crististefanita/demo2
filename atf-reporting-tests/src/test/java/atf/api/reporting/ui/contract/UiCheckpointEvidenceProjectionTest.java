@@ -12,7 +12,14 @@ import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.ArrayList;
 
+import static atf.api.reporting.markup.AtfReportEvidenceKeys.EVIDENCE_TYPE;
+import static atf.api.reporting.markup.AtfReportEvidenceKeys.EVIDENCE_POLICY;
+import static atf.api.reporting.markup.AtfReportEvidenceKeys.SCREEN_VALIDATION;
+import static atf.api.reporting.markup.AtfReportEvidenceKeys.API_TRACE;
+import static atf.api.reporting.markup.AtfReportEvidenceKeys.UNIFIED_UI_FLOW;
+import static atf.api.reporting.markup.AtfReportEvidenceKeys.UI_FAILURE;
 import static atf.api.reporting.markup.AtfReportEvidenceKeys.REQUEST_ACTION;
 import static atf.api.reporting.markup.AtfReportEvidenceKeys.REQUEST_TARGET;
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -31,12 +38,15 @@ class UiCheckpointEvidenceProjectionTest {
     void typedAndLegacyProjectionExcludeContextWithoutLosingRealTransportFields() {
         var context = List.of(
                 new ReportField(REQUEST_ACTION, UI_TITLE),
-                new ReportField(" REQUEST.TARGET ", UI_TARGET));
+                new ReportField(" REQUEST.TARGET ", UI_TARGET),
+                new ReportField(EVIDENCE_TYPE, SCREEN_VALIDATION),
+                new ReportField(" EVIDENCE.POLICY ", "each-checkpoint"));
         var method = new ReportField("method", "POST");
         var url = new ReportField("url", "https://api.example.test/cart");
         var extension = new ReportField("request.custom", "public request extension");
         var response = new ReportField("HTTP STATUS", "201");
-        var mixed = List.of(context.get(0), context.get(1), method, url, extension, response);
+        var mixed = new ArrayList<>(context);
+        mixed.addAll(List.of(method, url, extension, response));
         var legacy = mixed.stream().map(field -> new String[]{field.name(), field.value()}).toList();
 
         assertAll(
@@ -53,6 +63,18 @@ class UiCheckpointEvidenceProjectionTest {
     }
 
     @Test
+    void explicitTraceAndUnifiedFlowContractsRemainPublic() {
+        var fields = List.of(new ReportField(EVIDENCE_TYPE, API_TRACE),
+                new ReportField(EVIDENCE_TYPE, UNIFIED_UI_FLOW),
+                new ReportField(EVIDENCE_TYPE, UI_FAILURE),
+                new ReportField(EVIDENCE_POLICY, "screenshot disabled or unavailable"));
+        assertEquals(fields, EvidenceTableFormatter.technicalTraceFields(fields));
+        var legacy = fields.stream().map(field -> new String[]{field.name(), field.value()}).toList();
+        assertEquals(fields.stream().map(ReportField::value).toList(),
+                EvidenceTableFormatter.technicalTraceDetails(legacy).stream().map(row -> row[1]).toList());
+    }
+
+    @Test
     void fallbackRendersValidationWithoutSyntheticRequestOrResponseDisclosure(@TempDir Path directory)
             throws Exception {
         Path report = directory.resolve("ui-checkpoint-fallback.html");
@@ -63,6 +85,8 @@ class UiCheckpointEvidenceProjectionTest {
             var request = phase.startRequest(UI_TITLE, "", "");
             request.detail(REQUEST_ACTION, UI_TITLE);
             request.detail(REQUEST_TARGET, UI_TARGET);
+            request.detail(EVIDENCE_TYPE, SCREEN_VALIDATION);
+            request.detail(EVIDENCE_POLICY, "each-checkpoint");
             request.startValidation("UI validation").complete(AtfReportStatus.FAIL);
             request.complete(AtfReportStatus.FAIL);
             phase.complete(AtfReportStatus.FAIL);
@@ -83,6 +107,9 @@ class UiCheckpointEvidenceProjectionTest {
                 () -> assertFalse(html.contains("REQUEST ACTION")),
                 () -> assertFalse(html.contains("REQUEST TARGET")),
                 () -> assertFalse(html.contains(UI_TARGET)),
-                () -> assertEquals(List.of(REQUEST_ACTION, REQUEST_TARGET), internalKeys));
+                () -> assertFalse(html.contains("EVIDENCE TYPE")),
+                () -> assertFalse(html.contains("EVIDENCE POLICY")),
+                () -> assertEquals(List.of(REQUEST_ACTION, REQUEST_TARGET, EVIDENCE_TYPE, EVIDENCE_POLICY),
+                        internalKeys));
     }
 }

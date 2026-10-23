@@ -9,8 +9,7 @@ import atf.api.core.http.transport.ApiTransportProvenance;
 import atf.api.core.reporting.console.AtfConsoleEvent;
 import atf.api.core.reporting.console.AtfConsoleSink;
 import atf.api.reporting.contract.AtfAssertion;
-import atf.api.reporting.api.ReportRequestSignature;
-import atf.api.reporting.api.auth.ApiAuthenticationEvidence;
+import atf.api.reporting.api.evidence.ApiExchangeEvidence;
 import atf.api.reporting.contract.AtfReportPorts;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.extent.session.ExtentReportSession;
@@ -122,31 +121,11 @@ public final class ShopApiReportPublisher {
                 expectedContractSummary(contractValidation), "status=" + response.status());
         var node = phase.startRequest(title, request.method(), request.path());
         try {
-            node.detail("operation.kind", operation.name());
+            node.detail("request.operation.kind", operation.name());
             if (!operation.routeTemplate().isBlank()) {
-                node.detail("route.template", operation.routeTemplate());
+                node.detail("request.route.template", operation.routeTemplate());
             }
-            node.detail("request.signature", ReportRequestSignature.displaySignature(
-                    ShopApiExecutionExchange.from(execution, sequence,
-                            phaseFor(request.path())).signature()));
-            node.detail("capture.sequence", Long.toString(sequence));
-            node.detail("url", response.url());
-            ApiAuthenticationEvidence.publishTo(node, evidence.request());
-            node.detail("transport.provenance", execution.provenance().reportLabel());
-            node.detail("query.params", request.query().toString());
-            node.detail("request.headers", ShopApiEvidenceMapper.redactHeaders(
-                    request.headers()).toString());
-            if (!request.bodyText().isBlank()) {
-                node.json("REQUEST JSON", ShopApiEvidenceMapper.redactJson(request.bodyText()));
-            }
-            node.detail("response.status", Integer.toString(response.status()));
-            node.detail("response.content.type", String.valueOf(response.header("content-type")));
-            node.detail("response.headers", ShopApiEvidenceMapper.redactHeaders(
-                    response.headers()).toString());
-            if (!response.body().isBlank()) {
-                node.json("RESPONSE JSON", ShopApiEvidenceMapper.redactJson(response.body()));
-            }
-            node.execution(evidence);
+            ApiExchangeEvidence.publish(node, evidence);
             if (contractValidation == null) {
                 node.complete(AtfReportStatus.INFO);
             } else {
@@ -216,30 +195,11 @@ public final class ShopApiReportPublisher {
         boolean validationStarted = false;
         boolean validationCompleted = false;
         try {
-            node.detail("operation.kind", operation.name());
+            node.detail("request.operation.kind", operation.name());
             if (!operation.routeTemplate().isBlank()) {
-                node.detail("route.template", operation.routeTemplate());
+                node.detail("request.route.template", operation.routeTemplate());
             }
-            node.detail("url", response.url());
-            ApiAuthenticationEvidence.publishTo(node, evidence.request());
-            node.detail("transport.provenance", execution.provenance().reportLabel());
-            if (sequence > 0) {
-                var traced = ShopApiExecutionExchange.from(execution, sequence,
-                        phaseFor(request.path()));
-                node.detail("request.signature", ReportRequestSignature.displaySignature(traced.signature()));
-                node.detail("capture.sequence", Long.toString(traced.sequence()));
-                node.detail("capture.phase", traced.phase());
-            }
-            node.detail("query.params", request.query().toString());
-            node.detail("request.headers", ShopApiEvidenceMapper.redactHeaders(request.headers()).toString());
-            if (!requestBody.isBlank()) {
-                node.json("REQUEST JSON", redactedRequestBody);
-            }
-            node.detail("response.content.type", responseContentType);
-            node.detail("response.headers", ShopApiEvidenceMapper.redactHeaders(
-                    response.headers()).toString());
-            node.json("RESPONSE JSON", redactedResponseBody);
-            node.execution(evidence);
+            ApiExchangeEvidence.publish(node, evidence);
             AtfReportPorts.Validation validation = node.startValidation("Contract validation");
             validationStarted = true;
             long validationStartedAt = System.nanoTime();

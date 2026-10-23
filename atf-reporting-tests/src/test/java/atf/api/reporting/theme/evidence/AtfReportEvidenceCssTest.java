@@ -1,6 +1,7 @@
 package atf.api.reporting.theme.evidence;
 import atf.api.testkit.AtfUnitTest;
 import atf.api.reporting.theme.AtfReportTheme;
+import atf.api.reporting.asset.ReportAssetComposer;
 import atf.api.reporting.theme.evidence.AtfReportEvidenceCss;
 import atf.api.reporting.theme.evidence.AtfReportEvidenceDisclosureCss;
 import atf.api.reporting.theme.evidence.AtfReportEvidenceInteractionCss;
@@ -75,7 +76,7 @@ class AtfReportEvidenceCssTest {
 
     @Test
     void actionTableUsesResponsiveAuditColumnsWithoutForcedHorizontalScroll() {
-        CssContractSupport css = CssContractSupport.of(AtfReportEvidenceCss.css());
+        CssContractSupport css = CssContractSupport.of(AtfReportTheme.css());
         CssContractSupport interactionCss = CssContractSupport.of(AtfReportEvidenceInteractionCss.css());
 
         assertAll(
@@ -192,7 +193,7 @@ class AtfReportEvidenceCssTest {
                 () -> assertTrue(css.contains("min-height:var(--atf-evidence-summary-height)!important;max-height:var(--atf-evidence-summary-height)!important;")),
                 () -> assertTrue(css.contains("height:var(--atf-evidence-summary-height)!important")),
                 () -> assertTrue(css.contains("outline:2px solid var(--atf-accent)!important;outline-offset:-2px!important")),
-                () -> assertTrue(css.contains("overscroll-behavior-x:contain!important")),
+                () -> assertTrue(css.contains("overscroll-behavior:contain!important")),
                 () -> assertTrue(css.contains("details.step-detail.response-evidence{border-left:1px solid var(--atf-border)!important;border-right:1px solid var(--atf-border)!important}")),
                 () -> assertTrue(css.contains("details.step-detail.execution-evidence{border-left:1px solid var(--atf-border)!important;border-right:1px solid var(--atf-border)!important;")),
                 () -> assertTrue(css.contains(":not(:has(~ tr.event-row:has(details.step-detail)))>td>details.step-detail{")),
@@ -253,13 +254,14 @@ class AtfReportEvidenceCssTest {
     }
 
     @Test
-    void publishedScrollViewportSelectorKeepsDescendantCombinator() {
-        String css = AtfReportEvidenceCss.css();
-        String selector = ".card[data-atf-node-role='validation'] "
-                + ":is(.atf-ui-action-table-wrap,.atf-validation-table-wrap)";
-
-        assertTrue(css.contains(selector + "{max-height:var(--atf-table-scroll-height)!important"),
-                "the published rule must select evidence wrappers beneath validation cards");
+    void publishedScrollViewportPolicyDoesNotRequireAValidationParent() {
+        String policy = ReportAssetComposer.tableViewportCss();
+        assertAll(
+                () -> assertFalse(policy.contains("data-atf-node-role")),
+                () -> assertTrue(policy.contains(".atf-ui-action-table-wrap")),
+                () -> assertTrue(policy.contains(".atf-validation-table-wrap")),
+                () -> assertTrue(policy.contains("max-height:var(--atf-table-scroll-height)!important")),
+                () -> assertTrue(policy.contains("overflow-y:auto!important")));
     }
 
     @Test
@@ -267,46 +269,20 @@ class AtfReportEvidenceCssTest {
         String theme = AtfReportTheme.css();
         String fallback = AtfReportTheme.fallbackCss();
 
+        String policy = ReportAssetComposer.tableViewportCss();
+        for (String surface : java.util.List.of(".atf-table-viewport", ".atf-tag-scroll",
+                ".atf-api-table-wrap", ".atf-trace-table-wrap", ".atf-ui-action-table-wrap",
+                ".atf-validation-table-wrap", ".atf-secondary-body.network-aggregate-scroll",
+                ".dashboard-view .sysenv-container>.card>.card-body")) {
+            assertTrue(policy.contains(surface), "Missing policy adapter: " + surface);
+        }
         assertAll(
-                () -> assertTrue(theme.contains(".dashboard-view .category-container>.card>.card-body")),
-                () -> assertTrue(theme.contains(
-                                ".dashboard-view .category-container>.card>.card-body,.dashboard-view .sysenv-container>.card>.card-body{height:auto!important;max-height:var(--atf-table-scroll-height)!important"),
-                        "short Overview/System tables must stay content-sized under the shared viewport cap"),
-                () -> assertTrue(theme.contains(
-                                ".atf-tag-scroll{height:auto!important;max-height:var(--atf-table-scroll-height)!important"),
-                        "short tag audit tables must stay content-sized under the shared viewport cap"),
-                () -> assertTrue(theme.contains(
-                                ".atf-secondary-body.network-aggregate-scroll{height:auto!important;max-height:var(--atf-table-scroll-height)!important"),
-                        "short network aggregate lists must stay content-sized under the shared viewport cap"),
-                () -> assertTrue(theme.contains("max-height:var(--atf-table-scroll-height)!important"),
-                        "Extent action/audit/assertion tables must use the shared viewport token"),
-                () -> assertTrue(theme.contains(
-                                ".atf-trace-table-wrap{height:auto!important;max-height:var(--atf-table-scroll-height)!important;overflow-x:hidden!important;overflow-y:auto!important"),
-                        "Extent technical trace tables must use the shared, content-sized scroll viewport"),
-                () -> assertTrue(theme.contains(
-                                ".atf-trace-table-wrap>.helm-trace-table thead th{position:sticky!important;top:0!important"),
-                        "Extent technical trace headers must remain visible while scrolling"),
-                () -> assertTrue(theme.contains(
-                                ".atf-api-table-wrap{height:auto!important;max-height:var(--atf-table-scroll-height)!important"),
-                        "request and retry tables must share the bounded viewport"),
-                () -> assertTrue(theme.contains(
-                                ".atf-api-table-wrap>.helm-evidence-table thead th{position:sticky!important;top:0!important"),
-                        "request and retry headers must remain visible while scrolling"),
-                () -> assertTrue(fallback.contains(
-                                ".atf-ui-action-table-wrap,.atf-validation-table-wrap{max-height:var(--atf-table-scroll-height)"),
-                        "fallback action and validation tables must use the shared viewport token"),
-                () -> assertTrue(fallback.contains(
-                                ".atf-trace-table-wrap{height:auto;max-height:var(--atf-table-scroll-height);overflow-x:hidden;overflow-y:auto"),
-                        "fallback technical trace tables must use the shared, content-sized scroll viewport"),
-                () -> assertTrue(fallback.contains(
-                                ".atf-trace-table-wrap>.helm-trace-table thead th{position:sticky;top:0"),
-                        "fallback technical trace headers must remain visible while scrolling"),
-                () -> assertTrue(fallback.contains(
-                                ".atf-api-table-wrap{height:auto;max-height:var(--atf-table-scroll-height)"),
-                        "fallback request and retry tables must share the bounded viewport"),
-                () -> assertTrue(fallback.contains(
-                                ".atf-secondary-body.network-aggregate-scroll{height:auto;max-height:var(--atf-table-scroll-height)"),
-                        "short fallback network lists must stay content-sized under the shared viewport cap"),
+                () -> assertTrue(theme.endsWith(policy)),
+                () -> assertTrue(fallback.endsWith(policy)),
+                () -> assertTrue(policy.contains("height:auto!important")),
+                () -> assertTrue(policy.contains("max-height:var(--atf-table-scroll-height)!important")),
+                () -> assertTrue(policy.contains("overflow-y:auto!important")),
+                () -> assertTrue(policy.contains("position:sticky!important;top:0!important")),
                 () -> assertFalse(theme.contains("height:500px!important"),
                         "the viewport must be configured through the common CSS token"),
                 () -> assertFalse(theme.contains("max-height:500px!important"),

@@ -7,7 +7,7 @@ import atf.api.reporting.ui.contract.UiExtentReportContract;
 
 import atf.ui.tests.extent.support.config.ReportingTestResources;
 import atf.ui.tests.extent.support.config.UiConfiguration;
-import atf.ui.tests.extent.support.config.UiReportSubdirectory;
+import atf.ui.tests.extent.support.config.output.UiReportSubdirectory;
 import atf.ui.tests.extent.support.uireport.browser.UiReportContractInputFactory;
 import atf.api.core.config.module.AtfModule;
 import atf.api.reporting.test.AtfModuleTest;

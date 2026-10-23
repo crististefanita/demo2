@@ -11,7 +11,7 @@ import atf.ui.tests.extent.support.audit.ReportAuditContext;
 import atf.ui.tests.extent.support.audit.screen.CategoryFilterAuditor;
 import atf.ui.tests.extent.support.config.ReportingTestResources;
 import atf.ui.tests.extent.support.config.UiConfiguration;
-import atf.ui.tests.extent.support.config.UiReportSubdirectory;
+import atf.ui.tests.extent.support.config.output.UiReportSubdirectory;
 import atf.ui.tests.extent.support.configurable.CategoryCardinalityFixture;
 import atf.ui.tests.extent.support.configurable.CategoryCardinalityReportFixtures;
 import atf.ui.tests.extent.support.lifecycle.UiAuditFlow;

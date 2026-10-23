@@ -10,11 +10,11 @@ import atf.api.reporting.api.ReportRequestSignature;
 import atf.api.reporting.api.ReportTraceMetadata;
 import atf.api.reporting.api.ReportModelAdapters;
 import atf.api.reporting.api.ReportQueryParameters;
+import atf.api.reporting.api.evidence.ReportBodyAvailability;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.core.http.response.ApiExecutionResult;
 
 import java.net.URI;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -38,17 +38,20 @@ public final class ShopApiEvidenceMapper {
                 query, ShopJsonEvidence.redactHeaders(exchange.requestHeaders()),
                 "none", redactJson(exchange.requestBody()), authentication);
         ReportResponse response = new ReportResponse(exchange.status(), redactJson(exchange.responseBody()),
-                ShopJsonEvidence.redactHeaders(exchange.responseHeaders()), Duration.ZERO, exchange.url());
-        var attempt = new ReportAttemptRecord(1, exchange.status(), Duration.ZERO,
+                ShopJsonEvidence.redactHeaders(exchange.responseHeaders()), null, exchange.url(),
+                exchange.status() < 0 || ShopApiBodyEvidence.isUnavailable(exchange.responseBody())
+                        ? ReportBodyAvailability.NOT_CAPTURED
+                        : ReportBodyAvailability.from(exchange.responseBody()));
+        var attempt = new ReportAttemptRecord(1, exchange.status(), null,
                 exchange.status() >= 200 && exchange.status() < 400 ? "SUCCESS" : "FAILURE",
                 exchange.status() < 0 ? exchange.failureReason() : "final response");
         ReportTraceMetadata trace = ReportTraceMetadata.from(request).withCapture(
                 exchange.eventId(), exchange.sequence(), exchange.phase(), exchange.role(),
                 exchange.stepId(), exchange.initiator(), exchange.evidenceSource(),
-                ReportRequestSignature.bodyDigest(response.body()),
+                ReportRequestSignature.responseBodyDigest(response),
                 exchange.expected(), exchange.observed());
         if (serviceAlias != null && !serviceAlias.isBlank()) trace = trace.withService(serviceAlias);
-        return new ReportExecutionEvidence(response, 1, Duration.ZERO, List.of(), List.of(attempt),
+        return new ReportExecutionEvidence(response, 1, null, List.of(), List.of(attempt),
                 request, ReportTransportProvenance.LIVE_HTTP, trace);
     }
 
@@ -71,12 +74,14 @@ public final class ShopApiEvidenceMapper {
         }
         ReportRequest reportRequest = new ReportRequest(request.method(), request.path(), request.query(),
                 ShopJsonEvidence.redactHeaders(request.headers()), request.authProfile(),
-                redactJson(request.bodyText()), request.authObservation());
+                redactJson(request.bodyText()), request.authObservation(), request.bodyAvailability());
         ReportResponse reportResponse = new ReportResponse(response.status(), redactJson(response.body()),
-                ShopJsonEvidence.redactHeaders(response.headers()), response.duration(), response.url());
+                ShopJsonEvidence.redactHeaders(response.headers()), response.duration(), response.url(),
+                ShopApiBodyEvidence.isUnavailable(response.body())
+                        ? ReportBodyAvailability.NOT_CAPTURED : response.bodyAvailability());
         ReportTraceMetadata trace = ReportTraceMetadata.from(reportRequest).withCapture(
                 sequence > 0 ? "E" + sequence : "", sequence, phase, role, stepId,
-                initiator, evidenceSource, ReportRequestSignature.bodyDigest(reportResponse.body()),
+                initiator, evidenceSource, ReportRequestSignature.responseBodyDigest(reportResponse),
                 expected, observed);
         return new ReportExecutionEvidence(reportResponse, adapted.attempts(), adapted.totalDuration(),
                 adapted.retryEvents(), adapted.attemptHistory(), reportRequest, adapted.provenance(), trace);

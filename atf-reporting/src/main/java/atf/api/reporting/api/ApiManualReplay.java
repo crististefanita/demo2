@@ -3,6 +3,7 @@ package atf.api.reporting.api;
 import atf.api.reporting.api.ReportRequest;
 import atf.api.reporting.api.ReportHttpHeaders;
 import atf.api.reporting.api.ReportTransportProvenance;
+import atf.api.reporting.api.evidence.ReportBodyAvailability;
 import atf.api.reporting.security.SensitiveDataRedactor;
 
 import java.util.Collections;
@@ -29,6 +30,9 @@ public final class ApiManualReplay {
         }
         if (request == null || url == null || url.isBlank()) {
             return "NOT REPLAYABLE — live exchange lacks the request URL or method.";
+        }
+        if (request.bodyAvailability() == ReportBodyAvailability.NOT_CAPTURED) {
+            return "NOT REPLAYABLE — request body was not captured; the exact exchange cannot be reproduced.";
         }
         return curl(request, url, requestBody);
     }

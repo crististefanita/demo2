@@ -92,7 +92,8 @@ public final class ShopApiNetworkJournal {
     private void recordCapturedObservation(UiNetworkObservation observation) {
         Exchange exchange = new Exchange(
                 observation.method(), observation.path(), observation.url(), observation.status(),
-                observation.requestBody(), observation.responseBody(), observation.requestHeaders(),
+                observation.requestBody(), observation.responseBodyAvailable() ? observation.responseBody()
+                        : ShopApiBodyEvidence.unavailable("Browser observation", observation.responseBody()), observation.requestHeaders(),
                 observation.responseHeaders()).withObservedAuthMethod(observation.authMethod());
         recordCapturedExchange(observation.requestFailed()
                 ? exchange.withFailureReason(observation.failureReason()) : exchange);

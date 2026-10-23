@@ -179,53 +179,6 @@ details.network-diagnostics.network-aggregate-section > summary {
   padding: var(--atf-evidence-summary-padding);
   line-height: var(--atf-evidence-summary-line-height);
 }
-.atf-secondary-body.network-aggregate-scroll {
-  height: auto;
-  max-height: var(--atf-table-scroll-height);
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-  box-sizing: border-box;
-}
-.atf-ui-action-table-wrap,
-.atf-validation-table-wrap {
-  max-height: var(--atf-table-scroll-height);
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-}
-.atf-trace-table-wrap {
-  height: auto;
-  max-height: var(--atf-table-scroll-height);
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-  width: 100%;
-}
-.atf-trace-table-wrap > .helm-trace-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: var(--atf-panel-2);
-}
-.atf-api-table-wrap {
-  height: auto;
-  max-height: var(--atf-table-scroll-height);
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-  width: 100%;
-}
-.atf-api-table-wrap > .helm-evidence-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: var(--atf-panel-2);
-}
 .atf-ui-action-table-wrap > table,
 .atf-validation-table-wrap > table {
   margin: 0;
@@ -236,6 +189,14 @@ details.network-diagnostics.network-aggregate-section > summary {
   top: 0;
   z-index: 2;
   background: var(--atf-panel-2);
+}
+/* Keep the result badge inside its cell when a fixed-width assertion table narrows. */
+table.assertions th:last-child,
+table.assertions td:last-child {
+  width: var(--atf-evidence-status-column-width);
+  padding-left: 3px;
+  padding-right: 3px;
+  white-space: nowrap;
 }
 table {
   width: 100%;

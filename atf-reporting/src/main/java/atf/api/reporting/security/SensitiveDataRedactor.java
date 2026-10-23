@@ -11,18 +11,18 @@ public final class SensitiveDataRedactor {
             "password|token|access[_-]?token|refresh[_-]?token|client[_-]?secret|"
                     + "api[_-]?key|x[_-]?api[_-]?key|x[_-]?auth[_-]?token|secret";
     private static final Pattern AUTH = Pattern.compile(
-            "(?i)(authorization\\s*[:=]\\s*)(bearer\\s+|basic\\s+)?([^,;\\s]+)");
+            "(?i)(authorization\\s*[:=]\\s*)(['\"]?)(bearer\\s+|basic\\s+)?([^,;\\s'\"\\]}]+)");
     private static final Pattern BEARER_CREDENTIAL = Pattern.compile(
-            "(?i)(\\b(?:bearer|basic)\\s+)[^\\s,;&]+");
+            "(?i)(\\b(?:bearer|basic)\\s+)[^\\s,;&'\"\\]}]+");
     private static final Pattern JSON_SECRET = Pattern.compile(
             "(?i)(\\\"(?:authorization|cookie|set-cookie|" + SECRET_NAME
                     + ")\\\"\\s*:\\s*\\\")([^\\\"]*)(\\\")");
     private static final Pattern KEY_VALUE_SECRET = Pattern.compile(
-            "(?i)(\\b(?:" + SECRET_NAME + ")\\s*[:=]\\s*)[^,;\\s&#]+");
+            "(?i)(\\b(?:" + SECRET_NAME + ")\\s*[:=]\\s*)[^,;\\s&#'\"\\]}]+");
     private static final Pattern QUERY_SECRET = Pattern.compile(
-            "(?i)([?&](?:" + SECRET_NAME + ")=)[^&#\\s]+");
+            "(?i)([?&](?:" + SECRET_NAME + ")=)[^&#\\s'\"\\]}]+");
     private static final Pattern PATH_SECRET = Pattern.compile(
-            "(?i)(/+(?:token|api[-_]?key|secret|password)/)[^/?#\\s]+" );
+            "(?i)(/+(?:token|api[-_]?key|secret|password)/)[^/?#\\s'\"\\]}]+" );
     private static final Set<String> SENSITIVE_FIELDS = Set.of(
             "authorization", "cookie", "set-cookie", "token", "access_token", "accesstoken",
             "refresh_token", "refreshtoken", "password", "secret", "client_secret",
@@ -43,7 +43,7 @@ public final class SensitiveDataRedactor {
         if (value == null) return null;
         String mask = Matcher.quoteReplacement(replacement);
         String safe = JSON_SECRET.matcher(value).replaceAll("$1" + mask + "$3");
-        safe = AUTH.matcher(safe).replaceAll("$1$2" + mask);
+        safe = AUTH.matcher(safe).replaceAll("$1$2$3" + mask);
         safe = BEARER_CREDENTIAL.matcher(safe).replaceAll("$1" + mask);
         safe = KEY_VALUE_SECRET.matcher(safe).replaceAll("$1" + mask);
         safe = QUERY_SECRET.matcher(safe).replaceAll("$1" + mask);

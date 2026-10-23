@@ -62,7 +62,8 @@ public final class ReportEvidenceStyleContract {
         checks.put("status token", tokens.containsKey("--atf-evidence-status-column-width"));
         checks.put("summary token", tokens.containsKey("--atf-evidence-summary-padding"));
         checks.put("fluid details", source.contains("min-width:0!important"));
-        checks.put("local action overflow", source.contains("overscroll-behavior-x:contain!important"));
+        checks.put("local action overflow", source.contains("overscroll-behavior:contain!important")
+                || source.contains("overscroll-behavior-x:contain!important"));
         checks.put("keyboard evidence state", source.contains("summary.setAttribute('aria-expanded','false')")
                 && source.contains("details.open?'true':'false'"));
         checks.put("no API sibling top divider", !source.contains(

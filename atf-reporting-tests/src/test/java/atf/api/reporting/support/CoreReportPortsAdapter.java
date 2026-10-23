@@ -1,6 +1,7 @@
 package atf.api.reporting.support;
 
 import atf.api.reporting.api.ReportModelAdapters;
+import atf.api.reporting.api.evidence.ApiExchangeEvidence;
 import atf.api.reporting.contract.AtfReportStatus;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -11,6 +12,17 @@ public final class CoreReportPortsAdapter implements atf.api.core.reporting.cont
     private final atf.api.reporting.contract.AtfReportPorts.Session delegate;
     private CoreReportPortsAdapter(atf.api.reporting.contract.AtfReportPorts.Session delegate){this.delegate=delegate;}
     public static CoreReportPortsAdapter wrap(atf.api.reporting.contract.AtfReportPorts.Session delegate){return new CoreReportPortsAdapter(delegate);}
+    /** Preserve the complete typed snapshot when this legacy port wraps Reporting. */
+    public static void publishEvidence(atf.api.core.reporting.contract.AtfReportPorts.Request target,
+                                       atf.api.reporting.model.ReportExecutionEvidence evidence,
+                                       atf.api.core.http.response.ApiExecutionResult legacy) {
+        if (target instanceof Request adapted) {
+            ApiExchangeEvidence.publish(adapted.delegate, evidence);
+        } else {
+            ApiExchangeEvidence.publishFields(evidence, target::detail, target::json);
+            target.execution(java.util.Objects.requireNonNull(legacy, "legacy execution"));
+        }
+    }
     public Path reportPath(){return delegate.reportPath();}
     public atf.api.core.reporting.contract.AtfReportPorts.Scenario startScenario(String testClass,String scenario,Collection<String> tags){return new Scenario(delegate.startScenario(testClass,scenario,tags));}
     public atf.api.core.reporting.contract.AtfReportPorts.Scenario startScenario(String testClass,String testPackage,String scenario,Collection<String> tags){return new Scenario(delegate.startScenario(testClass,testPackage,scenario,tags));}

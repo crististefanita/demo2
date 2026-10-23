@@ -107,7 +107,7 @@ class ExtentReportUiEvidencePublishingTest {
 
         String html = Files.readString(report);
         int setupStart = html.indexOf("<details class=\"step-detail setup-evidence atf-setup-evidence\"");
-        int setupEnd = html.indexOf("</td>", setupStart);
+        int setupEnd = html.indexOf("</details>", setupStart);
         String setupMarkup = setupStart >= 0 && setupEnd > setupStart
                 ? html.substring(setupStart, setupEnd)
                 : "";
@@ -116,8 +116,8 @@ class ExtentReportUiEvidencePublishingTest {
                 () -> assertTrue(html.contains("data-atf-evidence-type=\"report-setup\"")),
                 () -> assertTrue(html.contains("<summary aria-expanded=\"false\"><span class=\"atf-disclosure-glyph\"")),
                 () -> assertTrue(html.contains("Setup evidence · 1 check")),
-                () -> assertTrue(html.contains("<div class=\"body\"><table")),
-                () -> assertTrue(html.contains("</table></div></details>")),
+                () -> assertTrue(setupMarkup.contains("<div class=\"body\"><div class=\"atf-table-viewport\" tabindex=\"0\"><table")),
+                () -> assertTrue(setupMarkup.endsWith("</table></div></div>")),
                 () -> assertTrue(html.contains("class=\"atf-setup-evidence-table\"")),
                 () -> assertTrue(html.contains("CHECK") && html.contains("EXPECTED")
                         && html.contains("ACTUAL") && html.contains("RESULT")),
@@ -152,7 +152,7 @@ class ExtentReportUiEvidencePublishingTest {
 
         String html = Files.readString(report);
         int disclosure = html.indexOf("<details class=\"step-detail setup-evidence atf-setup-evidence\"");
-        int closing = html.indexOf("</table></div></details>", disclosure);
+        int closing = html.indexOf("</table></div></div></details>", disclosure);
         assertAll(
                 () -> assertTrue(disclosure >= 0),
                 () -> assertTrue(html.contains("Setup evidence · 2 checks")),
@@ -271,7 +271,7 @@ class ExtentReportUiEvidencePublishingTest {
                 () -> assertFalse(html.contains("sec-ch-ua")),
                 () -> assertFalse(html.contains("User-Agent")),
                 () -> assertFalse(html.contains("Referer")),
-                () -> assertTrue(html.contains("response.status")),
+                () -> assertTrue(html.contains("RESPONSE STATUS")),
                 () -> assertTrue(html.contains("\"payment\" : {") || html.contains("&quot;payment&quot; : {")),
                 () -> assertTrue(html.contains("\"retryable\" : false")
                         || html.contains("&quot;retryable&quot; : false")),
@@ -322,6 +322,11 @@ class ExtentReportUiEvidencePublishingTest {
                 () -> assertEquals(1, ExtentReportUiEvidenceTestSupport.count(html,
                         "<details class=\"step-detail request-evidence\""),
                         "only the actual API exchange may publish request details"),
+                () -> assertEquals(1, ExtentReportUiEvidenceTestSupport.count(html,
+                        "<details class=\"step-detail response-evidence\""),
+                        "only the actual API exchange may publish response details"),
+                () -> assertFalse(html.contains("<td>EVIDENCE TYPE</td>")),
+                () -> assertFalse(html.contains("<td>EVIDENCE POLICY</td>")),
                  () -> assertTrue(html.contains("UI validation")),
                  () -> assertTrue(html.contains("API validation")),
                  () -> assertTrue(html.contains("Request details")),

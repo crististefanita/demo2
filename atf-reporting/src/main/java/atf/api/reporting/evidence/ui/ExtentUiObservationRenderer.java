@@ -2,6 +2,7 @@ package atf.api.reporting.evidence.ui;
 
 import atf.api.reporting.configuration.ReportingSettings;
 import atf.api.reporting.markup.AtfReportLabels;
+import atf.api.reporting.markup.table.ReportTableViewport;
 import atf.api.reporting.markup.ExtentReportNodeSupport;
 import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
 import atf.api.reporting.ui.model.AtfUiActionRecord;
@@ -40,9 +41,7 @@ public final class ExtentUiObservationRenderer {
                         AtfReportHtmlVocabulary.attribute(
                                 AtfReportHtmlVocabulary.Attribute.ARIA_LABEL, summary)))
                 .append(escape(summary)).append(close(AtfReportHtmlVocabulary.Tag.SUMMARY))
-                .append(open(AtfReportHtmlVocabulary.Tag.DIV,
-                        AtfReportHtmlVocabulary.classAttribute(
-                                AtfReportHtmlVocabulary.CssClass.ATF_UI_ACTION_TABLE_WRAP)))
+                .append(ReportTableViewport.ACTIONS.open())
                 .append(open(AtfReportHtmlVocabulary.Tag.TABLE,
                         AtfReportHtmlVocabulary.classAttribute(
                                 AtfReportHtmlVocabulary.CssClass.ATF_UI_ACTION_TABLE,

@@ -93,6 +93,8 @@ public final class ExtentReportDisclosureProbe {
                         () -> assertEquals(0, LOCATORS.directLogTables(checkpoint).count(),
                                 "UI context must not create a Status/Details log table"),
                         () -> assertEquals(0, LOCATORS.directRequestEvidence(checkpoint).count()),
+                        () -> assertEquals(0, LOCATORS.directEvidence(checkpoint, RESPONSE_EVIDENCE).count(),
+                                "checkpoint policy must not become a synthetic HTTP response"),
                         () -> assertFalse(checkpoint.innerText().contains("REQUEST ACTION")),
                         () -> assertFalse(checkpoint.innerText().contains("REQUEST TARGET")));
                 Locator validation = LOCATORS.validations(checkpoint);

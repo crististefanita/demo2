@@ -12,7 +12,7 @@ import atf.api.reporting.ui.UiExtentReportSession;
 import atf.api.reporting.ui.contract.ReportUiContract;
 import atf.ui.tests.extent.support.config.ReportingTestResources;
 import atf.ui.tests.extent.support.config.UiConfiguration;
-import atf.ui.tests.extent.support.config.UiReportSubdirectory;
+import atf.ui.tests.extent.support.config.output.UiReportSubdirectory;
 import atf.ui.tests.extent.support.audit.ReportAuditInputs;
 import atf.ui.tests.extent.support.audit.ReportUiActionAdapters;
 import atf.api.ui.playwright.PlaywrightActionSequence;

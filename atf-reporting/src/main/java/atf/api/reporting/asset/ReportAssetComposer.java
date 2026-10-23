@@ -1,6 +1,7 @@
 package atf.api.reporting.asset;
 
 import atf.api.reporting.markup.vocabulary.AtfReportHtmlVocabulary;
+import atf.api.reporting.markup.table.ReportTableViewport;
 import atf.api.reporting.theme.tokens.AtfReportColors;
 import atf.api.reporting.theme.tokens.AtfReportThemeTokens;
 import atf.api.reporting.theme.css.AtfReportOverviewCss;
@@ -25,7 +26,18 @@ public final class ReportAssetComposer {
                 "CSS_VARIABLES", AtfReportThemeTokens.cssVariables(),
                 "FONT_STACK", AtfReportThemeTokens.FONT_STACK,
                 "SHADOW_SOFT", AtfReportColors.SHADOW_SOFT,
-                "WHITE_02", AtfReportColors.WHITE_02));
+                "WHITE_02", AtfReportColors.WHITE_02)) + tableViewportCss();
+    }
+
+    public static String tableViewportCss() {
+        return LOADER.renderForPublication(ReportAsset.TABLE_VIEWPORT_CSS,
+                Map.of("TABLE_VIEWPORTS", ReportTableViewport.selectors(),
+                        "SCROLL_SURFACES", ReportTableViewport.scrollSurfaces()));
+    }
+
+    public static String tableViewportScript() {
+        return LOADER.renderForPublication(ReportAsset.TABLE_VIEWPORT_JS,
+                Map.of("SCROLL_SURFACES", ReportTableViewport.scrollSurfaces()));
     }
 
     public static String evidenceInteractionCss() {
@@ -176,7 +188,7 @@ public final class ReportAssetComposer {
     }
 
     public static String fallbackNavigationScript() {
-        return LOADER.loadForPublication(ReportAsset.FALLBACK_NAVIGATION_JS);
+        return LOADER.loadForPublication(ReportAsset.FALLBACK_NAVIGATION_JS) + tableViewportScript();
     }
 
     public static String extentEvidenceRolesScript() {
@@ -192,7 +204,9 @@ public final class ReportAssetComposer {
     }
 
     public static String extentEvidenceTableLayoutScript() {
-        return LOADER.loadForPublication(ReportAsset.EXTENT_EVIDENCE_TABLE_LAYOUT_JS);
+        return LOADER.renderForPublication(ReportAsset.EXTENT_EVIDENCE_TABLE_LAYOUT_JS, Map.of(
+                "TABLE_VIEWPORTS", ReportTableViewport.selectors(),
+                "DATA_TABLE_VIEWPORT", ReportTableViewport.DATA.cssClass())) + tableViewportScript();
     }
 
     public static String extentFailureDetectionScript() {

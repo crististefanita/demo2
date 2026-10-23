@@ -10,7 +10,7 @@ import atf.api.reporting.ui.audit.vocabulary.UiAuditGherkin;
 
 import atf.ui.tests.extent.support.config.ReportingTestResources;
 import atf.ui.tests.extent.support.config.UiConfiguration;
-import atf.ui.tests.extent.support.config.UiReportSubdirectory;
+import atf.ui.tests.extent.support.config.output.UiReportSubdirectory;
 import atf.ui.tests.extent.support.audit.ReportAuditInputs;
 import atf.api.ui.playwright.UiScreenValidation;
 import atf.api.reporting.ui.audit.section.OverviewSectionValidator;

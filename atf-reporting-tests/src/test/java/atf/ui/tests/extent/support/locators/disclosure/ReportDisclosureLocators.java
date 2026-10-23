@@ -9,7 +9,8 @@ import com.microsoft.playwright.Page;
 /** Selector boundary for disclosure probes; reuses the shared report locator facade. */
 public final class ReportDisclosureLocators {
     private static final String CHILDREN = ":scope > [class~='accordion'] > ";
-    private static final String OWN_EVIDENCE = ":scope > [class~='collapse'] ";
+    private static final String OWN_EVIDENCE =
+            ":scope > :is([class~='collapse'], [class~='card-body']) ";
     private final ReportUiLocators common = new ReportUiLocators();
 
     public Locator firstOwner(Page page) { return common.testOwners(page).first(); }
@@ -24,7 +25,10 @@ public final class ReportDisclosureLocators {
         return card.locator(OWN_EVIDENCE + "table[class~='table']");
     }
     public Locator directRequestEvidence(Locator card) {
-        return card.locator(OWN_EVIDENCE + evidenceSelector(CssClass.REQUEST_EVIDENCE));
+        return directEvidence(card, CssClass.REQUEST_EVIDENCE);
+    }
+    public Locator directEvidence(Locator card, CssClass kind) {
+        return card.locator(OWN_EVIDENCE + evidenceSelector(kind));
     }
     public Locator evidence(Locator card, CssClass kind) { return card.locator(evidenceSelector(kind)); }
     public Locator summary(Locator disclosure) { return common.disclosureSummary(disclosure); }

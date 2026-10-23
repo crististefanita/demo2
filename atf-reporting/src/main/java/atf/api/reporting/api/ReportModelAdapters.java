@@ -43,7 +43,7 @@ public final class ReportModelAdapters {
                 stringMap(source, "query"),
                 stringMap(source, "headers"),
                 optionalText(source, "authProfile", NONE_AUTH_PROFILE),
-                optionalText(source, "bodyText", ""));
+                optionalText(source, "bodyText", null));
     }
 
     public static ReportTransportProvenance provenance(Object source) {
@@ -74,7 +74,7 @@ public final class ReportModelAdapters {
         Object response = requiredObject(source, "response");
         ReportResponse reportResponse = new ReportResponse(
                 requiredInt(response, "status"),
-                optionalText(response, "body", ""),
+                optionalText(response, "body", null),
                 stringMap(response, "headers"),
                 optionalDuration(response, "duration"),
                 optionalText(response, "url", ""));
@@ -281,7 +281,7 @@ public final class ReportModelAdapters {
     private static Duration optionalDuration(Object source, String field) {
         Object value = optionalValue(source, field);
         if (value == null) {
-            return Duration.ZERO;
+            return null;
         }
         if (value instanceof Duration duration) {
             return duration;

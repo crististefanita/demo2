@@ -60,8 +60,8 @@ class AtfReportMarkupTest {
         String retry = AtfReportMarkup.tableHtml("helm-evidence-table retry-history-table",
                 new String[][]{{"ATTEMPT", "STATUS"}, {"1", "429"}});
         assertAll(
-                () -> assertTrue(request.contains("<div class=\"atf-api-table-wrap\"><table")),
-                () -> assertTrue(retry.contains("<div class=\"atf-api-table-wrap\"><table")),
+                () -> assertTrue(request.contains("<div class=\"atf-api-table-wrap\" tabindex=\"0\"><table")),
+                () -> assertTrue(retry.contains("<div class=\"atf-api-table-wrap\" tabindex=\"0\"><table")),
                 () -> assertFalse(request.contains("TECHNICAL TRACE")),
                 () -> assertFalse(retry.contains("TECHNICAL TRACE")));
     }

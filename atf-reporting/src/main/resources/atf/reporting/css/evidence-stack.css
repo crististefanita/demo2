@@ -270,9 +270,6 @@
   .card[data-atf-node-role='validation']
   .atf-ui-action-table-wrap {
   display: block !important;
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
-  overscroll-behavior-x: contain !important;
 }
 .test-view
   .test-content-detail
@@ -427,8 +424,6 @@
     .card[data-atf-node-role='validation']
     .atf-ui-action-table-wrap {
     padding: 0 0 8px !important;
-    overflow-x: hidden !important;
-    overflow-y: hidden !important;
   }
   .test-view
     .test-content-detail
@@ -543,30 +538,11 @@
 }
 
 .test-view .test-content-detail .card[data-atf-node-role='validation'] :is(
-  .atf-ui-action-table-wrap,
-  .atf-validation-table-wrap
-) {
-  max-height: var(--atf-table-scroll-height) !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
-  overscroll-behavior: contain !important;
-  scrollbar-gutter: stable !important;
-}
-.test-view .test-content-detail .card[data-atf-node-role='validation'] :is(
   .atf-ui-action-table-wrap > .atf-ui-action-table,
   .atf-validation-table-wrap > .helm-validation-table,
   .atf-validation-table-wrap > table.assertions
 ) {
   margin: 0 !important;
-}
-.test-view .test-content-detail .card[data-atf-node-role='validation'] :is(
-  .atf-ui-action-table-wrap,
-  .atf-validation-table-wrap
-) thead th {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 2 !important;
-  background: var(--atf-panel-2) !important;
 }
 
 /*
