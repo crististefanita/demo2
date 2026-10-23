@@ -134,6 +134,26 @@ class ShopAuditObservationsTest {
                 + CONFIGURATION.uri(ShopUiRoutes.ACCOUNT)));
     }
 
+    @Test
+    void terminalScreenContractIsIncludedInTheEvidenceReturnedForPublication() {
+        PlaywrightActionSequence actions = new PlaywrightActionSequence();
+        actions.observation("Prior UI evidence", "#checkout", "checkout is ready", "ready");
+        Page page = page(CONFIGURATION.uri(ShopUiRoutes.CHECKOUT).toString());
+        var screenshot = new UiScreenValidation.Evidence("order confirmation", ONE_PIXEL_PNG, true);
+
+        var publishedEvidence = ShopAuditObservations.drainScreenContractEvidence(
+                actions, page, "order confirmation is displayed",
+                List.of(new AtfAssertion("Confirmation", "visible", "visible", true)),
+                screenshot, true);
+
+        assertEquals(2, publishedEvidence.size());
+        assertEquals("Prior UI evidence", publishedEvidence.get(0).operation());
+        assertEquals("OBSERVE", publishedEvidence.get(1).source().name());
+        assertEquals("Audit screen contract", publishedEvidence.get(1).operation());
+        assertTrue(publishedEvidence.get(1).observed().contains("screenshot=valid PNG"));
+        assertTrue(actions.snapshot().isEmpty(), "the returned evidence owns the drained sequence");
+    }
+
     private static ReportExecutionEvidence execution(String method, String path, int status) {
         var request = new ReportRequest(method, path, Map.of(),
                 HttpHeaderProfiles.JSON_CONTENT, "bearer", "");

@@ -115,7 +115,7 @@ public final class ShopE2eTestSupport {
                 sharedReport = suiteReport.open(configuration, presentation);
                 reportConsole = suiteReport.reportConsole();
             } else {
-                reportConsole = ShopConsoleBridge.reportingSink(
+                reportConsole = atf.api.console.reporting.AtfReportingConsoleSinkAdapter.toReportingSink(
                         AtfConsoleTestExtension.reportPathSink(context.getRequiredTestClass()));
             }
             ShopE2eContext browser = ShopE2eContext.open(
@@ -165,7 +165,7 @@ public final class ShopE2eTestSupport {
         }
 
         atf.api.reporting.console.AtfConsoleSink reportConsole() {
-            return ShopConsoleBridge.reportingSink(reportPathOptIn);
+            return atf.api.console.reporting.AtfReportingConsoleSinkAdapter.toReportingSink(reportPathOptIn);
         }
 
         synchronized UiExtentReportSession open(ShopConfiguration configuration,

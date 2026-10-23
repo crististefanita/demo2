@@ -1,14 +1,14 @@
-package atf.api.reporting.ui;
+package atf.api.reporting.ui.support;
 
 import atf.api.reporting.support.ReportTestScreenshots;
 
-final class ExtentReportUiEvidenceTestSupport {
-    static final String EXTENT_UI_TEST_PACKAGE = "atf.ui.tests.extent";
+public final class ExtentReportUiEvidenceTestSupport {
+    public static final String EXTENT_UI_TEST_PACKAGE = "atf.ui.tests.extent";
 
     private ExtentReportUiEvidenceTestSupport() {
     }
 
-    static int count(String text, String fragment) {
+    public static int count(String text, String fragment) {
         int occurrences = 0;
         int from = 0;
         while ((from = text.indexOf(fragment, from)) >= 0) {
@@ -18,7 +18,7 @@ final class ExtentReportUiEvidenceTestSupport {
         return occurrences;
     }
 
-    static boolean screenshotAnchorContainsDirectDataUri(String html) {
+    public static boolean screenshotAnchorContainsDirectDataUri(String html) {
         int anchorStart = html.indexOf("<a class=\"atf-ui-action-screenshot-link\"");
         int anchorEnd = anchorStart < 0 ? -1 : html.indexOf("</a>", anchorStart);
         if (anchorStart < 0 || anchorEnd < 0) {
@@ -29,5 +29,3 @@ final class ExtentReportUiEvidenceTestSupport {
                 && anchor.contains("href=\"data:image/png;base64," + ReportTestScreenshots.ONE_PIXEL_PNG + "\"");
     }
 }
-
-

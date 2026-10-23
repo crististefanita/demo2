@@ -15,6 +15,7 @@ import atf.api.reporting.ui.contract.ReportUiContract;
 import atf.api.reporting.ui.network.ReportNetworkInspector;
 import atf.api.reporting.ui.model.AtfUiActionRecord;
 import atf.api.reporting.ui.validation.UiApiValidationEvidence;
+import atf.api.reporting.ui.support.ExtentReportUiEvidenceTestSupport;
 
 import org.junit.jupiter.api.Test;
 
@@ -25,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import static atf.api.reporting.ui.ExtentReportUiEvidenceTestSupport.EXTENT_UI_TEST_PACKAGE;
+import static atf.api.reporting.ui.support.ExtentReportUiEvidenceTestSupport.EXTENT_UI_TEST_PACKAGE;
 import static atf.api.reporting.contract.AtfGherkinKeyword.AND;
 import static atf.api.reporting.contract.AtfGherkinKeyword.GIVEN;
 import static atf.api.reporting.contract.AtfGherkinKeyword.THEN;

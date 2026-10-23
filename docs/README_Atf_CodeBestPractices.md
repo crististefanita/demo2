@@ -38,7 +38,8 @@ flowchart LR
 
 | Zonă | Responsabilitate | Nu deține |
 |---|---|---|
-| `atf-core` | contracte neutre, lifecycle generic, utilități reutilizabile | Extent, browser, fixture business |
+| `atf-core` | contracte runtime neutre și utilități reutilizabile | Extent, browser, fixture business, lifecycle de test |
+| `atf-test-kit` | clasificare/adnotări de test și primitive test-only candidate | Playwright, browser lifecycle, Extent, profile sau flow-uri de consumer |
 | `atf-reporting` | modele, renderer, asset-uri și contracte reporting standalone | mock, browser și aplicație consumatoare |
 | `atf-mock` | transport/fixture determinist | reguli de randare |
 | `atf-ui` | Playwright și politici browser generice | configurarea concretă a raportului |
@@ -57,6 +58,41 @@ consumer test
 dependență către mock, browser sau fixture de aplicație rămâne în test scope-ul
 consumerului. Compatibilitatea legacy se face într-un adapter cu owner și test,
 nu prin reflecție răspândită în renderer.
+
+## Suport E2E reutilizabil fără abstractizare forțată
+
+Shop și AutoEx repetă unele responsabilități de test, dar diferența nu justifică
+un modul UI nou. Prima țintă este mult mai mică: mutarea în `atf-test-kit` doar a
+primitivelor neutre care se repetă și pot fi testate fără browser sau site.
+
+- `atf-test-kit` poate găzdui ownership generic de resurse, close-once și
+  combinarea erorii primare cu eșecurile de cleanup; acestea sunt propuneri,
+  nu API-uri existente până la implementare și probe.
+- Kit-ul nu primește Playwright, `Page`, sesiuni Extent, profile de captură,
+  network inspector, YAML consumer sau vocabulary de journey. `atf-ui` îl
+  consumă deja în test scope; dependența inversă ar crea un ciclu.
+- Extensiile JUnit care deschid browserul, raportează evidence și închid sesiunea
+  rămân adaptoare în `src/test` pentru fiecare consumer. Se extrage un helper JUnit
+  numai dacă elimină comportament identic, nu doar cod cu forme asemănătoare.
+- Codul folosit exclusiv de teste nu stă în `src/main` doar pentru că un gate
+  clasifică orice pachet `support` drept reutilizabil; ownership-ul se determină
+  din apelanți, dependențe și source-set.
+- `SETUP` și `TEST BODY` pot fi opționale în adaptoare, fără a impune aceeași
+  secvență de business tuturor consumatorilor.
+- AutoEx .NET nu consumă librăria Java; reutilizarea între limbaje înseamnă
+  contracte comportamentale paralele, nu dependență comună de cod.
+
+**Gate de extracție în Test Kit:**
+
+- teste comportamentale Shop și AutoEx pentru achiziție parțială, close-once și
+  eșecuri multiple de teardown;
+- fără importuri `Shop*`, `AutoEx*`, `atf-ui` sau `atf-reporting`;
+- dacă API-ul cere `Page`, sesiuni de raport, config, checkpoint-uri ori
+  semantica rețelei, păstrează-l local;
+- nu crea un modul nou pentru a ascunde un contract încă neclar.
+
+Detaliile gap-ului, inventarul și criteriile de acceptare sunt în
+[feedback-ul suportului E2E](feedback/ATF_E2E_Test_Support_Architecture_Feedback.md).
 
 ## Contracte protejate și schimbări controlate
 
@@ -215,12 +251,13 @@ src/test/java/<owner>/
 | component | fragment HTML/CSS/JS, asset, boundary de modul | aplicația completă |
 | integration | colaborarea dintre module, mock și reporting | fiecare assertion deja testată jos |
 | e2e | browser, tab-uri, filtre, click-uri și randare | toate combinațiile posibile |
-| support | fixture, flow, locator, builder și adapter | verdict executabil propriu |
+| support | fixture, flow, locator, builder, adapter sau harness test-scoped | verdict executabil propriu |
 
 - [ ] Fiecare clasă executabilă declară exact un layer prin adnotare.
 - [ ] Adnotarea este sursa de adevăr; path-ul este doar convenție și diagnostic.
 - [ ] Nu se creează directoare goale pentru layere inexistente.
-- [ ] Support-ul nu primește tag de test și nu deține browser execution.
+- [ ] Support-ul nu devine layer executabil; lifecycle-ul browserului aparține
+      unui harness explicit din `src/test`, nu suportului livrat în `src/main`.
 - [ ] E2E rămâne mic, configurabil și selectează scenarii punctuale prin
       adnotări/configurație typed.
 - [ ] Combinațiile exhaustive sunt coborâte în unit/component/integration.

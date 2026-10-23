@@ -1,85 +1,64 @@
-# ATF — feedback activ pentru arhitectura consumerilor
+# ATF — arhitectura adaptorului Console–Reporting
 
-Boundary-ul `main`/`test`, ownership-ul consumerilor, coeziunea pachetelor și
-contractul comun al adnotărilor sunt descrise în README-urile ownerilor,
-[arhitectura ATF](../ATF_Architecture.md),
-[ghidul de testare](../ATF_Testing_Guide.md) și
-[contractul adnotărilor](../ATF_Test_Infrastructure_Annotations.md). Din acest
-document am eliminat cerințele de package split AutoEx și de creare a adnotării
-comune: codul și proba nominală există. Rămâne un singur decalaj de integrare.
+Contractele stabile despre adnotări, limite `main`/`test` și ownership sunt în
+README-urile ownerilor și în [arhitectura ATF](../ATF_Architecture.md). Gap-ul
+de integrare Console–Reporting de mai jos este rezolvat și păstrat aici numai
+ca decizie verificabilă; registrul de backlog nu îl mai numără ca prioritate.
 
-## CONSUMER-ANNOTATIONS-01 — precedență uniformă pentru UI evidence
+## CONSUMER-REPORT-BRIDGE-01 — adaptor comun Console–Reporting
 
-**Stare: cod rezolvat și probat; documentație owner încă divergentă.**
-`@AtfUiEvidence` există în `atf-test-kit`, iar AutoEx și Practice Shop declară
-aceeași intenție typed. Configurația YAML oferă valorile implicite; valoarea
-explicită selectată de consumator ajunge acum nemodificată la sesiunea Extent.
-Conform instrucțiunii de a modifica numai feedback-urile, README-urile ownerilor
-nu au fost rescrise în această intervenție; descrierile lor despre precedența
-capturilor trebuie aduse la zi separat.
+**Stare: rezolvat și verificat.** Ownership-ul unic este
+`atf-console/src/main/java/atf/api/console/reporting/AtfReportingConsoleSinkAdapter.java`.
 
-### Ce este deja implementat
+- Adaptorul traduce evenimentele `atf-reporting` către portul `AtfConsoleSink`
+  din Core.
+- `atf-console` depinde de `atf-reporting`; dependența inversă nu există, deci
+  librăria de raportare rămâne standalone.
+- `atf-core` și `atf-test-kit` nu cunosc Reporting.
+- Shop consumă adaptorul direct; seam-ul package-private AutoEx doar deleagă la
+  el și nu mai deține mapping duplicat.
 
-- `AtfUiEvidence` declară separat `flow` și `screenshots`, are target `TYPE` și
-  retenție `RUNTIME`; `CONFIGURED` lasă axa la profilul consumerului.
-- `AtfUiEvidenceContractTest` verifică target-ul, retenția și valorile implicite.
-- adaptorul AutoEx citește adnotarea clasei E2E și mapează ambele axe; testele
-  componente acoperă fallback-ul configurat și override-urile independente.
-- adaptorul Shop citește adnotarea clasei concrete, iar `reportProfile()` mapează
-  ambele axe. `ShopE2eContext.open(...)` și `openReport(...)` nu mai rescriu
-  profilul ales cu valoarea YAML. `ShopE2eContextEvidenceProfileTest` deschide
-  sesiunea reală de raport într-un director temporar și verifică flow-ul
-  unificat și politica explicită `NONE`, diferită de YAML. `@WithE2eHarness` a
-  rămas locală pentru harness și `actionDetails`.
-- AutoEx este inclus în inventarul surselor de producție, iar suportul său a fost
-  împărțit pe pachete semantice. `AtfPackageCohesionGovernanceTest` verifică
-  inventory-ul explicit al celor patru pachete `support`; această cerință este
-  închisă și nu mai are backlog separat.
+### Rezultatul și probele
 
-### Regresia de precedență în Shop — remediată
+- Testul componentă acoperă toate scope-urile pentru `START`, `DETAIL` și
+  `CODE`, toate statusurile și durata pentru `COMPLETE`, valoarea nulă validă
+  pentru statusurile non-terminal, calea absolută `REPORT_PUBLISHED`, sink nul
+  și eveniment nul.
+- `ShopConsoleBridge` a fost eliminat; testul de arhitectură Shop a rămas intact.
+- Rulare izolată, de la `HEAD` cu schimbarea Consumer: `ShopComponentSuite` —
+  224 passed; `AutoExComponentSuite` — 21 passed; adapter component — 3 passed;
+  `TestChangeGovernanceTest` — 1 passed; zero failure/error/skip. Reactorul
+  compilează `atf-console`, Shop și AutoEx.
+- Revalidare pe snapshot-ul cu modificările Shop live, în staging separat:
+  `ShopComponentSuite` — 226 passed, zero failure/error/skip.
+- Încercarea pe snapshot-ul cu modificări concurente s-a oprit înainte de teste
+  la trei apeluri incompatibile în `AutoExApiReadOnlyLiveContractTest`; acestea
+  sunt externe acestui increment și nu au fost modificate. AutoEx nu a fost
+  validat pe acel snapshot; suita sa a trecut pe baseline-ul curat menționat mai sus.
 
-Mapperul Shop păstra override-ul explicit, dar `ShopE2eContext` îl suprascria
-la deschiderea raportului standalone sau partajat. Am eliminat rescrierea din
-ambele boundary-uri: profilul complet compus este acum autoritar, iar overload-ul
-fără profil continuă să derive profilul YAML prin `ShopScreenshotPolicy`.
-Testul verifică profilul observabil pe sesiunea Extent, nu numai mapperul.
+### Contract promovat
 
-### Contractul cerut
+- Orice conversie Reporting → Core aparține adaptorului din `atf-console`; modulele
+  consumer nu reimplementează maparea și librăria `atf-reporting` nu depinde de
+  Console/Core.
+- Adaptorul nu scrie la consolă, nu creează raport și nu modifică lifecycle,
+  verdict ori renderer; doar proiectează același eveniment în modelul Core.
+- `ShopArchitectureTest` și pragurile de guvernanță rămân nemodificate.
 
-1. Aceeași precedență în ambii consumatori: configurația/YAML furnizează baza;
-   `CONFIGURED` o păstrează; valoarea explicită din adnotare suprascrie numai
-   axa declarată pentru clasa selectată.
-2. Aplică selecția la ultimul boundary înainte de creare/publicare. Nicio
-   normalizare ulterioară nu trebuie să reimpună YAML peste intenția explicită.
-3. Păstrează axele independente: schimbarea `flow` nu schimbă capturile,
-   schimbarea `screenshots` nu schimbă flow-ul, iar harness-ul și
-   `actionDetails` rămân responsabilități locale Shop.
-4. Nu adăuga resolver generic, lifecycle sau dependență Reporting în Test Kit.
-   Adnotarea nu este `@Inherited`; clasele E2E declară intenția direct. Nu
-   extinde cerința la meta-adnotări sau moștenire fără un consumer concret.
-5. Păstrează izolarea profilurilor în raportul partajat al suitei. Aplicarea
-   profilului per scenariu și între faze este urmărită separat în
-   [`SHOP-CAPTURE-01`](ATF_Reporting_Feedback.md#shop-capture-01--profil-per-scenariu-și-flow-unificat-peste-faze),
-   ca să nu dublăm același gap aici.
+Schimbările de teste sunt autorizate temporar de controlul de mai jos, până când
+diff-ul este integrat în baseline-ul Git; controlul nu include alte fișiere sau
+editări concurente.
 
-### Probe și criterii de închidere — îndeplinite
-
-- Test Kit continuă să verifice exclusiv forma neutră a declarației, fără
-  renderer, browser sau cod consumer.
-- Testele componente AutoEx și Shop verifică mapping-ul axelor; testul de
-  compoziție Shop suplimentar inspectează profilul efectiv din sesiunea Extent.
-- Politica YAML rămâne default când adnotarea lipsește sau folosește
-  `CONFIGURED`; politica explicită trece prin `open/openReport` fără a fi
-  rescrisă.
-- O probă de regresie confirmă că YAML-ul rămâne default când adnotarea lipsește
-  sau folosește `CONFIGURED`, iar override-urile nu schimbă acțiunile,
-  aserțiunile, verdictul ori journey-ul E2E.
-- Rămâne sincronizarea descrierii de precedență din README-urile ownerilor;
-  feedback-ul nu le modifică implicit.
-
-Profilul selectat este verificat la sesiunea de raport pentru path-ul
-`openReport`, folosit atât direct, cât și de proprietarul raportului partajat al
-suitei. Testele E2E de suită rămân responsabile pentru izolarea per-scenariu a
-profilurilor într-un singur raport; acel lifecycle este urmărit separat în
-`SHOP-CAPTURE-01`. Așadar, regresia de cod este închisă, dar sincronizarea
-documentară nu este declarată închisă.
+```yaml
+testChanges:
+  - id: CONSUMER-REPORT-BRIDGE-TESTS-01
+    status: ACTIVE
+    base: 4c97b18d6a8e7a17b979db40238f13ce20a481c9
+    expires: 2026-10-30
+    reason: Centralize the Reporting-to-Core event adapter and verify the mapping and AutoEx delegation without changing governance rules.
+    proof: mvn -pl atf-test-practice-shop,atf-test-auto-ex,atf-tests -am -Dtest=ShopComponentSuite,AutoExComponentSuite,AtfReportingConsoleSinkAdapterTest,TestChangeGovernanceTest -Dsurefire.failIfNoSpecifiedTests=false -Datf.governance.testChanges.baseRef=HEAD test
+    paths:
+      - atf-console/pom.xml
+      - atf-console/src/test/java/atf/api/console/reporting/AtfReportingConsoleSinkAdapterTest.java
+      - atf-test-auto-ex/src/test/java/atf/ui/autoex/support/AutoExConsoleBridge.java
+```

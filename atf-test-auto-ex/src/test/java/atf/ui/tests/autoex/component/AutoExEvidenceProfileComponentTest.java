@@ -6,11 +6,18 @@ import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
 import atf.api.testkit.AtfComponentTest;
 import atf.api.testkit.evidence.AtfUiEvidenceFlow;
 import atf.api.testkit.evidence.AtfUiScreenshotPolicy;
+import atf.api.reporting.contract.AtfAssertion;
+import atf.api.core.ui.AtfUiEvidenceSource;
+import atf.api.ui.playwright.PlaywrightActionSequence;
+import atf.ui.autoex.support.AutoExScreenAuditObservations;
 import atf.ui.autoex.support.AutoExEvidenceProfile;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Guards AutoEx flow composition and screenshot-policy mapping without a live site or browser. */
 @AtfComponentTest
@@ -39,5 +46,24 @@ class AutoExEvidenceProfileComponentTest {
                         finalOnly.screenshotPolicy()),
                 () -> assertEquals(ReportEvidenceCaptureSource.BROWSER,
                         finalOnly.captureSource()));
+    }
+
+    @Test
+    void terminalScreenAuditIsRecordedOnceBeforeTheActionSequenceIsDrained() {
+        PlaywrightActionSequence actions = new PlaywrightActionSequence();
+        actions.observation("Prior UI evidence", "#checkout", "ready", "ready");
+
+        AutoExScreenAuditObservations.recordTerminalScreenContract(actions,
+                "purchase confirmation is displayed", "https://example.test/confirmation",
+                List.of(new AtfAssertion("Confirmation", "visible", "visible", true)),
+                true, true);
+        var evidence = actions.drain();
+
+        assertEquals(2, evidence.size());
+        assertEquals("Prior UI evidence", evidence.get(0).operation());
+        assertEquals(AtfUiEvidenceSource.OBSERVE, evidence.get(1).source());
+        assertEquals("Audit screen contract", evidence.get(1).operation());
+        assertTrue(evidence.get(1).observed().contains("screenshot=captured"));
+        assertTrue(actions.snapshot().isEmpty());
     }
 }

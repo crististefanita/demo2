@@ -1,8 +1,10 @@
 # ATF Console — proiecție diagnostică
 
 `atf-console` este implementarea separată și configurabilă YAML a proiecției de
-consolă pentru evenimentele neutre ATF. Nu produce HTML, nu cunoaște
-ExtentReports și nu calculează verdicturi.
+consolă pentru evenimentele neutre ATF. Nu produce HTML și nu calculează
+verdicturi. Pachetul `atf.api.console.reporting` găzduiește adaptorul unic care
+traduce evenimentele renderer-neutral din `atf-reporting` în portul Core;
+adaptorul nu apelează rendererul și nu schimbă semantica raportului.
 
 ## Pe scurt
 
@@ -17,6 +19,7 @@ comportamentul specific consolei este descris în acest README.
 | Intrare | Output | Limită |
 |---|---|---|
 | `AtfConsoleEvent` + `ConsoleSettings` | diagnostic stdout/stderr | nu produce artifact |
+| `AtfReportingConsoleSinkAdapter` | evenimente Reporting → sink Core | compoziție; nu redă HTML |
 | lifecycle execution | evenimente formatate | nu decide verdictul |
 | YAML `reporting.console` | detalii configurabile | nu schimbă execuția |
 | `@AtfConsoleMessages` | policy per clasă, inclusiv meta/inheritance | nu reactivează consola dezactivată global |
@@ -39,18 +42,23 @@ flowchart LR
     Core[core events] -->|formatează| Console[console]
     Config[YAML policy] -->|configurează| Console
     Console -->|publică| Output[stdout / stderr]
-    Console -. nu deține .-> Reporting[HTML reporting]
+    Reporting[reporting events] -->|adaptează| Bridge[console.reporting]
+    Bridge -->|publică| Core
 ```
 
 <details>
 <summary><strong>Legendă — proiecția de consolă</strong></summary>
 
 - atf-core definește evenimentul neutru și portul; atf-console îl formatează;
+- adaptorul din `atf.api.console.reporting` este singura conversie dintre
+  evenimentele Reporting și portul Core; numai `atf-console` depinde de
+  `atf-reporting`, niciodată invers;
 - extensia JUnit din atf-console consumă opțional declarația neutră din
   TestKit; dependența nu este propagată pe classpath-ul aplicațiilor;
 - configurația reporting.console controlează numai această proiecție;
 - ieșirea este diagnostică (stdout/stderr), nu artifact HTML și nu verdict;
-- muchia punctată este o limită: consola nu deține rendererul atf-reporting.
+- adaptorul traduce contracte, dar nu depinde de ExtentReports și nu deține
+  lifecycle-ul ori randarea HTML.
 </details>
 
 ## Limite de responsabilitate
@@ -60,6 +68,7 @@ atf-core       definește AtfConsoleEvent și AtfConsoleSink
 atf-core        publică evenimente prin sink-ul opțional
 atf-console    formatează evenimentele și citește reporting.console din YAML
 atf-console    include lifecycle-ul și extension-ul JUnit opțional
+atf-console    adaptează evenimentele atf-reporting către sink-ul Core
 atf-reporting  produce numai artifacte HTML/Extent
 ```
 
@@ -67,6 +76,9 @@ atf-reporting  produce numai artifacte HTML/Extent
 
 - `AtfConsoleReporter` consumă doar `AtfConsoleEvent` din `atf-core` și
   `ConsoleSettings` din propriul modul;
+- `AtfReportingConsoleSinkAdapter` este composition boundary-ul unic pentru
+  consumatorii care conectează Reporting la un sink Core; modulele consumer nu
+  reimplementează mapping-ul și acesta nu se mută în Core/Test Kit;
 - consola și detaliile sunt active implicit, inclusiv când YAML-ul lipsește;
 - `reporting.console.detailsEnabled: false` ascunde detaliile și body-urile;
   `reporting.console.enabled: false` oprește întreaga proiecție;
@@ -147,10 +159,12 @@ constructorii lor impliciți folosesc `noOp`.
 ### Calea raportului publicat
 
 `@AtfReportPath` din `atf-test-kit` controlează separat mesajul final cu calea
-raportului. Extension-ul JUnit rezolvă declarația directă, meta-adnotările și
-moștenirea; fără opt-in nu afișează calea. Mesajul este emis numai după ce
-Reporting a închis sesiunea și fișierul final există. `reporting.console.enabled`
-rămâne autoritar, dar `@AtfConsoleMessages` nu decide dacă path-ul este opt-in.
+raportului. Extension-ul JUnit rezolvă declarațiile directe, meta-adnotările și
+moștenirea.
+
+- Fără opt-in, calea nu este afișată.
+- Mesajul apare numai după închiderea sesiunii Reporting și verificarea fișierului final.
+- `reporting.console.enabled` rămâne autoritar; `@AtfConsoleMessages` nu activează opt-in-ul pentru cale.
 
 Pentru o sesiune partajată între clase, fiecare owner trebuie înregistrat într-un
 `AtfReportPathOptIn`; agregatorul emite o singură notificare dacă oricare owner

@@ -14,7 +14,7 @@ nu enumerate ca un inventar Maven:
 | **Contract & foundation** | `atf-test-kit`, `atf-core` | adnotări de test, resolvere neutre, lifecycle, transport ports | ce poate fi reutilizat fără reporting sau business? |
 | **Execution & verdict** | `atf-mock`, `atf-validation`, `atf-console` | schimb determinist, verdict semantic și diagnostic | cum devine un test reproductibil și explicabil? |
 | **Reporting & UI audit** | `atf-reporting`, `atf-ui`, `atf-debug-ui` | artifact standalone, browser audit și publicare read-only | cum devine rezultatul observabil și verificabil? |
-| **Consumers** | `atf-reporting-tests`, `atf-test-practice-shop`, `atf-test-auto-ex` | composition roots, fixture-uri, flows și testele concrete | cine compune platforma pentru un scop real? |
+| **Composition + consumers** | `atf-reporting-tests`, `atf-test-practice-shop`, `atf-test-auto-ex` | harness-ul verifică reporting-ul în test scope; Shop și AutoEx compun journey-uri de aplicație | cine verifică librăriile și cine le folosește într-un produs? |
 | **Governance** | `atf-tests` | graph-ul reactorului și boundary gates | cine protejează separarea modulelor? |
 
 ## Diagramă de bază
@@ -75,7 +75,7 @@ a aceleiași legende.
 | reporting library | `atf-reporting` | renderer Extent, HTML, CSS/JS și artifact | standalone unit/component |
 | browser runtime | `atf-ui` | sesiune Playwright și politici generice | component |
 | debug inspector | `atf-debug-ui` | servește read-only un HTML pe loopback | component |
-| reporting composition | `atf-reporting-tests` | component/API mock → publisher și UI/E2E pentru librăria reporting | component/integration/E2E |
+| reporting test harness | `atf-reporting-tests` | component/API mock → publisher și UI/E2E pentru librăria reporting | component/integration/E2E |
 | aplicații consumatoare | `atf-test-practice-shop`, `atf-test-auto-ex` | config, locatori, pages și journey-uri independente | component/E2E |
 | whole-ATF governance | `atf-tests` | module graph și boundary-uri ale reactorului | component/architecture |
 
@@ -88,30 +88,39 @@ guvernanță. Contractele interne continuă în README-ul fiecărui modul.
 
 ```mermaid
 flowchart LR
-    Consumers[tests + shop]
+    ReportingTests[reporting tests]
+    Shop[Practice Shop]
+    AutoEx[AutoEx]
     Governance[governance]
     Reporting[reporting]
     Platform[ATF platform]
 
-    Consumers -->|consumă| Reporting
-    Consumers -.->|reutilizează| Platform
-    Governance -.->|verifică| Reporting
-    Governance -.->|verifică| Platform
+    ReportingTests -->|verifies| Reporting
+    ReportingTests -.->|tests| Platform
+    Shop -->|consumes| Reporting
+    AutoEx -->|consumes| Reporting
+    Shop -.->|reuses| Platform
+    AutoEx -.->|reuses| Platform
+    Governance -.->|guards| Reporting
+    Governance -.->|guards| Platform
 ```
 
 <details>
 <summary><strong>Legendă — module, ownership și relații</strong></summary>
 
-- `Consumers` grupează `atf-reporting-tests`, `atf-test-practice-shop` și
-  `atf-test-auto-ex`;
+- `ReportingTests` înseamnă `atf-reporting-tests`: harness de verificare cu
+  dependențe în `test` scope, nu consumer al unei aplicații reale;
+- `Shop` și `AutoEx` sunt consumatorii de aplicație: fiecare deține configurația,
+  selectorii și journey-ul site-ului propriu;
 - `Reporting` înseamnă `atf-reporting`, iar `Platform` grupează modulele ATF
   reutilizabile;
 - `Governance` înseamnă `atf-tests` și guard-urile whole-ATF;
-- săgeata solidă = consum de bibliotecă/runtime în composition root;
-- săgeata punctată = reutilizare sau verificare de boundary;
+- săgeata solidă = verificare sau consum al librăriei reporting;
+- săgeata punctată `tests` = harness-ul verifică module reutilizabile numai în
+  test scope; `reuses` = consumerul folosește contracte generice; `guards` =
+  guvernanța protejează boundary-ul;
 - nodul `Platform` grupează modulele reutilizabile; tabelul de mai jos
   păstrează modulele și ownership-ul lor fără a încărca schema principală;
-- `atf-reporting-tests` folosește modulele platformei numai în test scope;
 - `atf-test-practice-shop` este consumer de aplicație și nu mută pages, flows
   sau fixture-uri în reporting;
 - `atf-test-auto-ex` este un consumer UI separat pentru Automation Exercise;
@@ -131,7 +140,7 @@ flowchart LR
 | platform | `atf-reporting` | renderer, document semantic și artifact | module ATF, mock sau browser |
 | platform | `atf-ui` | sesiune Playwright și politici browser | page objects de produs |
 | platform | `atf-debug-ui` | publicare read-only pentru investigație | generare sau modificare de HTML |
-| consumer | `atf-reporting-tests` | testele librăriei reporting și fixture-urile lor | testarea unei aplicații reale |
+| test harness | `atf-reporting-tests` | testele librăriei reporting și fixture-urile lor, în `test` scope | testarea unei aplicații reale sau runtime de producție |
 | consumer | `atf-test-practice-shop` | testele aplicației Practice Shop | guvernanță whole-ATF |
 | consumer | `atf-test-auto-ex` | testele UI E2E pentru Automation Exercise | testele Practice Shop |
 | governance | `atf-tests` | graph-ul reactorului și boundary gates | YAML, pages, flows sau purchase E2E |
@@ -341,7 +350,7 @@ fără să parcurgă aceeași explicație în root și în fiecare modul; indexu
 | reporting standalone | [`atf-reporting/README.md`](atf-reporting/README.md) | cum se construiește artifactul fără module ATF? |
 | browser runtime | [`atf-ui/README.md`](atf-ui/README.md) · [convenții pentru locatori](atf-ui/README.md#convenții-pentru-locatori-ui) | cum sunt controlate browserul și convențiile generice pentru locatori, fără logică de produs? |
 | inspector read-only | [`atf-debug-ui/README.md`](atf-debug-ui/README.md) | cum investigăm un HTML deja generat? |
-| reporting composition | [`atf-reporting-tests/README.md`](atf-reporting-tests/README.md) | cum sunt verificate compoziția API/mock și randarea UI a reportingului? |
+| reporting test harness | [`atf-reporting-tests/README.md`](atf-reporting-tests/README.md) | cum sunt verificate compoziția API/mock și randarea UI a reportingului? |
 | consumer aplicație | [`atf-test-practice-shop/README.md`](atf-test-practice-shop/README.md) | cum folosește o aplicație reală infrastructura ATF? |
 | consumer Automation Exercise | [`atf-test-auto-ex/README.md`](atf-test-auto-ex/README.md) | cum se compun UI E2E-uri separate folosind adnotările Test Kit? |
 | guvernanță reactor | [`atf-tests/README.md`](atf-tests/README.md) | cine apără modulele și direcția dependențelor? |

@@ -3,12 +3,14 @@ package atf.ui.practiceshop.support;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfGherkinKeyword;
+import atf.api.core.ui.AtfUiActionRecord;
 import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.api.ui.playwright.UiScreenValidation;
 import com.microsoft.playwright.Page;
 
 import java.util.Collection;
 import java.util.Base64;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -103,6 +105,19 @@ public final class ShopAuditObservations {
                         + "; assertions=" + (assertions == null ? 0 : assertions.size())
                         + "; screenshot=" + (screenshot.hasScreenshotPayload() ? "valid PNG" : "not captured")
                         + "; url=" + safeUrl(page));
+    }
+
+    /** Records the terminal contract before taking ownership of the action sequence. */
+    public static List<AtfUiActionRecord> drainScreenContractEvidence(
+            PlaywrightActionSequence actions,
+            Page page,
+            String title,
+            Collection<AtfAssertion> assertions,
+            UiScreenValidation.Evidence screenshot,
+            boolean passed) {
+        requireScreenshotForScreenValidation(screenshot);
+        recordScreenContract(actions, page, title, assertions, screenshot, passed);
+        return actions.drain();
     }
 
     /** A passing Screen validation is a visual claim and therefore requires a real PNG payload. */

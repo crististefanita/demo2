@@ -184,10 +184,10 @@ profilurile per scenariu în raportul partajat sunt urmărite separat în
 `@AtfReportPath` este dezactivată implicit și poate fi declarată direct sau ca
 meta-adnotare. `@AtfReportPath(AtfReportPath.Policy.DISABLED)` suprascrie o
 declarație moștenită; politicile contradictorii la același nivel eșuează
-fail-fast. Setarea este distinctă de `@AtfConsoleMessages`; doar
-`reporting.console.enabled` poate suprima global mesajul. Pentru artifactele
-partajate, `AtfReportPathOptIn` agregă ownerii înainte de publicare și emite
-calea o singură dată dacă cel puțin unul a activat opțiunea.
+fail-fast.
+
+- Setarea este distinctă de `@AtfConsoleMessages`; numai `reporting.console.enabled` poate suprima global mesajul.
+- Pentru artifactele partajate, `AtfReportPathOptIn` agregă ownerii înainte de publicare și emite calea o singură dată dacă cel puțin unul a activat opțiunea.
 
 ## Directoare UI cu ancore distincte
 

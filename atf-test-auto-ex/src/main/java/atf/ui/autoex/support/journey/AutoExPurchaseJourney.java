@@ -4,7 +4,6 @@ import atf.api.reporting.contract.AtfAssertion;
 import atf.ui.autoex.config.AutoExConfiguration;
 import atf.ui.autoex.support.account.AutoExTestAccount;
 import atf.ui.autoex.support.catalog.AutoExCatalogAssertions;
-import atf.ui.autoex.support.catalog.AutoExCatalogSnapshot;
 import atf.ui.autoex.page.AccountPage;
 import atf.ui.autoex.page.CartPage;
 import atf.ui.autoex.page.CheckoutPage;
@@ -120,17 +119,10 @@ public final class AutoExPurchaseJourney {
                         homeHeading, homeHeading.contains("Full-Fledged practice website"))));
 
         if (run.observesApiTraffic()) {
-            AutoExCatalogSnapshot catalog = run.inspectCatalogApi(product.productName());
-            run.checkpoint(AutoExPurchaseTraceStep.CATALOG_API_PRECONDITION,
-                    List.of(
-                            new AtfAssertion("Catalog API status", "HTTP 200",
-                                    "HTTP " + catalog.status(), catalog.status() == 200),
-                            new AtfAssertion("Catalog API products", "> 0 products",
-                                    Integer.toString(catalog.productCount()), catalog.productCount() > 0),
-                            new AtfAssertion("Configured product price", product.unitPrice(),
-                                    catalog.configuredProductPrice(),
-                                    product.unitPrice().equals(catalog.configuredProductPrice()))));
-            run.markCausalApiTrafficBaseline();
+            AutoExCatalogApiPrecondition.verifyAndMarkBaseline(product.productName(), product.unitPrice(),
+                    run::inspectCatalogApi,
+                    assertions -> run.checkpoint(AutoExPurchaseTraceStep.CATALOG_API_PRECONDITION, assertions),
+                    run::markCausalApiTrafficBaseline);
         }
 
         new HomePage(run).openProducts();

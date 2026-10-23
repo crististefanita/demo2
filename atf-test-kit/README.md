@@ -100,6 +100,18 @@ activat opțiunea.
 - resolverul `AtfReportPathPolicyResolver` gestionează separat meta-adnotările,
   ierarhia claselor și conflictele politicii de output.
 
+### Limita suportului E2E comun
+
+Nu se creează un modul UI nou și nu se mută harness-urile consumerilor ca atare.
+
+| Contract | Owner / limită |
+|---|---|
+| Primitive candidate: resource ownership, close-once, combinarea erorilor | `atf-test-kit`, numai după probe comportamentale Shop + AutoEx; încă neimplementate |
+| Browser, `Page`, Playwright, Extent, capture profile, network inspector și business | adaptorul `src/test` al fiecărui consumer; nu intră în Test Kit |
+| Compoziția/extensia JUnit UI | locală, până când testele demonstrează același contract; `atf-ui` consumă deja Test Kit în test scope, deci dependența inversă ar crea ciclu |
+| Scope-ul Shop pentru Test Kit | importurile sunt în `src/test`; POM-ul trebuie restrâns la `test` scope |
+| Clasificare, evidence, activare și instalare | `@AtfE2eTest`, `@AtfUiEvidence` și extensia/configurația consumerului au roluri distincte; detalii în [feedback-ul E2E](../docs/feedback/ATF_E2E_Test_Support_Architecture_Feedback.md) |
+
 ## Dependențe
 
 ```text

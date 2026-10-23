@@ -5,12 +5,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /** Locates this consumer's reactor root without depending on IntelliJ's working directory. */
-final class AutoExProjectRoot {
+public final class AutoExProjectRoot {
     private static final String MODULE_MARKER = "<module>atf-test-auto-ex</module>";
 
     private AutoExProjectRoot() { }
 
-    static Path discover() {
+    public static Path discover() {
         Path current = Path.of(System.getProperty("user.dir")).toAbsolutePath().normalize();
         while (current != null) {
             Path pom = current.resolve("pom.xml");

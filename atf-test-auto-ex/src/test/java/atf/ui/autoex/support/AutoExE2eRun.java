@@ -282,6 +282,8 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
         boolean passed = assertions.stream().allMatch(AtfAssertion::passed);
         String screenshot = evidenceProfile.captures(ReportScreenshotPolicy.CapturePoint.FINAL)
                 ? capture(title) : "";
+        AutoExScreenAuditObservations.recordTerminalScreenContract(
+                actions, title, currentUrl(), assertions, !screenshot.isBlank(), passed);
         phase.screenValidation(title, currentUrl(), screenshot, assertions,
                 ReportModelAdapters.uiActions(actions.drain()), ReportScreenshotPolicy.CapturePoint.FINAL,
                 passed ? AtfReportStatus.PASS : AtfReportStatus.FAIL);

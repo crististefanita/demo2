@@ -42,17 +42,20 @@ public final class ShopE2eContext implements AutoCloseable {
             "API network inspector — journey summary";
     private final ShopConfiguration configuration;
     private final UiExtentReportSession report;
+    private final ReportEvidenceProfile evidenceProfile;
     private final boolean ownsReport;
     private final PlaywrightUiSession browser;
     private final ShopBrowserCaptureProvider browserCaptureProvider;
     private final ShopApiNetworkJournal apiNetwork;
 
     private ShopE2eContext(ShopConfiguration configuration,
+                                   ReportEvidenceProfile evidenceProfile,
                                    UiExtentReportSession report, PlaywrightUiSession browser,
                                    ShopBrowserCaptureProvider browserCaptureProvider,
                                    boolean ownsReport,
                                    ShopApiNetworkJournal apiNetwork) {
-        this.configuration = configuration; this.report = report; this.browser = browser;
+        this.configuration = configuration; this.evidenceProfile = evidenceProfile;
+        this.report = report; this.browser = browser;
         this.browserCaptureProvider = browserCaptureProvider;
         this.ownsReport = ownsReport;
         this.apiNetwork = apiNetwork;
@@ -87,7 +90,7 @@ public final class ShopE2eContext implements AutoCloseable {
         UiExtentReportSession report = ownsReport
                 ? openReport(configuration, selectedProfile, reportConsole) : sharedReport;
         try {
-            return openBrowser(configuration, report, ownsReport);
+            return openBrowser(configuration, selectedProfile, report, ownsReport);
         } catch (RuntimeException error) {
             if (ownsReport) report.close();
             throw error;
@@ -119,6 +122,7 @@ public final class ShopE2eContext implements AutoCloseable {
     }
 
     private static ShopE2eContext openBrowser(ShopConfiguration configuration,
+                                                       ReportEvidenceProfile evidenceProfile,
                                                        UiExtentReportSession report,
                                                        boolean ownsReport) {
         AtfConsoleSink console = AtfConsoleTestContext.current() == null
@@ -137,7 +141,7 @@ public final class ShopE2eContext implements AutoCloseable {
             // registration navigation can replace the execution context while
             // its response callback is still settling.
             apiNetwork.attach(browser.page());
-            return new ShopE2eContext(configuration, report, browser, browserCaptureProvider,
+            return new ShopE2eContext(configuration, evidenceProfile, report, browser, browserCaptureProvider,
                     ownsReport, apiNetwork);
         } catch (RuntimeException error) {
             throw error;
@@ -168,7 +172,7 @@ public final class ShopE2eContext implements AutoCloseable {
     public ShopApiNetworkJournal apiNetwork() { return apiNetwork; }
     public ReportScreenshot captureCheckpointScreenshot(String title,
             ReportScreenshotPolicy.CapturePoint capturePoint) {
-        return report.evidenceProfile().capture(capturePoint, title, page().url(), browserCaptureProvider)
+        return evidenceProfile.capture(capturePoint, title, page().url(), browserCaptureProvider)
                 .orElse(null);
     }
 
@@ -201,8 +205,14 @@ public final class ShopE2eContext implements AutoCloseable {
     }
 
     private UiExtentReportSession.UiScenario startReportScenario(String reportClass, String overview) {
-        return report.startScenario(reportClass, "atf.ui.tests.practiceshop",
-                overview, List.of("ui", "e2e", "external", "practice-shop"));
+        return startReportScenario(report, evidenceProfile, reportClass, overview);
+    }
+
+    static UiExtentReportSession.UiScenario startReportScenario(
+            UiExtentReportSession report, ReportEvidenceProfile evidenceProfile,
+            String reportClass, String overview) {
+        return report.startScenario(reportClass, "atf.ui.tests.practiceshop", overview,
+                List.of("ui", "e2e", "external", "practice-shop"), evidenceProfile);
     }
 
     static List<AtfAssertion> setupAssertions(ShopConfiguration configuration) {
@@ -343,7 +353,7 @@ public final class ShopE2eContext implements AutoCloseable {
                     ? ReportScreenshotPolicy.CapturePoint.CHECKPOINT
                     : ReportScreenshotPolicy.CapturePoint.FAILURE;
             String payload = !shouldCaptureCheckpointScreenshot(
-                    report.evidenceProfile(), !actions.snapshot().isEmpty(), checkpoint.passed())
+                    evidenceProfile, !actions.snapshot().isEmpty(), checkpoint.passed())
                     ? "" : capture(page, checkpoint.title(), capturePoint);
             UiScreenValidation.Evidence evidence = new UiScreenValidation.Evidence(
                     checkpoint.title(), payload, !payload.isBlank());
@@ -375,15 +385,15 @@ public final class ShopE2eContext implements AutoCloseable {
             String payload = capture(page, evidenceTitle, ReportScreenshotPolicy.CapturePoint.FINAL);
             UiScreenValidation.Evidence evidence = new UiScreenValidation.Evidence(
                     evidenceTitle, payload, !payload.isBlank());
-            var actionEvidence = ShopReportUiActionAdapters.from(actions.drain());
             if (evidence.hasScreenshotPayload()) {
-                ShopAuditObservations.requireScreenshotForScreenValidation(evidence);
-                ShopAuditObservations.recordScreenContract(actions, page, title,
-                        assertions, evidence, true);
+                var actionEvidence = ShopReportUiActionAdapters.from(
+                        ShopAuditObservations.drainScreenContractEvidence(
+                                actions, page, title, assertions, evidence, true));
                 body.screenValidation(title, page.url(), evidence.base64Png(),
                         assertions, actionEvidence,
                         ReportScreenshotPolicy.CapturePoint.FINAL, AtfReportStatus.PASS);
             } else {
+                var actionEvidence = ShopReportUiActionAdapters.from(actions.drain());
                 body.step(AtfGherkinKeyword.THEN, title, page.url(), "", assertions,
                         actionEvidence, List.of(), ReportScreenshotPolicy.CapturePoint.FINAL,
                         AtfReportStatus.PASS);
@@ -479,7 +489,7 @@ public final class ShopE2eContext implements AutoCloseable {
 
         private String capture(Page page, String title,
                                ReportScreenshotPolicy.CapturePoint point) {
-            return report.evidenceProfile().capture(point, title, page.url(),
+            return evidenceProfile.capture(point, title, page.url(),
                             browserCaptureProvider)
                     .map(ReportScreenshot::base64Png).orElse("");
         }

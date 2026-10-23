@@ -8,12 +8,14 @@ coverage-ul incomplet care afectează corectitudinea și siguranța execuției.
 
 ## AUTOEX-API-CONTRACT-01 — contracte API complete și cauzalitate UI/API
 
-**Stare: parțial implementat, deschis. Prioritate recalibrată: 89/100**
-(impact 38 + lacună 25 + lucrabil 18 + datorie documentară 8). Catalogul de rute,
-request factory-ul și matricea deterministă există; nu sunt încă probe ale
-contractelor răspunsului serviciului public sau ale operațiilor mutabile live.
-Auditul a găsit și o ambiguitate de contract ce trebuie rezolvată înainte ca
-statusurile curente să fie considerate dovadă.
+**Stare:** parțial implementat, deschis. **Prioritate:** 84/100 (impact 38 +
+lacună 22 + lucrabil 18 + datorie documentară 6).
+
+Matricea offline acoperă separat request-ul și răspunsul pentru toate cele 14
+scenarii. Publisher-ul Extent pentru API direct compilează acum și are o probă
+componentă offline pentru schimb, aserțiuni JSON, configurarea directorului și
+redactarea parolei din form. Rămân nedovedite contractele reale ale serviciului,
+statusurile HTTP exacte și cleanup-ul live.
 
 ### Situația verificată în cod
 
@@ -23,105 +25,124 @@ statusurile curente să fie considerate dovadă.
 - `AutoExApiContractComponentTest` enumeră toate cele 14 scenarii din API List,
   trece fiecare request prin `ApiExecutor` și un transport determinist și
   verifică metoda, ruta, host-ul fixture, transport HTTP fixture `200`, câmpul
-  JSON `responseCode`, fragmentul semantic minim din body și un singur exchange.
-  Testele sunt offline și fac parte din `AutoExComponentSuite`; fixture-ul separă
-  acum statusul de transport de codul documentat, dar nu dovedește statusurile
-  reale ale serviciului.
-- Testul suplimentar verifică form-ul de login, query-ul pentru user detail și
-  redactarea `toString()` a modelului; nu verifică fiecare body/header/query,
-  nici schema semantică a tuturor răspunsurilor.
+  JSON `responseCode`, mesajul și câmpul JSON semantic așteptat din body, cu un
+  singur exchange. Corpurile fixture sunt acum declarate literal per scenariu,
+  separat de așteptările parsate; nu mai sunt fabricate de o funcție care deduce
+  mesajul din codul de răspuns sau rută. Testele sunt offline și fac parte din
+  `AutoExComponentSuite`; fixture-ul separă statusul de transport de codul
+  documentat, dar nu dovedește statusurile reale ale serviciului.
+- Testele suplimentare verifică vocabulary-ul complet al form-urilor de
+  create/update, form-ul de login/delete, `Content-Type` la DELETE, query-ul
+  user-detail, encoding-ul căutării și redactarea parolei din `toString()`.
+  Matricea offline declară acum independent form fields și query pentru fiecare
+  din cele 14 request-uri și verifică în transport metoda, ruta, body-ul decodat,
+  query-ul și `Content-Type` absent/prezent. Schema JSON verificată este
+  intenționat minimă (cod, mesaj sau câmp-cheie), nu un contract complet tipizat;
+  nu este un oracle upstream și nu certifică serviciul public.
 - Statusurile și body-urile sunt furnizate de test fixture; testul nu face
   request la `automationexercise.com`, deci nu certifică serviciul live.
-- API List numește valorile „Response Code”, iar corpul API are propriul câmp
-  `responseCode`. Testul live compară acum acea valoare cu JSON-ul și raportează
-  separat statusul HTTP observat; nu impune încă un status HTTP exact, doar
-  respinge transportul non-2xx/3xx/4xx. Confirmarea statusului HTTP așteptat,
-  endpoint cu endpoint, rămâne deschisă. În special, nu susținem că `201` la
-  API 11 este neapărat HTTP 201.
+- API List numește valorile „Response Code” și descrie separat „Response JSON”; nu
+  precizează dacă acel cod este statusul HTTP sau un câmp JSON. Testul live
+  verifică proprietatea JSON `responseCode` și raportează separat statusul HTTP
+  observat; guard-ul generic acceptă doar transport 2xx–4xx. Până la o captură
+  live, mapping-ul dintre documentație, JSON și transport rămâne nedovedit. În
+  special, nu susținem că `201` la API 11 este neapărat HTTP 201.
 - `AutoExApiLiveContractTest` și `AutoExApiLiveSuite` există separat și sunt
   dezactivate implicit. Suita construiește un cont sintetic unic, armează
-  cleanup înainte de create și verifică `responseCode` la închidere. Verifică
-  `responseCode` JSON pentru toate scenariile și emailul contului sintetic în
-  obiectul user de la detail; statusul HTTP este separat în diagnostic și are
-  numai un guard generic. Nu a fost executată în această validare; compatibilitatea
-  contului, statusurilor HTTP exacte, mesajelor, schemelor și cleanup-ului live
-  rămâne nedovedită.
-- `AutoExPurchaseUiApiE2eTest` observă traficul din browser, însă
-  `GET /api/productsList` este precondiție de setup înaintea căutării. Nu este
-  dovadă că o acțiune UI a cauzat acel exchange; baseline-ul de trafic îl
-  exclude din numărătoarea cauzală, iar proba componentă verifică izolarea.
-  Căutarea UI folosește `/products?search=...`, nu `POST /api/searchProduct`.
-- Testul API live nu publică un raport Extent dedicat pentru contractele directe.
-  Nici redactarea secretelor din request evidence, replay manual, consolă și
-  raport nu este demonstrată end-to-end; verificarea `toString()` acoperă numai
-  reprezentarea modelului.
+  cleanup înainte de create și verifică `responseCode` JSON pentru toate
+  scenariile; pentru detail verifică și identitatea contului. Statusul HTTP este
+  separat și are doar un guard generic. Nu a fost executată în această validare;
+  statusurile HTTP exacte, mesajele, schemele și cleanup-ul live rămân nedovedite.
+- În `UI_API`, `GET /api/productsList` este publicat în checkpoint-ul explicit
+  de precondiție; journey-ul marchează baseline-ul după acel checkpoint, iar
+  agregatul ulterior exclude traficul observat până acolo. Testul componentei
+  verifică acum și ordinea API request → checkpoint de precondiție → baseline;
+  o precondiție eșuată nu poate avansa baseline-ul. Artifactul UI/API generat
+  live trebuie totuși inspectat pentru a confirma vizual exchange-ul o singură
+  dată, separat de agregatul cauzal. Căutarea UI folosește `/products?search=...`,
+  nu `POST /api/searchProduct`.
+- `AutoExApiContractReportExtension` publică fiecare exchange direct în raportul
+  Extent al clasei; directorul este configurabil prin
+  `atf.autoex.api.report-directory` (implicit `artifacts/reports/api/auto-ex`).
+  Aserțiunile pentru JSON `responseCode` și `message` sunt atașate schimbului,
+  iar `@AtfReportPath` poate emite calea artifactului.
+- `AutoExApiContractReportPublisherComponentTest` generează offline HTML real și
+  verifică schimbul, aserțiunile JSON și faptul că parola form-urlencoded este
+  redactată. Verifică și formatterul manual replay pe același secret sintetic,
+  precum respingerea căilor absolute sau cu traversare. Nu execută rețeaua și nu
+  probează output-ul de consolă dintr-o rulare live.
+- La eșec înaintea publicării unui exchange, extensia scrie acum un diagnostic
+  `JUnit failure` compact în `TEST BODY`, cu maximum patru excepții înrudite
+  (cause și suppressed) și redactorul HTML existent. Proba componentă injectează
+  o cauză cu bearer token și o eroare de cleanup suppressed; confirmă că ambele
+  explicații rămân, dar secretul nu apare în HTML.
+- `AutoExApiReadOnlyLiveSuite` selectează numai `GET /api/productsList`,
+  `GET /api/brandsList` și `POST /api/searchProduct`; nu mută conturi. ATF nu a
+  emis încă aceste schimburi live: inițializarea `HttpClient` eșuează înaintea
+  primului request cu `Unable to establish loopback connection`. Probe read-only
+  independente au confirmat răspunsurile API 1, 3 și 5; câmpul de produse pentru
+  API 5 este acum aliniat la `products` în sursa și testul local. Aceste probe nu
+  înlocuiesc transportul ATF și raportul său.
 
-### Suprafața publică modelată
+Matricea stabilă a celor 14 cazuri publicate și limitele fixture-ului sunt în
+[`atf-test-auto-ex/README.md`](../../atf-test-auto-ex/README.md#acoperirea-celor-14-cazuri-publicate-în-api-list).
+Valorile acelei matrice sunt așteptări `responseCode` din JSON, nu statusuri HTTP
+confirmate pentru fiecare rută live.
 
-Matricea urmărește cele 14 scenarii publicate de
-[Automation Exercise API List](https://automationexercise.com/api_list). Sunt
-așteptări documentate ale serviciului, nu rezultate live obținute de ATF.
-
-| Scenariu | Request | Documented JSON `responseCode` | Efect și izolare |
-|---|---|---:|---|
-| API 1 | `GET /api/productsList` | 200 | read-only |
-| API 2 | `POST /api/productsList` | 405 | metodă neacceptată |
-| API 3 | `GET /api/brandsList` | 200 | read-only |
-| API 4 | `PUT /api/brandsList` | 405 | metodă neacceptată |
-| API 5 | `POST /api/searchProduct`, `search_product` prezent | 200 | căutare fără mutație |
-| API 6 | `POST /api/searchProduct`, parametru lipsă | 400 | validare input |
-| API 7 | `POST /api/verifyLogin`, credențiale valide | 200 | cont fixture deținut de test |
-| API 8 | `POST /api/verifyLogin`, email lipsă | 400 | validare input |
-| API 9 | `DELETE /api/verifyLogin` | 405 | metodă neacceptată |
-| API 10 | `POST /api/verifyLogin`, credențiale invalide | 404 | fără conturi personale/shared |
-| API 11 | `POST /api/createAccount` | 201 | cont sintetic unic; cleanup armat înaintea create |
-| API 12 | `DELETE /api/deleteAccount` | 200 | șterge numai contul creat de test |
-| API 13 | `PUT /api/updateAccount` | 200 | actualizează numai contul sintetic al testului |
-| API 14 | `GET /api/getUserDetailByEmail` | 200 | citește numai identitatea sintetică a testului |
+Matricea offline, publisher-ul direct API, redacția și separarea suitei API de
+purchase E2E sunt contracte deja implementate și documentate în README-ul
+ownerului; nu sunt backlog separat.
 
 ### Cerințe rămase
 
-1. Distincția cod/JSON este implementată în testele componente și în aserțiunile
-   live. Rămâne să stabilești statusul HTTP așteptat pentru fiecare endpoint din
-   capturi reale sau dintr-un contract upstream explicit și să-l validezi
-   separat; nu deduce HTTP 201 pentru API 11 numai din „Response Code: 201”.
-2. Păstrează request factory-ul și testul offline existente; nu recrea încă o
-   matrice de rute. Întărește contractul component pe fiecare caz: form/query,
-   header-ele relevante, encoding, body absent/prezent și aserțiuni pe câmpurile
-   semantice ale răspunsului, inclusiv cazurile negative. Evită snapshot-uri ale
-   întregului catalog.
-3. Separă explicit trei niveluri de dovadă: request-model local, componentă prin
-   transport fixture și integrare live opt-in. Nu prezenta statusul fixture-ului
-   ca status observat la serviciu.
-4. Suita live există și nu pornește în buildul implicit. Baza URL și timeout-ul
-   sunt configurabile; contul este sintetic și unic. Destinația raportului nu
-   este încă o opțiune dedicată a suitei API live.
-5. Rulează suita numai cu opt-in explicit și verifică serviciul real. Cleanup-ul
-   este armat înainte de create și try-with-resources păstrează excepția din
-   corp drept cauză primară, atașând o eroare de cleanup ca suppressed; totuși,
-   trebuie validat live că ștergerea reușește după create/update și pe o cale de
-   eșec controlată. Testele offline nu substituie această probă.
-6. Redactează secretele înainte de log, retry history, manual replay și evidence.
-   Testul actual al `toString()` este necesar, dar nu demonstrează redactarea
-   body-ului `ApiRequest` sau a proiecțiilor Reporting.
-7. În `UI_API`, etichetează request-urile de setup separat și leagă traficul
-   cauzal numai de checkpoint-ul/acțiunea observată. Inspectorul agregat nu
-   înlocuiește contractul direct și nu dublează exchange-uri.
-8. Păstrează testele API departe de purchase E2E: journey-ul rămâne business
-   flow, iar matricea endpoint-urilor are suite și raport dedicate.
+1. API List publică „Response Code” separat de „Response JSON”. Rămâne deschisă
+   o verificare live controlată care compară statusul HTTP cu proprietatea JSON
+   `responseCode` pentru rutele acoperite. Nu echivala valorile și nu afirma că
+   API 11 are HTTP 201 doar pentru că JSON-ul publică `responseCode: 201`.
+2. Destinația raportului direct API este implementată și configurabilă prin
+   `atf.autoex.api.report-directory`; path-ul este limitat la directorul
+   proiectului, iar generarea/redactarea HTML sunt probate de componenta offline.
+   Rămâne inspecția unui raport cu request/response live efectiv.
+3. Suita read-only este izolată de mutații, dar ATF nu a emis încă schimburi
+   live: inițializarea `HttpClient` eșuează înaintea primului request cu
+   `Unable to establish loopback connection`. Rămâne de rulat într-un runtime
+   unde loopback-ul JVM funcționează. Suita mutabilă trebuie rulată separat și
+   controlat, verificând status/schema și cleanup-ul real după create/update,
+   inclusiv pe o cale de eșec; fixture-urile offline și cererile independente nu
+   substituie aceste probe.
+4. Redactarea HTML și a replay-ului este probată componentar. Rămâne verificarea
+   output-ului consolei și a formei raportului într-o execuție cu exchange-uri
+   live, fără duplicarea testelor generice ale rendererului.
+5. În `UI_API`, păstrează `GET /api/productsList` în checkpoint-ul explicit de
+   precondiție și baseline-ul imediat după acesta. Proba componentă de wiring
+   protejează request → checkpoint → baseline și eșuează dacă checkpoint-ul nu
+   trece. Rămâne de verificat în artifactul UI/API live că agregatul conține
+   numai traficul ulterior, fără dublarea exchange-ului. Inspectorul agregat nu
+   înlocuiește contractul API direct.
 
 ### Criterii de închidere
 
-- Componenta offline verifică request și response semantic pentru toate cele
-  14 scenarii și eșuează la mutarea/eliminarea unui caz fără a apela serviciul.
+- Componenta offline verifică request și response cu oracle-uri separate pentru
+  toate cele 14 scenarii, inclusiv corpuri JSON fixture literale. Testele nu
+  apelează serviciul public și nu sunt prezentate ca dovadă live — îndeplinit.
 - Contractul transportului și `responseCode` din JSON au aserțiuni distincte;
-  statusurile HTTP exacte sunt adăugate numai după confirmarea sursei lor.
-- Suita live opt-in a fost executată controlat și dovedește status/schema
-  observate; operațiile pe cont demonstrează identitate unică și cleanup pe
-  success și failure fără eclipsarea cauzei primare.
-- Secretele lipsesc din toate suprafețele publicate, inclusiv request body,
-  replay manual, consolă și raport.
-- Dovada UI/API separă precondiția de request-urile cauzate de browser; fiecare
-  exchange are un singur owner și un singur loc de publicare.
-- README-ul AutoEx descrie nivelul offline efectiv, iar acest feedback păstrează
-  numai diferențele încă deschise.
+  statusurile HTTP exacte rămân condiționate de confirmarea sursei — deschis.
+- Suita read-only live este izolată de mutații; exchange-urile nu sunt încă
+  dovedite prin transportul și raportarea ATF, deoarece inițializarea clientului
+  JVM eșuează înaintea primului request — deschisă.
+- Contractul live mutabil, inclusiv cleanup real pe success și failure, nu a
+  fost executat — deschis.
+- Publisher-ul API direct, directorul configurabil, redactarea și diagnosticul
+  de eșec sunt verificate componentar în `AutoExComponentSuite` (27 teste, fără
+  trafic public) — îndeplinit la nivel componentă. MCP a verificat artifactul
+  de eșec live; vizualizarea unui exchange live rămâne deschisă.
+- Redactarea replay-ului pentru form-ul AutoEx este verificată componentar;
+  diagnosticul de eșec, excepția suppressed de cleanup și redactarea bearer sunt
+  verificate într-un HTML componentar, iar artifactul de eșec a fost verificat în
+  MCP. Output-ul consolei dintr-o rulare cu request-uri live rămâne de inspectat
+  — parțial deschisă.
+- Wiring-ul precondiției UI/API (request → checkpoint → baseline), inclusiv
+  imposibilitatea de a avansa baseline-ul după un checkpoint eșuat, este
+  verificat componentar. Verificarea raportului browser-generated pentru
+  precondiție unică și agregat strict cauzal rămâne deschisă.
+- Separarea suitei API față de purchase E2E este deja implementată — îndeplinită.

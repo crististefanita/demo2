@@ -45,6 +45,14 @@ disclosure-uri și dovezile browser este
 Acest README deține matricea probelor și responsabilitățile suitei; nu
 redefinește regulile vizuale în feedback sau în fixture-uri.
 
+Helper-ele reutilizate de probele HTML UI stau în
+`atf.api.reporting.ui.support`, nu în pachetul testelor de renderer. De exemplu,
+`ExtentReportUiEvidenceTestSupport` centralizează fixture-ul și verificările
+comune fără să devină un test sau să mute ownership-ul din
+`atf-reporting-tests`. Limita de coeziune per pachet rămâne verificată de
+`AtfPackageCohesionGovernanceTest`; pragul nu se ajustează pentru a acomoda un
+hotspot.
+
 Proiecția contextului UI este verificată la componentă:
 
 | Probă | Contract protejat |

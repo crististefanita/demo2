@@ -23,10 +23,11 @@ import java.nio.file.Path;
 import java.util.Base64;
 import java.util.List;
 
-import static atf.api.reporting.ui.ExtentReportUiEvidenceTestSupport.EXTENT_UI_TEST_PACKAGE;
-import static atf.api.reporting.ui.ExtentReportUiEvidenceTestSupport.count;
-import static atf.api.reporting.ui.ExtentReportUiEvidenceTestSupport.screenshotAnchorContainsDirectDataUri;
+import static atf.api.reporting.ui.support.ExtentReportUiEvidenceTestSupport.EXTENT_UI_TEST_PACKAGE;
+import static atf.api.reporting.ui.support.ExtentReportUiEvidenceTestSupport.count;
+import static atf.api.reporting.ui.support.ExtentReportUiEvidenceTestSupport.screenshotAnchorContainsDirectDataUri;
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -277,8 +278,10 @@ class ExtentReportUiEvidenceRenderingTest {
             body.screenValidation("report state", "#test-view", ReportTestScreenshots.ONE_PIXEL_PNG, List.of(
                     new AtfAssertion("report state", "ready", "ready", true)), List.of(
                     new AtfUiActionRecord(1, "Click", "#tests", "tests opens", "click completed", 4, AtfReportStatus.PASS),
-                    new AtfUiActionRecord(2, "Screenshot", "current page", "visual state captured",
-                            "Base64 media link", 0, AtfReportStatus.PASS, AtfUiEvidenceSource.OBSERVE)), AtfReportStatus.PASS);
+                    new AtfUiActionRecord(2, "Audit screen contract", "purchase confirmation",
+                            "all component assertions pass",
+                            "status=PASS; assertions=1; screenshot=valid PNG; url=/confirmation",
+                            0, AtfReportStatus.PASS, AtfUiEvidenceSource.OBSERVE)), AtfReportStatus.PASS);
             body.complete(AtfReportStatus.PASS);
             scenario.complete(AtfReportStatus.PASS);
         }
@@ -287,6 +290,8 @@ class ExtentReportUiEvidenceRenderingTest {
         assertAll(
                 () -> assertTrue(html.contains("Playwright action sequence (1 entry)")),
                 () -> assertTrue(html.contains("Audit observations · 1 checkpoint")),
+                () -> assertEquals(1, count(html, "Audit screen contract")),
+                () -> assertTrue(html.contains("screenshot=valid PNG; url=/confirmation")),
                 () -> assertTrue(html.contains("aria-label=\"Audit observations · 1 checkpoint\"")),
                 () -> assertFalse(html.contains("Audit observations · 1 checkpoint · Screenshot")),
                 () -> assertTrue(html.contains("atf-ui-observation-table")),

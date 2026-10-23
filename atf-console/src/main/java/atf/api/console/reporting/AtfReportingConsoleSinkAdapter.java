@@ -1,4 +1,4 @@
-package atf.ui.tests.practiceshop.support;
+package atf.api.console.reporting;
 
 import atf.api.core.reporting.console.AtfConsoleEvent;
 import atf.api.core.reporting.console.AtfConsoleSink;
@@ -6,13 +6,13 @@ import atf.api.core.reporting.console.AtfConsoleSink;
 import java.nio.file.Path;
 import java.util.Objects;
 
-/** Test composition adapter between the console and Reporting event ports. */
-final class ShopConsoleBridge {
-    private ShopConsoleBridge() { }
+/** Adapts Reporting's console port to the renderer-neutral Core console port. */
+public final class AtfReportingConsoleSinkAdapter {
+    private AtfReportingConsoleSinkAdapter() { }
 
-    static atf.api.reporting.console.AtfConsoleSink reportingSink(AtfConsoleSink console) {
+    public static atf.api.reporting.console.AtfConsoleSink toReportingSink(AtfConsoleSink console) {
         Objects.requireNonNull(console, "console");
-        return event -> console.publish(toCoreEvent(event));
+        return event -> console.publish(toCoreEvent(Objects.requireNonNull(event, "event")));
     }
 
     private static AtfConsoleEvent toCoreEvent(atf.api.reporting.console.AtfConsoleEvent event) {
@@ -26,13 +26,14 @@ final class ShopConsoleBridge {
         };
     }
 
-    private static AtfConsoleEvent.Scope coreScope(atf.api.reporting.console.AtfConsoleEvent.Scope scope) {
-        return Enum.valueOf(AtfConsoleEvent.Scope.class, scope.name());
+    private static AtfConsoleEvent.Scope coreScope(
+            atf.api.reporting.console.AtfConsoleEvent.Scope scope) {
+        return AtfConsoleEvent.Scope.valueOf(scope.name());
     }
 
     private static atf.api.core.reporting.contract.AtfReportStatus coreStatus(
             atf.api.reporting.contract.AtfReportStatus status) {
-        return status == null ? null : Enum.valueOf(
-                atf.api.core.reporting.contract.AtfReportStatus.class, status.name());
+        return status == null ? null
+                : atf.api.core.reporting.contract.AtfReportStatus.valueOf(status.name());
     }
 }
