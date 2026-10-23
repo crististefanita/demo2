@@ -23,6 +23,7 @@ import atf.api.testkit.output.ReportOutputDirectory;
 import atf.api.testkit.channel.AtfTestChannelResolver;
 import atf.api.testkit.channel.TestChannel;
 import atf.api.testkit.lifecycle.FailureAwareCleanup;
+import atf.api.testkit.lifecycle.FailureEvidenceCleanup;
 import atf.api.testkit.evidence.AtfUiEvidence;
 import atf.api.testkit.evidence.AtfUiEvidenceFlow;
 import atf.api.testkit.evidence.AtfUiScreenshotPolicy;
@@ -242,6 +243,11 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
         return actions.getText(locator(selector), expected);
     }
 
+    public void waitForText(String selector, String expectedText, String expected) {
+        prepareUiInteraction();
+        actions.waitForText(page(), locator(selector), expectedText, expected);
+    }
+
     public String textFirst(String selector, String expected) {
         prepareUiInteraction();
         return actions.getText(new AtfLocator(page().locator(selector).first(), selector + " (first match)"), expected);
@@ -339,28 +345,25 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
         finished = true;
         Throwable terminalFailure = testFailure;
         boolean cleanupWasPending = failureCleanup != null;
-        if (failureCleanup != null) {
-            try { failureCleanup.run(); }
-            catch (Exception | Error cleanupFailure) {
-                terminalFailure = FailureAwareCleanup.combine(terminalFailure, cleanupFailure);
-            }
-            failureCleanup = null;
-        }
-        if (testFailure == null && cleanupWasPending && terminalFailure == null) {
+        if (testFailure == null && cleanupWasPending) {
             terminalFailure = new AssertionError(
                     "E2E completed without explicitly deleting its disposable account");
         }
 
-        terminalFailure = FailureAwareCleanup.runAll(terminalFailure,
+        terminalFailure = FailureEvidenceCleanup.finish(terminalFailure,
+                () -> {
+                    if (failureCleanup != null) {
+                        try { failureCleanup.run(); }
+                        finally { failureCleanup = null; }
+                    }
+                },
                 () -> {
                     if (channel == TestChannel.UI_API) {
                         phase.networkInspector(NETWORK_SUMMARY_TITLE,
                                 causalApiObservations().stream()
                                         .map(AutoExE2eRun::toExecutionEvidence).toList(), networkSteps);
                     }
-                },
-                browser::close);
-        if (terminalFailure != null) publishFailure(terminalFailure);
+                }, this::publishFailure, browser::close);
         AtfReportStatus status = terminalFailure == null ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
         terminalFailure = FailureAwareCleanup.runAll(terminalFailure, () -> phase.complete(status));
         AtfReportStatus scenarioStatus = terminalFailure == null ? status : AtfReportStatus.FAIL;

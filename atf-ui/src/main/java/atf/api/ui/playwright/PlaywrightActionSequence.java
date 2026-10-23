@@ -66,6 +66,7 @@ public final class PlaywrightActionSequence {
     }
 
     public String getText(AtfLocator element, String expected) {
+        // The caller may need the value for an in-memory business assertion; recorded evidence stays redacted.
         return locatorActions.getText(element, expected);
     }
 

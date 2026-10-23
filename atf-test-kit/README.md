@@ -65,14 +65,16 @@ Fiecare clasă executabilă declară exact un nivel:
 | `atf.api.testkit.setup.api` | `ApiScenarioSetup`, `ApiTestRef` | declarații; catalogul și executarea rămân la consumator |
 | `atf.api.testkit.documentation` | `DocumentationTarget` repeatable | selecție de documente; validatorii rămân în ATF Tests |
 | `atf.api.testkit.evidence` | `AtfUiEvidence`, `AtfUiEvidenceFlow`, `AtfUiScreenshotPolicy` | declară independent gruparea flow-ului și intenția capturilor; adaptorii consumer le mapează în profilul Reporting |
-| `atf.api.testkit.lifecycle` | `FailureAwareCleanup` | primitive test-only pentru acumularea cleanup-ului și închiderea inversă a resurselor parțial dobândite; fără API UI/Reporting |
+| `atf.api.testkit.lifecycle` | `FailureAwareCleanup`, `FailureEvidenceCleanup` | primitive test-only pentru agregarea erorilor, capturarea failure evidence înainte de cleanup/închiderea resursei și close invers; fără API UI/Reporting |
 
 `FailureAwareCleanup` păstrează prima eroare ca primară, atașează eșecurile
 ulterioare ca `suppressed`, încearcă toate etapele declarate și închide
-resursele dobândite în ordine inversă. Este folosit numai din source set-ul de
-teste; fiecare consumer păstrează local decizia privind resursele și etapele pe
-care le deține. Comportamentul generic este probat în
-`FailureAwareCleanupTest`, iar testele Shop/AutoEx rămân la boundary-ul lor.
+resursele dobândite în ordine inversă. `FailureEvidenceCleanup` adaugă ordinea
+generică pentru capturi: surprinde eșecul testului înaintea cleanup-ului care
+poate schimba pagina, apoi încearcă cleanup și diagnostic; dacă eroarea apare
+abia acolo, o capturează înainte de close. Ambele primitive sunt folosite numai
+din source set-ul de teste; consumerul păstrează decizia despre resurse și
+callback-urile sale. Contractul generic este probat în `FailureAwareCleanupTest`.
 
 Contractul complet, precedența, exemplele și probele sunt în
 [Adnotări de infrastructură pentru teste](../docs/ATF_Test_Infrastructure_Annotations.md).

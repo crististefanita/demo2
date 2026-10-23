@@ -4,6 +4,7 @@ import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.evidence.profile.ReportEvidenceCaptureSource;
 import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
 import atf.api.testkit.AtfComponentTest;
+import atf.api.testkit.evidence.AtfUiEvidence;
 import atf.api.testkit.evidence.AtfUiEvidenceFlow;
 import atf.api.testkit.evidence.AtfUiScreenshotPolicy;
 import atf.api.reporting.contract.AtfAssertion;
@@ -11,12 +12,14 @@ import atf.api.core.ui.AtfUiEvidenceSource;
 import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.ui.autoex.support.AutoExScreenAuditObservations;
 import atf.ui.autoex.support.AutoExEvidenceProfile;
+import atf.ui.tests.autoex.e2e.AutoExPurchaseUiFinalScreenshotE2eTest;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Guards AutoEx flow composition and screenshot-policy mapping without a live site or browser. */
@@ -46,6 +49,20 @@ class AutoExEvidenceProfileComponentTest {
                         finalOnly.screenshotPolicy()),
                 () -> assertEquals(ReportEvidenceCaptureSource.BROWSER,
                         finalOnly.captureSource()));
+    }
+
+    @Test
+    void singleFinalScreenshotFlowAlsoCapturesFailureEvidence() {
+        AtfUiEvidence annotation = AutoExPurchaseUiFinalScreenshotE2eTest.class
+                .getAnnotation(AtfUiEvidence.class);
+
+        assertEquals(AtfUiScreenshotPolicy.FINAL_AND_FAILURE, annotation.screenshots());
+        var profile = AutoExEvidenceProfile.forRun(annotation.flow(), annotation.screenshots(),
+                ReportScreenshotPolicy.NONE);
+        assertAll(
+                () -> assertTrue(profile.captures(ReportScreenshotPolicy.CapturePoint.FINAL)),
+                () -> assertTrue(profile.captures(ReportScreenshotPolicy.CapturePoint.FAILURE)),
+                () -> assertFalse(profile.captures(ReportScreenshotPolicy.CapturePoint.CHECKPOINT)));
     }
 
     @Test

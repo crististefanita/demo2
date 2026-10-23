@@ -156,14 +156,15 @@ SETUP
   propoziție de business; nu dubla titlul Gherkin pentru a le separa;
 - diagnosticele runtime nu devin pași Gherkin și nu schimbă verdictul business.
 
-Lifecycle-ul browser/report rămâne în harness-ul test-only al consumerului.
-`FailureAwareCleanup` oferă deja în `atf-test-kit` cleanup neutru cu închidere
-inversă și agregarea erorilor; alte primitive se promovează numai după probe
-comportamentale la consumatorii relevanți. `AutoExPurchaseSession` rămâne
-intenționat API intern al runtime-ului consumer; nu este precedent pentru un port
-generic și nu are TODO activ de extracție. Boundary-ul este descris în
-[README-ul Automation Exercise](../atf-test-auto-ex/README.md), iar regula
-cross-consumer în [README-ul Test Kit](../atf-test-kit/README.md).
+- Lifecycle-ul browser/report rămâne în harness-ul test-only al consumerului.
+- `FailureAwareCleanup` din `atf-test-kit` oferă cleanup neutru, închidere inversă
+  și agregarea erorilor.
+- Alte primitive se promovează numai după probe comportamentale la consumatorii
+  relevanți.
+- `AutoExPurchaseSession` rămâne API intern al runtime-ului consumer; nu este
+  precedent pentru un port generic și nu are TODO activ de extracție.
+- Boundary-ul AutoEx este descris în [README-ul Automation Exercise](../atf-test-auto-ex/README.md),
+  iar regula cross-consumer în [README-ul Test Kit](../atf-test-kit/README.md).
 
 Forma raportului și ownership-ul fiecărei dovezi sunt normative în
 [ATF Reporting Contract](ATF_Reporting_Contract.md#dovezile-configurării-inițiale).

@@ -64,15 +64,16 @@ public final class AutoExPurchaseJourney {
         cart.openFromHeader();
         cart.proceedToCheckout();
         AccountPage accountPage = new AccountPage(run);
-        String deliveryAddress = accountPage.deliveryAddress();
-        String billingAddress = accountPage.billingAddress();
+        String expectedDisplayName = configuration.registration().displayName();
+        String deliveryAddress = accountPage.deliveryAddress(expectedDisplayName);
+        String billingAddress = accountPage.billingAddress(expectedDisplayName);
         String orderReview = new CheckoutPage(run).orderReview();
         run.checkpoint(AutoExPurchaseTraceStep.CHECKOUT_REVIEW,
                 List.of(
-                        new AtfAssertion("Delivery address", configuration.registration().displayName(),
-                                deliveryAddress, deliveryAddress.contains(configuration.registration().displayName())),
-                        new AtfAssertion("Billing address", configuration.registration().displayName(),
-                                billingAddress, billingAddress.contains(configuration.registration().displayName())),
+                        new AtfAssertion("Delivery address", expectedDisplayName,
+                                deliveryAddress, deliveryAddress.contains(expectedDisplayName)),
+                        new AtfAssertion("Billing address", expectedDisplayName,
+                                billingAddress, billingAddress.contains(expectedDisplayName)),
                         new AtfAssertion("Order review", product.productName(), orderReview,
                                 orderReview.contains(product.productName()))));
 

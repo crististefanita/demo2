@@ -46,11 +46,15 @@ public final class AccountPage extends AutoExPage {
         click(AutoExSelectors.CONTINUE, "created account session continues to the store");
     }
 
-    public String deliveryAddress() {
+    public String deliveryAddress(String expectedDisplayName) {
+        run.waitForText(AutoExSelectors.DELIVERY_ADDRESS, expectedDisplayName,
+                "delivery address contains the configured customer name");
         return text(AutoExSelectors.DELIVERY_ADDRESS, "delivery address is read");
     }
 
-    public String billingAddress() {
+    public String billingAddress(String expectedDisplayName) {
+        run.waitForText(AutoExSelectors.BILLING_ADDRESS, expectedDisplayName,
+                "billing address contains the configured customer name");
         return text(AutoExSelectors.BILLING_ADDRESS, "billing address is read");
     }
 

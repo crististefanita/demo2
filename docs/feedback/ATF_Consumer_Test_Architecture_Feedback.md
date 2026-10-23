@@ -12,11 +12,14 @@ Reporting în evenimente Core, însă
 interzice explicit referințele `atf.api.reporting` în sursele production ale
 modulului Console.
 
-`ShopConsoleBridge` a fost eliminat, adaptorul AutoEx deleagă, iar testul
-`AtfReportingConsoleSinkAdapterTest` acoperă maparea. Aceste probe locale nu
-anulează încălcarea whole-ATF și nu fac plasarea adaptorului un contract aprobat.
-Reporting trebuie să rămână independent de Core/Console; nu modificați testul de
-guvernanță sau allowlist-ul fără feedback direct și o decizie explicită de arhitectură.
+- `ShopConsoleBridge` a fost eliminat, adaptorul AutoEx deleagă, iar
+  `AtfReportingConsoleSinkAdapterTest` acoperă maparea.
+- Aceste probe locale nu anulează încălcarea whole-ATF și nu aprobă plasarea
+  actuală a adaptorului.
+- Reporting trebuie să rămână independent de Core/Console.
+- Regula privind modificarea testelor și allowlist-urilor este deținută de
+  [guvernanța ATF Tests](../../atf-tests/README.md#guvernanța-schimbării-testelor).
+- Acest feedback urmărește doar decizia arhitecturală și remedierea boundary-ului.
 
 ### Decizia rămasă
 

@@ -11,17 +11,14 @@ suitelor rămân în [README-ul Practice Shop](../../atf-test-practice-shop/READ
 
 ### Lacuna și decizia
 
-Testele unit/component pot dovedi formarea request-ului, regulile validatorului și
-comportamentul lifecycle-ului cu răspunsuri controlate; ele nu dovedesc semantica
-serviciului extern. Proba `ShopStandaloneApiReportTest` a fost extinsă pentru a
-verifica filtrarea pe categoria produsului găsit live, sortarea numerică ascendentă
-după preț și read-back după update/remove pe un coș nou, izolat per execuție.
-
-Rularea live opt-in a ajuns la endpoint-ul real, dar autentificarea fixture-ului
-local a primit HTTP 401. Testul a publicat raportul de eșec al precondiției și s-a
-oprit înainte de crearea coșului; prin urmare nu există încă dovadă live pentru
-mutații și nu se declară ID-ul închis. Nu copiați credențiale în feedback sau în
-raport și nu transformați răspunsurile fixture-urilor în afirmații despre server.
+- Testele unit/component dovedesc request-ul, validatorul și lifecycle-ul cu
+  răspunsuri controlate; ele nu dovedesc semantica serviciului extern.
+- `ShopStandaloneApiReportTest` conține acum aserțiuni pentru categoria produsului
+  live, sortarea numerică după preț și read-back după update/remove pe un coș izolat.
+- Ultima rulare opt-in a primit HTTP 401 la autentificarea fixture-ului local și
+  s-a oprit înainte de crearea coșului. Nu există încă dovadă live pentru mutații.
+- Nu copiați credențiale în feedback/raport și nu prezentați răspunsurile
+  fixture-urilor drept afirmații despre server.
 
 ### Implementare și protecții adăugate
 
@@ -39,11 +36,17 @@ raport și nu transformați răspunsurile fixture-urilor în afirmații despre s
   către serviciul public. Acest lucru nu substituie rularea raportului de integrare
   autentificat și nici nu este prezentat drept dovadă pentru mutațiile coșului.
 
-### Dovezi de verificare
+### Baza de probe și limita live
 
-- `mvn -pl atf-test-practice-shop -am "-Dtest=ShopApiUnitSuite,ShopApiComponentSuite" "-Dsurefire.failIfNoSpecifiedTests=false" test` — **95 teste trecute**, zero eșecuri/erori/skip-uri.
-- `mvn -pl atf-test-practice-shop -am "-Dtest=ShopStandaloneApiReportTest" "-Datf.practice.authenticated-e2e=true" "-Dsurefire.failIfNoSpecifiedTests=false" test` — **eșuat corect la precondiție**: login live HTTP 401; niciun coș nu a fost creat. Raportul de eșec a fost publicat în `artifacts/reports/api`.
-- README-ul ownerului descrie încă sort/filter și update/remove live ca nedemonstrate; acea delimitare rămâne corectă până la o execuție autenticată verde. README-ul modulului nu a fost schimbat în acest increment.
+- Sursele main și test ale modulului se compilează în configurația curentă.
+- Suitele unit/component verifică rutele, filtrarea/sortarea așteptată și
+  lifecycle-ul coșului cu transport controlat; ele nu certifică semantica
+  serviciului remote.
+- Ultima dovadă live disponibilă s-a oprit la autentificare HTTP 401, înainte de
+  crearea coșului. Sort/filter și mutațiile remote rămân, așadar, neconfirmate.
+- [README-ul Practice Shop](../../atf-test-practice-shop/README.md#boundary-ul-probelor-api)
+  păstrează aceeași delimitare și trimite la acest gap; nu se dublează aici
+  contractul stabil al modulului și nu se atașează istoricul unui raport.
 
 ### Criterii rămase pentru închidere
 

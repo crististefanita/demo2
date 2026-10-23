@@ -12,15 +12,18 @@ confirmarea vizuală a auditului terminal UI. Aliasurile de redactare sunt
 implementate și documentate în README-ul `atf-ui`; nu mai au un TODO activ.
 
 Cleanup-ul comun, mutarea harness-ului Shop în `src/test`, activarea fail-closed
-Shop, baseline-ul API AutoEx, inventory-ul/coezunea și teardown-ul AutoEx sunt
-închise și documentate la ownerii lor. Adaptorul Console–Reporting rămâne deschis
-până la rezolvarea conflictului de guvernanță.
+Shop, baseline-ul API AutoEx, inventory-ul/coezunea și lifecycle-ul AutoEx —
+inclusiv sincronizarea checkout-ului și capturarea failure-evidence înainte de
+închiderea browserului — sunt închise și documentate la ownerii lor.
+Adaptorul Console–Reporting rămâne deschis până la rezolvarea conflictului de
+guvernanță.
 
-Evaluarea AI rămâne separată și în afara priorităților curente. În feedback-ul
-API Shop, numele, nivelurile și separarea unit/component au fost reconciliate
-cu schimbările live, iar gate-ul unit/component trece cu 95 de teste. Rămâne
-neprioritizată dovada HTTP live pentru sort/filter și mutațiile coșului: ultima
-execuție opt-in s-a oprit la login HTTP 401 înainte de orice mutație.
+Evaluarea AI rămâne în afara priorităților curente. Pentru API Shop:
+
+- numele, nivelurile și separarea unit/component sunt reconciliate cu schimbările live;
+- gate-ul unit/component trece cu 95 de teste;
+- dovada HTTP live pentru sort/filter și mutațiile coșului rămâne neprioritizată:
+  ultima execuție opt-in s-a oprit la login HTTP 401, înainte de orice mutație.
 
 ## Prioritatea curentă
 
@@ -40,33 +43,21 @@ scorurile ordonează backlog-ul și nu reprezintă evaluări de calitate.
 | Domeniu | Stare curentă |
 |---|---|
 | [Evaluarea AI](README_AI_Evaluation.md) | În afara acestei reconcilieri; conținutul și scorurile nu au fost reevaluate. |
-| [`SHOP-API-LIVE-SEMANTICS-01` — gap-ul live API Practice Shop](ATF_Practice_Shop_API_Test_Design_Feedback.md) | Codul probei verifică filtrarea/sortarea răspunsului și update/remove cu read-back pe coș izolat; unit/component sunt verzi. Proba live s-a oprit la autentificare HTTP 401, deci semantica remote rămâne neconfirmată și ID-ul deschis. |
+| [`SHOP-API-LIVE-SEMANTICS-01` — gap-ul live API Practice Shop](ATF_Practice_Shop_API_Test_Design_Feedback.md) | Scor **59/100** (30 impact + 21 lacună + 2 lucrabil + 6 documentare). Compilarea surselor trece; testele controlate nu dovedesc semantica serverului. Ultima dovadă live disponibilă s-a oprit la login HTTP 401, înainte de mutațiile coșului. Reia după obținerea unui fixture valid prin procesul autorizat. |
 
-## Contracte promovate în documentația oficială
+## Abateri active de readability și boundary
 
-| Contract | Sursa normativă |
-|---|---|
-| Boundary-ul `main`/`test` și regula de owner pentru teste business, adaptoare consumer, Reporting generic și Test Kit | [Arhitectura ATF](../ATF_Architecture.md), [ghidul de testare](../ATF_Testing_Guide.md#owner-ul-testului-business-adaptor-sau-infrastructură), README-urile Practice Shop, Automation Exercise, Reporting Tests și Test Kit |
-| Regula de coeziune: maximum opt clase per pachet; inventarele includ modulele cu surse de producție | [Bune practici de cod](../README_Atf_CodeBestPractices.md#coeziunea-pachetelor-pragul-de-opt-clase); package split/inventory AutoEx, boundary-ul Shop harness și activarea Shop sunt documentate la owner; `AutoExPurchaseSession` rămâne runtime specific consumerului |
-| Profile Reporting per scenariu și izolare față de scenariile-surori | [README ATF Reporting Tests](../../atf-reporting-tests/README.md), [contractul de captură](../ATF_Evidence_Capture_Contract.md) |
-| Nivelul/canalul testelor și declarația neutră UI evidence | [Contractul adnotărilor](../ATF_Test_Infrastructure_Annotations.md), [README Test Kit](../../atf-test-kit/README.md); forma comună și izolarea profilului per scenariu sunt implementate; agregarea cross-phase rămâne în `SHOP-CAPTURE-01` |
-| Cleanup neutru failure-aware pentru testele E2E | [README Test Kit](../../atf-test-kit/README.md); `FailureAwareCleanup` este implementat și probat de kit și consumatori. Activarea fail-closed Shop și boundary-ul intern AutoEx sunt documentate la owner; nu există un harness UI generic în Test Kit |
-| UI/API validation, ownership-ul dovezilor și layout-ul raportului | [Contractul semantic de raportare](../ATF_Reporting_Contract.md), [contractul display/layout](../ATF_Reporting_Display_Contract.md) |
-| Metadata `System/Environment`, inclusiv fallback-ul neutru pentru Client și descriptorii declarați de consumatori | [README ATF Reporting](../../atf-reporting/README.md); `REPORT-CLIENT-METADATA-01` este închis și nu mai ocupă backlog |
-| Notificarea opt-in a căii Extent după publicare, inclusiv sesiunea comună Shop | [README Test Kit](../../atf-test-kit/README.md#politica-pentru-calea-raportului-publicat), [ATF Console](../../atf-console/README.md) și [ATF Reporting](../../atf-reporting/README.md); contract implementat, fără backlog separat |
-| Screenshot policy și scenariul final-only Automation Exercise | [README Automation Exercise](../../atf-test-auto-ex/README.md), [README ATF Reporting](../../atf-reporting/README.md) |
-
-## Readiness whole-ATF găsit la reconciliere
-
-- Poarta whole-ATF trebuie să treacă regulile de readability, nu numai suitele
-  locale.
-- Constatarea live identifică invocări ATF complet calificate în
-  `ExtentReportSessionLifecycleTest`, `AtfConsoleBridge` și
-  `UiApiVerdictProjectionProbe`, plus un import duplicat în `AutoExTestAccount`.
-  Acestea cer curățarea sursei, nu relaxarea testelor.
-- `ArchitectureModuleBoundaryTest` respinge separat plasarea adaptorului
-  Console; problema este urmărită și scorată mai sus.
-- Testele de guvernanță nu au fost modificate în această reconciliere.
+- `AtfSourceReadabilityGovernanceTest` raportează invocări ATF complet calificate
+  în `ExtentReportSessionLifecycleTest` (liniile 34, 110, 139), `AtfConsoleBridge`
+  din suportul `atf-tests` (linia 57) și `UiApiVerdictProjectionProbe` (linia 110).
+- Aceeași probă găsește un import duplicat `AutoExConfiguration` în
+  `AutoExTestAccount`. Acestea sunt curățări de cod necesare pentru gate-ul
+  existent; nu sunt motiv pentru modificarea ori relaxarea testului.
+- `ArchitectureModuleBoundaryTest` respinge plasarea adaptorului
+  Console–Reporting; acesta este același gap urmărit și prioritizat în
+  [feedback-ul Consumer](ATF_Consumer_Test_Architecture_Feedback.md).
+- Politica de schimbare a acestor teste este deținută de
+  [README-ul ATF Tests](../../atf-tests/README.md#guvernanța-schimbării-testelor).
 
 `GOV-API-01`, profilele generice per scenariu și integrarea AutoEx final-only
 nu mai sunt TODO-uri. Ele se redeschid numai dacă o probă nominală/regresie
@@ -76,19 +67,9 @@ Scorurile ordonează intervențiile rămase; ele nu înlocuiesc probele și nu
 înseamnă că un gap de scor mai mic poate fi ignorat când afectează corectitudinea
 evidence-ului publicat.
 
-## Regula de reconciliere
-
-Înainte de a schimba starea unui ID, verifică sursa, testul ownerului și
-documentația normativă. Închide un gap numai după ce criteriul său trece la
-boundary-ul potrivit și informația stabilă este promovată în README-ul ownerului
-sau în contractul oficial. O captură veche ori o rulare fără legătură directă cu
-criteriul nu este dovadă de închidere.
-
-Un feedback fără TODO funcțional se elimină după promovarea contractului și
-reconcilierea exactă a scope-ului de teste. Un control `testChanges` se păstrează
-numai cât timp diff-ul față de baza folosită de gate conține schimbările pe care
-le acoperă; expirarea sau existența unui commit nou nu decid singure închiderea.
-Regula tehnică detaliată este în [baseline-ul schimbărilor de teste](../ATF_Test_Changes_Baseline.md).
-
-Pentru builduri, teste, staging și verificarea artifactelor urmează
-[Siguranța compilării și rulării ATF](../ATF_Build_And_Execution_Safety.md).
+Regulile de promovare/ștergere a feedback-ului sunt deținute de
+[bunele practici documentare](../README_Atf_DocumentationBestPractices.md#păstrarea-și-ștergerea-feedback-ului);
+controalele `testChanges` de [baseline-ul lor](../ATF_Test_Changes_Baseline.md)
+și [README-ul ATF Tests](../../atf-tests/README.md#guvernanța-schimbării-testelor).
+Pentru execuții și verificarea artifactelor se aplică
+[siguranța compilării și rulării ATF](../ATF_Build_And_Execution_Safety.md).

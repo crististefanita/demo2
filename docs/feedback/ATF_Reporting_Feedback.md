@@ -95,10 +95,8 @@ Eșecul inițial rămâne primar, iar erorile de rollback sunt păstrate ca
   mapping-ul override-ului, nu repetă proba generică.
 - **Rămas:** definește și testează agregarea între `SETUP` și `TEST BODY` fără
   Gherkin duplicat, fără pierderea fazei de proveniență și fără schimbarea
-  verdictului/setup failure. Testele componente nu pornesc site-ul.
-- `ShopE2eContextEvidenceProfileTest` verifică izolarea profilelor per scenariu;
-  această probă nu închide agregarea cross-phase și nu justifică relaxarea
-  vreunui test de arhitectură.
+  verdictului/setup failure. Testele componente nu pornesc site-ul și nu cer
+  relaxarea vreunui test de arhitectură.
 - E2E-ul consumer confirmă integrarea reală; nu se complică journey-urile doar
   pentru a testa rendererul.
 - Artifactul verifică o singură apariție a fiecărei acțiuni, ordinea, un singur

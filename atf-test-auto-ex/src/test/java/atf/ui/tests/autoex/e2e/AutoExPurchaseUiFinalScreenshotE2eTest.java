@@ -20,18 +20,18 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 
-/** Same UI-only journey, one consolidated Playwright table, and one final screenshot. */
+/** Same UI-only journey; success gets one final screenshot and failures retain a failure capture. */
 @AtfE2eTest
 @AtfTestChannel(TestChannel.UI)
 @AtfUiEvidence(flow = AtfUiEvidenceFlow.UNIFIED_FLOW,
-        screenshots = AtfUiScreenshotPolicy.FINAL_ONLY)
+        screenshots = AtfUiScreenshotPolicy.FINAL_AND_FAILURE)
 @UiReportSubdirectory("auto-ex")
 @AtfConsoleMessages(AtfConsoleMessages.Policy.DETAILS)
 @AtfReportPath
 @ExtendWith({AtfConsoleTestExtension.class, AutoExE2eExtension.class})
 @Execution(ExecutionMode.SAME_THREAD)
 @Order(3)
-@DisplayName("Automation Exercise purchase — UI, final screenshot only")
+@DisplayName("Automation Exercise purchase — UI, final screenshot and failure evidence")
 public class AutoExPurchaseUiFinalScreenshotE2eTest {
     @Test
     @DisplayName("customer completes the same demo purchase with a single terminal screenshot")

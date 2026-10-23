@@ -6,6 +6,8 @@ import atf.api.ui.config.UiRetryPolicy;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Function;
 
 /** Owns ordered UI evidence, sequence boundaries and operation timing. */
 final class UiActionRecorder {
@@ -31,6 +33,12 @@ final class UiActionRecorder {
     }
 
     <T> T run(String operation, String target, String expected, boolean sensitive, Action<T> action) {
+        return run(operation, target, expected, sensitive, action,
+                observed -> observed == null ? "operation completed" : observed.toString());
+    }
+
+    <T> T run(String operation, String target, String expected, boolean sensitive, Action<T> action,
+              Function<T, String> safeObservation) {
         long started = System.nanoTime();
         String safeExpected = expected;
         publish(new UiActionTrace.UiActionEvent(UiActionTrace.Kind.START,
@@ -39,7 +47,7 @@ final class UiActionRecorder {
         while (true) {
             try {
                 T observed = action.run();
-                String value = observed == null ? "operation completed" : observed.toString();
+                String value = Objects.requireNonNull(safeObservation.apply(observed), "safeObservation result");
                 long duration = elapsedMillis(started);
                 add(operation, target, safeExpected, value, duration, AtfReportStatus.PASS);
                 publish(new UiActionTrace.UiActionEvent(UiActionTrace.Kind.COMPLETE,

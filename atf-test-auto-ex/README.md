@@ -76,18 +76,23 @@ redactează câmpurile de înregistrare și plată din reprezentarea textuală.
 - `AutoExE2eRun` îl adaptează în `src/test` la browser, raport și lifecycle JUnit.
 - Separarea păstrează suportul specific site-ului testabil, fără ca sursele de
   producție să depindă de runner sau de Test Kit.
-- La teardown, inspectorul, finalizarea fazei, închiderea browserului și
-  finalizarea scenariului sunt încercate independent.
-- `FailureAwareCleanupTest` verifică ordinea și agregarea generică; deciziile
-  locale AutoEx rămân în `AutoExE2eRun`, fără browser/report API în helper.
+- La eșec, inspectorul și captura `Failure evidence` sunt publicate cât pagina
+  Playwright este încă disponibilă; browserul se închide apoi, iar faza și
+  scenariul se finalizează independent.
+- `FailureAwareCleanupTest` verifică ordinea generică a capturii, cleanup-ului,
+  diagnosticului și close-ului; `AutoExE2eRun` furnizează numai callback-urile
+  business/UI ale consumerului.
 
-`AutoExE2eRun.finish` folosește `FailureAwareCleanup` pentru a încerca
-independent publicarea network inspector-ului, închiderea fazei/scenariului și
-închiderea browserului. O eroare de teardown nu împiedică pașii următori; cauza
-inițială rămâne primară, iar eșecurile suplimentare sunt atașate ca `suppressed`.
-`AutoExTeardownComponentTest` a fost păstrat ca probă a ordinii consumerului,
-dar folosește acum primitiva comună din Test Kit; nu există un al doilea helper
-de cleanup local.
+`AutoExE2eRun.finish` capturează mai întâi eșecul inițial în viewport, înainte
+ca cleanup-ul contului să poată naviga pagina; evidence-ul maschează câmpurile
+sensibile. Apoi rulează cleanup-ul și publică inspectorul de rețea. Dacă prima
+eroare apare chiar în teardown, captura se face după diagnostic și înainte de
+închiderea browserului. Faza și scenariul se finalizează independent.
+`FailureEvidenceCleanup` din Test Kit este adaptorul generic de lifecycle; AutoEx
+nu deține o a doua implementare de orchestrare.
+Erorile ulterioare nu împiedică pașii rămași: cauza inițială rămâne primară, iar
+eșecurile suplimentare sunt atașate ca `suppressed`. Testele componente verifică
+profilul de captură și wiring-ul testului fără a duplica primitive generice.
 
 `AutoExE2eInitialization` face rollback-ul inițializării cu factory-uri
 injectabile. Contractul component verifică:
@@ -112,7 +117,9 @@ trebuie demonstrată comportamental în ambii consumatori.
   boundary și canal.
 - Contractul comun `@AtfUiEvidence` din Test Kit declară separat forma flow-ului
   și politica de captură; adaptorul AutoEx îl mapează în profilul Reporting.
-  Varianta final-only îl declară explicit, iar axele `CONFIGURED` păstrează
+  Varianta cu o captură la succes folosește `FINAL_AND_FAILURE`: nu adaugă
+  capturi la checkpoint-uri, dar păstrează captura terminală și una la failure.
+  Axele `CONFIGURED` păstrează
   profilul configurat. Declarația este direct pe clasa E2E; metadata nu pornește
   singură browserul sau lifecycle-ul.
 - `@UiReportSubdirectory("auto-ex")` și `@AtfConsoleMessages(DETAILS)` păstrează
@@ -129,7 +136,7 @@ partajat:
 |---|---|
 | `AutoExPurchaseUiE2eTest` | UI; checkpoint-uri și capturi conform profilului standard |
 | `AutoExPurchaseUiApiE2eTest` | UI + observarea traficului first-party în aceeași sesiune de browser |
-| `AutoExPurchaseUiFinalScreenshotE2eTest` | UI; o secvență consolidată de acțiuni și o singură captură terminală |
+| `AutoExPurchaseUiFinalScreenshotE2eTest` | UI; o secvență consolidată de acțiuni, o captură terminală la succes și captură la failure |
 
 `AutoExComponentSuite` verifică local fără a deschide site-ul public:
 
@@ -206,6 +213,17 @@ Valorile de catalog, identitate și plată sunt date demo din YAML; fiecare
 execuție generează email și parolă unice. Cleanup-ul este armat înainte de
 submit-ul înregistrării, iar o eroare de cleanup nu maschează cauza primară.
 Capturile redactează câmpurile de formular.
+Pentru verificarea adreselor, journey-ul folosește valoarea returnată de `Get text`
+numai în aserțiunea din memorie; recorderul `atf-ui` păstrează `[REDACTED]` în
+raport și în trace, astfel încât protecția PII nu transformă textul real într-o
+valoare imposibil de verificat.
+
+Înainte să citească fiecare adresă, `AccountPage` așteaptă ca numele sintetic
+configurat să apară în containerul de delivery, respectiv invoice. Apoi journey-ul
+validează adresa completă și order review-ul; așteptarea folosește condiția
+semantică `waitForText`, nu un `sleep`. `AutoExCheckoutAddressComponentTest`
+verifică ordinea așteptare → citire pentru ambii locatori, iar implementarea
+generică a acțiunii rămâne deținută de `atf-ui`.
 
 Dialogul CMP este tratat prin interfața vizibilă, cu alegerea minimă pentru
 scopurile opționale. Dacă apare vignette-ul Google, handler-ul consumerului

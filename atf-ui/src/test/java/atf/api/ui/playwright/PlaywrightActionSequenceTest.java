@@ -119,6 +119,37 @@ class PlaywrightActionSequenceTest {
     }
 
     @Test
+    void sensitiveTextRemainsUsableForBusinessAssertionsButIsRedactedFromEvidence() {
+        String privateAddress = "Mr. Ada Lovelace\\n10 Private Street";
+        var rows = (com.microsoft.playwright.Locator) Proxy.newProxyInstance(
+                com.microsoft.playwright.Locator.class.getClassLoader(),
+                new Class<?>[]{com.microsoft.playwright.Locator.class},
+                (proxy, method, arguments) -> switch (method.getName()) {
+                    case "all" -> List.of();
+                    case "toString" -> "tr";
+                    default -> throw new UnsupportedOperationException(method.getName());
+                });
+        var locator = (com.microsoft.playwright.Locator) Proxy.newProxyInstance(
+                com.microsoft.playwright.Locator.class.getClassLoader(),
+                new Class<?>[]{com.microsoft.playwright.Locator.class},
+                (proxy, method, arguments) -> switch (method.getName()) {
+                    case "locator" -> rows;
+                    case "innerText" -> privateAddress;
+                    case "toString" -> "#address_delivery";
+                    default -> throw new UnsupportedOperationException(method.getName());
+                });
+        var actions = new PlaywrightActionSequence();
+
+        String actual = actions.getText(new AtfLocator(locator, "#address_delivery"),
+                "delivery address is read");
+
+        assertEquals(privateAddress, actual);
+        assertTrue(actual.contains("Ada Lovelace"));
+        assertEquals("[REDACTED]", actions.snapshot().getFirst().observed());
+        assertFalse(actions.snapshot().toString().contains("Ada Lovelace"));
+    }
+
+    @Test
     void fillKeepsReplayValueBesideItsTargetForNonSensitiveFields() {
         var locator = (com.microsoft.playwright.Locator) Proxy.newProxyInstance(
                 com.microsoft.playwright.Locator.class.getClassLoader(),

@@ -43,10 +43,9 @@ final class PlaywrightLocatorActions {
 
     String getText(AtfLocator element, String expected) {
         String target = element.selector();
-        return recorder.run("Get text", target, expected, isSensitiveTarget(element), () -> {
-            String observed = readableText(element.locator());
-            return isSensitiveTarget(element) ? "[REDACTED]" : observed;
-        });
+        boolean sensitive = isSensitiveTarget(element);
+        return recorder.run("Get text", target, expected, sensitive,
+                () -> readableText(element.locator()), observed -> sensitive ? "[REDACTED]" : observed);
     }
 
     void fill(AtfLocator element, String value, String expected) {

@@ -12,6 +12,24 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 @AtfUnitTest
 class FailureAwareCleanupTest {
     @Test
+    void laterStagesRunAndFirstFailureRemainsPrimary() {
+        var events = new ArrayList<String>();
+        var inspectorFailure = new IllegalStateException("network inspector failed");
+        var phaseFailure = new IllegalArgumentException("phase completion failed");
+
+        Throwable failure = FailureAwareCleanup.runAll(null,
+                () -> { events.add("network inspector"); throw inspectorFailure; },
+                () -> events.add("browser close"),
+                () -> { events.add("phase completion"); throw phaseFailure; },
+                () -> events.add("scenario completion"));
+
+        assertEquals(List.of("network inspector", "browser close", "phase completion", "scenario completion"),
+                events);
+        assertSame(inspectorFailure, failure);
+        assertEquals(List.of(phaseFailure), List.of(failure.getSuppressed()));
+    }
+
+    @Test
     void cleanupStagesAllRunAndKeepTheFirstFailurePrimary() {
         var primary = new AssertionError("test failed");
         var firstCleanupFailure = new IllegalStateException("inspector failed");
@@ -50,5 +68,67 @@ class FailureAwareCleanupTest {
         var cleanupFailure = new IllegalStateException("close failed");
 
         assertSame(cleanupFailure, FailureAwareCleanup.combine(null, cleanupFailure));
+    }
+
+    @Test
+    void capturesTestFailureBeforeCleanupAndDiagnosticsCanNavigateOrCloseThePage() {
+        var primary = new AssertionError("Playwright action failed");
+        var calls = new ArrayList<String>();
+
+        Throwable result = FailureEvidenceCleanup.finish(primary,
+                () -> calls.add("account cleanup navigated away"),
+                () -> calls.add("network diagnostics"),
+                observed -> { assertSame(primary, observed); calls.add("failure screenshot and evidence"); },
+                () -> calls.add("browser close"));
+
+        assertSame(primary, result);
+        assertEquals(List.of("failure screenshot and evidence", "account cleanup navigated away",
+                "network diagnostics", "browser close"), calls);
+    }
+
+    @Test
+    void capturesFirstCleanupFailureAfterCleanupAndDiagnosticsButBeforeResourceClose() {
+        var cleanupFailure = new IllegalStateException("cleanup failed");
+        var calls = new ArrayList<String>();
+
+        Throwable result = FailureEvidenceCleanup.finish(null,
+                () -> { calls.add("cleanup"); throw cleanupFailure; },
+                () -> calls.add("diagnostics"),
+                observed -> { assertSame(cleanupFailure, observed); calls.add("failure evidence"); },
+                () -> calls.add("resource close"));
+
+        assertSame(cleanupFailure, result);
+        assertEquals(List.of("cleanup", "diagnostics", "failure evidence", "resource close"), calls);
+    }
+
+    @Test
+    void evidencePublicationFailureDoesNotPreventCleanupDiagnosticsOrResourceClose() {
+        var primary = new AssertionError("test failed");
+        var evidenceFailure = new IllegalStateException("screenshot publication failed");
+        var calls = new ArrayList<String>();
+
+        Throwable result = FailureEvidenceCleanup.finish(primary,
+                () -> calls.add("cleanup"),
+                () -> calls.add("diagnostics"),
+                ignored -> { calls.add("failure evidence"); throw evidenceFailure; },
+                () -> calls.add("resource close"));
+
+        assertSame(primary, result);
+        assertEquals(List.of("failure evidence", "cleanup", "diagnostics", "resource close"), calls);
+        assertEquals(List.of(evidenceFailure), List.of(result.getSuppressed()));
+    }
+
+    @Test
+    void successfulCleanupDoesNotPublishFailureEvidence() {
+        var calls = new ArrayList<String>();
+
+        Throwable result = FailureEvidenceCleanup.finish(null,
+                () -> calls.add("cleanup"),
+                () -> calls.add("diagnostics"),
+                ignored -> calls.add("failure evidence"),
+                () -> calls.add("resource close"));
+
+        assertEquals(null, result);
+        assertEquals(List.of("cleanup", "diagnostics", "resource close"), calls);
     }
 }

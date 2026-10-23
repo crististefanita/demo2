@@ -29,8 +29,9 @@ Regula de economie:
 <details>
 <summary><strong>Harta de lectură</strong></summary>
 
-- [ownership și promovare](#responsabilitatea-documentelor-și-promovarea-feedback-ului)
-  și [procesul de revizuire](#procesul-de-redactare-și-revizuire);
+- [ownership și promovare](#responsabilitatea-documentelor-și-promovarea-feedback-ului),
+  [păstrarea/ștergerea feedback-ului](#păstrarea-și-ștergerea-feedback-ului) și
+  [procesul de revizuire](#procesul-de-redactare-și-revizuire);
 - [primul ecran](#structura-recomandată-a-primului-ecran),
   [diagrame](#diagrame-o-întrebare-o-perspectivă) și
   [tabele/disclosure](#tabele-bullets-și-disclosure);
@@ -113,6 +114,30 @@ flowchart LR
   testul se schimbă numai când feedback-ul direct schimbă regula guvernată.
 
 </details>
+
+### Păstrarea și ștergerea feedback-ului
+
+Feedback-ul este un backlog de lacune, nu un al doilea README și nici un jurnal
+al deciziilor deja închise. Înainte de a șterge un fișier, reconciliază fiecare
+secțiune cu codul, testul ownerului și README-ul normativ:
+
+- mută regula stabilă în README-ul ownerului înainte să elimini explicația din
+  feedback; păstrează un singur owner normativ și linkuri către acesta;
+- șterge secțiunile închise după ce criteriul este demonstrat și contractul
+  necesar există la owner; nu păstra istoricul raportului, artifactului sau
+  execuției ca substitut pentru cerință;
+- șterge fișierul de feedback numai dacă nu mai conține niciun criteriu
+  neîndeplinit și niciun control activ care trebuie reconciliat;
+- păstrează fișierul dacă există cel puțin un gap real sau un control `testChanges`
+  activ, chiar dacă restul conținutului poate fi promovat ori eliminat;
+- nu închide, rescrie sau șterge un control `testChanges` doar pentru că a
+  expirat ori a apărut un commit nou: compară schimbările față de baseline și
+  aplică procedura din [baseline-ul schimbărilor de teste](ATF_Test_Changes_Baseline.md)
+  și [guvernanța testelor](../atf-tests/README.md#guvernanța-schimbării-testelor).
+
+Testele de guvernanță rămân contract protejat. Dacă documentul țintă nu trece,
+se repară documentul; regula testului se schimbă numai prin feedback direct,
+owner, motiv și criteriu nou, conform README-ului `atf-tests`.
 
 ## Procesul de redactare și revizuire
 

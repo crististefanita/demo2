@@ -6,7 +6,7 @@ Acest document separă gap-urile evaluatorului AI de readiness-ul implementării
 Designul țintă și pattern-urile extrase din ATF1/.NET sunt în
 [designul AI al proiectului](../ATF_AI_Evaluation_Design.md).
 
-Backlog-ul AI nu intră în ordinea celor șase priorități active din registrul comun.
+Backlog-ul AI nu intră în ordinea priorităților active din registrul comun.
 
 | Stare | Owner / limită |
 |---|---|
@@ -17,7 +17,8 @@ Backlog-ul AI nu intră în ordinea celor șase priorități active din registru
 
 O implementare se închide numai cu probă nominală și negativă la boundary-ul
 potrivit. Un document mutat, o clasă nouă sau un raport frumos nu ridică scorul
-de implementare și nu autorizează modificarea testelor de guvernanță.
+de implementare. Modificarea testelor de guvernanță urmează regula ownerului din
+[README-ul ATF Tests](../../atf-tests/README.md#guvernanța-schimbării-testelor).
 
 ## Gap-uri rămase pentru evaluator
 

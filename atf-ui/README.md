@@ -149,6 +149,10 @@ Report*Locators
   `"selected owner"` sau `"collapse node"`;
 - operațiile suportate sunt `Navigate`, `Click`, `Get text`, `Find element`,
   `Expect text`, `Focus`, `Wait for visible`, `Expect visible` și `Wait`;
+- `Get text` returnează textul observat apelantului pentru aserțiuni în memorie;
+  pentru locatorii sensibili, action record-ul și trace-ul publică numai
+  `[REDACTED]`. `Expect text` compară în runtime valoarea reală și păstrează
+  aceeași redacție în evidence;
 - stările asincrone folosesc așteptări Playwright cu timeout:
   `waitFor`, `waitForCondition`, `waitForURL`;
 - `waitForTimeout` nu este API de stabilizare acceptat.

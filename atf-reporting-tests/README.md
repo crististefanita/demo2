@@ -575,12 +575,17 @@ Ancorele de output sunt:
 ## Limitele de responsabilitate ale aplicațiilor consumatoare
 
 Se aplică [regula comună de ownership](../docs/ATF_Testing_Guide.md#owner-ul-testului-business-adaptor-sau-infrastructură):
-acest README fixează exemplele de boundary Reporting, nu mută testele consumerilor.
-`atf-reporting-tests` nu deține adaptoare de aplicație. El deține în primul rând
-probele reutilizabile ale bibliotecii: model și publisher, API fixtures neutre,
-paritate între renderere, artifact HTML, DOM/CSS și interacțiuni browser. Aceste
-probe folosesc mock/fake determinist, nu depind de endpoint-ul sau regulile de
-business ale aplicației testate. Practice Shop este izolat în modulul dedicat:
+acest README descrie boundary-ul Reporting, fără să mute testele consumerilor.
+
+`atf-reporting-tests` deține probe reutilizabile ale bibliotecii, nu adaptoare de
+aplicație:
+
+- model, publisher și fixtures API neutre;
+- paritate între renderere și artifact HTML;
+- DOM/CSS și interacțiuni browser, verificate cu mock/fake determinist;
+- fără dependențe de endpoint-uri sau reguli business ale aplicației testate.
+
+Practice Shop este izolat în modulul dedicat:
 
 ```text
 atf-test-practice-shop/src/test/resources/atf-practice-shop.yaml
