@@ -24,6 +24,11 @@ import atf.api.reporting.model.ReportJsonBody;
 import atf.api.reporting.api.ReportModelAdapters;
 import atf.api.reporting.ui.network.ReportNetworkAggregateMarkup;
 import atf.api.reporting.ui.network.ReportNetworkInspector;
+import atf.api.reporting.ui.model.AtfUiActionRecord;
+import atf.api.reporting.ui.model.AtfUiEvidenceSource;
+import atf.api.reporting.evidence.ui.ExtentUiActionRenderer;
+import atf.api.reporting.evidence.ui.ExtentUiObservationRenderer;
+import atf.api.reporting.markup.ExtentReportAssets;
 
 import java.util.List;
 import java.util.Objects;
@@ -178,8 +183,9 @@ public final class HtmlReportEvidenceView {
                 .append(openTag(DIV, classAttribute(NODE_TITLE)))
                 .append(openTag(SPAN)).append(escape(validation.title())).append(closeTag(SPAN))
                 .append(ReportEvidenceMarkup.statusBadge(validation.status()))
-                .append(closeTag(DIV))
-                .append(ReportTableViewport.ASSERTIONS.open())
+                .append(closeTag(DIV));
+        renderUiEvidence(html, validation);
+        html.append(ReportTableViewport.ASSERTIONS.open())
                 .append(openTag(TABLE, classAttribute(ASSERTIONS)))
                 .append(openTag(THEAD)).append(openTag(TR))
                 .append(openTag(TH)).append(AtfReportLabels.ASSERTION).append(closeTag(TH))
@@ -203,6 +209,22 @@ public final class HtmlReportEvidenceView {
             }
         });
         html.append(closeTag(DIV));
+    }
+
+    private void renderUiEvidence(StringBuilder html, ReportExecutionModel.Validation validation) {
+        var rows = validation.uiActions().stream().map(action -> new AtfUiActionRecord(
+                action.sequence(), redactor.redactText(action.operation()), redactor.redactText(action.target()),
+                redactor.redactText(action.expected()), redactor.redactText(action.observed()),
+                action.durationMillis(), action.status(), action.source())).toList();
+        var actions = rows.stream().filter(row -> row.source() == AtfUiEvidenceSource.ACTION).toList();
+        var observations = rows.stream().filter(row -> row.source() == AtfUiEvidenceSource.OBSERVE).toList();
+        html.append(new ExtentUiActionRenderer(settings).markup(actions, List.of()))
+                .append(new ExtentUiObservationRenderer(settings).markup(observations));
+        for (var screenshot : ExtentReportAssets.distinctScreenshotModels(validation.screenshots())) {
+            html.append(ExtentReportAssets.base64ScreenshotLink(
+                    AtfReportHtmlVocabulary.CssClass.ATF_UI_ACTION_SCREENSHOT_LINK.value(),
+                    redactor.redactText(screenshot.title()), screenshot.base64Png()));
+        }
     }
 
     private void renderNestedRequest(StringBuilder html, ReportExecutionModel.Request request) {

@@ -123,7 +123,7 @@ trebuie demonstrată comportamental în ambii consumatori.
 
 ## Contractul testelor AutoEx
 
-- `@AtfE2eTest` și `@AtfTestChannel(UI/UI_API)` clasifică cele trei teste după
+- `@AtfE2eTest` și `@AtfTestChannel(UI/UI_API)` clasifică testele după
   boundary și canal; varianta UI este selecția uzuală de business.
 - Contractul comun `@AtfUiEvidence` din Test Kit declară separat forma flow-ului
   și politica de captură; adaptorul AutoEx îl mapează în profilul Reporting.
@@ -150,6 +150,18 @@ când este necesară altă politică de evidence:
 | `AutoExPurchaseUiE2eTest` | UI; checkpoint-uri și capturi standard | journey business pe UI |
 | `AutoExPurchaseUiApiE2eTest` | UI + trafic first-party observat | precondiție API de catalog și integrarea traficului cu journey-ul real |
 | `AutoExPurchaseUiFinalScreenshotE2eTest` | UI; flow consolidat, captură finală și la failure | profil de evidence pentru același journey UI |
+
+Self-service-ul contului poate fi selectat separat, fără plată sau factură:
+
+| Clasă | Starea inițială | Business verificat |
+|---|---|---|
+| `AutoExAccountUiE2eTest` | vizitator neînregistrat | înregistrare UI, ștergerea propriei identități, întoarcere în magazin |
+| `AutoExExistingCustomerUiApiE2eTest` | cont sintetic pregătit prin API-ul real | login UI, ștergerea propriei identități, întoarcere în magazin |
+
+Aceste selecții manuale nu măresc `AutoExBusinessSuite`. Nu sunt teste de
+reclamă: verifică self-service-ul clientului și tratează vignette-ul numai dacă
+site-ul îl afișează natural. Nu îl solicită, nu îl fabrică și nu întârzie flow-ul
+pentru a-l provoca.
 
 - Varianta final-screenshot nu adaugă altă regulă business; reducerea repetării
   live cere proba locală a adnotării până la publicare.
@@ -308,6 +320,7 @@ zoom-ul și nu activează fallback JavaScript general.
 | Responsabilitate | Owner / contract |
 |---|---|
 | Controlul reclamei | `AutoExVignetteHandler`: fragment vignette prezent și un Close vizibil în frame |
+| Observație pasivă | înaintea activării, `Observed Google vignette` păstrează URL-ul real și zoom-ul CSS calculat; nu solicită și nu modifică reclama |
 | Activare | `atf-ui`: țintă unică/activă, un singur `HTMLElement.click()`, fără retry automat |
 | Rezultat | callback read-only așteaptă eliminarea fragmentului; acțiunea trece numai după acesta |
 | Raport | rând distinct `JavaScript click`, selector real, durată și observație explicită „not a trusted pointer click” |
@@ -441,8 +454,12 @@ Un selector Surefire de metodă (`Clasă#metodă`) se execută separat de clasel
 ## API direct și limita evidence-ului UI/API
 
 Rutele publice sunt inventariate în [API List](https://automationexercise.com/api_list).
-Varianta E2E `UI_API` rămâne un journey de browser: observă traficul produs de UI
-în aceeași sesiune, nu execută direct `AutoExApiRequestFactory`. Diagrama
+
+- Varianta purchase `UI_API` observă traficul produs de journey-ul din browser.
+- Self-service-ul clientului existent pregătește separat contul prin
+  `AutoExApiRequestFactory`, înainte de login UI.
+
+Diagrama
 separă fluxul browserului, contractele componente offline și cele două porți
 API live; ele nu sunt variante ale aceluiași test.
 
@@ -454,6 +471,8 @@ flowchart LR
     Browser -.->|UI_API observă| Inspector[network inspector]
     Inspector -->|alimentează| UiReport[raport E2E partajat]
     Components[AutoExComponentSuite] -->|verifică offline| Fixtures[contracte cu fixture]
+    Existing[Client existent E2E] -->|pregătește separat| Factory
+    Existing -->|login și ștergere UI| Browser
     ReadOnly[API read-only live] -->|folosește| Factory[request factory]
     AccountApi[API live cu cont] -->|folosește| Factory
     Factory -->|apelează| Api[Automation Exercise API]
@@ -465,7 +484,7 @@ flowchart LR
 <summary><strong>Legendă — alegerea traseului API/UI</strong></summary>
 
 - `UI_API` observă traficul pe care îl produce browserul și îl leagă de
-  checkpoint-uri; nu apelează `AutoExApiRequestFactory`;
+  checkpoint-uri; pregătirea directă a contului nu este atribuită acelor acțiuni;
 - `AutoExComponentSuite` verifică modele și adaptoare cu fixture-uri locale,
   fără serviciul public;
 - `AutoExApiReadOnlyLiveSuite` trimite request-uri directe, inclusiv `POST`
@@ -523,6 +542,27 @@ profil fictiv. Capturile terminale pot publica și exchange-urile finale.
 Probele de selecție/buget/cursor aparțin `atf-ui`; prezentarea și snapshot-ul
 aparțin `atf-reporting-tests`. AutoEx verifică YAML-ul, ruta reală a coșului,
 precondiția catalogului și journey-ul business, fără teste generice de renderer.
+
+### Pregătirea clientului existent
+
+`AutoExCustomerApiSetup` creează o singură identitate sintetică prin API-ul
+public, înainte de Home/login UI. `AutoExLiveApi` furnizează transportul LIVE
+comun cu suitele API, cu o singură încercare; nu există retry de creare ascuns.
+Setup-ul folosește exact același origin configurat ca browserul.
+
+- `AccountPage.trackDisposableAccountCreation` armează cleanup-ul înainte de
+  request, inclusiv pentru rezultatul de creare incert; cleanup-ul păstrează
+  verificarea identității și refuzul replay-ului unei ștergeri deja începute.
+- `GIVEN` publică evidence de setup și exchange-ul real, separat de validarea
+  UI; HTTP 200, JSON `responseCode: 201` și mesajul sunt verificate distinct.
+- Parola form-encoded este redactată de Reporting. Body-ul este form-urlencoded,
+  conform API-ului public, nu convertit artificial în JSON; răspunsul JSON este
+  validat independent de headerul MIME primit.
+- Baseline-ul inspectorului este marcat după setup. Login și Delete account
+  sunt navigări/formulare; cu `includeDocuments: false`, un inspector fără
+  XHR/fetch nu înseamnă că acele navigări au fost capturate ca API.
+- Confirmarea UI cere identitatea exactă, ruta de ștergere, heading-ul dedicat
+  și un singur request; succesul API de creare nu certifică ștergerea UI.
 
 ### Acoperirea celor 14 cazuri publicate în API List
 

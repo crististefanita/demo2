@@ -50,6 +50,12 @@ public final class ExtentUiActionRenderer {
     public void render(ExtentTest node, List<AtfUiActionRecord> actions,
                        List<ReportScreenshot> screenshots) {
         if (actions == null || actions.isEmpty()) return;
+        publish(node, markup(actions, screenshots), hasFailure(actions));
+    }
+
+    /** Renderer-neutral markup shared with the fallback HTML projection. */
+    public String markup(List<AtfUiActionRecord> actions, List<ReportScreenshot> screenshots) {
+        if (actions == null || actions.isEmpty()) return "";
         List<ReportScreenshot> distinctScreenshots = ExtentReportAssets.distinctScreenshotModels(screenshots);
         if (distinctScreenshots.size() > 1) {
             throw new IllegalStateException(
@@ -66,13 +72,12 @@ public final class ExtentUiActionRenderer {
                             screenshot.title(), screenshot.base64Png()))
                     .append(close(AtfReportHtmlVocabulary.Tag.DIV));
         }
-        publish(node, html
-                .append(close(AtfReportHtmlVocabulary.Tag.DETAILS)).toString(), hasFailure(actions));
+        return html.append(close(AtfReportHtmlVocabulary.Tag.DETAILS)).toString();
     }
 
     public void renderAsMedia(ExtentTest node, List<AtfUiActionRecord> actions) {
         if (actions == null || actions.isEmpty()) return;
-        publish(node, actionDisclosure(actions).toString(), hasFailure(actions));
+        publish(node, markup(actions, List.of()), hasFailure(actions));
     }
 
     private StringBuilder actionDisclosure(List<AtfUiActionRecord> actions) {

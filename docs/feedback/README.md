@@ -5,8 +5,7 @@ ownerului; rapoartele și rezultatele unei rulări nu devin documentație perman
 
 ## Pe scurt
 
-- Reporting: placement-ul probei Network, motivul capturii lipsă și oracolul Client.
-- AutoEx: confirmarea ștergerii după reclamă rămâne deschisă;
+- AutoEx: corecția ștergerii este implementată; rămâne proba întreruperii naturale la Delete account;
   activarea DOM Close la 70% este integrată, fără a repara geometria pointerului.
 - Consumeri: echivalența selecției E2E reduse și auditul interactiv API Shop.
 - Contractele livrate se găsesc în [indexul documentației](../README.md),
@@ -23,10 +22,10 @@ lor. Gap-urile secundare rămân vizibile în documentul ownerului.
 
 | Ordine | Feedback / owner | Scor /100 | Lacuna care decide ordinea |
 |---:|---|---:|---|
-| 1 | [Reporting](ATF_Reporting_Feedback.md) | **91** = 36 + 27 + 20 + 8 | proba Network este în afara ownerului UI permis; separat rămân failure fără captură (84) și oracolul Client (61) |
-| 2 | [AutoEx](ATF_Automation_Exercise_Feedback.md) | **88** = 36 + 26 + 20 + 6 | ștergerea contului după reclamă nu este confirmată robust; succesul UI/UI_API la 70% în alte tranziții nu închide acest caz |
-| 3 | [ATF UI — geometrie browser](ATF_UI_Browser_Geometry_Feedback.md) | **72** = 31 + 25 + 10 + 6 | pointer în iframe la zoom CSS non-nativ; activarea JavaScript explicită nu închide această limită |
-| 4 | [Consumer — profile E2E](ATF_Consumer_Business_Test_Focus_Feedback.md) | **57** = 24 + 10 + 17 + 6 | selecția live redusă cere smoke succes/failure și echivalență business, nu doar mapping-ul adnotării |
+| 1 | [ATF UI — geometrie browser](ATF_UI_Browser_Geometry_Feedback.md) | **72** = 31 + 25 + 10 + 6 | pointer în iframe la zoom CSS non-nativ; activarea JavaScript explicită nu închide această limită |
+| 2 | [AutoEx](ATF_Automation_Exercise_Feedback.md) | **65** = 36 + 18 + 10 + 1 | confirmarea și refuzul replay-ului sunt întărite; lipsește proba reclamei naturale chiar la Delete account la 70%, nu succesul din alte tranziții |
+| 3 | [Consumer — profile E2E](ATF_Consumer_Business_Test_Focus_Feedback.md) | **57** = 24 + 10 + 17 + 6 | selecția live redusă cere smoke succes/failure și echivalență business, nu doar mapping-ul adnotării |
+| 4 | [Reporting — payload captură](ATF_Reporting_Feedback.md) | **48** = 20 + 10 + 16 + 2 | un payload nenul invalid nu trebuie declarat capturat sau publicat ca link PNG; cauza originală trebuie păstrată |
 | 5 | [Documentație — ancore](#doc-link-anchor-01--validarea-automată-a-ancorelor) | **44** = 14 + 11 + 15 + 4 | guard-ul validează fișierul local, dar elimină fragmentul înaintea verificării; ancora lipsă nu este detectată |
 | 6 | [Shop API — audit standalone](ATF_Practice_Shop_API_Test_Design_Feedback.md) | **33** = 10 + 5 + 15 + 3 | HTTP este probat; randarea interactivă a raportului consumerului trebuie încă atestată |
 

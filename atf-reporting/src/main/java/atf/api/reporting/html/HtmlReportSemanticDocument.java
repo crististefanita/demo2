@@ -6,6 +6,7 @@ import atf.api.reporting.ui.model.AtfUiActionRecord;
 import atf.api.reporting.model.ReportField;
 import atf.api.reporting.model.ReportJsonBody;
 import atf.api.reporting.model.ReportExecutionModel;
+import atf.api.reporting.model.ReportScreenshot;
 import atf.api.reporting.model.ReportTagNormalizer;
 import atf.api.reporting.ui.network.ReportNetworkInspector;
 
@@ -213,6 +214,8 @@ public final class HtmlReportSemanticDocument {
         final String title;
         List<AtfAssertion> assertions = List.of();
         final List<NodeModel> children = new ArrayList<>();
+        final List<AtfUiActionRecord> uiActions = new ArrayList<>();
+        final List<ReportScreenshot> screenshots = new ArrayList<>();
         int uiActionCount;
         int screenshotCount;
         AtfReportStatus status = AtfReportStatus.INFO;
@@ -245,9 +248,11 @@ public final class HtmlReportSemanticDocument {
 
         public void addUiActions(Collection<AtfUiActionRecord> actions) {
             uiActionCount += actions == null ? 0 : actions.size();
+            if (actions != null) uiActions.addAll(actions);
         }
 
-        public void addScreenshot() {
+        public void addScreenshot(String title, String base64Png) {
+            screenshots.add(new ReportScreenshot(title, base64Png));
             screenshotCount++;
         }
 

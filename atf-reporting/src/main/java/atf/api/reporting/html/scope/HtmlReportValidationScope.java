@@ -50,14 +50,14 @@ public final class HtmlReportValidationScope implements AtfReportPorts.Validatio
     @Override
     public void screenshot(String title, String base64Png) {
         ensureOpen();
-        model.addScreenshot();
+        model.addScreenshot(title, base64Png);
         semantic.screenshot();
     }
 
     @Override
     public void mediaScreenshot(String title, String base64Png) {
         ensureOpen();
-        model.addScreenshot();
+        model.addScreenshot(title, base64Png);
         semantic.screenshot();
     }
 

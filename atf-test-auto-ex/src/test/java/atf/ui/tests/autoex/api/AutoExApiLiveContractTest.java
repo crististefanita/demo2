@@ -3,15 +3,8 @@ package atf.ui.tests.autoex.api;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import atf.api.reporting.contract.AtfAssertion;
-import atf.api.core.config.ApiSettings;
-import atf.api.core.config.ApiTransportPolicy;
-import atf.api.core.config.ApiTransportMode;
-import atf.api.core.http.auth.AuthProfiles;
-import atf.api.core.http.auth.ConfiguredApiAuthenticator;
 import atf.api.core.http.execution.ApiExecutor;
 import atf.api.core.http.request.ApiRequest;
-import atf.api.core.http.transport.ApiLiveTransportCatalog;
-import atf.api.core.http.transport.UrlConnectionTransport;
 import atf.api.console.junit.AtfConsoleTestExtension;
 import atf.api.testkit.AtfConsoleMessages;
 import atf.api.testkit.AtfIntegrationTest;
@@ -22,6 +15,7 @@ import atf.ui.autoex.api.AutoExApiAccount;
 import atf.ui.autoex.api.AutoExApiOutcome;
 import atf.ui.autoex.api.AutoExApiJsonField;
 import atf.ui.autoex.api.AutoExApiRequestFactory;
+import atf.ui.autoex.api.AutoExLiveApi;
 import atf.ui.autoex.config.AutoExConfiguration;
 import atf.ui.autoex.config.AutoExConfigurationLoader;
 import org.junit.jupiter.api.Test;
@@ -34,7 +28,6 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import static atf.ui.autoex.api.AutoExApiOutcome.ACCOUNT_DELETED;
@@ -61,7 +54,6 @@ public class AutoExApiLiveContractTest {
     static final String TIMEOUT_PROPERTY = "atf.autoex.api.timeout";
     private static final String DEFAULT_TIMEOUT = "PT20S";
     private static final int EXPECTED_HTTP_STATUS = 200;
-    private static final String TRANSPORT_PROFILE = "autoex-live";
     private static final ObjectMapper JSON = new ObjectMapper();
 
     @Test
@@ -106,13 +98,7 @@ public class AutoExApiLiveContractTest {
         URI baseUrl = URI.create(System.getProperty(BASE_URL_PROPERTY,
                 configuration.baseUrl().toString()));
         Duration timeout = Duration.parse(System.getProperty(TIMEOUT_PROPERTY, DEFAULT_TIMEOUT));
-        ApiLiveTransportCatalog catalog = ApiLiveTransportCatalog.single(TRANSPORT_PROFILE, baseUrl,
-                AuthProfiles.NONE, timeout,
-                (endpoint, authenticator) -> new UrlConnectionTransport(authenticator, endpoint.timeout()));
-        var transport = catalog.open(TRANSPORT_PROFILE, ApiTransportPolicy.explicitLive(),
-                new ConfiguredApiAuthenticator(Map.of()));
-        var settings = new ApiSettings(baseUrl, AuthProfiles.NONE, timeout, Set.of(), 1);
-        return new ApiExecutor(transport, settings.snapshot(), ApiTransportMode.LIVE);
+        return AutoExLiveApi.open(baseUrl, timeout);
     }
 
     private static AutoExApiAccount account(AutoExConfiguration configuration, String unique) {

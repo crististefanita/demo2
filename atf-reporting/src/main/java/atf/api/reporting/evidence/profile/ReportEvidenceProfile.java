@@ -3,7 +3,6 @@ package atf.api.reporting.evidence.profile;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.model.ReportScreenshot;
 
-import java.util.Base64;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -19,10 +18,6 @@ public record ReportEvidenceProfile(ReportEvidenceFlowMode flowMode,
                                     ReportScreenshotPolicy screenshotPolicy,
                                     ReportEvidenceCaptureSource captureSource,
                                     ReportUiActionDetailsMode actionDetailsMode) {
-    private static final byte[] PNG_SIGNATURE = {
-            (byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
-    };
-
     public ReportEvidenceProfile {
         flowMode = Objects.requireNonNull(flowMode, "flowMode");
         screenshotPolicy = Objects.requireNonNull(screenshotPolicy, "screenshotPolicy");
@@ -92,24 +87,10 @@ public record ReportEvidenceProfile(ReportEvidenceFlowMode flowMode,
         }
         ReportScreenshot screenshot = Objects.requireNonNull(
                 provider.capture(title, target), "capture provider result");
-        if (!validPng(screenshot.base64Png())) {
+        if (!ReportScreenshot.hasPngSignature(screenshot.base64Png())) {
             throw new IllegalArgumentException("Capture provider must return a Base64 PNG screenshot");
         }
         return Optional.of(screenshot);
-    }
-
-    private static boolean validPng(String base64Png) {
-        final byte[] decoded;
-        try {
-            decoded = Base64.getDecoder().decode(base64Png);
-        } catch (IllegalArgumentException invalidBase64) {
-            return false;
-        }
-        if (decoded.length < PNG_SIGNATURE.length) return false;
-        for (int index = 0; index < PNG_SIGNATURE.length; index++) {
-            if (decoded[index] != PNG_SIGNATURE[index]) return false;
-        }
-        return true;
     }
 
     public Builder toBuilder() {

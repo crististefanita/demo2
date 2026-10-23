@@ -43,6 +43,7 @@ import atf.api.ui.playwright.PlaywrightUiSession;
 import atf.api.ui.playwright.UiScreenValidation;
 import atf.ui.autoex.config.AutoExConfiguration;
 import atf.api.core.http.request.HttpHeader;
+import atf.api.core.http.response.ApiExecutionResult;
 import atf.ui.autoex.support.browser.AutoExPrivacyConsentHandler;
 import atf.ui.autoex.support.browser.AutoExVignetteHandler;
 import atf.api.testkit.lifecycle.TestRunInitialization;
@@ -442,6 +443,16 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
     public boolean observesApiTraffic() { return channel == TestChannel.UI_API; }
 
     public TestChannel channel() { return channel; }
+
+    /** Direct preparation is setup evidence, never an exchange attributed to a browser action. */
+    public void apiSetup(String title, ApiExecutionResult execution, List<AtfAssertion> assertions) {
+        boolean passed = assertions.stream().allMatch(AtfAssertion::passed);
+        phase.setup(AtfGherkinKeyword.GIVEN, title, execution.request().path(), assertions,
+                List.of(), List.of(ReportModelAdapters.execution(execution)),
+                passed ? AtfReportStatus.PASS : AtfReportStatus.FAIL);
+        markCausalApiTrafficBaseline();
+        if (!passed) throw new AssertionError("API setup failed: " + failedAssertionSummary(assertions));
+    }
 
     private static ReportExecutionEvidence toExecutionEvidence(
             atf.api.ui.network.UiNetworkObservation observation) {

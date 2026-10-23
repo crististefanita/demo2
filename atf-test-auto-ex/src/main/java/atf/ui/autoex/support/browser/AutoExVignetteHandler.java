@@ -26,6 +26,11 @@ public final class AutoExVignetteHandler {
         for (Frame frame : page.frames()) {
             Locator candidate = frame.locator(AutoExSelectors.VIGNETTE_CLOSE_CONTROL);
             if (candidate.count() == 1 && candidate.isVisible()) {
+                String zoom = Objects.toString(page.evaluate(
+                        "() => getComputedStyle(document.documentElement).zoom"));
+                actions.observation("Observed Google vignette", currentUrl,
+                        "visible Close control in the site's displayed advert",
+                        "Close visible; document CSS zoom=" + zoom);
                 var closeControl = new AtfLocator(candidate, AutoExSelectors.VIGNETTE_CLOSE_CONTROL);
                 actions.clickWithJavaScript(closeControl, CLOSE_EXPECTATION,
                         () -> page.waitForURL(url -> !url.contains(AutoExRoutes.GOOGLE_VIGNETTE_FRAGMENT)));

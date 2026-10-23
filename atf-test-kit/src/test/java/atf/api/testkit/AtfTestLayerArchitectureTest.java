@@ -35,7 +35,7 @@ class AtfTestLayerArchitectureTest {
     private static final String STANDALONE_REPORTING_LAYER = "standalone-independent";
     private static final Set<String> STANDALONE_REPORTING_TEST_NAMES = Set.of(
             "ReportingStandaloneContractTest.java", "ReportingStandaloneDependencyTest.java",
-            "ReportingStandaloneEvidenceLayoutTest.java",
+            "ReportingStandaloneEvidenceLayoutTest.java", "ReportingTimestampComponentTest.java",
             "ReportingStandaloneEnvironmentSnapshotTest.java");
 
     @Test

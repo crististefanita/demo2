@@ -3,22 +3,27 @@ package atf.api.reporting.markup;
 import atf.api.testkit.AtfUnitTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.io.IOException;
 import java.nio.file.AccessDeniedException;
+import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @AtfUnitTest
 class ExtentReportAssetCleanupTest {
-    @Test
-    void retriesTransientWindowsStyleLockAndRemovesOnlyGeneratedSparkAssets(@TempDir Path root)
+    @ParameterizedTest
+    @EnumSource(LockKind.class)
+    void retriesTransientWindowsStyleLockAndRemovesOnlyGeneratedSparkAssets(LockKind lock, @TempDir Path root)
             throws Exception {
         Path outside = Files.writeString(root.resolve("keep.txt"), "outside generated assets");
         Path spark = Files.createDirectory(root.resolve(ExtentReportAssets.SPARK_DIRECTORY));
@@ -27,7 +32,7 @@ class ExtentReportAssetCleanupTest {
 
         ExtentReportAssets.removeGeneratedAssets(spark, path -> {
             if (path.equals(asset) && attempts.incrementAndGet() <= 2) {
-                throw new AccessDeniedException(path.toString(), null, "simulated Windows file lock");
+                throw lock.failure(path);
             }
             return Files.deleteIfExists(path);
         }, millis -> { });
@@ -37,8 +42,9 @@ class ExtentReportAssetCleanupTest {
         assertTrue(Files.exists(outside), "cleanup must not escape its generated Spark directory");
     }
 
-    @Test
-    void reportsPersistentLockAfterBoundedRetriesAndKeepsPublishedOutputOutsideTheTarget(@TempDir Path root)
+    @ParameterizedTest
+    @EnumSource(LockKind.class)
+    void reportsPersistentLockAfterBoundedRetriesAndKeepsPublishedOutputOutsideTheTarget(LockKind lock, @TempDir Path root)
             throws Exception {
         Path outside = Files.writeString(root.resolve("published-report.html"), "complete report");
         Path spark = Files.createDirectory(root.resolve(ExtentReportAssets.SPARK_DIRECTORY));
@@ -49,7 +55,7 @@ class ExtentReportAssetCleanupTest {
         IOException failure = assertThrows(IOException.class, () ->
                 ExtentReportAssets.removeGeneratedAssets(spark, path -> {
                     attempts.incrementAndGet();
-                    throw new AccessDeniedException(path.toString(), null, "simulated persistent lock");
+                    throw lock.failure(path);
                 }, millis -> pauses.incrementAndGet()));
 
         assertTrue(failure.getMessage().contains("after 4 attempts"));
@@ -58,5 +64,49 @@ class ExtentReportAssetCleanupTest {
         assertEquals(3, pauses.get(), "there is no delay after the last failed attempt");
         assertTrue(Files.exists(asset), "a locked generated file must not be claimed as deleted");
         assertTrue(Files.exists(outside), "cleanup failure must not alter the published report");
+    }
+
+    @Test
+    void unrelatedIoFailureIsNotRetriedOrReplaced(@TempDir Path root) throws Exception {
+        Path spark = Files.createDirectory(root.resolve(ExtentReportAssets.SPARK_DIRECTORY));
+        AtomicInteger attempts = new AtomicInteger();
+        var original = new IOException("unrelated I/O failure");
+
+        IOException actual = assertThrows(IOException.class, () ->
+                ExtentReportAssets.removeGeneratedAssets(spark, path -> {
+                    attempts.incrementAndGet();
+                    throw original;
+                }, millis -> { throw new AssertionError("ordinary I/O must not be retried"); }));
+
+        assertSame(original, actual);
+        assertEquals(1, attempts.get());
+    }
+
+    @Test
+    void interruptedRetryPreservesTheInterruptAndStopsCleanup(@TempDir Path root) throws Exception {
+        Path spark = Files.createDirectory(root.resolve(ExtentReportAssets.SPARK_DIRECTORY));
+        AtomicInteger attempts = new AtomicInteger();
+        try {
+            IOException actual = assertThrows(IOException.class, () ->
+                    ExtentReportAssets.removeGeneratedAssets(spark, path -> {
+                        attempts.incrementAndGet();
+                        throw LockKind.SHARING_VIOLATION.failure(path);
+                    }, millis -> { throw new InterruptedException("cleanup interrupted"); }));
+            assertTrue(Thread.currentThread().isInterrupted());
+            assertTrue(actual.getCause() instanceof InterruptedException);
+            assertEquals(1, attempts.get());
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    private enum LockKind {
+        ACCESS_DENIED, SHARING_VIOLATION;
+
+        FileSystemException failure(Path path) {
+            return this == ACCESS_DENIED
+                    ? new AccessDeniedException(path.toString(), null, "simulated Windows file lock")
+                    : new FileSystemException(path.toString(), null, "file is being used by another process");
+        }
     }
 }

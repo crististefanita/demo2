@@ -30,6 +30,12 @@ public final class ExtentUiObservationRenderer {
 
     public void render(ExtentTest node, List<AtfUiActionRecord> observations) {
         if (observations == null || observations.isEmpty()) return;
+        publish(node, markup(observations), hasFailure(observations));
+    }
+
+    /** Renderer-neutral markup shared with the fallback HTML projection. */
+    public String markup(List<AtfUiActionRecord> observations) {
+        if (observations == null || observations.isEmpty()) return "";
         boolean failed = hasFailure(observations);
         String summary = observationSummary(observations, failed);
         var html = new StringBuilder(open(AtfReportHtmlVocabulary.Tag.DETAILS,
@@ -71,9 +77,9 @@ public final class ExtentUiObservationRenderer {
                     .append(close(AtfReportHtmlVocabulary.Tag.TD))
                     .append(close(AtfReportHtmlVocabulary.Tag.TR));
         }
-        publish(node, html.append(close(AtfReportHtmlVocabulary.Tag.TBODY))
+        return html.append(close(AtfReportHtmlVocabulary.Tag.TBODY))
                 .append(close(AtfReportHtmlVocabulary.Tag.TABLE))
                 .append(close(AtfReportHtmlVocabulary.Tag.DIV))
-                .append(close(AtfReportHtmlVocabulary.Tag.DETAILS)).toString(), failed);
+                .append(close(AtfReportHtmlVocabulary.Tag.DETAILS)).toString();
     }
 }

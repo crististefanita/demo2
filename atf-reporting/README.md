@@ -394,6 +394,17 @@ UI checkpoint
 Verdictul este calculat de execution/validation și doar publicat de reporting.
 Rendererul nu inventează statusuri.
 
+La eșec UI, `Failure evidence` păstrează acțiunile executate și cauza.
+
+- Observația `Screenshot` cu sursa `OBSERVE` și statusul `INFO` distinge
+  captura publicată, absența unui payload și excluderea prin politica configurată.
+- `UiFailureScreenshotState` deține vocabularul `CAPTURED`, `UNAVAILABLE` și
+  `DISABLED_BY_POLICY`; politica este evaluată înaintea payload-ului, inclusiv
+  când există o imagine pe care scenariul nu permite să o publicăm.
+- Nu devine aserțiune business și nu creează un al doilea checkpoint.
+- Extent și fallback păstrează dovezile efective; numai o captură furnizată și
+  permisă primește link Base64, fără metadate HTTP fictive la pasul UI.
+
 ### Audit terminal în Screen validation
 
 - Validarea contractului terminal publică exact o observație `Audit screen
@@ -414,9 +425,9 @@ Rendererul nu inventează statusuri.
 unicitatea și ordinea `record → drain`. Verificarea browser a unui layout
 schimbat rămâne distinctă de aceste probe automate.
 
-Limită curentă: în calea de failure fără screenshot, explicația din model este
-filtrată din HTML; [regresia și acceptanța](../docs/feedback/ATF_Reporting_Feedback.md#ui-failure-capture-02--lipsa-capturii-trebuie-explicată-în-raport)
-rămân deschise. Contractul terminal normal nu certifică această ramură.
+`UiAuditLifecycleTest` verifică separat failure-ul, inclusiv payload gol,
+politica dezactivată și lipsa acțiunilor executate. Starea vizibilă este
+observație în `Failure evidence`; metadatele interne rămân filtrate din HTTP.
 
 ### Inspector agregat pentru flux UI/API
 
@@ -994,6 +1005,12 @@ rapoarte generate.
 - afișarea și opt-in-ul la consolă aparțin
   [ATF Console](../atf-console/README.md); evenimentul nu activează automat
   fiecare consumer.
+
+Cleanup-ul asset-urilor Spark tratează bounded atât `AccessDeniedException`, cât
+și celelalte `FileSystemException`: maximum patru încercări, cu 50 ms între ele.
+O eroare I/O de alt tip nu este reîncercată; epuizarea limitei se propagă, iar
+întreruperea oprește cleanup-ul și păstrează flag-ul thread-ului.
+
 
 ### Prospețimea dovezii vizuale
 

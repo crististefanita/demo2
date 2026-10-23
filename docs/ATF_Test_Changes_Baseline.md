@@ -99,6 +99,36 @@ flowchart LR
 
 ```yaml
 testChanges:
+  - id: AUTOEX-DELETE-AFTER-AD-01
+    status: VERIFIED
+    base: 5eb3fd3cb099fc67b49be3c17de564db63755db7
+    expires: 2026-11-23
+    reason: Verifica siguranta continuarii dupa reclama fara request de stergere pornit; inventarul exact include cele doua clase noi fara relaxarea pragului. Diff-ul celor trei path-uri este identic fata de bazele revizuite 5eb3fd3 si 7b36502.
+    proof: mvn "-pl=atf-test-auto-ex,atf-tests" -am "-Dtest=AutoExComponentSuite,AutoExAccountUiE2eTest,AutoExBusinessSuite,AutoExPurchaseUiApiE2eTest,WholeAtfGovernanceSuiteTest" "-Datf.autoex.e2e.enabled=true" "-Datf.governance.testChanges.baseRef=5eb3fd3cb099fc67b49be3c17de564db63755db7" "-Dsurefire.failIfNoSpecifiedTests=false" test
+    paths:
+      - atf-test-auto-ex/src/test/java/atf/ui/tests/autoex/component/journey/AutoExAccountDeletionSafetyComponentTest.java
+      - atf-test-auto-ex/src/test/java/atf/ui/tests/autoex/e2e/AutoExAccountUiE2eTest.java
+      - atf-tests/src/test/java/atf/api/tests/governance/AtfPackageCohesionGovernanceTest.java
+  - id: REPORT-OPEN-GAPS-COMPONENT-03
+    status: VERIFIED
+    base: 5eb3fd3cb099fc67b49be3c17de564db63755db7
+    expires: 2026-11-23
+    reason: Păstrează toate cazurile Network la ownerul UI component, reclasifică publicarea HTML ca probă componentă și verifică motivul capturii și Client neutru sau explicit redactat. Ștergerea vechiului path Network este deja autorizată de UI-NETWORK-CAPTURE-PROOFS-01.
+    proof: mvn -pl atf-reporting-tests -am "-Dtest=AtfReportingComponentSuite,ExtentReportUiFailureEvidenceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+    paths:
+      - atf-reporting-tests/src/test/java/atf/ui/tests/extent/component/inspection/network/NetworkCaptureEvidenceTest.java
+      - atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/locators/network/ReportNetworkCaptureLocators.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/ui/UiAuditLifecycleTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/extent/session/ExtentReportSessionContractTest.java
+  - id: REPORT-NATIVE-CLOCK-LAYER-03
+    status: VERIFIED
+    base: 5eb3fd3cb099fc67b49be3c17de564db63755db7
+    expires: 2026-11-23
+    reason: Înregistrează exact proba nativă ReportingTimestampComponentTest în inventarul standalone finit, fără a permite alte importuri sau a extinde allowlist-ul browser.
+    proof: mvn -pl atf-test-kit -am test
+    paths:
+      - atf-test-kit/src/test/java/atf/api/testkit/AtfTestLayerArchitectureTest.java
+      - atf-reporting/src/test/java/atf/api/reporting/standalone/ReportingTimestampComponentTest.java
   - id: UI-JAVASCRIPT-CLICK-01
     status: VERIFIED
     base: 5eb3fd3cb099fc67b49be3c17de564db63755db7

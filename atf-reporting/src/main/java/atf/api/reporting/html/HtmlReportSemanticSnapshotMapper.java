@@ -36,6 +36,6 @@ final class HtmlReportSemanticSnapshotMapper {
                 validation.status, validation.uiActionCount, validation.screenshotCount,
                 validation.children.stream()
                         .map(HtmlReportSemanticSnapshotMapper::mapNode)
-                        .toList());
+                        .toList(), validation.uiActions, validation.screenshots);
     }
 }

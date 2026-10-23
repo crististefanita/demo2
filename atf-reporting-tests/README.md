@@ -310,23 +310,24 @@ sesiunii. Wiring-ul Practice Shop pentru rapoarte partajate și agregarea fazelo
 `ExtentUnifiedFlowMultipleScreenshotTest` verifică regresia generică de
 publicare; mapping-ul local rămâne în probele Shop, fără copierea rendererului.
 
-`UiAuditLifecycleTest` este încă declarat unit și nu intră în component suite.
-Cazul fără screenshot eșuează la explicația vizibilă a lipsei capturii;
-[feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md#ui-failure-capture-02--lipsa-capturii-trebuie-explicată-în-raport)
-cere remedierea proiecției și acoperire la boundary-ul component, nu eliminarea
-aserțiunii existente.
+| Componentă | Contract verificat | Invariantă |
+|---|---|---|
+| `UiAuditLifecycleTest` din `AtfReportingComponentSuite` | Extent/fallback: captură validă, absentă, payload invalid sau exclusă de policy | Acțiunea, cauza și FAIL rămân vizibile; observația `Screenshot` explică starea fără aserțiune business artificială ori link Base64 inventat. |
+| `ExtentReportSessionContractTest` | Artifact și stil comun; Client implicit exact `Configured per execution` sau Client explicit păstrat și redactat în System | Un consumer fără transport declarat nu primește implicit identitatea unui client API. |
 
-`ExtentReportSessionContractTest` are și o așteptare HTML veche pentru Client:
-default-ul neutru este corect, dar proba cere încă un transport API implicit.
-[Reconcilierea oracolului și a layer-ului](../docs/feedback/ATF_Reporting_Feedback.md#report-client-expectation-02--oracol-html-rămas-în-urmă)
-rămâne deschisă; un component gate verde nu înseamnă că întreaga suită unit trece.
+- Matricea suplimentară compară snapshot-ul semantic cu HTML-ul public pentru
+  toate politicile, inclusiv payload gol și failure fără acțiuni.
+- Oracolul Client verifică și unicitatea rândului din System.
+- Fixture-ul inspectabil al capturii conține failure-uri sintetice intenționate
+  și un scenariu-frate PASS.
 
 ## Matricea de integrare și limitele verificate
 
-Proba nouă `NetworkCaptureEvidenceTest` trece funcțional, dar importurile sale
-Playwright sunt încă în pachetul non-UI și fac Test Kit roșu.
-[Corectarea placement-ului](../docs/feedback/ATF_Reporting_Feedback.md#report-browser-placement-02--proba-network-trebuie-plasată-la-ownerul-ui)
-trebuie să păstreze cele cinci cazuri și selecția lor prin component suite.
+`NetworkCaptureEvidenceTest` aparține pachetului
+`atf.ui.tests.extent.component.inspection.network`; cele cinci cazuri rămân
+selectate de suita componentă. Selectorii sunt deținuți de
+`ReportNetworkCaptureLocators`, fără excepții noi pentru importuri browser
+sau selectori în clasa de intenție.
 
 Integration tests rămân grupate după boundary-ul observat, nu după numele
 modulului consumat:
@@ -377,7 +378,7 @@ Două profiluri izolează volumul HTML de volumul media.
 | Profil text/HTML | Unicode, 1.500 referințe PNG inline și două imagini distincte repetate; artifact >9 MB |
 | Profil media | Patru PNG-uri generate distincte 256×256, fiecare referit de două ori; după deduplicare rămân patru payload-uri inline, totalul lor depășește 900.000 caractere |
 | Integritate | exit code 0, heap total eșantionat la 2 ms, durata publicării, marker final, temă, runtime și referințe screenshot acționabile |
-| Failure-path și publicare | `ExtentReportSessionLifecycleTest` verifică destinație blocată, cleanup failure după promovare atomică, staging privat fără scurgeri și evenimentul `REPORT_PUBLISHED` numai după existența fișierului final; închiderea repetată emite o singură notificare, iar publicarea eșuată nu emite succes. `ExtentReportAssetCleanupTest` verifică lock tranzitoriu/persistent, retry limitat și diagnostic explicit |
+| Failure-path și publicare | `ExtentReportSessionLifecycleTest` verifică destinație blocată, cleanup failure după promovare atomică, staging privat fără scurgeri și evenimentul `REPORT_PUBLISHED` numai după existența fișierului final; închiderea repetată emite o singură notificare, iar publicarea eșuată nu emite succes. `ExtentReportAssetCleanupTest` probează determinist `AccessDeniedException` și `FileSystemException`: lock tranzitoriu/persistent, retry limitat, eroare I/O nereîncercabilă și păstrarea întreruperii |
 | Timp | Child process-ul are timeout configurabil `atf.test.publication.timeout.seconds` (implicit 60 s); depășirea oprește forțat doar JVM-ul probei |
 | Limită | nu dovedește volume arbitrare sau fotografii de rezoluție foarte mare; timpul este măsurat și limitat doar de timeout-ul probei, nu este SLA |
 

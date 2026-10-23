@@ -1,4 +1,8 @@
-package atf.api.reporting.ui.network;
+package atf.ui.tests.extent.component.inspection.network;
+
+import atf.api.reporting.ui.network.ReportNetworkCaptureStatus;
+import atf.api.reporting.ui.network.ReportNetworkInspector;
+import atf.api.reporting.ui.network.ReportNetworkAggregateMarkup;
 
 import atf.api.debugui.DebugUiConfiguration;
 import atf.api.debugui.DebugUiServer;
@@ -18,7 +22,7 @@ import atf.api.testkit.AtfComponentTest;
 import atf.api.ui.config.UiBrowserConfiguration;
 import atf.api.ui.playwright.PlaywrightUiSession;
 import atf.ui.tests.extent.support.locators.ReportUiLocators;
-import com.microsoft.playwright.Locator;
+import atf.ui.tests.extent.support.locators.network.ReportNetworkCaptureLocators;
 import com.microsoft.playwright.Page;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -36,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @AtfComponentTest
 class NetworkCaptureEvidenceTest {
+    private static final ReportNetworkCaptureLocators CAPTURE = new ReportNetworkCaptureLocators();
     @TempDir Path directory;
 
     @Test
@@ -81,8 +86,8 @@ class NetworkCaptureEvidenceTest {
                     "API validation", "GET /cart/add/1", "Browser network summary", "Network aggregate")) {
                 expand(page, title);
             }
-            page.locator("summary:visible").filter(new Locator.FilterOptions().setHasText("Capture coverage")).click();
-            String text = page.locator("body").innerText();
+            CAPTURE.coverage(page).click();
+            String text = CAPTURE.document(page).innerText();
             assertTrue(text.contains("WHEN item is added to cart"));
             assertTrue(text.contains("GET /cart/add/1"));
             assertTrue(text.contains("Complete within scope"));
@@ -110,9 +115,9 @@ class NetworkCaptureEvidenceTest {
             locators.testOwnerItem(page, 0).click();
             for (String title : List.of("Selected browser traffic", "TEST BODY",
                     "Browser network summary", "Network aggregate")) expand(page, title);
-            page.locator("summary:visible").filter(new Locator.FilterOptions().setHasText("Capture coverage")).click();
-            assertTrue(page.locator("body").innerText().contains("Incomplete within scope"));
-            assertFalse(page.locator("body").innerText().contains("Complete within scope"));
+            CAPTURE.coverage(page).click();
+            assertTrue(CAPTURE.document(page).innerText().contains("Incomplete within scope"));
+            assertFalse(CAPTURE.document(page).innerText().contains("Complete within scope"));
         }
     }
 
@@ -168,8 +173,7 @@ class NetworkCaptureEvidenceTest {
     }
 
     private static void expand(Page page, String title) {
-        var heading = page.locator("[class~='card-header'][role='button']:visible")
-                .filter(new Locator.FilterOptions().setHasText(title)).first();
+        var heading = CAPTURE.heading(page, title);
         if ("false".equals(heading.getAttribute("aria-expanded"))) heading.click();
     }
 

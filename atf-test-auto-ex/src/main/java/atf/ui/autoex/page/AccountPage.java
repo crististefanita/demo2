@@ -57,8 +57,7 @@ public final class AccountPage extends AutoExPage {
         fill(AutoExSelectors.ACCOUNT_CITY, profile.city(), "test city is entered");
         fill(AutoExSelectors.ACCOUNT_POSTAL_CODE, profile.postalCode(), "test postal code is entered");
         fill(AutoExSelectors.ACCOUNT_MOBILE, profile.mobileNumber(), "test phone number is entered");
-        run.onFailureCleanup(() -> deleteIfCreatedAndLoggedIn(account));
-        creationAttempted = true;
+        trackDisposableAccountCreation(account);
         click(AutoExSelectors.CREATE_ACCOUNT, "disposable account is created on the practice site");
 
         String result = text(AutoExSelectors.ACCOUNT_RESULT_HEADING, "account-creation result is read");
@@ -71,6 +70,12 @@ public final class AccountPage extends AutoExPage {
 
     public String loggedInName() {
         return text(AutoExSelectors.LOGGED_IN_NAME, "signed-in customer identity is read");
+    }
+
+    /** Arm before a real UI or API create attempt; both use the same identity-checked UI cleanup. */
+    public void trackDisposableAccountCreation(AutoExTestAccount account) {
+        run.onFailureCleanup(() -> deleteIfCreatedAndLoggedIn(account));
+        creationAttempted = true;
     }
 
     public void login(AutoExTestAccount account) {

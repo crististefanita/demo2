@@ -11,6 +11,8 @@ import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
 
 import atf.api.reporting.ui.model.AtfUiActionRecord;
+import atf.api.reporting.ui.failure.UiFailureScreenshotState;
+import atf.api.reporting.ui.model.AtfUiEvidenceSource;
 import atf.api.reporting.ui.validation.UiApiValidationEvidence;
 import atf.api.reporting.markup.AtfReportEvidenceKeys;
 
@@ -523,15 +525,17 @@ public final class UiEvidencePublisher {
             request.detail(AtfReportEvidenceKeys.REQUEST_ACTION, safeTitle);
             detailTarget(request, target);
             request.detail(AtfReportEvidenceKeys.EVIDENCE_TYPE, AtfReportEvidenceKeys.UI_FAILURE);
-            request.detail(AtfReportEvidenceKeys.EVIDENCE_POLICY, !shouldPublish(base64Png,
-                    ReportScreenshotPolicy.CapturePoint.FAILURE)
-                    ? "preserve executed actions; screenshot disabled or unavailable; policy="
-                    + screenshotPolicy.configValue()
-                    : "preserve executed actions; screenshot captured by policy="
-                    + screenshotPolicy.configValue());
+            var screenshotState = UiFailureScreenshotState.resolve(screenshotPolicy, base64Png);
+            String screenshotDescription = screenshotState.description(screenshotPolicy);
+            request.detail(AtfReportEvidenceKeys.EVIDENCE_POLICY, screenshotDescription);
             var validation = request.startValidation("Failure evidence");
             publishActions(validation, actions);
-            if (shouldPublish(base64Png, ReportScreenshotPolicy.CapturePoint.FAILURE)) {
+            int sequence = actions == null ? 1
+                    : Math.addExact(actions.stream().mapToInt(AtfUiActionRecord::sequence).max().orElse(0), 1);
+            validation.uiActions(List.of(new AtfUiActionRecord(sequence, "Screenshot",
+                    "current page", "capture follows configured failure policy",
+                    screenshotDescription, 0, AtfReportStatus.INFO, AtfUiEvidenceSource.OBSERVE)));
+            if (screenshotState == UiFailureScreenshotState.CAPTURED) {
                 requireTargetForScreenshot(target);
                 validation.screenshot("UI failure screenshot", base64Png);
             }

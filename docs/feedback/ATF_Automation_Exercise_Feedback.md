@@ -10,50 +10,41 @@ Limita pointerului rămâne în [feedback-ul generic UI](ATF_UI_Browser_Geometry
 
 ## AUTOEX-DELETE-AFTER-AD-01 — confirmarea ștergerii după reclamă
 
-**Prioritate:** 88/100 = impact 36 + lacună 26 + lucrabil 20 + documentare 6,
+**Prioritate:** 65/100 = impact 36 + lacună 18 + lucrabil 10 + documentare 1,
 conform [registrului comun](README.md#top-feedback-uri-active).
 
-O rulare UI_API la 100% a trecut checkout-ul și factura, dar după Close la
-ștergerea contului a ajuns pe Home. `accountDeletionResult()` a găsit două
-headings `h2.title.text-center`, iar testul a rămas FAIL. Cleanup-ul de
-recuperare a revenit la `/delete_account` și a confirmat ștergerea.
+**Stare: corecție implementată; acceptanță remote incompletă.** Confirmarea
+cere acum identitatea exactă, ruta `/delete_account`, heading-ul dedicat și
+un singur request. Regula de continuare și refuzul replay-ului sunt probate
+în componentă; flow-urile reale UI/UI_API și self-service-ul contului trec la 70%.
 
-Rulările UI și UI_API la 70% trec cu activarea DOM Close opt-in, dar nu au
-reprodus reclama exact în tranziția Delete account. Nu închid acest gap pe
-baza succesului unei alte tranziții sau a dispariției overlay-ului.
+Contractul livrat este în [README AutoEx — navigare întreruptă](../../atf-test-auto-ex/README.md#delete-account--navigare-întreruptă).
+În rapoartele inspectate în MCP se văd ruta, numărul real de request-uri,
+confirmarea și captura ștergerii. Reclama a apărut natural în altă tranziție,
+nu încă în Delete account; succesul acelei navigări nu închide criteriul de mai jos.
 
-- [ ] Corelați rezultatul ștergerii cu ruta și confirmarea business după Close,
-      fără `first()` care ar accepta un heading Home și fără mascarea erorii.
-- [ ] Probați tranziția în componenta business AutoEx și pe site-ul real;
-      păstrați failure evidence înainte de recuperare.
+- [ ] Observați vignette-ul natural chiar la Delete account într-un flow real
+      la 70%; fără hash, overlay sau răspuns fabricat și fără pauză artificială
+      introdusă ca să provoace reclama.
+- [ ] În MCP, verificați pasul Gherkin al continuării: zero request-uri înainte,
+      identitate revalidată, un singur request final și confirmarea pe ruta corectă;
+      dacă un request a pornit deja, lipsa confirmării rămâne FAIL fără replay.
 
-### Increment în verificare — continuare fără replay de ștergere
+Traseu în verificare: client existent pregătit prin API-ul public, login în UI,
+apoi Delete account în UI. Pregătirea contului este evidence de setup, nu trafic
+cauzat de UI. Nu schimbă probabilitatea sau conținutul reclamelor prin scripting.
 
-- Observarea pasivă începe înainte de click și numără request-urile către
-  endpoint-ul de ștergere; un request pornit interzice reluarea, indiferent
-  de răspuns sau de dispariția reclamei.
-- Numai reclama închisă fără request și fără destinație permite o singură
-  continuare; înainte se reîncarcă Home și se verifică identitatea exactă și
-  disponibilitatea Delete account, fără a reexecuta plata sau crearea contului.
-- Confirmarea cere ruta exactă, heading-ul dedicat `account-deleted` vizibil
-  și un singur request de ștergere; Home nu poate satisface acest contract.
-- Proba de componentă este o decizie business pură, fără browser sau reclamă
-  fabricată; proba integrată trebuie să observe întreruperea naturală pe site.
-- Guvernanța păstrează inventarul exact al pachetului account: cele trei clase
-  existente plus observatorul scoped și regula de progres adăugate pentru
-  această cerință. Se actualizează numai setul așteptat, fără relaxarea pragului
-  de opt clase, wildcard-uri sau excepții noi.
+## Control tehnic activ
 
 ```yaml
 testChanges:
-  - id: AUTOEX-DELETE-AFTER-AD-01
+  - id: AUTOEX-EXISTING-CUSTOMER-DELETE-01
     status: ACTIVE
-    base: 7b365028ac8356960614e35023556e757311e633
-    expires: 2026-11-23
-    reason: Verifica decizia business de continuare a navigarii numai dupa reclama inchisa fara request de stergere pornit; nu fabrica reclame si nu permite replay dupa un request inceput.
-    proof: mvn "-pl=atf-test-auto-ex,atf-tests" -am "-Dtest=AutoExComponentSuite,AutoExAccountUiE2eTest,AutoExBusinessSuite,AutoExPurchaseUiApiE2eTest,WholeAtfGovernanceSuiteTest" "-Datf.autoex.e2e.enabled=true" "-Datf.governance.testChanges.baseRef=7b365028ac8356960614e35023556e757311e633" "-Dsurefire.failIfNoSpecifiedTests=false" test
+    base: 5eb3fd3cb099fc67b49be3c17de564db63755db7
+    expires: 2026-11-24
+    reason: Adaugă self-service-ul real login/delete pentru un client pregătit prin API, fără reclame fabricate sau replay; modificările adaptorului și factory-ului live rămân la controalele existente AUTOEX-VOCABULARY-01 și AUTOEX-CONTRACT-VOCABULARY-02, revalidate de aceeași probă.
+    proof: mvn -pl atf-test-auto-ex,atf-tests -am "-Dtest=AutoExComponentSuite,AutoExExistingCustomerUiApiE2eTest,AutoExAccountUiE2eTest,AutoExApiLiveSuite,WholeAtfGovernanceSuiteTest" "-Datf.autoex.e2e.enabled=true" "-Datf.autoex.api.live.enabled=true" "-Datf.governance.testChanges.baseRef=5eb3fd3cb099fc67b49be3c17de564db63755db7" "-Dsurefire.failIfNoSpecifiedTests=false" test
     paths:
-      - atf-test-auto-ex/src/test/java/atf/ui/tests/autoex/component/journey/AutoExAccountDeletionSafetyComponentTest.java
-      - atf-test-auto-ex/src/test/java/atf/ui/tests/autoex/e2e/AutoExAccountUiE2eTest.java
-      - atf-tests/src/test/java/atf/api/tests/governance/AtfPackageCohesionGovernanceTest.java
+      - atf-test-auto-ex/src/test/java/atf/ui/autoex/support/AutoExCustomerApiSetup.java
+      - atf-test-auto-ex/src/test/java/atf/ui/tests/autoex/e2e/AutoExExistingCustomerUiApiE2eTest.java
 ```

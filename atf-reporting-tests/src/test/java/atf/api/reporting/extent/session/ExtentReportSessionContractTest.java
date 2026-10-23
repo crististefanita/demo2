@@ -1,5 +1,5 @@
 package atf.api.reporting.extent.session;
-import atf.api.testkit.AtfUnitTest;
+import atf.api.testkit.AtfComponentTest;
 
 import atf.api.core.http.request.HttpMethod;
 import atf.api.reporting.support.TestReportPaths;
@@ -19,17 +19,42 @@ import atf.api.reporting.configuration.ReportingSettings;
 import atf.api.reporting.console.AtfConsoleSink;
 import atf.api.reporting.security.SensitiveDataRedactor;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Map;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@AtfUnitTest
+@AtfComponentTest
 class ExtentReportSessionContractTest {
+    @ParameterizedTest
+    @CsvSource({
+            "Browser automation client,Browser automation client",
+            "Consumer client token=raw-client-secret,Consumer client token=***REDACTED***"
+    })
+    void explicitConsumerClientIsPreservedAndRedactedInSystem(String client, String displayed) throws Exception {
+        Path report = TestReportPaths.report("extent-explicit-client-" + (client.contains("token=") ? "redacted" : "plain") + ".html");
+        var environment = ReportEnvironmentSnapshot.builder()
+                .put(ReportEnvironmentField.CLIENT, client).build();
+        try (var session = new ExtentReportSession(report, ReportingSettings.defaults(),
+                new SensitiveDataRedactor(), AtfConsoleSink.noOp(), environment)) {
+            session.startScenario("ClientContract", "consumer metadata", List.of("component"))
+                    .complete(AtfReportStatus.PASS);
+        }
+        String html = Files.readString(report);
+        assertTrue(html.matches("(?s).*<td>Client</td>\\s*<td>" +
+                Pattern.quote(displayed) + "</td>.*"));
+        assertEquals(displayed, systemClient(html));
+        assertFalse(html.contains("raw-client-secret"));
+        assertFalse(html.contains("ATF ApiTransport"));
+    }
+
     @Test
     void typedEnvironmentSnapshotIsPublishedRedactedAndWithoutArbitraryKeys() throws Exception {
         Path report = TestReportPaths.report("extent-typed-environment.html");
@@ -53,6 +78,14 @@ class ExtentReportSessionContractTest {
                 () -> assertTrue(html.contains("***REDACTED***")),
                 () -> assertFalse(html.contains("raw-report-token")),
                 () -> assertFalse(html.contains("raw.yaml.key")));
+    }
+
+    private static String systemClient(String html) {
+        var row = Pattern.compile("<td>Client</td>\\s*<td>([^<]*)</td>").matcher(html);
+        assertTrue(row.find(), "System must publish a Client row");
+        String value = row.group(1);
+        assertFalse(row.find(), "System must publish Client exactly once");
+        return value;
     }
 
     private static final String USERS_PATH = MockRoutePaths.USERS;
@@ -231,7 +264,9 @@ class ExtentReportSessionContractTest {
                 () -> assertTrue(html.contains(".dark .card-header")),
                 () -> assertTrue(html.contains("System/Environment")),
                  () -> assertTrue(html.contains("Runtime")),
-                () -> assertTrue(html.contains("ATF ApiTransport (configured per execution)")),
+                () -> assertEquals("Configured per execution", systemClient(html)),
+                () -> assertFalse(html.contains("ATF ApiTransport"),
+                        "A consumer without transport metadata must not claim an API client"),
                 () -> assertTrue(html.contains("Extent · embedded offline HTML")),
                 () -> assertTrue(html.contains(".card:has(>.card-body #grandchild-analysis)")),
                 () -> assertTrue(html.contains("data-atf-node-role=\"phase\"]>.card-header .node-attr")),

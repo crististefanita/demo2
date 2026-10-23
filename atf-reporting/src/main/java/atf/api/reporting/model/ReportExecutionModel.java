@@ -5,6 +5,7 @@ import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.model.projection.ReportExecutionProjections;
 import atf.api.reporting.ui.network.ReportNetworkInspector;
+import atf.api.reporting.ui.model.AtfUiActionRecord;
 
 import java.util.List;
 import java.util.Objects;
@@ -152,7 +153,14 @@ public record ReportExecutionModel(List<Scenario> scenarios) {
 
     public record Validation(String title, List<AtfAssertion> assertions,
                              AtfReportStatus status, int uiActionCount, int screenshotCount,
-                             List<Node> children) implements Node {
+                             List<Node> children, List<AtfUiActionRecord> uiActions,
+                             List<ReportScreenshot> screenshots) implements Node {
+        public Validation(String title, List<AtfAssertion> assertions,
+                          AtfReportStatus status, int uiActionCount, int screenshotCount,
+                          List<Node> children) {
+            this(title, assertions, status, uiActionCount, screenshotCount, children, List.of(), List.of());
+        }
+
         public Validation(String title, List<AtfAssertion> assertions, AtfReportStatus status) {
             this(title, assertions, status, 0, 0, List.of());
         }
@@ -167,6 +175,8 @@ public record ReportExecutionModel(List<Scenario> scenarios) {
             assertions = List.copyOf(Objects.requireNonNull(assertions, "assertions"));
             status = Objects.requireNonNull(status, "status");
             children = List.copyOf(Objects.requireNonNull(children, "children"));
+            uiActions = List.copyOf(Objects.requireNonNull(uiActions, "uiActions"));
+            screenshots = List.copyOf(Objects.requireNonNull(screenshots, "screenshots"));
             if (uiActionCount < 0 || screenshotCount < 0) {
                 throw new IllegalArgumentException("Evidence counts must be non-negative");
             }

@@ -1,81 +1,60 @@
-# ATF Reporting — cerințe rămase
+# ATF Reporting — stare și controale temporare
 
-Feedback-ul păstrează numai lacunele deschise și controalele temporare.
-Contractele stabile aparțin [contractului semantic](../ATF_Reporting_Contract.md),
-[contractului de display](../ATF_Reporting_Display_Contract.md) și README-urilor
-[Reporting](../../atf-reporting/README.md) / [Reporting Tests](../../atf-reporting-tests/README.md).
+Revizia capturilor invalide este verificată; gate-ul cleanup adăugat în paralel
+rămâne separat, până la probele sale proprii.
+Contractele stabile aparțin [Reporting](../../atf-reporting/README.md),
+[Reporting Tests](../../atf-reporting-tests/README.md),
+[contractului semantic](../ATF_Reporting_Contract.md) și
+[contractului de display](../ATF_Reporting_Display_Contract.md).
 
-## Ordinea intervențiilor
+## REPORT-ASSET-CLEANUP-LOCK-05 — sharing violation la publicare
 
-Scorul folosește formula registrului: impact /40 + lacună /30 + lucrabil /20 +
-datorie documentară /10. Este prioritate de remediere, nu notă de calitate.
+Windows poate raporta un fișier Spark ocupat prin `FileSystemException`,
+nu numai `AccessDeniedException`; retry-ul existent acoperă numai subclasa.
 
-| ID | Scor | Motivul ordinii |
-|---|---:|---|
-| `REPORT-BROWSER-PLACEMENT-02` | 91 = 36 + 27 + 20 + 8 | noua probă Network cu Playwright încalcă ownerul UI component și face Test Kit roșu |
-| `UI-FAILURE-CAPTURE-02` | 84 = 34 + 24 + 20 + 6 | motivul lipsei capturii dispare din evidence-ul de eșec |
-| `REPORT-CLIENT-EXPECTATION-02` | 61 = 21 + 15 + 20 + 5 | testul HTML cere încă fallback-ul Client vechi, contrar contractului neutru |
+- [ ] Păstrați limita existentă de încercări și intervalul bounded pentru ambele
+      forme; eșecul persistent și întreruperea trebuie propagate, nu ascunse.
+- [ ] Probați politica injectată și reluați suita componentă completă, inclusiv
+      publicarea raportului de contract și randarea prin ATF Debug/MCP.
 
-## REPORT-BROWSER-PLACEMENT-02 — proba Network trebuie plasată la ownerul UI
+## Reconcilierea cerințelor
 
-**Stare: deschis, reprodus de Test Kit pe codul nou.**
-`AtfTestLayerArchitectureTest` respinge importurile Playwright din
-`atf.api.reporting.ui.network.NetworkCaptureEvidenceTest`, clasă componentă
-aflată în afara pachetului UI permis.
+| ID | Stare | Rezultatul verificat |
+|---|---|---|
+| `UI-FAILURE-CAPTURE-03` | închis | Base64 malformed și non-PNG sunt indisponibile, nu capturate. Patru regresii noi Extent/fallback păstrează cauza originală fără link fals; fixture-ul inspectabil include cazul invalid. |
+| `REPORT-README-SCAN-04` | închis | Contractele celor două componente sunt grupate într-un tabel; informația și completările paralele rămân păstrate. Gate-ul documentației trece. |
+| `REPORT-LIVE-CONTROL-04` | închis | Cele cinci diferențe au fost revizuite explicit față de HEAD și reverificate prin componente și Test Kit; controlul exact nu rebazează și nu înlocuiește aprobările anterioare. |
+| `REPORT-BROWSER-PLACEMENT-02` | închis | Proba Network păstrează toate cele cinci cazuri în ownerul UI component; selectorii aparțin fațadei `ReportNetworkCaptureLocators`. Guard-urile browser/locatori nu au fost relaxate. |
+| `UI-FAILURE-CAPTURE-02` | închis | `Failure evidence` explică starea capturii prin `OBSERVE/INFO`, fără HTTP fictiv, link fals sau aserțiune business nouă. Extent și fallback păstrează acțiunea și cauza. |
+| `REPORT-CLIENT-EXPECTATION-02` | închis | Oracol neutru exact `Configured per execution`; Clientul explicit este păstrat și redactat în System. Probele de publicare HTML sunt componente. |
 
-- [ ] Mutați proba neutră la `atf.ui.tests.extent.component`, după modelul
-      retry deja mutat; alternativ separați cazurile pure de cele browser.
-      Păstrați toate cele cinci cazuri și adnotarea componentei.
-- [ ] Păstrați testele generice în Reporting Tests, nu în Shop/AutoEx;
-      nu extindeți allowlist-ul guvernanței pentru a ascunde placement-ul.
-- [ ] Autorizați exact ștergerea/adăugarea prin `testChanges`, actualizați
-      package/importuri/comenzi și comparați invocările înainte/după mutare.
-- [ ] Rulați clasa, `AtfReportingComponentSuite` și toate testele Test Kit;
-      trecerea componentei funcționale nu închide failure-ul de arhitectură.
+## Boundary și probe
 
-## UI-FAILURE-CAPTURE-02 — lipsa capturii trebuie explicată în raport
+- **Dovezi:** calea fără captură închide disclosure-ul acțiunilor înaintea
+  observațiilor și aserțiunilor; snapshot-ul fallback păstrează conținutul,
+  nu numai numărătorile.
+- **Redactare:** captura folosește ținta `current page`, fără a copia un
+  locator cu secrete; proba existentă de redactare rămâne intactă.
+- **Gate-uri:** suita componentă completă, suita unit, probele standalone,
+  Test Kit și controalele selectate de schimbare/coeziune/documentație sunt
+  verificate în staging extern.
+- **Standalone:** inventarul finit include proba nativă de ceas; Reporting
+  nu primește dependență către Test Kit.
+- **TAB MCP:** ATF Debug confirmă cauza, starea capturii, imaginea validă,
+  Fails → Open in Tests și System Client; fără link fals, overflow sau erori
+  de consolă în suprafețele verificate.
+- **Scope:** rapoartele controlate de failure sunt fixture-uri, nu rulări
+  business Shop/AutoEx.
+- **Revizia capturilor invalide:** 251 de probe în rularea componentă extinsă,
+  401 unit, 14 standalone, 52 Test Kit și 7 controale selectate trec în staging
+  extern. Matricea capturilor are 35 de cazuri; verificarea comună inspectează
+  encoding-ul Base64 și semnătura PNG, nu decodarea integrală a imaginii.
+- **Limită live:** rezultatele acestei revizii nu certifică schimbările cleanup
+  sau AutoEx apărute ulterior în paralel; gate-ul lor rămâne explicit separat.
 
-**Stare: deschis, reprodus în suita unit Reporting.**
-`UiAuditLifecycleTest.preservesActionsWhenFailureHasNoScreenshot` păstrează
-acțiunile, cauza și verdictul FAIL, dar nu găsește explicația vizibilă
-`screenshot disabled or unavailable`.
-
-- `UiEvidencePublisher.publishFailure` pune motivul în `evidence.policy`;
-  `EvidenceTableFormatter` filtrează acea cheie pentru `ui-failure`, în ambele
-  căi de proiecție. Modelul conține informația, dar artifactul o pierde.
-- [ ] Publicați explicit starea capturii în `Failure evidence`, fără a
-      reintroduce `Audit details` sau metadate HTTP fictive la pasul UI.
-- [ ] Păstrați aserțiunea comportamentală: acțiunile/cauza/FAIL rămân prezente,
-      motivul lipsei capturii este vizibil și nu se inventează link Base64.
-- [ ] Acoperiți cu fixture neutră Extent și fallback: captură permisă validă,
-      captură indisponibilă și politică dezactivată; separați motivele fără
-      duplicarea acțiunilor sau a propoziției Gherkin.
-- [ ] Revedeți clasificarea probei: sesiune → publisher → HTML este boundary
-      de componentă, deși clasa declară acum `@AtfUnitTest`. Cazurile trebuie
-      executate și prin entry point-ul component, fără relaxarea guvernanței.
-
-Comanda de reproducere este locală și nu cere aplicație externă:
-
-```text
-mvn -pl atf-reporting-tests -am "-Dtest=UiAuditLifecycleTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
-```
-
-## REPORT-CLIENT-EXPECTATION-02 — oracol HTML rămas în urmă
-
-**Stare: deschis în test, nu regresie demonstrată a producției.**
-`ExtentReportSessionContractTest.publishesTheSharedVisualContract` cere încă
-`ATF ApiTransport (configured per execution)` într-o sesiune fără Client explicit.
-Artifactul publică `Configured per execution`, conform contractului neutru și
-`ReportEnvironmentSnapshotTest.genericClientFallbackDoesNotClaimAnApiTransportForUiOnlyRuns`.
-
-- [ ] Aliniați proba HTML la contractul neutru exact și păstrați verificarea că
-      un raport fără transport explicit nu pretinde `ATF ApiTransport`.
-- [ ] Probați separat Client explicit furnizat de consumer → aceeași valoare
-      în System, cu redactare; nu schimbați default-ul reutilizabil ca să
-      satisfaceți vechea aserțiune.
-- [ ] Revedeți layer-ul cazurilor care publică și citesc HTML: clasa este acum
-      unit, astfel că suita componentă nu vede această divergență. Migrarea
-      cere inventar înainte/după, control exact și păstrarea aserțiunilor de stil.
+Controalele acestei revizii au fost transferate în
+[baseline-ul tehnic](../ATF_Test_Changes_Baseline.md). Aprobările altor
+incrementuri rămân mai jos, fără a fi confundate cu ToDo-uri funcționale.
 
 ## Aprobări temporare pentru modificări de teste
 
@@ -85,26 +64,44 @@ testelor de guvernanță.
 
 ```yaml
 testChanges:
-  - id: REPORT-OPEN-GAPS-COMPONENT-03
+  - id: REPORT-LIVE-CONTROL-04
     status: ACTIVE
-    base: 5eb3fd3cb099fc67b49be3c17de564db63755db7
-    expires: 2026-11-23
-    reason: Păstrează toate cazurile Network la ownerul UI component, reclasifică publicarea HTML ca probă componentă și verifică motivul capturii și Client neutru sau explicit redactat. Ștergerea vechiului path Network este deja autorizată de UI-NETWORK-CAPTURE-PROOFS-01.
-    proof: mvn -pl atf-reporting-tests -am "-Dtest=AtfReportingComponentSuite,UiAuditLifecycleTest,ExtentReportSessionContractTest,NetworkCaptureEvidenceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+    base: b9b1325c28d665be6289bb2cf9286666513e7a05
+    expires: 2026-11-24
+    allowDelete: true
+    reason: Revizuiește explicit diff-ul curent al relocării Network cu toate cele cinci cazuri și fațada de locatori, al probei Client și al inventarului finit standalone. Nu modifică guard-urile; reexecută probele pentru baza curentă, fără rebazarea automată a controalelor anterioare.
+    proof: mvn -pl atf-reporting-tests,atf-test-kit -am "-Dtest=AtfReportingComponentSuite,AtfTestLayerArchitectureTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
     paths:
+      - atf-reporting-tests/src/test/java/atf/api/reporting/extent/session/ExtentReportSessionContractTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/ui/network/NetworkCaptureEvidenceTest.java
       - atf-reporting-tests/src/test/java/atf/ui/tests/extent/component/inspection/network/NetworkCaptureEvidenceTest.java
       - atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/locators/network/ReportNetworkCaptureLocators.java
-      - atf-reporting-tests/src/test/java/atf/api/reporting/ui/UiAuditLifecycleTest.java
-      - atf-reporting-tests/src/test/java/atf/api/reporting/extent/session/ExtentReportSessionContractTest.java
-  - id: REPORT-NATIVE-CLOCK-LAYER-03
+      - atf-test-kit/src/test/java/atf/api/testkit/AtfTestLayerArchitectureTest.java
+  - id: REPORT-ASSET-CLEANUP-LOCK-05
     status: ACTIVE
     base: 5eb3fd3cb099fc67b49be3c17de564db63755db7
-    expires: 2026-11-23
-    reason: Înregistrează exact proba nativă ReportingTimestampComponentTest în inventarul standalone finit, fără a permite alte importuri sau a extinde allowlist-ul browser.
-    proof: mvn -pl atf-test-kit -am test
+    expires: 2026-11-24
+    reason: Probează ambele forme de lock Windows, epuizarea bounded și întreruperea, fără a schimba plafonul cleanup-ului sau a ignora erorile de publicare. Revizuirea exactă a fișierului confirmă același conținut de bază în 5eb3fd3 și b9b1325; controlul folosește baza comună a gate-ului, fără extindere de path-uri și fără a declara incrementul verificat.
+    proof: mvn -pl atf-reporting-tests -am "-Dtest=ExtentReportAssetCleanupTest,AtfReportingComponentSuite,UiFailureReportContractTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
     paths:
-      - atf-test-kit/src/test/java/atf/api/testkit/AtfTestLayerArchitectureTest.java
-      - atf-reporting/src/test/java/atf/api/reporting/standalone/ReportingTimestampComponentTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/markup/ExtentReportAssetCleanupTest.java
+  - id: REPORT-INVALID-CAPTURE-03
+    status: ACTIVE
+    base: b9b1325c28d665be6289bb2cf9286666513e7a05
+    expires: 2026-11-24
+    reason: Adaugă payload-uri Base64 invalide și non-PNG în matricea Extent/fallback, fără a elimina cazurile integrate în paralel; verifică absența linkurilor false și păstrarea cauzei originale.
+    proof: mvn -pl atf-reporting-tests -am "-Dtest=UiAuditLifecycleTest,ReportEvidenceProfileIntegrationTest,ReportScreenshotTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+    paths:
+      - atf-reporting-tests/src/test/java/atf/api/reporting/ui/UiAuditLifecycleTest.java
+  - id: REPORT-FAILURE-CLIENT-COMPONENT-04
+    status: ACTIVE
+    base: 7b365028ac8356960614e35023556e757311e633
+    expires: 2026-11-24
+    reason: Păstrează cazurile originale și cele integrate în paralel; adaugă matricea politicilor, snapshot-uri Extent/fallback și cazul fără acțiuni, păstrând Client exact o dată și starea capturii într-un vocabular tipizat.
+    proof: mvn -pl atf-reporting-tests -am "-Dtest=AtfReportingComponentSuite" "-Dsurefire.failIfNoSpecifiedTests=false" test
+    paths:
+      - atf-reporting-tests/src/test/java/atf/api/reporting/ui/UiAuditLifecycleTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/extent/session/ExtentReportSessionContractTest.java
   - id: SHOP-CAPTURE-01
     status: ACTIVE
     base: 0f6a95265024a78c20754d5c18937d24434a2d2d

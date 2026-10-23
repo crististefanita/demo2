@@ -5,7 +5,7 @@ import atf.api.reporting.markup.vocabulary.AtfReportAsset;
 import atf.api.reporting.model.ReportScreenshot;
 
 import java.io.IOException;
-import java.nio.file.AccessDeniedException;
+import java.nio.file.FileSystemException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -119,7 +119,7 @@ public final class ExtentReportAssets {
                 try {
                     delete.deleteIfExists(path);
                     break;
-                } catch (AccessDeniedException locked) {
+                } catch (FileSystemException locked) {
                     if (attempt == CLEANUP_ATTEMPTS) {
                         throw new IOException("Unable to remove generated Extent asset after "
                                 + CLEANUP_ATTEMPTS + " attempts: " + path, locked);
