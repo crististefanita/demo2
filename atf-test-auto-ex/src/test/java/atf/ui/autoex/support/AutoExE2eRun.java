@@ -37,7 +37,7 @@ import atf.api.ui.playwright.UiScreenValidation;
 import atf.ui.autoex.config.AutoExConfiguration;
 import atf.ui.autoex.support.browser.AutoExPrivacyConsentHandler;
 import atf.ui.autoex.support.browser.AutoExVignetteHandler;
-import atf.ui.autoex.support.lifecycle.AutoExE2eInitialization;
+import atf.api.testkit.lifecycle.TestRunInitialization;
 import atf.ui.autoex.support.catalog.AutoExCatalogSnapshot;
 import atf.ui.autoex.support.journey.AutoExPurchaseSession;
 import atf.ui.autoex.support.trace.AutoExTraceStep;
@@ -130,7 +130,7 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
                         ReportResource.class);
         UiExtentReportSession report = reportResource.report();
         AutoExConfiguration runConfiguration = configuration;
-        return AutoExE2eInitialization.create(
+        return TestRunInitialization.create(
                 () -> PlaywrightUiSession.open(runConfiguration.browser(), console),
                 browser -> report.startScenario(context.getRequiredTestClass().getSimpleName(),
                         context.getRequiredTestClass().getPackageName(), context.getDisplayName(),

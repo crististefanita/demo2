@@ -477,19 +477,25 @@ Reporting; Shop păstrează aserțiunile sale asupra intențiilor și apelurilor
 distincte `/users/login`.
 
 <details>
-<summary><strong>Delimitarea probelor locale care pot fi simplificate</strong></summary>
+<summary><strong>Delimitarea probelor locale și a celor reutilizabile</strong></summary>
 
 | Probă curentă | Contract care rămâne Shop | Contract deținut în alt modul |
 |---|---|---|
-| `ShopApiAuthenticationSchemaTest` | profilul și mecanismul supraviețuiesc mapperului direct și capturii din browser | etichetele HTML canonice sunt probate de `ApiAuthenticationSchemaContractTest` în Reporting Tests |
+| `ShopApiAuthenticationSchemaTest` | profilul/mecanismul prin mapper și browser journal; lipsa credentialelor din ambele artifacte | etichetele HTML canonice și paritatea proiecțiilor: `ApiAuthenticationSchemaContractTest` |
 | `ShopApiCallAuditReportComponentTest` | asocierea intenției/statusului la exchange, lipsa contractului explicit și diagnosticul auditului | retry rendering și proiecția diagnosticelor sunt probate generic în Reporting Tests |
 | `ShopApiBodyRedactionReportTest` | politica Shop pentru înregistrare/adresă, body malformed și ieșirea efectivă a adaptorului | redactarea generică și manual replay sunt probate la ownerii lor |
 | `ShopE2eFailureBoundaryTest` | publicarea unui `LinkageError` de către `ShopE2eContext` și păstrarea erorii inițiale | închiderea inversă prin `FailureAwareCleanup` este probată direct în Test Kit |
+| `ShopScreenshotPolicyTest` | maparea politicii și precedența YAML față de opțiunea legacy | filtrarea providerului înainte de captură: `ReportEvidenceProfileTest` în Reporting Tests |
 
-Tabelul identifică ownership-ul, nu declară mutări sau ștergeri deja executate.
-Reducerea probelor mixte și dublura exactă de cleanup sunt urmărite în
-[feedback-ul consumerilor](../docs/feedback/ATF_Consumer_Business_Test_Focus_Feedback.md#consumer-proof-ownership-01--degajarea-probelor-generice).
-Un test al adaptorului rămâne necesar chiar dacă rendererul folosit are propriul gate.
+Proba retry locală verifică attempts/history/provenance prin mapper și modelul
+publicat de Shop, inclusiv contractul login inițial; `ApiRetryProjectionContractTest`
+verifică pipeline-ul unic în standalone Extent, fallback și UI+API, inclusiv
+retry epuizat. Copia directă a testului
+de cleanup și filtrarea generică a capturii nu mai sunt repetate aici.
+
+Probele pentru asocierea intenției/statusului, eșecul JUnit și datele personale
+rămân locale: verifică apelarea adaptorului și politica Shop, nu layout-ul.
+Un gate neutru nu poate înlocui siguranța artifactului produs de aplicație.
 
 </details>
 

@@ -65,10 +65,11 @@ Fiecare clasă executabilă declară exact un nivel:
 | `atf.api.testkit.setup.api` | `ApiScenarioSetup`, `ApiTestRef` | declarații; catalogul și executarea rămân la consumator |
 | `atf.api.testkit.documentation` | `DocumentationTarget` repeatable | selecție de documente; validatorii rămân în ATF Tests |
 | `atf.api.testkit.evidence` | `AtfUiEvidence`, `AtfUiEvidenceFlow`, `AtfUiScreenshotPolicy` | declară independent gruparea flow-ului și intenția capturilor; adaptorii consumer le mapează în profilul Reporting |
-| `atf.api.testkit.lifecycle` | `FailureAwareCleanup`, `FailureEvidenceCleanup`, `AtfE2eActivationPolicy` | primitive test-only pentru cleanup sigur și decizia neutră de activare E2E; fără API UI/Reporting |
+| `atf.api.testkit.lifecycle` | `TestRunInitialization`, `FailureAwareCleanup`, `FailureEvidenceCleanup`, `AtfE2eActivationPolicy` | achiziție/rollback, cleanup și activare E2E neutre; fără API UI/Reporting |
 
 | Contract | Comportament și probă |
 |---|---|
+| Inițializare | `TestRunInitialization.create(...)` primește factory-uri pentru resursă → scenariu → fază → run; la eșec execută callback-urile inverse pentru handle-urile returnate. `TestRunInitializationTest` verifică succesul, fiecare punct de eșec, `Error` și erorile `suppressed`. |
 | Cleanup | `FailureAwareCleanup` încearcă toate etapele, păstrează prima eroare și atașează restul ca `suppressed`; resursele se închid invers. |
 | Failure evidence | `FailureEvidenceCleanup` capturează înaintea cleanup-ului care poate schimba pagina; consumerul deține callback-urile. Ambele primitive sunt probate în `FailureAwareCleanupTest`. |
 | Activare | `AtfE2eActivationPolicy`: override JVM → opt-in configurat → fallback IDE → dezactivare; extensiile citesc semnalele, iar `AtfE2eActivationPolicyTest` verifică precedența și respingerea valorilor invalide. |
@@ -159,8 +160,13 @@ dependente de consumer.
 
 - `FailureAwareCleanupTest.partiallyAcquiredResourcesCloseInReverseAndKeepAcquisitionFailurePrimary`
   este proba neutră pentru închiderea inversă și păstrarea cauzei primare.
-- Un consumer care testează direct aceeași primitivă, fără propriul adaptor,
-  dublează această probă; reducerea copiei Shop este urmărită în
-  [feedback-ul consumerilor](../docs/feedback/ATF_Consumer_Business_Test_Focus_Feedback.md#consumer-proof-ownership-01--degajarea-probelor-generice).
-- Rollback-ul handle-urilor AutoEx și publicarea failure-ului Shop rămân teste
-  locale ale compoziției, fiindcă primitiva nu le poate certifica.
+- Handle-urile lipsă, mai multe erori de close și repropagarea cauzei primare
+  fără self-suppression sunt probate în aceeași clasă neutră.
+- Copia directă Shop a fost eliminată; `ShopE2eFailureBoundaryTest` păstrează
+  publicarea failure-ului prin adaptorul propriu.
+- Inițializarea cu factory-uri și probele sale neutre sunt aici, nu în AutoEx.
+  Consumerul furnizează callback-urile browser/report; Kit-ul nu le implementează.
+- Factory-ul rămâne responsabil pentru resursele dobândite intern înainte de
+  returnarea unui handle; succesul transferă cleanup-ul normal către run.
+- `ConsumerModuleArchitectureGovernanceTest` respinge recrearea copiei AutoEx,
+  dependențele Kit către UI/Reporting și importurile consumer în probele neutre.

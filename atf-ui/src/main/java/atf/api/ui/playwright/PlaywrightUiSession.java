@@ -94,7 +94,7 @@ public final class PlaywrightUiSession implements AutoCloseable {
      * normal report load never emits a page error.
      */
     static String zoomInitScript(int zoomPercent) {
-        return "(() => { const applyZoom = () => { "
+        return "(() => { if (window !== window.top) return; const applyZoom = () => { "
                 + "if (document.documentElement) { document.documentElement.style.zoom = '"
                 + zoomPercent + "%'; } }; "
                 + "if (document.documentElement) { applyZoom(); } "

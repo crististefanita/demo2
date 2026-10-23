@@ -14,6 +14,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @AtfUnitTest
 class ApiManualReplayProjectionTest {
     @Test
+    void formReplayRetainsContentTypeAndRedactsCredentialsWithoutAConsumerAdapter() {
+        String secret = "synthetic-form-secret";
+        String body = "email=synthetic%40example.test&password=" + secret;
+        var request = new ReportRequest("POST", "/session", Map.of(),
+                Map.of("Content-Type", "application/x-www-form-urlencoded"), "none", body);
+
+        String replay = ApiManualReplay.describe(ReportTransportProvenance.LIVE_HTTP,
+                request, "https://api.example.test/session", body);
+
+        assertTrue(replay.contains("application/x-www-form-urlencoded"));
+        assertTrue(replay.contains("***REDACTED***"));
+        assertFalse(replay.contains(secret), "form credentials must never appear in an executable replay");
+    }
+
+    @Test
     void keepsSemanticHeadersAndRemovesBrowserTransportNoise() {
         var headers = new LinkedHashMap<String, String>();
         headers.put("accept", "application/json, text/plain, */*");

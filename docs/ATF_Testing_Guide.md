@@ -176,6 +176,10 @@ SETUP
 - Lifecycle-ul browser/report rămâne în harness-ul test-only al consumerului.
 - `FailureAwareCleanup` din `atf-test-kit` oferă cleanup neutru, închidere inversă
   și agregarea erorilor.
+- `TestRunInitialization` deține achiziția cu factory-uri și rollback-ul
+  handle-urilor returnate; proba neutră nu pornește UI sau Reporting.
+- Consumerul furnizează factory-urile și callback-urile specifice; fiecare
+  factory garantează cleanup-ul propriei achiziții parțiale înainte de returnare.
 - Alte primitive se promovează numai după probe comportamentale la consumatorii
   relevanți.
 - `AutoExPurchaseSession` rămâne API intern al runtime-ului consumer; nu este

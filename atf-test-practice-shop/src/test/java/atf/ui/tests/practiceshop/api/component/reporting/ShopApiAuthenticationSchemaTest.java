@@ -70,10 +70,9 @@ class ShopApiAuthenticationSchemaTest {
         }
         for (Path path : List.of(standalone, audited)) {
             String html = Files.readString(path);
-            assertTrue(html.contains("<td>AUTH PROFILE</td><td>shop-user</td>"));
-            assertTrue(html.contains("<td>AUTH TYPE</td><td>bearer</td>"));
-            assertFalse(html.contains("<td>AUTHENTICATION</td>"));
-            assertFalse(html.contains("auth-schema-private-token"));
+            assertTrue(html.contains("shop-user"), "the Shop profile must reach both adapter outputs");
+            assertTrue(html.contains("bearer"), "the captured mechanism must reach both Shop adapter outputs");
+            assertFalse(html.contains("auth-schema-private-token"), "neither Shop artifact may leak credentials");
         }
     }
 

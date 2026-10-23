@@ -5,6 +5,8 @@ import atf.api.reporting.model.ReportScreenshot;
 import atf.api.reporting.support.ReportTestScreenshots;
 import atf.api.testkit.AtfUnitTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -14,6 +16,25 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @AtfUnitTest
 class ReportEvidenceProfileTest {
+    @ParameterizedTest
+    @EnumSource(ReportEvidenceCaptureSource.class)
+    void noneFiltersEveryCapturePointBeforeCallingAnyProvider(ReportEvidenceCaptureSource source) {
+        var calls = new AtomicInteger();
+        var provider = provider(source, ReportTestScreenshots.ONE_PIXEL_PNG, calls);
+        var disabled = ReportEvidenceProfile.builder().captureSource(source)
+                .screenshotPolicy(ReportScreenshotPolicy.NONE).build();
+
+        for (var point : ReportScreenshotPolicy.CapturePoint.values()) {
+            assertTrue(disabled.capture(point, "disabled", "#target", provider).isEmpty());
+        }
+        assertEquals(0, calls.get(), "disabled captures must never invoke a browser or mock provider");
+
+        var enabled = disabled.toBuilder().screenshotPolicy(ReportScreenshotPolicy.EACH_CHECKPOINT).build();
+        assertTrue(enabled.capture(ReportScreenshotPolicy.CapturePoint.CHECKPOINT,
+                "enabled", "#target", provider).isPresent());
+        assertEquals(1, calls.get(), "a permitted capture must still reach the same provider");
+    }
+
     @Test
     void mapsTheThreeIndependentEvidenceAxes() {
         var profile = ReportEvidenceProfile.fromConfig(

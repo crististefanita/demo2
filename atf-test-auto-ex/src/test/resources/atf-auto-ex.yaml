@@ -9,7 +9,7 @@ automationExercise:
     viewport:
       width: 1440
       height: 1000
-    zoomPercent: 70
+    zoomPercent: 100
   reports:
     uiBaseDirectory: artifacts/reports/ui
   catalog:

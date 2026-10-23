@@ -104,12 +104,20 @@ ui:
 - opțiunile concrete descriu browserul și evidence-ul;
 - `ui.screenValidation.enabled` controlează numai capturarea screenshot-ului;
 - cheia nu activează testele și nu publică raportul;
-- `ui.zoomPercent` controlează zoom-ul CSS pentru fiecare pagină navigată;
-- valoarea recomandată pentru rapoarte Extent este `70`;
+- `ui.zoomPercent` controlează zoom-ul CSS al documentului principal navigat;
+- scriptul nu aplică zoom suplimentar în iframe-uri; ele sunt deja scalate de container;
+- `70` poate fi folosit pentru inspecția rapoartelor Extent fără controale embedded;
+- pentru interacțiuni business cu iframe-uri, alegerea sigură este `100`;
 - `viewport.width` și `viewport.height` rămân neschimbate;
 - valoarea este validată în intervalul `25..200`, iar lipsa cheii păstrează `100`;
 - YAML loading, override-ul `-Datf.ui.config`/`-Datf.ui.report` și rezoluția
   inputului audit aparțin exclusiv test scope-ului `atf-reporting`.
+
+`PlaywrightUiSessionTest` verifică separarea scalei între documente și click-ul
+real pe un control embedded la scara nativă. Limitarea coordonatelor la zoom CSS
+non-nativ este urmărită separat în
+[feedback-ul de geometrie](../docs/feedback/ATF_UI_Browser_Geometry_Feedback.md).
+Proba de platformă nu fabrică reclame sau pagini ale unui consumer.
 
 ## Acțiuni și locatori
 

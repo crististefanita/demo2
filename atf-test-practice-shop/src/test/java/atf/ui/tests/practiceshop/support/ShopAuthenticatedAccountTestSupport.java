@@ -24,8 +24,6 @@ public final class ShopAuthenticatedAccountTestSupport {
 
     public static ShopCredentials prepare(ShopE2eTestSupport.E2eSetup setup) {
         ShopCredentials credentials;
-        List<AtfAssertion> assertions = new ArrayList<>();
-        List<atf.api.reporting.model.ReportExecutionEvidence> apiEvidence = new ArrayList<>();
 
         if (setup.accountSetupMode() == ShopTestSupport.AccountSetupMode.REGISTER_PER_RUN) {
             ShopRegistrationProfile profile = setup.registrationProfileFile() == null
@@ -56,12 +54,11 @@ public final class ShopAuthenticatedAccountTestSupport {
                             uncertainSubmission);
                     throw uncertainSubmission;
                 }
-                assertions.addAll(registrationAssertions(responseStatus,
-                        setup.apiNetwork().registrationConfirmed(sequenceFence,
-                                setup.configuration().api().endpoint())));
-                apiEvidence.addAll(setup.apiNetwork().evidence(ShopApiCheckpoint.REGISTRATION));
                 setup.checkpoint(ShopPurchaseTraceStep.NEW_ACCOUNT_REGISTERED,
-                        assertions, apiEvidence);
+                        registrationAssertions(responseStatus,
+                                setup.apiNetwork().registrationConfirmed(sequenceFence,
+                                        setup.configuration().api().endpoint())),
+                        setup.apiNetwork().evidence(ShopApiCheckpoint.REGISTRATION));
                 credentials = profile.credentials(registration);
                 CLASS_RUN_ACCOUNTS.putIfAbsent(setup.accountRunScope(), credentials);
             } else {
@@ -87,13 +84,12 @@ public final class ShopAuthenticatedAccountTestSupport {
 
         new ShopAccountFlow(setup.locators()).loginAndAssertAccount(
                 setup.page(), setup.actions(), setup.configuration(), credentials);
-        assertions.addAll(new ShopPageValidator(setup.locators())
+        List<AtfAssertion> assertions = new ArrayList<>(new ShopPageValidator(setup.locators())
                 .validate(setup.page(), ShopAccountPage.class, "My account")
                 .assertions());
         assertions.addAll(setup.apiNetwork().loginConfirmed(setup.configuration().api(), credentials));
-        apiEvidence.addAll(setup.apiNetwork().evidence(ShopApiCheckpoint.LOGIN));
         setup.checkpoint(ShopPurchaseTraceStep.ACCOUNT_SESSION_CONFIRMED,
-                assertions, apiEvidence);
+                assertions, setup.apiNetwork().evidence(ShopApiCheckpoint.LOGIN));
         setup.complete();
         return credentials;
     }

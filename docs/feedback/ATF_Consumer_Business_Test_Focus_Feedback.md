@@ -1,8 +1,10 @@
 # ATF — focalizarea testelor consumer pe business
 
-Feedback-ul păstrează numai lacunele rămase de ownership și acoperire din
-Shop/AutoEx. Regulile stabile sunt în [ghidul de testare](../ATF_Testing_Guide.md#reducerea-suitei-fără-pierdere-de-acoperire)
-și README-urile ownerilor; mutările propuse nu sunt declarate implementate.
+Feedback-ul păstrează reducerea încă nevalidată a repetării live pentru
+profilele Shop/AutoEx și lacunele preexistente de clasificare.
+Ownership-ul suportului și al probelor
+neutre este documentat în [ghidul de testare](../ATF_Testing_Guide.md#reducerea-suitei-fără-pierdere-de-acoperire)
+și README-urile ownerilor.
 
 ## Ordinea intervențiilor
 
@@ -11,41 +13,14 @@ datorie documentară /10. El ordonează lucrul, nu evaluează calitatea modululu
 
 | ID | Scor | Intervenție |
 |---|---:|---|
-| `CONSUMER-PROOF-OWNERSHIP-01` | 75 = 33 + 15 + 20 + 7 | restrângerea probelor mixte la contractele business și adaptor |
 | `CONSUMER-E2E-PROFILES-01` | 57 = 24 + 10 + 17 + 6 | reducerea repetării live pentru profile de evidence |
-
-## CONSUMER-PROOF-OWNERSHIP-01 — degajarea probelor generice
-
-**Stare: deschis.** Rămân probe mixte de restrâns; nu se mută integral pachetele `api.reporting` sau `component.api`.
-
-### Probe mixte și ownerul rezultatului
-
-| Sursă locală | Ce trebuie păstrat local | Ce se consolidează la ownerul generic |
-|---|---|---|
-| `ShopApiAuthenticationSchemaTest` | profil/mecanism și redacție prin mapper direct și browser journal | etichetele HTML și paritatea rendererului: `ApiAuthenticationSchemaContractTest` |
-| `ShopApiCallAuditReportComponentTest.retryAttemptsStayInsideOnePublishedRequestAndExecutionDisclosure` | forwarding-ul attempts/history/provenance prin mapperul și publisherul Shop | request unic și disclosure unic pe standalone și UI+API |
-| celelalte probe `ShopApiCallAuditReportComponentTest` | intenții distincte, așteptare HTTP explicită, mismatch, lipsa asocierii și eșecul JUnit al adaptorului | prezentarea diagnosticelor: `ReportPhaseDiagnosticTest` și probele browser neutre |
-| `AutoExApiContractReportPublisherComponentTest` | `responseCode`/mesaj față de HTTP 200, form-encoded, MIME upstream și alegerea directorului | formatul comun Request/Response/Execution și escaping/redactare generică |
-| `ShopApiBodyRedactionReportTest` | politica Shop pentru identitate/adresă, body malformed și ieșirea sanitizată a adaptorului | mecanismul generic de redactare; politica implicită nu substituie câmpurile Shop |
-
-### Criterii de închidere
-
-- [ ] Pentru fiecare reducere, identificați proba echivalentă și cazul negativ:
-      pierderea mecanismului auth, retry history sau redacției trebuie respinsă
-      în continuare de proba potrivită.
-- [ ] Folosiți DTO-uri/snapshot semantic pentru mapping; păstrați o probă de
-      ieșire a adaptorului pentru siguranța artifactului. Un mapper corect nu
-      dovedește singur lipsa scurgerilor în HTML.
-- [ ] Completați în Reporting Tests numai lipsa neutră; proba UI+API de retry
-      existentă nu certifică automat calea standalone sau mapperul Shop.
-- [ ] Rulați probele neutre, `ShopComponentSuite`/`AutoExComponentSuite` și
-      guvernanța schimbării testelor pentru path-urile exacte; fără dependency
-      Shop/AutoEx în Reporting Tests/Test Kit.
 
 ## CONSUMER-E2E-PROFILES-01 — variantele de evidence și acoperirea business
 
-**Stare: analizat, selecția suitelor este încă neschimbată.** Se reduce costul
-rulărilor externe, păstrând configurabilitatea cerută și probele de business.
+**Stare: parțial implementat.** AutoEx are `AutoExBusinessSuite` pentru povești
+distincte și păstrează separat matricea manuală `AutoExPurchaseSuite`.
+Acceptanța live a gate-ului business este urmărită în
+[feedback-ul AutoEx](ATF_Automation_Exercise_Feedback.md); selecția Shop nu este redusă.
 
 | Modul | Variante de păstrat ca dovadă reală | Repetare determinată de evidence |
 |---|---|---|
@@ -70,3 +45,23 @@ rulărilor externe, păstrând configurabilitatea cerută și probele de busines
       nu devine precondiție ascunsă.
 - [ ] Aliniați README-urile și suitele după probele de echivalență; mock-ul nu
       înlocuiește confirmarea fluxului live UI+API.
+
+## TEST-LAYER-DECLARATIONS-01 — metadate preexistente de clasificare
+
+**Stare: deschis, separat de consolidarea probelor.** Owner: modulele claselor
+de test; regula executabilă rămâne în Test Kit.
+
+| Probă / zonă | Constatare |
+|---|---|
+| `mvn -pl atf-test-kit test` | 52 cazuri: 50 trecute, două eșecuri preexistente de clasificare |
+| `AtfTestLayerArchitectureTest` | `everyConcreteExecutableTestDeclaresExactlyOneLayer` și `moduleLayerMatrixIsDerivedFromDeclaredAnnotations` se opresc la `AtfConsoleTestExtensionIntegrationTest`, fără nivel ATF |
+| Inventarul claselor | `AtfReportPathOptInTest` nu are nici el declarația; oprirea la primul fișier nu reprezintă inventar complet |
+
+- [ ] Stabiliți lista completă și declarați nivelul potrivit boundary-ului
+      fiecărei clase, păstrând adnotările compuse și separarea
+      unit/component/integration/E2E.
+- [ ] Rulați guard-ul Test Kit și componentele ownerilor afectați; înregistrați
+      path-urile protejate fără relaxarea regulii sau omiterea claselor.
+
+`WholeAtfGovernanceSuiteTest` și acest guard sunt entry-point-uri distincte.
+Succesul primei suite nu certifică populația verificată de al doilea.

@@ -7,9 +7,13 @@ import atf.api.core.http.response.ApiExecutionResult;
 import atf.api.core.http.response.RetryEvent;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.extent.session.ExtentReportSession;
+import atf.api.reporting.html.HtmlReportSession;
+import atf.api.reporting.model.ReportExecutionModel;
 import atf.api.reporting.semantic.AtfReportSemanticSnapshot;
+import atf.api.reporting.api.ReportTransportProvenance;
 import atf.api.testkit.AtfComponentTest;
 import atf.ui.practiceshop.support.reporting.ShopApiReportPublisher;
+import atf.ui.practiceshop.support.api.ShopApiEvidenceMapper;
 import atf.ui.tests.practiceshop.api.support.ShopApiCallAuditContextTestSupport;
 import atf.ui.tests.practiceshop.api.support.ShopApiComponentFixture;
 import atf.ui.tests.practiceshop.api.support.ShopApiScenarioFixture;
@@ -132,7 +136,7 @@ class ShopApiCallAuditReportComponentTest {
     }
 
     @Test
-    void retryAttemptsStayInsideOnePublishedRequestAndExecutionDisclosure() throws Exception {
+    void retryHistoryAndProvenanceSurviveShopMappingAndAuditPublication() throws Exception {
         List<ShopApiCallAuditContextTestSupport.CapturedExchange> exchanges = new ArrayList<>();
         ShopApiCallAuditContextTestSupport.recordWith(exchanges::add);
         ShopApiCallAuditContextTestSupport.expectNext(
@@ -150,8 +154,22 @@ class ShopApiCallAuditReportComponentTest {
                                     ApiAttemptOutcome.SUCCESS, "final response")),
                     execution.request(), execution.provenance());
 
+            var adapted = ShopApiEvidenceMapper.toExecution(retried);
+            assertEquals(2, adapted.attempts());
+            assertEquals(Duration.ofMillis(18), adapted.totalDuration());
+            assertEquals(List.of(503, 200), adapted.attemptHistory().stream()
+                    .map(attempt -> attempt.statusCode()).toList());
+            assertEquals(List.of("RETRYABLE_RESPONSE", "SUCCESS"), adapted.attemptHistory().stream()
+                    .map(attempt -> attempt.outcome()).toList());
+            assertEquals(List.of("HTTP 503", "final response"), adapted.attemptHistory().stream()
+                    .map(attempt -> attempt.reason()).toList());
+            assertEquals(1, adapted.retryEvents().size());
+            assertEquals("temporary overload", adapted.retryEvents().getFirst().reason());
+            assertEquals(Duration.ofMillis(5), adapted.retryEvents().getFirst().delay());
+            assertEquals(ReportTransportProvenance.ACCEPTANCE_MOCK, adapted.provenance());
+
             var output = Files.createTempDirectory("shop-api-audit-retry-").resolve("audit.html");
-            try (var report = new ExtentReportSession(output)) {
+            try (var report = new HtmlReportSession(output)) {
                 var scenario = report.startScenario("ShopApiClientContractTest", "api.reporting",
                         "retry evidence remains exchange-local", List.of("api", "component"));
                 var phase = scenario.startPhase(TEST_BODY);
@@ -160,12 +178,18 @@ class ShopApiCallAuditReportComponentTest {
                 phase.complete(AtfReportStatus.PASS);
                 scenario.complete(AtfReportStatus.PASS);
 
-                var snapshot = report.semanticSnapshot();
-                assertEquals(1, snapshot.requestCount(), "retry must not become a second request node");
-                assertEquals(1, snapshot.validationCount(), "retry must not duplicate its contract");
-                var request = (AtfReportSemanticSnapshot.RequestSnapshot) snapshot.classes().getFirst()
-                        .scenarios().getFirst().phases().getFirst().nodes().getFirst();
-                assertTrue(request.executionPresent());
+                var request = (ReportExecutionModel.Request) report.executionModel()
+                        .scenarios().getFirst().phases().getFirst().children().getFirst();
+                assertEquals(HttpMethod.POST.value(), request.method());
+                assertEquals("/users/login", request.path());
+                assertEquals(adapted.attempts(), request.execution().attempts());
+                assertEquals(adapted.totalDuration(), request.execution().totalDuration());
+                assertEquals(adapted.provenance(), request.execution().provenance());
+                assertEquals(adapted.attemptHistory(), request.execution().attemptHistory());
+                assertEquals(adapted.retryEvents(), request.execution().retryEvents());
+                var validation = (ReportExecutionModel.Validation) request.children().getFirst();
+                assertEquals(original.contractValidation().assertions(), validation.assertions());
+                assertEquals(AtfReportStatus.PASS, validation.status());
             }
         } finally {
             ShopApiCallAuditContextTestSupport.clear();

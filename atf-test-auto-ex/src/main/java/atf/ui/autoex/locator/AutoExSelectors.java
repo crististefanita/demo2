@@ -30,7 +30,7 @@ public final class AutoExSelectors {
     public static final String CART_PRICE = ".cart_price";
     public static final String CART_TOTAL = ".cart_total";
     public static final String CART_REMOVE = ".cart_quantity_delete";
-    public static final String EMPTY_CART = "#empty_cart";
+    public static final String EMPTY_CART = "#empty_cart:visible";
     public static final String CHECKOUT = "a.check_out";
     public static final String REGISTER_LOGIN = linkTo(AutoExRoutes.LOGIN);
     public static final String HEADER_LOGIN = "#header " + REGISTER_LOGIN;

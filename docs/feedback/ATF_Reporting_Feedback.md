@@ -1,18 +1,58 @@
 # ATF Reporting — cerințe rămase
 
-Acest feedback păstrează gap-urile deschise din Reporting și dovada recentă de
-închidere a atomicității. Contractele stabile sunt în
+Acest feedback urmărește gap-ul de format pentru body-uri API și păstrează
+dovezile de închidere și controalele temporare de teste. Contractele stabile sunt în
 [contractul semantic](../ATF_Reporting_Contract.md),
 [contractul de display și layout](../ATF_Reporting_Display_Contract.md) și
 README-urile [ATF Reporting](../../atf-reporting/README.md) și
 [ATF Reporting Tests](../../atf-reporting-tests/README.md).
 
-## Cerințe deschise
+## API-BODY-MEDIA-01 — etichete corecte pentru body-uri externe non-JSON
 
-| Prioritate | ID | Gap | Owner principal |
+**Stare: deschis, observat în raportul API live AutoEx prin MCP.**
+`ApiExchangeEvidence.body(...)` etichetează payload-ul real
+`application/x-www-form-urlencoded` ca `REQUEST JSON`. Body-ul și redacția
+sunt păstrate, însă eticheta sugerează un format pe care request-ul nu îl are.
+
+### Criterii de acceptare
+
+- [ ] Separați direcția request/response de formatul body-ului în proiecția
+      evidence; gruparea nu trebuie să depindă de prefixul textului etichetei.
+- [ ] Păstrați JSON pentru documentele JSON și folosiți o etichetă neutră ori
+      specifică pentru form/text. MIME-ul upstream rămâne neschimbat, inclusiv
+      când serviciul trimite JSON declarat `text/html`.
+- [ ] Probați component standalone și UI+API pentru JSON, form, text, absent și
+      not-captured, păstrând escaping-ul, redacția și disclosure-urile inline.
+- [ ] Verificați în MCP consumerul real. Nu convertiți artificial request-urile
+      site-ului în JSON și nu duplicați publisherul în AutoEx pentru a masca
+      limita infrastructurii comune.
+
+## DOC-REPORT-SYNC-01 — referințe README rămase în urmă
+
+**Stare: deschis, drift documentar confirmat; modificările rămân în feedback
+conform regulii curente de lucru.**
+
+- [Practice Shop — profil și faze](../../atf-test-practice-shop/README.md#configurația-modulului):
+  paragraful imediat anterior încă numește auditul vizual `SHOP-CAPTURE-01`
+  drept restant, deși verificarea prin ATF Debug/TAB MCP este consemnată mai jos.
+- [Practice Shop — boundary API](../../atf-test-practice-shop/README.md#boundary-ul-probelor-api):
+  matricele pentru `ShopStandaloneApiReportTest` încă declară ultima rulare
+  blocată la 401. Feedback-ul Shop are deja dovada HTTP autentificată verde;
+  aceasta nu trebuie confundată cu validitatea unui login UI ulterior.
+- [Reporting Tests](../../atf-reporting-tests/README.md) folosește ancora
+  `#shop-capture-01`, care nu corespunde heading-ului complet din acest document.
+  Referința corectă este
+  [profil per scenariu și flow peste faze](#shop-capture-01--profil-per-scenariu-și-flow-unificat-peste-faze).
+- La promovarea contractului `API-BODY-MEDIA-01`, ownerii README Reporting și
+  Reporting Tests trebuie să descrie canalul body tipizat și compatibilitatea
+  portului JSON istoric; textul despre JSON nu trebuie extins implicit la form/text.
+
+## Stare curentă
+
+| Stare | ID | Dovadă | Owner principal |
 |---|---|---|---|
-| P3 | `SHOP-CAPTURE-01` | Agregarea este implementată și probată automat; rămâne confirmarea vizuală în TAB MCP a flow-ului Shop explicit `SETUP` + `TEST BODY` | Reporting + Practice Shop |
-| P3 | `UI-AUDIT-01` | Confirmare vizuală în TAB MCP a observației terminale în artifactele AutoEx și Shop; implementarea și probele sunt deja în cod | Verificare manuală a artifactelor; fără schimbare de renderer dacă randarea este conformă |
+| Închis | `SHOP-CAPTURE-01` | Flow autentificat cu setup de înregistrare, login și achiziție trecut; raport fresh verificat prin ATF Debug în TAB MCP, inclusiv ownership API corectat | Reporting + Practice Shop |
+| Închis | `UI-AUDIT-01` | Rapoarte Shop și AutoEx verificate interactiv: observație terminală, assertions, captură Base64 deschisă; fallback fără captură probat separat | Reporting + consumatori |
 
 ## REPORT-START-ATOMICITY-01 — închis: crearea atomică a nodurilor de raport
 
@@ -41,7 +81,7 @@ README-urile [ATF Reporting](../../atf-reporting/README.md) și
 - Dacă o operație din acest interval aruncă, apelantul nu primește handle-ul
   necesar pentru a completa nodul parțial. Consumerul poate păstra setup failure
   ca eroare primară, dar nu poate repara singur modelul intern Reporting.
-- `AutoExE2eInitialization` închide corect resursele și nodurile pentru care a
+- `TestRunInitialization` din Test Kit închide resursele și nodurile pentru care a
   primit handle; proba sa nu poate închide această fereastră internă a API-ului.
 
 ### Contractul verificat
@@ -64,8 +104,7 @@ Eșecul inițial rămâne primar, iar erorile de rollback sunt păstrate ca
 
 ## SHOP-CAPTURE-01 — profil per scenariu și flow unificat peste faze
 
-**Prioritate reziduală: 52/100** (impact 40 + lacună 2 + lucrabil 8 +
-datorie documentară 2). Implementarea este probată; rămâne auditul vizual.
+**Stare: închis după rularea și verificarea interactivă a artifactelor fresh.**
 
 | Dovada | Stare live |
 |---|---|
@@ -83,12 +122,17 @@ datorie documentară 2). Implementarea este probată; rămâne auditul vizual.
 - Shop activează opțiunea din profilul efectiv. `finishSetup(FAIL)` finalizează
   flow-ul în `SETUP`; `TEST BODY` nu este creat și captura finală nu este
   inventată. `pass`, `complete` și `fail` închid faza terminală explicit.
-- Probele în staging: `ShopComponentSuite` — 199 teste verzi;
+- Probele în staging: `ShopComponentSuite` — 200 teste verzi;
   `ReportEvidenceProfileIntegrationTest` +
   `ExtentUnifiedFlowMultipleScreenshotTest` — 9 teste verzi;
   `ShopUiOnlySingleFlowPurchaseE2eTest` — 1 test live trecut, raport nou în
   staging. Testele noi acoperă setup + body, ownership API, verdictul unui
   setup eșuat și absența `TEST BODY`/capturii terminale după eșec.
+- Auditul browser a descoperit repetarea înregistrării la checkpoint-ul de
+  login. `ShopAuthenticatedAccountTestSupport` publică acum liste locale
+  fiecărui checkpoint, fără acumularea request-ului sau aserțiunilor anterioare.
+  Rerularea autentificată a trecut; TAB MCP confirmă exact un nod de schimb
+  pentru `POST /users/register` și unul pentru `POST /users/login`.
 
 ### Contractul țintă
 
@@ -113,8 +157,13 @@ datorie documentară 2). Implementarea este probată; rămâne auditul vizual.
 - **Acoperit generic:** `ReportEvidenceProfileIntegrationTest` publică profile
   diferite într-o sesiune comună și verifică izolarea; Shop verifică separat
   mapping-ul override-ului, nu repetă proba generică.
-- **Rămas:** confirmare vizuală în TAB MCP pentru setup explicit autentificat
-  și flow-ul UI-only; contractele de cod și HTML sunt probate automat.
+- **Confirmat în TAB MCP:** setup explicit autentificat, ordinea setup/body,
+  un singur owner Gherkin, API validation după checkpoint-ul proprietar și o
+  singură captură finală. Fixture-ul diagnostic din staging reutilizează
+  journey-ul existent cu adnotări explicite; nu a fost promovat în testele live.
+- Calea negativă cu fixture reutilizat a expirat la `h1`: raportul a păstrat
+  `SETUP` eșuat fără `TEST BODY`; cauza și deep-link-ul Fails au fost verificate.
+  Această probă nu declară fixture-ul reutilizat drept cont UI valid.
 - E2E-ul consumer confirmă integrarea reală; nu se complică journey-urile doar
   pentru a testa rendererul.
 - Artifactul verifică o singură apariție a fiecărei acțiuni, ordinea, un singur
@@ -123,20 +172,17 @@ datorie documentară 2). Implementarea este probată; rămâne auditul vizual.
 
 ## UI-AUDIT-01 — audit terminal pentru Screen validation
 
-**Stare:** implementarea și probele sunt închise; rămâne numai confirmarea
-vizuală în TAB MCP. **Prioritate:** 60/100 (impact 24 + lacună 15 + lucrabil
-16 + datorie documentară 5).
+**Stare: închis — cod, probe și verificare vizuală prin ATF Debug/TAB MCP.**
 
 `Screen validation` grupează acțiunile, observațiile, aserțiunile și captura;
 wiring-ul terminal și probele componente sunt implementate în Shop și AutoEx.
-Rămâne doar verificarea vizuală interactivă a artifactelor prin TAB MCP; până
-atunci nu declarăm randarea vizuală închisă.
+Verificarea interactivă a fost făcută pe artifactele fresh generate în staging.
 
 | Aspect | Stare și dovadă cerută |
 |---|---|
 | Probe automate | Verifică structura evidence-ului; succesul lor nu certifică randarea vizuală. |
-| Artifact inspectat | Raport UI-only nou în staging: HTML-ul conține `Screen validation`, secvența Playwright și PNG-uri încorporate. TAB MCP respinge URL-ul local `file:`, deci randarea rămâne neconfirmată. |
-| Închidere | Confirmare interactivă în același `Screen validation`: observație unică, acțiuni neduplicate și politica efectivă de captură respectată. |
+| Artifact inspectat | Shop UI-only, Shop autentificat unificat și AutoEx final-only, deschise prin ATF Debug pe loopback în TAB MCP. |
+| Închidere | Click pe observații/assertions și deschidere efectivă a capturilor PNG; la 1280 px pagina nu are overflow orizontal, zero `<hr>` decorative și zero mesaje console error/warn. |
 
 ### Contractul țintă
 

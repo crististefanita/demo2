@@ -64,6 +64,37 @@ class FailureAwareCleanupTest {
     }
 
     @Test
+    void partialAcquisitionSkipsMissingHandlesAndKeepsAllCloseFailuresInReverseOrder() {
+        var primary = new IllegalStateException("acquisition failed");
+        var contextFailure = new AssertionError("context close failed");
+        var browserFailure = new IllegalArgumentException("browser close failed");
+        var calls = new ArrayList<String>();
+
+        Throwable result = FailureAwareCleanup.closeAfterFailure(primary,
+                () -> calls.add("runtime"), null,
+                () -> { calls.add("browser"); throw browserFailure; },
+                () -> { calls.add("context"); throw contextFailure; });
+
+        assertSame(primary, result);
+        assertEquals(List.of("context", "browser", "runtime"), calls);
+        assertEquals(List.of(contextFailure, browserFailure), List.of(result.getSuppressed()));
+    }
+
+    @Test
+    void cleanupRethrowingThePrimaryDoesNotSelfSuppressOrSkipRemainingResources() {
+        var primary = new AssertionError("original failure");
+        var calls = new ArrayList<String>();
+
+        Throwable result = FailureAwareCleanup.closeAfterFailure(primary,
+                () -> calls.add("remaining resource"),
+                () -> { calls.add("rethrows primary"); throw primary; });
+
+        assertSame(primary, result);
+        assertEquals(List.of("rethrows primary", "remaining resource"), calls);
+        assertEquals(List.of(), List.of(result.getSuppressed()));
+    }
+
+    @Test
     void cleanupFailureBecomesPrimaryWhenThereWasNoEarlierFailure() {
         var cleanupFailure = new IllegalStateException("close failed");
 

@@ -185,6 +185,45 @@ public class ConsumerModuleArchitectureGovernanceTest {
         return AtfGovernanceTestSupport.locateProjectRoot().resolve(name);
     }
 
+    @Test
+    void sharedInitializationAndNeutralProofsStayAtTheirOwners() throws IOException {
+        Path kit = module("atf-test-kit");
+        assertTrue(Files.isRegularFile(kit.resolve(
+                "src/main/java/atf/api/testkit/lifecycle/TestRunInitialization.java")),
+                "generic acquisition and rollback belong to Test Kit");
+        Path autoEx = module("atf-test-auto-ex");
+        assertFalse(Files.exists(autoEx.resolve(
+                "src/test/java/atf/ui/autoex/support/lifecycle/AutoExE2eInitialization.java")),
+                "do not recreate a consumer copy of generic initialization");
+        assertFalse(Files.exists(autoEx.resolve(
+                "src/test/java/atf/ui/tests/autoex/component/lifecycle/AutoExE2eInitializationComponentTest.java")),
+                "factory-only rollback proofs belong next to the Test Kit primitive");
+        assertTrue(Files.readString(autoEx.resolve(
+                "src/test/java/atf/ui/autoex/support/AutoExE2eRun.java"))
+                .contains("TestRunInitialization.create("),
+                "AutoEx must wire its browser/report callbacks into shared initialization");
+
+        for (Path source : javaFiles(kit.resolve("src/main/java"), kit.resolve("src/test/java"),
+                module("atf-reporting-tests").resolve("src/test/java"))) {
+            String text = Files.readString(source);
+            assertFalse(text.matches("(?s).*\\bimport\\s+(?:static\\s+)?atf\\.ui\\."
+                            + "(?:practiceshop|autoex|tests\\.(?:practiceshop|autoex))\\..*"),
+                    "neutral support/proofs must not import consumer classes: " + source);
+        }
+        for (Path source : javaFiles(kit.resolve("src/main/java"), kit.resolve("src/test/java"))) {
+            assertFalse(Files.readString(source).matches(
+                            "(?s).*\\bimport\\s+(?:static\\s+)?(?:atf\\.api\\.(?:reporting|ui)\\."
+                                    + "|com\\.microsoft\\.playwright\\.).*"),
+                    "Test Kit must remain independent of Reporting and Playwright: " + source);
+        }
+        String pom = Files.readString(kit.resolve("pom.xml"));
+        for (String forbidden : List.of("atf-reporting", "atf-ui", "atf-reporting-tests",
+                "atf-test-practice-shop", "atf-test-auto-ex")) {
+            assertFalse(pom.contains("<artifactId>" + forbidden + "</artifactId>"),
+                    "Test Kit must not depend on " + forbidden);
+        }
+    }
+
     private static List<Path> javaFiles(Path... roots) throws IOException {
         var files = new java.util.ArrayList<Path>();
         for (Path root : roots) {

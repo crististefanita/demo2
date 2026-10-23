@@ -103,8 +103,9 @@ redactează câmpurile de înregistrare și plată din reprezentarea textuală.
   componente AutoEx verifică profilul și wiring-ul adaptorului, fără să dubleze
   primitivele generice.
 
-`AutoExE2eInitialization` face rollback-ul inițializării cu factory-uri
-injectabile. Contractul component verifică:
+`AutoExE2eRun` folosește `TestRunInitialization` din Test Kit pentru achiziția
+cu factory-uri injectabile. Ownerul generic și `TestRunInitializationTest`
+garantează ordinea și păstrarea cauzei; AutoEx furnizează callback-urile:
 
 - eșec după fiecare handle dobândit: doar faza/scenariul disponibile sunt
   marcate FAIL, apoi browserul este închis;
@@ -177,9 +178,14 @@ punctele următoare descriu numai ce afirmă testele specifice Automation Exerci
   Exercise, nu comportament generic ATF;
 - `AutoExApiContractReportPublisherComponentTest` verifică adaptorul AutoEx:
   contractul `responseCode`/mesaj, titlul API și diagnosticarea eșecului JUnit.
-  El nu este proprietarul formatării generice Extent; tabelul, disclosure-urile,
-  redacția comună și lifecycle-ul rendererului se probează în
+  Cazurile negative resping JSON invalid, cod/mesaj diferit și HTTP nereușit
+  chiar când body-ul declară succes; DTO-ul păstrează form-encoding și MIME-ul
+  upstream. Artifactele Extent și fallback sunt verificate pentru lipsa parolei,
+  iar formatarea și redactarea comune se probează în
   [`atf-reporting-tests`](../atf-reporting-tests/README.md);
+- replay-ul form-encoded fără adaptor este probat prin
+  `ApiManualReplayProjectionTest` în Reporting Tests; aici rămâne verificarea
+  că artifactul efectiv AutoEx nu expune parola;
 - directorul default și override-ul raportului API sunt specifice consumerului;
   validarea reutilizabilă a unui path relativ sub rădăcina proiectului, inclusiv
   prevenirea ieșirii prin traversal/reparse-point, aparține
@@ -188,9 +194,9 @@ punctele următoare descriu numai ce afirmă testele specifice Automation Exerci
   adnotarea `@AtfUiEvidence` peste configurația lui. Test Kit deține declarația
   neutră și Reporting deține profilele/lifecycle-ul generic; nu se introduce o
   dependență Test Kit → Reporting pentru a elimina un adaptor al consumerului;
-- `AutoExE2eInitializationComponentTest` păstrează proba ordinii handle-urilor
-  browser/scenariu/fază și a marcării FAIL la rollback; testul primitivei
-  `FailureAwareCleanup` din Test Kit nu verifică acest wiring AutoEx;
+- factory-urile și rollback-ul neutru sunt implementate și probate în Test Kit;
+  AutoEx păstrează alegerea browserului, crearea scenariului și marcarea FAIL.
+  Guvernanța verifică folosirea primitivei comune și absența copiei locale;
 - ownership-ul cross-consumer este definit în [arhitectura ATF](../docs/ATF_Architecture.md)
   și în [ghidul de testare](../docs/ATF_Testing_Guide.md);
 - limita de opt clase per pachet este definită în
@@ -284,7 +290,7 @@ cu date business pozitive și negative în `AutoExPurchaseBusinessComponentTest`
 - Dialogul CMP este tratat prin interfața vizibilă, cu alegerea minimă pentru
   scopurile opționale.
 - Dacă apare vignette-ul Google, handler-ul consumerului apasă controlul vizibil
-  „Close” numai pe pagina vignette-ului.
+  „Close” și așteaptă dispariția fragmentului vignette din URL.
 - Handler-ul nu modifică DOM-ul și nu folosește click forțat; interacțiunile rămân
   în trace-ul E2E.
 - În cleanup, o pagină rămasă pe `#google_vignette` este înlocuită prin navigare
@@ -297,14 +303,16 @@ cu date business pozitive și negative în `AutoExPurchaseBusinessComponentTest`
 | Situație observată | Comportament | Limită de siguranță |
 |---|---|---|
 | Crearea este confirmată | `AccountPage` reține confirmarea înaintea checkpoint-ului și a navigării Continue | schimbarea paginii nu transformă contul creat într-un cleanup `NO_OP` |
+| Submit-ul creării este întrerupt | păstrează și faptul că încercarea a început; dacă documentul magazinului s-a pierdut, îl redeschide și încearcă login-ul identității curente | nu presupune că lipsa confirmării înseamnă cont inexistent; eșecul rămâne primar |
 | Cleanup începe sau este întrerupt pe vignette | navighează la Home și publică triggerul și destinația observate | cel mult o reluare după o întrerupere nouă; fără DOM injectat, hash fabricat sau retry de plată |
 | Clientul este delogat | reautentifică numai contul sintetic deja confirmat | numele din header trebuie să coincidă exact cu identitatea rulării înainte de Delete account |
 | Ștergerea este confirmată | dezarmează imediat callback-ul, înaintea capturii și a Continue | o eroare ulterioară nu repetă ștergerea unui cont deja eliminat |
 
 Ordinea generică a capturii, conservarea cauzei primare și a erorilor
-`suppressed` sunt probate în Test Kit. Proba integrată negativă AutoEx cere
-reclama reală și eroarea reală; un journey trecut fără vignette nu închide
-[cerința de recuperare observată](../docs/feedback/ATF_Automation_Exercise_Feedback.md).
+`suppressed` sunt probate în Test Kit. Proba integrată negativă cu reclama
+reală a confirmat recuperarea și ștergerea contului, păstrând eroarea inițială;
+închiderea vignette-ului în fluxul nominal rămâne
+[deschisă](../docs/feedback/ATF_Automation_Exercise_Feedback.md).
 
 ## Coș și continuitatea sesiunii
 
@@ -316,13 +324,18 @@ Fiecare metodă primește o sesiune de browser izolată prin aceeași extensie A
 | Recalculare și eliminare | adaugă o unitate, apoi cantitatea configurată a aceluiași produs, apoi elimină rândul | preț unitar, cantitate cumulată, total calculat și mesajul coșului gol |
 | Guest cart după login | creează un cont sintetic, face logout, adaugă produsul ca guest și se autentifică din nou | aceeași identitate și aceeași linie de coș înainte/după login; apoi ștergere explicită |
 
-Site-ul nu oferă editarea cantității direct în rândul coșului. Testul folosește
-adăugarea repetată reală, nu modifică valori în DOM și nu inventează un endpoint.
-`Catalog.withQuantity(...)` produce așteptările imutabile pentru totalul nou.
-
-`support.cart` deține aceste journey-uri, iar `support.trace` definește portul
-comun `AutoExTraceStep` și propozițiile lor Gherkin. Catalogul purchase existent
-rămâne separat; adaptorul Reporting acceptă ambele vocabulare.
+- Cantitate: site-ul nu permite editarea directă în rând; testul adaugă din nou
+  același produs, fără mutații DOM sau endpoint inventat.
+- Așteptări: `Catalog.withQuantity(...)` calculează totalul; rezultatul
+  căutării este așteptat înainte de deschiderea produsului.
+- Coș gol: se citește `#empty_cart` vizibil, nu elementul omonim ascuns.
+- Vignette: AutoEx folosește `zoomPercent: 100` pentru geometria nativă a
+  iframe-ului; click-ul standard Close este probat pe reclama reală. Zoom CSS
+  70% și focus + Enter nu au demonstrat aceeași interacțiune. Contractul
+  generic de geometrie aparține [ATF UI](../atf-ui/README.md).
+- Ownership: `support.cart` deține journey-urile, `support.trace` propozițiile
+  Gherkin și portul `AutoExTraceStep`; purchase rămâne separat, iar Reporting
+  acceptă ambele vocabulare.
 
 ## Rute și locatori ai site-ului
 

@@ -53,9 +53,9 @@ class ApiAuthenticationSchemaContractTest {
 
     @ParameterizedTest
     @CsvSource({
-            "Bearer schema-secret, bearer, shop-user",
-            "Basic schema-secret, basic, shop-user",
-            "Digest schema-secret, other/unknown, shop-user",
+            "Bearer schema-secret, bearer, test-user",
+            "Basic schema-secret, basic, test-user",
+            "Digest schema-secret, other/unknown, test-user",
             "none, none, none"
     })
     void standaloneFallbackAndUiApiKeepProfileAndMechanismDistinct(

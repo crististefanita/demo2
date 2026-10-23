@@ -11,6 +11,7 @@ import atf.ui.autoex.support.trace.AutoExCustomerTraceStep;
 import atf.ui.autoex.support.journey.AutoExPurchaseSession;
 import atf.ui.autoex.support.journey.AutoExPurchaseTraceStep;
 
+import java.net.URI;
 import java.util.List;
 
 /** Registration during checkout and deterministic disposal of the synthetic account. */
@@ -18,6 +19,7 @@ public final class AccountPage extends AutoExPage {
     private static final String CREATED_MESSAGE = "ACCOUNT CREATED!";
     private static final String DELETED_MESSAGE = "ACCOUNT DELETED!";
     private boolean creationConfirmed;
+    private boolean creationAttempted;
 
     public AccountPage(AutoExPurchaseSession run) { super(run); }
 
@@ -52,6 +54,7 @@ public final class AccountPage extends AutoExPage {
         fill(AutoExSelectors.ACCOUNT_POSTAL_CODE, profile.postalCode(), "test postal code is entered");
         fill(AutoExSelectors.ACCOUNT_MOBILE, profile.mobileNumber(), "test phone number is entered");
         run.onFailureCleanup(() -> deleteIfCreatedAndLoggedIn(account));
+        creationAttempted = true;
         click(AutoExSelectors.CREATE_ACCOUNT, "disposable account is created on the practice site");
 
         String result = text(AutoExSelectors.ACCOUNT_RESULT_HEADING, "account-creation result is read");
@@ -100,7 +103,7 @@ public final class AccountPage extends AutoExPage {
         if (!account.signupName().equals(identity)) {
             throw new IllegalStateException("Refusing account deletion: signed-in customer is not this run's identity");
         }
-        click(AutoExSelectors.DELETE_ACCOUNT, "disposable account is deleted after the demo order");
+        click(AutoExSelectors.DELETE_ACCOUNT, "this run's disposable customer account is deleted");
         String result = text(AutoExSelectors.ACCOUNT_RESULT_HEADING, "account-deletion result is read");
         boolean deleted = result.contains(DELETED_MESSAGE);
         if (deleted) run.clearFailureCleanup();
@@ -113,8 +116,13 @@ public final class AccountPage extends AutoExPage {
     }
 
     private void deleteIfCreatedAndLoggedIn(AutoExTestAccount account) {
+        if (accountResultContains(DELETED_MESSAGE)) {
+            run.clearFailureCleanup();
+            return;
+        }
         creationConfirmed |= accountCreationWasConfirmed();
         recoverObservedVignette();
+        recoverUnavailableStoreDocument();
         try {
             cleanupFromCurrentPage(account);
         } catch (RuntimeException | AssertionError firstFailure) {
@@ -134,7 +142,7 @@ public final class AccountPage extends AutoExPage {
             run.clearFailureCleanup();
             return;
         }
-        if (creationConfirmed && !visible(AutoExSelectors.DELETE_ACCOUNT)
+        if ((creationConfirmed || creationAttempted) && !visible(AutoExSelectors.DELETE_ACCOUNT)
                 && !accountCreationWasConfirmed()) {
             login(account);
         }
@@ -161,7 +169,7 @@ public final class AccountPage extends AutoExPage {
 
     private boolean accountResultContains(String expected) {
         var heading = run.page().locator(AutoExSelectors.ACCOUNT_RESULT_HEADING);
-        return heading.isVisible() && heading.innerText().contains(expected);
+        return heading.count() == 1 && heading.isVisible() && heading.innerText().contains(expected);
     }
 
     private boolean onVignette() {
@@ -170,7 +178,7 @@ public final class AccountPage extends AutoExPage {
 
     private void recoverObservedVignette() {
         String interruptedUrl = run.currentUrl();
-        if (!onVignette()) return;
+        if (!interruptedUrl.contains(AutoExRoutes.GOOGLE_VIGNETTE_FRAGMENT)) return;
         var home = AutoExRoutes.HOME.resolve(run.configuration().baseUrl());
         run.navigate(home);
         String recoveredUrl = run.currentUrl();
@@ -178,6 +186,20 @@ public final class AccountPage extends AutoExPage {
                 List.of(new AtfAssertion("Observed cleanup interruption",
                                 AutoExRoutes.GOOGLE_VIGNETTE_FRAGMENT, interruptedUrl,
                                 interruptedUrl.contains(AutoExRoutes.GOOGLE_VIGNETTE_FRAGMENT)),
+                        new AtfAssertion("Cleanup recovery destination", home.toString(), recoveredUrl,
+                                home.toString().equals(recoveredUrl))));
+    }
+
+    private void recoverUnavailableStoreDocument() {
+        String interruptedUrl = run.currentUrl();
+        URI base = run.configuration().baseUrl();
+        if (base.getHost().equalsIgnoreCase(URI.create(interruptedUrl).getHost())) return;
+        URI home = AutoExRoutes.HOME.resolve(base);
+        run.navigate(home);
+        String recoveredUrl = run.currentUrl();
+        run.checkpoint(AutoExCustomerTraceStep.CLEANUP_DOCUMENT_RECOVERED,
+                List.of(new AtfAssertion("Interrupted store document", "outside the configured store origin",
+                                interruptedUrl, !base.getHost().equalsIgnoreCase(URI.create(interruptedUrl).getHost())),
                         new AtfAssertion("Cleanup recovery destination", home.toString(), recoveredUrl,
                                 home.toString().equals(recoveredUrl))));
     }

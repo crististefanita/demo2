@@ -632,19 +632,25 @@ atf-test-practice-shop/src/test/java/atf/ui/tests/practiceshop/
 | Invariant reutilizabil | Probă existentă aici | Rămâne de verificat în consumer |
 |---|---|---|
 | `AUTH PROFILE` separat de `AUTH TYPE`, paritate standalone/UI+API | `ApiAuthenticationSchemaContractTest` | maparea profilului și mecanismului capturat de adaptorul aplicației |
-| istoricul retry în același exchange | `ExtentReportUiEvidencePublishingTest.keepsRetryHistoryInsideOneExchangeNode` | mapperul păstrează attempts/history/provenance; proba generică a modelului este în `ReportModelAdaptersTest` |
+| replay form-encoded fără expunerea credentialelor | `ApiManualReplayProjectionTest` | artifactul publicat de adaptorul AutoEx nu expune parola |
+| request/response/execution unic, cu/fără retry și retry epuizat | `ApiRetryProjectionContractTest`: standalone Extent, fallback și UI+API | mapperul păstrează attempts/history/provenance și publisherul transmite istoricul |
+| captura interzisă nu apelează providerul, indiferent de sursă sau punctul capturii | `ReportEvidenceProfileTest`, inclusiv controlul permis și cazurile negative PNG/provenance | maparea politicii din YAML/adnotare și mascarea câmpurilor aplicației |
 | flow consolidat și politici de captură | `ReportEvidenceProfileIntegrationTest`, `UiScreenshotPolicyIntegrationTest` | adnotare și YAML aplicate sesiunii locale, inclusiv failure |
-| diagnostice fără schimbarea verdictului | `ReportPhaseDiagnosticTest` | apelarea portului potrivit cu diagnosticul și cauza consumerului |
+| diagnostice fără schimbarea verdictului | `ReportPhaseDiagnosticTest` și `ReportPhaseDiagnosticPublicationComponentTest`: Extent/fallback, PASS/FAIL, fără exchange inventat sau secrete | apelarea portului potrivit cu diagnosticul și cauza consumerului |
 
-- Aceste probe sunt baza comparației, nu o declarație că toate aserțiunile
-  locale sunt deja redundante. O probă UI+API de retry nu dovedește singură
-  toate căile standalone ori forwarding-ul unui mapper local.
+- Cardinalitatea și ordinea Request/Response/Execution sunt verificate în DOM-ul
+  nodului API din Tests prin locatorii comuni, nu prin numărarea tuturor copiilor
+  din Category/Fails sau a datelor serializate.
+- Probe neutre consolidate: formatul auth, filtrarea providerului și retry pe
+  cele trei proiecții. Niciuna nu substituie forwarding-ul mapperului sau siguranța
+  artifactului produs de adaptorul local.
 - Înaintea unei ștergeri, comparați inputul, calea publică, verdictul și
   cazul negativ; completați aici lipsa neutră, fără importuri Shop/AutoEx.
 - Înlocuiți verificările locale de markup cu rezultate typed/snapshot numai
   dacă rămâne probată invocarea efectivă a adaptorului și politica sa de date.
-- Perimetrul rămas este în
-  [feedback-ul consumerilor](../docs/feedback/ATF_Consumer_Business_Test_Focus_Feedback.md#consumer-proof-ownership-01--degajarea-probelor-generice).
+- Reducerea suplimentară a rulărilor live pentru profile de evidence are
+  [criterii separate](../docs/feedback/ATF_Consumer_Business_Test_Focus_Feedback.md#consumer-e2e-profiles-01--variantele-de-evidence-și-acoperirea-business);
+  aceste probe neutre nu justifică singure schimbarea selecției E2E.
 
 </details>
 - Hook-urile JUnit generice sunt testate în modulul owner (`atf-test-kit`);
