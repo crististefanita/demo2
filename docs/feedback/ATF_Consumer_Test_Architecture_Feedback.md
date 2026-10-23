@@ -9,13 +9,20 @@ rămân în consumatorul lor.
 
 ```mermaid
 flowchart LR
-    ATF[ATF libraries] -->|compile/runtime APIs| Shop[Practice Shop consumer]
-    ATF -->|compile/runtime APIs| AutoEx[Automation Exercise consumer]
-    Shop --> ShopMain[src/main: site runtime + API]
-    Shop --> ShopTest[src/test: tests, fixtures, suites]
-    AutoEx --> AutoExMain[src/main: site runtime + journey]
-    AutoEx --> AutoExTest[src/test: JUnit lifecycle, suites, tests]
+    ATF[ATF libraries] -->|provides APIs to| Shop[Practice Shop consumer]
+    ATF -->|provides APIs to| AutoEx[Automation Exercise consumer]
+    Shop -->|contains| ShopMain[src/main: site runtime + API]
+    Shop -->|contains| ShopTest[src/test: tests, fixtures, suites]
+    AutoEx -->|contains| AutoExMain[src/main: site runtime + journey]
+    AutoEx -->|contains| AutoExTest[src/test: JUnit lifecycle, suites, tests]
 ```
+
+<details>
+<summary><strong>Legendă — boundary-ul consumerilor</strong></summary>
+
+ATF furnizează contracte reutilizabile; fiecare consumer își păstrează separat
+suportul de site în `main` și suitele/testele în `test`.
+</details>
 
 | Responsabilitate | Practice Shop | Automation Exercise |
 |---|---|---|

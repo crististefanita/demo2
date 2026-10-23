@@ -20,8 +20,12 @@ public final class AutoExEvidenceProfile {
             case CHECKPOINT_SCREENSHOTS -> ReportScreenshotPolicy.EACH_CHECKPOINT;
             case FINAL_SCREENSHOT_ONLY -> ReportScreenshotPolicy.FINAL_ONLY;
         };
+        ReportEvidenceFlowMode flowMode = switch (mode) {
+            case FINAL_SCREENSHOT_ONLY -> ReportEvidenceFlowMode.UNIFIED_FLOW;
+            case CONFIGURED, CHECKPOINT_SCREENSHOTS -> ReportEvidenceFlowMode.SCREEN_CHECKPOINTS;
+        };
         return ReportEvidenceProfile.builder()
-                .flowMode(ReportEvidenceFlowMode.SCREEN_CHECKPOINTS)
+                .flowMode(flowMode)
                 .screenshotPolicy(selectedPolicy)
                 .captureSource(ReportEvidenceCaptureSource.BROWSER)
                 .build();

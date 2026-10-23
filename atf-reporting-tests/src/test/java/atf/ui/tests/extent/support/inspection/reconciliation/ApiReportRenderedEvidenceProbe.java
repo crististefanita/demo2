@@ -227,6 +227,23 @@ public final class ApiReportRenderedEvidenceProbe {
             var inspectedRequest = LOCATORS.requests(LOCATORS.visibleTestDetail(page)).first();
             assertTrue(LOCATORS.visibleResponseTable(inspectedRequest).isVisible(),
                     "capture must retain the expanded evidence rather than a freshly collapsed page");
+            audit.actions().click(LOCATORS.requestNodeToggleAction(inspectedRequest),
+                    "collapse API exchange and hide its evidence tables");
+            audit.actions().waitForAttribute(page, LOCATORS.nodeCardAction(inspectedRequest),
+                    "data-atf-node-open", "false", "API exchange is collapsed");
+            assertEquals(0, LOCATORS.visibleRequestTable(inspectedRequest).count());
+            assertEquals(0, LOCATORS.visibleResponseTable(inspectedRequest).count());
+            assertEquals(0, LOCATORS.visibleExecutionTable(inspectedRequest).count());
+            audit.actions().click(LOCATORS.requestNodeToggleAction(inspectedRequest),
+                    "reopen API exchange and restore its evidence tables");
+            audit.actions().waitForAttribute(page, LOCATORS.nodeCardAction(inspectedRequest),
+                    "data-atf-node-open", "true", "API exchange is reopened");
+            assertEquals(1, LOCATORS.visibleRequestTable(inspectedRequest).count(),
+                    "request evidence must return visibly after reopening the exchange");
+            assertEquals(1, LOCATORS.visibleResponseTable(inspectedRequest).count(),
+                    "response evidence must return visibly after reopening the exchange");
+            assertEquals(1, LOCATORS.visibleExecutionTable(inspectedRequest).count(),
+                    "execution evidence must return visibly after reopening the exchange");
             audit.actions().click(LOCATORS.navTabAction(page, ReportUiContract.Tab.OVERVIEW), "leave Tests");
             page = audit.evidencePage(ReportUiContract.Tab.TESTS);
             assertTrue(audit.actions().snapshot().size() > inspectedActions.size());

@@ -142,6 +142,34 @@ Report*Locators
   `waitFor`, `waitForCondition`, `waitForURL`;
 - `waitForTimeout` nu este API de stabilizare acceptat.
 
+### Convenții pentru locatori UI
+
+CSS este alegerea implicită pentru contractele DOM stabile. Preferă un selector
+exact, ancorat pe element și atribut, de forma `element[atribut='valoare']`, de
+exemplu `a[href='/products']` sau `input[data-qa='signup-email']`. Pentru
+hook-uri stabile, folosește `data-qa`, `id` ori `name`; pentru navigare, un
+`href` exact exprimă mai bine destinația decât poziția sau aspectul vizual.
+
+- Refolosește `HtmlElement` și `HtmlAttribute` pentru tag-uri, atribute și
+  escaping când rezultatul rămâne lizibil. `HtmlElement.attributeEquals(String
+  name, String value)` acoperă și atribute valide fără enum dedicat, precum
+  `data-qa`.
+- Păstrează selectori compuși sau specifici aplicației expliciți și numiți în
+  consumer; nu extinde vocabularul generic pentru o singură pagină.
+- Evită selectori fragili de poziție (`nth`/`first` fără context unic demonstrat),
+  clase pur vizuale și XPath. Folosește pseudo-selectori Playwright precum
+  `:visible` sau `:has-text(...)` numai când vizibilitatea/textul este o
+  precondiție reală și CSS-ul stabil nu poate exprima contractul.
+- Nu extrage fiecare literal într-o constantă: centralizează valorile repetate
+  sau contractuale și evită constante generice cu un singur consumator.
+- Locator wrappers din test scope nu trebuie să ascundă ținta: secvența de
+  acțiuni raportează selectorul efectiv folosit, nu o descriere precum
+  `"selected owner"` sau `"collapse node"`.
+
+Compoziția selectorilor și escaping-ul generic sunt verificate de testele
+componente `atf-ui`; testele consumer verifică apoi selectorii față de markup-ul
+aplicației reale.
+
 În CI/ATF Debug, browserul headless provisionat poate fi selectat numai ca
 override de bootstrap:
 

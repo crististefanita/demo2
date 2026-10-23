@@ -215,6 +215,141 @@ class ReportEvidenceProfileIntegrationTest {
                         < html.indexOf(ReportTestScreenshots.SECOND_PIXEL_PNG)));
     }
 
+    @Test
+    void sharedReportKeepsUnifiedFinalOnlyAndCheckpointProfilesIsolatedPerScenario() throws Exception {
+        Path root = Files.createTempDirectory("atf-mixed-scenario-profiles-");
+        ReportEvidenceProfile sessionProfile = ReportEvidenceProfile.builder()
+                .flowMode(ReportEvidenceFlowMode.SCREEN_CHECKPOINTS)
+                .screenshotPolicy(ReportScreenshotPolicy.EACH_CHECKPOINT)
+                .captureSource(ReportEvidenceCaptureSource.DETERMINISTIC_MOCK)
+                .build();
+        ReportEvidenceProfile unifiedFinalOnly = sessionProfile.toBuilder()
+                .flowMode(ReportEvidenceFlowMode.UNIFIED_FLOW)
+                .screenshotPolicy(ReportScreenshotPolicy.FINAL_ONLY)
+                .build();
+        ReportEvidenceProfile independentCheckpoints = sessionProfile.toBuilder()
+                .flowMode(ReportEvidenceFlowMode.SCREEN_CHECKPOINTS)
+                .screenshotPolicy(ReportScreenshotPolicy.EACH_CHECKPOINT)
+                .build();
+        Path report;
+
+        try (var session = UiExtentReportSession.openConfigured(root, "mixed-profiles.html",
+                AtfConsoleSink.noOp(), sessionProfile)) {
+            report = session.reportPath();
+
+            var finalOnlyScenario = session.startScenario("MixedProfileTest", "atf.api.reporting.ui",
+                    "final-only scenario", List.of("evidence"), unifiedFinalOnly);
+            var finalOnlyBody = finalOnlyScenario.startPhase("TEST BODY");
+            finalOnlyBody.step(AtfGherkinKeyword.GIVEN, "initial state is ready", "#start",
+                    ReportTestScreenshots.ONE_PIXEL_PNG,
+                    List.of(new AtfAssertion("Initial state", "ready", "ready", true)),
+                    List.of(new AtfUiActionRecord(1, "Navigate", "/start", "page loaded",
+                            "document loaded", 5, AtfReportStatus.PASS)), List.of(), AtfReportStatus.PASS);
+            finalOnlyBody.screenValidation("terminal state is confirmed", "#confirmation",
+                    ReportTestScreenshots.SECOND_PIXEL_PNG,
+                    List.of(new AtfAssertion("Confirmation", "visible", "visible", true)),
+                    List.of(new AtfUiActionRecord(2, "Get text", "#confirmation", "read confirmation",
+                            "Order confirmed", 3, AtfReportStatus.PASS)),
+                    ReportScreenshotPolicy.CapturePoint.FINAL, AtfReportStatus.PASS);
+            finalOnlyBody.complete(AtfReportStatus.PASS);
+            finalOnlyScenario.complete(AtfReportStatus.PASS);
+
+            var checkpointScenario = session.startScenario("MixedProfileTest", "atf.api.reporting.ui",
+                    "checkpoint scenario", List.of("evidence"), independentCheckpoints);
+            var checkpointBody = checkpointScenario.startPhase("TEST BODY");
+            checkpointBody.step(AtfGherkinKeyword.GIVEN, "checkpoint flow starts", "#start",
+                    ReportTestScreenshots.ONE_PIXEL_PNG,
+                    List.of(new AtfAssertion("Start", "visible", "visible", true)),
+                    List.of(new AtfUiActionRecord(1, "Navigate", "/start", "page loaded",
+                            "document loaded", 5, AtfReportStatus.PASS)), List.of(), AtfReportStatus.PASS);
+            checkpointBody.step(AtfGherkinKeyword.THEN, "checkpoint result is visible", "#result",
+                    ReportTestScreenshots.SECOND_PIXEL_PNG,
+                    List.of(new AtfAssertion("Result", "visible", "visible", true)),
+                    List.of(new AtfUiActionRecord(2, "Get text", "#result", "read result",
+                            "visible", 3, AtfReportStatus.PASS)), List.of(), AtfReportStatus.PASS);
+            checkpointBody.complete(AtfReportStatus.PASS);
+            checkpointScenario.complete(AtfReportStatus.PASS);
+        }
+
+        String html = Files.readString(report);
+        assertAll(
+                () -> assertEquals(1, count(html, "<td>EVIDENCE TYPE</td><td>unified-ui-flow</td>")),
+                () -> assertTrue(html.contains("<td>FLOW SCENARIO</td><td>final-only scenario</td>")),
+                () -> assertTrue(html.contains("<span>THEN terminal state is confirmed</span>")),
+                () -> assertFalse(html.contains("GIVEN initial state is ready")),
+                () -> assertTrue(html.contains("<span>GIVEN checkpoint flow starts</span>")),
+                () -> assertTrue(html.contains("<span>THEN checkpoint result is visible</span>")),
+                () -> assertEquals(3, count(html, "class=\"atf-ui-action-table\"")),
+                // The shared asset manifest stores the two distinct PNG payloads once each.
+                () -> assertEquals(2, count(html, "data-atf-screenshot=\"base64\"")),
+                () -> assertEquals(1, count(html, ReportTestScreenshots.ONE_PIXEL_PNG)),
+                () -> assertEquals(1, count(html, ReportTestScreenshots.SECOND_PIXEL_PNG)));
+    }
+
+    @Test
+    void sharedReportKeepsProfilesIsolatedWhenCheckpointScenarioStartsFirst() throws Exception {
+        Path root = Files.createTempDirectory("atf-reversed-scenario-profiles-");
+        ReportEvidenceProfile sessionProfile = ReportEvidenceProfile.builder()
+                .flowMode(ReportEvidenceFlowMode.SCREEN_CHECKPOINTS)
+                .screenshotPolicy(ReportScreenshotPolicy.EACH_CHECKPOINT)
+                .captureSource(ReportEvidenceCaptureSource.DETERMINISTIC_MOCK)
+                .build();
+        ReportEvidenceProfile finalOnly = sessionProfile.toBuilder()
+                .flowMode(ReportEvidenceFlowMode.UNIFIED_FLOW)
+                .screenshotPolicy(ReportScreenshotPolicy.FINAL_ONLY)
+                .build();
+        Path report;
+
+        try (var session = UiExtentReportSession.openConfigured(root, "reversed-profiles.html",
+                AtfConsoleSink.noOp(), sessionProfile)) {
+            report = session.reportPath();
+
+            var checkpointScenario = session.startScenario("MixedProfileTest", "atf.api.reporting.ui",
+                    "checkpoint-first", List.of("evidence"), sessionProfile);
+            var checkpointBody = checkpointScenario.startPhase("TEST BODY");
+            checkpointBody.step(AtfGherkinKeyword.GIVEN, "checkpoint state is ready", "#start",
+                    ReportTestScreenshots.ONE_PIXEL_PNG,
+                    List.of(new AtfAssertion("Start page", "visible", "visible", true)),
+                    List.of(new AtfUiActionRecord(1, "Navigate", "/start", "page loaded",
+                            "document loaded", 5, AtfReportStatus.PASS)), List.of(), AtfReportStatus.PASS);
+            checkpointBody.step(AtfGherkinKeyword.THEN, "checkpoint result appears", "#result",
+                    ReportTestScreenshots.SECOND_PIXEL_PNG,
+                    List.of(new AtfAssertion("Result", "visible", "visible", true)),
+                    List.of(new AtfUiActionRecord(2, "Get text", "#result", "read result",
+                            "visible", 3, AtfReportStatus.PASS)), List.of(), AtfReportStatus.PASS);
+            checkpointBody.complete(AtfReportStatus.PASS);
+            checkpointScenario.complete(AtfReportStatus.PASS);
+
+            var finalScenario = session.startScenario("MixedProfileTest", "atf.api.reporting.ui",
+                    "final-only-second", List.of("evidence"), finalOnly);
+            var finalBody = finalScenario.startPhase("TEST BODY");
+            finalBody.step(AtfGherkinKeyword.GIVEN, "discarded initial state", "#start",
+                    ReportTestScreenshots.ONE_PIXEL_PNG, List.of(),
+                    List.of(new AtfUiActionRecord(1, "Navigate", "/start", "page loaded",
+                            "document loaded", 5, AtfReportStatus.PASS)), List.of(), AtfReportStatus.PASS);
+            finalBody.screenValidation("terminal state appears", "#confirmation",
+                    ReportTestScreenshots.SECOND_PIXEL_PNG, List.of(),
+                    List.of(new AtfUiActionRecord(2, "Get text", "#confirmation",
+                            "read result", "confirmed", 3, AtfReportStatus.PASS)),
+                    ReportScreenshotPolicy.CapturePoint.FINAL, AtfReportStatus.PASS);
+            finalBody.complete(AtfReportStatus.PASS);
+            finalScenario.complete(AtfReportStatus.PASS);
+        }
+
+        String html = Files.readString(report);
+        assertAll(
+                () -> assertEquals(1, count(html, "<td>EVIDENCE TYPE</td><td>unified-ui-flow</td>")),
+                () -> assertTrue(html.contains("<td>FLOW SCENARIO</td><td>final-only-second</td>")),
+                () -> assertTrue(html.contains("<span>THEN terminal state appears</span>")),
+                () -> assertFalse(html.contains("GIVEN discarded initial state")),
+                () -> assertTrue(html.contains("<span>GIVEN checkpoint state is ready</span>")),
+                () -> assertTrue(html.contains("<span>THEN checkpoint result appears</span>")),
+                () -> assertEquals(3, count(html, "class=\"atf-ui-action-table\"")),
+                () -> assertEquals(2, count(html, "data-atf-screenshot=\"base64\"")),
+                () -> assertEquals(1, count(html, ReportTestScreenshots.ONE_PIXEL_PNG)),
+                () -> assertEquals(1, count(html, ReportTestScreenshots.SECOND_PIXEL_PNG)));
+    }
+
     private static ReportExecutionEvidence paymentEvidence() {
         var request = new ReportRequest("POST", "/checkout", Map.of(),
                 Map.of("Content-Type", "application/json"), "none", "{\"items\":[1]}");

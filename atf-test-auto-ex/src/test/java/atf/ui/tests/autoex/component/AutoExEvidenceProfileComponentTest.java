@@ -11,11 +11,11 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/** Guards checkpoint layout independently from the live site and browser. */
+/** Guards AutoEx flow composition and screenshot-policy mapping without a live site or browser. */
 @AtfComponentTest
 class AutoExEvidenceProfileComponentTest {
     @Test
-    void everyEvidenceVariantKeepsSeparateStepsAndSelectsItsScreenshotPolicy() {
+    void evidenceModesSelectTheExpectedFlowAndScreenshotPolicy() {
         var configured = AutoExEvidenceProfile.forRun(AutoExEvidenceMode.Mode.CONFIGURED,
                 ReportScreenshotPolicy.FINAL_AND_FAILURE);
         var checkpointScreenshots = AutoExEvidenceProfile.forRun(
@@ -28,7 +28,7 @@ class AutoExEvidenceProfileComponentTest {
                         configured.flowMode()),
                 () -> assertEquals(ReportEvidenceFlowMode.SCREEN_CHECKPOINTS,
                         checkpointScreenshots.flowMode()),
-                () -> assertEquals(ReportEvidenceFlowMode.SCREEN_CHECKPOINTS, finalOnly.flowMode()),
+                () -> assertEquals(ReportEvidenceFlowMode.UNIFIED_FLOW, finalOnly.flowMode()),
                 () -> assertEquals(ReportScreenshotPolicy.FINAL_AND_FAILURE,
                         configured.screenshotPolicy()),
                 () -> assertEquals(ReportScreenshotPolicy.EACH_CHECKPOINT,

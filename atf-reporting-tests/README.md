@@ -277,6 +277,12 @@ flowchart LR
   Grouping-ul aparține lifecycle/publisher-ului din `atf-reporting`; alegerea modului
   pentru o adnotare de consumer rămâne responsabilitatea acelui consumer.
 
+Limita verificată în prezent este profilul aplicat la deschiderea unei sesiuni;
+aceste probe nu demonstrează profile distincte pentru scenarii-surori dintr-un
+singur raport Extent. Cerința generică pentru profile izolate per scenariu și
+testele neutre care trebuie adăugate sunt urmărite în
+[SHOP-CAPTURE-01](../docs/feedback/ATF_Reporting_Feedback.md#shop-capture-01).
+
 ## Matricea de integrare și limitele verificate
 
 Integration tests rămân grupate după boundary-ul observat, nu după numele
@@ -488,17 +494,22 @@ mvn -pl atf-reporting-tests -am "-Dtest=AtfReportingComponentSuite" "-Dsurefire.
 - `failIfNoSpecifiedTests=false` permite modulelor intermediare să nu aibă clasele selectate.
 - Comanda pornește suita completă, nu doar testul matricii.
 - Probele browser țintite resping Request și Response disclosure absent sau
-  mutate la ownerul scenariului (8/8 în `ApiReportRenderedEvidenceComponentTest`).
-  Izolarea între owneri/sibling și verdicturile UI/API independente cu navigare
-  `Fails` rămân gap-uri; interacțiunea select/collapse/reopen trebuie verificată
-  pe conținut vizibil, nu numai pe markup/template. Detaliile sunt în
-  [feedback](../docs/feedback/ATF_Reporting_Feedback.md#gov-api-01--gate-comun-acoperire-încă-incompletă).
+  mutate la ownerul scenariului și verifică izolarea a doi owneri API din același
+  artifact (9/9 în `ApiReportRenderedEvidenceComponentTest`). Același test
+  verifică browser collapse/reopen: tabelele Request/Response/Execution dispar
+  și reapar vizibil. `UiApiVerdictProjectionComponentTest` verifică ambele
+  combinații independente UI PASS/API FAIL și UI FAIL/API PASS, cauza corectă în
+  `Fails` și deep-link-ul către scenariul owner. Rularea țintită împreună:
+  **10/10**. Detaliile sunt în
+  [feedback](../docs/feedback/ATF_Reporting_Feedback.md#gov-api-01).
 - Surefire poate afișa `0 tests` pe containerul suitei; testele copil apar
   separat. Rularea agregată raportată mai jos este suma reactorului.
-- Ultima verificare completă din 2026-10-23 a rulat **135 teste: 0 failures,
-  0 errors, 0 skipped**. `ApiReportRenderedEvidenceComponentTest` a trecut 8/8
-  pentru Request/Response absent și mis-owned disclosure; limita selectorilor a
-  trecut 2/2 în `UiSelectorBoundaryArchitectureTest`.
+- Rularea izolată agregată din 2026-10-23 a descoperit și trecut **137 teste**:
+  **0 failures, 0 errors, 0 skipped**. Include probele browser pentru verdicturi
+  UI/API mixte, ownership/collapse, viewport și testele arhitecturale selectate.
+  Eșecul agregat anterior cu `NoClassDefFoundError` nu s-a reprodus în staging;
+  cauza istorică nu este declarată dovedită. Comanda a rulat `-am` dintr-un
+  staging nou, fără output-uri live copiate.
 
 Launcher-ele sunt specifice layer-ului: `ExtentReportingE2eSuite` agregă E2E,
 iar `AtfReportingUiAuditSuite` auditează randarea UI.

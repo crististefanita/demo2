@@ -1,219 +1,150 @@
 # ATF Automation Exercise — consumer UI E2E
 
-`atf-test-auto-ex` este un consumer separat pentru site-ul gratuit
-[Automation Exercise](https://automationexercise.com/). Nu depinde de
-Practice Shop și nu mută configurație, pagini ori fixture-uri între cele două
-aplicații.
+`atf-test-auto-ex` verifică un journey de cumpărare pe site-ul public
+[Automation Exercise](https://automationexercise.com/). Configurația, rutele,
+selectorii, page objects și regulile business rămân specifice acestui consumer;
+browserul și raportarea sunt furnizate de modulele ATF.
 
 ## Pe scurt
 
-- **Scop:** un purchase journey E2E opt-in, exercitat prin configurații distincte de evidence.
-- **Owner:** `atf-test-auto-ex`; platforma reutilizabilă rămâne în modulele ATF.
-- **Limită:** nu este ownerul API-ului public și nu extinde matricea de variații din browser.
-
-## Boundary și adnotări
-
-Modulul nu are cod de producție: întreaga compoziție rulează în
-`src/test/java`, iar dependențele ATF sunt `test`-scope. Testul E2E folosește
-direct contractele existente din `atf-test-kit`:
-
-| Adnotare | Rol în modul |
-|---|---|
-| `@AtfE2eTest` | declară testul observabil la boundary-ul site-ului |
-| `@AtfTestChannel(TestChannel.UI)` / `UI_API` | declară dacă verdictul folosește UI-ul vizibil sau și schimburile API observate în aceeași sesiune de browser |
-| `@AutoExEvidenceMode(FINAL_SCREENSHOT_ONLY)` | cere un singur screenshot la starea terminală, păstrând flow-ul și aserțiunile |
-| `@UiReportSubdirectory("auto-ex")` | publică Extent în subdirectorul consumerului |
-| `@AtfConsoleMessages(DETAILS)` | selectează diagnosticul ATF pentru rularea directă |
-
-Adnotările descriu natura și output-ul testului; `AutoExE2eExtension` este
-adaptorul JUnit specific consumerului, care deschide browserul, raportul și
-resursele per metodă. Nu introducem o adnotare AutoEx care să dubleze Test Kit.
+- Acest modul deține journey-ul E2E și suportul specific site-ului AutoEx.
+- `atf-ui` deține execuția browserului; `atf-reporting` deține modelarea și
+  publicarea evidence-ului.
+- `FINAL_SCREENSHOT_ONLY` produce o secvență unificată de acțiuni și o captură
+  terminală; detaliile sunt în secțiunea despre suite.
 
 ```mermaid
 flowchart LR
-    Config[atf-auto-ex.yaml] -->|configurează| Extension[JUnit E2E extension]
-    Suite[AutoExPurchaseSuite] -->|selectează trei configurații| Tests[UI · UI_API · final screenshot]
-    Tests -->|reutilizează| Journey[AutoExPurchaseJourney]
-    Journey -->|compune| Pages[page objects]
-    Pages -->|folosește| Actions[PlaywrightActionSequence]
-    Extension -->|pornește| Browser[headless browser]
-    Actions -->|execută în| Browser
-    Browser -->|produce| Evidence[UI assertions + action trace + masked screenshots]
-    Evidence -->|alimentează| Extent[Extent HTML]
+    Config[atf-auto-ex.yaml] -->|configurează| Suite[AutoExPurchaseSuite]
+    Suite -->|rulează| Journey[Purchase journey]
+    Journey -->|coordonează| Pages[page objects AutoEx]
+    Pages -->|folosesc| Browser[sesiunea Playwright ATF]
+    Browser -->|produce| Evidence[acțiuni UI · assertions · network opțional]
+    Evidence -->|alimentează| Report[raport Extent partajat]
 ```
 
 <details>
-<summary><strong>Legendă — boundary-ul consumerului AutoEx</strong></summary>
+<summary><strong>Legendă — scope-ul consumerului</strong></summary>
 
-Configurația și extensia guvernează execuția; page objects și acțiunile dețin
-interacțiunea; browserul produce evidence, iar Extent o publică. Contractele
-generice nu se copiază în acest modul.
+AutoEx deține datele și interacțiunile site-ului. `atf-ui` execută browserul,
+iar `atf-reporting` publică evidence-ul. Suitele și adaptorul JUnit sunt
+test-only; nu introduc cod de runner în suportul de producție al consumerului.
 </details>
 
-Responsabilitățile sunt delimitate astfel:
+## Boundary-ul AutoEx
 
-- `config` deține URL-ul, politica browserului și datele demo configurabile;
-- `locator` deține rutele și selectorii CSS ai site-ului;
-- `page` deține acțiunile și citirea fiecărei pagini;
-- `support` deține lifecycle-ul JUnit, sink bridge-ul și identitatea sintetică;
-- `tests/autoex/e2e` conține exclusiv scenarii de business executate pe site-ul public.
-
-### Separarea testului de suport
-
-În starea curentă, modulul nu are `src/main/java`: scenariul E2E și suportul
-consumerului sunt toate în `src/test/java`, iar dependențele ATF/JUnit au scope
-`test`. Ținta cerută este ca entrypoint-ul și verdictul scenariului să rămână
-în `src/test/java`, iar suportul AutoEx să fie separat în `src/main/java`.
-Ținta de separare este:
-
-| `src/test/java` — teste | `src/main/java` — suportul consumerului |
+| Zonă | Conținut specific acestui consumer |
 |---|---|
-| cele trei clase `AutoExPurchase*E2eTest`, `AutoExPurchaseSuite` și verificări strict legate de execuția testelor | `AutoExPurchaseJourney`, extensia/run adapter, page objects, rute/selectori, configurație, identitate sintetică, CMP/vignette și bridge de consolă |
+| `src/main` | Configurația site-ului, catalogul de rute/selectori, page objects, purchase journey și cleanup-ul contului sintetic |
+| `src/test` | Teste componente AutoEx, cele trei variante E2E, suite și adaptorul JUnit pentru configurație/evidence |
+| Rulare | Site-ul public; E2E-ul este opt-in în Maven, iar rularea directă din IntelliJ este suportată |
 
-Mutarea rămâne deschisă și trebuie făcută după rolul fiecărei clase:
+Configurația implicită este [`atf-auto-ex.yaml`](src/main/resources/atf-auto-ex.yaml).
+`AutoExConfigurationLoader` citește `-Datf.autoex.config=<path>` pentru un YAML
+alternativ. URL-ul, viewport-ul, timeout-urile, produsul demo, datele sintetice
+și directorul raportului sunt configurate acolo.
 
-- verifică API-urile folosite și promovează numai dependențele necesare codului
-  din `main` la compile scope;
-- păstrează JUnit engine-ul, runner-ul suitei și librăriile strict de test în
-  scope-ul `test`, apoi inspectează conținutul JAR-ului;
-- codul generic merge în modulul ATF owner, nu în `src/main/java` al acestui
-  consumer.
+## Contractul testelor AutoEx
 
-Matricea comună și criteriile de acceptanță sunt în
+- `@AtfE2eTest` și `@AtfTestChannel(UI/UI_API)` clasifică cele trei teste după
+  boundary-ul și evidence-ul lor.
+- `@AutoExEvidenceMode(FINAL_SCREENSHOT_ONLY)` este folosită numai de varianta
+  UI final-only și selectează flow-ul consolidat cu captura terminală.
+- `@UiReportSubdirectory("auto-ex")` și `@AtfConsoleMessages(DETAILS)` păstrează
+  output-ul și diagnosticul consumerului în locația/politica stabilite.
+- `AutoExE2eExtension` compune sesiunea per test; `AutoExPurchaseSuite` rulează
+  clasele secvențial și partajează raportul.
+
+## Suite și variante de evidence
+
+`AutoExPurchaseSuite` execută același journey în trei clase, cu un raport Extent
+partajat:
+
+| Clasă | Canal și evidence |
+|---|---|
+| `AutoExPurchaseUiE2eTest` | UI; checkpoint-uri și capturi conform profilului standard |
+| `AutoExPurchaseUiApiE2eTest` | UI + observarea traficului first-party în aceeași sesiune de browser |
+| `AutoExPurchaseUiFinalScreenshotE2eTest` | UI; o secvență consolidată de acțiuni și o singură captură terminală |
+
+`AutoExComponentSuite` selectează testele componente din
+`atf.ui.tests.autoex.component`; acestea verifică decizii și adaptoare locale
+fără să deschidă site-ul public. Deciziile cross-consumer despre ownership-ul
+lifecycle-ului rămân în
 [feedback-ul arhitecturii testelor consumer](../docs/feedback/ATF_Consumer_Test_Architecture_Feedback.md).
+Contractele generice pentru browser și renderer sunt descrise în
+[README-ul `atf-ui`](../atf-ui/README.md) și
+[README-ul `atf-reporting`](../atf-reporting/README.md).
 
-## Convenții pentru locatori UI
+## Journey-ul de cumpărare
 
-CSS este alegerea implicită pentru contractele DOM stabile, cu selector exact și
-ancorat pe element/atribut, de forma `element[atribut='valoare']`. Exemple
-potrivite sunt `a[href='/products']` și
-`input[data-qa='signup-email']`. Pentru hook-uri stabile, preferă
-`data-qa`, `id` sau `name`; pentru navigare, un `href` exact
-este mai explicativ decât un selector bazat pe poziție sau pe aspectul vizual.
+Scenariul combină [Test Case 14 — Place Order: Register while Checkout](https://automationexercise.com/test_cases#collapse14)
+cu [Test Case 24 — Download Invoice after purchase](https://automationexercise.com/test_cases#collapse24):
 
-- Declară toți selectorii site-ului în `AutoExSelectors`; page objects îi
-  consumă, nu construiesc CSS inline. Raportul publică selectorul efectiv în
-  action trace, deci stabilitatea și lizibilitatea sunt parte din diagnostic.
-- Refolosește `HtmlElement`/`HtmlAttribute` din `atf-ui` pentru
-  tag-uri, atribute și escaping când compoziția rezultată rămâne clară.
-  `HtmlElement.attributeEquals(String name, String value)` acoperă și atribute
-  valide care nu au un enum dedicat, precum `data-qa`. Pentru selectori compuși sau
-  specifici aplicației, păstrează CSS-ul explicit și numit local; nu extinde
-  vocabularul generic pentru o singură pagină.
-- Rutele, clasele DOM, valorile `data-qa` și textele site-ului sunt
-  contracte AutoEx, nu constante de `atf-core`/`atf-ui`. Păstrează
-  rutele în `AutoExRoutes`; selectorii `href` din `AutoExSelectors` se derivă
-  din acel catalog, ca navigarea și locatorii să nu poată diverge accidental.
-- Evită selectori fragili de poziție (`nth`/`first` fără un context
-  unic demonstrat), clase pur vizuale și XPath. Folosește pseudo-selectori
-  Playwright precum `:visible` sau `:has-text(...)` numai când
-  vizibilitatea ori textul fac parte din precondiția reală și CSS-ul stabil nu
-  poate exprima contractul.
-- Nu extrage fiecare literal într-o constantă. Centralizează numai valori
-  repetate sau contractuale; nu crea duplicate generice cu un singur consumator.
+1. deschide magazinul și caută produsul configurat;
+2. verifică produsul, prețul, disponibilitatea și cantitatea în detalii/coș;
+3. înregistrează un cont sintetic în checkout și verifică adresele și comanda;
+4. finalizează plata demo, verifică confirmarea și descarcă factura;
+5. șterge contul sintetic și verifică starea terminală.
 
-Compoziția și escaping-ul generic sunt probate de testele `atf-ui`. AutoEx nu
-adaugă teste consumer cu DOM sintetic: E2E-ul real este dovada că selectorii
-corespund markup-ului public actual, iar regula de ownership a selectorilor
-poate fi apărată separat prin guvernanța ATF.
+Valorile de catalog, identitate și plată sunt date demo din YAML; fiecare
+execuție generează email și parolă unice. Cleanup-ul este armat înainte de
+submit-ul înregistrării, iar o eroare de cleanup nu maschează cauza primară.
+Capturile redactează câmpurile de formular.
 
-## Politica de testare și reutilizare
+Dialogul CMP este tratat prin interfața vizibilă, cu alegerea minimă pentru
+scopurile opționale. Dacă apare vignette-ul Google, handler-ul consumerului
+apasă controlul vizibil „Close” numai pe pagina vignette-ului; nu modifică DOM-ul
+și nu folosește click forțat. Aceste interacțiuni rămân în trace-ul E2E.
 
-Acest consumer verifică business-ul Automation Exercise prin E2E-uri reale.
-Nu adăugăm aici teste cu HTML/iframe inventat sau teste unitare ale helperelor,
-configurării ori ale adnotărilor ATF: acestea nu dovedesc comportamentul
-magazinului. Dacă o regulă este generică, testul ei aparține modulului ATF care
-o deține; dacă este specifică site-ului, o verifică scenariul E2E real.
+## Rute și locatori ai site-ului
 
-| Capacitate | Owner | Folosire aici |
-|---|---|---|
-| Clasificarea UI E2E, browser Playwright, secvența de acțiuni, capturile, sesiunea Extent și output-ul raportului | ATF (`atf-test-kit`, `atf-ui`, `atf-reporting`) | Folosim direct contractele existente; nu le clonăm în consumer. |
-| Network Inspector și evidence API pentru schimburi observate în browser | ATF (`atf-ui`, `atf-reporting`) | Varianta AutoEx `UI_API` îl activează pentru hostul first-party și publică numai observații reale; validarea live/randarea suitei este încă deschisă în feedback. |
-| Conturi locale, jurnal API/network, profiluri de setup și raport partajat pe suite | Practice Shop | Rămân specifice Shop; AutoEx nu le importă și nu le copiază. |
-| Acțiunile pentru pagini, CMP și vignette | Acest consumer | Sunt adaptoare pentru interfața publică reală și sunt exercitate numai din E2E. |
+`AutoExRoutes` este catalogul rutelor Automation Exercise, iar
+`AutoExSelectors` deține selectorii site-ului. Selectorii `href` se derivă din
+rute; page objects consumă catalogul și nu construiesc CSS inline. Aceste valori
+sunt contracte ale aplicației AutoEx, nu vocabular generic ATF.
 
-Practice Shop și AutoEx au compoziții JUnit/report diferite: Shop suportă
-setup-uri și suite API/UI partajate, iar `AutoExPurchaseSuite` compune trei
-variante ale aceluiași journey într-un singur raport și păstrează un browser
-per test. Lifecycle-ul comun este un candidat de platformă numai dacă se definește un
-contract folosit de ambii consumatori fără configurație, locator sau model de
-business al vreunuia. Nu mutăm `ShopE2eTestSupport` ca întreg și nu introducem o
-abstracție generică doar pentru a elimina câteva apeluri locale.
+Regulile comune pentru selectori CSS, compoziția prin `HtmlElement` și
+`HtmlAttribute`, escaping și evitarea locatorilor fragili sunt documentate și
+testate de [`atf-ui` — Convenții pentru locatori UI](../atf-ui/README.md#convenții-pentru-locatori-ui).
+Testele AutoEx exercită selectorii pe markup-ul public real; nu duplică testele
+generice cu DOM sintetic ale modulului owner.
 
-Cele trei clase E2E reutilizează `AutoExPurchaseJourney` și verifică același
-business flow:
+## Limita evidence-ului API
 
-| Variantă | Diferența verificată |
-|---|---|
-| UI | verdictul se bazează pe UI-ul vizibil |
-| UI/API | verdictul include traficul first-party observat de același browser |
-| UI final-only | păstrează flow-ul și assertions, cu o singură captură terminală |
+Varianta `UI_API` observă traficul first-party din browser, dar nu este o suită
+de contracte API. Journey-ul execută explicit `GET /api/productsList` ca
+precondiție pentru catalog, înaintea căutării UI; acest exchange nu trebuie
+atribuit căutării sau checkout-ului și nu demonstrează trafic API cauzat de o
+acțiune UI. Căutarea din interfață folosește ruta `/products?search=...`, nu
+endpoint-ul separat `POST /api/searchProduct`.
 
-`AutoExPurchaseSuite` le ordonează într-un singur raport. Datele sintetice sunt
-input pentru formularele reale; variațiile schimbă evidence-ul, nu business-ul.
-
-## Scenariul business
-
-Flow-ul unic combină [Test Case 14 — Place Order: Register while Checkout](https://automationexercise.com/test_cases#collapse14)
-cu factura din [Test Case 24 — Download Invoice after purchase](https://automationexercise.com/test_cases#collapse24).
-
-| Zonă verificată | Dovada E2E |
-|---|---|
-| Magazin și catalog | disponibilitate, căutare, rută, produs, preț, stoc și cantitate |
-| Checkout | total coș, înregistrare, adrese, plată demo și confirmare |
-| Cleanup | factură descărcată și ștergerea contului temporar |
-| Contract public | `data-qa="order-placed"`, mesajul din `#form` și ruta publică a facturii; nu se presupun hook-uri DOM absente |
-| Canal UI/API | UI_API nu lansează endpoint separat; observă traficul first-party din același browser și eșuează dacă nu există exchange `/api/` |
-
-Validarea live și auditul vizual al matricei rămân deschise în
-[feedback-ul AutoEx](../docs/feedback/ATF_Automation_Exercise_Feedback.md).
-Endpoint-urile documentate sunt în [Automation Exercise API List](https://automationexercise.com/api_list).
-
-Datele stau în [`atf-auto-ex.yaml`](src/test/resources/atf-auto-ex.yaml).
-
-- Fiecare rulare de cumpărare generează email și parolă unice.
-- Formularul folosește numai câmpuri demo; nu se introduc date personale sau carduri reale.
-- După confirmarea înregistrării, contul se șterge la final și cleanup-ul UI
-  rulează la eșecurile ulterioare. Fereastra dintre submit-ul înregistrării și
-  confirmarea care armează cleanup-ul nu este încă acoperită; vezi
-  `AUTOEX-E2E-RESILIENCE-01` din feedback.
-- Capturile din raport maschează câmpurile de formular.
-
-Într-un browser fără consimțământ salvat, scenariul gestionează promptul vizibil
-prin interfața CMP: deschide opțiunile, dezactivează scopurile opționale
-preselectate și confirmă alegerea minimă. Pașii rămân în secvența Playwright din
-raport; testul nu acceptă toate cookie-urile și nu ocolește overlay-ul.
-
-Site-ul poate afișa un Google vignette după navigare; acesta este zgomot de mediu,
-nu comportament de business.
-
-- Handler-ul apasă exact „Close” numai când URL-ul indică vignette-ul.
-- Clickul rămâne în trace; DOM-ul nu este modificat și nu se folosesc clickuri forțate.
-- Lipsa controlului vizibil produce diagnostic explicit.
-- Handler-ul este folosit numai de E2E-ul live; nu construim un iframe artificial
-  ca să-l declarăm acoperire a site-ului.
-
-Rularea live este oprită implicit pentru a nu crea comenzi în timpul unui build
-obișnuit. Suita deține un singur raport partajat pentru cele trei scenarii în
-`artifacts/reports/ui/auto-ex/`; numele include timestamp și identificator
-unic. Raportul se închide o singură dată la terminarea root-ului JUnit.
+Consumerul nu are încă suită directă de contracte pentru API-urile publicate.
+Coverage-ul cerut, separarea cauzală UI→network și criteriile pentru testele API
+sunt urmărite în
+[feedback-ul Automation Exercise — `AUTOEX-API-CONTRACT-01`](../docs/feedback/ATF_Automation_Exercise_Feedback.md#autoex-api-contract-01).
+Lista endpoint-urilor publice este în [API List](https://automationexercise.com/api_list).
 
 ## Rulare
 
-Din root-ul reactorului:
+Din root-ul reactorului, testele componente offline:
+
+```powershell
+mvn -pl atf-test-auto-ex -am "-Dtest=AutoExComponentSuite" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Matricea E2E live, cu un singur raport pentru toate cele trei variante:
 
 ```powershell
 mvn -pl atf-test-auto-ex -am "-Dtest=AutoExPurchaseSuite" "-Datf.autoex.e2e.enabled=true" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
-- IntelliJ: rulează direct `AutoExPurchaseSuite` pentru matricea completă sau o
-  clasă individuală pentru o singură variantă; runner-ul IDE activează E2E-ul
-  fără VM option suplimentar.
-- Maven: activează explicit testul cu `-Datf.autoex.e2e.enabled=true`, ca un
-  build obișnuit să nu trimită comenzi către site.
-- Browser/raport: browserul rămâne headless; output-ul este în
-  `artifacts/reports/ui/auto-ex/`, indiferent de working directory.
-- Configurație: `atf.autoex.config` selectează un YAML alternativ;
-  `-Datf.autoex.e2e.enabled=false` dezactivează explicit rularea și din IDE.
+- În IntelliJ se poate rula direct `AutoExPurchaseSuite` sau o clasă E2E; adaptorul
+  recunoaște runner-ul IDE. Proprietatea explicită
+  `-Datf.autoex.e2e.enabled=false` dezactivează rularea și în IDE.
+- Maven cere explicit `-Datf.autoex.e2e.enabled=true`; E2E-ul public nu pornește
+  într-un build obișnuit. `e2eEnabled` din YAML este tot `false` implicit.
+- Rapoartele sunt publicate sub `artifacts/reports/ui/auto-ex/`; execuția suitei
+  partajează sesiunea de raportare și o finalizează la închiderea root-ului JUnit.
 
-Pentru arhitectură și cerințele deschise, vezi [feedback-ul AutoEx](../docs/feedback/ATF_Automation_Exercise_Feedback.md).
+Deciziile închise și cerințele încă deschise ale consumerului sunt păstrate în
+[feedback-ul Automation Exercise](../docs/feedback/ATF_Automation_Exercise_Feedback.md).

@@ -339,7 +339,7 @@ fără să parcurgă aceeași explicație în root și în fiecare modul; indexu
 | verdict semantic | [`atf-validation/README.md`](atf-validation/README.md) | cum se transformă un response într-un verdict? |
 | diagnostic | [`atf-console/README.md`](atf-console/README.md) | cum ajung evenimentele neutre în consolă? |
 | reporting standalone | [`atf-reporting/README.md`](atf-reporting/README.md) | cum se construiește artifactul fără module ATF? |
-| browser runtime | [`atf-ui/README.md`](atf-ui/README.md) | cum este controlat browserul fără logică de produs? |
+| browser runtime | [`atf-ui/README.md`](atf-ui/README.md) · [convenții pentru locatori](atf-ui/README.md#convenții-pentru-locatori-ui) | cum sunt controlate browserul și convențiile generice pentru locatori, fără logică de produs? |
 | inspector read-only | [`atf-debug-ui/README.md`](atf-debug-ui/README.md) | cum investigăm un HTML deja generat? |
 | reporting composition | [`atf-reporting-tests/README.md`](atf-reporting-tests/README.md) | cum sunt verificate compoziția API/mock și randarea UI a reportingului? |
 | consumer aplicație | [`atf-test-practice-shop/README.md`](atf-test-practice-shop/README.md) | cum folosește o aplicație reală infrastructura ATF? |

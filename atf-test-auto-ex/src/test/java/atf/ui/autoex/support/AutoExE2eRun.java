@@ -57,7 +57,7 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
     private final UiExtentReportSession.UiScenario scenario;
     private final UiExtentReportSession.UiPhase phase;
     private final ReportEvidenceProfile evidenceProfile;
-    private final AutoExEvidenceMode.Mode screenshotMode;
+    private final AutoExEvidenceMode.Mode evidenceMode;
     private final TestChannel channel;
     private final List<ReportNetworkInspector.Step> networkSteps = new ArrayList<>();
     private final PlaywrightActionSequence actions;
@@ -70,14 +70,14 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
     private AutoExE2eRun(AutoExConfiguration configuration, PlaywrightUiSession browser,
                          UiExtentReportSession report, UiExtentReportSession.UiScenario scenario,
                          UiExtentReportSession.UiPhase phase, ReportEvidenceProfile evidenceProfile,
-                         AutoExEvidenceMode.Mode screenshotMode, TestChannel channel) {
+                         AutoExEvidenceMode.Mode evidenceMode, TestChannel channel) {
         this.configuration = configuration;
         this.browser = browser;
         this.report = report;
         this.scenario = scenario;
         this.phase = phase;
         this.evidenceProfile = evidenceProfile;
-        this.screenshotMode = screenshotMode;
+        this.evidenceMode = evidenceMode;
         this.channel = channel;
         this.actions = browser.newActionSequence();
     }
@@ -90,16 +90,19 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
         if (channel != TestChannel.UI && channel != TestChannel.UI_API) {
             throw new IllegalStateException("AutoEx purchase journey supports UI or UI_API channels only");
         }
-        AutoExEvidenceMode evidenceMode = context.getRequiredTestClass()
+        AutoExEvidenceMode evidenceAnnotation = context.getRequiredTestClass()
                 .getAnnotation(AutoExEvidenceMode.class);
-        AutoExEvidenceMode.Mode screenshotMode = evidenceMode == null
-                ? AutoExEvidenceMode.Mode.CONFIGURED : evidenceMode.value();
+        AutoExEvidenceMode.Mode evidenceMode = evidenceAnnotation == null
+                ? AutoExEvidenceMode.Mode.CONFIGURED : evidenceAnnotation.value();
+        var reportConfiguration = AtfReportConfigurationLoader.load();
         ReportScreenshotPolicy configuredScreenshotPolicy =
-                screenshotMode == AutoExEvidenceMode.Mode.FINAL_SCREENSHOT_ONLY
+                evidenceMode == AutoExEvidenceMode.Mode.FINAL_SCREENSHOT_ONLY
                         ? ReportScreenshotPolicy.FINAL_ONLY
-                        : AtfReportConfigurationLoader.load().screenshotPolicy();
+                        : reportConfiguration.screenshotPolicy();
         ReportEvidenceProfile evidence = AutoExEvidenceProfile.forRun(
-                screenshotMode, configuredScreenshotPolicy);
+                evidenceMode, configuredScreenshotPolicy);
+        ReportEvidenceProfile sessionEvidence = ReportEvidenceProfile.forScreenshotPolicy(
+                reportConfiguration.screenshotPolicy());
         if (channel == TestChannel.UI_API) {
             configuration = withNetworkInspection(configuration);
         }
@@ -112,7 +115,7 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
         var reportConsole = AutoExConsoleBridge.reportingSink(console);
         ReportResource reportResource = context.getRoot().getStore(NAMESPACE)
                 .getOrComputeIfAbsent(SUITE_REPORT_KEY,
-                        ignored -> new ReportResource(output, reportName(context), reportConsole, evidence),
+                        ignored -> new ReportResource(output, reportName(context), reportConsole, sessionEvidence),
                         ReportResource.class);
         UiExtentReportSession report = reportResource.report();
         PlaywrightUiSession browser = null;
@@ -120,10 +123,10 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
             browser = PlaywrightUiSession.open(configuration.browser(), console);
             var scenario = report.startScenario(context.getRequiredTestClass().getSimpleName(),
                     context.getRequiredTestClass().getPackageName(), context.getDisplayName(),
-                    List.of("e2e", "ui", "automation-exercise"));
+                    List.of("e2e", "ui", "automation-exercise"), evidence);
             var phase = scenario.startPhase("TEST BODY");
             return new AutoExE2eRun(configuration, browser, report, scenario, phase, evidence,
-                    screenshotMode, channel);
+                    evidenceMode, channel);
         } catch (RuntimeException | Error failure) {
             if (browser != null) browser.close();
             throw failure;
@@ -250,7 +253,7 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
     private void checkpoint(AtfGherkinKeyword keyword, String title, List<AtfAssertion> assertions) {
         prepareUiInteraction();
         boolean passed = assertions.stream().allMatch(AtfAssertion::passed);
-        String screenshot = screenshotMode.capturesCheckpointScreenshots()
+        String screenshot = evidenceMode.capturesCheckpointScreenshots()
                 && evidenceProfile.captures(ReportScreenshotPolicy.CapturePoint.CHECKPOINT)
                 ? capture(title) : "";
         List<ReportExecutionEvidence> apiEvidence = channel == TestChannel.UI_API
@@ -359,7 +362,7 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
 
     private void publishFailure(Throwable failure) {
         String screenshot = "";
-        if (screenshotMode != AutoExEvidenceMode.Mode.FINAL_SCREENSHOT_ONLY) {
+        if (evidenceMode != AutoExEvidenceMode.Mode.FINAL_SCREENSHOT_ONLY) {
             try {
                 screenshot = UiScreenValidation.capture(page(), UiScreenValidationConfiguration.defaults(),
                         "Failure state — sensitive fields masked",

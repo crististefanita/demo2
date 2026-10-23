@@ -444,5 +444,6 @@ public final class ReportUiLocators {
         return failures.itemActionByName(page, name);
     }
     public AtfLocator firstFailureOpenAction(Page page) { return failures.firstOpenAction(page); }
+    public AtfLocator failureDetailOpenAction(Page page) { return failures.detailOpenAction(page); }
     public Locator primaryFailureDetails(Locator fails) { return failures.primaryDetails(fails); }
 }

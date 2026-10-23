@@ -98,6 +98,11 @@ final class ReportFailureLocators {
                 FAILS_VIEW + " a" + ReportLocatorSupport.classSelector("atf-failure-open")
                         + ":first-of-type");
     }
+    AtfLocator detailOpenAction(Page page) {
+        return new AtfLocator(detailOpenLink(page.locator(FAILS_VIEW)),
+                FAILS_VIEW + " [id='atf-failure-detail'] a"
+                        + ReportLocatorSupport.classSelector("atf-failure-open"));
+    }
     Locator primaryDetails(Locator fails) {
         return fails.getByText("PRIMARY:", new Locator.GetByTextOptions().setExact(false));
     }
