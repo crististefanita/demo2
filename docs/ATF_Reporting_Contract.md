@@ -7,6 +7,10 @@
 - Extent publică evidence-ul într-o formă lizibilă și navigabilă;
 - fiecare suprafață reutilizează aceeași identitate și aceeași semantică.
 
+Forma vizibilă, layout-ul, disclosure-urile și matricea de verificare sunt
+normate separat în [Contractul de display și layout](ATF_Reporting_Display_Contract.md);
+acest document rămâne owner-ul semanticii raportului și al evidence-ului.
+
 ### Overview/System — instantaneu semantic
 
 System răspunde la o singură întrebare: **cu ce setări operaționale a rulat acest

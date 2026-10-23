@@ -21,6 +21,12 @@ verifică diferența Git și probele negative ale regulii.
 - testele business aparțin modulului consumer, precum `atf-test-practice-shop`;
 - `atf-tests` rămâne dedicat guvernanței whole-ATF.
 
+Contractul stabil pentru ierarhia vizibilă, layout, responsive viewport,
+disclosure-uri și dovezile browser este
+[ATF Reporting — contract de display și layout](../docs/ATF_Reporting_Display_Contract.md).
+Acest README deține matricea probelor și responsabilitățile suitei; nu
+redefinește regulile vizuale în feedback sau în fixture-uri.
+
 Proiecția contextului UI este verificată la componentă:
 
 | Probă | Contract protejat |
@@ -122,6 +128,20 @@ Contractul este verificat pe două seam-uri:
 | core vocabulary | `ApiOperationDescriptorContractTest` validează formatul și input-ul invalid |
 | reporting fallback/Extent | `HtmlReportComponentContractTest` și `ExtentReportSessionContractTest` validează titlul publicat în artifact |
 | consumer Practice Shop | `PracticeShopApiOperationTest` și `PracticeShopStandaloneApiReportTest` validează method/path/intent, absența `QUERY`, operation kind și route template |
+
+### Fidelitatea metodei și a timpilor API
+
+- metoda observată rămâne fidelă în snapshot, titlu, semnătură și replay; aliasul
+  operației business rămâne separat;
+- durata necapturată este distinctă de `0 ms`, iar response time, totalul cu retry
+  și durata publicării nu se substituie între ele;
+- corp absent, JSON literal `null` și corp necapturat rămân stări distincte;
+- `ReportTransportTimingTest` și `ApiExchangeParityComponentTest` verifică
+  proiecția Reporting, iar `ShopApiMethodFidelityTest` protejează adaptorul
+  consumerului;
+- semantica este în [`ATF_Reporting_Contract.md`](../docs/ATF_Reporting_Contract.md),
+  iar forma vizibilă este în
+  [`ATF_Reporting_Display_Contract.md`](../docs/ATF_Reporting_Display_Contract.md).
 
 ## Ordinea testelor și responsabilitatea protecțiilor
 
@@ -277,6 +297,15 @@ limitat; nu execută journey-uri pe aplicația externă și nu reduce capturile.
 Bugetul fork-ului rămâne configurabil prin `atf.test.heap.max`; un heap mai
 mare nu este dovadă de scalabilitate. Criteriile restante sunt PUB-01 din
 [feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md).
+
+### Bugetul asset-urilor publicate
+
+`ReportAssetSizeInventoryTest` măsoară separat sursele native și copiile
+compactate/publicate și le verifică față de bugetele explicite ale consumerului.
+Pragurile sunt contract de regresie; numărul de bytes observat într-un run este
+doar o măsurătoare, nu un nou prag. Orice rebugetare cere motiv și verificarea
+impactului asupra artifactului, nu o relaxare incidentală pentru ca testul să
+treacă.
 
 ### Verificarea randării responsive
 

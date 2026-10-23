@@ -1,5 +1,7 @@
 package atf.ui.tests.extent.e2e.sanity;
 import atf.api.testkit.AtfE2eTest;
+import atf.api.testkit.channel.AtfTestChannel;
+import atf.api.testkit.channel.TestChannel;
 import atf.ui.tests.extent.support.navigation.ThenDisclosureFlow;
 import atf.api.reporting.ui.contract.ReportUiContract;
 
@@ -22,10 +24,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** Intent/assertions only; the DOM contract is owned by {@link ThenDisclosureFlow}. */
 @AtfModuleTest(requires = {AtfModule.REPORTING, AtfModule.UI})
 @AtfE2eTest
+@AtfTestChannel(TestChannel.UI)
 class UiThenDisclosureSanityTest {
     @Test
     void explicitTeardownOutcomeIsStandaloneGherkinDisclosure() throws Exception {
-        UiConfiguration configuration = ReportingTestResources.uiConfiguration();
+        UiConfiguration configuration = ReportingTestResources.uiConfiguration(getClass());
         Path root = Files.createTempDirectory("atf-ui-then-disclosure-");
         Path report = UiThenDisclosureReportFixtures.publishTeardown(root);
         try (DebugUiServer server = DebugUiServer.start(DebugUiConfiguration.forHtml(report, 0));
@@ -44,7 +47,7 @@ class UiThenDisclosureSanityTest {
 
     @Test
     void uiAuditWithoutTeardownRendersOnlyRequestedPhases() throws Exception {
-        UiConfiguration configuration = ReportingTestResources.uiConfiguration();
+        UiConfiguration configuration = ReportingTestResources.uiConfiguration(getClass());
         Path root = Files.createTempDirectory("atf-ui-no-teardown-sanity-");
         Path report = UiThenDisclosureReportFixtures.publishWithoutTeardown(root);
         try (DebugUiServer server = DebugUiServer.start(DebugUiConfiguration.forHtml(report, 0));

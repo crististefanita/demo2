@@ -1,5 +1,7 @@
 package atf.ui.tests.extent.e2e;
 import atf.api.testkit.AtfE2eTest;
+import atf.api.testkit.channel.AtfTestChannel;
+import atf.api.testkit.channel.TestChannel;
 
 import org.junit.platform.suite.api.ExcludeClassNamePatterns;
 import org.junit.platform.suite.api.IncludeTags;
@@ -12,4 +14,5 @@ import org.junit.platform.suite.api.Suite;
 @IncludeTags("e2e")
 @ExcludeClassNamePatterns(".*Suite")
 @AtfE2eTest
+@AtfTestChannel(TestChannel.UI)
 public class ExtentReportingE2eSuite { }

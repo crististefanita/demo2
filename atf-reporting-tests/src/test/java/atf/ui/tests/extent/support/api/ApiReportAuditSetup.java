@@ -4,7 +4,7 @@ import atf.ui.tests.extent.support.config.ReportingTestResources;
 import atf.ui.tests.extent.support.config.ApiReportEnvironmentSnapshotFactory;
 import atf.api.core.config.source.ApiBootstrapConfigurationLoader;
 import atf.api.core.testing.api.ApiScenarioSelection;
-import atf.api.core.testing.api.ApiScenarioSetup;
+import atf.api.testkit.setup.api.ApiScenarioSetup;
 import atf.api.tests.support.setup.ApiScenarioSetupCatalog;
 import atf.ui.tests.extent.support.data.UiTestData;
 

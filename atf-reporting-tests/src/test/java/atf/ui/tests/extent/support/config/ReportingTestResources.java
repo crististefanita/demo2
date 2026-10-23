@@ -3,12 +3,15 @@ package atf.ui.tests.extent.support.config;
 import atf.api.mock.AtfMockConfiguration;
 import atf.api.mock.AtfMockConfigurationLoader;
 import atf.api.mock.AtfMockTransport;
-import atf.ui.tests.extent.support.config.output.UiReportOutputDirectory;
+import atf.api.testkit.output.ReportOutputDirectory;
+import atf.api.testkit.channel.AtfTestChannelResolver;
+import atf.api.testkit.channel.TestChannel;
 
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Set;
 
 /**
  * Test-only ownership boundary for reporting fixtures.
@@ -52,6 +55,10 @@ public final class ReportingTestResources {
     }
 
     public static UiConfiguration uiConfiguration(Class<?> testClass) {
+        if (testClass != null) {
+            AtfTestChannelResolver.resolve(testClass)
+                    .ifPresent(plan -> plan.requireSupported(Set.of(TestChannel.UI)));
+        }
         AtfUiConfigurationContext process = AtfUiConfigurationContext.fromProcess();
         UiConfiguration loaded = process.explicitConfigPath() == null
                 ? AtfUiConfigurationLoader.load(resourcePath(UI_RESOURCE))
@@ -60,23 +67,25 @@ public final class ReportingTestResources {
         if (reportOverride != null) {
             loaded = loaded.withAuditInputReport(reportOverride);
         }
-        Path directory = UiReportOutputDirectory.resolve(projectArtifactDirectory(process), testClass);
+        Path projectRoot = projectRoot(process);
+        Path uiBase = projectRoot.resolve("artifacts/reports/ui");
+        Path directory = ReportOutputDirectory.resolve(projectRoot, uiBase, testClass);
         return loaded.withReportDirectory(directory);
     }
 
-    private static Path projectArtifactDirectory(AtfUiConfigurationContext process) {
+    private static Path projectRoot(AtfUiConfigurationContext process) {
         Path current = process.startDirectory();
         while (current != null) {
             if (Files.isRegularFile(current.resolve("atf-reporting/pom.xml"))) {
-                return current.resolve("artifacts/reports/ui").toAbsolutePath().normalize();
+                return current.toAbsolutePath().normalize();
             }
             if ("atf-reporting".equalsIgnoreCase(String.valueOf(current.getFileName()))
                     && current.getParent() != null
                     && Files.isRegularFile(current.getParent().resolve("atf-reporting/pom.xml"))) {
-                return current.getParent().resolve("artifacts/reports/ui").toAbsolutePath().normalize();
+                return current.getParent().toAbsolutePath().normalize();
             }
             current = current.getParent();
         }
-        return process.startDirectory().resolve("artifacts/reports/ui").toAbsolutePath().normalize();
+        return process.startDirectory();
     }
 }

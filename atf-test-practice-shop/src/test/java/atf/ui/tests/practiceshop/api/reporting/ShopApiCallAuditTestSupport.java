@@ -3,6 +3,8 @@ package atf.ui.tests.practiceshop.api.reporting;
 import atf.api.reporting.contract.AtfReportPorts;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.extent.session.ExtentReportSession;
+import atf.api.testkit.channel.AtfTestChannelResolver;
+import atf.api.testkit.channel.TestChannel;
 import atf.ui.practiceshop.config.ShopConfigurationLoader;
 import atf.ui.practiceshop.support.ShopApiReportPublisher;
 import atf.ui.tests.practiceshop.api.support.ShopApiCallAuditContextTestSupport;
@@ -15,6 +17,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static atf.api.reporting.model.diagnostic.ReportPhaseDiagnostic.Kind.CONTRACT_ASSOCIATION;
 import static atf.api.reporting.model.diagnostic.ReportPhaseDiagnostic.Kind.JUNIT_FAILURE;
@@ -30,6 +33,9 @@ public final class ShopApiCallAuditTestSupport implements BeforeEachCallback, Af
 
     @Override
     public void beforeEach(ExtensionContext context) {
+        AtfTestChannelResolver.resolve(context.getRequiredTestClass()).orElseThrow(() ->
+                new IllegalStateException("API call audit requires an explicit test channel"))
+                .requireSupported(Set.of(TestChannel.API));
         List<CapturedExchange> calls = new ArrayList<>();
         context.getStore(NAMESPACE).put(CALLS_KEY, new TestCalls(calls));
         ShopApiCallAuditContextTestSupport.recordWith(calls::add);

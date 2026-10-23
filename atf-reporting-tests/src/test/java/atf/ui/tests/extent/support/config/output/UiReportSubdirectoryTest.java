@@ -1,13 +1,18 @@
 package atf.ui.tests.extent.support.config.output;
 
 import atf.api.testkit.AtfUnitTest;
+import atf.api.testkit.output.UiReportSubdirectory;
+import atf.api.testkit.output.ProjectRelativeUiReportDirectory;
+import atf.api.testkit.channel.AtfTestChannel;
+import atf.api.testkit.channel.TestChannel;
+import atf.ui.tests.extent.support.config.ReportingTestResources;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static atf.ui.tests.extent.support.config.output.UiReportOutputDirectory.resolve;
+import static atf.api.testkit.output.ReportOutputDirectory.resolve;
 
 @AtfUnitTest
 class UiReportSubdirectoryTest {
@@ -18,34 +23,53 @@ class UiReportSubdirectoryTest {
 
     private static final class DefaultReportOwner { }
 
+    @ProjectRelativeUiReportDirectory("artifacts/reports/ui/e2e")
+    private static final class ProjectReportOwner { }
+
+    @AtfTestChannel(TestChannel.API)
+    private static final class UnsupportedApiOwner { }
+
+    @Test
+    void reportingUiCompositionRejectsAnApiOnlyOwnerBeforeLoadingTheBrowserFixture() {
+        assertThrows(IllegalStateException.class,
+                () -> ReportingTestResources.uiConfiguration(UnsupportedApiOwner.class));
+    }
+
+    @Test
+    void reportingCompositionUsesTheProjectRootForTheNewAnnotation() {
+        Path standardUiOutput = ReportingTestResources.uiConfiguration().reportDirectory();
+        assertEquals(standardUiOutput.resolve("e2e"),
+                ReportingTestResources.uiConfiguration(ProjectReportOwner.class).reportDirectory());
+    }
+
     @Test
     void annotatedSuiteReportUsesRelativeE2eDirectory() {
         assertEquals(UI_REPORTS.resolve("e2e").toAbsolutePath().normalize(),
-                resolve(UI_REPORTS, E2eReportOwner.class));
+                resolve(UI_REPORTS.getParent().getParent().getParent(), UI_REPORTS, E2eReportOwner.class));
     }
 
     @Test
     void unannotatedReportsKeepTheExistingUiDirectory() {
         assertEquals(UI_REPORTS.toAbsolutePath().normalize(),
-                resolve(UI_REPORTS, DefaultReportOwner.class));
+                resolve(UI_REPORTS.getParent().getParent().getParent(), UI_REPORTS, DefaultReportOwner.class));
         assertEquals(UI_REPORTS.toAbsolutePath().normalize(),
-                resolve(UI_REPORTS, null));
+                resolve(UI_REPORTS.getParent().getParent().getParent(), UI_REPORTS, null));
     }
 
     @Test
     void annotationCannotEscapeTheUiReportDirectory() {
         assertThrows(IllegalStateException.class,
-                () -> resolve(UI_REPORTS, TraversalReportOwner.class));
+                () -> resolve(UI_REPORTS.getParent().getParent().getParent(), UI_REPORTS, TraversalReportOwner.class));
     }
 
     @Test
     void annotationCannotSelectAnAbsoluteDirectory() {
-        assertThrows(IllegalStateException.class, () -> resolve(UI_REPORTS, AbsoluteReportOwner.class));
+        assertThrows(IllegalStateException.class, () -> resolve(UI_REPORTS.getParent().getParent().getParent(), UI_REPORTS, AbsoluteReportOwner.class));
     }
 
     @Test
     void annotationCannotSelectABlankDirectory() {
-        assertThrows(IllegalStateException.class, () -> resolve(UI_REPORTS, BlankReportOwner.class));
+        assertThrows(IllegalStateException.class, () -> resolve(UI_REPORTS.getParent().getParent().getParent(), UI_REPORTS, BlankReportOwner.class));
     }
 
     @UiReportSubdirectory("../api")

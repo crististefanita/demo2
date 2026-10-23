@@ -7,6 +7,8 @@ import atf.api.reporting.ui.UiExtentReportSession;
 import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
 import atf.api.reporting.evidence.profile.ReportEvidenceProfile;
 import atf.api.reporting.evidence.profile.ReportUiActionDetailsMode;
+import atf.api.testkit.channel.AtfTestChannelResolver;
+import atf.api.testkit.channel.TestChannel;
 import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.ui.practiceshop.config.ShopConfiguration;
 import atf.ui.practiceshop.config.ShopConfigurationLoader;
@@ -34,6 +36,7 @@ import java.lang.annotation.Target;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -79,10 +82,12 @@ public final class ShopE2eTestSupport {
     public static final class E2eExtension implements BeforeEachCallback, AfterEachCallback, ParameterResolver {
         @Override
         public void beforeEach(ExtensionContext context) {
+            AtfTestChannelResolver.resolve(context.getRequiredTestClass())
+                    .ifPresent(plan -> plan.requireSupported(Set.of(TestChannel.UI, TestChannel.UI_API)));
             ShopConfiguration configuration = ShopTestSupport.configurationFor(
                     context.getRequiredTestClass());
             WithE2eHarness harness = context.getRequiredTestClass().getAnnotation(WithE2eHarness.class);
-            if (harness != null) configuration = configurationForHarnessProfile(configuration, harness.profile());
+            configuration = configurationForChannel(configuration, harness, context.getRequiredTestClass());
             ShopTestSupport.AuthenticatedE2e authenticated =
                     context.getRequiredTestClass().getAnnotation(ShopTestSupport.AuthenticatedE2e.class);
             ShopTestSupport.AccountSetupMode accountSetup = authenticated == null
@@ -166,6 +171,35 @@ public final class ShopE2eTestSupport {
             case UI_ONLY -> configuration.withValidationProfile(ShopValidationProfile.UI_ONLY);
             case UI_API -> configuration.withValidationProfile(ShopValidationProfile.UI_API);
         };
+    }
+
+    /** Preflight is complete before a report, page, network listener or browser is opened. */
+    static ShopConfiguration configurationForChannel(ShopConfiguration configuration,
+                                                    WithE2eHarness harness, Class<?> owner) {
+        var selected = AtfTestChannelResolver.resolve(owner);
+        if (selected.isEmpty()) {
+            return harness == null ? configuration
+                    : configurationForHarnessProfile(configuration, harness.profile());
+        }
+        var plan = selected.orElseThrow();
+        plan.requireSupported(Set.of(TestChannel.UI, TestChannel.UI_API));
+        TestChannel channel = plan.channel();
+        if (harness != null && harness.profile() != HarnessProfile.CONFIGURED
+                && ((channel == TestChannel.UI && harness.profile() != HarnessProfile.UI_ONLY)
+                    || (channel == TestChannel.UI_API && harness.profile() != HarnessProfile.UI_API))) {
+            throw new IllegalStateException(owner.getName()
+                    + " declares a channel that conflicts with WithE2eHarness.profile");
+        }
+        if (channel == TestChannel.UI) {
+            return configuration.withValidationProfile(ShopValidationProfile.UI_ONLY);
+        }
+        if (configuration.api().evidenceBinding().checkpoints().isEmpty()
+                || !configuration.browser().networkInspection().enabled()
+                || configuration.browser().networkInspection().allowedHosts().isEmpty()) {
+            throw new IllegalStateException(owner.getName()
+                    + " requires selected API checkpoints and an enabled, allowlisted network inspector");
+        }
+        return configuration.withValidationProfile(ShopValidationProfile.UI_API);
     }
 
     static ReportEvidenceProfile reportProfile(ShopConfiguration configuration,

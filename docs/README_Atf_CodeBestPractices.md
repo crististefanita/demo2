@@ -306,7 +306,7 @@ Un test autentificat separă sursa contului de journey-ul pe care îl verifică:
   acțiuni, assertions și capturi.
 
 Detaliul contractului E2E aparține consumerului; forma generică a evidence-ului
-este deținută de [ATF Reporting Contract](ATF_Reporting_Contract.md#evidence-ul-de-setup).
+este deținută de [ATF Reporting Contract](ATF_Reporting_Contract.md#context-intern-și-diagnostic-al-scenariului).
 
 ## Configurare și căi
 
@@ -335,9 +335,9 @@ Producătorul redactează datele, `atf-console` le formatează, iar proiecția n
 schimbă verdictul. `ConsoleDefaultsGovernanceTest` protejează configurația și
 composition root-urile.
 
-Testele modulelor, suportul și resursele lor se schimbă numai cu un ToDo
-structurat în feedback, exceptând `atf-test-practice-shop`. Guvernanța verifică
-SHA-ul baseline-ului, scope-ul exact, starea, expirarea și comanda de probă;
+Testele modulelor, suportul și resursele lor se schimbă numai cu un control
+tehnic structurat, exceptând `atf-test-practice-shop`. Guvernanța verifică
+SHA-ul baseline-ului, controlul exact, starea, expirarea și comanda de probă;
 regula include testele de guvernanță înseși. Procedura și configurarea CI sunt
 în [README-ul atf-tests](../atf-tests/README.md#guvernanța-schimbării-testelor).
 

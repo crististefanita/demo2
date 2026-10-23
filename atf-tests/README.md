@@ -51,7 +51,7 @@ src/test/java/atf/api/tests/governance/
 ├── AtfGovernanceTestSupport.java
 ├── AtfSourceReadabilityGovernanceTest.java
 ├── ConstantsOwnershipGovernanceTest.java
-├── changes/          ToDo schema, diferență Git și probe negative
+├── changes/          change-control schema, diferență Git și probe negative
 ├── console/          default-uri și composition root-uri UI/API
 ├── documentation/
 │   ├── DocumentationDiagramGovernanceTest.java
@@ -144,14 +144,15 @@ repository; păstrează doar boundary-ul API/UI propriu compoziției reporting.
 
 ## Guvernanța schimbării testelor
 
-Testele din modulele ATF se schimbă numai prin ToDo-uri structurate în
-`docs/feedback/*.md`. Singura excepție este `atf-test-practice-shop`; limita
+Testele din modulele ATF se schimbă prin controale tehnice structurate, legate
+de cerința ownerului. Singura
+excepție este `atf-test-practice-shop`; limita
 de coeziune și celelalte reguli de arhitectură continuă să i se aplice.
 
 | Control | Regulă |
 |---|---|
 | Scope | toate fișierele din `<modul>/src/test/`, inclusiv suport, resurse și suite; `pom.xml` rădăcină și POM-urile modulelor, cu excepția exactă Shop |
-| ToDo | bloc YAML `testChanges`, ID unic, `ACTIVE` sau `VERIFIED`, motiv, comandă Maven de probă, expirare și SHA-ul baseline-ului |
+| Cerere/control | bloc YAML `testChanges`, ID unic, `ACTIVE` în registrul activ sau `VERIFIED` în registrul verificat, motiv, comandă Maven de probă, expirare și SHA-ul baseline-ului |
 | Fișiere | căi relative exacte; fără wildcard, traversal sau owneri multipli pentru aceeași schimbare |
 | Ștergere / redenumire | `allowDelete: true` pentru vechea cale; redenumirea este evaluată ca ștergere + adăugare |
 | Diferență Git | committed față de baseline, staged, unstaged și fișiere noi; nici testele noi ignorate de Git nu sunt exceptate |
@@ -168,14 +169,60 @@ CI cere explicit această proprietate sau `ATF_TEST_CHANGE_BASE_REF` și refuză
 valoarea literală `HEAD`. Baza trebuie să fie un strămoș al commitului curent;
 cererea fixează SHA-ul rezolvat, nu un ref mobil.
 
-- Exemplele executabile și scope-ul schimbării curente sunt în
-[ToDo-urile de schimbare a testelor](../docs/feedback/ATF_Test_Changes_Feedback.md).
-După integrare, cererea poate fi eliminată numai când baseline-ul verificării
-nu mai include schimbarea, nu doar fiindcă există un commit nou.
+### Documente și responsabilități
 
-- `VERIFIED` este scope verificat, nu ToDo funcțional rămas; poate fi colapsat în registru.
-- Un transfer închide vechiul owner numai după ce succesorul acoperă toate căile încă necesare.
-- Testele validează corespondența diff–ToDo; nu execută comenzile din documente și nu substituie aprobarea umană a unei reguli.
+| Informație | Owner documentar | Conținut |
+|---|---|---|
+| Cerință funcțională | feedback-ul domeniului, de exemplu [Reporting](../docs/feedback/ATF_Reporting_Feedback.md) | lacună observabilă, responsabil, criteriu și dovadă lipsă |
+| Control tehnic activ | [Registrul activ](../docs/feedback/ATF_Test_Changes_Feedback.md) | numai intrări `ACTIVE` pentru diff-uri în lucru |
+| Control tehnic verificat | [Registrul verificat](../docs/ATF_Test_Changes_Baseline.md) | context business, roluri, lifecycle și intrări `VERIFIED` colapsate |
+| Comportament stabil | README-ul sau contractul ownerului | regula implementată și demonstrată |
+
+Parserul descoperă blocurile YAML în toate documentele Markdown din
+`docs/feedback` și în `docs/ATF_Test_Changes_Baseline.md`. Procedura proiectului
+centralizează controalele în cele două registre, păstrând feedback-ul funcțional
+concentrat pe cerințe.
+
+<details>
+<summary><strong>Schema controlului și efectul câmpurilor</strong></summary>
+
+| Câmp | Contract executabil |
+|---|---|
+| `id` | identificator unic între toate documentele citite, inclusiv intrările neeligibile |
+| `status` | `ACTIVE` și `VERIFIED` pot fi eligibile; `DRAFT` și `CLOSED` nu autorizează schimbarea |
+| `base` | SHA imutabil, egal cu baza rezolvată pentru rularea gate-ului |
+| `expires` | dată ISO; controlul este eligibil inclusiv în acea zi |
+| `reason` | text de minimum 20 de caractere care explică schimbarea |
+| `proof` | comandă Maven `test` sau `verify` declarată, executată separat de gate |
+| `paths` | listă nevidă de căi protejate, relative exacte și distincte în control |
+| `allowDelete` | boolean opțional, implicit `false`; `true` pentru o ștergere |
+
+- Blocul YAML are o singură cheie `testChanges` și o listă nevidă; câmpurile
+  necunoscute și cheile duplicate sunt respinse.
+- Un ID nu se copiază la transfer; între controalele eligibile, fiecare path
+  schimbat are un singur owner pentru baza și data rulării.
+- Guvernanța citește și YAML-ul din `<details>` închis implicit; vizibilitatea
+  Markdown nu schimbă eligibilitatea.
+
+</details>
+
+### Reconciliere și închidere
+
+1. Inspectează sursele live, criteriul funcțional și diferența față de baza revizuirii.
+2. Înregistrează controlul `ACTIVE` cu path-uri exacte înaintea modificării protejate.
+3. Rulează proba relevantă și gate-ul în [staging extern cu Git real](../docs/ATF_Build_And_Execution_Safety.md#staging-pentru-guvernanța-schimbării-testelor); rendererul cere și verificarea randării.
+4. Promovează contractul demonstrat la owner; elimină din feedback numai criteriul îndeplinit.
+5. Mută controlul în registrul `VERIFIED` dacă diff-ul încă îl cere, păstrând ID-ul și eliminând intrarea activă.
+6. Elimină controlul când baza folosită de gate nu mai raportează schimbările acoperite; verifică din nou corespondența diff–control.
+
+`VERIFIED` atestă incrementul verificat, separat de acceptanța întregii cerințe.
+Gate-ul validează metadatele și corespondența diff–control; comenzile `proof`
+se execută separat, iar aprobarea unei schimbări de regulă rămâne explicită.
+
+La expirare sau schimbarea bazei se revizuiesc perimetrul și dovada înaintea
+actualizării controlului. Un registru activ rămas gol poate fi eliminat împreună
+cu referințele sale; procedura rămâne aici și indexul `docs/feedback/README.md`
+se păstrează permanent.
 
 ## Guvernanța detaliilor la consolă
 

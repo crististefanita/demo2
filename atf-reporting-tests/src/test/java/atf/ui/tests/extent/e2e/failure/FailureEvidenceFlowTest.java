@@ -1,6 +1,8 @@
 package atf.ui.tests.extent.e2e.failure;
 import atf.api.testkit.AtfE2eTest;
-import atf.api.core.testing.api.ApiScenarioSetup;
+import atf.api.testkit.channel.AtfTestChannel;
+import atf.api.testkit.channel.TestChannel;
+import atf.api.testkit.setup.api.ApiScenarioSetup;
 import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.api.reporting.audit.ReportAuditChecks;
 import atf.ui.tests.extent.support.audit.ReportAuditContext;
@@ -12,7 +14,7 @@ import atf.api.reporting.ui.UiExtentReportSession;
 import atf.api.reporting.ui.contract.ReportUiContract;
 import atf.ui.tests.extent.support.config.ReportingTestResources;
 import atf.ui.tests.extent.support.config.UiConfiguration;
-import atf.ui.tests.extent.support.config.output.UiReportSubdirectory;
+import atf.api.testkit.output.ProjectRelativeUiReportDirectory;
 import atf.ui.tests.extent.support.audit.ReportAuditInputs;
 import atf.ui.tests.extent.support.audit.ReportUiActionAdapters;
 import atf.api.ui.playwright.PlaywrightActionSequence;
@@ -47,7 +49,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Execution(ExecutionMode.SAME_THREAD)
 @DisplayName("Extent failure evidence flow")
 @AtfE2eTest
-@UiReportSubdirectory("e2e")
+@AtfTestChannel(TestChannel.UI)
+@ProjectRelativeUiReportDirectory("artifacts/reports/ui/e2e")
 class FailureEvidenceFlowTest {
     private UiConfiguration configuration;
     private Path inputReport;

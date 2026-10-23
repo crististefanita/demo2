@@ -1,6 +1,6 @@
 package atf.ui.tests.extent.component.architecture;
 import atf.api.testkit.AtfComponentTest;
-import atf.api.core.testing.api.ApiScenarioSetup;
+import atf.api.testkit.setup.api.ApiScenarioSetup;
 
 import org.junit.jupiter.api.Test;
 

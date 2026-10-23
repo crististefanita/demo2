@@ -26,7 +26,7 @@ public class GitTestChangesTest {
     private static final String BASELINE_CONTENT = "baseline";
 
     @Test
-    void realDiffFailsUntilTheMatchingFeedbackTodoExistsAndCannotReuseAnOldBase(@TempDir Path root)
+    void realDiffFailsUntilTheMatchingChangeControlExistsAndCannotReuseAnOldBase(@TempDir Path root)
             throws Exception {
         GitTestChanges.command(root, "init", "--quiet");
         GitTestChanges.command(root, "config", "user.name", "Guard Fixture");
@@ -107,7 +107,7 @@ public class GitTestChangesTest {
             assertTrue(changes.contains(new GitTestChanges.Change("A", path)), path);
             assertTrue(TestChangePolicy.validate(changes, List.of(), base, LocalDate.now())
                     .stream().anyMatch(violation -> violation.contains(" " + path + ":")),
-                    "ignored build configuration must require an explicit feedback scope: " + path);
+                    "ignored build configuration must require an explicit change control: " + path);
         }
     }
 

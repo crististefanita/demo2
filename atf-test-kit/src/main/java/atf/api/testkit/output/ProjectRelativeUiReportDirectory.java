@@ -1,13 +1,13 @@
-package atf.ui.tests.extent.support.config.output;
+package atf.api.testkit.output;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/** Selects a safe, relative subdirectory beneath the standard UI report output. */
+/** Relative directory anchored at the explicitly supplied project root. */
+@Target({ElementType.TYPE, ElementType.ANNOTATION_TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
-public @interface UiReportSubdirectory {
+public @interface ProjectRelativeUiReportDirectory {
     String value();
 }

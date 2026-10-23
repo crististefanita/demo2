@@ -3,6 +3,8 @@ import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.theme.tokens.AtfReportThemeTokens;
 import atf.api.testkit.AtfE2eTest;
+import atf.api.testkit.channel.AtfTestChannel;
+import atf.api.testkit.channel.TestChannel;
 import atf.api.reporting.ui.contract.ReportUiContract;
 import atf.api.reporting.ui.audit.vocabulary.UiAuditGherkin;
 import atf.api.core.config.module.AtfModule;
@@ -11,7 +13,7 @@ import atf.ui.tests.extent.support.audit.ReportAuditContext;
 import atf.ui.tests.extent.support.audit.screen.CategoryFilterAuditor;
 import atf.ui.tests.extent.support.config.ReportingTestResources;
 import atf.ui.tests.extent.support.config.UiConfiguration;
-import atf.ui.tests.extent.support.config.output.UiReportSubdirectory;
+import atf.api.testkit.output.ProjectRelativeUiReportDirectory;
 import atf.ui.tests.extent.support.configurable.CategoryCardinalityFixture;
 import atf.ui.tests.extent.support.configurable.CategoryCardinalityReportFixtures;
 import atf.ui.tests.extent.support.lifecycle.UiAuditFlow;
@@ -51,7 +53,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Execution(ExecutionMode.SAME_THREAD)
 @AtfModuleTest(requires = {AtfModule.REPORTING, AtfModule.UI})
 @AtfE2eTest
-@UiReportSubdirectory("e2e")
+@AtfTestChannel(TestChannel.UI)
+@ProjectRelativeUiReportDirectory("artifacts/reports/ui/e2e")
 class CategoryCardinalityBrowserFixtureTest {
     private static final UiConfiguration CONFIGURATION =
             ReportingTestResources.uiConfiguration(CategoryCardinalityBrowserFixtureTest.class);

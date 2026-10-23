@@ -1,5 +1,7 @@
 package atf.ui.tests.extent.e2e.uireport;
 import atf.api.testkit.AtfE2eTest;
+import atf.api.testkit.channel.AtfTestChannel;
+import atf.api.testkit.channel.TestChannel;
 import atf.api.reporting.artifact.ReportArtifactIdentity;
 import atf.ui.tests.extent.support.uireport.UiReportContractDynamicEngine;
 import atf.ui.tests.extent.support.uireport.browser.UiReportContractFixture;
@@ -7,7 +9,7 @@ import atf.api.reporting.ui.contract.UiExtentReportContract;
 
 import atf.ui.tests.extent.support.config.ReportingTestResources;
 import atf.ui.tests.extent.support.config.UiConfiguration;
-import atf.ui.tests.extent.support.config.output.UiReportSubdirectory;
+import atf.api.testkit.output.ProjectRelativeUiReportDirectory;
 import atf.ui.tests.extent.support.uireport.browser.UiReportContractInputFactory;
 import atf.api.core.config.module.AtfModule;
 import atf.api.reporting.test.AtfModuleTest;
@@ -36,7 +38,8 @@ import java.util.stream.Stream;
 @Execution(ExecutionMode.SAME_THREAD)
 @DisplayName("Static UI Extent report — all tabs and renderer contract")
 @AtfE2eTest
-@UiReportSubdirectory("e2e")
+@AtfTestChannel(TestChannel.UI)
+@ProjectRelativeUiReportDirectory("artifacts/reports/ui/e2e")
 class StaticUiExtentReportContractTest {
     private UiReportContractFixture fixture;
 

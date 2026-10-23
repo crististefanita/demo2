@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @AtfComponentTest
 public class TestChangeGovernanceTest {
     @Test
-    void moduleTestChangesRequireAnExplicitFeedbackTodo() throws Exception {
+    void moduleTestChangesRequireAnExplicitControlRecord() throws Exception {
         var root = locateProjectRoot();
         var snapshot = GitTestChanges.read(root, GitTestChanges.baseRef(
                 System.getProperty(GitTestChanges.BASE_PROPERTY), System.getenv()));

@@ -219,6 +219,12 @@ verificat cu un consumer sintetic în `ReportTraceMetadataRenderingTest`.
 
 ## Contractul raportului
 
+Regulile canonice pentru ierarhia vizibilă, glyph-ul inline, disclosure-uri,
+viewport, responsive layout și verificarea browser sunt în
+[Contractul de display și layout](../docs/ATF_Reporting_Display_Contract.md).
+Secțiunea de mai jos păstrează numai contractul semantic și limitele specifice
+implementării librăriei.
+
 ```text
 TestCase
 ├── SETUP (opțional; precondiții / dobândire și verificare fixture)
@@ -899,7 +905,8 @@ obligatorii/condiționale și pași de explorare manuală, este în
 
 ## Contracte și feedback
 
-- contract vizual: [`docs/ATF_Reporting_Contract.md`](../docs/ATF_Reporting_Contract.md);
+- contract semantic: [`docs/ATF_Reporting_Contract.md`](../docs/ATF_Reporting_Contract.md);
+- contract display/layout: [`docs/ATF_Reporting_Display_Contract.md`](../docs/ATF_Reporting_Display_Contract.md);
 - arhitectură: [`docs/ATF_Architecture.md`](../docs/ATF_Architecture.md);
 - bune practici: [`docs/README_Atf_BestPractices.md`](../docs/README_Atf_BestPractices.md);
 - feedback activ: [`docs/feedback/README.md`](../docs/feedback/README.md).

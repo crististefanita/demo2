@@ -178,7 +178,7 @@ explicit; nu se dezactivează verificarea pentru a face staging-ul verde.
   `target`, `artifacts` sau configurații locale cu credentiale.
 - Păstrează diferența surselor față de baseline; nu o ascunde printr-un commit
   artificial al snapshot-ului înaintea verificării.
-- Rulează cu `-Datf.governance.testChanges.baseRef=<review-base>`; ToDo-ul fixează
+- Rulează cu `-Datf.governance.testChanges.baseRef=<review-base>`; controlul de schimbare fixează
   SHA-ul acelei baze. CI cere explicit baza, iar checkout-ul live nu este reutilizat
   pentru output-uri intermediare.
 

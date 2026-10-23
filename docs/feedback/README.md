@@ -6,6 +6,15 @@ Acest registru păstrează numai cerințele deschise, responsabilul și următor
 pas. Regulile stabile se află în documentația oficială; cerințele închise,
 rapoartele de rulare și istoricul capturilor nu sunt lucrări restante.
 
+| Zonă | Responsabilitate |
+|---|---|
+| [Feedback Reporting](ATF_Reporting_Feedback.md) | cerințe funcționale, lacune și criterii de acceptanță Reporting |
+| [Controale tehnice active](ATF_Test_Changes_Feedback.md) | numai `ACTIVE`, legate de cerințe și diferențe Git în lucru |
+| [Registrul controalelor verificate](../ATF_Test_Changes_Baseline.md) | context business, roluri, reguli și controale `VERIFIED` colapsate |
+
+Indexul se păstrează permanent. Feedback-ul fără lacune sau controale active
+se elimină după promovarea conținutului stabil și actualizarea referințelor.
+
 ## Cerințe rămase, în ordinea priorității
 
 - Scor de bază: impact (40) + lacună deschisă (30) + posibilitate de lucru acum
@@ -13,23 +22,25 @@ rapoartele de rulare și istoricul capturilor nu sunt lucrări restante.
 - Scor final: scor de bază × pondere, rotunjit la cel mai apropiat întreg.
 - Pondere: `1.00` pentru fiecare domeniu activ; domeniile închise nu intră în
   ordonarea lucrului.
-- Ponderea schimbă numai ordinea de lucru, nu gradul de pregătire sau maturitatea
-  implementării AI documentate în README-ul dedicat.
+- Elementele amânate explicit nu intră în clasamentul activ; scorul lor anterior
+  rămâne doar context istoric și nu exprimă prioritatea curentă.
 
 | Ordine | Responsabil / feedback | Impact /40 | Lacună /30 | Lucrabil acum /20 | Datorie doc. /10 | Pondere | Scor | Ce mai trebuie făcut |
 |---:|---|---:|---:|---:|---:|---:|---:|---|
-| 1 | [Uniformitate și interacțiuni UI/API](ATF_Reporting_Feedback.md) | 40 | 29 | 20 | 7 | 1.00 | **96** | GOV-API-01 structural, ownership/verdict local, cauzalitate, matricea extinsă, starea Categories fără rezultate și PUB-01; expandarea globală, timing, proiecția comună API și bugetul JS integrat sunt verificate; TABLE-VIEWPORT-01, API-05 și auth rămân promovate la owneri |
-| 2 | [Adnotări UI, API și UI+API](ATF_Test_Channel_Annotations_Feedback.md) | 38 | 28 | 20 | 6 | 1.00 | **92** | canal generic și adaptoare TestKit/consumer, contracte locale, Network Inspector UI+API și probe component/contract/display/guvernanță; analiză, fără implementare |
-| 3 | [Infrastructură de adnotări și output project-relative](ATF_Test_Infrastructure_Annotations_Feedback.md) | 35 | 26 | 20 | 6 | 1.00 | **87** | extragerea contractelor output/setup/docs în TestKit, adnotare distinctă pentru E2E Reporting și rădăcină stabilă Maven/IntelliJ; analiză, fără implementare |
-| 4 | [Evaluarea AI](README_AI_Evaluation.md#20-gap-uri-active-pentru-evaluator) | 34 | 26 | 12 | 6 | 1.00 | **78** | clasificarea `AMBIGUOUS`, registrul de dovezi la nivel de rulare, integrarea lifecycle-ului, catalogul business/review/state, publicarea și paritatea de raportare, regression delta și probele pentru fluxul agentic |
+| 1 | [Uniformitate și interacțiuni UI/API](ATF_Reporting_Feedback.md) | 40 | 29 | 20 | 7 | 1.00 | **96** | GOV-API-01 structural, ownership/verdict local, cauzalitate, matricea extinsă, starea Categories fără rezultate și PUB-01 |
+| 2 | [Adnotări UI, API și UI+API](ATF_Test_Channel_Annotations_Feedback.md) | 38 | 28 | 20 | 6 | 1.00 | **92** | resolverul typed și preflight-ul sunt implementate parțial; rămân contractele locale, Network Inspector UI+API și matricea completă de probe |
+| 3 | [Infrastructură de adnotări și output project-relative](ATF_Test_Infrastructure_Annotations_Feedback.md) | 35 | 26 | 20 | 6 | 1.00 | **87** | extracția output/setup/docs este în curs de integrare; rămân reconcilierea live, proba IntelliJ și probele symlink cu privilegiile necesare |
 
 - Scorurile din acest registru ordonează lucrul rămas; nu sunt verdicte de calitate.
 
-Contractul comparatorului AI deja executabil și probele sale sunt în
-[README-ul ATF Validation](../../atf-validation/README.md#comparatorul-ai--contract-implementat).
-Modelele și pattern-urile țintă au fost separate în
-[designul AI al proiectului](../ATF_AI_Evaluation_Design.md); feedback-ul AI
-păstrează numai gap-urile, scorurile motivate și criteriile de închidere.
+## Amânat — prioritate și importanță foarte joase
+
+| Feedback | Prioritate curentă | Scor anterior |
+|---|---|---:|
+| [Evaluarea AI](README_AI_Evaluation.md) | **Foarte joasă — amânată; nu face parte din revizuirea curentă** | 78, istoric; nu este scor de prioritate actual |
+
+Conținutul feedback-ului AI nu a fost reevaluat și scorul nu a fost recalculat.
+Nu îl reluăm înaintea cerințelor active decât la o solicitare explicită.
 
 Feedback-ul responsabilului de domeniu este sursa criteriului de acceptare și a
 dovezii cerute.
@@ -41,8 +52,8 @@ contractele deja implementate.
 | Domeniu | Stare | Documentație oficială |
 |---|---|---|
 | Arhitectura testelor și matricea modul × strat | straturile și matricea sunt stabile; extracția adnotărilor transversale este urmărită separat | [Ghidul de testare ATF](../ATF_Testing_Guide.md), [Bune practici de cod ATF](../README_Atf_CodeBestPractices.md), [feedback infrastructură](ATF_Test_Infrastructure_Annotations_Feedback.md) |
-| Detalii implicite la consolă și schimbări de teste prin ToDo | contractele și probele negative sunt la owner; registrul YAML păstrează numai scope-ul necesar baseline-ului, nu un backlog funcțional nou | [ATF Console](../../atf-console/README.md), [ATF Tests](../../atf-tests/README.md#guvernanța-schimbării-testelor), [registrul scope-urilor](ATF_Test_Changes_Feedback.md) |
-| Raportare: dovezi, trace, agregat, viewport și matricea Network Inspector | TABLE-VIEWPORT-01 este verificat prin componente și MCP; politica comună este la owner. Bugetul JS integrat trece fără praguri relaxate; matricea extinsă și lacunele UI/API rămase sunt în feedback | [Contractul de raportare ATF](../ATF_Reporting_Contract.md), [README ATF Reporting](../../atf-reporting/README.md), [README ATF Reporting Tests](../../atf-reporting-tests/README.md) |
+| Detalii implicite la consolă | contractul și probele negative sunt la owner | [ATF Console](../../atf-console/README.md) |
+| Raportare: dovezi, trace, agregat, display/layout, viewport și matricea Network Inspector | TABLE-VIEWPORT-01 și fidelitatea metodei/timpilor API sunt promovate la owneri; bugetele asset-urilor au guard de regresie, nu ToDo separat; matricea extinsă și lacunele UI/API rămase sunt în feedback | [Contractul semantic de raportare](../ATF_Reporting_Contract.md), [contractul display/layout](../ATF_Reporting_Display_Contract.md), [README ATF Reporting](../../atf-reporting/README.md), [README ATF Reporting Tests](../../atf-reporting-tests/README.md) |
 | Inspector UI și politica fără reluare automată | fără cerințe deschise; redeschidere numai la încălcarea contractului | [README ATF UI](../../atf-ui/README.md), [README Practice Shop](../../atf-test-practice-shop/README.md) |
 | Selectorul detaliilor acțiunilor Practice Shop | selectabil per clasă; maparea păstrează acțiunile capturate și verdictul | [README Practice Shop](../../atf-test-practice-shop/README.md) |
 | Urmărirea achiziției și rezumatul final al fluxului Practice Shop | urmărirea generică, ordinea și captura terminală sunt închise | [README Practice Shop](../../atf-test-practice-shop/README.md) |
@@ -70,6 +81,7 @@ vizuală se urmează [Siguranța compilării și rulării ATF](../ATF_Build_And_
 | module și dependențe | [Arhitectura ATF](../ATF_Architecture.md) |
 | straturi de testare, matrice și alegerea dovezii | [Ghidul de testare ATF](../ATF_Testing_Guide.md) |
 | raportare API/UI, trace și agregare | [Contractul de raportare ATF](../ATF_Reporting_Contract.md) |
+| display, layout, disclosure și responsive viewport | [Contractul de display și layout](../ATF_Reporting_Display_Contract.md) |
 | fluxuri Practice Shop și dovezile consumerului | [README Practice Shop](../../atf-test-practice-shop/README.md) |
 | reguli de cod și proiectarea testelor | [Bune practici de cod ATF](../README_Atf_CodeBestPractices.md) |
 | reguli editoriale | [Bune practici de documentare ATF](../README_Atf_DocumentationBestPractices.md) |

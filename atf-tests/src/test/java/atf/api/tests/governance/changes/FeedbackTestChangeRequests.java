@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-/** Reads only structured testChanges blocks; ordinary prose cannot authorize a test edit. */
+/** Reads structured active requests and the separate baseline registry; prose cannot authorize a test edit. */
 final class FeedbackTestChangeRequests {
     private static final Pattern BLOCK = Pattern.compile("(?ms)^```yaml\\R(.*?)^```[ \\t]*$");
     private static final ObjectMapper YAML = new ObjectMapper(
@@ -30,17 +30,27 @@ final class FeedbackTestChangeRequests {
     static List<TestChangeRequest> read(Path feedback) throws IOException {
         if (!Files.isDirectory(feedback)) throw new IOException("TEST-CHANGE-DOC: missing " + feedback);
         var requests = new ArrayList<TestChangeRequest>();
+        var documents = new ArrayList<Path>();
         try (var files = Files.walk(feedback)) {
-            for (Path file : files.filter(Files::isRegularFile)
-                    .filter(path -> path.toString().endsWith(".md")).sorted().toList()) {
-                requests.addAll(parse(Files.readString(file), feedback.relativize(file).toString()));
-            }
+            documents.addAll(files.filter(Files::isRegularFile)
+                    .filter(path -> path.toString().endsWith(".md")).toList());
+        }
+        Path baseline = feedback.resolveSibling("ATF_Test_Changes_Baseline.md");
+        if (Files.isRegularFile(baseline)) documents.add(baseline);
+        documents.sort(Path::compareTo);
+        for (Path file : documents) {
+            requests.addAll(parse(Files.readString(file), sourceName(feedback, file)));
         }
         var ids = new HashSet<String>();
         for (var request : requests) {
             if (!ids.add(request.id())) throw new IOException("TEST-CHANGE-ID: duplicate " + request.id());
         }
         return List.copyOf(requests);
+    }
+
+    private static String sourceName(Path feedback, Path file) {
+        Path project = feedback.getParent();
+        return project == null ? file.toString() : project.relativize(file).toString().replace('\\', '/');
     }
 
     static List<TestChangeRequest> parse(String markdown, String source) throws IOException {

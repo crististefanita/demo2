@@ -1,15 +1,14 @@
-package atf.api.core.testing.api;
+package atf.api.testkit.setup.api;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/** One stable API scenario method selected by a consumer-side audit. */
+/** One exact consumer-selected API scenario method. */
 @Target({})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ApiTestRef {
     Class<?> owner();
-
     String method();
 }

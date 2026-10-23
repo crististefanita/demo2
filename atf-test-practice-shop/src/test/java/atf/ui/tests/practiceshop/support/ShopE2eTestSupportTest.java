@@ -1,6 +1,8 @@
 package atf.ui.tests.practiceshop.support;
 
 import atf.api.testkit.AtfUnitTest;
+import atf.api.testkit.channel.AtfTestChannel;
+import atf.api.testkit.channel.TestChannel;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.evidence.profile.ReportEvidenceCaptureSource;
 import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
@@ -10,6 +12,7 @@ import atf.ui.practiceshop.config.ShopConfigurationLoader;
 import atf.ui.practiceshop.config.ShopCredentials;
 import atf.ui.practiceshop.config.ShopReportConfiguration;
 import atf.ui.practiceshop.config.ShopValidationProfile;
+import atf.api.ui.config.UiNetworkInspectionConfiguration;
 import atf.ui.practiceshop.flow.ShopPurchaseFlow;
 import org.junit.jupiter.api.Test;
 
@@ -26,6 +29,54 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @AtfUnitTest
 class ShopE2eTestSupportTest {
+    @AtfTestChannel(TestChannel.UI)
+    private static class UiChannel { }
+
+    @AtfTestChannel(TestChannel.UI_API)
+    private static class CombinedChannel { }
+
+    @AtfTestChannel(TestChannel.API)
+    private static class ApiChannel { }
+
+    @AtfTestChannel(TestChannel.UI)
+    @ShopE2eTestSupport.WithE2eHarness(profile = ShopE2eTestSupport.HarnessProfile.UI_API)
+    private static class ConflictingChannel { }
+
+    @Test
+    void channelPreflightSelectsEvidenceAndRejectsUnsupportedOrMissingCapabilities() {
+        var configured = ShopConfigurationLoader.load();
+        var ui = ShopE2eTestSupport.configurationForChannel(configured, null, UiChannel.class);
+        var combined = ShopE2eTestSupport.configurationForChannel(configured, null, CombinedChannel.class);
+        assertEquals(ShopValidationProfile.UI_ONLY, ui.validationProfile());
+        assertTrue(ui.api().evidenceBinding().checkpoints().isEmpty());
+        assertEquals(ShopValidationProfile.UI_API, combined.validationProfile());
+        assertFalse(combined.api().evidenceBinding().checkpoints().isEmpty());
+        assertThrows(IllegalStateException.class,
+                () -> ShopE2eTestSupport.configurationForChannel(configured, null, ApiChannel.class));
+        assertThrows(IllegalStateException.class, () -> ShopE2eTestSupport.configurationForChannel(
+                configured, ConflictingChannel.class.getAnnotation(
+                        ShopE2eTestSupport.WithE2eHarness.class), ConflictingChannel.class));
+        var disabledBrowser = configured.browser();
+        var withoutNetwork = new atf.api.ui.config.UiBrowserConfiguration(
+                disabledBrowser.baseUrl(), disabledBrowser.browser(), disabledBrowser.headless(),
+                disabledBrowser.timeout(), disabledBrowser.navigationTimeout(),
+                disabledBrowser.viewportWidth(), disabledBrowser.viewportHeight(),
+                disabledBrowser.zoomPercent(), disabledBrowser.screenshotOnFailure(),
+                disabledBrowser.retryPolicy(), UiNetworkInspectionConfiguration.disabled());
+        var invalid = new atf.ui.practiceshop.config.ShopConfiguration(
+                configured.baseUrl(), configured.accountFile(), configured.productName(),
+                configured.productPath(), configured.checkout(), withoutNetwork,
+                configured.uiRetry(), configured.validationProfile(), configured.api(),
+                configured.uiReportDirectory(), configured.apiReportDirectory(),
+                configured.authenticatedE2eEnabled(), configured.reporting());
+        assertThrows(IllegalStateException.class,
+                () -> ShopE2eTestSupport.configurationForChannel(invalid, null, CombinedChannel.class));
+        assertThrows(IllegalStateException.class,
+                () -> ShopE2eTestSupport.configurationForChannel(
+                        configured.withValidationProfile(ShopValidationProfile.UI_ONLY), null,
+                        CombinedChannel.class));
+    }
+
     @Test
     void purchaseJourneysDeclareDistinctEvidenceProfiles() throws ClassNotFoundException {
         assertEquals(ShopE2eTestSupport.HarnessProfile.UI_ONLY,

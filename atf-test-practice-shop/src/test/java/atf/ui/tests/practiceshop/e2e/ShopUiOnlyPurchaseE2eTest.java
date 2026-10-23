@@ -1,6 +1,8 @@
 package atf.ui.tests.practiceshop.e2e;
 
 import atf.api.testkit.AtfE2eTest;
+import atf.api.testkit.channel.AtfTestChannel;
+import atf.api.testkit.channel.TestChannel;
 import atf.ui.practiceshop.flow.ShopPurchaseFlow;
 import atf.ui.tests.practiceshop.support.ShopE2eTestSupport;
 import org.junit.jupiter.api.DisplayName;
@@ -11,6 +13,7 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 
 /** Config-driven UI-only proof of the complete guest purchase journey. */
 @AtfE2eTest
+@AtfTestChannel(TestChannel.UI)
 @ShopE2eTestSupport.WithE2eHarness(
         profile = ShopE2eTestSupport.HarnessProfile.UI_ONLY)
 @Execution(ExecutionMode.SAME_THREAD)

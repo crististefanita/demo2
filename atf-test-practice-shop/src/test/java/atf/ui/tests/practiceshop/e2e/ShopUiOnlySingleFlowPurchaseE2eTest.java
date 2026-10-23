@@ -2,6 +2,8 @@ package atf.ui.tests.practiceshop.e2e;
 
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.testkit.AtfE2eTest;
+import atf.api.testkit.channel.AtfTestChannel;
+import atf.api.testkit.channel.TestChannel;
 import atf.ui.practiceshop.flow.ShopPurchaseFlow;
 import atf.ui.tests.practiceshop.support.ShopE2eTestSupport;
 import org.junit.jupiter.api.DisplayName;
@@ -14,6 +16,7 @@ import java.util.List;
 
 /** One consolidated UI-only business proposition, action table and final screenshot. */
 @AtfE2eTest
+@AtfTestChannel(TestChannel.UI)
 @ShopE2eTestSupport.WithE2eHarness(
         profile = ShopE2eTestSupport.HarnessProfile.UI_ONLY,
         reportFlow = ShopE2eTestSupport.ReportFlow.UNIFIED_FLOW)

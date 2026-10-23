@@ -1,6 +1,6 @@
 package atf.api.tests.support.setup;
 import atf.api.core.testing.api.ApiScenarioSelection;
-import atf.api.core.testing.api.ApiTestRef;
+import atf.api.testkit.setup.api.ApiTestRef;
 
 import atf.api.core.reporting.contract.AtfReportPorts;
 import atf.api.execution.ApiModule;

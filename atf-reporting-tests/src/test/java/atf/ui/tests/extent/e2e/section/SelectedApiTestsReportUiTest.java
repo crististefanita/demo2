@@ -1,8 +1,10 @@
 package atf.ui.tests.extent.e2e.section;
 import atf.api.testkit.AtfE2eTest;
+import atf.api.testkit.channel.AtfTestChannel;
+import atf.api.testkit.channel.TestChannel;
 
-import atf.api.core.testing.api.ApiScenarioSetup;
-import atf.api.core.testing.api.ApiTestRef;
+import atf.api.testkit.setup.api.ApiScenarioSetup;
+import atf.api.testkit.setup.api.ApiTestRef;
 import atf.api.tests.api.lifecycle.LifecycleApiScenarios;
 import atf.api.tests.api.posts.PostsApiScenarios;
 import atf.api.tests.api.requests.RequestVariantsApiScenarios;
@@ -14,7 +16,7 @@ import atf.api.reporting.ui.audit.plan.UiExtentReportSource;
 import atf.api.reporting.ui.audit.plan.UiExtentSectionAudit;
 import atf.ui.tests.extent.support.config.ReportingTestResources;
 import atf.ui.tests.extent.support.config.UiConfiguration;
-import atf.ui.tests.extent.support.config.output.UiReportSubdirectory;
+import atf.api.testkit.output.ProjectRelativeUiReportDirectory;
 import atf.api.core.config.module.AtfModule;
 import atf.api.reporting.test.AtfModuleTest;
 import atf.ui.tests.extent.support.section.runtime.SectionAuditFixture;
@@ -59,7 +61,8 @@ import java.util.stream.Stream;
 @Execution(ExecutionMode.SAME_THREAD)
 @DisplayName("Selected API methods — complete Extent report sections")
 @AtfE2eTest
-@UiReportSubdirectory("e2e")
+@AtfTestChannel(TestChannel.UI)
+@ProjectRelativeUiReportDirectory("artifacts/reports/ui/e2e")
 class SelectedApiTestsReportUiTest {
     private SectionAuditFixture fixture;
 

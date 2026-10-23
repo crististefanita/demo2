@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 
+import static java.util.stream.Collectors.toSet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -23,12 +24,12 @@ public class TestChangePolicyTest {
     private static final LocalDate TODAY = LocalDate.of(2026, 10, 22);
 
     @Test
-    void rejectsAnEditWithoutTodoAndExplainsTheExactRemedy() {
+    void rejectsAnEditWithoutChangeControlAndExplainsTheExactRemedy() {
         var failure = check("M", List.of());
         assertEquals(1, failure.size());
         assertTrue(failure.getFirst().contains(PATH));
         assertTrue(failure.getFirst().contains(BASE));
-        assertTrue(failure.getFirst().contains("docs/feedback"));
+        assertTrue(failure.getFirst().contains("ATF_Test_Changes_Baseline.md"));
     }
 
     @Test
@@ -61,7 +62,7 @@ public class TestChangePolicyTest {
                 first.reason(), first.proof(), first.paths(), false, "other.md");
         assertTrue(check("M", List.of(first, second)).getFirst().contains("AMBIGUOUS"));
         assertTrue(check("M", List.of(request("CLOSED", BASE, TODAY, false), second)).isEmpty(),
-                "a closed scope transfers ownership to exactly one active request");
+                "a closed control transfers ownership to exactly one active request");
         assertFalse(TestChangePolicy.validate(List.of(new GitTestChanges.Change("M", PATH + ".other")),
                 List.of(first), BASE, TODAY).isEmpty());
     }
@@ -74,7 +75,7 @@ public class TestChangePolicyTest {
             assertEquals(Set.of(path), FeedbackTestChangeRequests.parse(markdown(path), "build.md")
                     .getFirst().paths());
             assertFalse(TestChangePolicy.validate(List.of(change), List.of(), BASE, TODAY).isEmpty(),
-                    "test execution settings require an explicit scope: " + path);
+                "test execution settings require an explicit change control: " + path);
             var approval = new TestChangeRequest("BUILD-01", "ACTIVE", BASE, TODAY,
                     "Review changes to the test execution configuration", "mvn test",
                     Set.of(path), false, "build.md");
@@ -113,6 +114,37 @@ public class TestChangePolicyTest {
                 markdown(PATH).replace("status: ACTIVE", "status: ACTIVE\n    status: CLOSED"))) {
             assertThrows(IOException.class, () -> FeedbackTestChangeRequests.parse(malformed, "bad.md"));
         }
+    }
+
+    @Test
+    void readsActiveAndCollapsedVerifiedRegistriesAndRejectsCrossRegistryDuplicates(@TempDir Path temp)
+            throws Exception {
+        Path feedback = Files.createDirectories(temp.resolve("docs/feedback"));
+        Path active = feedback.resolve("ATF_Test_Changes_Feedback.md");
+        Path baseline = feedback.resolveSibling("ATF_Test_Changes_Baseline.md");
+        String verified = markdown(PATH).replace("CHECK-01", "VERIFIED-01")
+                .replace("status: ACTIVE", "status: VERIFIED");
+        Files.writeString(active, markdown(PATH));
+        Files.writeString(baseline, "<details>\n<summary>Verified controls</summary>\n\n"
+                + verified + "\n</details>\n");
+        Files.writeString(feedback.resolve("ATF_Reporting_Feedback.md"), "# Functional gaps\n");
+
+        var controls = FeedbackTestChangeRequests.read(feedback);
+        assertEquals(Set.of("CHECK-01", "VERIFIED-01"), controls.stream()
+                .map(TestChangeRequest::id).collect(toSet()));
+        assertEquals(Set.of("feedback/ATF_Test_Changes_Feedback.md", "ATF_Test_Changes_Baseline.md"),
+                controls.stream().map(TestChangeRequest::source)
+                        .collect(toSet()));
+        assertEquals(Set.of("ACTIVE", "VERIFIED"), controls.stream()
+                .map(TestChangeRequest::status).collect(toSet()));
+
+        Files.delete(active);
+        assertEquals(List.of("VERIFIED-01"), FeedbackTestChangeRequests.read(feedback).stream()
+                .map(TestChangeRequest::id).toList(), "removing an empty active registry preserves the baseline");
+
+        Files.writeString(active, verified);
+        IOException duplicate = assertThrows(IOException.class, () -> FeedbackTestChangeRequests.read(feedback));
+        assertTrue(duplicate.getMessage().contains("TEST-CHANGE-ID: duplicate VERIFIED-01"));
     }
 
     @Test

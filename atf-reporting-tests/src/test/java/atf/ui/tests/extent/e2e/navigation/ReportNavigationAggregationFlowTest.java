@@ -1,6 +1,8 @@
 package atf.ui.tests.extent.e2e.navigation;
 import atf.api.testkit.AtfE2eTest;
-import atf.api.core.testing.api.ApiScenarioSetup;
+import atf.api.testkit.channel.AtfTestChannel;
+import atf.api.testkit.channel.TestChannel;
+import atf.api.testkit.setup.api.ApiScenarioSetup;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.ui.tests.extent.support.navigation.ReportNavigationFlow;
 import atf.api.reporting.audit.ReportAuditChecks;
@@ -10,7 +12,7 @@ import atf.api.reporting.ui.audit.vocabulary.UiAuditGherkin;
 
 import atf.ui.tests.extent.support.config.ReportingTestResources;
 import atf.ui.tests.extent.support.config.UiConfiguration;
-import atf.ui.tests.extent.support.config.output.UiReportSubdirectory;
+import atf.api.testkit.output.ProjectRelativeUiReportDirectory;
 import atf.ui.tests.extent.support.audit.ReportAuditInputs;
 import atf.api.ui.playwright.UiScreenValidation;
 import atf.api.reporting.ui.audit.section.OverviewSectionValidator;
@@ -41,7 +43,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Execution(ExecutionMode.SAME_THREAD)
 @DisplayName("Extent report navigation and aggregation flow")
 @AtfE2eTest
-@UiReportSubdirectory("e2e")
+@AtfTestChannel(TestChannel.UI)
+@ProjectRelativeUiReportDirectory("artifacts/reports/ui/e2e")
 class ReportNavigationAggregationFlowTest {
     private UiConfiguration configuration;
     private Path inputReport;

@@ -1,4 +1,4 @@
-package atf.api.tests.governance.documentation;
+package atf.api.testkit.documentation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -6,10 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Repeatable;
 import java.lang.annotation.Target;
 
-/**
- * Selects one project-relative README or governed Markdown document for the
- * plug-and-play documentation governance smoke test.
- */
+/** One project-relative document selected by a consumer-owned validator. */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Repeatable(DocumentationTarget.Container.class)

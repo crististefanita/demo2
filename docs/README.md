@@ -17,13 +17,13 @@ particular.
 | Nivel | Documente | Întrebarea la care răspund |
 |---|---|---|
 | hartă | `ATF_Architecture.md`, README-ul root | cine deține ce și în ce direcție curg dependențele? |
-| contract | `ATF_Reporting_Contract.md`, ghidurile de modul | ce comportament este stabil? |
+| contract | `ATF_Reporting_Contract.md`, `ATF_Reporting_Display_Contract.md`, ghidurile de modul | ce comportament semantic și ce formă vizibilă sunt stabile? |
 | evidence transversal | `ATF_Evidence_Capture_Contract.md` | cum se separă flow-ul, policy-ul, sursa și publisherul? |
 | practică | `README_Atf_BestPractices.md` | cum adăugăm cod fără drift? |
 | testare | `ATF_Testing_Guide.md` | ce layer, modul și proof aleg pentru un comportament? |
 | design propus | `ATF_AI_Evaluation_Design.md` | ce boundary și contract țintă discutăm, fără a le declara livrate? |
 | execuție | `ATF_Build_And_Execution_Safety.md` | cum lucrăm fără să oprim run-uri? |
-| feedback | `feedback/README.md` și documentele active pe owner | ce gap observabil rămâne? |
+| feedback / guvernanță | `feedback/README.md`, documentele active pe owner și `ATF_Test_Changes_Baseline.md` | ce gap observabil, regulă sau control tehnic de tranziție rămâne? |
 
 Indexul păstrează harta; detaliile sunt în documentul ownerului și cresc în
 specificitate pe măsură ce coborâm în pagină.
@@ -58,7 +58,7 @@ flowchart LR
 |---|---|
 | Orientare și ownership | [Arhitectură](ATF_Architecture.md) · [README root](../README.md) |
 | Scriere și stratificarea testelor | [Ghid de testare](ATF_Testing_Guide.md) · [Ghid API](ATF_Api_Test_Guide.md) · [Bune practici de cod](README_Atf_CodeBestPractices.md) |
-| Reporting și evidence | [Contract reporting](ATF_Reporting_Contract.md) · [Contract evidence](ATF_Evidence_Capture_Contract.md) · [README reporting](../atf-reporting/README.md) |
+| Reporting și evidence | [Contract reporting](ATF_Reporting_Contract.md) · [Contract display/layout](ATF_Reporting_Display_Contract.md) · [Contract evidence](ATF_Evidence_Capture_Contract.md) · [README reporting](../atf-reporting/README.md) |
 | Consumatori și guvernanță | [Practice Shop](../atf-test-practice-shop/README.md) · [ATF Tests](../atf-tests/README.md) · [registrul feedback](feedback/README.md) |
 | Design și implementare AI | [Design de referință](ATF_AI_Evaluation_Design.md) · [comparator implementat](../atf-validation/README.md#comparatorul-ai--contract-implementat) · [gap-uri active](feedback/README_AI_Evaluation.md) |
 | Contribuție și operare | [Siguranța build-ului](ATF_Build_And_Execution_Safety.md) · [Bune practici ATF](README_Atf_BestPractices.md) · [Bune practici documentație](README_Atf_DocumentationBestPractices.md) |
@@ -98,17 +98,21 @@ Indexul complet și ordinea detaliată rămân disponibile la cerere:
     transversal pentru flow mode, screenshot policy, source și testare pe niveluri.
 16. [ATF_Reporting_Contract.md](ATF_Reporting_Contract.md) — arborele Extent,
    evidence-ul, guardul de referință și regulile de randare.
-17. [ATF_Build_And_Execution_Safety.md](ATF_Build_And_Execution_Safety.md) —
+17. [ATF_Reporting_Display_Contract.md](ATF_Reporting_Display_Contract.md) —
+    ierarhia vizibilă, layout, disclosure-uri, viewport și dovada browser.
+18. [ATF_Build_And_Execution_Safety.md](ATF_Build_And_Execution_Safety.md) —
    build, sincronizare și validare fără oprirea execuțiilor existente.
-18. [README_Atf_BestPractices.md](README_Atf_BestPractices.md) — indexul regulilor;
+19. [README_Atf_BestPractices.md](README_Atf_BestPractices.md) — indexul regulilor;
    [README_Atf_CodeBestPractices.md](README_Atf_CodeBestPractices.md) pentru cod,
    OOP și testare; [README_Atf_DocumentationBestPractices.md](README_Atf_DocumentationBestPractices.md)
    pentru structură, diagrame și lizibilitate.
-19. [ATF_Testing_Guide.md](ATF_Testing_Guide.md) — alegerea layer-ului, matricea
+20. [ATF_Testing_Guide.md](ATF_Testing_Guide.md) — alegerea layer-ului, matricea
     module × layer și dovada potrivită pentru UI/API și raportare.
-20. [feedback/README.md](feedback/README.md) — ToDo active, criterii de închidere
+21. [feedback/README.md](feedback/README.md) — ToDo active, criterii de închidere
     și registrul de ownership pentru API, UI și reporting.
-21. [ATF_AI_Evaluation_Design.md](ATF_AI_Evaluation_Design.md) — modelele țintă și
+22. [ATF_Test_Changes_Baseline.md](ATF_Test_Changes_Baseline.md) — controale
+    tehnice `VERIFIED` de tranziție, separate de cerințele funcționale.
+23. [ATF_AI_Evaluation_Design.md](ATF_AI_Evaluation_Design.md) — modelele țintă și
     deciziile de boundary pentru AI evaluation/workflow; design propus, nu inventar de funcționalități livrate.
 
 </details>

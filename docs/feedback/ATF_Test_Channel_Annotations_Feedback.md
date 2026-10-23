@@ -2,7 +2,7 @@
 
 ## Pe scurt
 
-- **Analiză și propunere, nu implementare:** o adnotare reutilizabilă selectează canalul; adaptorul consumerului îi aplică obligatoriu contractul.
+- **Implementat parțial și probat:** TestKit rezolvă canalul typed; adaptoarele Shop îl validează înaintea resurselor, iar E2E Reporting declară canalul UI. Matricea completă de evidence/verdict rămâne deschisă mai jos.
 - **Trei valori:** `UI`, `API`, `UI_API`; nivelul unit/component/integration/E2E rămâne o axă separată.
 - **Raportare standard:** UI păstrează acțiuni, observații, assertions și capturi; API păstrează exchange-uri și contracte locale; UI+API le corelează și include Network Inspector.
 
@@ -17,7 +17,12 @@ rezultate locale prin noua selecție; abaterile cunoscute se corectează explici
 nu se conservă sub numele de compatibilitate. Numerele de câmpuri, acțiuni și
 assertions sunt calculate din fixture, nu fixate după o captură.
 
-## Ce confirmă sursele live
+## Inventarul inițial și diferența rămasă
+
+Tabelul următor descrie punctul de plecare înainte de implementare. Pentru
+starea actuală verificată folosește matricea ToDo de mai jos: rezolvarea
+canalului și preflight-ul Shop au fost adăugate; gaps precum verdictul local,
+cauzalitatea și aliasul legacy nu au dispărut prin simpla adnotare.
 
 <details>
 <summary>Inventar verificabil: implementare, acoperire existentă și lacună</summary>
@@ -46,7 +51,7 @@ sunt puncte de extindere, nu dovada că noile adnotări funcționează deja.
 
 ## Declarația recomandată și axele independente
 
-Propunerea minimă este `AtfTestChannel` + enum-ul `TestChannel`, în
+Contractul implementat este `AtfTestChannel` + enum-ul `TestChannel`, în
 `atf.api.testkit.channel`. Nu introducem trei extensii complete sau booleene
 `ui.enabled` / `api.enabled` care pot genera combinații contradictorii.
 
@@ -65,7 +70,7 @@ class ShopPurchaseE2eTest {
 }
 ```
 
-Exemplul descrie API-ul țintă; importurile `channel` nu există încă.
+Exemplul folosește API-ul implementat în TestKit.
 `WithE2eHarness` rămâne adaptor Shop, nu devine parte din TestKit.
 La migrare, parametrul său `profile` nu mai constituie o a doua selecție activă.
 
@@ -206,15 +211,15 @@ flowchart LR
 
 ## ToDo-uri și ordine de implementare
 
-| Prioritate / ID | Owner | Rezultat și criteriu de închidere |
+| Prioritate / ID | Stare | Rezultat verificat / rest |
 |---|---|---|
-| P1 — KIND-01 | TestKit | declarație/resolver/plan neutru, cu matrice de compoziție și fake consumer; niciun import Core/UI/Reporting |
-| P1 — KIND-02 | Practice Shop | adaptoarele UI și API aplică planul înainte de IO; API-only nu deschide browser; vechile profiluri au migrare explicită și paritate semantică |
-| P1 — KIND-03 | TestKit + consumer | contracte plug-and-play și capabilități necesare; selecție goală/necunoscută, adaptor absent și lipsă contract sunt diagnosticate, fără PASS inventat |
-| P1 — KIND-04 | ATF UI + Shop | UI+API cere inspector sigur, binding cauzal și un aggregate terminal; probe de completitudine, scope, timeout, lipsă apel și failure |
-| P1 — KIND-05 | Reporting + Reporting Tests | standardul de display al celor trei canale este probat prin componente și MCP; depinde de API-06/API-04/GOV-API-01, nu le dublează implementarea |
-| P2 — KIND-06 | ATF Tests + TestKit | guard structural, participarea matricei și launcher individual/suită, inclusiv disabled/aborted/concurență; fără relaxarea gate-urilor |
-| P2 — KIND-07 | Ownerii README-urilor | după probe, documentează API-ul implementat, precedence și exemplele portabile; elimină numai ToDo-urile demonstrate |
+| P1 — KIND-01 | Închis pentru contractul neutru | `AtfTestChannelResolverTest`: UI/API/UI_API, direct/meta/superclass, override, dedup, conflict, ciclu meta și excluderea interfeței/enclosing; fake consumer refuză adaptorul nesuportat înainte de IO. TestKit nu importă Core/UI/Reporting. |
+| P1 — KIND-02 | Parțial | Shop E2E și API audit consumă planul în `beforeEach`; API nu deschide browser. Rămâne migrarea explicită a aliasului YAML legacy `api → UI_API` și paritatea semantică a tuturor profilurilor. |
+| P1 — KIND-03 | Parțial | Preflight respinge UI_API fără binding/inspector/allowlist și API în harness UI; lipsa contractelor per exchange și fiecare selecție necunoscută cer probe distincte. |
+| P1 — KIND-04 | Parțial | Inspectorul dezactivat ori neallowlisted este refuzat înainte de browser. Causalitate, aggregate terminal și diagnosticele de completitudine rămân la API-04 / Shop. |
+| P1 — KIND-05 | Parțial | Raport UI nou și raport API component au fost deschise prin MCP; JSON, disclosure, Categories/Fails/Overview și 960 px verificate. Paritatea Extent/fallback și verdictul local API-06 nu sunt închise aici. |
+| P2 — KIND-06 | Deschis | Lipsește guard structural complet și matricea individual/suită/disabled/aborted/concurență; guvernanța existentă a trecut în staging, dar nu demonstrează toate cazurile noi. |
+| P2 — KIND-07 | Amânat conform scope-ului | Documentăm starea în feedback; utilizatorul a limitat editările README normative. |
 
 <details>
 <summary>Dependențe și criterii operaționale</summary>
@@ -229,5 +234,6 @@ flowchart LR
 
 </details>
 
-În această etapă se colectează analiza și criteriile: nu se schimbă Java,
-configurația, testele, comportamentul Shop sau raportul deja generat.
+Implementarea a modificat Java și testele în staging extern. Nu a schimbat
+rendererul ori raportul istoric; a generat rapoarte noi pentru probe. E2E Shop
+live pe site extern nu a fost rulat și nu este implicat de probele locale.

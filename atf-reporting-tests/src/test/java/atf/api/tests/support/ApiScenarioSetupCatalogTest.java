@@ -1,8 +1,8 @@
 package atf.api.tests.support;
 import atf.api.testkit.AtfUnitTest;
 import atf.api.core.testing.api.ApiScenarioSelection;
-import atf.api.core.testing.api.ApiScenarioSetup;
-import atf.api.core.testing.api.ApiTestRef;
+import atf.api.testkit.setup.api.ApiScenarioSetup;
+import atf.api.testkit.setup.api.ApiTestRef;
 import atf.api.tests.support.setup.ApiScenarioSetupCatalog;
 
 import atf.api.tests.api.posts.PostsApiScenarios;

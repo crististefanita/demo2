@@ -1,33 +1,38 @@
 # ATF Test Infrastructure — adnotări reutilizabile și directoare de raport
 
-Analiză pe codul live; mutările și adnotarea nouă nu sunt implementate.
-Ținta este reutilizarea contractelor test-only, fără dependențe de renderer,
-browser, aplicație sau de structura unui singur proiect.
+Contractele neutre de output, setup API și documentație sunt implementate în
+TestKit și consumate de Reporting Tests / guvernanță. Build-ul și gate-urile au
+rulat în staging extern; promovarea în live și probele de mediu rămân urmărite
+separat. TestKit nu depinde de renderer, browser sau aplicația Shop.
 
-## Cerințe deschise
+## Stare și probe
 
-| Prioritate / ID | Owner | De făcut | Criteriu de închidere |
-|---|---|---|---|
-| P1 — ANN-OUTPUT-01 | TestKit + Reporting Tests | Extrage `UiReportSubdirectory` și politica neutră de rezolvare | Același comportament existent, consumabil fără clase din Reporting Tests |
-| P1 — ANN-PROJECT-02 | TestKit + Reporting Tests | Adaugă `ProjectRelativeUiReportDirectory` și folosește-o în E2E Reporting | Calea este relativă la proiect, identică în Maven și IntelliJ |
-| P2 — ANN-SETUP-03 | TestKit + Core + Reporting Tests | Mută declarațiile generice `ApiScenarioSetup` / `ApiTestRef` din Core | Fără consumator main dependent de TestKit; selecția exactă rămâne neschimbată |
-| P2 — ANN-DOC-04 | TestKit + guvernanță | Extrage declarația `DocumentationTarget`, inclusiv containerul repeatable | Validatorii și selecția documentelor rămân în guvernanță |
-| P2 — ANN-BOUNDARY-05 | TestKit + ownerii adnotărilor | Decide extracțiile condiționate și ownership-ul extensiilor | Fără ciclu Maven, contract de domeniu mutat sau side-effect ascuns |
+| ID | Stare verificată | Dovadă / limită |
+|---|---|---|
+| ANN-OUTPUT-01 | Implementat în staging | `ReportOutputDirectoryTest`, `UiReportSubdirectoryTest`: ancoră UI, absență, compoziție, moștenire, conflicte și căi invalide; consumer neutru fără Reporting Tests. |
+| ANN-PROJECT-02 | Implementat în staging | Cele șase E2E Reporting folosesc `ProjectRelativeUiReportDirectory`; E2E local a produs fișierul sub rădăcina proiectului de staging. IntelliJ cu alt working directory nu a fost probat direct. |
+| ANN-SETUP-03 | Implementat în staging | Declarațiile JDK-only sunt în TestKit; catalogul și selecția exactă rămân în Reporting Tests. `ApiScenarioSetupCatalogTest` și `ApiScenarioManifestTest` verzi. |
+| ANN-DOC-04 | Implementat în staging | Declarația repeatable și containerul sunt în TestKit; validatorul rămâne în ATF Tests. `WholeAtfGovernanceSuiteTest` verde. |
+| ANN-BOUNDARY-05 | Decizie aplicată parțial | `AtfModuleTest`, adnotările Reporting, auth și harness-ul Shop rămân la ownerii lor; graful Maven a compilat. Nu am introdus un SPI nou fără doi consumatori reali. |
 
-Starea se schimbă numai după probele de mai jos. Acest fișier este ownerul
-unic al extracției transversale; feedback-ul Reporting doar trimite aici.
+Acest fișier este ownerul unic al extracției transversale; feedback-ul
+Reporting doar trimite aici. Probele de symlink/junction pe Windows au fost
+omise de runner când privilegiul de creare lipsește; implementarea verifică
+strămoșii existenți prin real-path, dar acea probă cere și un runner privilegiat.
+Perimetrele tehnice sunt centralizate în [registrul activ](ATF_Test_Changes_Feedback.md)
+și [registrul verificat](../ATF_Test_Changes_Baseline.md); un path schimbat are
+un singur owner eligibil pentru baza și data gate-ului.
 
 Canalele executabile `UI`, `API` și `UI_API`, aplicarea lor prin adaptoare și
 matricea de probe sunt analizate separat în
 [feedback-ul adnotărilor de canal](ATF_Test_Channel_Annotations_Feedback.md).
 Ele nu schimbă ancora output-ului sau ownership-ul setup-ului descris aici.
 
-## Ce arată codul actual
+## Situația codului după extracție
 
-- [Adnotarea output](../../atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/config/output/UiReportSubdirectory.java) este o declarație JDK-only, dar există numai în sursele de test ale unui consumer.
-- [Resolverul actual](../../atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/config/output/UiReportOutputDirectory.java) ancorează valoarea în directorul UI primit, nu în proiect; verifică normalizarea și containment-ul lexical.
+- [Adnotările output](../../atf-test-kit/src/main/java/atf/api/testkit/output/UiReportSubdirectory.java) și [resolverul neutru](../../atf-test-kit/src/main/java/atf/api/testkit/output/ReportOutputDirectory.java) sunt în TestKit. `UiReportSubdirectory` păstrează ancora UI; `ProjectRelativeUiReportDirectory` folosește rădăcina proiectului.
 - [Composition root-ul](../../atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/config/ReportingTestResources.java) descoperă rădăcina prin markerul specific `atf-reporting/pom.xml` și impune apoi directorul standard UI, după încărcarea YAML.
-- [Testele existente](../../atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/config/output/UiReportSubdirectoryTest.java) protejează subdirectorul, absența adnotării și respingerea valorilor goale, absolute sau cu traversal; nu dovedesc încă ancora project-relative, moștenirea ori symlink-urile.
+- [Testele consumerului](../../atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/config/output/UiReportSubdirectoryTest.java) și [ale kit-ului](../../atf-test-kit/src/test/java/atf/api/testkit/output/ReportOutputDirectoryTest.java) probează ambele ancore, compoziția, moștenirea și respingerea căilor invalide. Cazul symlink a fost SKIP pe runnerul Windows fără privilegiu.
 - Kit-ul nu depinde acum de alte module ATF; [Core](../../atf-core/pom.xml) îl consumă în test scope, iar [Reporting](../../atf-reporting/pom.xml) este o librărie standalone independentă.
 
 ### Inventarul adnotărilor și decizia de ownership
@@ -38,10 +43,10 @@ Ele nu schimbă ancora output-ului sau ownership-ul setup-ului descris aici.
 | Adnotare / familie | Owner actual | Decizie propusă și limită |
 |---|---|---|
 | `AtfUnitTest`, `AtfComponentTest`, `AtfIntegrationTest`, `AtfE2eTest` | TestKit | Sunt deja generice; se păstrează, fără adnotări noi care dublează layer-ele |
-| `UiReportSubdirectory` | Reporting Tests, `support.config.output` | Mutare în TestKit împreună cu rezolvarea neutră; aceeași ancoră UI |
-| `ProjectRelativeUiReportDirectory` | Nu există | Contract distinct, în TestKit; ancoră în proiect, folosit explicit de E2E Reporting |
-| `ApiScenarioSetup`, `ApiTestRef` | [Core / testing.api](../../atf-core/src/main/java/atf/api/core/testing/api/ApiScenarioSetup.java) | Candidați direcți pentru TestKit; consumatorii găsiți sunt în testele Reporting, nu în runtime-ul Core |
-| `DocumentationTarget`, `DocumentationTarget.Container` | [Guvernanță](../../atf-tests/src/test/java/atf/api/tests/governance/documentation/DocumentationTarget.java) | Declarația JDK-only este reutilizabilă; validatorii și documentele selectate nu se mută în kit |
+| `UiReportSubdirectory` | TestKit, `output` | Mutată cu rezolvarea neutră; aceeași ancoră UI |
+| `ProjectRelativeUiReportDirectory` | TestKit, `output` | Contract distinct, ancoră în proiect, folosit explicit de E2E Reporting |
+| `ApiScenarioSetup`, `ApiTestRef` | [TestKit / setup.api](../../atf-test-kit/src/main/java/atf/api/testkit/setup/api/ApiScenarioSetup.java) | Declarații neutre mutate din Core; catalogul concret rămâne în Reporting Tests |
+| `DocumentationTarget`, `DocumentationTarget.Container` | [TestKit / documentation](../../atf-test-kit/src/main/java/atf/api/testkit/documentation/DocumentationTarget.java) | Declarație repeatable mutată; validatorii și documentele selectate rămân în guvernanță |
 | `AtfModuleTest` + `AtfModuleTestCondition` | [Reporting Tests](../../atf-reporting-tests/src/test/java/atf/api/reporting/test/AtfModuleTest.java) | Candidat condiționat: importă `AtfModule` și loaderul Core; nu se mută mecanic în kit |
 | `UiExtentSectionAudit`, `UiExtentReportContract`, `UiFailureReportAudit` | Reporting, contract public | Rămân în Reporting: secțiuni, tab-uri, checks și surfaces sunt vocabularul librăriei, nu al platformei test-only |
 | `ShopPageContract` | Practice Shop, main | Rămâne local: depinde de `ShopScreen` și `ShopControl`, fiind contract al paginilor aplicației |
@@ -67,7 +72,7 @@ relativitatea și faptul că valoarea este un director de output UI, nu un fiși
 | Fără adnotare | politica implicită/configurată a consumerului | Comportamentul existent, fără relocare incidentală |
 | Ambele pe același nivel de declarație | Ambiguu | Eroare explicită înainte de publicare |
 
-Exemplu de migrare dorită pentru E2E Reporting, nu API disponibil astăzi:
+Exemplu folosit de E2E Reporting:
 
 ```java
 @AtfE2eTest
@@ -158,14 +163,12 @@ se întâmplă să indice același director.
 
 </details>
 
-- [ ] ANN-OUTPUT-01: extrage declarația și politica neutră; consumerul păstrează numai adaptorul către `UiConfiguration`.
-- [ ] ANN-PROJECT-02: definește captura rădăcinii și precedence-ul, apoi migrează clasele E2E Reporting la adnotarea nouă.
-- [ ] ANN-SETUP-03: verifică din nou toate referințele main/test și migrează declarațiile fără un catalog API ascuns în kit.
-- [ ] ANN-DOC-04: mută doar declarația repeatable, cu actualizarea importurilor și probe pentru aceiași validatori.
-- [ ] ANN-BOUNDARY-05: păstrează explicit ce rămâne Reporting/Shop și motivează orice SPI nou pentru module.
-- [ ] Înaintea modificării testelor: înregistrează scope-uri `testChanges` cu path-uri exacte, baseline, expirare, proof și `allowDelete` unde se mută fișiere; nu dubla ownerii eligibili existenți.
-- [ ] Build și teste numai în staging extern; reconciliază sursele live înaintea promovării, fără oprirea rulărilor paralele.
-- [ ] După probe și MCP, promovează contractul implementat în README-urile TestKit/Reporting Tests și elimină numai ToDo-urile demonstrate.
-
-Această analiză nu modifică adnotări, POM-uri, teste sau gate-uri și nu
-înregistrează anticipat o autorizare executabilă pentru schimbări de teste.
+- [x] ANN-OUTPUT-01: declarația și resolverul neutru sunt în TestKit; consumerul păstrează adaptorul către `UiConfiguration`.
+- [x] ANN-PROJECT-02: E2E Reporting folosesc ancora explicită în proiect; E2E local a produs raportul în directorul declarat.
+- [x] ANN-SETUP-03: declarațiile sunt mutate fără catalog sau mock în kit.
+- [x] ANN-DOC-04: declarația repeatable este mutată, iar guvernanța a trecut.
+- [x] ANN-BOUNDARY-05: ownership-ul contractelor Reporting/Shop rămâne local, fără SPI nou și fără ciclu Maven.
+- [x] Scope-urile `testChanges` au baseline, expirare, proof și `allowDelete` pentru mutări; governance gate a trecut în staging.
+- [x] Build și teste în staging extern, fără oprirea rulărilor; raportul a fost deschis și inspectat prin MCP.
+- [ ] Probă symlink/junction pe runner Windows privilegiat și launcher IntelliJ cu working directory diferit.
+- [ ] Promovarea normativă în README-urile modulelor este în afara acestui task: utilizatorul a limitat editările documentației la feedback. Nu rescriem README-urile fără instrucțiune nouă.

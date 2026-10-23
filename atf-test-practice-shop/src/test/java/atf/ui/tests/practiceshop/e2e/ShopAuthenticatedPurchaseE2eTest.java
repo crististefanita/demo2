@@ -1,6 +1,8 @@
 package atf.ui.tests.practiceshop.e2e;
 
 import atf.api.testkit.AtfE2eTest;
+import atf.api.testkit.channel.AtfTestChannel;
+import atf.api.testkit.channel.TestChannel;
 import atf.ui.practiceshop.flow.ShopPurchaseFlow;
 import atf.ui.tests.practiceshop.support.ShopAuthenticatedAccountTestSupport;
 import atf.ui.tests.practiceshop.support.ShopE2eTestSupport;
@@ -17,6 +19,7 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
         accountFile = "atf-test-practice-shop/src/test/resources/"
                 + "practice-software-testing-account.local.properties")
 @AtfE2eTest
+@AtfTestChannel(TestChannel.UI_API)
 @ShopE2eTestSupport.WithE2eHarness
 @Execution(ExecutionMode.SAME_THREAD)
 @Order(2)

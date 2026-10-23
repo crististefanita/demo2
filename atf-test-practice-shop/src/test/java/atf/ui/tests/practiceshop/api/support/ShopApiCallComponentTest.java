@@ -1,6 +1,8 @@
 package atf.ui.tests.practiceshop.api.support;
 
 import atf.api.testkit.AtfComponentTest;
+import atf.api.testkit.channel.AtfTestChannel;
+import atf.api.testkit.channel.TestChannel;
 import atf.ui.tests.practiceshop.api.reporting.ShopApiCallAuditTestSupport;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,6 +16,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @AtfComponentTest
+@AtfTestChannel(TestChannel.API)
 @Tag("api-call")
 @ExtendWith(ShopApiCallAuditTestSupport.class)
 public @interface ShopApiCallComponentTest { }

@@ -62,10 +62,12 @@ final class TestChangePolicy {
                     .filter(request -> !change.kind().equals("D") || request.allowDelete()).toList();
             if (eligible.isEmpty()) {
                 violations.add("TEST-CHANGE-REQUIRED " + change.kind() + " " + change.path()
-                        + ": add an ACTIVE/VERIFIED testChanges ToDo under docs/feedback with this exact path,"
+                        + ": add an ACTIVE testChanges control in docs/feedback/ATF_Test_Changes_Feedback.md"
+                        + " or an eligible VERIFIED change control in "
+                        + "docs/ATF_Test_Changes_Baseline.md with this exact path,"
                         + " base=" + base + ", unexpired date, reason and proof; deletions require allowDelete: true");
             } else if (eligible.size() > 1) {
-                violations.add("TEST-CHANGE-AMBIGUOUS " + change.path() + ": multiple eligible ToDo owners "
+                violations.add("TEST-CHANGE-AMBIGUOUS " + change.path() + ": multiple eligible change controls "
                         + eligible.stream().map(TestChangeRequest::id).toList());
             }
         }

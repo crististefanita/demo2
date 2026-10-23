@@ -1,8 +1,8 @@
 package atf.ui.tests.extent.component.plan;
 
 import atf.api.core.testing.api.ApiScenarioSelection;
-import atf.api.core.testing.api.ApiScenarioSetup;
-import atf.api.core.testing.api.ApiTestRef;
+import atf.api.testkit.setup.api.ApiScenarioSetup;
+import atf.api.testkit.setup.api.ApiTestRef;
 import atf.api.mock.AtfMockConfiguration;
 import atf.api.reporting.audit.ReportAuditSnapshot;
 import atf.api.reporting.contract.AtfReportStatus;
