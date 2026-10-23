@@ -38,6 +38,7 @@ public final class ExtentReportTree {
     private final ExtentEvidenceRenderer evidence;
     private final Runnable ensureSessionOpen;
     private final AtfConsoleSink console;
+    private final LifecycleStartProbe startProbe;
     private final AtfReportSemanticRecorder semantic = new AtfReportSemanticRecorder();
     private final Map<String, ExtentTest> classRoots = new LinkedHashMap<>();
     private final Map<String, ReportStatusAggregator> classStatuses = new LinkedHashMap<>();
@@ -59,12 +60,21 @@ public final class ExtentReportTree {
                             SensitiveDataRedactor redactor, Runnable ensureSessionOpen,
                             AtfConsoleSink console,
                             ReportUiActionDetailsMode detailsMode) {
+        this(reports, settings, redactor, ensureSessionOpen, console, detailsMode,
+                LifecycleStartProbe.noOp());
+    }
+
+    ExtentReportTree(ExtentReports reports, ReportingSettings settings,
+                     SensitiveDataRedactor redactor, Runnable ensureSessionOpen,
+                     AtfConsoleSink console, ReportUiActionDetailsMode detailsMode,
+                     LifecycleStartProbe startProbe) {
         this.reports = reports;
         this.settings = settings;
         this.redactor = redactor;
         this.evidence = new ExtentEvidenceRenderer(settings, redactor, detailsMode);
         this.ensureSessionOpen = ensureSessionOpen;
         this.console = console == null ? AtfConsoleSink.noOp() : console;
+        this.startProbe = startProbe;
     }
 
     public AtfReportPorts.Scenario startScenario(String testClass, String scenario,
@@ -80,21 +90,71 @@ public final class ExtentReportTree {
         List<String> normalizedTags = ReportTagNormalizer.normalize(tags);
         String className = testClass == null || testClass.isBlank() ? "API tests" : testClass;
         String packageName = testPackage == null ? "" : testPackage.trim();
-        ExtentTest classRoot = classRoots.computeIfAbsent(className, ignored -> {
-            ExtentTest root = reports.createTest(className);
-            if (!packageName.isBlank()) root.getModel().setDescription(packageName);
-            ExtentNodeLifecycle.start(root);
-            return root;
-        });
-        if (!packageName.isBlank()) classPackages.putIfAbsent(className, packageName);
-        classStatuses.computeIfAbsent(className, ignored -> new ReportStatusAggregator());
-        ExtentTest test = classRoot.createNode(scenario == null ? "Scenario" : scenario);
-        ExtentNodeLifecycle.start(test);
-        if (!normalizedTags.isEmpty()) test.assignCategory(normalizedTags.toArray(String[]::new));
-        consoleStarted(AtfConsoleEvent.Scope.SCENARIO,
-                className + " :: " + (scenario == null ? "Scenario" : scenario));
-        return new ExtentScenarioScope(this, test, className,
-                semantic.startScenario(className, packageName, scenario, normalizedTags));
+        boolean newRoot = !classRoots.containsKey(className);
+        ExtentTest classRoot = null;
+        ExtentTest test = null;
+        try {
+            classRoot = classRoots.get(className);
+            if (classRoot == null) {
+                classRoot = reports.createTest(className);
+                if (!packageName.isBlank()) classRoot.getModel().setDescription(packageName);
+                ExtentNodeLifecycle.start(classRoot);
+                classRoots.put(className, classRoot);
+            }
+            test = classRoot.createNode(scenario == null ? "Scenario" : scenario);
+            ExtentNodeLifecycle.start(test);
+            if (!normalizedTags.isEmpty()) test.assignCategory(normalizedTags.toArray(String[]::new));
+            if (!packageName.isBlank()) classPackages.putIfAbsent(className, packageName);
+            classStatuses.computeIfAbsent(className, ignored -> new ReportStatusAggregator());
+            startProbe.beforeScenarioSemantic();
+            var semanticScenario = semantic.startScenario(className, packageName, scenario, normalizedTags);
+            consoleStarted(AtfConsoleEvent.Scope.SCENARIO,
+                    className + " :: " + (scenario == null ? "Scenario" : scenario));
+            return new ExtentScenarioScope(this, test, className, semanticScenario);
+        } catch (RuntimeException | Error failure) {
+            rollbackScenarioStart(className, newRoot, classRoot, test, failure);
+            throw failure;
+        }
+    }
+
+    private void rollbackScenarioStart(String className, boolean newRoot,
+                                       ExtentTest classRoot, ExtentTest test, Throwable failure) {
+        if (classRoot != null && test != null) {
+            try {
+                if (!classRoot.getModel().getChildren().remove(test.getModel())) {
+                    throw new IllegalStateException("Extent scenario was not attached to its class root");
+                }
+            } catch (RuntimeException | Error rollbackFailure) {
+                failure.addSuppressed(rollbackFailure);
+            }
+        }
+        if (newRoot && classRoot != null) {
+            try {
+                if (classRoot.getModel().getChildren().isEmpty()) {
+                    reports.removeTest(classRoot);
+                    classRoots.remove(className);
+                    classStatuses.remove(className);
+                    classPackages.remove(className);
+                }
+            } catch (RuntimeException | Error rollbackFailure) {
+                failure.addSuppressed(rollbackFailure);
+            }
+        }
+    }
+
+    /** Invoked by the phase scope immediately before recording its semantic peer. */
+    public void beforePhaseSemantic(ExtentTest phase) { startProbe.beforePhaseSemantic(phase); }
+
+    /** Removes a phase whose start did not return a usable handle. */
+    public void rollbackPhaseStart(ExtentTest scenario, ExtentTest phase, Throwable failure) {
+        if (phase == null) return;
+        try {
+            if (!scenario.getModel().getChildren().remove(phase.getModel())) {
+                throw new IllegalStateException("Extent phase was not attached to its scenario");
+            }
+        } catch (RuntimeException | Error rollbackFailure) {
+            failure.addSuppressed(rollbackFailure);
+        }
     }
 
     public void completeClassRoots() {

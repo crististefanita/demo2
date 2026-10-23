@@ -78,9 +78,10 @@ src/main/java/atf/ui/practiceshop
 src/test/java/atf/ui/tests/practiceshop
 ├── e2e/          composition roots pentru journey-uri reale
 ├── suites/       selecția și ordinea suitei
-├── component/    config, catalog, evidence, purchase și architecture guards
+├── component/    config, catalog, evidence, purchase și adaptoare Shop
 ├── api/
-│   ├── component/{contract,exchange,auth,reporting}
+│   ├── component/{contract,exchange,lifecycle,reporting}
+│   ├── unit/{auth,contract,exchange,reporting}
 │   ├── integration/  API live opt-in
 │   ├── network/      observație UI și settlement controlat
 │   ├── reporting/    auditul exchange-urilor de componentă
@@ -128,9 +129,10 @@ modelul UI din `atf-core` către DTO-ul renderer-neutral din `atf-reporting`;
 maparea efectivă rămâne centralizată în `ReportModelAdapters`. Nu este un
 renderer Shop și nu justifică mutarea în `atf-test-kit` sau un modul nou.
 
-Plasarea adaptorului Console–Reporting este încă în reconciliere cu guvernanța
-whole-ATF; vezi [feedback-ul de boundary](../docs/feedback/ATF_Consumer_Test_Architecture_Feedback.md).
-Browserul, raportarea și regulile Practice Shop nu sunt promovate în Test Kit.
+Compoziția test-scoped transmite câmpurile evenimentului Reporting către
+`AtfConsoleEvent.fromExternalEnums(...)` din Core, apoi publică în sink-ul
+configurat; Console nu depinde de Reporting. Compatibilitatea vocabularelor
+este probată în Reporting Tests, iar browserul și regulile Shop rămân locale.
 
 </details>
 
@@ -270,9 +272,9 @@ Registration este o mutație remote; nu se reîncearcă automat și contul nu es
 |---|---|
 | Profilul scenariului | `ShopE2eContext` transmite profilul rezolvat la publicarea în sesiunea comună; config-ul furnizează baza, iar adnotarea poate suprascrie axele declarate. |
 | Izolarea scenariilor-surori | Probată generic în `atf-reporting-tests`; `ShopE2eContextEvidenceProfileTest` verifică override-ul peste YAML, dar nu publică doi frați cu profile diferite. |
-| Agregarea fazelor | `SETUP` și `TEST BODY` rămân separate în Shop. `UNIFIED_FLOW` nu le agregă încă peste faze cu proveniența și semantica setup failure păstrate. |
+| Agregarea fazelor | În profilul `UNIFIED_FLOW`, Shop activează acumularea pe scenariu: `SETUP` și `TEST BODY` păstrează statusurile de fază, iar un singur nod Gherkin din faza terminală redă checkpoint-urile în ordine, cu provenance, assertions și API validation lângă checkpoint-ul lor. Un setup eșuat finalizează flow-ul în `SETUP`, fără `TEST BODY` sau captură terminală inventată. Profilurile `SCREEN_CHECKPOINTS` păstrează publicarea pe faze. |
 
-Gap-ul rămas și criteriul de închidere sunt urmărite în
+Verificarea vizuală rămasă și criteriul de închidere sunt urmărite în
 [SHOP-CAPTURE-01](../docs/feedback/ATF_Reporting_Feedback.md#shop-capture-01--profil-per-scenariu-și-flow-unificat-peste-faze);
 contractul generic de lifecycle și randare rămâne în [`atf-reporting`](../atf-reporting/README.md).
 
@@ -413,12 +415,17 @@ Comenzile de mai jos rulează suitele definite în `src/test`; `-am` construieș
 și modulele ATF de care depinde consumerul.
 
 `ShopComponentSuite` este gate-ul rapid agregat: include suportul consumer,
-contractele API `unit` și `component`, evidence și arhitectură, dar exclude
+contractele API `unit` și `component` și evidence, dar exclude
 journey-urile E2E și integrarea live. Pentru diagnoză API se pot rula separat
 `ShopApiUnitSuite` (logică pură, fără client/transport),
 `ShopApiComponentSuite` (client și publisher cu vecini controlați) și
 `ShopApiCallAuditSuite` (componente cu tag-ul `api-call`, prin transporturile
 lor de test).
+
+Guvernanța arhitecturii consumerului rulează separat în `atf-tests`, prin
+`ConsumerModuleArchitectureGovernanceTest`; ea nu mai este un test de business
+selectat de `ShopComponentSuite`. Suitele API sunt selecții pentru diagnoză din
+gate-ul agregat, nu acoperire suplimentară obținută prin repetarea acelorași teste.
 
 API unit contracts, fără client sau transport:
 
@@ -469,6 +476,23 @@ Izolarea request-urilor identice între scenarii este probată generic în
 Reporting; Shop păstrează aserțiunile sale asupra intențiilor și apelurilor
 distincte `/users/login`.
 
+<details>
+<summary><strong>Delimitarea probelor locale care pot fi simplificate</strong></summary>
+
+| Probă curentă | Contract care rămâne Shop | Contract deținut în alt modul |
+|---|---|---|
+| `ShopApiAuthenticationSchemaTest` | profilul și mecanismul supraviețuiesc mapperului direct și capturii din browser | etichetele HTML canonice sunt probate de `ApiAuthenticationSchemaContractTest` în Reporting Tests |
+| `ShopApiCallAuditReportComponentTest` | asocierea intenției/statusului la exchange, lipsa contractului explicit și diagnosticul auditului | retry rendering și proiecția diagnosticelor sunt probate generic în Reporting Tests |
+| `ShopApiBodyRedactionReportTest` | politica Shop pentru înregistrare/adresă, body malformed și ieșirea efectivă a adaptorului | redactarea generică și manual replay sunt probate la ownerii lor |
+| `ShopE2eFailureBoundaryTest` | publicarea unui `LinkageError` de către `ShopE2eContext` și păstrarea erorii inițiale | închiderea inversă prin `FailureAwareCleanup` este probată direct în Test Kit |
+
+Tabelul identifică ownership-ul, nu declară mutări sau ștergeri deja executate.
+Reducerea probelor mixte și dublura exactă de cleanup sunt urmărite în
+[feedback-ul consumerilor](../docs/feedback/ATF_Consumer_Business_Test_Focus_Feedback.md#consumer-proof-ownership-01--degajarea-probelor-generice).
+Un test al adaptorului rămâne necesar chiar dacă rendererul folosit are propriul gate.
+
+</details>
+
 Auditul componentelor care emit API exchanges prin transporturile lor de test:
 
 ```text
@@ -478,15 +502,21 @@ mvn -pl atf-test-practice-shop -am "-Dtest=ShopApiCallAuditSuite" "-Dsurefire.fa
 Un singur journey guest UI + API:
 
 ```text
-mvn -pl atf-test-practice-shop -am "-Dtest=ShopPurchaseE2eTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -pl atf-test-practice-shop -am "-Dtest=ShopPurchaseE2eTest" "-Dsurefire.failIfNoSpecifiedTests=false" "-Datf.practice.shop.e2e.enabled=true" test
 ```
 
-Toate cele cinci journey-uri în ordinea suitei, cu setup-urile autentificate și
+Toate cele cinci variante E2E în ordinea suitei, cu setup-urile autentificate și
 efectele remote aferente:
 
 ```text
-mvn -pl atf-test-practice-shop -am "-Dtest=ShopE2eSuite" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -pl atf-test-practice-shop -am "-Dtest=ShopE2eSuite" "-Dsurefire.failIfNoSpecifiedTests=false" "-Datf.practice.shop.e2e.enabled=true" test
 ```
+
+- `ShopUiOnlySingleFlowPurchaseE2eTest` repetă journey-ul guest UI-only cu altă
+  grupare a evidence-ului; nu reprezintă un caz business nou.
+- Suita păstrează deocamdată această variantă; criteriile pentru reducerea
+  rulării sale live sunt în
+  [feedback-ul profilelor E2E](../docs/feedback/ATF_Consumer_Business_Test_Focus_Feedback.md#consumer-e2e-profiles-01--variantele-de-evidence-și-acoperirea-business).
 
 E2E autentificat cu cont existent necesită fixture-ul local descris mai sus.
 `ShopNewAccountPurchaseE2eTest` și `ShopE2eSuite` pot crea conturi în demo-ul

@@ -3,6 +3,7 @@ package atf.ui.tests.practiceshop.support.lifecycle;
 import atf.api.console.AtfConsoleReporter;
 import atf.api.console.junit.AtfConsoleTestContext;
 import atf.api.core.diagnostics.ThrowableDiagnostics;
+import atf.api.core.ui.AtfUiActionRecord;
 import atf.api.testkit.lifecycle.FailureAwareCleanup;
 import atf.api.core.reporting.console.AtfConsoleSink;
 import atf.api.reporting.contract.AtfGherkinKeyword;
@@ -175,6 +176,17 @@ public final class ShopE2eContext implements AutoCloseable {
                 actions, failure, screenshot);
     }
 
+    static List<AtfUiActionRecord> terminalContractEvidence(
+            PlaywrightActionSequence actions, Page page, String title,
+            Collection<AtfAssertion> assertions, UiScreenValidation.Evidence screenshot) {
+        if (screenshot.hasScreenshotPayload()) {
+            return ShopAuditObservations.drainScreenContractEvidence(
+                    actions, page, title, assertions, screenshot, true);
+        }
+        ShopAuditObservations.recordScreenContract(actions, page, title, assertions, screenshot, true);
+        return actions.drain();
+    }
+
     public Page page() { return browser.page(); }
     public ShopConfiguration configuration() { return configuration; }
     public PlaywrightActionSequence actions() { return browser.newActionSequence(); }
@@ -221,8 +233,12 @@ public final class ShopE2eContext implements AutoCloseable {
     static UiExtentReportSession.UiScenario startReportScenario(
             UiExtentReportSession report, ReportEvidenceProfile evidenceProfile,
             String reportClass, String overview) {
-        return report.startScenario(reportClass, "atf.ui.tests.practiceshop", overview,
+        UiExtentReportSession.UiScenario scenario = report.startScenario(reportClass, "atf.ui.tests.practiceshop", overview,
                 List.of("ui", "e2e", "external", "practice-shop"), evidenceProfile);
+        if (evidenceProfile.flowMode() == ReportEvidenceFlowMode.UNIFIED_FLOW) {
+            scenario.unifyAcrossPhases();
+        }
+        return scenario;
     }
 
     static List<AtfAssertion> setupAssertions(ShopConfiguration configuration) {
@@ -324,7 +340,8 @@ public final class ShopE2eContext implements AutoCloseable {
             if (!setupStepPublished) {
                 throw new IllegalStateException("SETUP must publish at least one account step before it can finish");
             }
-            setupPhase.complete(status);
+            if (status == AtfReportStatus.PASS) setupPhase.complete(status);
+            else setupPhase.completeFinal(status);
             setupFinished = true;
             if (status == AtfReportStatus.PASS) {
                 body = scenario.startPhase("TEST BODY");
@@ -395,21 +412,19 @@ public final class ShopE2eContext implements AutoCloseable {
             String payload = capture(page, evidenceTitle, ReportScreenshotPolicy.CapturePoint.FINAL);
             UiScreenValidation.Evidence evidence = new UiScreenValidation.Evidence(
                     evidenceTitle, payload, !payload.isBlank());
+            var actionEvidence = ShopReportUiActionAdapters.from(
+                    terminalContractEvidence(actions, page, title, assertions, evidence));
             if (evidence.hasScreenshotPayload()) {
-                var actionEvidence = ShopReportUiActionAdapters.from(
-                        ShopAuditObservations.drainScreenContractEvidence(
-                                actions, page, title, assertions, evidence, true));
                 body.screenValidation(title, page.url(), evidence.base64Png(),
                         assertions, actionEvidence,
                         ReportScreenshotPolicy.CapturePoint.FINAL, AtfReportStatus.PASS);
             } else {
-                var actionEvidence = ShopReportUiActionAdapters.from(actions.drain());
                 body.step(AtfGherkinKeyword.THEN, title, page.url(), "", assertions,
                         actionEvidence, List.of(), ReportScreenshotPolicy.CapturePoint.FINAL,
                         AtfReportStatus.PASS);
             }
             publishNetworkInspector();
-            body.complete(AtfReportStatus.PASS);
+            body.completeFinal(AtfReportStatus.PASS);
             scenario.complete(AtfReportStatus.PASS);
             complete = true;
         }
@@ -421,7 +436,7 @@ public final class ShopE2eContext implements AutoCloseable {
         public void complete(AtfReportStatus status) {
             if (body == null) throw new IllegalStateException("TEST BODY cannot start before setup passes");
             publishNetworkInspector();
-            body.complete(status);
+            body.completeFinal(status);
             scenario.complete(status);
             complete = true;
         }
@@ -447,7 +462,7 @@ public final class ShopE2eContext implements AutoCloseable {
                         setupStepPublished = true;
                     }
                     publishSetupFailureEvidence(page, actions, failure);
-                    setupPhase.complete(AtfReportStatus.FAIL);
+                    setupPhase.completeFinal(AtfReportStatus.FAIL);
                     setupFinished = true;
                     scenario.complete(AtfReportStatus.FAIL);
                 } catch (IllegalStateException alreadyClosed) {
@@ -471,7 +486,7 @@ public final class ShopE2eContext implements AutoCloseable {
                 body.failureEvidence("external E2E failure", page.url(),
                         ShopReportUiActionAdapters.from(actions.drain()), failure, screenshot);
                 publishNetworkInspector();
-                body.complete(AtfReportStatus.FAIL);
+                body.completeFinal(AtfReportStatus.FAIL);
                 scenario.complete(AtfReportStatus.FAIL);
             } catch (IllegalStateException alreadyClosed) {
                 // A renderer may close the scenario while publishing a partial failure.

@@ -2,6 +2,7 @@ package atf.ui.autoex.page;
 
 import atf.api.reporting.contract.AtfAssertion;
 import atf.ui.autoex.config.AutoExConfiguration;
+import atf.ui.autoex.locator.AutoExRoutes;
 import atf.ui.autoex.locator.AutoExSelectors;
 import atf.ui.autoex.support.account.AutoExAccountCleanupAction;
 import atf.ui.autoex.support.account.AutoExAccountCleanupDecision;
@@ -71,6 +72,9 @@ public final class AccountPage extends AutoExPage {
     }
 
     private void deleteIfCreatedAndLoggedIn(AutoExTestAccount account) {
+        if (run.currentUrl().contains(AutoExRoutes.GOOGLE_VIGNETTE_FRAGMENT)) {
+            run.navigate(AutoExRoutes.HOME.resolve(run.configuration().baseUrl()));
+        }
         boolean creationConfirmed = accountCreationWasConfirmed();
         AutoExAccountCleanupAction action = AutoExAccountCleanupDecision.resolve(
                 creationConfirmed, visible(AutoExSelectors.CONTINUE),

@@ -34,8 +34,16 @@ public final class ExtentScenarioScope implements AtfReportPorts.Scenario {
         ensureScenarioOpen();
         String phaseName = name == null ? "" : name;
         tree.consoleStarted(atf.api.reporting.console.AtfConsoleEvent.Scope.PHASE, phaseName);
-        return new ExtentPhaseScope(tree, this, test.createNode(phaseName), phaseName,
-                semantic.startPhase(phaseName));
+        ExtentTest phase = null;
+        try {
+            phase = test.createNode(phaseName);
+            tree.beforePhaseSemantic(phase);
+            return new ExtentPhaseScope(tree, this, phase, phaseName,
+                    semantic.startPhase(phaseName));
+        } catch (RuntimeException | Error failure) {
+            tree.rollbackPhaseStart(test, phase, failure);
+            throw failure;
+        }
     }
 
     @Override public void complete(AtfReportStatus status) {

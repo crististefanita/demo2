@@ -67,27 +67,16 @@ Fiecare clasă executabilă declară exact un nivel:
 | `atf.api.testkit.evidence` | `AtfUiEvidence`, `AtfUiEvidenceFlow`, `AtfUiScreenshotPolicy` | declară independent gruparea flow-ului și intenția capturilor; adaptorii consumer le mapează în profilul Reporting |
 | `atf.api.testkit.lifecycle` | `FailureAwareCleanup`, `FailureEvidenceCleanup`, `AtfE2eActivationPolicy` | primitive test-only pentru cleanup sigur și decizia neutră de activare E2E; fără API UI/Reporting |
 
-`FailureAwareCleanup` păstrează prima eroare, atașează erorile ulterioare ca
-`suppressed`, încearcă toate etapele și închide resursele în ordine inversă.
-`FailureEvidenceCleanup` capturează failure evidence înaintea cleanup-ului care
-poate schimba pagina și încearcă apoi cleanup, diagnostic și close. Consumerul
-deține resursele și callback-urile; kit-ul deține numai ordonarea generică.
-Contractele sunt probate de `FailureAwareCleanupTest` și
-`FailureEvidenceCleanupTest`.
+| Contract | Comportament și probă |
+|---|---|
+| Cleanup | `FailureAwareCleanup` încearcă toate etapele, păstrează prima eroare și atașează restul ca `suppressed`; resursele se închid invers. |
+| Failure evidence | `FailureEvidenceCleanup` capturează înaintea cleanup-ului care poate schimba pagina; consumerul deține callback-urile. Ambele primitive sunt probate în `FailureAwareCleanupTest`. |
+| Activare | `AtfE2eActivationPolicy`: override JVM → opt-in configurat → fallback IDE → dezactivare; extensiile citesc semnalele, iar `AtfE2eActivationPolicyTest` verifică precedența și respingerea valorilor invalide. |
+| Integrare | Guvernanța whole-ATF verifică limitele Shop/AutoEx; kit-ul nu citește YAML și nu pornește browserul. |
 
-`AtfE2eActivationPolicy` aplică aceeași precedență fără să citească YAML, să
-detecteze IDE-ul sau să pornească browserul: override JVM explicit, opt-in deja
-rezolvat de consumer, fallback IDE deja detectat, apoi dezactivare. Extensiile
-Shop și AutoEx păstrează citirea configurației și semnalele runnerului, iar
-guvernanța whole-ATF verifică integrarea lor.
-
-Contractul complet, precedența, exemplele și probele sunt în
-[Adnotări de infrastructură pentru teste](../docs/ATF_Test_Infrastructure_Annotations.md).
-Selecția canalului și contractul generic de output nu au gap-uri funcționale
-deschise. Smoke-testul IntelliJ pentru compoziția project-relative aparține
-modulului Reporting Tests, care deține acel root; pașii se rulează la schimbări
-relevante și sunt documentați în
-[ghidul suitei Extent](../atf-reporting-tests/src/test/java/atf/ui/tests/extent/README.md#rulare-directă-din-intellij).
+- API, precedență și probe: [adnotările de infrastructură](../docs/ATF_Test_Infrastructure_Annotations.md).
+- Verificarea manuală IntelliJ pentru output project-relative:
+  [ghidul suitei Extent](../atf-reporting-tests/src/test/java/atf/ui/tests/extent/README.md#rulare-directă-din-intellij).
 
 ### Politica pentru calea raportului publicat
 
@@ -163,7 +152,15 @@ AutoEx avea o validare locală a directoarelor API raport, fără verificare a
 reparse-point-urilor. Criteriul generic a fost promovat în
 `ReportOutputDirectory.resolveProjectRelative(...)` și este probat aici; AutoEx
 păstrează numai alegerea default-ului și path-ului său configurat. Nu a rezultat
-o altă primitivă generică din auditul Shop + AutoEx: `FailureAwareCleanup` și
-adnotările evidence sunt deja comune, iar profilele Reporting, captura browserului,
+o bibliotecă de harness UI: `AtfE2eActivationPolicy`, cleanup-ul și
+adnotările evidence sunt comune, iar profilele Reporting, captura browserului,
 corelarea traficului și redactarea identității au proprietari diferiți sau reguli
 dependente de consumer.
+
+- `FailureAwareCleanupTest.partiallyAcquiredResourcesCloseInReverseAndKeepAcquisitionFailurePrimary`
+  este proba neutră pentru închiderea inversă și păstrarea cauzei primare.
+- Un consumer care testează direct aceeași primitivă, fără propriul adaptor,
+  dublează această probă; reducerea copiei Shop este urmărită în
+  [feedback-ul consumerilor](../docs/feedback/ATF_Consumer_Business_Test_Focus_Feedback.md#consumer-proof-ownership-01--degajarea-probelor-generice).
+- Rollback-ul handle-urilor AutoEx și publicarea failure-ului Shop rămân teste
+  locale ale compoziției, fiindcă primitiva nu le poate certifica.

@@ -3,19 +3,22 @@ package atf.ui.autoex.page;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.ui.autoex.config.AutoExConfiguration;
 import atf.ui.autoex.locator.AutoExSelectors;
+import atf.ui.autoex.support.checkout.AutoExInvoiceAssertions;
 import atf.ui.autoex.support.journey.AutoExPurchaseSession;
 import atf.ui.autoex.support.journey.AutoExPurchaseTraceStep;
 import com.microsoft.playwright.Download;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
-import java.util.List;
+import java.util.ArrayList;
 
 /** Checkout review, demo payment, order confirmation and invoice download. */
 public final class CheckoutPage extends AutoExPage {
     public CheckoutPage(AutoExPurchaseSession run) { super(run); }
 
-    public String orderReview() {
-        return text(AutoExSelectors.ORDER_REVIEW, "checkout order review is read");
+    public String orderTotal() {
+        return text(AutoExSelectors.ORDER_TOTAL, "checkout total amount is read");
     }
 
     public String placeOrder(String comment) {
@@ -50,9 +53,20 @@ public final class CheckoutPage extends AutoExPage {
         String fileName = download.suggestedFilename();
         var downloadedFile = download.path();
         boolean available = downloadedFile != null && Files.isRegularFile(downloadedFile);
+        String contents = "";
+        if (available) {
+            try {
+                contents = Files.readString(downloadedFile);
+            } catch (IOException failure) {
+                throw new UncheckedIOException("Cannot read the downloaded invoice", failure);
+            }
+        }
+        AutoExConfiguration configuration = run.configuration();
+        var assertions = new ArrayList<>(AutoExInvoiceAssertions.validate(
+                configuration.registration().displayName(), configuration.expectedCartTotal(), fileName, contents));
+        assertions.add(new AtfAssertion("Invoice download", "downloaded invoice file", fileName, available));
         run.checkpoint(AutoExPurchaseTraceStep.INVOICE_DOWNLOADED,
-                List.of(new AtfAssertion("Invoice download", "downloaded invoice file", fileName,
-                        available && !fileName.isBlank())));
+                assertions);
         return fileName;
     }
 

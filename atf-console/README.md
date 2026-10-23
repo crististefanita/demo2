@@ -4,10 +4,9 @@
 consolă pentru evenimentele neutre ATF. Nu produce HTML și nu calculează
 verdicturi.
 
-Codul curent conține `AtfReportingConsoleSinkAdapter`, dar plasarea sa în
-production `atf-console` intră în conflict cu regula whole-ATF care interzice
-referințele `atf.api.reporting` din acest modul. Decizia este urmărită în
-[feedback-ul de boundary](../docs/feedback/ATF_Consumer_Test_Architecture_Feedback.md).
+Compozițiile de test conectează sursele externe la portul Core prin
+`AtfConsoleEvent.fromExternalEnums(...)`; acest modul consumă numai evenimente
+Core și configurația proprie.
 
 ## Pe scurt
 
@@ -22,7 +21,6 @@ comportamentul specific consolei este descris în acest README.
 | Intrare | Output | Limită |
 |---|---|---|
 | `AtfConsoleEvent` + `ConsoleSettings` | diagnostic stdout/stderr | nu produce artifact |
-| `AtfReportingConsoleSinkAdapter` | evenimente Reporting → sink Core | compoziție; nu redă HTML |
 | lifecycle execution | evenimente formatate | nu decide verdictul |
 | YAML `reporting.console` | detalii configurabile | nu schimbă execuția |
 | `@AtfConsoleMessages` | policy per clasă, inclusiv meta/inheritance | nu reactivează consola dezactivată global |
@@ -45,7 +43,7 @@ flowchart LR
     Core[core events] -->|formatează| Console[console]
     Config[YAML policy] -->|configurează| Console
     Console -->|publică| Output[stdout / stderr]
-    Reporting[reporting events] -->|adaptează| Bridge[console.reporting]
+    Reporting[evenimente externe] -->|transmite câmpuri| Bridge[compoziție de test]
     Bridge -->|publică| Core
 ```
 
@@ -53,9 +51,8 @@ flowchart LR
 <summary><strong>Legendă — proiecția de consolă</strong></summary>
 
 - atf-core definește evenimentul neutru și portul; atf-console îl formatează;
-- adaptorul din `atf.api.console.reporting` este singura conversie dintre
-  evenimentele Reporting și portul Core; numai `atf-console` depinde de
-  `atf-reporting`, niciodată invers;
+- compoziția test-scoped transmite câmpurile sursei externe fabricii neutre
+  Core; Console și Reporting nu depind unul de celălalt;
 - extensia JUnit din atf-console consumă opțional declarația neutră din
   TestKit; dependența nu este propagată pe classpath-ul aplicațiilor;
 - configurația reporting.console controlează numai această proiecție;
@@ -71,7 +68,7 @@ atf-core       definește AtfConsoleEvent și AtfConsoleSink
 atf-core        publică evenimente prin sink-ul opțional
 atf-console    formatează evenimentele și citește reporting.console din YAML
 atf-console    include lifecycle-ul și extension-ul JUnit opțional
-atf-console    adaptează evenimentele atf-reporting către sink-ul Core
+consumer test  adaptează câmpurile evenimentului extern către fabrica Core
 atf-reporting  produce numai artifacte HTML/Extent
 ```
 
@@ -79,9 +76,8 @@ atf-reporting  produce numai artifacte HTML/Extent
 
 - `AtfConsoleReporter` consumă doar `AtfConsoleEvent` din `atf-core` și
   `ConsoleSettings` din propriul modul;
-- `AtfReportingConsoleSinkAdapter` este composition boundary-ul unic pentru
-  consumatorii care conectează Reporting la un sink Core; modulele consumer nu
-  reimplementează mapping-ul și acesta nu se mută în Core/Test Kit;
+- Core deține conversia neutră a enumurilor prin `fromExternalEnums(...)`;
+  compozițiile test-scoped leagă porturile și păstrează politica per rulare;
 - consola și detaliile sunt active implicit, inclusiv când YAML-ul lipsește;
 - `reporting.console.detailsEnabled: false` ascunde detaliile și body-urile;
   `reporting.console.enabled: false` oprește întreaga proiecție;

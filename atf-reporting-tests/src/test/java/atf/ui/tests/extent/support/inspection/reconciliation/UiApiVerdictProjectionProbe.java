@@ -7,6 +7,7 @@ import atf.api.reporting.api.ReportResponse;
 import atf.api.reporting.api.ReportTransportProvenance;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.console.AtfConsoleSink;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.support.TestReportPaths;
@@ -107,7 +108,7 @@ public final class UiApiVerdictProjectionProbe {
         Path requested = TestReportPaths.report("ui-api-verdict-projection.html");
         Path report;
         try (var session = UiExtentReportSession.openConfigured(requested.getParent(),
-                requested.getFileName().toString(), atf.api.reporting.console.AtfConsoleSink.noOp())) {
+                requested.getFileName().toString(), AtfConsoleSink.noOp())) {
             report = session.reportPath();
             publishScenario(session, UI_PASS_API_FAIL,
                     assertion("UI cart checkpoint passes", "cart line visible", "cart line visible", true),

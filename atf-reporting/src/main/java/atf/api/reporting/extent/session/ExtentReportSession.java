@@ -68,6 +68,14 @@ public final class ExtentReportSession implements AtfReportPorts.Session, AutoCl
                                SensitiveDataRedactor redactor, AtfConsoleSink console,
                                Map<String, String> systemInfo,
                                ReportUiActionDetailsMode detailsMode) {
+        this(reportPath, settings, redactor, console, systemInfo, detailsMode,
+                LifecycleStartProbe.noOp());
+    }
+
+    ExtentReportSession(Path reportPath, ReportingSettings settings,
+                        SensitiveDataRedactor redactor, AtfConsoleSink console,
+                        Map<String, String> systemInfo,
+                        ReportUiActionDetailsMode detailsMode, LifecycleStartProbe startProbe) {
         this.reportPath = Objects.requireNonNull(reportPath, "reportPath").toAbsolutePath().normalize();
         Objects.requireNonNull(settings, "settings");
         Objects.requireNonNull(redactor, "redactor");
@@ -83,7 +91,8 @@ public final class ExtentReportSession implements AtfReportPorts.Session, AutoCl
         reports.attachReporter(spark);
         ReportEnvironment.with(systemInfo, redactor).forEach(reports::setSystemInfo);
         tree = new ExtentReportTree(reports, settings, redactor, this::ensureOpen, this.console,
-                Objects.requireNonNull(detailsMode, "detailsMode"));
+                Objects.requireNonNull(detailsMode, "detailsMode"),
+                Objects.requireNonNull(startProbe, "startProbe"));
     }
 
     /** Opens a session with allowlisted, typed Overview/System metadata. */

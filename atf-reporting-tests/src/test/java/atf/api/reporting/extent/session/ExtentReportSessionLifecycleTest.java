@@ -8,6 +8,9 @@ import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.artifact.ReportArtifactInspector;
 import atf.api.reporting.configuration.ReportingSettings;
 import atf.api.reporting.console.AtfConsoleEvent;
+import atf.api.reporting.evidence.profile.ReportUiActionDetailsMode;
+import atf.api.reporting.security.SensitiveDataRedactor;
+import com.aventstack.extentreports.ExtentTest;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
@@ -17,6 +20,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.AbstractCollection;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -24,6 +28,102 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @AtfUnitTest
 class ExtentReportSessionLifecycleTest {
+    @Test
+    void semanticStartFailureRollsBackExtentScenarioAndAllowsPublication() throws Exception {
+        Path root = Files.createTempDirectory("atf-scenario-start-rollback-");
+        Path report = root.resolve("scenario-rollback.html");
+        try {
+            var cause = new IllegalStateException("scenario semantic start failed");
+            var probe = new LifecycleStartProbe() {
+                private boolean first = true;
+                @Override public void beforeScenarioSemantic() {
+                    if (first) { first = false; throw cause; }
+                }
+                @Override public void beforePhaseSemantic(ExtentTest phase) { }
+            };
+            try (var session = new ExtentReportSession(report, ReportingSettings.defaults(),
+                    new SensitiveDataRedactor(), event -> { }, Map.of(),
+                    ReportUiActionDetailsMode.INCLUDED_COLLAPSED, probe)) {
+                assertSame(cause, assertThrows(IllegalStateException.class, () ->
+                        session.startScenario("RollbackTests", "orphan scenario", List.of())));
+                assertEquals(0, session.semanticSnapshot().scenarioCount());
+                var valid = session.startScenario("RollbackTests", "valid scenario", List.of());
+                valid.complete(AtfReportStatus.PASS);
+                assertEquals(1, session.semanticSnapshot().scenarioCount());
+            }
+            String html = Files.readString(report);
+            assertTrue(html.contains("valid scenario"));
+            assertFalse(html.contains("orphan scenario"));
+        } finally {
+            deleteTree(root);
+        }
+    }
+
+    @Test
+    void semanticPhaseFailureRollsBackExtentChildAndKeepsScenarioUsable() throws Exception {
+        Path root = Files.createTempDirectory("atf-phase-start-rollback-");
+        Path report = root.resolve("phase-rollback.html");
+        try {
+            var cause = new IllegalStateException("phase semantic start failed");
+            var probe = new LifecycleStartProbe() {
+                private boolean first = true;
+                @Override public void beforeScenarioSemantic() { }
+                @Override public void beforePhaseSemantic(ExtentTest phase) {
+                    if (first) { first = false; throw cause; }
+                }
+            };
+            try (var session = new ExtentReportSession(report, ReportingSettings.defaults(),
+                    new SensitiveDataRedactor(), event -> { }, Map.of(),
+                    ReportUiActionDetailsMode.INCLUDED_COLLAPSED, probe)) {
+                var scenario = session.startScenario("RollbackTests", "phase recovery", List.of());
+                assertSame(cause, assertThrows(IllegalStateException.class,
+                        () -> scenario.startPhase("ORPHAN PHASE")));
+                assertEquals(0, session.semanticSnapshot().phaseCount());
+                var valid = scenario.startPhase("TEST BODY");
+                valid.complete(AtfReportStatus.PASS);
+                scenario.complete(AtfReportStatus.PASS);
+                assertEquals(1, session.semanticSnapshot().phaseCount());
+            }
+            String html = Files.readString(report);
+            assertTrue(html.contains("TEST BODY"));
+            assertFalse(html.contains("ORPHAN PHASE"));
+        } finally {
+            deleteTree(root);
+        }
+    }
+
+    @Test
+    void rollbackFailureIsSuppressedWithoutMaskingTheOriginalStartFailure() throws Exception {
+        Path root = Files.createTempDirectory("atf-phase-rollback-secondary-");
+        Path report = root.resolve("phase-secondary.html");
+        try {
+            var cause = new IllegalStateException("semantic start is the primary failure");
+            var probe = new LifecycleStartProbe() {
+                @Override public void beforeScenarioSemantic() { }
+                @Override public void beforePhaseSemantic(ExtentTest phase) {
+                    // Simulate an already-detached vendor node so compensation itself fails.
+                    phase.getModel().getParent().getChildren().remove(phase.getModel());
+                    throw cause;
+                }
+            };
+            try (var session = new ExtentReportSession(report, ReportingSettings.defaults(),
+                    new SensitiveDataRedactor(), event -> { }, Map.of(),
+                    ReportUiActionDetailsMode.INCLUDED_COLLAPSED, probe)) {
+                var scenario = session.startScenario("RollbackTests", "secondary failure", List.of());
+                var failure = assertThrows(IllegalStateException.class,
+                        () -> scenario.startPhase("DETACHED PHASE"));
+                assertSame(cause, failure);
+                assertEquals(1, failure.getSuppressed().length);
+                assertTrue(failure.getSuppressed()[0].getMessage()
+                        .contains("Extent phase was not attached"));
+                scenario.complete(AtfReportStatus.FAIL);
+            }
+            assertFalse(Files.readString(report).contains("DETACHED PHASE"));
+        } finally {
+            deleteTree(root);
+        }
+    }
+
     @Test
     void invalidTagCollectionCannotLeaveAnOrphanExtentOrSemanticScenario() throws Exception {
         Path root = Files.createTempDirectory("atf-invalid-scenario-tags-");
@@ -64,7 +164,7 @@ class ExtentReportSessionLifecycleTest {
                 throw new IllegalStateException("console unavailable");
             };
             try (var session = new ExtentReportSession(report, ReportingSettings.defaults(),
-                    new atf.api.reporting.security.SensitiveDataRedactor(), throwingConsole)) {
+                    new SensitiveDataRedactor(), throwingConsole)) {
                 var scenario = session.startScenario("ConsoleFailureTests", "report lifecycle survives",
                         List.of("reporting"));
                 var phase = scenario.startPhase("TEST BODY");
@@ -140,7 +240,7 @@ class ExtentReportSessionLifecycleTest {
         List<AtfConsoleEvent> events = new ArrayList<>();
         try {
             var session = new ExtentReportSession(report, ReportingSettings.defaults(),
-                    new atf.api.reporting.security.SensitiveDataRedactor(), event -> {
+                    new SensitiveDataRedactor(), event -> {
                         if (event.type() == AtfConsoleEvent.Type.REPORT_PUBLISHED) {
                             assertTrue(Files.isRegularFile(report), "notification must follow final publication");
                         }
@@ -169,7 +269,7 @@ class ExtentReportSessionLifecycleTest {
         List<AtfConsoleEvent> events = new ArrayList<>();
         try {
             var session = new ExtentReportSession(blockedDestination, ReportingSettings.defaults(),
-                    new atf.api.reporting.security.SensitiveDataRedactor(), events::add);
+                    new SensitiveDataRedactor(), events::add);
             var scenario = session.startScenario("PublishedEventTests", "blocked publication", List.of());
             scenario.complete(AtfReportStatus.PASS);
 

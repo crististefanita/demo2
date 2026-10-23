@@ -60,6 +60,11 @@ flowchart LR
 | guarded sync | `AtfPromotionManifest`, `AtfPromotionGuard` | nu promovează fișiere în afara manifestului și nu șterge surse |
 | reactor vocabulary | `config.module.AtfModuleIds` | nu orchestrează modulele și nu introduce dependențe în sus |
 
+`AtfConsoleEvent.fromExternalEnums(...)` primește explicit câmpurile unui
+eveniment și convertește enumurile compatibile după nume. Core păstrează
+validarea statusului, duratei și căii publicate, fără reflection sau dependențe
+către sursa externă; compoziția de test transmite câmpurile evenimentului Reporting.
+
 `AtfPathLocator.locateSourceFile(...)` rezolvă un fișier relativ din source root-uri
 candidate, fie când testul pornește din directorul modulului, fie din reactor.
 Validarea respinge căi absolute și traversal; caller-ul declară explicit layout-ul

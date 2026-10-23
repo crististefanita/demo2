@@ -1,5 +1,7 @@
 package atf.ui.tests.practiceshop.support;
 
+import atf.api.core.reporting.console.AtfConsoleEvent;
+import atf.api.core.reporting.console.AtfConsoleSink;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
@@ -116,7 +118,7 @@ public final class ShopE2eTestSupport {
                 sharedReport = suiteReport.open(configuration, presentation);
                 reportConsole = suiteReport.reportConsole();
             } else {
-                reportConsole = atf.api.console.reporting.AtfReportingConsoleSinkAdapter.toReportingSink(
+                reportConsole = reportingConsole(
                         AtfConsoleTestExtension.reportPathSink(context.getRequiredTestClass()));
             }
             ShopE2eContext browser = ShopE2eContext.open(
@@ -150,6 +152,13 @@ public final class ShopE2eTestSupport {
         }
     }
 
+    private static atf.api.reporting.console.AtfConsoleSink reportingConsole(AtfConsoleSink console) {
+        Objects.requireNonNull(console, "console");
+        return event -> console.publish(AtfConsoleEvent.fromExternalEnums(
+                event.type(), event.scope(), event.name(), event.status(),
+                event.durationMillis(), event.detailName(), event.detailValue()));
+    }
+
     /** Root-store owner: all suite scenarios share one reporter, flushed after the last child test. */
     private static final class SuiteReportResource implements ExtensionContext.Store.CloseableResource {
         private final String rootId;
@@ -166,7 +175,7 @@ public final class ShopE2eTestSupport {
         }
 
         atf.api.reporting.console.AtfConsoleSink reportConsole() {
-            return atf.api.console.reporting.AtfReportingConsoleSinkAdapter.toReportingSink(reportPathOptIn);
+            return reportingConsole(reportPathOptIn);
         }
 
         synchronized UiExtentReportSession open(ShopConfiguration configuration,

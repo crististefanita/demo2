@@ -5,11 +5,13 @@ import atf.api.core.reporting.console.AtfConsoleSink;
 import atf.api.core.reporting.contract.AtfReportStatus;
 
 import java.util.Objects;
+import java.nio.file.Path;
 
 import static atf.api.reporting.console.AtfConsoleEvent.code;
 import static atf.api.reporting.console.AtfConsoleEvent.completed;
 import static atf.api.reporting.console.AtfConsoleEvent.detail;
 import static atf.api.reporting.console.AtfConsoleEvent.started;
+import static atf.api.reporting.console.AtfConsoleEvent.reportPublished;
 
 /**
  * Test-composition adapter for the two renderer-neutral console ports.
@@ -35,15 +37,8 @@ public final class AtfConsoleBridge {
 
     private static AtfConsoleEvent toCoreEvent(atf.api.reporting.console.AtfConsoleEvent event) {
         Objects.requireNonNull(event, "event");
-        return switch (event.type()) {
-            case START -> AtfConsoleEvent.started(coreScope(event.scope()), event.name());
-            case DETAIL -> AtfConsoleEvent.detail(coreScope(event.scope()), event.detailName(), event.detailValue());
-            case CODE -> AtfConsoleEvent.code(coreScope(event.scope()), event.detailName(), event.detailValue());
-            case COMPLETE -> AtfConsoleEvent.completed(coreScope(event.scope()), event.name(),
-                    coreStatus(event.status()), event.durationMillis());
-            case REPORT_PUBLISHED -> AtfConsoleEvent.reportPublished(
-                    java.nio.file.Path.of(event.detailValue()));
-        };
+        return AtfConsoleEvent.fromExternalEnums(event.type(), event.scope(), event.name(),
+                event.status(), event.durationMillis(), event.detailName(), event.detailValue());
     }
 
     private static atf.api.reporting.console.AtfConsoleEvent toReportingEvent(AtfConsoleEvent event) {
@@ -54,22 +49,12 @@ public final class AtfConsoleBridge {
             case CODE -> code(reportingScope(event.scope()), event.detailName(), event.detailValue());
             case COMPLETE -> completed(reportingScope(event.scope()), event.name(),
                     reportingStatus(event.status()), event.durationMillis());
-            case REPORT_PUBLISHED -> atf.api.reporting.console.AtfConsoleEvent.reportPublished(
-                    java.nio.file.Path.of(event.detailValue()));
+            case REPORT_PUBLISHED -> reportPublished(Path.of(event.detailValue()));
         };
-    }
-
-    private static AtfConsoleEvent.Scope coreScope(
-            atf.api.reporting.console.AtfConsoleEvent.Scope scope) {
-        return Enum.valueOf(AtfConsoleEvent.Scope.class, scope.name());
     }
 
     private static atf.api.reporting.console.AtfConsoleEvent.Scope reportingScope(AtfConsoleEvent.Scope scope) {
         return Enum.valueOf(atf.api.reporting.console.AtfConsoleEvent.Scope.class, scope.name());
-    }
-
-    private static AtfReportStatus coreStatus(atf.api.reporting.contract.AtfReportStatus status) {
-        return status == null ? null : Enum.valueOf(AtfReportStatus.class, status.name());
     }
 
     private static atf.api.reporting.contract.AtfReportStatus reportingStatus(AtfReportStatus status) {

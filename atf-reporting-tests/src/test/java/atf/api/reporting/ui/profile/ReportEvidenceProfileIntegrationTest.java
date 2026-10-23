@@ -40,6 +40,87 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @AtfIntegrationTest
 class ReportEvidenceProfileIntegrationTest {
     @Test
+    void crossPhaseFlowKeepsSetupBeforeBodyWithOwnedApiEvidenceAndVerdicts() throws Exception {
+        Path root = Files.createTempDirectory("atf-cross-phase-flow-");
+        var profile = ReportEvidenceProfile.builder()
+                .flowMode(ReportEvidenceFlowMode.UNIFIED_FLOW)
+                .screenshotPolicy(ReportScreenshotPolicy.FINAL_ONLY)
+                .build();
+        Path report;
+        try (var session = UiExtentReportSession.openConfigured(root, "cross-phase.html",
+                AtfConsoleSink.noOp(), profile)) {
+            report = session.reportPath();
+            var scenario = session.startScenario("CrossPhaseTest", "atf.tests", "authenticated purchase", List.of());
+            scenario.unifyAcrossPhases();
+            var setup = scenario.startPhase("SETUP");
+            setup.setup(AtfGherkinKeyword.GIVEN, "account is ready", "/login",
+                    List.of(new AtfAssertion("Account", "ready", "ready", true)),
+                    List.of(new AtfUiActionRecord(1, "Fill account", "#email", "email entered",
+                            "entered", 2, AtfReportStatus.PASS)), List.of(paymentEvidence()),
+                    AtfReportStatus.PASS);
+            setup.complete(AtfReportStatus.PASS);
+            var body = scenario.startPhase("TEST BODY");
+            body.screenValidation("purchase is complete", "/confirmation",
+                    ReportTestScreenshots.ONE_PIXEL_PNG,
+                    List.of(new AtfAssertion("Order", "confirmed", "confirmed", true)),
+                    List.of(new AtfUiActionRecord(2, "Confirm purchase", "#confirm",
+                            "order placed", "clicked", 3, AtfReportStatus.PASS)),
+                    ReportScreenshotPolicy.CapturePoint.FINAL, AtfReportStatus.PASS);
+            body.completeFinal(AtfReportStatus.PASS);
+            scenario.complete(AtfReportStatus.PASS);
+        }
+        String html = Files.readString(report);
+        assertAll(
+                () -> assertEquals(1, count(html, "<td>EVIDENCE TYPE</td><td>unified-ui-flow</td>")),
+                () -> assertEquals(1, count(html, "<span>THEN purchase is complete</span>")),
+                () -> assertTrue(html.indexOf("SETUP · Setup validation") >= 0
+                        && html.indexOf("TEST BODY · Screen validation")
+                                > html.indexOf("SETUP · Setup validation")),
+                () -> assertTrue(html.indexOf("Fill account") >= 0
+                        && html.indexOf("SETUP · API validation") > html.indexOf("Fill account")
+                        && html.indexOf("TEST BODY · Screen validation")
+                                > html.indexOf("SETUP · API validation")
+                        && html.indexOf("Confirm purchase")
+                                > html.indexOf("TEST BODY · Screen validation")),
+                () -> assertTrue(html.contains("FLOW CHECKPOINT 1 PHASE")),
+                () -> assertTrue(html.contains("FLOW CHECKPOINT 2 PHASE")),
+                () -> assertTrue(html.contains("Exchange 1")),
+                () -> assertTrue(html.contains("Account")),
+                () -> assertTrue(html.contains("Order")),
+                () -> assertEquals(1, count(html, "data-atf-screenshot=\"base64\"")));
+    }
+
+    @Test
+    void failedSetupPublishesItsFailureWithoutInventingBodyOrTerminalScreenshot() throws Exception {
+        Path root = Files.createTempDirectory("atf-cross-phase-setup-failure-");
+        var profile = ReportEvidenceProfile.builder()
+                .flowMode(ReportEvidenceFlowMode.UNIFIED_FLOW)
+                .screenshotPolicy(ReportScreenshotPolicy.FINAL_ONLY)
+                .build();
+        Path report;
+        try (var session = UiExtentReportSession.openConfigured(root, "setup-failure.html",
+                AtfConsoleSink.noOp(), profile)) {
+            report = session.reportPath();
+            var scenario = session.startScenario("CrossPhaseTest", "atf.tests", "failed account", List.of());
+            scenario.unifyAcrossPhases();
+            var setup = scenario.startPhase("SETUP");
+            setup.setup(AtfGherkinKeyword.GIVEN, "account is ready", "/login",
+                    List.of(new AtfAssertion("Login", "accepted", "rejected", false)),
+                    AtfReportStatus.FAIL);
+            setup.completeFinal(AtfReportStatus.FAIL);
+            scenario.complete(AtfReportStatus.FAIL);
+        }
+        String html = Files.readString(report);
+        assertAll(
+                () -> assertEquals(1, count(html, "<td>EVIDENCE TYPE</td><td>unified-ui-flow</td>")),
+                () -> assertTrue(html.contains("SETUP · Setup validation")),
+                () -> assertTrue(html.contains("rejected")),
+                () -> assertTrue(html.contains("data-atf-evidence-status=\"fail\"")),
+                () -> assertFalse(html.contains("<span>TEST BODY</span>")),
+                () -> assertFalse(html.contains("data-atf-screenshot=\"base64\"")));
+    }
+
+    @Test
     void nullScenarioProfileIsRejectedBeforeAnExtentScenarioIsCreated() throws Exception {
         Path root = Files.createTempDirectory("atf-null-scenario-profile-");
         Path report;
@@ -49,10 +130,14 @@ class ReportEvidenceProfileIntegrationTest {
             report = session.reportPath();
             assertThrows(NullPointerException.class, () -> session.startScenario(
                     "ProfileTest", "atf.api.reporting.ui", "must not appear", List.of(), null));
+            var valid = session.startScenario("ProfileTest", "atf.api.reporting.ui",
+                    "subsequent valid scenario", List.of());
+            valid.complete(AtfReportStatus.PASS);
         }
 
         String html = Files.readString(report);
         assertFalse(html.contains("must not appear"));
+        assertTrue(html.contains("subsequent valid scenario"));
     }
 
     @Test

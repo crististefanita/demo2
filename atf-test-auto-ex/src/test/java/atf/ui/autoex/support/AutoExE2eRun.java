@@ -214,7 +214,6 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
     }
 
     public void navigate(java.net.URI uri) {
-        prepareUiInteraction();
         actions.navigate(page(), Objects.requireNonNull(uri, "uri"), "requested page is loaded");
     }
 
@@ -287,7 +286,8 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
         if (channel == TestChannel.UI_API) {
             networkSteps.add(ReportNetworkInspector.Step.from(keyword.text(), title, assertions, apiEvidence));
         }
-        if (!passed) throw new AssertionError("UI checkpoint failed: " + title);
+        if (!passed) throw new AssertionError("UI checkpoint failed: " + title
+                + ". Failed assertions: " + failedAssertionSummary(assertions));
     }
 
     public void checkpoint(AutoExPurchaseTraceStep step, List<AtfAssertion> assertions) {

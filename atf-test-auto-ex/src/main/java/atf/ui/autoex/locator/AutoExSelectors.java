@@ -11,7 +11,7 @@ public final class AutoExSelectors {
     public static final String PRIVACY_SELECTED_OPTIONS = ".fc-consent-root input.fc-preference-slider-purpose:checked";
     public static final String PRIVACY_OPTION_LABEL = "label[for='%s']";
     public static final String PRIVACY_CONFIRM_CHOICES = ".fc-consent-root button:visible:has-text('Confirm choices')";
-    public static final String VIGNETTE_CLOSE_CONTROL = ":text-is(\"Close\")";
+    public static final String VIGNETTE_CLOSE_CONTROL = "#dismiss-button";
     public static final String PRODUCTS_LINK = linkTo(AutoExRoutes.PRODUCTS);
     public static final String CART_LINK = "#header " + linkTo(AutoExRoutes.CART);
     public static final String SEARCH_INPUT = "#search_product";
@@ -54,6 +54,7 @@ public final class AutoExSelectors {
     public static final String DELIVERY_ADDRESS = "#address_delivery";
     public static final String BILLING_ADDRESS = "#address_invoice";
     public static final String ORDER_REVIEW = "#cart_info";
+    public static final String ORDER_TOTAL = ORDER_REVIEW + " tbody tr:last-child .cart_total_price";
     public static final String ORDER_COMMENT = "textarea[name='message']";
     public static final String PLACE_ORDER = linkTo(AutoExRoutes.PAYMENT);
     public static final String PAYMENT_HEADING = "h2.heading";

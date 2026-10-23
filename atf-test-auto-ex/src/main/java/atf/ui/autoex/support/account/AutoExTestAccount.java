@@ -2,8 +2,6 @@ package atf.ui.autoex.support.account;
 
 import atf.ui.autoex.config.AutoExConfiguration;
 
-import atf.ui.autoex.config.AutoExConfiguration;
-
 import java.util.UUID;
 
 /** Synthetic per-run identity; never sourced from a personal credential store. */

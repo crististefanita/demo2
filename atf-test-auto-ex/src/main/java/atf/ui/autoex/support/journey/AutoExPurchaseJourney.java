@@ -4,6 +4,7 @@ import atf.api.reporting.contract.AtfAssertion;
 import atf.ui.autoex.config.AutoExConfiguration;
 import atf.ui.autoex.support.account.AutoExTestAccount;
 import atf.ui.autoex.support.catalog.AutoExCatalogAssertions;
+import atf.ui.autoex.support.checkout.AutoExCheckoutAssertions;
 import atf.ui.autoex.page.AccountPage;
 import atf.ui.autoex.page.CartPage;
 import atf.ui.autoex.page.CheckoutPage;
@@ -12,6 +13,7 @@ import atf.ui.autoex.page.ProductPage;
 import atf.ui.autoex.page.ProductsPage;
 
 import java.util.List;
+import java.util.ArrayList;
 
 /** One end-to-end business journey on the actual public store. */
 public final class AutoExPurchaseJourney {
@@ -20,6 +22,7 @@ public final class AutoExPurchaseJourney {
     public static void execute(AutoExPurchaseSession run) {
         AutoExConfiguration configuration = run.configuration();
         AutoExConfiguration.Catalog product = configuration.catalog();
+        String expectedTotal = configuration.expectedCartTotal();
         ProductsPage products = searchConfiguredProduct(run);
 
         ProductPage details = products.openFirstProduct();
@@ -41,43 +44,32 @@ public final class AutoExPurchaseJourney {
                         added.contains("Added!") && added.contains("added to cart"))));
 
         CartPage cart = details.viewCartFromConfirmation();
-        String cartName = cart.productName(product);
-        String cartPrice = cart.productPrice(product);
-        String cartQuantity = cart.quantity(product);
-        String cartTotal = cart.total(product);
         run.checkpoint(AutoExPurchaseTraceStep.CART_VERIFIED,
-                List.of(
-                        new AtfAssertion("Cart product", product.productName(), cartName,
-                                product.productName().equals(cartName)),
-                        new AtfAssertion("Cart unit price", product.unitPrice(), cartPrice,
-                                product.unitPrice().equals(cartPrice)),
-                        new AtfAssertion("Cart quantity", Integer.toString(product.quantity()), cartQuantity,
-                                Integer.toString(product.quantity()).equals(cartQuantity)),
-                        new AtfAssertion("Cart line total", configuration.expectedCartTotal(), cartTotal,
-                                configuration.expectedCartTotal().equals(cartTotal))));
+                AutoExCheckoutAssertions.orderLine(product, expectedTotal, cart.orderLine(product)));
 
         cart.proceedToCheckout();
-        AutoExTestAccount account = AutoExTestAccount.create(configuration.registration());
+        AutoExConfiguration.Registration registration = configuration.registration();
+        AutoExTestAccount account = AutoExTestAccount.create(registration);
         new AccountPage(run).registerFromCheckout(account);
 
         cart = new CartPage(run);
         cart.openFromHeader();
         cart.proceedToCheckout();
         AccountPage accountPage = new AccountPage(run);
-        String expectedDisplayName = configuration.registration().displayName();
+        String expectedDisplayName = registration.displayName();
         String deliveryAddress = accountPage.deliveryAddress(expectedDisplayName);
         String billingAddress = accountPage.billingAddress(expectedDisplayName);
-        String orderReview = new CheckoutPage(run).orderReview();
-        run.checkpoint(AutoExPurchaseTraceStep.CHECKOUT_REVIEW,
-                List.of(
-                        new AtfAssertion("Delivery address", expectedDisplayName,
-                                deliveryAddress, deliveryAddress.contains(expectedDisplayName)),
-                        new AtfAssertion("Billing address", expectedDisplayName,
-                                billingAddress, billingAddress.contains(expectedDisplayName)),
-                        new AtfAssertion("Order review", product.productName(), orderReview,
-                                orderReview.contains(product.productName()))));
-
         CheckoutPage checkout = new CheckoutPage(run);
+        var checkoutAssertions = new ArrayList<>(AutoExCheckoutAssertions.address(
+                "Delivery", registration, deliveryAddress));
+        checkoutAssertions.addAll(AutoExCheckoutAssertions.address(
+                "Billing", registration, billingAddress));
+        checkoutAssertions.addAll(AutoExCheckoutAssertions.orderLine(
+                product, expectedTotal, cart.orderLine(product)));
+        String orderTotal = checkout.orderTotal();
+        checkoutAssertions.add(new AtfAssertion("Order total", expectedTotal, orderTotal,
+                expectedTotal.equals(orderTotal)));
+        run.checkpoint(AutoExPurchaseTraceStep.CHECKOUT_REVIEW, checkoutAssertions);
         String paymentHeading = checkout.placeOrder("Synthetic ATF E2E order; demo environment only.");
         run.checkpoint(AutoExPurchaseTraceStep.PAYMENT_FORM,
                 List.of(new AtfAssertion("Payment page", "Payment", paymentHeading,
@@ -97,11 +89,11 @@ public final class AutoExPurchaseJourney {
         String deletion = accountPage.accountDeletionResult();
         String landingUrl = run.currentUrl();
         String expectedLandingUrl = configuration.baseUrl().toString().replaceAll("/$", "") + "/";
-        List<AtfAssertion> finalAssertions = new java.util.ArrayList<>(List.of(
+        List<AtfAssertion> finalAssertions = List.of(
                 new AtfAssertion("Post-cleanup landing page", expectedLandingUrl,
                         landingUrl, expectedLandingUrl.equals(landingUrl)),
                 new AtfAssertion("Account cleanup remains confirmed", "ACCOUNT DELETED!",
-                        deletion, deletion.contains("ACCOUNT DELETED!"))));
+                        deletion, deletion.contains("ACCOUNT DELETED!")));
         run.finalScreenshot(AutoExPurchaseTraceStep.TERMINAL_STATE, finalAssertions);
     }
 

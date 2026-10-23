@@ -595,11 +595,12 @@ atf-test-practice-shop/src/main/java/atf/ui/practiceshop/
 ├── flow/        acțiuni semantice
 ├── locators/    singurul owner al selectorilor
 ├── pages/       page objects
-└── support/     context și evidence adapters
+└── support/     checkpoint-uri, mapare API și reguli Shop
 atf-test-practice-shop/src/test/java/atf/ui/tests/practiceshop/
 ├── component/       teste rapide de module
 ├── api/component/   variații fake pozitive/negative
 ├── api/integration/ precondiție login live, opt-in
+├── support/         harness browser/report și adaptoare test-only
 └── e2e/             journey complet
 ```
 
@@ -624,6 +625,28 @@ atf-test-practice-shop/src/test/java/atf/ui/tests/practiceshop/
   contractele Practice Shop, deci rămân în consumer. Mutați aici numai
   invariants de model/publicare/rendering care nu importă tipuri sau reguli Shop;
   nu adăugați dependență de `atf-reporting-tests` în modulul consumer.
+
+<details>
+<summary><strong>Probe neutre pentru simplificarea testelor Shop și AutoEx</strong></summary>
+
+| Invariant reutilizabil | Probă existentă aici | Rămâne de verificat în consumer |
+|---|---|---|
+| `AUTH PROFILE` separat de `AUTH TYPE`, paritate standalone/UI+API | `ApiAuthenticationSchemaContractTest` | maparea profilului și mecanismului capturat de adaptorul aplicației |
+| istoricul retry în același exchange | `ExtentReportUiEvidencePublishingTest.keepsRetryHistoryInsideOneExchangeNode` | mapperul păstrează attempts/history/provenance; proba generică a modelului este în `ReportModelAdaptersTest` |
+| flow consolidat și politici de captură | `ReportEvidenceProfileIntegrationTest`, `UiScreenshotPolicyIntegrationTest` | adnotare și YAML aplicate sesiunii locale, inclusiv failure |
+| diagnostice fără schimbarea verdictului | `ReportPhaseDiagnosticTest` | apelarea portului potrivit cu diagnosticul și cauza consumerului |
+
+- Aceste probe sunt baza comparației, nu o declarație că toate aserțiunile
+  locale sunt deja redundante. O probă UI+API de retry nu dovedește singură
+  toate căile standalone ori forwarding-ul unui mapper local.
+- Înaintea unei ștergeri, comparați inputul, calea publică, verdictul și
+  cazul negativ; completați aici lipsa neutră, fără importuri Shop/AutoEx.
+- Înlocuiți verificările locale de markup cu rezultate typed/snapshot numai
+  dacă rămâne probată invocarea efectivă a adaptorului și politica sa de date.
+- Perimetrul rămas este în
+  [feedback-ul consumerilor](../docs/feedback/ATF_Consumer_Business_Test_Focus_Feedback.md#consumer-proof-ownership-01--degajarea-probelor-generice).
+
+</details>
 - Hook-urile JUnit generice sunt testate în modulul owner (`atf-test-kit`);
   testele de sesiune și publicare Reporting aparțin `atf-reporting-tests`.
 - `ApiResourceTestBase` activează explicit `@AtfReportPath`; compoziția JUnit
@@ -633,6 +656,11 @@ atf-test-practice-shop/src/test/java/atf/ui/tests/practiceshop/
 
 ### Reutilizare neutră între module
 
+- Compatibilitatea consolelor Core/Reporting este verificată aici prin
+  `AtfConsoleBridgeTest` și `AtfConsoleBridgeVocabularyTest`: scope-uri,
+  statusuri, detalii, durată și notificarea căii publicate. Compoziția transmite
+  câmpurile către fabrica neutră Core `AtfConsoleEvent.fromExternalEnums(...)`;
+  Console și Reporting nu depind unul de celălalt.
 - `ReportModelAdapters` convertește modelele core (`ApiExecutionResult`,
   retry/provenance, assertions și UI actions) fără ca `atf-reporting` să depindă
   la compilare de `atf-core`; vocabularul necunoscut eșuează explicit, nu este

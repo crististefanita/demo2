@@ -1,7 +1,7 @@
 # ATF Reporting — cerințe rămase
 
-Acest feedback păstrează numai gap-urile deschise din Reporting și integrarea
-consumatorilor. Contractele stabile sunt în
+Acest feedback păstrează gap-urile deschise din Reporting și dovada recentă de
+închidere a atomicității. Contractele stabile sunt în
 [contractul semantic](../ATF_Reporting_Contract.md),
 [contractul de display și layout](../ATF_Reporting_Display_Contract.md) și
 README-urile [ATF Reporting](../../atf-reporting/README.md) și
@@ -11,21 +11,30 @@ README-urile [ATF Reporting](../../atf-reporting/README.md) și
 
 | Prioritate | ID | Gap | Owner principal |
 |---|---|---|---|
-| P2 | `REPORT-START-ATOMICITY-01` | Finalizarea/reconcilierea nodurilor dacă lifecycle-ul semantic aruncă după mutația Extent și înainte de returnarea handle-ului; eșecurile sink-ului Console sunt deja izolate | `atf-reporting` + `atf-reporting-tests` |
-| P2 | `SHOP-CAPTURE-01` | Agregarea evidence-ului `SETUP` + `TEST BODY` în `UNIFIED_FLOW`, păstrând proveniența și lifecycle-ul | Reporting pentru contractul generic; Practice Shop pentru mapping-ul și lifecycle-ul consumerului |
+| P3 | `SHOP-CAPTURE-01` | Agregarea este implementată și probată automat; rămâne confirmarea vizuală în TAB MCP a flow-ului Shop explicit `SETUP` + `TEST BODY` | Reporting + Practice Shop |
 | P3 | `UI-AUDIT-01` | Confirmare vizuală în TAB MCP a observației terminale în artifactele AutoEx și Shop; implementarea și probele sunt deja în cod | Verificare manuală a artifactelor; fără schimbare de renderer dacă randarea este conformă |
 
-## REPORT-START-ATOMICITY-01 — crearea atomică a nodurilor de raport
+## REPORT-START-ATOMICITY-01 — închis: crearea atomică a nodurilor de raport
 
-**Stare: parțial închisă; gap-ul de atomicitate internă rămâne deschis. Prioritate: 77/100** (impact 34 + lacună 21 + lucrabil
-15 + datorie documentară 7).
+**Stare: închis pentru punctele injectabile din lifecycle-ul curent.**
 
 ### Fapt live
 
-- `ExtentReportTree.startScenario` creează nodul Extent înainte de a porni
-  înregistrarea semantică și de a returna `ExtentScenarioScope`.
-- `ExtentScenarioScope.startPhase` creează nodul copil înainte de a porni faza
-  semantică și de a returna `ExtentPhaseScope`.
+- `ExtentReportTree.startScenario` normalizează acum tag-urile înainte de
+  crearea oricărui nod Extent sau semantic. O colecție caller-owned care aruncă
+  la iterare nu mai lasă rădăcină/clasă/scenariu parțial.
+- `UiExtentReportSession.startScenario(..., scenarioProfile)` validează acum
+  profilul nenul înainte să delege pornirea scenariului; argumentul invalid nu
+  mai produce un nod Extent fără handle UI.
+- Regresii în `ExtentReportSessionLifecycleTest` și
+  `ReportEvidenceProfileIntegrationTest` verifică snapshot-ul/HTML-ul după
+  aceste două intrări invalide și faptul că următorul scenariu valid se publică.
+- Dacă pornirea semantică eșuează după crearea nodului Extent, scenariul/faza
+  este retrasă din arborele Extent. O rădăcină de clasă nouă rămasă goală este
+  retrasă și din raport; cauza inițială rămâne primară, iar eroarea de
+  compensare devine `suppressed`.
+- Un probe intern, inaccesibil consumatorului, injectează eșecul între
+  mutația Extent și pornirea semantică pentru scenariu și fază.
 - Evenimentele sink-ului Console sunt acum best-effort: o excepție runtime la
   `SCENARIO`/`PHASE` start sau completion nu mai întrerupe lifecycle-ul. Regresia
   este probată de `ExtentReportSessionLifecycleTest` cu sink intenționat defect.
@@ -35,7 +44,7 @@ README-urile [ATF Reporting](../../atf-reporting/README.md) și
 - `AutoExE2eInitialization` închide corect resursele și nodurile pentru care a
   primit handle; proba sa nu poate închide această fereastră internă a API-ului.
 
-### Contractul de închidere
+### Contractul verificat
 
 Inițializarea trebuie să fie atomică față de caller. Dacă un efect secundar
 eșuează după publicarea parțială, Reporting fie retrage nodul în siguranță, fie
@@ -44,19 +53,19 @@ orfan `IN_PROGRESS` și raportul/snapshot-ul semantic rămân reconciliabile.
 Eșecul inițial rămâne primar, iar erorile de rollback sunt păstrate ca
 `suppressed`.
 
-### Probe cerute în `atf-reporting-tests`
+### Probe în `atf-reporting-tests`
 
-- Fault-injection după fiecare etapă de `startScenario` și `startPhase`, în
-  special între mutația Extent și lifecycle-ul semantic; Console este deja
-  probat separat ca sink diagnostic best-effort.
-- Verificarea absenței nodurilor orfane sau a unei proiecții Extent/semantic
-  contradictorii și confirmarea că sesiunea poate fi publicată după eșec.
-- Verificarea păstrării cauzei inițiale și a tuturor eșecurilor secundare de
-  rollback.
-- Probe deterministe fără browser/site real; consumatorii verifică separat doar
-  propagarea verdictului și păstrarea failure-ului de setup.
+- Tag-uri invalide înainte de mutație, profil UI nul înainte de delegare,
+  eșec semantic injectat după crearea scenariului și fazei, plus compensare
+  secundară defectă. Probele verifică snapshot-ul, absența nodului orfan în
+  HTML, cauza primară/suppressed și reutilizarea sesiunii.
+- Console rămâne probat separat ca sink diagnostic best-effort. Testele sunt
+  deterministe și nu pornesc browser ori site real.
 
 ## SHOP-CAPTURE-01 — profil per scenariu și flow unificat peste faze
+
+**Prioritate reziduală: 52/100** (impact 40 + lacună 2 + lucrabil 8 +
+datorie documentară 2). Implementarea este probată; rămâne auditul vizual.
 
 | Dovada | Stare live |
 |---|---|
@@ -64,11 +73,22 @@ Eșecul inițial rămâne primar, iar erorile de rollback sunt păstrate ca
 | Mapping Automation Exercise | Folosește profilul per scenariu pentru varianta final-only. |
 | Mapping Practice Shop | `ShopE2eContext` transmite profilul rezolvat; `ShopE2eContextEvidenceProfileTest` verifică override-ul față de YAML, nu izolarea a doi frați. |
 
-### Gap-ul confirmat în Practice Shop
+### Stare implementată
 
-- `ShopE2eContext.Scenario` publică `SETUP` și `TEST BODY` ca faze separate.
-  `UNIFIED_FLOW` generic agregă în interiorul unei faze, nu peste această
-  limită; setup-ul autentificat poate rămâne separat de secvența terminală.
+- `UiScenario.unifyAcrossPhases()` activează bufferul de scenariu numai pentru
+  `UNIFIED_FLOW`; `UiPhase.completeFinal(...)` publică o singură propoziție
+  Gherkin cu checkpoints în ordine. Fiecare checkpoint păstrează faza,
+  verdictul fazei și al pasului, aserțiunile și API validation imediat după
+  evidence-ul UI proprietar. Modul obișnuit per fază rămâne nemodificat.
+- Shop activează opțiunea din profilul efectiv. `finishSetup(FAIL)` finalizează
+  flow-ul în `SETUP`; `TEST BODY` nu este creat și captura finală nu este
+  inventată. `pass`, `complete` și `fail` închid faza terminală explicit.
+- Probele în staging: `ShopComponentSuite` — 199 teste verzi;
+  `ReportEvidenceProfileIntegrationTest` +
+  `ExtentUnifiedFlowMultipleScreenshotTest` — 9 teste verzi;
+  `ShopUiOnlySingleFlowPurchaseE2eTest` — 1 test live trecut, raport nou în
+  staging. Testele noi acoperă setup + body, ownership API, verdictul unui
+  setup eșuat și absența `TEST BODY`/capturii terminale după eșec.
 
 ### Contractul țintă
 
@@ -93,10 +113,8 @@ Eșecul inițial rămâne primar, iar erorile de rollback sunt păstrate ca
 - **Acoperit generic:** `ReportEvidenceProfileIntegrationTest` publică profile
   diferite într-o sesiune comună și verifică izolarea; Shop verifică separat
   mapping-ul override-ului, nu repetă proba generică.
-- **Rămas:** definește și testează agregarea între `SETUP` și `TEST BODY` fără
-  Gherkin duplicat, fără pierderea fazei de proveniență și fără schimbarea
-  verdictului/setup failure. Testele componente nu pornesc site-ul și nu cer
-  relaxarea vreunui test de arhitectură.
+- **Rămas:** confirmare vizuală în TAB MCP pentru setup explicit autentificat
+  și flow-ul UI-only; contractele de cod și HTML sunt probate automat.
 - E2E-ul consumer confirmă integrarea reală; nu se complică journey-urile doar
   pentru a testa rendererul.
 - Artifactul verifică o singură apariție a fiecărei acțiuni, ordinea, un singur
@@ -113,6 +131,12 @@ vizuală în TAB MCP. **Prioritate:** 60/100 (impact 24 + lacună 15 + lucrabil
 wiring-ul terminal și probele componente sunt implementate în Shop și AutoEx.
 Rămâne doar verificarea vizuală interactivă a artifactelor prin TAB MCP; până
 atunci nu declarăm randarea vizuală închisă.
+
+| Aspect | Stare și dovadă cerută |
+|---|---|
+| Probe automate | Verifică structura evidence-ului; succesul lor nu certifică randarea vizuală. |
+| Artifact inspectat | Raport UI-only nou în staging: HTML-ul conține `Screen validation`, secvența Playwright și PNG-uri încorporate. TAB MCP respinge URL-ul local `file:`, deci randarea rămâne neconfirmată. |
+| Închidere | Confirmare interactivă în același `Screen validation`: observație unică, acțiuni neduplicate și politica efectivă de captură respectată. |
 
 ### Contractul țintă
 
@@ -169,6 +193,14 @@ testelor de guvernanță.
 
 ```yaml
 testChanges:
+  - id: SHOP-CAPTURE-01
+    status: ACTIVE
+    base: 0f6a95265024a78c20754d5c18937d24434a2d2d
+    expires: 2026-10-30
+    reason: Probează agregarea fazelor Shop, ownership-ul API și cazul setup eșuat fără body ori screenshot terminal.
+    proof: mvn -pl atf-reporting-tests,atf-test-practice-shop -am "-Dtest=ShopComponentSuite,ReportEvidenceProfileIntegrationTest,ExtentUnifiedFlowMultipleScreenshotTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+    paths:
+      - atf-reporting-tests/src/test/java/atf/api/reporting/ui/profile/ReportEvidenceProfileIntegrationTest.java
   - id: REPORT-UI-ACTION-REDACTION-01
     status: ACTIVE
     base: a23c76e662516504f55a4369c58ca98bbf2f26ec

@@ -1,12 +1,18 @@
 package atf.ui.autoex.support;
 
+import atf.api.core.reporting.console.AtfConsoleEvent;
 import atf.api.core.reporting.console.AtfConsoleSink;
 
-/** Compatibility seam; event conversion is owned by atf-console. */
+import java.util.Objects;
+
+/** Test-only composition of the independent Reporting and Core console ports. */
 final class AutoExConsoleBridge {
     private AutoExConsoleBridge() { }
 
     static atf.api.reporting.console.AtfConsoleSink reportingSink(AtfConsoleSink console) {
-        return atf.api.console.reporting.AtfReportingConsoleSinkAdapter.toReportingSink(console);
+        Objects.requireNonNull(console, "console");
+        return event -> console.publish(AtfConsoleEvent.fromExternalEnums(
+                event.type(), event.scope(), event.name(), event.status(),
+                event.durationMillis(), event.detailName(), event.detailValue()));
     }
 }

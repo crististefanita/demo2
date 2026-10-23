@@ -6,7 +6,7 @@ suitelor rămân în [README-ul Practice Shop](../../atf-test-practice-shop/READ
 
 ## SHOP-API-LIVE-SEMANTICS-01 — filtrare, sortare și mutații remote
 
-**Stare: deschis — implementarea există, dovada completă live este blocată de fixture-ul autentificat.**
+**Stare: închis — dovada live autentificată și contractele mutative au trecut.**
 **Owner:** Practice Shop.
 
 ### Lacuna și decizia
@@ -15,8 +15,9 @@ suitelor rămân în [README-ul Practice Shop](../../atf-test-practice-shop/READ
   răspunsuri controlate; ele nu dovedesc semantica serviciului extern.
 - `ShopStandaloneApiReportTest` conține acum aserțiuni pentru categoria produsului
   live, sortarea numerică după preț și read-back după update/remove pe un coș izolat.
-- Ultima rulare opt-in a primit HTTP 401 la autentificarea fixture-ului local și
-  s-a oprit înainte de crearea coșului. Nu există încă dovadă live pentru mutații.
+- Fixture-ul anterior a primit HTTP 401. Un cont sintetic nou pentru aplicația
+  demo a fost înregistrat prin API (HTTP 201), autentificat (HTTP 200) și pus
+  în fixture-ul modulului; rularea opt-in a trecut ulterior integral.
 - Nu copiați credențiale în feedback/raport și nu prezentați răspunsurile
   fixture-urilor drept afirmații despre server.
 
@@ -32,28 +33,38 @@ suitelor rămân în [README-ul Practice Shop](../../atf-test-practice-shop/READ
 - Component testele acoperă închiderea normală după removal și cleanup când flow-ul
   eșuează după add; verifică un singur DELETE și starea finală goală. Testele unit
   verifică produsele/ordinea și resping categoria sau ordinea greșită.
-- Comportamentul de sortare/filtrare a fost observat separat prin GET-uri read-only
-  către serviciul public. Acest lucru nu substituie rularea raportului de integrare
-  autentificat și nici nu este prezentat drept dovadă pentru mutațiile coșului.
+- GET-urile read-only au oferit un diagnostic preliminar; dovada de închidere
+  este rularea de integrare autentificată, care include și mutațiile coșului.
 
-### Baza de probe și limita live
+### Baza de probe live și limita auditului vizual
 
 - Sursele main și test ale modulului se compilează în configurația curentă.
 - Suitele unit/component verifică rutele, filtrarea/sortarea așteptată și
   lifecycle-ul coșului cu transport controlat; ele nu certifică semantica
   serviciului remote.
-- Ultima dovadă live disponibilă s-a oprit la autentificare HTTP 401, înainte de
-  crearea coșului. Sort/filter și mutațiile remote rămân, așadar, neconfirmate.
+- `ShopStandaloneApiReportTest` a trecut cu `LIVE / HTTP` pentru login, catalog,
+  filtrare/sortare, creare/adăugare/update/remove coș, read-back și checkout.
+  Raportul HTML generat în rularea curentă conține contractele live, metodele
+  `GET`/`PUT`/`DELETE` și disclosure-urile request/response. Verificarea
+  aceasta este de conținut HTML; politica browserului a blocat explicit
+  deschiderea `file:`, deci randarea interactivă nu este declarată verificată.
+- Testele de componentă acoperă cleanup-ul și pe calea de eșec; rularea live
+  de mai sus confirmă cleanup-ul pe calea de succes, fără a pretinde o
+  întrerupere controlată a unui flow remote.
 - [README-ul Practice Shop](../../atf-test-practice-shop/README.md#boundary-ul-probelor-api)
-  păstrează aceeași delimitare și trimite la acest gap; nu se dublează aici
-  contractul stabil al modulului și nu se atașează istoricul unui raport.
+  deține contractul stabil al modulului; aici rămân doar probele de închidere
+  și limita verificării vizuale, fără a duplica acel contract.
 
-### Criterii rămase pentru închidere
+### Criterii de închidere și probe
 
-- [ ] Reparați sau înlocuiți fixture-ul de cont local prin procesul autorizat; nu slăbiți condiția de autentificare și nu ignorați 401.
-- [ ] Rulați din nou proba opt-in și confirmați în raport provenance `LIVE / HTTP`, rezultatele filtrării/sortării și read-back-ul pentru cantitatea actualizată și coșul gol după DELETE.
-- [ ] Confirmați cleanup atât pe succes, cât și când flow-ul se întrerupe; dacă serviciul nu permite cleanup sigur, păstrați limitarea explicită și nu pretindeți acoperire remote.
-- [ ] Reconcileați feedback-ul cu README-ul ownerului la momentul închiderii; până atunci nu eliminați delimitarea documentată.
+- [x] Fixture-ul local de cont demo a fost înlocuit după înregistrare și login
+  confirmate prin HTTP real; condiția de autentificare a rămas obligatorie.
+- [x] Rularea opt-in a trecut, cu `LIVE / HTTP`, sortare/filtrare și read-back
+  pentru cantitatea actualizată și coșul gol după DELETE.
+- [x] Cleanup-ul pe succes este probat live; cleanup-ul la întrerupere rămâne
+  probat determinist de testele de componentă, nu de o mutație remote indusă.
+- [x] Delimitarea dintre probele controlate și cele live este păstrată; nu se
+  revendică o verificare browser a raportului.
 
 Suitele unit/component rămân fără trafic către serviciul extern. Rularea live este
 opt-in și nu trebuie inclusă implicit în gate-ul determinist.

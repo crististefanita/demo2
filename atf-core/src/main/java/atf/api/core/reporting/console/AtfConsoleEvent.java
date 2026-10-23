@@ -36,6 +36,20 @@ public record AtfConsoleEvent(Type type, Scope scope, String name,
         detailValue = detailValue == null ? "" : detailValue;
     }
 
+    /**
+     * Copies a compatible external event vocabulary by enum name, without a dependency
+     * on its owner. Unknown names and invalid event data fail through the Core contract.
+     */
+    public static AtfConsoleEvent fromExternalEnums(Enum<?> type, Enum<?> scope, String name,
+                                                    Enum<?> status, long durationMillis,
+                                                    String detailName, String detailValue) {
+        return new AtfConsoleEvent(
+                Type.valueOf(Objects.requireNonNull(type, "type").name()),
+                Scope.valueOf(Objects.requireNonNull(scope, "scope").name()),
+                name, status == null ? null : AtfReportStatus.valueOf(status.name()),
+                durationMillis, detailName, detailValue);
+    }
+
     public static AtfConsoleEvent started(Scope scope, String name) {
         return new AtfConsoleEvent(Type.START, scope, name, null, 0, "", "");
     }

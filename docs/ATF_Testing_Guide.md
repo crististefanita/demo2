@@ -79,10 +79,11 @@ Guard-ul reflectă ownerii fără a falsifica structura reactorului:
 - matricea acestui ghid navighează către owneri; nu duplică validatorul pe celulă.
 
 AutoEx are suite distincte pentru component, purchase E2E și API live.
-`AutoExPurchaseSuite` selectează profile diferite de evidence ale aceluiași
-purchase journey — UI, UI+API și screenshot final — nu intenții de business
-independente. Suitele API live sunt opt-in; nu se includ ca precondiție pentru
-rularea UI obișnuită.
+Rularea business uzuală selectează direct `AutoExPurchaseUiE2eTest`, o singură
+cumpărare. `AutoExPurchaseSuite` rămâne matricea explicită UI/UI+API/screenshot
+final; selecțiile de evidence nu reprezintă intenții business independente.
+
+Suitele API live sunt opt-in; nu se includ ca precondiție pentru rularea UI obișnuită.
 
 ### Owner-ul testului: business, adaptor sau infrastructură
 
@@ -104,6 +105,22 @@ o singură dată, cu fixture generică, la ownerul Reporting. Test Kit nu este u
 loc general de mutare a testelor: nu depinde de Reporting, Playwright sau codul
 consumerilor; candidatele se promovează numai dacă sunt primitive de infrastructură
 neutră, nu doar pentru că sunt folosite de două aplicații.
+
+### Reducerea suitei fără pierdere de acoperire
+
+- Comparați invariantul, inputul și calea exercitată, nu numele testelor ori
+  numărul de aserțiuni. Două teste care ating aceeași rută pot verifica reguli diferite.
+- Păstrați în consumer o probă pentru adaptarea datelor și wiring-ul local;
+  mutați la owner proba generică și cazurile sale negative, cu fixture neutră.
+- Ștergeți o copie numai după identificarea probei echivalente și rularea
+  ambelor granițe; pentru teste se aplică
+  [controlul schimbării](../atf-tests/README.md#guvernanța-schimbării-testelor).
+- Numărați separat scenariile business, canalele și profilele de evidence.
+  `UI_API` poate exercita o precondiție sau o corelare absentă din `UI`;
+  simpla schimbare a capturii/grupării nu adaugă un caz business.
+- Testele cu transport controlat protejează clientul și contractele aplicației.
+  Confirmarea serverului și a fluxului real rămâne în probele live opt-in;
+  succesul fixture-ului nu certifică persistența ori semantica remote.
 
 ## Traseul UI/API și ce verifică testele
 

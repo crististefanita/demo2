@@ -99,6 +99,31 @@ flowchart LR
 
 ```yaml
 testChanges:
+  - id: AUTOEX-PURCHASE-DEPTH-01
+    status: VERIFIED
+    base: 0f6a95265024a78c20754d5c18937d24434a2d2d
+    expires: 2026-11-23
+    reason: Valideaza propagarea completa a adreselor si comenzii, clientul si suma facturii, cu diagnostic business si recuperare cleanup pastrand cauza initiala.
+    proof: mvn -pl atf-test-auto-ex,atf-tests -am "-Dtest=AutoExComponentSuite,AutoExPurchaseUiE2eTest,WholeAtfGovernanceSuiteTest" "-Datf.autoex.e2e.enabled=true" "-Datf.governance.testChanges.baseRef=0f6a95265024a78c20754d5c18937d24434a2d2d" "-Dsurefire.failIfNoSpecifiedTests=false" test
+    paths:
+      - atf-test-auto-ex/src/test/java/atf/ui/autoex/support/AutoExE2eRun.java
+      - atf-test-auto-ex/src/test/java/atf/ui/tests/autoex/component/journey/AutoExPurchaseBusinessComponentTest.java
+  - id: CONSOLE-COMPOSITION-BOUNDARY-02
+    status: VERIFIED
+    base: 0f6a95265024a78c20754d5c18937d24434a2d2d
+    expires: 2026-11-22
+    allowDelete: true
+    reason: Eliminarea dependentei Console catre Reporting; fabrica neutra Core si probe exhaustive in composition root, pastrand testele lifecycle existente si corectand importurile lor.
+    proof: mvn -pl atf-reporting-tests,atf-test-practice-shop,atf-test-auto-ex,atf-tests -am "-Dtest=AtfConsole*Test,AtfReportPathOptInTest,ShopComponentSuite,AutoExComponentSuite,ExtentReportSessionLifecycleTest,ReportEvidenceProfileIntegrationTest,WholeAtfGovernanceSuiteTest" "-Dsurefire.failIfNoSpecifiedTests=false" "-Datf.governance.testChanges.baseRef=0f6a95265024a78c20754d5c18937d24434a2d2d" test
+    paths:
+      - atf-console/pom.xml
+      - atf-console/src/test/java/atf/api/console/reporting/AtfReportingConsoleSinkAdapterTest.java
+      - atf-core/src/test/java/atf/api/core/reporting/AtfConsoleEventInteropTest.java
+      - atf-test-auto-ex/src/test/java/atf/ui/autoex/support/AutoExConsoleBridge.java
+      - atf-reporting-tests/src/test/java/atf/api/tests/support/console/AtfConsoleBridge.java
+      - atf-reporting-tests/src/test/java/atf/api/tests/support/console/AtfConsoleBridgeVocabularyTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/extent/session/ExtentReportSessionLifecycleTest.java
+      - atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/inspection/reconciliation/UiApiVerdictProjectionProbe.java
   - id: CORE-HTTP-VOCABULARY-01
     status: VERIFIED
     base: 521135291e642194294f9734ee1410ede0f19ef6

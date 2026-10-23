@@ -98,9 +98,11 @@ transversale pentru testare. Boundary-urile actuale sunt:
 - consumul din aplicațiile testate rămâne test-only; adapter-ele de infrastructură
   pot necesita compile scope pentru integrarea JUnit, iar excepțiile se verifică
   în POM-ul fiecărui modul;
-- Practice Shop are o declarație compile-scope mai largă decât folosirea sa din
-  `src/test`; README-ul consumerului păstrează explicit această nealiniere până
-  la o schimbare autorizată;
+- Practice Shop și AutoEx consumă Test Kit în `test` scope; harness-urile și
+  compoziția consolei rămân în sursele de test;
+- Console și Reporting sunt independente; compoziția transmite câmpurile
+  evenimentului extern către fabrica neutră `AtfConsoleEvent.fromExternalEnums`
+  din Core, iar Reporting Tests verifică vocabularele reale;
 - `atf-mock` depinde numai de `atf-core`, iar `atf-debug-ui` este un launcher
   read-only; pornirea sa din teste sau IntelliJ nu îl transformă într-o
   dependență a rendererului.

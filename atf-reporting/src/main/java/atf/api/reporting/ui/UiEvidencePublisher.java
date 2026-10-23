@@ -336,6 +336,62 @@ public final class UiEvidencePublisher {
         return hasText(title) ? title : AtfGherkinKeyword.THEN.text() + " UI flow completed";
     }
 
+    /** Keeps every phase's verdict and causal API evidence inside one scenario proposition. */
+    void publishCrossPhaseUnifiedFlow(String scenarioTitle,
+                                      List<UiScenarioLifecycle.PhaseCheckpoint> entries,
+                                      AtfReportStatus finalStatus) {
+        if (entries.isEmpty()) return;
+        List<UiUnifiedFlowCheckpoint> checkpoints = entries.stream()
+                .map(UiScenarioLifecycle.PhaseCheckpoint::checkpoint).toList();
+        var flow = phase.startRequest(unifiedProposition(checkpoints), "", "");
+        try {
+            flow.detail(AtfReportEvidenceKeys.EVIDENCE_TYPE,
+                    AtfReportEvidenceKeys.UNIFIED_UI_FLOW);
+            flow.detail(AtfReportEvidenceKeys.FLOW_MODE,
+                    ReportEvidenceFlowMode.UNIFIED_FLOW.configValue());
+            if (hasText(scenarioTitle)) flow.detail(AtfReportEvidenceKeys.FLOW_SCENARIO, scenarioTitle);
+            flow.detail(AtfReportEvidenceKeys.FLOW_PHASE,
+                    entries.stream().map(UiScenarioLifecycle.PhaseCheckpoint::phase)
+                            .distinct().collect(java.util.stream.Collectors.joining(" → ")));
+            AtfReportStatus aggregate = AtfReportStatus.orInfo(finalStatus);
+            int index = 0;
+            for (var entry : entries) {
+                UiUnifiedFlowCheckpoint checkpoint = entry.checkpoint();
+                AtfReportStatus checkpointStatus = effectiveStatus(checkpoint);
+                aggregate = AtfReportStatus.worst(aggregate,
+                        AtfReportStatus.worst(AtfReportStatus.orInfo(entry.phaseStatus()), checkpointStatus));
+                String prefix = "flow.checkpoint." + (++index);
+                flow.detail(prefix + ".phase", entry.phase());
+                flow.detail(prefix + ".phaseStatus", AtfReportStatus.orInfo(entry.phaseStatus()).displayValue());
+                flow.detail(prefix + ".step", checkpoint.gherkinTitle());
+                flow.detail(prefix + ".status", checkpointStatus.displayValue());
+                if (isUiEvidence(checkpoint) || "Setup validation".equals(checkpoint.validationTitle())) {
+                    var validation = flow.startValidation(entry.phase() + " · " + checkpoint.validationTitle());
+                    try {
+                        publishActions(validation, checkpoint.actions());
+                        publishUnifiedScreenshot(validation, checkpoint, checkpointStatus);
+                        validation.assertions(checkpoint.assertions());
+                        validation.complete(checkpoint.status());
+                    } finally {
+                        validation.close();
+                    }
+                }
+                if (!checkpoint.apiValidation().isEmpty()) {
+                    var validation = flow.startValidation(entry.phase() + " · API validation");
+                    try {
+                        publishApiEvidence(validation, checkpoint.apiValidation());
+                        validation.complete(checkpoint.apiValidation().status());
+                    } finally {
+                        validation.close();
+                    }
+                }
+            }
+            flow.complete(aggregate);
+        } finally {
+            flow.close();
+        }
+    }
+
     /** Publishes an explicit standalone API trace with nested exchange evidence. */
     void publishApiTrace(String keyword, String title, String target,
                          Collection<ReportExecutionEvidence> apiEvidence,

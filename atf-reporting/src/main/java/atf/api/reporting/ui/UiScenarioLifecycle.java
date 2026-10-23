@@ -4,6 +4,8 @@ import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
 import atf.api.reporting.evidence.profile.ReportEvidenceProfile;
+import java.util.ArrayList;
+import java.util.List;
 
 
 /** Owns scenario completion state while the public UI facade stays thin. */
@@ -12,6 +14,10 @@ public final class UiScenarioLifecycle implements AutoCloseable {
     private final ReportScreenshotPolicy screenshotPolicy;
     private final ReportEvidenceFlowMode flowMode;
     private final String scenarioTitle;
+    private final List<PhaseCheckpoint> phaseCheckpoints = new ArrayList<>();
+    private boolean crossPhaseUnifiedFlow;
+    private boolean phaseStarted;
+    private boolean unifiedFlowPublished;
     private boolean completed;
 
     UiScenarioLifecycle(AtfReportPorts.Scenario delegate, ReportEvidenceProfile evidenceProfile,
@@ -24,12 +30,41 @@ public final class UiScenarioLifecycle implements AutoCloseable {
 
     UiPhaseLifecycle startPhase(String name) {
         ensureOpen();
+        phaseStarted = true;
         return new UiPhaseLifecycle(delegate.startPhase(name), screenshotPolicy,
-                flowMode, scenarioTitle, name);
+                flowMode, scenarioTitle, name, this);
     }
+
+    void unifyAcrossPhases() {
+        ensureOpen();
+        if (phaseStarted) throw new IllegalStateException("Select cross-phase flow before starting SETUP");
+        if (flowMode != ReportEvidenceFlowMode.UNIFIED_FLOW) {
+            throw new IllegalStateException("Cross-phase flow requires UNIFIED_FLOW evidence profile");
+        }
+        crossPhaseUnifiedFlow = true;
+    }
+
+    boolean crossPhaseUnifiedFlow() { return crossPhaseUnifiedFlow; }
+
+    void retain(String phase, AtfReportStatus status, List<UiUnifiedFlowCheckpoint> checkpoints) {
+        if (unifiedFlowPublished) throw new IllegalStateException("Unified flow was already published");
+        for (var checkpoint : checkpoints) phaseCheckpoints.add(new PhaseCheckpoint(phase, status, checkpoint));
+    }
+
+    List<PhaseCheckpoint> publishableCheckpoints() {
+        if (unifiedFlowPublished) throw new IllegalStateException("Unified flow was already published");
+        unifiedFlowPublished = true;
+        return List.copyOf(phaseCheckpoints);
+    }
+
+    record PhaseCheckpoint(String phase, AtfReportStatus phaseStatus,
+                           UiUnifiedFlowCheckpoint checkpoint) { }
 
     void complete(AtfReportStatus status) {
         ensureOpen();
+        if (crossPhaseUnifiedFlow && !unifiedFlowPublished && !phaseCheckpoints.isEmpty()) {
+            throw new IllegalStateException("Complete the terminal phase before completing a cross-phase flow");
+        }
         delegate.complete(status == null ? AtfReportStatus.INFO : status);
         completed = true;
     }

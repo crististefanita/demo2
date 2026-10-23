@@ -223,6 +223,11 @@ public final class UiExtentReportSession implements AutoCloseable {
             return new UiPhase(lifecycle.startPhase(name));
         }
 
+        /** Opts a UNIFIED_FLOW scenario into one chronological flow spanning its phases. */
+        public void unifyAcrossPhases() {
+            lifecycle.unifyAcrossPhases();
+        }
+
         public void complete(AtfReportStatus status) {
             lifecycle.complete(status);
         }
@@ -413,6 +418,11 @@ public final class UiExtentReportSession implements AutoCloseable {
                                     Collection<AtfUiActionRecord> actions,
                                     Throwable failure, String base64Png) {
             lifecycle.failureEvidence(title, target, actions, failure, base64Png);
+        }
+
+        /** Completes the last phase and publishes one flow with retained phase checkpoints. */
+        public void completeFinal(AtfReportStatus status) {
+            lifecycle.completeFinal(status);
         }
 
         public void complete(AtfReportStatus status) {

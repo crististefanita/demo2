@@ -2,6 +2,7 @@ package atf.ui.autoex.page;
 
 import atf.ui.autoex.config.AutoExConfiguration;
 import atf.ui.autoex.locator.AutoExSelectors;
+import atf.ui.autoex.support.checkout.AutoExOrderLine;
 import atf.ui.autoex.support.journey.AutoExPurchaseSession;
 
 /** Cart rows and checkout transition. */
@@ -9,6 +10,10 @@ public final class CartPage extends AutoExPage {
     public CartPage(AutoExPurchaseSession run) { super(run); }
 
     public void openFromHeader() { click(AutoExSelectors.CART_LINK, "cart page opens"); }
+
+    public AutoExOrderLine orderLine(AutoExConfiguration.Catalog product) {
+        return new AutoExOrderLine(productName(product), productPrice(product), quantity(product), total(product));
+    }
 
     public String productName(AutoExConfiguration.Catalog product) {
         return text(row(product) + " " + AutoExSelectors.CART_PRODUCT_NAME, "cart product name is read");
