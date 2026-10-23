@@ -15,6 +15,8 @@ import java.nio.file.AccessDeniedException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.AbstractCollection;
+import java.util.Iterator;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -22,6 +24,37 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @AtfUnitTest
 class ExtentReportSessionLifecycleTest {
+    @Test
+    void invalidTagCollectionCannotLeaveAnOrphanExtentOrSemanticScenario() throws Exception {
+        Path root = Files.createTempDirectory("atf-invalid-scenario-tags-");
+        Path report = root.resolve("atomic-start.html");
+        try {
+            try (var session = new ExtentReportSession(report)) {
+                var invalidTags = new AbstractCollection<String>() {
+                    @Override public Iterator<String> iterator() {
+                        throw new IllegalStateException("tag source unavailable");
+                    }
+                    @Override public int size() { return 1; }
+                };
+
+                assertThrows(IllegalStateException.class, () ->
+                        session.startScenario("AtomicStartTests", "must not appear", invalidTags));
+                assertEquals(0, session.semanticSnapshot().scenarioCount());
+
+                var valid = session.startScenario("AtomicStartTests", "valid scenario", List.of());
+                valid.complete(AtfReportStatus.PASS);
+                assertEquals(1, session.semanticSnapshot().scenarioCount());
+            }
+
+            String html = Files.readString(report);
+            assertAll(
+                    () -> assertTrue(html.contains("valid scenario")),
+                    () -> assertFalse(html.contains("must not appear")));
+        } finally {
+            deleteTree(root);
+        }
+    }
+
     @Test
     void consoleSinkFailureCannotInterruptScenarioLifecycleOrReportPublication() throws Exception {
         Path root = Files.createTempDirectory("atf-console-sink-lifecycle-");

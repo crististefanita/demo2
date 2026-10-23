@@ -1,7 +1,7 @@
 package atf.ui.autoex.support;
 
+import atf.api.testkit.lifecycle.AtfE2eActivationPolicy;
 import atf.ui.autoex.config.AutoExConfigurationLoader;
-import atf.ui.autoex.support.lifecycle.AutoExE2eActivationPolicy;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ConditionEvaluationResult;
@@ -26,7 +26,8 @@ public final class AutoExE2eExtension implements ExecutionCondition,
         boolean yamlEnabled = override == null && AutoExConfigurationLoader.load().e2eEnabled();
         boolean intellijDetected = override == null
                 && System.getProperty(INTELLIJ_RUNNER_PROPERTY) != null;
-        var decision = AutoExE2eActivationPolicy.evaluate(override, yamlEnabled, intellijDetected);
+        var decision = AtfE2eActivationPolicy.evaluate(ENABLE_PROPERTY, override, yamlEnabled,
+                yamlEnabled ? "AutoEx YAML configuration" : null, intellijDetected);
         return decision.enabled()
                 ? ConditionEvaluationResult.enabled(decision.reason())
                 : ConditionEvaluationResult.disabled(decision.reason());

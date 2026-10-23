@@ -1,22 +1,18 @@
-package atf.ui.practiceshop.support.api;
+package atf.api.core.http.response;
 
 import atf.api.core.diagnostics.ThrowableDiagnostics;
 
-/**
- * Makes an unavailable browser/API payload explicit without turning it into an
- * empty or apparently valid JSON body.
- */
-public final class ShopApiBodyEvidence {
+/** Represents an unavailable response body explicitly instead of as valid empty JSON. */
+public final class ApiBodyEvidence {
     private static final String PREFIX = "<body unavailable: ";
 
-    private ShopApiBodyEvidence() { }
+    private ApiBodyEvidence() { }
 
     public static String unavailable(String source, Throwable error) {
         String owner = source == null || source.isBlank() ? "API transport" : source.trim();
         String cause = error == null
                 ? "payload was not exposed"
-                : ThrowableDiagnostics.unavailable(error)
-                .replaceFirst("^unavailable:\s*", "");
+                : ThrowableDiagnostics.unavailable(error).replaceFirst("^unavailable:\\s*", "");
         return PREFIX + owner + " — " + cause + ">";
     }
 

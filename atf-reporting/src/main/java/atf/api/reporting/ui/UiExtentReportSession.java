@@ -200,9 +200,11 @@ public final class UiExtentReportSession implements AutoCloseable {
     public UiScenario startScenario(String testClass, String testPackage,
                                     String scenario, Collection<String> tags,
                                     ReportEvidenceProfile scenarioProfile) {
+        ReportEvidenceProfile requiredProfile = Objects.requireNonNull(
+                scenarioProfile, "scenarioProfile");
         return new UiScenario(new UiScenarioLifecycle(
                 delegate.startScenario(testClass, testPackage, scenario, tags),
-                Objects.requireNonNull(scenarioProfile, "scenarioProfile"), scenario));
+                requiredProfile, scenario));
     }
 
     @Override

@@ -1,0 +1,226 @@
+package atf.api.tests.governance.consumers;
+
+import atf.api.core.files.AtfFileTree;
+import atf.api.testkit.AtfIntegrationTest;
+import atf.api.tests.governance.AtfGovernanceTestSupport;
+import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/** Keeps consumer source-set and test-suite architecture under whole-ATF governance. */
+@AtfIntegrationTest
+public class ConsumerModuleArchitectureGovernanceTest {
+    private static final String JAVA_SUFFIX = ".java";
+
+    @Test
+    void shopKeepsItsBrowserAndReportingHarnessInTestSources() throws IOException {
+        Path module = module("atf-test-practice-shop");
+        Path testRoot = module.resolve("src/test/java/atf/ui/tests/practiceshop");
+        Path context = testRoot.resolve("support/lifecycle/ShopE2eContext.java");
+
+        assertTrue(Files.isRegularFile(context), "Shop browser/report context must be test-scoped");
+        assertFalse(Files.exists(module.resolve(
+                        "src/main/java/atf/ui/practiceshop/support/ShopE2eContext.java")),
+                "browser/report lifecycle must not ship with the Shop runtime");
+
+        for (String helper : List.of(
+                "support/evidence/ShopBrowserCaptureProvider.java",
+                "support/reporting/ShopReportSystemMetadata.java",
+                "support/reporting/ShopReportUiActionAdapters.java",
+                "support/reporting/ShopScreenshotPolicy.java")) {
+            assertTrue(Files.isRegularFile(testRoot.resolve(helper)),
+                    "Shop reporting adapter must remain test-scoped: " + helper);
+            assertFalse(Files.exists(module.resolve("src/main/java/atf/ui/practiceshop/" + helper)),
+                    "Shop reporting adapter must not enter the production artifact: " + helper);
+        }
+
+        String pom = Files.readString(module.resolve("pom.xml"));
+        assertDependencyScope(pom, "atf-test-kit", "test");
+        for (String dependency : List.of("atf-core", "atf-console", "atf-reporting", "atf-ui")) {
+            assertDependencyScope(pom, dependency, null);
+        }
+    }
+
+    @Test
+    void shopUiSourcesRespectTheLocatorAndSelectorBoundary() throws IOException {
+        Path module = module("atf-test-practice-shop");
+        Path sourceRoot = module.resolve("src/main/java/atf/ui/practiceshop");
+        Path testRoot = module.resolve("src/test/java/atf/ui/tests/practiceshop");
+        Path locatorRoot = sourceRoot.resolve("locators").toAbsolutePath().normalize();
+
+        for (Path source : javaFiles(sourceRoot, testRoot)) {
+            if (source.toAbsolutePath().normalize().startsWith(locatorRoot)) continue;
+            String text = Files.readString(source);
+            assertFalse(text.contains("page.locator("), "raw locator escaped the facade: " + source);
+            assertFalse(text.contains("getByText("), "text selector escaped the facade: " + source);
+            assertFalse(text.contains("getByRole("), "role selector escaped the facade: " + source);
+            assertFalse(text.matches("(?s).*pressKey\\(page,\\s*\"[^\"]+\",\\s*\"[^\"]+\".*"),
+                    "keyboard actions must receive a locator-facade target: " + source);
+        }
+
+        String locators = Files.readString(sourceRoot.resolve("locators/ShopLocators.java"));
+        assertTrue(locators.contains("HtmlElement.INPUT.attributeEquals(ID, \"email\")"));
+        assertTrue(locators.contains("HtmlElement.INPUT.attributeEquals(ID, \"search-query\")"));
+        assertTrue(locators.contains("DATA_TEST.equalsSelector(\"login-submit\")"));
+        assertTrue(locators.contains("DATA_TEST.equalsSelector(\"register-submit\")"));
+        assertFalse(locators.contains("input#"), "ID shorthand must not be the default selector form");
+        assertTrue(locators.contains("atf.api.ui.dom.HtmlElement")
+                        && locators.contains("atf.api.ui.dom.HtmlAttribute"),
+                "Shop must reuse the typed DOM vocabulary from atf-ui");
+    }
+
+    @Test
+    void shopComponentAndApiAuditSuitesKeepExplicitBoundaries() throws IOException {
+        Path tests = module("atf-test-practice-shop")
+                .resolve("src/test/java/atf/ui/tests/practiceshop");
+        String componentSuite = Files.readString(tests.resolve("suites/ShopComponentSuite.java"));
+        for (String selected : List.of("atf.ui.tests.practiceshop.component",
+                "atf.ui.tests.practiceshop.api.component",
+                "atf.ui.tests.practiceshop.api.unit",
+                "atf.ui.tests.practiceshop.api.reporting",
+                "atf.ui.tests.practiceshop.api.network",
+                "atf.ui.tests.practiceshop.support")) {
+            assertTrue(componentSuite.contains("\"" + selected + "\""),
+                    "Shop component suite must keep its explicit consumer boundary: " + selected);
+        }
+        assertFalse(componentSuite.contains("atf.ui.tests.practiceshop.e2e"));
+        assertFalse(componentSuite.contains("atf.ui.tests.practiceshop.api.integration"));
+
+        String auditSuite = Files.readString(tests.resolve("suites/ShopApiCallAuditSuite.java"));
+        assertTrue(auditSuite.contains("@IncludeTags(\"api-call\")"),
+                "the API-call audit suite must select only explicitly tagged adapter contracts");
+    }
+
+    @Test
+    void shopE2eTestsUseObservedAssertionsAndPerMethodHarnesses() throws IOException {
+        Path e2e = module("atf-test-practice-shop")
+                .resolve("src/test/java/atf/ui/tests/practiceshop/e2e");
+        for (String name : List.of("ShopPurchaseE2eTest", "ShopUiOnlyPurchaseE2eTest",
+                "ShopUiOnlySingleFlowPurchaseE2eTest", "ShopAuthenticatedPurchaseE2eTest",
+                "ShopNewAccountPurchaseE2eTest")) {
+            String source = Files.readString(e2e.resolve(name + ".java"));
+            assertTrue(source.contains("@ShopE2eTestSupport.WithE2eHarness"),
+                    name + " must use the isolated browser/report extension");
+            assertTrue(source.contains("ShopE2eTestSupport.E2eHarness harness"),
+                    name + " must receive its per-method harness");
+            assertFalse(source.contains("@BeforeEach") || source.contains("@AfterEach"),
+                    name + " must not duplicate extension lifecycle callbacks");
+            assertFalse(source.contains("@TestInstance") || source.contains("@BeforeAll"),
+                    name + " must not share a suite browser");
+            assertObservedVerdicts(source, e2e.resolve(name + ".java"), true);
+        }
+
+        for (String name : List.of("ShopNewAccountPurchaseE2eTest", "ShopAuthenticatedPurchaseE2eTest")) {
+            String source = Files.readString(e2e.resolve(name + ".java"));
+            assertTrue(source.contains("ShopAuthenticatedAccountTestSupport::prepare"),
+                    name + " must finish account setup before its purchase journey");
+            assertTrue(source.contains("purchaseConfiguredProductAuthenticated("),
+                    name + " must execute the authenticated purchase path");
+            assertTrue(source.contains("journey.completePurchase(purchase);"),
+                    name + " must verify the terminal order confirmation");
+        }
+    }
+
+    @Test
+    void autoExKeepsRuntimeAndE2eAdaptersOutOfTheProductionTestFrameworkBoundary() throws IOException {
+        Path module = module("atf-test-auto-ex");
+        Path main = module.resolve("src/main/java/atf/ui/autoex");
+        Path test = module.resolve("src/test/java/atf/ui/tests/autoex");
+        Path journey = main.resolve("support/journey/AutoExPurchaseJourney.java");
+        Path session = main.resolve("support/journey/AutoExPurchaseSession.java");
+        String journeySource = Files.readString(journey);
+        String sessionSource = Files.readString(session);
+
+        assertTrue(Files.isRegularFile(module.resolve("src/test/resources/atf-auto-ex.yaml")),
+                "site-specific E2E configuration belongs to test resources");
+        assertFalse(Files.exists(module.resolve("src/main/resources/atf-auto-ex.yaml")),
+                "test configuration must not be packaged as a production resource");
+        for (String path : List.of("config/AutoExConfigurationLoader.java", "page/AccountPage.java",
+                "locator/AutoExSelectors.java")) {
+            assertTrue(Files.isRegularFile(main.resolve(path)), "missing AutoEx runtime type: " + path);
+        }
+        assertTrue(sessionSource.contains("com.microsoft.playwright.Page"),
+                "the AutoEx runtime port may expose its browser capability");
+        assertTrue(sessionSource.contains("atf.api.reporting.contract.AtfAssertion"),
+                "the AutoEx journey port may expose typed assertions");
+        assertFalse(sessionSource.contains("org.junit") || sessionSource.contains("atf.api.testkit"),
+                "JUnit and generic test-kit concerns must remain outside runtime code");
+        assertTrue(journeySource.contains("AutoExPurchaseTraceStep."));
+        assertFalse(journeySource.contains("checkpoint(AtfGherkinKeyword"),
+                "business checkpoint titles must come from the typed phrase catalog");
+
+        for (Path source : javaFiles(main)) {
+            String text = Files.readString(source);
+            assertFalse(text.contains("org.junit") || text.contains("atf.api.testkit"),
+                    "JUnit/test-kit imports must not leak into AutoEx main sources: " + source);
+        }
+        assertTrue(Files.isDirectory(test), "AutoEx test source root must exist");
+    }
+
+    @Test
+    void autoExSuitesKeepComponentPurchaseAndLiveApiExecutionSeparate() throws IOException {
+        Path tests = module("atf-test-auto-ex").resolve("src/test/java/atf/ui/tests/autoex");
+        String component = Files.readString(tests.resolve("suites/AutoExComponentSuite.java"));
+        assertTrue(component.contains("@SelectPackages(\"atf.ui.tests.autoex.component\")"));
+
+        String purchase = Files.readString(tests.resolve("suites/AutoExPurchaseSuite.java"));
+        for (String test : List.of("AutoExPurchaseUiE2eTest.class",
+                "AutoExPurchaseUiApiE2eTest.class", "AutoExPurchaseUiFinalScreenshotE2eTest.class")) {
+            assertTrue(purchase.contains(test), "purchase suite must retain the declared evidence variant: " + test);
+        }
+
+        String apiSuite = Files.readString(tests.resolve("suites/AutoExApiLiveSuite.java"));
+        String liveContract = Files.readString(tests.resolve("api/AutoExApiLiveContractTest.java"));
+        assertTrue(apiSuite.contains("AutoExApiLiveContractTest.class"));
+        assertTrue(liveContract.contains("@EnabledIfSystemProperty"));
+        assertTrue(liveContract.contains("atf.autoex.api.live.enabled"));
+    }
+
+    private static Path module(String name) {
+        return AtfGovernanceTestSupport.locateProjectRoot().resolve(name);
+    }
+
+    private static List<Path> javaFiles(Path... roots) throws IOException {
+        var files = new java.util.ArrayList<Path>();
+        for (Path root : roots) {
+            if (!Files.isDirectory(root)) continue;
+            files.addAll(AtfFileTree.regularFiles(root, List.of(Path.of(".")),
+                    path -> path.getFileName().toString().endsWith(JAVA_SUFFIX)));
+        }
+        return files;
+    }
+
+    private static void assertDependencyScope(String pom, String artifact, String expectedScope) {
+        String marker = "<artifactId>" + artifact + "</artifactId>";
+        int start = pom.indexOf(marker);
+        assertTrue(start >= 0, "missing Shop dependency " + artifact);
+        int end = pom.indexOf("</dependency>", start);
+        assertTrue(end > start, "malformed Shop dependency " + artifact);
+        String declaration = pom.substring(start, end);
+        if (expectedScope == null) {
+            assertFalse(declaration.contains("<scope>test</scope>"),
+                    artifact + " must remain available to Shop main sources");
+        } else {
+            assertTrue(declaration.contains("<scope>" + expectedScope + "</scope>"),
+                    artifact + " must use " + expectedScope + " scope");
+        }
+    }
+
+    private static void assertObservedVerdicts(String source, Path path, boolean e2e) {
+        assertFalse(source.matches("(?s).*\\bcheck\\([^;]*,\\s*true\\s*\\).*"),
+                "check verdict must derive from an observed value: " + path);
+        assertFalse(source.matches("(?s).*new\\s+AtfAssertion\\([^;]*,\\s*true\\s*\\).*"),
+                "assertion verdict must derive from an observed value: " + path);
+        if (e2e) {
+            assertFalse(source.contains("configuration.productName(), configuration.productName()"),
+                    "E2E product assertion must not compare a value with itself: " + path);
+            assertFalse(source.contains("\"My account\", \"My account\""),
+                    "E2E account assertion must not compare a value with itself: " + path);
+        }
+    }
+}

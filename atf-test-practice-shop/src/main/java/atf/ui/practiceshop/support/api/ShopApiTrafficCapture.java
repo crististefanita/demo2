@@ -1,5 +1,6 @@
 package atf.ui.practiceshop.support.api;
 
+import atf.api.core.http.response.ApiBodyEvidence;
 import atf.ui.practiceshop.support.ShopJsonEvidence;
 import com.microsoft.playwright.Response;
 
@@ -28,7 +29,7 @@ final class ShopApiTrafficCapture {
             // Keep the limitation explicit when the browser still cannot expose
             // the payload after the lifecycle wait; assertions must not treat it
             // as an empty or successful JSON body.
-            responseBody = ShopApiBodyEvidence.unavailable(
+            responseBody = ApiBodyEvidence.unavailable(
                     "Chromium response body", unavailable);
         }
         return Optional.of(new ShopApiNetworkJournal.Exchange(

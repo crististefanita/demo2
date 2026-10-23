@@ -1,7 +1,5 @@
 package atf.api.ui.dom;
 
-import java.util.Objects;
-
 /** Canonical HTML and automation attributes used while composing CSS selectors. */
 public enum HtmlAttribute {
     ID("id"),
@@ -33,8 +31,7 @@ public enum HtmlAttribute {
     }
 
     private String selector(String operator, String value) {
-        String escaped = Objects.requireNonNull(value, "value")
-                .replace("\\", "\\\\").replace("'", "\\'");
+        String escaped = CssStringEscaper.escapeQuotedValue(value);
         return "[" + attributeName + operator + "'" + escaped + "']";
     }
 }

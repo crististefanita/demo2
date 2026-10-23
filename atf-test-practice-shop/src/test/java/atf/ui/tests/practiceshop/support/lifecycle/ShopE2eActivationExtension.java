@@ -1,5 +1,6 @@
 package atf.ui.tests.practiceshop.support.lifecycle;
 
+import atf.api.testkit.lifecycle.AtfE2eActivationPolicy;
 import org.junit.jupiter.api.extension.ConditionEvaluationResult;
 import org.junit.jupiter.api.extension.ExecutionCondition;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -14,7 +15,8 @@ public final class ShopE2eActivationExtension implements ExecutionCondition {
         String override = System.getProperty(ENABLE_PROPERTY);
         boolean ideRunnerDetected = override == null
                 && System.getProperty(INTELLIJ_RUNNER_PROPERTY) != null;
-        var decision = ShopE2eActivationPolicy.evaluate(override, ideRunnerDetected);
+        var decision = AtfE2eActivationPolicy.evaluate(
+                ENABLE_PROPERTY, override, false, null, ideRunnerDetected);
         return decision.enabled()
                 ? ConditionEvaluationResult.enabled(decision.reason())
                 : ConditionEvaluationResult.disabled(decision.reason());

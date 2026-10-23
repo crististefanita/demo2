@@ -1,5 +1,6 @@
 package atf.ui.practiceshop.support.api;
 
+import atf.api.core.http.response.ApiBodyEvidence;
 import atf.api.reporting.api.ReportAttemptRecord;
 import atf.api.reporting.api.ReportRequest;
 import atf.api.reporting.api.ReportAuthObservation;
@@ -40,7 +41,7 @@ public final class ShopApiEvidenceMapper {
                 "none", redactJson(exchange.requestBody()), authentication);
         ReportResponse response = new ReportResponse(exchange.status(), redactJson(exchange.responseBody()),
                 ShopJsonEvidence.redactHeaders(exchange.responseHeaders()), null, exchange.url(),
-                exchange.status() < 0 || ShopApiBodyEvidence.isUnavailable(exchange.responseBody())
+                exchange.status() < 0 || ApiBodyEvidence.isUnavailable(exchange.responseBody())
                         ? ReportBodyAvailability.NOT_CAPTURED
                         : ReportBodyAvailability.from(exchange.responseBody()));
         var attempt = new ReportAttemptRecord(1, exchange.status(), null,
@@ -78,7 +79,7 @@ public final class ShopApiEvidenceMapper {
                 redactJson(request.bodyText()), request.authObservation(), request.bodyAvailability());
         ReportResponse reportResponse = new ReportResponse(response.status(), redactJson(response.body()),
                 ShopJsonEvidence.redactHeaders(response.headers()), response.duration(), response.url(),
-                ShopApiBodyEvidence.isUnavailable(response.body())
+                ApiBodyEvidence.isUnavailable(response.body())
                         ? ReportBodyAvailability.NOT_CAPTURED : response.bodyAvailability());
         ReportTraceMetadata trace = ReportTraceMetadata.from(reportRequest).withCapture(
                 sequence > 0 ? "E" + sequence : "", sequence, phase, role, stepId,

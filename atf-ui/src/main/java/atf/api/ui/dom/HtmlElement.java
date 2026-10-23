@@ -51,8 +51,7 @@ public enum HtmlElement {
         if (!ATTRIBUTE_NAME.matcher(attribute).matches()) {
             throw new IllegalArgumentException("Invalid HTML attribute name: " + name);
         }
-        String escaped = Objects.requireNonNull(value, "value")
-                .replace("\\", "\\\\").replace("'", "\\'");
+        String escaped = CssStringEscaper.escapeQuotedValue(value);
         return selector + "[" + attribute + operator + "'" + escaped + "']";
     }
 

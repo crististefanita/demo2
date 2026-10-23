@@ -1,11 +1,13 @@
-package atf.ui.practiceshop.locators;
+package atf.api.ui.dom;
 
-/** Escapes dynamic values embedded in a single-quoted Playwright CSS string. */
-public final class ShopCssEscaper {
-    private ShopCssEscaper() { }
+import java.util.Objects;
 
-    public static String quoted(String value) {
-        if (value == null) throw new NullPointerException("value");
+/** Escapes a dynamic value for a single-quoted CSS string literal. */
+public final class CssStringEscaper {
+    private CssStringEscaper() { }
+
+    public static String escapeQuotedValue(String value) {
+        Objects.requireNonNull(value, "value");
         StringBuilder escaped = new StringBuilder(value.length());
         for (int offset = 0; offset < value.length();) {
             int codePoint = value.codePointAt(offset);

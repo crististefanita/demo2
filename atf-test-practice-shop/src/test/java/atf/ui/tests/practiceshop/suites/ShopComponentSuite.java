@@ -4,7 +4,7 @@ import atf.api.testkit.AtfComponentTest;
 import org.junit.platform.suite.api.SelectPackages;
 import org.junit.platform.suite.api.Suite;
 
-/** Fast shop component, support-contract and architecture checks; no live purchase journeys. */
+/** Fast Shop business/component and consumer-adapter contracts; no live journeys. */
 @Suite
 @SelectPackages({
         "atf.ui.tests.practiceshop.component",

@@ -33,11 +33,28 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Proves the typed consumer profile crosses the session boundary without a browser. */
 @AtfIntegrationTest
 class ReportEvidenceProfileIntegrationTest {
+    @Test
+    void nullScenarioProfileIsRejectedBeforeAnExtentScenarioIsCreated() throws Exception {
+        Path root = Files.createTempDirectory("atf-null-scenario-profile-");
+        Path report;
+        try (var session = UiExtentReportSession.openConfigured(root, "null-profile.html",
+                AtfConsoleSink.noOp(), ReportEvidenceProfile.forScreenshotPolicy(
+                        ReportScreenshotPolicy.FINAL_ONLY))) {
+            report = session.reportPath();
+            assertThrows(NullPointerException.class, () -> session.startScenario(
+                    "ProfileTest", "atf.api.reporting.ui", "must not appear", List.of(), null));
+        }
+
+        String html = Files.readString(report);
+        assertFalse(html.contains("must not appear"));
+    }
+
     @Test
     void unifiedFlowPublishesOneBusinessNodeWithNestedEvidenceAndOnlyTheFinalScreenshot()
             throws Exception {

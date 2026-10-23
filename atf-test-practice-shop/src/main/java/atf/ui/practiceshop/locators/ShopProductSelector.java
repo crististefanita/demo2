@@ -1,5 +1,7 @@
 package atf.ui.practiceshop.locators;
 
+import atf.api.ui.dom.CssStringEscaper;
+
 import java.util.Objects;
 
 /** Builds the stable card locator used to select one exact configured product. */
@@ -16,7 +18,7 @@ public final class ShopProductSelector {
     public static String exactProductCard(String productName) {
         String name = required(productName, "productName");
         return PRODUCT_CARD + ":has(" + PRODUCT_NAME + ":text-is('"
-                + ShopCssEscaper.quoted(name) + "'))";
+                + CssStringEscaper.escapeQuotedValue(name) + "'))";
     }
 
     private static String required(String value, String name) {

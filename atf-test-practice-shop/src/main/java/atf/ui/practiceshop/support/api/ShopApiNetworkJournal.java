@@ -1,5 +1,6 @@
 package atf.ui.practiceshop.support.api;
 
+import atf.api.core.http.response.ApiBodyEvidence;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.api.ReportRequest;
 import atf.api.reporting.api.ReportRequestSignature;
@@ -98,7 +99,7 @@ public final class ShopApiNetworkJournal {
         Exchange exchange = new Exchange(
                 observation.method(), observation.path(), observation.url(), observation.status(),
                 observation.requestBody(), observation.responseBodyAvailable() ? observation.responseBody()
-                        : ShopApiBodyEvidence.unavailable("Browser observation", observation.responseBody()), observation.requestHeaders(),
+                        : ApiBodyEvidence.unavailable("Browser observation", observation.responseBody()), observation.requestHeaders(),
                 observation.responseHeaders()).withObservedAuthMethod(observation.authMethod());
         recordCapturedExchange(observation.requestFailed()
                 ? exchange.withFailureReason(observation.failureReason()) : exchange);
@@ -187,7 +188,7 @@ public final class ShopApiNetworkJournal {
     }
 
     private static boolean bodyUnavailable(String body) {
-        return ShopApiBodyEvidence.isUnavailable(body);
+        return ApiBodyEvidence.isUnavailable(body);
     }
 
     /**

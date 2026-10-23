@@ -7,7 +7,7 @@ import atf.ui.practiceshop.api.ShopApiRequestFactory;
 import atf.ui.practiceshop.api.ShopApiRoutes;
 import atf.ui.practiceshop.config.api.ShopApiConfiguration;
 import atf.ui.practiceshop.config.model.ShopCredentials;
-import atf.ui.practiceshop.support.api.ShopApiBodyEvidence;
+import atf.api.core.http.response.ApiBodyEvidence;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -42,7 +42,7 @@ public final class ShopLoginBodyRecovery {
         }
 
         public static Result unavailable(String detail) {
-            return new Result(false, "", ShopApiBodyEvidence.unavailable(
+            return new Result(false, "", ApiBodyEvidence.unavailable(
                     "login body recovery", detail));
         }
 
@@ -56,7 +56,7 @@ public final class ShopLoginBodyRecovery {
         try {
             return Result.recovered(supplier.get());
         } catch (Exception error) {
-            return new Result(false, "", ShopApiBodyEvidence.unavailable(
+            return new Result(false, "", ApiBodyEvidence.unavailable(
                     "login body recovery", error));
         }
     }

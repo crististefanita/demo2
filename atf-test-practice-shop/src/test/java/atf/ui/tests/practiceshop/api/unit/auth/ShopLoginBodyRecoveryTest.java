@@ -1,7 +1,7 @@
 package atf.ui.tests.practiceshop.api.unit.auth;
 
 import atf.api.testkit.AtfUnitTest;
-import atf.ui.practiceshop.support.api.ShopApiBodyEvidence;
+import atf.api.core.http.response.ApiBodyEvidence;
 import atf.ui.practiceshop.support.ShopLoginBodyRecovery;
 import org.junit.jupiter.api.Test;
 
@@ -19,7 +19,7 @@ class ShopLoginBodyRecoveryTest {
 
         assertTrue(result.recovered());
         assertTrue(result.effectiveBody().contains("access_token"));
-        assertFalse(ShopApiBodyEvidence.isUnavailable(result.effectiveBody()));
+        assertFalse(ApiBodyEvidence.isUnavailable(result.effectiveBody()));
     }
 
     @Test
@@ -27,7 +27,7 @@ class ShopLoginBodyRecoveryTest {
         var result = ShopLoginBodyRecovery.attempt(() -> " ");
 
         assertFalse(result.recovered());
-        assertTrue(ShopApiBodyEvidence.isUnavailable(result.effectiveBody()));
+        assertTrue(ApiBodyEvidence.isUnavailable(result.effectiveBody()));
         assertTrue(result.effectiveBody().contains("empty response body"));
     }
 

@@ -1,6 +1,6 @@
 package atf.ui.practiceshop.support;
 
-import atf.ui.practiceshop.support.api.ShopApiBodyEvidence;
+import atf.api.core.http.response.ApiBodyEvidence;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -48,7 +48,7 @@ public final class ShopJsonEvidence {
         if (root == null) {
             // Preserve transport limitation markers, but fail closed for arbitrary text:
             // malformed JSON cannot be redacted reliably with a field-aware policy.
-            return ShopApiBodyEvidence.isUnavailable(value) ? value : OMITTED_UNSAFE_BODY;
+            return ApiBodyEvidence.isUnavailable(value) ? value : OMITTED_UNSAFE_BODY;
         }
         redactNode(root);
         if (root.isTextual()) root = JSON.getNodeFactory().textNode(REDACTED);

@@ -11,6 +11,7 @@ import atf.api.tests.governance.documentation.DocumentationReadmeStructureGovern
 import atf.api.tests.governance.documentation.DocumentationStyleGovernanceTest;
 import atf.api.tests.governance.documentation.DocumentationTargetGovernanceTest;
 import atf.api.tests.governance.documentation.DynamicPathDocumentationArchitectureTest;
+import atf.api.tests.governance.consumers.ConsumerModuleArchitectureGovernanceTest;
 import org.junit.platform.suite.api.SelectClasses;
 import org.junit.platform.suite.api.Suite;
 
@@ -32,7 +33,8 @@ import org.junit.platform.suite.api.Suite;
         DocumentationProseGovernanceTest.class,
         DocumentationReadmeStructureGovernanceTest.class,
         DocumentationStyleGovernanceTest.class,
-        DocumentationTargetGovernanceTest.class
+        DocumentationTargetGovernanceTest.class,
+        ConsumerModuleArchitectureGovernanceTest.class
 })
 public class WholeAtfGovernanceSuiteTest {
 }

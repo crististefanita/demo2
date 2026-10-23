@@ -1,5 +1,6 @@
 package atf.ui.practiceshop.support.api;
 
+import atf.api.core.http.response.ApiBodyEvidence;
 import atf.api.core.http.request.HttpMethod;
 import atf.api.reporting.api.ApiManualReplay;
 import atf.api.reporting.api.ReportRequestSignature;
@@ -29,7 +30,7 @@ class ShopApiMethodFidelityTest {
         assertNull(unknown.totalDuration());
         assertNull(unknown.attemptHistory().getFirst().duration());
         var unavailable = ShopApiMethodFidelityFixture.exchange(QUERY).withResponseBody(
-                ShopApiBodyEvidence.unavailable("Browser", "body not exposed"));
+                ApiBodyEvidence.unavailable("Browser", "body not exposed"));
         assertEquals(atf.api.reporting.api.evidence.ReportBodyAvailability.NOT_CAPTURED,
                 ShopApiEvidenceMapper.toExecution(unavailable).response().bodyAvailability());
     }

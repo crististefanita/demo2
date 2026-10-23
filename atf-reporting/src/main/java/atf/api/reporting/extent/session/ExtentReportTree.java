@@ -75,6 +75,9 @@ public final class ExtentReportTree {
     public AtfReportPorts.Scenario startScenario(String testClass, String testPackage,
                                                   String scenario, Collection<String> tags) {
         ensureOpen();
+        // Normalize caller-owned input before creating either Extent or semantic nodes.
+        // A faulty Collection implementation must not leave a half-started scenario.
+        List<String> normalizedTags = ReportTagNormalizer.normalize(tags);
         String className = testClass == null || testClass.isBlank() ? "API tests" : testClass;
         String packageName = testPackage == null ? "" : testPackage.trim();
         ExtentTest classRoot = classRoots.computeIfAbsent(className, ignored -> {
@@ -87,7 +90,6 @@ public final class ExtentReportTree {
         classStatuses.computeIfAbsent(className, ignored -> new ReportStatusAggregator());
         ExtentTest test = classRoot.createNode(scenario == null ? "Scenario" : scenario);
         ExtentNodeLifecycle.start(test);
-        List<String> normalizedTags = ReportTagNormalizer.normalize(tags);
         if (!normalizedTags.isEmpty()) test.assignCategory(normalizedTags.toArray(String[]::new));
         consoleStarted(AtfConsoleEvent.Scope.SCENARIO,
                 className + " :: " + (scenario == null ? "Scenario" : scenario));

@@ -83,16 +83,16 @@ redactează câmpurile de înregistrare și plată din reprezentarea textuală.
   diagnosticului și close-ului; `AutoExE2eRun` furnizează numai callback-urile
   business/UI ale consumerului.
 
-`AutoExE2eRun.finish` capturează mai întâi eșecul inițial în viewport, înainte
-ca cleanup-ul contului să poată naviga pagina; evidence-ul maschează câmpurile
-sensibile. Apoi rulează cleanup-ul și publică inspectorul de rețea. Dacă prima
-eroare apare chiar în teardown, captura se face după diagnostic și înainte de
-închiderea browserului. Faza și scenariul se finalizează independent.
-`FailureEvidenceCleanup` din Test Kit este adaptorul generic de lifecycle; AutoEx
-nu deține o a doua implementare de orchestrare.
-Erorile ulterioare nu împiedică pașii rămași: cauza inițială rămâne primară, iar
-eșecurile suplimentare sunt atașate ca `suppressed`. Testele componente verifică
-profilul de captură și wiring-ul testului fără a duplica primitive generice.
+- Dacă testul a eșuat înainte de teardown, `AutoExE2eRun.finish` capturează
+  viewport-ul și redactează câmpurile sensibile înainte ca cleanup-ul contului
+  să poată naviga pagina.
+- Apoi rulează cleanup-ul și publică inspectorul de rețea. Dacă primul eșec apare
+  chiar în teardown, captura se face după diagnostic și înainte de browser close.
+- Faza și scenariul se finalizează independent; cauza inițială rămâne primară, iar
+  erorile ulterioare sunt atașate ca `suppressed`.
+- `FailureEvidenceCleanup` din Test Kit deține orchestrarea generică. Testele
+  componente AutoEx verifică profilul și wiring-ul adaptorului, fără să dubleze
+  primitivele generice.
 
 `AutoExE2eInitialization` face rollback-ul inițializării cu factory-uri
 injectabile. Contractul component verifică:
@@ -209,26 +209,27 @@ cu [Test Case 24 — Download Invoice after purchase](https://automationexercise
 4. finalizează plata demo, verifică confirmarea și descarcă factura;
 5. șterge contul sintetic și verifică starea terminală.
 
-Valorile de catalog, identitate și plată sunt date demo din YAML; fiecare
-execuție generează email și parolă unice. Cleanup-ul este armat înainte de
-submit-ul înregistrării, iar o eroare de cleanup nu maschează cauza primară.
-Capturile redactează câmpurile de formular.
-Pentru verificarea adreselor, journey-ul folosește valoarea returnată de `Get text`
-numai în aserțiunea din memorie; recorderul `atf-ui` păstrează `[REDACTED]` în
-raport și în trace, astfel încât protecția PII nu transformă textul real într-o
-valoare imposibil de verificat.
+- Catalogul, identitatea și plata folosesc valori demo din YAML; emailul și
+  parola sunt unice pentru fiecare execuție.
+- Cleanup-ul contului este armat înainte de submit-ul înregistrării, iar o eroare
+  de cleanup nu maschează cauza primară.
+- Capturile redactează câmpurile de formular. Valoarea returnată de `Get text`
+  este folosită numai în aserțiunea din memorie; recorderul `atf-ui` păstrează
+  `[REDACTED]` în raport și trace, fără să împiedice validarea textului real.
 
-Înainte să citească fiecare adresă, `AccountPage` așteaptă ca numele sintetic
-configurat să apară în containerul de delivery, respectiv invoice. Apoi journey-ul
-validează adresa completă și order review-ul; așteptarea folosește condiția
-semantică `waitForText`, nu un `sleep`. `AutoExCheckoutAddressComponentTest`
-verifică ordinea așteptare → citire pentru ambii locatori, iar implementarea
-generică a acțiunii rămâne deținută de `atf-ui`.
+- Înainte de citirea fiecărei adrese, `AccountPage` așteaptă numele sintetic
+  configurat în containerul de delivery, respectiv invoice.
+- Journey-ul validează apoi adresa completă și order review-ul folosind
+  condiția semantică `waitForText`, nu un `sleep` fix.
+- `AutoExCheckoutAddressComponentTest` verifică ordinea așteptare → citire pentru
+  ambii locatori; acțiunea generică rămâne deținută de `atf-ui`.
 
-Dialogul CMP este tratat prin interfața vizibilă, cu alegerea minimă pentru
-scopurile opționale. Dacă apare vignette-ul Google, handler-ul consumerului
-apasă controlul vizibil „Close” numai pe pagina vignette-ului; nu modifică DOM-ul
-și nu folosește click forțat. Aceste interacțiuni rămân în trace-ul E2E.
+- Dialogul CMP este tratat prin interfața vizibilă, cu alegerea minimă pentru
+  scopurile opționale.
+- Dacă apare vignette-ul Google, handler-ul consumerului apasă controlul vizibil
+  „Close” numai pe pagina vignette-ului.
+- Handler-ul nu modifică DOM-ul și nu folosește click forțat; interacțiunile rămân
+  în trace-ul E2E.
 
 ## Rute și locatori ai site-ului
 
