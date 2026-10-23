@@ -2,11 +2,11 @@ package atf.ui.autoex.page;
 
 import atf.ui.autoex.config.AutoExConfiguration;
 import atf.ui.autoex.locator.AutoExSelectors;
-import atf.ui.autoex.support.AutoExE2eRun;
+import atf.ui.autoex.support.AutoExPurchaseSession;
 
 /** Cart rows and checkout transition. */
 public final class CartPage extends AutoExPage {
-    public CartPage(AutoExE2eRun run) { super(run); }
+    public CartPage(AutoExPurchaseSession run) { super(run); }
 
     public void openFromHeader() { click(AutoExSelectors.CART_LINK, "cart page opens"); }
 

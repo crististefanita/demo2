@@ -43,7 +43,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 /** Per-test composition root for one headless browser and one UI Extent artifact. */
-public final class AutoExE2eRun {
+public final class AutoExE2eRun implements AutoExPurchaseSession {
     private static final ExtensionContext.Namespace NAMESPACE =
             ExtensionContext.Namespace.create(AutoExE2eRun.class);
     private static final String SUITE_REPORT_KEY = "auto-ex-suite-report";
@@ -64,7 +64,7 @@ public final class AutoExE2eRun {
     private int networkCursor;
     private final AutoExVignetteHandler vignetteHandler = new AutoExVignetteHandler();
     private final AutoExPrivacyConsentHandler privacyConsentHandler = new AutoExPrivacyConsentHandler();
-    private Cleanup failureCleanup;
+    private AutoExAccountCleanup failureCleanup;
     private boolean finished;
 
     private AutoExE2eRun(AutoExConfiguration configuration, PlaywrightUiSession browser,
@@ -166,7 +166,7 @@ public final class AutoExE2eRun {
 
     /** Reads the configured product through the site's real, read-only catalog API. */
     @SuppressWarnings("unchecked")
-    public CatalogApiSnapshot inspectCatalogApi(String productName) {
+    public AutoExCatalogSnapshot inspectCatalogApi(String productName) {
         java.net.URI endpoint = AutoExRoutes.PRODUCTS_API.resolve(configuration.baseUrl());
         Object result = page().evaluate("""
                 async endpoint => {
@@ -189,7 +189,7 @@ public final class AutoExE2eRun {
                 "HTTP 200; configured product is listed", "HTTP " + status.intValue()
                         + "; products=" + products.size() + "; " + productName + " price="
                         + (price.isBlank() ? "not found" : price));
-        return new CatalogApiSnapshot(status.intValue(), products.size(), price);
+        return new AutoExCatalogSnapshot(status.intValue(), products.size(), price);
     }
 
     public void navigate(java.net.URI uri) {
@@ -247,7 +247,7 @@ public final class AutoExE2eRun {
         return page().locator(selector).first().getAttribute(attribute);
     }
 
-    public void checkpoint(AtfGherkinKeyword keyword, String title, List<AtfAssertion> assertions) {
+    private void checkpoint(AtfGherkinKeyword keyword, String title, List<AtfAssertion> assertions) {
         prepareUiInteraction();
         boolean passed = assertions.stream().allMatch(AtfAssertion::passed);
         String screenshot = screenshotMode.capturesCheckpointScreenshots()
@@ -263,6 +263,10 @@ public final class AutoExE2eRun {
             networkSteps.add(ReportNetworkInspector.Step.from(keyword.text(), title, assertions, apiEvidence));
         }
         if (!passed) throw new AssertionError("UI checkpoint failed: " + title);
+    }
+
+    public void checkpoint(AutoExPurchaseTraceStep step, List<AtfAssertion> assertions) {
+        checkpoint(step.keyword(), step.title(), assertions);
     }
 
     /** Publishes the terminal state; FINAL_ONLY creates exactly this one screenshot. */
@@ -283,6 +287,10 @@ public final class AutoExE2eRun {
                 + ". Failed assertions: " + failedAssertionSummary(assertions));
     }
 
+    public void finalScreenshot(AutoExPurchaseTraceStep step, List<AtfAssertion> assertions) {
+        finalScreenshot(step.title(), assertions);
+    }
+
     private String capture(String title) {
         return UiScreenValidation.capture(page(), UiScreenValidationConfiguration.defaults(), title,
                 List.of(page().locator(AutoExSelectors.SENSITIVE_FIELDS))).base64Png();
@@ -299,7 +307,7 @@ public final class AutoExE2eRun {
         return List.copyOf(result);
     }
 
-    public void onFailureCleanup(Cleanup cleanup) {
+    public void onFailureCleanup(AutoExPurchaseSession.AutoExAccountCleanup cleanup) {
         failureCleanup = Objects.requireNonNull(cleanup, "cleanup");
     }
 
@@ -377,6 +385,7 @@ public final class AutoExE2eRun {
     }
 
     public int apiExchangeCount() { return apiObservations().size(); }
+    public boolean observesApiTraffic() { return channel == TestChannel.UI_API; }
     public TestChannel channel() { return channel; }
 
     private static ReportExecutionEvidence toExecutionEvidence(
@@ -412,12 +421,4 @@ public final class AutoExE2eRun {
 
     private AtfLocator locator(String selector) { return new AtfLocator(page().locator(selector), selector); }
 
-    @FunctionalInterface
-    public interface Cleanup { void run() throws Exception; }
-
-    public record CatalogApiSnapshot(int status, int productCount, String configuredProductPrice) {
-        public CatalogApiSnapshot {
-            configuredProductPrice = configuredProductPrice == null ? "" : configuredProductPrice;
-        }
-    }
 }

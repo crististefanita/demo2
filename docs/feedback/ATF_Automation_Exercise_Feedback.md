@@ -21,8 +21,9 @@ guvernanța diff-urilor Git rămâne în baseline-ul tehnic.
   operație separată și nu a fost observat ca rezultat al aceleiași acțiuni UI.
   Varianta experimentală `UI_API` nu lansează acel endpoint separat; ea
   inspectează traficul first-party din sesiunea browserului și pică dacă nu
-  observă exchange-uri `/api/`. Rularea live și interpretarea corelării rămân
-  de confirmat. Endpoint-urile sunt descrise în
+  observă exchange-uri `/api/`. Rularea live a observat un `GET
+  /api/productsList` explicit în checkpoint-ul de precondiție; nu îl atribuim
+  click-ului de căutare. Endpoint-urile sunt descrise în
   [API List](https://automationexercise.com/api_list).
 - Cele trei clase de business sunt orchestrate de `AutoExPurchaseSuite`, care
   deține un singur raport Extent. Nu păstrăm teste cu DOM/iframe inventat sau
@@ -43,18 +44,22 @@ guvernanța diff-urilor Git rămâne în baseline-ul tehnic.
   gestionate prin UI-ul real și rămân în trace; ele nu justifică teste consumer
   sintetice și nu înlocuiesc aserțiunile asupra cumpărării.
 
-## ToDo de business
+## Decizii închise
 
-| ID | Cerință rămasă | Criteriu de acceptare | Prioritate |
-|---|---|---|---:|
-| `AUTOEX-EVIDENCE-MATRIX-01` | Închide validarea matricei de evidence și a lizibilității pașilor în raportul live. | `AutoExPurchaseSuite` selectează UI, UI_API și UI final-screenshot într-un singur raport; fiecare checkpoint Gherkin este un nod separat cu doar acțiunile, aserțiunile și exchange-urile sale. Capturile checkpoint sunt lângă checkpoint-ul lor, iar varianta final-only publică exact o captură terminală fără să comprime pașii. Raportul proaspăt este inspectat vizual în browser; schimburile sunt doar cele observate în browser și corelările nu sunt inventate. | 88 |
-| `AUTOEX-API-01` | Evaluează dacă endpoint-urile API public documentate justifică o colecție de teste API separată de E2E-ul UI. | Metoda, parametrii/body-ul, răspunsul și efectele sunt probate față de contractul site-ului; datele sunt izolate și cleanup-ul confirmat. Nu presupune JSON pentru POST/PUT și nu eticheta API drept precondiție UI fără o dependență reală. | 78 |
+- `AUTOEX-API-01` — **închis ca decizie de scope, nu ca implementare de API
+  tests**. Endpoint-urile publice documentate nu justifică dublarea acestui
+  consumer UI cu o a doua suită API. Varianta `UI_API` observă traficul
+  first-party real produs de același browser și păstrează request/response în
+  raport; ea nu pretinde că verifică separat contractul fiecărui endpoint.
+  Endpoint-urile mutabile (crearea/ștergerea contului și comenzile) ar cere un
+  contract separat de izolare a datelor și cleanup confirmat, ceea ce ar schimba
+  scopul consumerului și nu se adaugă implicit.
+- Dacă apare cerința de verificare directă a contractelor API, aceasta se
+  redeschide ca suită API separată, cu matrice de metode/parametri/răspunsuri,
+  ownership explicit al datelor și dovadă de cleanup. Nu se va deduce acoperirea
+  aceasta din simpla observare de network în E2E.
 
-Scorurile ordonează numai lucrul rămas; nu sunt o evaluare globală a modulului.
-Un ToDo se închide după probarea criteriului său, nu după simpla mutare a
-codului între module.
-
-## Rezolvat în codul curent — necesită gate de raport proaspăt
+## Rezolvat în codul curent și verificat
 
 - `AUTOEX-E2E-RESILIENCE-01`: cleanup-ul este armat înainte de submit-ul
   `Create Account`. Dacă pagina nu confirmă crearea și nu oferă acțiunea de
@@ -79,17 +84,38 @@ codului între module.
   capturi intermediare, deși raportul comun poate afișa capturi de la celelalte
   două scenarii.
 
-Execuție live în staging, 2026-10-23: `AutoExPurchaseSuite` a trecut 3/3.
-Raportul a avut 12 tabele de acțiuni în fiecare scenariu; API validation a
-apărut numai în UI+API, iar scenariul final-only a avut un singur link de
-captură la validarea terminală. Integration testul de reporting verifică două
-checkpoint-uri, două tabele, două capturi și ordinea lor Gherkin. **Matricea
-rămâne deschisă până la inspecția vizuală în browser a acestui raport proaspăt**;
-blocarea navigării MCP la URL `file:` înseamnă că verificarea HTML și testele
-nu sunt prezentate drept confirmare vizuală.
+`AUTOEX-EVIDENCE-MATRIX-01` — **închis după gate live și inspecție vizuală**,
+2026-10-23:
 
-## Dovezi live care țin cerințele deschise
+- `AutoExPurchaseSuite` a trecut 3/3: UI, UI+API și UI cu captură numai la
+  final. Raportul proaspăt a fost deschis prin ATF Debug în browserul MCP;
+  verdictul nu se bazează numai pe HTML static sau pe build.
+- În fiecare scenariu, `TEST BODY` conține 12 checkpoint-uri Gherkin distincte
+  și 12 tabele de acțiuni. Expandarea nodurilor păstrează pașii și dovezile
+  asociate; nu mai există tabelul agregat de 63 de acțiuni din captura veche.
+- În UI+API, `GET /api/productsList — Exchange 1` este copilul checkpoint-ului
+  API care îl observă, cu Request details, Response details și Execution
+  evidence. Nu este duplicat ca pas API în celelalte variante. Răspunsul vizibil
+  include JSON formatat; transportul este raportat ca `LIVE / HTTP`.
+- Varianta final-only are 12 tabele de acțiuni și exact un singur link de
+  screenshot, atașat ultimului `Screen validation`, după acțiunea terminală.
+  Linkul a fost deschis manual și imaginea completă (1440×1000) s-a randat în
+  lightbox. Rendererul a deduplicat bytes identici cu o captură anterioară din
+  același run; linkul de la checkpoint-ul terminal rămâne funcțional și duce la
+  imaginea verificată. Aceasta este deduplicare de asset, nu o captură mutată
+  vizual în alt pas.
+- Verificare vizuală la viewport MCP 868×648: tabelele și documentul nu au
+  overflow orizontal; consola browserului a raportat zero erori și zero
+  avertismente. Nu s-a pretins o verificare separată de `pageerror`, pentru care
+  sesiunea MCP nu expune un instrument dedicat.
+- Testele de componentă pentru profil, politica de captură, aserțiunile de
+  catalog, cleanup și combinarea excepțiilor au trecut; integration testul
+  reporting verifică checkpoint-uri, acțiuni, capturi și ordinea Gherkin.
 
-- `AUTOEX-API-01` rămâne evaluare separată: o colecție API independentă se
-  adaugă numai cu contract HTTP probat, izolare de date și cleanup verificat;
-  nu este precondiție implicită pentru journey-ul UI.
+## Limita dovezii API
+
+- Rularea UI+API observă un schimb real, read-only, `GET /api/productsList`,
+  ca precondiție explicită a achiziției și îl raportează cu request/response.
+  Nu pretinde că probează separat metodele, parametrii sau efectele endpoint-urilor
+  de scriere (`searchProduct`, cont, comandă). Această limită este intenționată,
+  nu un test API verde sau o presupunere că UI și API sunt același contract.

@@ -1,10 +1,10 @@
 package atf.ui.autoex.page;
 
 import atf.api.reporting.contract.AtfAssertion;
-import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.ui.autoex.config.AutoExConfiguration;
 import atf.ui.autoex.locator.AutoExSelectors;
-import atf.ui.autoex.support.AutoExE2eRun;
+import atf.ui.autoex.support.AutoExPurchaseSession;
+import atf.ui.autoex.support.AutoExPurchaseTraceStep;
 import com.microsoft.playwright.Download;
 
 import java.nio.file.Files;
@@ -12,7 +12,7 @@ import java.util.List;
 
 /** Checkout review, demo payment, order confirmation and invoice download. */
 public final class CheckoutPage extends AutoExPage {
-    public CheckoutPage(AutoExE2eRun run) { super(run); }
+    public CheckoutPage(AutoExPurchaseSession run) { super(run); }
 
     public String orderReview() {
         return text(AutoExSelectors.ORDER_REVIEW, "checkout order review is read");
@@ -50,7 +50,7 @@ public final class CheckoutPage extends AutoExPage {
         String fileName = download.suggestedFilename();
         var downloadedFile = download.path();
         boolean available = downloadedFile != null && Files.isRegularFile(downloadedFile);
-        run.checkpoint(AtfGherkinKeyword.THEN, "the completed order provides a downloadable invoice",
+        run.checkpoint(AutoExPurchaseTraceStep.INVOICE_DOWNLOADED,
                 List.of(new AtfAssertion("Invoice download", "downloaded invoice file", fileName,
                         available && !fileName.isBlank())));
         return fileName;

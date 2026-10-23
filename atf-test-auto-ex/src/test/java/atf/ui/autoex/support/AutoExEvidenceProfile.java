@@ -8,10 +8,10 @@ import atf.api.reporting.evidence.profile.ReportEvidenceProfile;
 import java.util.Objects;
 
 /** Builds the browser-evidence profile shared by the report session and each E2E run. */
-final class AutoExEvidenceProfile {
+public final class AutoExEvidenceProfile {
     private AutoExEvidenceProfile() { }
 
-    static ReportEvidenceProfile forRun(AutoExEvidenceMode.Mode mode,
+    public static ReportEvidenceProfile forRun(AutoExEvidenceMode.Mode mode,
                                         ReportScreenshotPolicy configuredPolicy) {
         Objects.requireNonNull(mode, "mode");
         Objects.requireNonNull(configuredPolicy, "configuredPolicy");

@@ -168,10 +168,10 @@ public final class ShopE2eContext implements AutoCloseable {
         AtfReportStatus setupStatus = setupAssertions.stream().allMatch(AtfAssertion::passed)
                 ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
         boolean authenticated = configuration.authenticatedE2eAllowed();
-        setup.setup(AtfGherkinKeyword.GIVEN,
-                authenticated
-                        ? "the pre-registered Practice Shop account fixture is loaded"
-                        : "the typed guest checkout configuration is ready",
+        ShopPurchaseTraceStep initialSetup = authenticated
+                ? ShopPurchaseTraceStep.AUTHENTICATED_FIXTURE_READY
+                : ShopPurchaseTraceStep.GUEST_CONFIGURATION_READY;
+        setup.setup(initialSetup.keyword(), initialSetup.title(),
                 authenticated ? configuration.accountPolicy().evidenceTarget() : "YAML checkout inputs",
                 setupAssertions, setupStatus);
         setup.complete(setupStatus);
@@ -404,8 +404,8 @@ public final class ShopE2eContext implements AutoCloseable {
                         AtfAssertion failed = new AtfAssertion("Authenticated account setup",
                                 "registration/login setup passes before TEST BODY",
                                 ThrowableDiagnostics.unavailable(failure), false);
-                        setupPhase.setup(AtfGherkinKeyword.GIVEN,
-                                "authenticated account setup completes before the purchase flow",
+                        setupPhase.setup(ShopPurchaseTraceStep.ACCOUNT_SETUP_FAILED.keyword(),
+                                ShopPurchaseTraceStep.ACCOUNT_SETUP_FAILED.title(),
                                 page.url(), List.of(failed),
                                 List.of(), setupEvidence(), null, AtfReportStatus.FAIL);
                         setupStepPublished = true;

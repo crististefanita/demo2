@@ -1,12 +1,12 @@
 package atf.ui.autoex.page;
 
-import atf.ui.autoex.support.AutoExE2eRun;
+import atf.ui.autoex.support.AutoExPurchaseSession;
 
 /** Small shared Playwright boundary; selectors remain owned by the locator vocabulary. */
 abstract class AutoExPage {
-    protected final AutoExE2eRun run;
+    protected final AutoExPurchaseSession run;
 
-    AutoExPage(AutoExE2eRun run) { this.run = run; }
+    AutoExPage(AutoExPurchaseSession run) { this.run = run; }
 
     protected void click(String selector, String expected) { run.click(selector, expected); }
     protected void clickFirst(String selector, String expected) { run.clickFirst(selector, expected); }

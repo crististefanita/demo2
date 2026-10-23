@@ -2,11 +2,11 @@ package atf.ui.autoex.page;
 
 import atf.ui.autoex.locator.AutoExRoutes;
 import atf.ui.autoex.locator.AutoExSelectors;
-import atf.ui.autoex.support.AutoExE2eRun;
+import atf.ui.autoex.support.AutoExPurchaseSession;
 
 /** Store entry and its primary navigation. */
 public final class HomePage extends AutoExPage {
-    public HomePage(AutoExE2eRun run) { super(run); }
+    public HomePage(AutoExPurchaseSession run) { super(run); }
 
     public String open() {
         run.navigate(AutoExRoutes.HOME.resolve(run.configuration().baseUrl()));

@@ -23,6 +23,26 @@ class ApiReportRenderedEvidenceComponentTest {
     }
 
     @Test
+    void missingRequestDisclosureIsRejectedByTheRenderedApiAudit() {
+        ApiReportRenderedEvidenceProbe.verifyMissingRequestDisclosure();
+    }
+
+    @Test
+    void responseDisclosureMovedOutsideItsRequestIsRejectedByTheRenderedApiAudit() {
+        ApiReportRenderedEvidenceProbe.verifyMisownedResponseDisclosure();
+    }
+
+    @Test
+    void requestDisclosureMovedOutsideItsRequestIsRejectedByTheRenderedApiAudit() {
+        ApiReportRenderedEvidenceProbe.verifyMisownedRequestDisclosure();
+    }
+
+    @Test
+    void selectedApiOwnerCannotObserveOrAuditSiblingExchanges() {
+        ApiReportRenderedEvidenceProbe.verifySiblingOwnersAreIsolated();
+    }
+
+    @Test
     void phaseEvidenceSurvivesReselectionAndTabRoundTrips() {
         ApiReportRenderedEvidenceProbe.verifyPhaseNavigation();
     }

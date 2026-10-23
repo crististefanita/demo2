@@ -1,11 +1,11 @@
 package atf.ui.autoex.page;
 
 import atf.ui.autoex.locator.AutoExSelectors;
-import atf.ui.autoex.support.AutoExE2eRun;
+import atf.ui.autoex.support.AutoExPurchaseSession;
 
 /** Product search and catalog selection behavior. */
 public final class ProductsPage extends AutoExPage {
-    public ProductsPage(AutoExE2eRun run) { super(run); }
+    public ProductsPage(AutoExPurchaseSession run) { super(run); }
 
     public void search(String query) {
         fill(AutoExSelectors.SEARCH_INPUT, query, "search query is entered");

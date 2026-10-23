@@ -5,6 +5,7 @@ import atf.api.testkit.AtfE2eTest;
 import atf.api.testkit.channel.AtfTestChannel;
 import atf.api.testkit.channel.TestChannel;
 import atf.ui.practiceshop.flow.ShopPurchaseFlow;
+import atf.ui.practiceshop.support.ShopPurchaseTraceStep;
 import atf.ui.tests.practiceshop.support.ShopE2eTestSupport;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Order;
@@ -32,7 +33,7 @@ public class ShopUiOnlySingleFlowPurchaseE2eTest {
                     var result = new ShopPurchaseFlow(journey.locators())
                             .purchaseConfiguredProduct(journey.page(), journey.actions(),
                                     journey.configuration(), journey::checkpoint);
-                    journey.pass("final order confirmation",
+                    journey.pass(ShopPurchaseTraceStep.ORDER_CONFIRMATION,
                             List.of(new AtfAssertion("Order confirmation",
                                     "confirmation includes a successful order and invoice",
                                     result.confirmation(),

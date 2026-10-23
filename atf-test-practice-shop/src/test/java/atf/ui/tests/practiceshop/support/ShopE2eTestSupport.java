@@ -1,7 +1,6 @@
 package atf.ui.tests.practiceshop.support;
 
 import atf.api.reporting.contract.AtfAssertion;
-import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.ui.UiExtentReportSession;
 import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
@@ -20,6 +19,7 @@ import atf.ui.practiceshop.flow.ShopPurchaseFlow;
 import atf.ui.practiceshop.locators.ShopLocators;
 import atf.ui.practiceshop.support.api.ShopApiNetworkJournal;
 import atf.ui.practiceshop.support.ShopE2eContext;
+import atf.ui.practiceshop.support.ShopPurchaseTraceStep;
 import atf.ui.practiceshop.support.ShopPurchaseCheckpoint;
 import atf.ui.practiceshop.support.reporting.ShopScreenshotPolicy;
 import com.microsoft.playwright.Page;
@@ -351,12 +351,12 @@ public final class ShopE2eTestSupport {
         public ShopTestSupport.AccountSetupMode accountSetupMode() { return harness.accountSetupMode(); }
         public Path registrationProfileFile() { return harness.registrationProfileFile(); }
         public String accountRunScope() { return harness.accountRunScope(); }
-        public void checkpoint(AtfGherkinKeyword keyword, String title, Collection<AtfAssertion> assertions,
+        public void checkpoint(ShopPurchaseTraceStep step, Collection<AtfAssertion> assertions,
                                Collection<atf.api.reporting.model.ReportExecutionEvidence> apiEvidence) {
             if (completed || failed) throw new IllegalStateException("SETUP is already finished");
             AtfReportStatus status = assertions.stream().allMatch(AtfAssertion::passed)
                     ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
-            scenario.setupCheckpoint(page(), actions, keyword, title, assertions, apiEvidence, status);
+            scenario.setupCheckpoint(page(), actions, step.keyword(), step.title(), assertions, apiEvidence, status);
             if (status == AtfReportStatus.FAIL) {
                 failed = true;
                 scenario.finishSetup(AtfReportStatus.FAIL);
@@ -370,11 +370,11 @@ public final class ShopE2eTestSupport {
             completed = true;
         }
 
-        public void fail(String title, Collection<AtfAssertion> assertions,
+        public void fail(ShopPurchaseTraceStep step, Collection<AtfAssertion> assertions,
                          Collection<atf.api.reporting.model.ReportExecutionEvidence> apiEvidence,
                          Throwable failure) {
             if (completed || failed) throw new IllegalStateException("SETUP is already finished");
-            scenario.setupCheckpoint(page(), actions, AtfGherkinKeyword.GIVEN, title,
+            scenario.setupCheckpoint(page(), actions, step.keyword(), step.title(),
                     assertions, apiEvidence, AtfReportStatus.FAIL);
             scenario.fail(page(), actions, failure);
             failed = true;
@@ -396,8 +396,8 @@ public final class ShopE2eTestSupport {
             scenario.checkpoint(page(), actions, checkpoint);
         }
 
-        public void pass(String evidenceTitle, Collection<AtfAssertion> assertions) {
-            scenario.pass(page(), actions, evidenceTitle, assertions);
+        public void pass(ShopPurchaseTraceStep step, Collection<AtfAssertion> assertions) {
+            scenario.pass(page(), actions, step.title(), assertions);
         }
 
         public void completePurchase() {
@@ -406,7 +406,7 @@ public final class ShopE2eTestSupport {
 
         /** Publishes one terminal screen validation with the final browser capture. */
         public void completePurchase(ShopPurchaseFlow.PurchaseResult result) {
-            pass("final order confirmation", purchaseConfirmationAssertions(result));
+            pass(ShopPurchaseTraceStep.ORDER_CONFIRMATION, purchaseConfirmationAssertions(result));
         }
 
         static List<AtfAssertion> purchaseConfirmationAssertions(

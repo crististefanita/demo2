@@ -1,19 +1,19 @@
 package atf.ui.autoex.page;
 
 import atf.api.reporting.contract.AtfAssertion;
-import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.ui.autoex.config.AutoExConfiguration;
 import atf.ui.autoex.locator.AutoExSelectors;
-import atf.ui.autoex.support.AutoExE2eRun;
+import atf.ui.autoex.support.AutoExPurchaseSession;
 import atf.ui.autoex.support.AutoExAccountCleanupAction;
 import atf.ui.autoex.support.AutoExAccountCleanupDecision;
 import atf.ui.autoex.support.AutoExTestAccount;
+import atf.ui.autoex.support.AutoExPurchaseTraceStep;
 
 import java.util.List;
 
 /** Registration during checkout and deterministic disposal of the synthetic account. */
 public final class AccountPage extends AutoExPage {
-    public AccountPage(AutoExE2eRun run) { super(run); }
+    public AccountPage(AutoExPurchaseSession run) { super(run); }
 
     public void registerFromCheckout(AutoExTestAccount account) {
         clickLast(AutoExSelectors.REGISTER_LOGIN, "registration form opens from checkout");
@@ -40,7 +40,7 @@ public final class AccountPage extends AutoExPage {
         click(AutoExSelectors.CREATE_ACCOUNT, "disposable account is created on the practice site");
 
         String result = text(AutoExSelectors.ACCOUNT_RESULT_HEADING, "account-creation result is read");
-        run.checkpoint(AtfGherkinKeyword.THEN, "the disposable customer account is created",
+        run.checkpoint(AutoExPurchaseTraceStep.ACCOUNT_CREATED,
                 List.of(new AtfAssertion("Account creation", "ACCOUNT CREATED!", result,
                         result.contains("ACCOUNT CREATED!"))));
         click(AutoExSelectors.CONTINUE, "created account session continues to the store");
@@ -58,7 +58,7 @@ public final class AccountPage extends AutoExPage {
         run.dismissGoogleVignetteIfPresent();
         click(AutoExSelectors.DELETE_ACCOUNT, "disposable account is deleted after the demo order");
         String result = text(AutoExSelectors.ACCOUNT_RESULT_HEADING, "account-deletion result is read");
-        run.checkpoint(AtfGherkinKeyword.THEN, "the disposable customer account is deleted",
+        run.checkpoint(AutoExPurchaseTraceStep.ACCOUNT_DELETED,
                 List.of(new AtfAssertion("Account cleanup", "ACCOUNT DELETED!", result,
                         result.contains("ACCOUNT DELETED!"))));
         click(AutoExSelectors.CONTINUE, "deleted account flow returns to the store");

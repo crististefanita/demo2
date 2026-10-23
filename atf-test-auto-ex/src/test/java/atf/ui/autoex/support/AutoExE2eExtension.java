@@ -16,10 +16,16 @@ public final class AutoExE2eExtension implements ExecutionCondition,
     private static final ExtensionContext.Namespace NAMESPACE =
             ExtensionContext.Namespace.create(AutoExE2eExtension.class);
     private static final String RUN_KEY = "auto-ex-e2e-run";
+    private static final String ENABLE_PROPERTY = "atf.autoex.e2e.enabled";
+    private static final String INTELLIJ_RUNNER_PROPERTY = "idea.test.cyclic.buffer.size";
 
     @Override
     public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext context) {
-        boolean enabled = AutoExConfigurationLoader.e2eEnabled(AutoExConfigurationLoader.load());
+        String override = System.getProperty(ENABLE_PROPERTY);
+        boolean enabled = override == null
+                ? AutoExConfigurationLoader.load().e2eEnabled()
+                        || System.getProperty(INTELLIJ_RUNNER_PROPERTY) != null
+                : Boolean.parseBoolean(override);
         return enabled
                 ? ConditionEvaluationResult.enabled("Automation Exercise live UI E2E was explicitly enabled")
                 : ConditionEvaluationResult.disabled("set -Datf.autoex.e2e.enabled=true to run public-site E2E");

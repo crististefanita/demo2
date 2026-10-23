@@ -1,7 +1,6 @@
 package atf.ui.tests.practiceshop.support;
 
 import atf.api.reporting.contract.AtfAssertion;
-import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.ui.practiceshop.config.api.ShopApiCheckpoint;
 import atf.ui.practiceshop.config.model.ShopCredentials;
 import atf.ui.practiceshop.config.model.ShopRegistrationData;
@@ -10,6 +9,7 @@ import atf.ui.practiceshop.flow.ShopAccountFlow;
 import atf.ui.practiceshop.pages.account.ShopAccountPage;
 import atf.ui.practiceshop.pages.account.ShopRegistrationPage;
 import atf.ui.practiceshop.support.validation.ShopPageValidator;
+import atf.ui.practiceshop.support.ShopPurchaseTraceStep;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,7 +50,7 @@ public final class ShopAuthenticatedAccountTestSupport {
                     failedSetup.add(new AtfAssertion("Registration submission outcome",
                             "one successful browser submission response is observed",
                             "registration outcome is unsuccessful or uncertain; the form will not be replayed", false));
-                    setup.fail("new account registration could not be verified",
+                    setup.fail(ShopPurchaseTraceStep.ACCOUNT_SETUP_FAILED,
                             failedSetup,
                             setup.apiNetwork().evidence(ShopApiCheckpoint.REGISTRATION),
                             uncertainSubmission);
@@ -60,27 +60,25 @@ public final class ShopAuthenticatedAccountTestSupport {
                         setup.apiNetwork().registrationConfirmed(sequenceFence,
                                 setup.configuration().api().endpoint())));
                 apiEvidence.addAll(setup.apiNetwork().evidence(ShopApiCheckpoint.REGISTRATION));
-                setup.checkpoint(AtfGherkinKeyword.GIVEN, "a new account is registered",
+                setup.checkpoint(ShopPurchaseTraceStep.NEW_ACCOUNT_REGISTERED,
                         assertions, apiEvidence);
                 credentials = profile.credentials(registration);
                 CLASS_RUN_ACCOUNTS.putIfAbsent(setup.accountRunScope(), credentials);
             } else {
-                setup.checkpoint(AtfGherkinKeyword.GIVEN,
-                        "the account registered earlier in this class-run is reused",
+                setup.checkpoint(ShopPurchaseTraceStep.CLASS_RUN_ACCOUNT_REUSED,
                         List.of(new AtfAssertion("Class-run account", "a registered account is available",
                                 "the run-scoped account is reused; credentials are redacted", true)), List.of());
             }
         } else {
             credentials = CLASS_RUN_ACCOUNTS.get(setup.accountRunScope());
             if (credentials != null) {
-                setup.checkpoint(AtfGherkinKeyword.GIVEN,
-                        "the account registered earlier in this suite is reused",
+                setup.checkpoint(ShopPurchaseTraceStep.SUITE_ACCOUNT_REUSED,
                         List.of(new AtfAssertion("Suite account", "the earlier registration is available",
                                 "the suite-scoped account is reused; credentials are redacted", true)), List.of());
             } else {
                 credentials = ShopCredentials.load(setup.configuration().accountFile());
                 boolean credentialsAvailable = credentials.hasLiveAccountCandidate();
-                setup.checkpoint(AtfGherkinKeyword.GIVEN, "the configured local account fixture is loaded",
+                setup.checkpoint(ShopPurchaseTraceStep.LOCAL_ACCOUNT_FIXTURE_LOADED,
                         List.of(new AtfAssertion("Local account fixture", "valid credentials are available",
                                 credentialsAvailable ? "local credentials are available; values are redacted"
                                         : "local credentials are incomplete", credentialsAvailable)), List.of());
@@ -94,7 +92,7 @@ public final class ShopAuthenticatedAccountTestSupport {
                 .assertions());
         assertions.addAll(setup.apiNetwork().loginConfirmed(setup.configuration().api(), credentials));
         apiEvidence.addAll(setup.apiNetwork().evidence(ShopApiCheckpoint.LOGIN));
-        setup.checkpoint(AtfGherkinKeyword.AND, "the account is signed in and its session is confirmed",
+        setup.checkpoint(ShopPurchaseTraceStep.ACCOUNT_SESSION_CONFIRMED,
                 assertions, apiEvidence);
         setup.complete();
         return credentials;

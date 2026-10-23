@@ -117,6 +117,12 @@ final class ReportEvidenceLocators {
     Locator executionEvidenceDisclosure(Locator request) {
         return request.locator("details" + classToken("execution-evidence") + " > summary");
     }
+    void moveRequestEvidenceToOwner(Locator owner) {
+        moveDisclosureToOwner(owner, "request-evidence");
+    }
+    void moveResponseEvidenceToOwner(Locator owner) {
+        moveDisclosureToOwner(owner, "response-evidence");
+    }
     AtfLocator requestEvidenceDisclosureAction(Locator request) {
         return disclosureAction(request, requestEvidenceDisclosure(request),
                 "details" + classToken("request-evidence") + " > summary");
@@ -196,6 +202,15 @@ final class ReportEvidenceLocators {
     private AtfLocator disclosureAction(Locator request, Locator disclosure, String suffix) {
         return new AtfLocator(disclosure,
                 nodeScopedSelector(nodeId(requestNodeHeader(request)), suffix));
+    }
+
+    private void moveDisclosureToOwner(Locator owner, String disclosureClass) {
+        owner.evaluate("(owner, className) => {"
+                + "const request = owner.querySelector('[data-atf-node-role=request]');"
+                + "const disclosure = request && request.querySelector('details.' + className);"
+                + "if (!disclosure) throw new Error(className + ' fixture is missing');"
+                + "owner.append(disclosure);"
+                + "}", disclosureClass);
     }
 
     private String cellValue(Locator table, ApiReportEvidenceField field) {

@@ -1,6 +1,5 @@
 package atf.ui.autoex.config;
 
-import atf.api.testkit.files.AtfTestResourceReader;
 import atf.api.ui.config.UiBrowserConfiguration;
 import atf.api.ui.config.UiNetworkInspectionConfiguration;
 import atf.api.ui.config.UiRetryPolicy;
@@ -12,14 +11,12 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.io.InputStream;
 import java.time.Duration;
 
 /** Reads module-owned YAML once into validated browser and demo data. */
 public final class AutoExConfigurationLoader {
     public static final String CONFIG_PROPERTY = "atf.autoex.config";
-    public static final String ENABLE_PROPERTY = "atf.autoex.e2e.enabled";
-    /** Set by IntelliJ's direct JUnit runner; absent from normal Maven/Surefire runs. */
-    public static final String INTELLIJ_TEST_RUNNER_PROPERTY = "idea.test.cyclic.buffer.size";
     public static final String DEFAULT_RESOURCE = "atf-auto-ex.yaml";
 
     private static final ObjectMapper YAML = new ObjectMapper(new YAMLFactory());
@@ -29,8 +26,7 @@ public final class AutoExConfigurationLoader {
     public static AutoExConfiguration load() {
         String selected = System.getProperty(CONFIG_PROPERTY);
         return selected == null || selected.isBlank()
-                ? parse(AtfTestResourceReader.readResourceUtf8(
-                        AutoExConfigurationLoader.class, DEFAULT_RESOURCE))
+                ? parse(readDefaultResource())
                 : load(Path.of(selected));
     }
 
@@ -46,14 +42,15 @@ public final class AutoExConfigurationLoader {
         }
     }
 
-    public static boolean e2eEnabled(AutoExConfiguration configuration) {
-        String override = System.getProperty(ENABLE_PROPERTY);
-        if (override != null) return Boolean.parseBoolean(override);
-        return configuration.e2eEnabled() || isDirectIntelliJTestRun();
-    }
-
-    private static boolean isDirectIntelliJTestRun() {
-        return System.getProperty(INTELLIJ_TEST_RUNNER_PROPERTY) != null;
+    private static String readDefaultResource() {
+        try (InputStream resource = AutoExConfigurationLoader.class.getClassLoader()
+                .getResourceAsStream(DEFAULT_RESOURCE)) {
+            if (resource == null) throw new IllegalStateException(
+                    "Missing Automation Exercise configuration resource: " + DEFAULT_RESOURCE);
+            return new String(resource.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (IOException error) {
+            throw new IllegalStateException("Cannot read Automation Exercise configuration resource", error);
+        }
     }
 
     private static AutoExConfiguration parse(String source) {

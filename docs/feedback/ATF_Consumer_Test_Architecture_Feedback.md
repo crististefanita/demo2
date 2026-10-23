@@ -1,100 +1,87 @@
-# Feedback — arhitectura testelor consumer Shop și AutoEx
+# Feedback închis — arhitectura testelor consumer Shop și AutoEx
 
-## Pe scurt
+**Stare: cerințele de arhitectură din această revizie sunt implementate și probate.**
+Acest document păstrează deciziile și dovada de închidere; nu mai conține ToDo-uri
+active. Contractele generice rămân la ownerii ATF, iar regulile specifice aplicației
+rămân în consumatorul lor.
 
-Acest document păstrează cerințele comune de structură pentru testele E2E ale
-Practice Shop și Automation Exercise. Contractele generice rămân la ownerii ATF;
-scenariile și vocabularul de business rămân în consumerul lor.
+## Boundary-ul rezultat
 
-## Dovezi din codul curent
+```mermaid
+flowchart LR
+    ATF[ATF libraries] -->|compile/runtime APIs| Shop[Practice Shop consumer]
+    ATF -->|compile/runtime APIs| AutoEx[Automation Exercise consumer]
+    Shop --> ShopMain[src/main: site runtime + API]
+    Shop --> ShopTest[src/test: tests, fixtures, suites]
+    AutoEx --> AutoExMain[src/main: site runtime + journey]
+    AutoEx --> AutoExTest[src/test: JUnit lifecycle, suites, tests]
+```
 
-| Consumer | E2E și suită | Stare a suportului |
+| Responsabilitate | Practice Shop | Automation Exercise |
 |---|---|---|
-| Practice Shop | 5 E2E-uri în `atf.ui.tests.practiceshop.e2e`, selectate explicit de `ShopE2eSuite`; există și `ShopComponentSuite`, `ShopApiComponentSuite`, `ShopApiCallAuditSuite` | Suitele component/API au selecții suprapuse; intenția și efectul trebuie făcute verificabile. `ShopApiScreenFlowIntegrationTest` nu apare într-o suită și nu are comandă documentată; `ShopStandaloneApiReportTest` are rulare live opt-in documentată. |
-| Automation Exercise | 3 variante ale aceluiași purchase E2E în `atf.ui.tests.autoex.e2e`, selectate explicit de `AutoExPurchaseSuite` | Cele 3 teste componentă curente nu au suită componentă comună: două sunt în `atf.ui.autoex.support`, unul în `atf.ui.tests.autoex.component`. Journey-ul, page objects, config și support sunt încă în `src/test/java`; modulul nu are `src/main/java`, iar dependențele sunt test-scope. |
+| Rute, selectori, config, pagini și journey consumer | `src/main` | `src/main` |
+| Teste, suites, fixtures și lifecycle JUnit | `src/test` | `src/test` |
+| E2E business | `ShopE2eSuite` — selecție explicită a celor 5 scenarii | `AutoExPurchaseSuite` — exact cele 3 configurații UI / UI+API / final-only |
+| Componente consumer | `ShopComponentSuite` | `AutoExComponentSuite` |
+| API call audit | `ShopApiCallAuditSuite`, selecție tag `api-call` | Nu există o suită API separată; API-ul este observat în aceeași sesiune UI+API |
+| Contracte generice ATF | modulul ATF owner | modulul ATF owner |
 
-Codul curent are acoperire parțială, nu un dicționar complet:
+În AutoEx, page objects și journey-ul depind de interfața consumer
+`AutoExPurchaseSession`, implementată de `AutoExE2eRun` din `src/test`.
+Astfel suportul business poate fi compilat separat, fără să tragă în `main`
+JUnit, Test Kit sau lifecycle-ul raportului. Configurația publică demo este
+resursă de `main`; datele și wrapper-ul de execuție rămân explicite.
 
-- `ShopPurchaseTraceStep` oferă keyword și formulări pentru checkpoint-urile
-  principale;
-- `ShopE2eContext` construiește local formulări GIVEN de setup/failure;
-- `AutoExPurchaseJourney` pasează texte inline în `checkpoint(...)`.
+## Decizii de selecție și eliminare
 
-## Cerințe deschise
+- `ShopComponentSuite` este suita umbrelă fără E2E live; includerea verificărilor
+  API și support este intenționată. `ShopApiComponentSuite` este filtrul API
+  concentrat, iar `ShopApiCallAuditSuite` este filtrul pentru testele care fac
+  apeluri auditabile. Suprapunerea între aceste entry points este selecție
+  deliberată, nu duplicate în aceeași execuție.
+- `ShopApiScreenFlowIntegrationTest` a fost eliminat: executa același flow
+  autentificare → catalog → coș → checkout ca
+  `ShopStandaloneApiReportTest`, dar valida numai statusuri HTTP și nu producea
+  un artifact distinct. Testul standalone păstrează flow-ul live, verificări
+  business mai puternice, cerința `LIVE_HTTP` și raportul cu exchange-uri.
+  Rularea sa rămâne opt-in și directă, nu este ascunsă într-o suită componentă.
+- AutoEx avea cinci teste componente, nu trei: patru teste erau doar în pachetul
+  `autoex.support`. Toate sunt acum în `tests.autoex.component`, alături de
+  testul consent, și sunt selectate de `AutoExComponentSuite`.
+- Helpers rămân helpers, nu entry points. Suitele selectează pachete/clase și nu
+  dețin logică de business sau fixture-uri. Nu s-au mutat primitive generice în
+  consumer.
 
-Curățarea nu înseamnă ștergerea testelor care nu sunt E2E. Consumerul trebuie
-să păstreze dovezile sale de componentă/API, dar să nu devină un al doilea loc
-pentru testarea generică a ATF sau un depozit de clase fără cale clară de rulare.
+## Catalogul Gherkin și guvernanța
 
-| ID | Cerință | Criteriu de acceptanță | Scor |
-|---|---|---|---:|
-| `CONSUMER-TEST-OWNERSHIP-CLEANUP-01` | Elimină zgomotul și clarifică ownership-ul și calea de rulare pentru clase/teste Shop și AutoEx. | Inventar complet, fără teste orphan/duplicate; separare probată între teste generice ATF și adaptere consumer; cerința se aplică simetric ambelor module. | 95 |
-| `CONSUMER-TEST-BOUNDARY-01` | Delimitează testele, suportul consumer și capabilitățile generice pentru Shop și AutoEx. | E2E-urile sunt numai în pachetele `...practiceshop.e2e` / `...autoex.e2e`; suitele sunt în pachetele `...suites` și au membri expliciți/verificabili. Testele componente și API formează a doua categorie; testele API de integrare/reporting nu devin un al treilea tip. Mută suportul consumer-specific reutilizat în `src/main/java` unde lipsește (în special AutoEx), păstrează testele, suitele și fixture-urile strict de test în `src/test/java`, iar codul generic la modulul ATF owner. Guardrail-urile verifică ownership-ul și descoperirea fără clase helper numărate ca teste. | 93 |
-| `CONSUMER-GHERKIN-CATALOG-01` | Folosește un catalog tipizat al frazelor Gherkin pentru fiecare consumer. | Extinde dicționarul Shop existent pentru toate frazele raportate, inclusiv GIVEN-urile de setup/failure, și adaugă unul echivalent în AutoEx. Toate checkpoint-urile afișate ca `GIVEN/WHEN/THEN/AND` iau keyword-ul și textul din catalog; textele de business nu se duplică inline în flow-uri, lifecycle sau clase E2E. Testele componente probează maparea și guardrail-ul detectează formulări Gherkin hard-coded; numele scenariului și overview-ul rămân câmpuri distincte. | 90 |
+- `ShopPurchaseTraceStep` deține vocabularul guest purchase, setup-ul
+  autentificat, reutilizarea contului, fixture-ul local și failure boundary.
+  Flow-ul terminal UI-only primește tot o valoare din catalog, nu un titlu liber.
+- `AutoExPurchaseTraceStep` deține cele 13 checkpoint-uri și starea terminală.
+  Journey-ul și page objects nu mai compun perechi inline keyword + titlu;
+  `AutoExE2eRun` expune către flow numai overload-ul tipizat.
+- Testele de componentă verifică mapările keyword/title, unicitatea și cardinalitatea.
+  Guardrail-ul AutoEx verifică suite membership și faptul că sursele `main`
+  nu importă JUnit sau ATF Test Kit.
+- Testele și fixture-urile nu au fost mutate mecanic doar pentru simetrie:
+  ownership-ul este decis după rol și dependențe. Configurația, API-ul public,
+  page objects și vocabularul specific rămân consumer-owned.
 
-### Criterii de acceptanță — cleanup și ownership
+## Dovada de verificare
 
-- Inventariază fiecare clasă Java din `src/main` și `src/test`: rol, caller,
-  owner, categorie logică (`E2E` / `Component/API`), layer ATF, suite sau comandă
-  standalone și efecte externe. Include testele, suitele, fixtures, helpers și
-  suportul runtime; nu presupune că numele `Test` sau pachetul determină ownerul.
-- Fiecare test păstrat are o cale de rulare declarată: membru într-o suită
-  numită sau comandă standalone opt-in justificată. Elimină/consolidează numai
-  după ce verifici că nu există comportament unic; helper-ele nu sunt entry
-  points, iar suitele conțin doar selecție, ordine și compoziție.
-- Pentru Shop, justifică suprapunerile dintre `ShopComponentSuite`,
-  `ShopApiComponentSuite` și `ShopApiCallAuditSuite`. Decide explicit dacă
-  `ShopApiScreenFlowIntegrationTest` este o probă live distinctă față de
-  `ShopStandaloneApiReportTest`; documentează launcherul, consolidează duplicatele
-  sau elimină testul cu motiv.
-- Pentru AutoEx, aplică aceleași reguli, dar păstrează separarea potrivită
-  consumerului: cele trei E2E-uri rămân variantele suitei existente; cele trei
-  teste componente actuale trebuie organizate sub ownerul `tests/autoex` și să
-  aibă launcher explicit. Creează o suită componentă numai dacă agregarea
-  simplifică rularea; altfel documentează comenzile selective.
-- Mută testele pentru contracte ATF neutre la modulele owner — renderer/
-  publisher în `atf-reporting-tests`, primitive UI în `atf-ui`, adnotări în
-  `atf-test-kit`, utilitare în `atf-core`. Păstrează în consumer testele de
-  adapter/compoziție care validează contracte, rute, configurație sau date
-  specifice Shop/AutoEx; un import Reporting/UI nu face singur un test generic.
-- Mută în `src/main` numai suportul runtime specific aplicației folosit de
-  journey; JUnit, fixture-urile și orchestration-ul exclusiv de test rămân în
-  `src/test`. Nu muta clase mecanic pentru a reduce numărul de fișiere din
-  test sau pentru a forța structură identică între consumatori.
+- `mvn -pl atf-test-auto-ex,atf-test-practice-shop -am -DskipTests test-compile`
+  — compilează sursele main și test ale ambelor consumatoare.
+- `mvn -pl atf-test-auto-ex,atf-test-practice-shop -am "-Dtest=AutoExComponentSuite,ShopComponentSuite" "-Dsurefire.failIfNoSpecifiedTests=false" test`
+  — gate-ul componentă este separat de E2E-urile publice; execuția curentă:
+  Shop **221 teste**, AutoEx **10 teste**, **0 failures / 0 errors**.
+- E2E-urile AutoEx nu au fost pornite de acest gate; suita lor rămâne opt-in.
+  Rapoartele E2E verificate anterior sunt dovadă pentru matricea evidence, nu
+  înlocuiesc gate-ul componentă de mai sus.
 
-## Boundary-ul dorit
+## Domeniu în afara acestei închideri
 
-| Loc | Conținut permis |
-|---|---|
-| `src/test/java/.../e2e` | Clase de test declarative: adnotări, nume/overview de scenariu, apelul flow-ului și verdictul observabil |
-| `src/test/java/.../suites` | Numai entry-point-uri și selecție/ordine a membrilor E2E ori Component/API; fără logică de business sau fixture-uri |
-| `src/test/java/.../component` și `.../api` | Teste consumer de componentă/API; testele `integration` rămân opt-in și sunt grupate operațional în Component/API, fără categorie business suplimentară |
-| `src/test/java/.../support` | Fixture-uri, harness-uri și adaptere folosite exclusiv de teste; pachetul nu creează o a treia categorie de teste |
-| `src/main/java` în consumer | Configurație, modele, flow-uri, pagini și support necesar testelor, dar specific site-ului și fără framework generic de test clonat |
-| Module ATF generice | Playwright/reporting/adnotări/utilitare fără contract, locator sau date de business Shop/AutoEx |
-
-Două categorii logice nu înseamnă un singur nivel JUnit: integration rămâne
-etichetat corect tehnic, dar nu justifică un al treilea tip de suită consumer.
-Selecția și suprapunerea suitei trebuie să fie explicite; testele de support
-nu devin implicit teste doar fiindcă stau lângă producție sau sunt scanate larg.
-
-- Fixture-urile și harness-urile strict de test rămân în `src/test/java`.
-- Suportul consumer mutat în `main` trebuie să fie folosit de flow, nu doar să
-  reprezinte mecanism de execuție a testului.
-- Mutările se fac după rol și dependențe, nu mecanic după numele clasei.
-
-## Închidere
-
-- Închide `CONSUMER-TEST-OWNERSHIP-CLEANUP-01` cu inventarul Shop/AutoEx,
-  decizia pentru testul API integration Shop fără launcher documentat și
-  justificarea fiecărei suite/suprapuneri; AutoEx trebuie să aibă selecție
-  componentă explicită sau comenzi selective documentate.
-- Documentează clasele mutate și dependențele Maven; verifică înainte de mutare
-  dacă testul aparține generic ATF sau doar validează adapterul consumerului.
-- Întărește guvernanța pentru pachete, suite-to-test membership, suprapuneri
-  intenționate, discoverability fără orphan tests și excluderea helperelor.
-- Păstrează catalogul Gherkin și probele sale independente de aceste mutări.
-- Rulează suitele componente/API și compilează modulele; rulează E2E-urile numai
-  opt-in, cu dovezi de raport pentru varianta selectată.
-- Actualizează README-urile ownerilor după implementare; elimină acest feedback
-  doar când ambele criterii sunt probate și nu rămâne lucru comun deschis.
+Această revizie nu adaugă o colecție separată de teste pentru endpoint-urile API
+Automation Exercise și nu mută lifecycle-ul Extent/JUnit în `main`. Orice
+cerință viitoare pentru contractele endpoint-urilor trebuie să definească separat
+izolarea datelor externe, efectele mutațiilor și cleanup-ul; nu va fi dedusă din
+suitele UI/UI+API existente.

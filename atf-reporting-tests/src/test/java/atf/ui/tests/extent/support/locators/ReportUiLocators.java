@@ -335,6 +335,8 @@ public final class ReportUiLocators {
     public Locator executionEvidenceDisclosure(Locator request) {
         return evidence.executionEvidenceDisclosure(request);
     }
+    public void moveRequestEvidenceToOwner(Locator owner) { evidence.moveRequestEvidenceToOwner(owner); }
+    public void moveResponseEvidenceToOwner(Locator owner) { evidence.moveResponseEvidenceToOwner(owner); }
     public AtfLocator requestEvidenceDisclosureAction(Locator request) {
         return evidence.requestEvidenceDisclosureAction(request);
     }

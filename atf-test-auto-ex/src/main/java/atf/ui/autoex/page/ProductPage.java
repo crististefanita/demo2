@@ -1,11 +1,11 @@
 package atf.ui.autoex.page;
 
 import atf.ui.autoex.locator.AutoExSelectors;
-import atf.ui.autoex.support.AutoExE2eRun;
+import atf.ui.autoex.support.AutoExPurchaseSession;
 
 /** Product detail and add-to-cart actions. */
 public final class ProductPage extends AutoExPage {
-    public ProductPage(AutoExE2eRun run) { super(run); }
+    public ProductPage(AutoExPurchaseSession run) { super(run); }
 
     public String details() {
         return text(AutoExSelectors.PRODUCT_INFORMATION,

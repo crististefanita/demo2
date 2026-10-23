@@ -1,9 +1,11 @@
-package atf.ui.autoex.support;
+package atf.ui.tests.autoex.component;
 
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.evidence.profile.ReportEvidenceCaptureSource;
 import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
 import atf.api.testkit.AtfComponentTest;
+import atf.ui.autoex.support.AutoExEvidenceMode;
+import atf.ui.autoex.support.AutoExEvidenceProfile;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertAll;

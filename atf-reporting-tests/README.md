@@ -484,14 +484,21 @@ din rădăcina reactorului cu:
 mvn -pl atf-reporting-tests -am "-Dtest=AtfReportingComponentSuite" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
-`-am` construiește modulele de care depinde test harness-ul; `failIfNoSpecifiedTests=false`
-permite modulelor intermediare să nu aibă clasele selectate. Comanda pornește
-suita completă, nu doar testul matricii. Negativele pentru disclosure lipsă/mutat,
-ownership API greșit și izolarea verdicturilor UI/API sunt încă gap-uri explicite
-în [feedback](../docs/feedback/ATF_Reporting_Feedback.md#gov-api-01--gate-comun-acoperire-încă-incompletă).
-Surefire poate afișa `0 tests` pe containerul clasei `AtfReportingComponentSuite`;
-testele copil apar ca seturi individuale, iar verdictul de execuție este suma
-agregată de la finalul reactorului (131 teste la verificarea din 2026-10-23).
+- `-am` construiește modulele de care depinde test harness-ul.
+- `failIfNoSpecifiedTests=false` permite modulelor intermediare să nu aibă clasele selectate.
+- Comanda pornește suita completă, nu doar testul matricii.
+- Probele browser țintite resping Request și Response disclosure absent sau
+  mutate la ownerul scenariului (8/8 în `ApiReportRenderedEvidenceComponentTest`).
+  Izolarea între owneri/sibling și verdicturile UI/API independente cu navigare
+  `Fails` rămân gap-uri; interacțiunea select/collapse/reopen trebuie verificată
+  pe conținut vizibil, nu numai pe markup/template. Detaliile sunt în
+  [feedback](../docs/feedback/ATF_Reporting_Feedback.md#gov-api-01--gate-comun-acoperire-încă-incompletă).
+- Surefire poate afișa `0 tests` pe containerul suitei; testele copil apar
+  separat. Rularea agregată raportată mai jos este suma reactorului.
+- Ultima verificare completă din 2026-10-23 a rulat **135 teste: 0 failures,
+  0 errors, 0 skipped**. `ApiReportRenderedEvidenceComponentTest` a trecut 8/8
+  pentru Request/Response absent și mis-owned disclosure; limita selectorilor a
+  trecut 2/2 în `UiSelectorBoundaryArchitectureTest`.
 
 Launcher-ele sunt specifice layer-ului: `ExtentReportingE2eSuite` agregă E2E,
 iar `AtfReportingUiAuditSuite` auditează randarea UI.
@@ -521,8 +528,11 @@ Ancorele de output sunt:
 
 ## Limitele de responsabilitate ale aplicațiilor consumatoare
 
-`atf-reporting-tests` nu deține adaptere de aplicație. Practice Shop este izolat
-în modulul dedicat:
+`atf-reporting-tests` nu deține adaptere de aplicație. El deține în primul rând
+probele reutilizabile ale bibliotecii: model și publisher, API fixtures neutre,
+paritate între renderere, artifact HTML, DOM/CSS și interacțiuni browser. Aceste
+probe folosesc mock/fake determinist, nu depind de endpoint-ul sau regulile de
+business ale aplicației testate. Practice Shop este izolat în modulul dedicat:
 
 ```text
 atf-test-practice-shop/src/test/resources/atf-practice-shop.yaml
@@ -540,9 +550,15 @@ atf-test-practice-shop/src/test/java/atf/ui/tests/practiceshop/
 └── e2e/             journey complet
 ```
 
-`atf-tests` nu mai conține YAML, page objects sau flow-uri Practice Shop.
-Nu se copiază fixture-uri în `atf-reporting-tests`; acesta rămâne strict
-composition root pentru contractul librăriei reporting.
+- `atf-tests` nu mai conține YAML, page objects sau flow-uri Practice Shop.
+- Testele consumerului rămân în Shop pentru configurație, binding de checkpoint,
+  redactare specifică, flow sau adaptarea publică spre Reporting.
+- `ShopE2eFailureReportComponentTest` verifică wiring-ul `ShopE2eContext`;
+  contractele generice de failure și redactare sunt probate separat aici.
+- Dacă un test Shop verifică un invariant Reporting independent de consumer,
+  mută proba neutră aici și păstrează în Shop doar integrarea îngustă.
+- Hook-urile JUnit generice sunt testate în modulul owner (`atf-test-kit`);
+  testele de sesiune și publicare Reporting aparțin `atf-reporting-tests`.
 
 ### Reutilizare neutră între module
 
