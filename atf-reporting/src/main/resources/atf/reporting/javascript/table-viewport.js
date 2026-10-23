@@ -10,7 +10,6 @@
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', makeFocusable, { once: true });
   } else makeFocusable();
-  // Handle only viewport focus; nested controls retain their own keys.
   document.addEventListener('keydown', function (event) {
     var viewport = event.target;
     if (!viewport || !viewport.matches || !viewport.matches(surfaces)
@@ -29,7 +28,6 @@
     event.preventDefault();
     viewport.scrollTop = next;
   }, true);
-  // Keep vertical wheel gestures local, ahead of vendor pane listeners.
   window.addEventListener('wheel', function (event) {
     var target = event.target;
     if (!target || !target.closest || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey

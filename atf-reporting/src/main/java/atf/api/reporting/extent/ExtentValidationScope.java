@@ -81,27 +81,21 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
         AtfReportStatus effective = AtfReportStatus.worst(childStatuses.aggregate(), status);
         if (screenshotOptional) {
             tree.renderUiActionsAsMedia(validation, uiActions);
-        } else if (mediaScreenshots.isEmpty()) {
+        } else if (mediaScreenshots.isEmpty() && screenshots.size() <= 1) {
             tree.renderUiActions(validation, uiActions, screenshots);
             if (uiActions.stream().noneMatch(action -> action.source() == AtfUiEvidenceSource.ACTION)) {
                 tree.renderScreenshots(validation, screenshots);
             }
         } else {
-            if (!screenshots.isEmpty()) {
+            if (!screenshots.isEmpty() && !mediaScreenshots.isEmpty()) {
                 throw new IllegalStateException("A validation cannot mix inline and media screenshots");
             }
-            // Media mode still uses the same local contract as screenshot mode
-            // whenever browser actions exist: one action table followed by
-            // exactly one Base64 data link. Observation-only validations keep
-            // their screenshot even though no action table is required.
-            boolean hasBrowserActions = uiActions.stream()
-                    .anyMatch(action -> action.source() == AtfUiEvidenceSource.ACTION);
-            if (hasBrowserActions) {
-                tree.renderUiActions(validation, uiActions, mediaScreenshots);
-            } else {
-                tree.renderUiActions(validation, uiActions, List.of());
-                tree.renderScreenshots(validation, mediaScreenshots);
-            }
+            // A unified flow can aggregate many checkpoint screenshots into one
+            // validation. Keep the ordered action table singular and publish all
+            // screenshots as separate evidence links after it.
+            tree.renderUiActions(validation, uiActions, List.of());
+            tree.renderScreenshots(validation,
+                    screenshots.isEmpty() ? mediaScreenshots : screenshots);
         }
         tree.renderAssertions(validation, assertions);
         tree.complete(validation, effective);

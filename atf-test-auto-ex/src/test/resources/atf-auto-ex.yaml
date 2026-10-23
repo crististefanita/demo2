@@ -3,7 +3,7 @@ automationExercise:
   e2eEnabled: false
   browser:
     engine: chromium
-    headless: false
+    headless: true
     timeout: PT20S
     navigationTimeout: PT45S
     viewport:
@@ -19,7 +19,6 @@ automationExercise:
     unitPrice: Rs. 500
     quantity: 2
   registration:
-    title: Mr
     birthDay: "10"
     birthMonth: May
     birthYear: "1990"

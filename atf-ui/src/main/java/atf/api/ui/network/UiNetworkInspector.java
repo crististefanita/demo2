@@ -32,7 +32,7 @@ public final class UiNetworkInspector implements AutoCloseable {
     private final List<UiNetworkObservation> observations = new CopyOnWriteArrayList<>();
     private final List<Consumer<UiNetworkObservation>> subscribers = new CopyOnWriteArrayList<>();
     private Page page;
-    private Consumer<Response> responseListener;
+    private Consumer<Request> requestFinishedListener;
     private Consumer<Request> requestFailedListener;
 
     public UiNetworkInspector(UiNetworkInspectionConfiguration configuration) {
@@ -50,9 +50,9 @@ public final class UiNetworkInspector implements AutoCloseable {
         if (this.page != null) throw new IllegalStateException("UI network inspector is already attached");
         this.page = page;
         subscribers.add(subscriber);
-        responseListener = this::observe;
+        requestFinishedListener = this::observeFinished;
         requestFailedListener = this::observeFailure;
-        page.onResponse(responseListener);
+        page.onRequestFinished(requestFinishedListener);
         page.onRequestFailed(requestFailedListener);
     }
 
@@ -167,20 +167,36 @@ public final class UiNetworkInspector implements AutoCloseable {
 
     @Override public void close() {
         if (page != null) {
-            if (responseListener != null) page.offResponse(responseListener);
+            if (requestFinishedListener != null) page.offRequestFinished(requestFinishedListener);
             if (requestFailedListener != null) page.offRequestFailed(requestFailedListener);
         }
         page = null;
-        responseListener = null;
+        requestFinishedListener = null;
         requestFailedListener = null;
         subscribers.clear();
     }
 
-    private void observe(Response response) { capture(response); }
+    private void observeFinished(Request request) {
+        if (!acceptsBrowserEvent(request)) return;
+        Response response = request.response();
+        if (response != null) capture(response);
+    }
 
     private void observeFailure(Request request) {
-        if (!configuration.enabled() || request == null || !configuration.accepts(request.url())) return;
+        if (!acceptsBrowserEvent(request)) return;
         capture(UiNetworkObservation.fromFailure(request, sequence.incrementAndGet(), configuration));
+    }
+
+    private boolean acceptsBrowserEvent(Request request) {
+        if (!configuration.enabled() || request == null) return false;
+        try {
+            return configuration.accepts(request.url());
+        } catch (IllegalStateException malformedThirdPartyUrl) {
+            // Browser events also include unrelated resources. An unparsable
+            // third-party URL cannot match the explicit host allowlist and must
+            // not abort a UI action or navigation while filtering that event.
+            return false;
+        }
     }
 
     private static void notifySafely(Consumer<UiNetworkObservation> subscriber,

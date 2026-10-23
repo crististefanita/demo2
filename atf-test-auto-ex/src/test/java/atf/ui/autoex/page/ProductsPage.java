@@ -12,17 +12,8 @@ public final class ProductsPage extends AutoExPage {
         click(AutoExSelectors.SEARCH_BUTTON, "catalog search is submitted");
     }
 
-    public String searchHeading() {
-        return text(AutoExSelectors.SEARCH_RESULTS_HEADING,
-                "the searched-products heading is read");
-    }
-
     public String firstProductName() {
-        return text(".features_items .productinfo p", "first matching product name is read");
-    }
-
-    public String firstProductPrice() {
-        return text(".features_items .productinfo h2", "first matching product price is read");
+        return text(AutoExSelectors.SEARCH_RESULT_PRODUCT_NAME, "first matching product name is read");
     }
 
     public ProductPage openFirstProduct() {

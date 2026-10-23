@@ -17,6 +17,8 @@ import java.util.List;
 import static atf.api.reporting.ui.ExtentReportUiEvidenceTestSupport.EXTENT_UI_TEST_PACKAGE;
 import static atf.api.reporting.ui.ExtentReportUiEvidenceTestSupport.count;
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @AtfUnitTest
@@ -115,7 +117,7 @@ class ExtentReportUiFailureEvidenceTest {
 
         String html = Files.readString(report);
         assertAll(
-                () -> assertTrue(html.contains("preserve executed actions; screenshot disabled or unavailable")),
+                () -> assertTrue(html.contains("atf-ui-failure-evidence")),
                 () -> assertTrue(html.contains("Playwright action sequence (1 entry)")),
                 () -> assertTrue(html.contains("synthetic failure")),
                 () -> assertTrue(html.contains("Failure evidence")));
@@ -144,6 +146,110 @@ class ExtentReportUiFailureEvidenceTest {
                         "linkage error class and message must be present in report evidence"),
                 () -> assertTrue(html.contains("class=\"atf-ui-assertions\" data-atf-evidence-status=\"fail\"")),
                 () -> assertTrue(html.contains("Failure evidence")));
+    }
+
+    @Test
+    void preservesTimeoutDiagnosticsAndRedactsSecretsInExtentEvidence() throws Exception {
+        Path root = Files.createTempDirectory("atf-ui-timeout-redaction-");
+        Path report;
+        try (var session = UiExtentReportSession.openConfigured(root, "ui-timeout-redaction.html",
+                AtfConsoleSink.noOp())) {
+            report = session.reportPath();
+            var scenario = session.startScenario("UiTest", EXTENT_UI_TEST_PACKAGE,
+                    "timeout diagnostics", List.of("ui", "failure"));
+            var body = scenario.startPhase("TEST BODY");
+            body.failureEvidence("login action timed out", "button[data-test='login-submit']", List.of(
+                    new AtfUiActionRecord(1, "Wait for visible", "button[data-test='login-submit']",
+                            "login submit becomes visible", "Timeout 20000ms exceeded", 20_000,
+                            AtfReportStatus.FAIL)), new TimeoutError(
+                    "Timeout 20000ms exceeded waiting for button[data-test='login-submit']; "
+                            + "password=raw-ui-password; Authorization: Bearer raw-ui-token"));
+            body.complete(AtfReportStatus.FAIL);
+            scenario.complete(AtfReportStatus.FAIL);
+        }
+
+        String html = Files.readString(report);
+        assertAll(
+                () -> assertTrue(html.contains("TimeoutError: Timeout 20000ms exceeded")),
+                () -> assertTrue(html.contains("button[data-test='login-submit']")),
+                () -> assertTrue(html.contains("20000ms exceeded")),
+                () -> assertTrue(html.contains("***REDACTED***")),
+                () -> assertFalse(html.contains("raw-ui-password")),
+                () -> assertFalse(html.contains("raw-ui-token")),
+                () -> assertFalse(html.contains("<details class=\"step-detail request-evidence\""),
+                        "UI failure evidence must not create an HTTP request disclosure"),
+                () -> assertFalse(html.contains("<details class=\"step-detail response-evidence\""),
+                        "UI failure evidence must not create an HTTP response disclosure"));
+    }
+
+    @Test
+    void redactsSecretsInFailedActionTargets() throws Exception {
+        Path root = Files.createTempDirectory("atf-ui-failure-target-redaction-");
+        Path report;
+        String secretTarget = "button[data-test='login-submit']?access_token=raw-target-token";
+        try (var session = UiExtentReportSession.openConfigured(root, "ui-failure-target-redaction.html",
+                AtfConsoleSink.noOp())) {
+            report = session.reportPath();
+            var scenario = session.startScenario("UiTest", EXTENT_UI_TEST_PACKAGE,
+                    "target redaction", List.of("ui", "failure"));
+            var body = scenario.startPhase("TEST BODY");
+            body.failureEvidence("login action timed out", secretTarget, List.of(
+                    new AtfUiActionRecord(1, "Wait for visible", secretTarget,
+                            "login submit becomes visible", "Timeout 20000ms exceeded", 20_000,
+                            AtfReportStatus.FAIL)), new TimeoutError("Timeout 20000ms exceeded"));
+            body.complete(AtfReportStatus.FAIL);
+            scenario.complete(AtfReportStatus.FAIL);
+        }
+
+        String html = Files.readString(report);
+        assertAll(
+                () -> assertFalse(html.contains("raw-target-token"),
+                        "sensitive values in the action locator must not be published"),
+                () -> assertTrue(html.contains("access_token=***REDACTED***"),
+                        "the report should retain the locator context while redacting its credential"),
+                () -> assertTrue(html.contains("button[data-test='login-submit']"),
+                        "the safe part of the locator remains actionable"));
+    }
+
+    @Test
+    void derivesCauseFromFailedActionWhenThrowableIsUnavailable() throws Exception {
+        Path root = Files.createTempDirectory("atf-ui-failure-derived-cause-");
+        Path report;
+        try (var session = UiExtentReportSession.openConfigured(root, "ui-failure-derived-cause.html",
+                AtfConsoleSink.noOp())) {
+            report = session.reportPath();
+            var scenario = session.startScenario("UiTest", EXTENT_UI_TEST_PACKAGE,
+                    "derived failure cause", List.of("ui", "failure"));
+            var body = scenario.startPhase("TEST BODY");
+            body.failureEvidence("login action failed", "button[data-test='login-submit']", List.of(
+                    new AtfUiActionRecord(1, "Wait for visible", "button[data-test='login-submit']",
+                            "login submit becomes visible", "Timeout 20000ms exceeded", 20_000,
+                            AtfReportStatus.FAIL)), null);
+            body.complete(AtfReportStatus.FAIL);
+            scenario.complete(AtfReportStatus.FAIL);
+        }
+
+        String html = Files.readString(report);
+        assertTrue(html.contains("No exception supplied; failed UI action: Wait for visible"),
+                "when the Throwable is unavailable, the failed action should supply actionable cause");
+        assertTrue(html.contains("Timeout 20000ms exceeded"),
+                "the observed Playwright failure should remain available to diagnose");
+    }
+
+    @Test
+    void rejectsFailureEvidenceWithoutThrowableOrFailedAction() throws Exception {
+        Path root = Files.createTempDirectory("atf-ui-failure-no-cause-");
+        try (var session = UiExtentReportSession.openConfigured(root, "ui-failure-no-cause.html",
+                AtfConsoleSink.noOp())) {
+            var scenario = session.startScenario("UiTest", EXTENT_UI_TEST_PACKAGE,
+                    "missing failure cause", List.of("ui", "failure"));
+            var body = scenario.startPhase("TEST BODY");
+            var error = assertThrows(IllegalArgumentException.class,
+                    () -> body.failureEvidence("failure has no diagnosis", "#failure", List.of(), null));
+            assertTrue(error.getMessage().contains("Throwable or a failed UI action"));
+            body.complete(AtfReportStatus.FAIL);
+            scenario.complete(AtfReportStatus.FAIL);
+        }
     }
 
     @Test
@@ -176,6 +282,10 @@ class ExtentReportUiFailureEvidenceTest {
                         "Screenshot must follow the Playwright action table"),
                 () -> assertTrue(html.contains("href=\"data:image/png;base64," + ReportTestScreenshots.ONE_PIXEL_PNG + "\"")),
                 () -> assertTrue(count(html, "data:image/png;base64," + ReportTestScreenshots.ONE_PIXEL_PNG) == 1));
+    }
+
+    private static final class TimeoutError extends RuntimeException {
+        private TimeoutError(String message) { super(message); }
     }
 }
 

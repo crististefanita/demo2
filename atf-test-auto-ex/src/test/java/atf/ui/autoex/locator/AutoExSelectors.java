@@ -1,5 +1,8 @@
 package atf.ui.autoex.locator;
 
+import atf.api.ui.dom.HtmlAttribute;
+import atf.api.ui.dom.HtmlElement;
+
 /** CSS vocabulary for the public practice site; tests and page objects do not embed selectors. */
 public final class AutoExSelectors {
     public static final String STORE_HEADING = "#slider-carousel h2";
@@ -8,29 +11,30 @@ public final class AutoExSelectors {
     public static final String PRIVACY_SELECTED_OPTIONS = ".fc-consent-root input.fc-preference-slider-purpose:checked";
     public static final String PRIVACY_OPTION_LABEL = "label[for='%s']";
     public static final String PRIVACY_CONFIRM_CHOICES = ".fc-consent-root button:visible:has-text('Confirm choices')";
-    public static final String PRODUCTS_LINK = "a[href='/products']";
-    public static final String CART_LINK = "#header a[href='/view_cart']";
+    public static final String VIGNETTE_CLOSE_CONTROL = ":text-is(\"Close\")";
+    public static final String PRODUCTS_LINK = linkTo(AutoExRoutes.PRODUCTS);
+    public static final String CART_LINK = "#header " + linkTo(AutoExRoutes.CART);
     public static final String SEARCH_INPUT = "#search_product";
     public static final String SEARCH_BUTTON = "#submit_search";
-    public static final String PAGE_TITLE = "h2.title.text-center";
-    public static final String SEARCH_RESULTS_HEADING = PAGE_TITLE;
-    public static final String ACCOUNT_RESULT_HEADING = PAGE_TITLE;
+    public static final String ACCOUNT_RESULT_HEADING = "h2.title.text-center";
+    public static final String SEARCH_RESULT_PRODUCT_NAME = ".features_items .productinfo p";
     public static final String PRODUCT_DETAILS_LINK = "a[href^='/product_details/']";
     public static final String PRODUCT_INFORMATION = ".product-information";
     public static final String QUANTITY = "#quantity";
     public static final String ADD_TO_CART = "button.cart";
-    public static final String VIEW_CART = "a[href='/view_cart']";
+    public static final String VIEW_CART = linkTo(AutoExRoutes.CART);
     public static final String CART_PRODUCT_ROW_PREFIX = "#product-";
+    public static final String CART_PRODUCT_NAME = "h4";
     public static final String CART_QUANTITY = ".cart_quantity button";
     public static final String CART_PRICE = ".cart_price";
     public static final String CART_TOTAL = ".cart_total";
     public static final String CHECKOUT = "a.check_out";
-    public static final String REGISTER_LOGIN = "a[href='/login']";
+    public static final String REGISTER_LOGIN = linkTo(AutoExRoutes.LOGIN);
     public static final String SIGNUP_NAME = "[data-qa='signup-name']";
     public static final String SIGNUP_EMAIL = "[data-qa='signup-email']";
     public static final String SIGNUP_BUTTON = "[data-qa='signup-button']";
     public static final String ACCOUNT_PASSWORD = "[data-qa='password']";
-    public static final String ACCOUNT_GENDER = "#id_gender1";
+    public static final String ACCOUNT_GENDER_MR = "#id_gender1";
     public static final String ACCOUNT_DAYS = "[data-qa='days']";
     public static final String ACCOUNT_MONTHS = "[data-qa='months']";
     public static final String ACCOUNT_YEARS = "[data-qa='years']";
@@ -44,16 +48,14 @@ public final class AutoExSelectors {
     public static final String ACCOUNT_CITY = "[data-qa='city']";
     public static final String ACCOUNT_POSTAL_CODE = "[data-qa='zipcode']";
     public static final String ACCOUNT_MOBILE = "[data-qa='mobile_number']";
-    public static final String ACCOUNT_NEWSLETTER = "#newsletter";
-    public static final String ACCOUNT_OFFERS = "#optin";
     public static final String CREATE_ACCOUNT = "[data-qa='create-account']";
     public static final String CONTINUE = "[data-qa='continue-button']";
-    public static final String DELETE_ACCOUNT = "#header a[href='/delete_account']";
+    public static final String DELETE_ACCOUNT = "#header " + linkTo(AutoExRoutes.DELETE_ACCOUNT);
     public static final String DELIVERY_ADDRESS = "#address_delivery";
     public static final String BILLING_ADDRESS = "#address_invoice";
     public static final String ORDER_REVIEW = "#cart_info";
     public static final String ORDER_COMMENT = "textarea[name='message']";
-    public static final String PLACE_ORDER = "a[href='/payment']";
+    public static final String PLACE_ORDER = linkTo(AutoExRoutes.PAYMENT);
     public static final String PAYMENT_HEADING = "h2.heading";
     public static final String CARD_NAME = "[data-qa='name-on-card']";
     public static final String CARD_NUMBER = "[data-qa='card-number']";
@@ -63,8 +65,14 @@ public final class AutoExSelectors {
     public static final String PAY_AND_CONFIRM = "[data-qa='pay-button']";
     public static final String ORDER_SUCCESS = "[data-qa='order-placed']";
     public static final String ORDER_CONFIRMATION = "#form p";
-    public static final String DOWNLOAD_INVOICE = "a[href^='/download_invoice/']";
-    public static final String SENSITIVE_FIELDS = "input, textarea, select, [contenteditable='true']";
+    public static final String DOWNLOAD_INVOICE = "a[href^='%s']".formatted(AutoExRoutes.INVOICE_DOWNLOAD.path());
+    public static final String SENSITIVE_FIELDS = HtmlElement.selectorList(
+            HtmlElement.INPUT, HtmlElement.TEXTAREA, HtmlElement.SELECT)
+            + ", " + HtmlAttribute.CONTENTEDITABLE.equalsSelector("true");
+
+    private static String linkTo(AutoExRoutes route) {
+        return "a[href='%s']".formatted(route.path());
+    }
 
     private AutoExSelectors() { }
 }

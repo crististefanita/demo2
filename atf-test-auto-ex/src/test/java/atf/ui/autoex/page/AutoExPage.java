@@ -13,7 +13,6 @@ abstract class AutoExPage {
     protected void clickLast(String selector, String expected) { run.clickLast(selector, expected); }
     protected void fill(String selector, String value, String expected) { run.fill(selector, value, expected); }
     protected String text(String selector, String expected) { return run.text(selector, expected); }
-    protected String value(String selector, String expected) { return run.value(selector, expected); }
     protected void select(String selector, String label, String expected) {
         run.select(selector, label, expected);
     }

@@ -11,6 +11,7 @@ import atf.ui.practiceshop.pages.ShopPaymentPage;
 import atf.ui.practiceshop.support.validation.ShopPageValidationResult;
 import atf.ui.practiceshop.config.api.ShopApiCheckpoint;
 import atf.ui.practiceshop.support.ShopPurchaseTraceStep;
+import atf.ui.practiceshop.support.api.validation.ShopApiValidationResult;
 
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,9 @@ final class ShopCheckoutPurchaseStage {
         cart.open(configuration);
         ShopCartPage.CartLine line = cart.assertConfiguredLine(configuration);
         var cartApiAssertions = context.apiNetwork().cartReady(configuration.checkout().quantity());
+        var cartApiValidation = ShopApiValidationResult.cart(
+                context.apiNetwork().evidence(ShopApiCheckpoint.CART), cartApiAssertions)
+                .reportingEvidence();
         context.publish(context.checkpoint(ShopPurchaseTraceStep.CART,
                 context.pageValidator().validateValues(page, ShopCartPage.class,
                         Map.of(ShopControl.CART_PRODUCT_QUANTITY,
@@ -39,9 +43,9 @@ final class ShopCheckoutPurchaseStage {
                                 line.productName().contains(configuration.productName())),
                         check("Cart quantity", Integer.toString(configuration.checkout().quantity()), line.quantity(),
                                 Integer.toString(configuration.checkout().quantity()).equals(line.quantity()))),
-                context.apiNetwork().evidence(ShopApiCheckpoint.CART))
-                .withAdditionalAssertions(cartApiAssertions)
-                .withAdditionalAssertions(context.purchaseScreenValidator().cart(page)));
+                List.of())
+                .withAdditionalAssertions(context.purchaseScreenValidator().cart(page))
+                .withApiValidation(cartApiValidation));
         cart.proceed();
 
         if (authenticated) {
@@ -89,28 +93,34 @@ final class ShopCheckoutPurchaseStage {
         String paymentConfirmation = payment.checkPayment();
         var paymentApiAssertions = context.apiNetwork().paymentConfirmed(
                 configuration.checkout().paymentMethod());
+        var paymentApiValidation = ShopApiValidationResult.payment(
+                context.apiNetwork().evidence(ShopApiCheckpoint.PAYMENT), paymentApiAssertions)
+                .reportingEvidence();
         context.publish(context.checkpoint(ShopPurchaseTraceStep.PAYMENT_CHECK,
                 new ShopPageValidationResult(ShopScreen.PAYMENT,
                         List.of(context.pageValidator().validateVisible(page, ShopControl.PAYMENT_SUCCESS))),
                 List.of(check("Payment check", "Payment was successful", paymentConfirmation,
                         paymentConfirmation.contains("Payment was successful"))),
-                context.apiNetwork().evidence(ShopApiCheckpoint.PAYMENT))
-                .withAdditionalAssertions(paymentApiAssertions)
-                .withAdditionalAssertions(context.purchaseScreenValidator().paymentChecked(page)));
+                List.of())
+                .withAdditionalAssertions(context.purchaseScreenValidator().paymentChecked(page))
+                .withApiValidation(paymentApiValidation));
 
         ShopConfirmationPage orderConfirmationPage =
                 new ShopConfirmationPage(page, locators, actions);
         long orderSequenceFence = context.apiNetwork().sequenceMarker();
         String confirmation = orderConfirmationPage.confirmOrder();
         var orderApiAssertions = context.apiNetwork().orderCreated(orderSequenceFence, confirmation);
+        var orderApiValidation = ShopApiValidationResult.order(
+                context.apiNetwork().evidence(ShopApiCheckpoint.ORDER), orderApiAssertions)
+                .reportingEvidence();
         context.publish(context.checkpoint(ShopPurchaseTraceStep.ORDER_CONFIRMATION,
                 context.pageValidator().validate(page, ShopConfirmationPage.class),
                 List.of(check("Order confirmation", "Thanks for your order! and invoice number",
                         confirmation, confirmation.contains("Thanks for your order!")
                                 && confirmation.contains("INV-"))),
-                context.apiNetwork().evidence(ShopApiCheckpoint.ORDER))
-                .withAdditionalAssertions(orderApiAssertions)
-                .withAdditionalAssertions(context.purchaseScreenValidator().orderConfirmation(page)));
+                List.of())
+                .withAdditionalAssertions(context.purchaseScreenValidator().orderConfirmation(page))
+                .withApiValidation(orderApiValidation));
         return new ShopPurchaseFlow.PurchaseResult(line.productName(), line.quantity(),
                 configuration.checkout().paymentMethod(), confirmation);
     }

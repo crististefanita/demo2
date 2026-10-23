@@ -57,14 +57,18 @@ public final class UiFailureReportFactory {
 
     private static void actionFailure(UiExtentReportSession report) {
         var scenario = report.startScenario(TEST_CLASS, TEST_PACKAGE,
-                "Playwright action failure — click", TAGS);
+                "Playwright action failure — timeout", TAGS);
         passSetup(scenario);
         var body = scenario.startPhase(ReportUiContract.Phase.TEST_BODY.displayName());
-        body.screenValidation("Playwright click did not reach the disclosure",
-                "#failure-action", ONE_PIXEL_PNG, List.of(),
-                List.of(new AtfUiActionRecord(1, "Click", "#failure-action",
-                        "disclosure opens", "AssertionError: disclosure remained closed", 4,
-                        AtfReportStatus.FAIL, AtfUiEvidenceSource.ACTION)), AtfReportStatus.FAIL);
+        body.failureEvidence("Playwright action timed out",
+                "button[data-test='login-submit']",
+                List.of(new AtfUiActionRecord(1, "Wait for visible",
+                        "button[data-test='login-submit']",
+                        "login submit becomes visible", "Timeout 20000ms exceeded", 20_000,
+                        AtfReportStatus.FAIL, AtfUiEvidenceSource.ACTION)),
+                new TimeoutError("Timeout 20000ms exceeded waiting for "
+                        + "button[data-test='login-submit']; password=raw-ui-password; "
+                        + "Authorization: Bearer raw-ui-token"), ONE_PIXEL_PNG);
         body.complete(AtfReportStatus.FAIL);
         scenario.complete(AtfReportStatus.FAIL);
     }
@@ -101,5 +105,9 @@ public final class UiFailureReportFactory {
                 List.of(new AtfAssertion("Fixture", "available", "available", true)),
                 AtfReportStatus.PASS);
         setup.complete(AtfReportStatus.PASS);
+    }
+
+    private static final class TimeoutError extends RuntimeException {
+        private TimeoutError(String message) { super(message); }
     }
 }

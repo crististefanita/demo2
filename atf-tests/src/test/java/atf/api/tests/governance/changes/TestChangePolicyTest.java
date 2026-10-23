@@ -29,6 +29,7 @@ public class TestChangePolicyTest {
         assertEquals(1, failure.size());
         assertTrue(failure.getFirst().contains(PATH));
         assertTrue(failure.getFirst().contains(BASE));
+        assertTrue(failure.getFirst().contains("relevant owner document in docs/feedback/*.md"));
         assertTrue(failure.getFirst().contains("ATF_Test_Changes_Baseline.md"));
     }
 
@@ -117,22 +118,22 @@ public class TestChangePolicyTest {
     }
 
     @Test
-    void readsActiveAndCollapsedVerifiedRegistriesAndRejectsCrossRegistryDuplicates(@TempDir Path temp)
+    void readsOwnerFeedbackAndCollapsedVerifiedControlsWithoutDedicatedActiveRegistry(@TempDir Path temp)
             throws Exception {
         Path feedback = Files.createDirectories(temp.resolve("docs/feedback"));
-        Path active = feedback.resolve("ATF_Test_Changes_Feedback.md");
+        Path active = feedback.resolve("ATF_Reporting_Feedback.md");
         Path baseline = feedback.resolveSibling("ATF_Test_Changes_Baseline.md");
         String verified = markdown(PATH).replace("CHECK-01", "VERIFIED-01")
                 .replace("status: ACTIVE", "status: VERIFIED");
         Files.writeString(active, markdown(PATH));
         Files.writeString(baseline, "<details>\n<summary>Verified controls</summary>\n\n"
                 + verified + "\n</details>\n");
-        Files.writeString(feedback.resolve("ATF_Reporting_Feedback.md"), "# Functional gaps\n");
+        Files.writeString(feedback.resolve("ATF_Unrelated_Feedback.md"), "# Other gaps\n");
 
         var controls = FeedbackTestChangeRequests.read(feedback);
         assertEquals(Set.of("CHECK-01", "VERIFIED-01"), controls.stream()
                 .map(TestChangeRequest::id).collect(toSet()));
-        assertEquals(Set.of("feedback/ATF_Test_Changes_Feedback.md", "ATF_Test_Changes_Baseline.md"),
+        assertEquals(Set.of("feedback/ATF_Reporting_Feedback.md", "ATF_Test_Changes_Baseline.md"),
                 controls.stream().map(TestChangeRequest::source)
                         .collect(toSet()));
         assertEquals(Set.of("ACTIVE", "VERIFIED"), controls.stream()
@@ -140,7 +141,7 @@ public class TestChangePolicyTest {
 
         Files.delete(active);
         assertEquals(List.of("VERIFIED-01"), FeedbackTestChangeRequests.read(feedback).stream()
-                .map(TestChangeRequest::id).toList(), "removing an empty active registry preserves the baseline");
+                .map(TestChangeRequest::id).toList(), "owner feedback may omit an ACTIVE request while baseline controls remain");
 
         Files.writeString(active, verified);
         IOException duplicate = assertThrows(IOException.class, () -> FeedbackTestChangeRequests.read(feedback));

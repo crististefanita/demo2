@@ -208,6 +208,27 @@ dovezile transportului:
 - transportul nu produce un checkpoint Gherkin duplicat și nu schimbă singur
   verdictul business.
 
+### Ownership-ul validărilor UI/API
+
+Într-un checkpoint UI+API, aserțiunile sunt inputuri tipizate separat, nu o
+singură listă clasificată după prefixe din nume:
+
+- `Screen validation` primește numai aserțiunile UI și verdictul UI;
+- `API validation` primește corelările între canale și exchange-uri typed;
+- fiecare exchange deține propriile aserțiuni și status, iar statusul său nu se
+  propagă la exchange-urile frate;
+- statusul checkpoint-ului și al scenariului este agregarea copiilor; agregarea
+  nu rescrie statusul local al validărilor sau exchange-urilor;
+- statusul HTTP nu decide singur verdictul contractual: un răspuns negativ
+  așteptat poate avea assertion PASS, iar un `2xx` cu payload invalid poate avea
+  assertion FAIL;
+- corelarea UI/API rămâne sub `API validation`, nu este duplicată în tabelul UI
+  și nu creează un al doilea pas Gherkin.
+
+Contractul public renderer-neutral este `UiApiValidationEvidence`; consumerii
+leagă exchange-ul și aserțiunile sale explicit. Calea legacy cu evidence fără
+asserțiuni rămâne compatibilă; nu deduce ownerul din textul assertion-ului.
+
 ## Dovezile unei cereri
 
 ### Etichete canonice

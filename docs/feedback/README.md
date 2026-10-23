@@ -10,13 +10,14 @@ rapoartele de rulare și istoricul capturilor nu sunt lucrări restante.
 |---|---|
 | [Feedback Reporting](ATF_Reporting_Feedback.md) | cerințe funcționale, lacune și criterii de acceptanță Reporting |
 | [Feedback infrastructură adnotări](ATF_Test_Infrastructure_Annotations_Feedback.md) | numai limitele de mediu/IDE încă nedemonstrate |
-| [Feedback Automation Exercise](ATF_Automation_Exercise_Feedback.md) | cerințe pentru consumerul UI/API separat al site-ului Automation Exercise |
-| [Registrul controalelor active](ATF_Test_Changes_Feedback.md) | momentan gol; fișierul rămâne intrare obligatorie pentru guvernanța ATF Tests |
+| [Feedback Automation Exercise](ATF_Automation_Exercise_Feedback.md) | gap-uri pentru consumerul UI E2E Automation Exercise; evaluarea unei suite API rămâne separată și deschisă |
+| [Feedback arhitectura testelor consumer](ATF_Consumer_Test_Architecture_Feedback.md) | boundary-ul E2E/component/API, suportul `main`/`test` și dicționarele Gherkin comune Shop/AutoEx |
 | [Registrul controalelor verificate](../ATF_Test_Changes_Baseline.md) | context business, roluri, reguli și controale `VERIFIED` colapsate |
 
 Indexul se păstrează permanent. Feedback-ul de domeniu fără lacune se elimină
-după promovarea conținutului stabil și actualizarea referințelor. Registrul
-tehnic activ poate rămâne gol dacă guvernanța îl cere ca intrare stabilă.
+după promovarea conținutului stabil și actualizarea referințelor. Un control
+tehnic `ACTIVE`, dacă este necesar, se atașează feedback-ului ownerului; nu există
+un registru activ separat.
 
 ## Cerințe rămase, în ordinea priorității
 
@@ -30,9 +31,10 @@ tehnic activ poate rămâne gol dacă guvernanța îl cere ca intrare stabilă.
 
 | Ordine | Responsabil / feedback | Impact /40 | Lacună /30 | Lucrabil acum /20 | Datorie doc. /10 | Pondere | Scor | Ce mai trebuie făcut |
 |---:|---|---:|---:|---:|---:|---:|---:|---|
-| 1 | [Uniformitate și interacțiuni UI/API](ATF_Reporting_Feedback.md) | 40 | 24 | 20 | 4 | 1.00 | **88** | API-03/API-05/API-08, Categories-empty și TABLE-VIEWPORT-01 sunt promovate; API-04 diferențiază acum intențiile, dar retry/republicare rămân; UI-FAIL-01 trece 4/4 în Extent, dar fallback și negativele rămân; deschise API-06, GOV-API-01, PUB-01, PUB-FS-02, REPORT-PATH-01 și ASSET-SIZE-01 (125.706/125.000 B) |
-| 2 | [Consumer Automation Exercise](ATF_Automation_Exercise_Feedback.md) | 35 | 22 | 18 | 8 | 1.00 | **83** | rămân corelarea UI_API pentru căutare, colecția API publică, reziliența cleanup-ului de cont și politica de drift a catalogului/prețului |
-| 3 | [Infrastructură de adnotări și output project-relative](ATF_Test_Infrastructure_Annotations_Feedback.md) | 35 | 10 | 20 | 6 | 1.00 | **71** | containment-ul reparse point/junction, discovery-ul cu `user.dir` străin și output per owner trec; rămâne doar smoke-ul real al suitei din IntelliJ la două working directories; compatibilitatea/metadata/bugetele sunt amânate |
+| 1 | [Arhitectura testelor consumer Shop/AutoEx](ATF_Consumer_Test_Architecture_Feedback.md) | 38 | 27 | 20 | 8 | 1.00 | **93** | Delimitarea `src/test`/`src/main`, cele două categorii logice E2E și Component/API, selecția suitei și dicționarele Gherkin sunt cerințe deschise pentru ambii consumatori |
+| 2 | [Uniformitate și interacțiuni UI/API](ATF_Reporting_Feedback.md) | 40 | 21 | 20 | 4 | 1.00 | **85** | API-03/API-04/API-05/API-06/API-08, Categories-empty, TABLE-VIEWPORT-01, UI-FAIL-01 și ASSET-SIZE-01 sunt promovate; rămân deschise GOV-API-01, PUB-01, PUB-FS-02, REPORT-PATH-01 și SHOP-CAPTURE-01 |
+| 3 | [Consumer Automation Exercise](ATF_Automation_Exercise_Feedback.md) | 35 | 22 | 20 | 6 | 1.00 | **83** | `AUTOEX-EVIDENCE-MATRIX-01` cere rulare live și verificarea raportului pentru UI/UI_API/final-only; rămân evaluarea API separată, armarea cleanup-ului înainte de submit și prețul strict. Codul UI_API nu inventează un apel; live proof încă lipsește |
+| 4 | [Infrastructură de adnotări și output project-relative](ATF_Test_Infrastructure_Annotations_Feedback.md) | 35 | 10 | 20 | 6 | 1.00 | **71** | containment-ul reparse point/junction, discovery-ul cu `user.dir` străin și output per owner trec; rămâne doar smoke-ul real al suitei din IntelliJ la două working directories; compatibilitatea/metadata/bugetele sunt amânate |
 
 - Scorurile din acest registru ordonează lucrul rămas; nu sunt verdicte de calitate.
 
@@ -57,18 +59,18 @@ contractele deja implementate.
 | Selecția canalelor de test | contractul `@AtfTestChannel` și resolverul UI/API/UI_API sunt probate; fără ToDo funcțional deschis; redeschidere doar la regresie sau consumer nou | [Contractul adnotărilor](../ATF_Test_Infrastructure_Annotations.md), [README TestKit](../../atf-test-kit/README.md) |
 | Arhitectura testelor și adnotări transversale | nivelurile, resolverul de canal și extracțiile output/setup/docs sunt implementate; feedback-ul păstrează numai probele încă neconfirmate | [Ghidul de testare ATF](../ATF_Testing_Guide.md), [Contractul adnotărilor](../ATF_Test_Infrastructure_Annotations.md), [feedback infrastructură](ATF_Test_Infrastructure_Annotations_Feedback.md) |
 | Politica declarativă a consolei | contractul, integrarea UI/API și matricea JUnit/lifecycle au probe verzi; `@TestFactory` folosește helperul explicit pentru verdict per copil | [ATF Console](../../atf-console/README.md), [feedback infrastructură](ATF_Test_Infrastructure_Annotations_Feedback.md) |
-| Raportare: dovezi, trace, agregat, display/layout, viewport și matricea Network Inspector | API-03/API-05/API-08, Categories-empty și TABLE-VIEWPORT-01 (inclusiv Request details imbricat) sunt promovate; REPORT-PATH-01 cere anunțarea căii absolute după publicarea reușită; guard-ul asset a identificat regresie activă ASSET-SIZE-01 (125.706/125.000 B); celelalte lacune rămase sunt listate în feedback | [Contractul semantic de raportare](../ATF_Reporting_Contract.md), [contractul display/layout](../ATF_Reporting_Display_Contract.md), [README ATF Reporting](../../atf-reporting/README.md), [README ATF Reporting Tests](../../atf-reporting-tests/README.md) |
+| Raportare: dovezi, trace, agregat, display/layout, viewport și matricea Network Inspector | API-03/API-05/API-06/API-08, Categories-empty, TABLE-VIEWPORT-01 (inclusiv Request details imbricat), UI-FAIL-01 și ASSET-SIZE-01 sunt promovate; REPORT-PATH-01 cere anunțarea căii absolute după publicarea reușită; SHOP-CAPTURE-01 cere selecția per clasă a `UNIFIED_FLOW` + `FINAL_ONLY`; lacunele rămase sunt listate în feedback | [Contractul semantic de raportare](../ATF_Reporting_Contract.md), [contractul display/layout](../ATF_Reporting_Display_Contract.md), [README ATF Reporting](../../atf-reporting/README.md), [README ATF Reporting Tests](../../atf-reporting-tests/README.md) |
 | Inspector UI și politica fără reluare automată | fără cerințe deschise; redeschidere numai la încălcarea contractului | [README ATF UI](../../atf-ui/README.md), [README Practice Shop](../../atf-test-practice-shop/README.md) |
 | Selectorul detaliilor acțiunilor Practice Shop | selectabil per clasă; maparea păstrează acțiunile capturate și verdictul | [README Practice Shop](../../atf-test-practice-shop/README.md) |
 | Urmărirea achiziției și rezumatul final al fluxului Practice Shop | urmărirea generică, ordinea și captura terminală sunt închise | [README Practice Shop](../../atf-test-practice-shop/README.md) |
-| Teste E2E Practice Shop, componente API și suită de audit | politica YAML de captură și matricea facturilor rămân acoperite; intenția apelurilor, metadatele auditului și republicarea înregistrării la login sunt urmărite în Reporting, fără backlog duplicat | [README Practice Shop](../../atf-test-practice-shop/README.md), [Feedback Reporting](ATF_Reporting_Feedback.md) |
-| Consumer Automation Exercise | contractul de bază UI și fluxul complet sunt în README-ul modulului; numai gap-urile UI/API, API și reziliența live rămân deschise | [README Automation Exercise](../../atf-test-auto-ex/README.md), [Feedback Automation Exercise](ATF_Automation_Exercise_Feedback.md) |
+| Teste E2E Practice Shop, componente API și suită de audit | politica YAML și capturile existente rămân acoperite; SHOP-CAPTURE-01 urmărește selecția per clasă a unui tabel unic cu acțiunile UI ale scenariului (inclusiv SETUP/TEST BODY) și a unei capturi terminale, fără ToDo duplicat | [README Practice Shop](../../atf-test-practice-shop/README.md), [Feedback Reporting](ATF_Reporting_Feedback.md) |
+| Consumer Automation Exercise | un singur journey de business are trei variante evidence (UI, UI_API, final-only); UI_API inspectează doar traficul observat, dar lipsește run-ul live și auditul vizual; rămân evaluarea colecției API, fereastra de cleanup și comparația strictă a prețului | [README Automation Exercise](../../atf-test-auto-ex/README.md), [Feedback Automation Exercise](ATF_Automation_Exercise_Feedback.md) |
+| Arhitectura testelor consumer | Shop are deja `ShopPurchaseTraceStep` și suită E2E explicită; AutoEx are trei E2E într-o suită, suporturile sunt în `src/test/java`, iar frazele Gherkin sunt literale în journey | [Feedback arhitectura testelor consumer](ATF_Consumer_Test_Architecture_Feedback.md), [README Practice Shop](../../atf-test-practice-shop/README.md), [README Automation Exercise](../../atf-test-auto-ex/README.md) |
 
 Cerințele funcționale deschise rămân numai în tabelul prioritizat de mai sus;
-controalele `ACTIVE` de guvernanță a schimbărilor sunt urmărite separat în
-[registrul dedicat](ATF_Test_Changes_Feedback.md). Rândurile fără cerință
-deschisă descriu contracte promovate în README-urile modulelor și verificate
-de testele aferente.
+controalele `ACTIVE` de guvernanță a schimbărilor sunt blocuri YAML în feedback-ul
+ownerului, cât timp diff-ul le cere. Rândurile fără cerință deschisă descriu
+contracte promovate în README-urile modulelor și verificate de testele aferente.
 
 ## Regula de reconciliere
 

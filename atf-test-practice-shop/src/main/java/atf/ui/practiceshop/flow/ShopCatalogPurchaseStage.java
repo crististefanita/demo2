@@ -4,6 +4,7 @@ import atf.ui.practiceshop.pages.ShopHomePage;
 import atf.ui.practiceshop.pages.ShopProductPage;
 import atf.ui.practiceshop.config.api.ShopApiCheckpoint;
 import atf.ui.practiceshop.support.ShopPurchaseTraceStep;
+import atf.ui.practiceshop.support.api.validation.ShopApiValidationResult;
 
 import java.util.List;
 
@@ -61,6 +62,9 @@ final class ShopCatalogPurchaseStage {
         String productName = product.assertLoaded(configuration);
         var productApiAssertions = context.apiNetwork().productReady(
                 configuration.productName(), selectedProductPath);
+        var productEvidence = context.apiNetwork().evidence(ShopApiCheckpoint.PRODUCT);
+        var apiValidation = ShopApiValidationResult.product(productEvidence, productApiAssertions)
+                .reportingEvidence();
         context.publish(context.checkpoint(ShopPurchaseTraceStep.PRODUCT_PAGE,
                 context.pageValidator().validate(page, ShopProductPage.class,
                         configuration.productName()),
@@ -72,9 +76,9 @@ final class ShopCatalogPurchaseStage {
                                 configuredProductPathFound && configuration.matchesProductPath(selectedProductPath)),
                         check("Selected product route loaded", selectedProductPath, page.url(),
                                 selectedProductPath != null && page.url().contains(selectedProductPath))),
-                context.apiNetwork().evidence(ShopApiCheckpoint.PRODUCT))
-                .withAdditionalAssertions(productApiAssertions)
-                .withAdditionalAssertions(context.purchaseScreenValidator().product(page)));
+                List.of())
+                .withAdditionalAssertions(context.purchaseScreenValidator().product(page))
+                .withApiValidation(apiValidation));
 
         product.addConfiguredQuantity(configuration);
     }

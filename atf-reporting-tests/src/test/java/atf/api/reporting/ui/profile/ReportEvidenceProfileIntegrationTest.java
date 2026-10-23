@@ -19,6 +19,7 @@ import atf.api.reporting.support.ReportTestScreenshots;
 import atf.api.reporting.support.ApiReportTestUrls;
 import atf.api.reporting.ui.model.AtfUiActionRecord;
 import atf.api.reporting.ui.model.AtfUiEvidenceSource;
+import atf.api.reporting.ui.validation.UiApiValidationEvidence;
 import atf.api.reporting.ui.UiExtentReportSession;
 import atf.api.testkit.AtfIntegrationTest;
 import org.junit.jupiter.api.Test;
@@ -114,6 +115,50 @@ class ReportEvidenceProfileIntegrationTest {
                         + ReportTestScreenshots.SECOND_PIXEL_PNG + "\"")),
                 () -> assertFalse(html.contains("href=\"data:image/png;base64,"
                         + ReportTestScreenshots.ONE_PIXEL_PNG + "\"")));
+    }
+
+    @Test
+    void unifiedFlowPreservesTypedApiExchangeVerdictsWithoutFailingUiValidation() throws Exception {
+        Path root = Files.createTempDirectory("atf-unified-owned-verdicts-");
+        ReportEvidenceProfile profile = ReportEvidenceProfile.builder()
+                .flowMode(ReportEvidenceFlowMode.UNIFIED_FLOW)
+                .screenshotPolicy(ReportScreenshotPolicy.FINAL_ONLY)
+                .captureSource(ReportEvidenceCaptureSource.DETERMINISTIC_MOCK)
+                .build();
+        Path report;
+        var apiEvidence = new UiApiValidationEvidence(List.of(
+                new AtfAssertion("cross-channel correlation", "same order", "same order", true)),
+                List.of(
+                        new UiApiValidationEvidence.Exchange(paymentEvidence(),
+                                List.of(new AtfAssertion("payment exchange contract", "valid", "invalid", false))),
+                        new UiApiValidationEvidence.Exchange(paymentEvidence(),
+                                List.of(new AtfAssertion("order exchange contract", "valid", "valid", true)))));
+
+        try (var session = UiExtentReportSession.openConfigured(root, "typed-unified.html",
+                AtfConsoleSink.noOp(), profile)) {
+            report = session.reportPath();
+            var scenario = session.startScenario("ProfileTest", "atf.api.reporting.ui",
+                    "typed unified verdicts", List.of("evidence", "component"));
+            var body = scenario.startPhase("TEST BODY");
+            body.step(AtfGherkinKeyword.THEN, "the purchase is confirmed", "#confirmation", null,
+                    List.of(new AtfAssertion("screen remains valid", "confirmation visible",
+                            "confirmation visible", true)), List.of(), apiEvidence,
+                    ReportScreenshotPolicy.CapturePoint.CHECKPOINT, AtfReportStatus.PASS);
+            body.complete(AtfReportStatus.FAIL);
+            scenario.complete(AtfReportStatus.FAIL);
+        }
+
+        String html = Files.readString(report);
+        int ui = html.indexOf("Screen validation");
+        int api = html.indexOf("API validation");
+        assertAll(
+                () -> assertTrue(ui >= 0 && api > ui),
+                () -> assertTrue(html.contains("screen remains valid")),
+                () -> assertTrue(html.contains("cross-channel correlation")),
+                () -> assertTrue(html.contains("payment exchange contract")),
+                () -> assertTrue(html.contains("order exchange contract")),
+                () -> assertTrue(html.contains("data-atf-evidence-status=\"pass\"")),
+                () -> assertTrue(html.contains("data-atf-evidence-status=\"fail\"")));
     }
 
     @Test

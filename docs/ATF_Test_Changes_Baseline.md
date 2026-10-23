@@ -9,7 +9,7 @@ față de baza revizuirii. Secțiunile vizibile explică scopul, rolurile și re
 | Întrebarea cititorului | Unde găsește răspunsul |
 |---|---|
 | Ce comportament Reporting mai trebuie corectat? | [Feedback Reporting](feedback/ATF_Reporting_Feedback.md): cerință, lacună, criteriu și dovadă lipsă |
-| Ce modificare de teste este încă în lucru? | [Controale active](feedback/ATF_Test_Changes_Feedback.md): numai `ACTIVE` |
+| Ce modificare de teste este încă în lucru? | blocurile `ACTIVE` din feedback-ul ownerului, indexate în [registrul feedback-urilor](feedback/README.md) |
 | Ce diferență verificată mai trebuie urmărită până la integrare? | [Controale tehnice verificate](#controale-tehnice-verificate): numai `VERIFIED` |
 | Cum verifică efectiv guvernanța? | [README ATF Tests](../atf-tests/README.md#guvernanța-schimbării-testelor): schemă, reguli executabile și CI |
 
@@ -48,7 +48,7 @@ business se decide separat pe criteriile cerinței.
 | Regulă | Aplicare |
 |---|---|
 | Perimetru exact | un control acoperă numai path-urile declarate și baza Git rezolvată; ștergerile cer `allowDelete: true` |
-| Transfer unic | la trecerea în `VERIFIED`, mută intrarea din registrul activ; păstrează ID-ul și evită dublarea ownerilor eligibili |
+| Transfer unic | la trecerea în `VERIFIED`, mută intrarea din feedback-ul ownerului în acest baseline; păstrează ID-ul și evită dublarea ownerilor eligibili |
 | Dovadă separată | `proof` declară o comandă; gate-ul verifică schema și eligibilitatea, fără să execute comanda sau să certifice rezultatul ei |
 | Stare locală | verificarea unui increment permite promovarea lui; cerința funcțională rămâne deschisă cât timp mai are criterii neîndeplinite |
 | Ieșire din registru | elimină controlul când diff-ul față de baza folosită de gate nu mai conține schimbările acoperite; un commit nou singur nu este suficient |
@@ -56,14 +56,15 @@ business se decide separat pe criteriile cerinței.
 
 Schema câmpurilor și protecția exactă a fișierelor sunt definite o singură dată
 în [guvernanța schimbării testelor](../atf-tests/README.md#guvernanța-schimbării-testelor).
-Parserul citește blocurile `testChanges` din `docs/feedback` și acest registru;
-separarea editorială de mai sus este procedura proiectului.
+Parserul citește blocurile `testChanges` din toate documentele Markdown din
+`docs/feedback` și din acest baseline; controalele active rămân lângă feedback-ul
+ownerului, fără un registru separat.
 
 ## Ciclul de viață
 
 ```mermaid
 flowchart LR
-    Need[Cerință și criteriu] -->|delimitează| Active[Control ACTIVE]
+    Need[Cerință și criteriu] -->|delimitează| Active[Control ACTIVE în feedback-ul ownerului]
     Active -->|verifică incrementul| Proof[Probe relevante]
     Proof -->|promovează contractul| Docs[Documentația ownerului]
     Proof -->|transferă controlul| Verified[Control VERIFIED]
@@ -73,7 +74,7 @@ flowchart LR
 <details>
 <summary><strong>Legendă — acceptanță, transfer și eliminare</strong></summary>
 
-- `ACTIVE` urmărește schimbarea în lucru în registrul tehnic activ.
+- `ACTIVE` urmărește schimbarea în lucru în feedback-ul documentului ownerului.
 - Probele relevante verifică perimetrul schimbării; contractul demonstrat se
   promovează înaintea eliminării lacunei corespunzătoare din feedback.
 - `VERIFIED` păstrează numai controlul incrementului verificat care încă apare
@@ -371,8 +372,8 @@ testChanges:
     status: VERIFIED
     base: da4327b5dea8476b719779da055d445d8b2d4e48
     expires: 2026-11-22
-    reason: Consumerul Automation Exercise păstrează numai E2E-uri de business pe site-ul public, cu date sintetice; testele consumer cu DOM/configurație artificiale au fost eliminate, iar probele infrastructurii rămân la ownerii ATF.
-    proof: mvn "-pl=atf-test-auto-ex,atf-tests" -am "-Dtest=AutoExPurchaseE2eTest,DocumentationTargetGovernanceTest,WholeAtfGovernanceSuiteTest" "-Datf.autoex.e2e.enabled=true" "-Datf.governance.testChanges.baseRef=da4327b5dea8476b719779da055d445d8b2d4e48" "-Dsurefire.failIfNoSpecifiedTests=false" test
+    reason: Consumerul Automation Exercise păstrează un singur E2E UI de business pe site-ul public, cu date sintetice; nu inventează corelări UI/API, iar infrastructura generică este reutilizată din ATF.
+    proof: mvn "-pl=atf-test-auto-ex" -am "-Dtest=AutoExPurchaseE2eTest" "-Datf.autoex.e2e.enabled=true" "-Dsurefire.failIfNoSpecifiedTests=false" test
     paths:
       - pom.xml
       - atf-test-auto-ex/pom.xml
@@ -391,6 +392,7 @@ testChanges:
       - atf-test-auto-ex/src/test/java/atf/ui/autoex/support/AutoExConsoleBridge.java
       - atf-test-auto-ex/src/test/java/atf/ui/autoex/support/AutoExE2eExtension.java
       - atf-test-auto-ex/src/test/java/atf/ui/autoex/support/AutoExE2eRun.java
+      - atf-test-auto-ex/src/test/java/atf/ui/autoex/support/AutoExPurchaseJourney.java
       - atf-test-auto-ex/src/test/java/atf/ui/autoex/support/AutoExProjectRoot.java
       - atf-test-auto-ex/src/test/java/atf/ui/autoex/support/AutoExTestAccount.java
       - atf-test-auto-ex/src/test/java/atf/ui/autoex/page/PrivacyChoicesPage.java

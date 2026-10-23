@@ -55,8 +55,6 @@ function normalizeScenarioAnnotations() {
   });
 }
 
-// Extent emits scenario logs outside its disclosure panel. Keep only explicit
-// diagnostics, move them into that panel, and remove their vendor log wrapper.
 function normalizeScenarioDiagnostics(card) {
   var panel = card.querySelector(':scope > .accordion'),
     body = card.querySelector(':scope > div:not(.card-header):not(.accordion)');

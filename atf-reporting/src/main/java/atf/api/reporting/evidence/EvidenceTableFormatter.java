@@ -15,6 +15,7 @@ import static atf.api.reporting.markup.AtfReportEvidenceKeys.REQUEST_TARGET;
 import static atf.api.reporting.markup.AtfReportEvidenceKeys.EVIDENCE_TYPE;
 import static atf.api.reporting.markup.AtfReportEvidenceKeys.EVIDENCE_POLICY;
 import static atf.api.reporting.markup.AtfReportEvidenceKeys.SCREEN_VALIDATION;
+import static atf.api.reporting.markup.AtfReportEvidenceKeys.UI_FAILURE;
 
 /** Gives request evidence one stable, human-readable vocabulary. */
 public final class EvidenceTableFormatter {
@@ -57,7 +58,7 @@ public final class EvidenceTableFormatter {
     public static List<ReportField> technicalTraceFields(List<ReportField> details) {
         if (details == null || details.isEmpty()) return List.of();
         boolean checkpoint = details.stream().anyMatch(detail -> detail != null
-                && isUiCheckpointType(detail.name(), detail.value()));
+                && isUiEvidenceType(detail.name(), detail.value()));
         return details.stream()
                 .filter(detail -> detail != null)
                 .filter(detail -> !isInternalUiContext(detail.name()))
@@ -86,7 +87,7 @@ public final class EvidenceTableFormatter {
     public static List<String[]> technicalTraceDetails(List<String[]> details) {
         if (details == null || details.isEmpty()) return List.of();
         boolean checkpoint = details.stream().anyMatch(detail -> detail != null && detail.length > 1
-                && isUiCheckpointType(detail[0], detail[1]));
+                && isUiEvidenceType(detail[0], detail[1]));
         return details.stream()
                 .filter(detail -> detail != null && detail.length > 0)
                 .filter(detail -> !isInternalUiContext(detail[0]))
@@ -113,9 +114,10 @@ public final class EvidenceTableFormatter {
                 || REQUEST_TARGET.equalsIgnoreCase(normalized);
     }
 
-    private static boolean isUiCheckpointType(String key, String value) {
+    private static boolean isUiEvidenceType(String key, String value) {
         return key != null && value != null && EVIDENCE_TYPE.equalsIgnoreCase(key.trim())
-                && SCREEN_VALIDATION.equalsIgnoreCase(value.trim());
+                && (SCREEN_VALIDATION.equalsIgnoreCase(value.trim())
+                || UI_FAILURE.equalsIgnoreCase(value.trim()));
     }
 
     private static boolean isUiCheckpointPolicy(String key) {

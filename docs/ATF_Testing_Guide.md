@@ -66,7 +66,7 @@ Celulele arată doar nivelurile care există în suitele executabile curente.
 | [`atf-reporting`](../atf-reporting/README.md) | — | — | — | — | excepție: suite standalone fără adnotări sau dependențe ATF |
 | [`atf-reporting-tests`](../atf-reporting-tests/README.md) | ✅ | ✅ | ✅ | ✅ | composition și proof pentru librăria reporting |
 | [`atf-test-practice-shop`](../atf-test-practice-shop/README.md) | ✅ | ✅ | ✅ | ✅ | consumer: contracte, API, flow-uri și journey browser |
-| [`atf-test-auto-ex`](../atf-test-auto-ex/README.md) | — | — | — | ✅ | consumer: numai journey-uri de business UI pe Automation Exercise |
+| [`atf-test-auto-ex`](../atf-test-auto-ex/README.md) | — | — | — | ✅ | consumer: un singur journey real de business UI pe Automation Exercise; fără teste consumer artificiale |
 | [`atf-tests`](../atf-tests/README.md) | — | ✅ | ✅ | — | boundary și guvernanță whole-reactor |
 | [`atf-test-kit`](../atf-test-kit/README.md) | ✅ | ✅ | — | — | vocabularul layer-elor și contractele test-only |
 

@@ -336,9 +336,11 @@ public final class ShopE2eContext implements AutoCloseable {
                     checkpoint.assertions(), checkpoint.apiEvidence()));
             AtfReportStatus checkpointStatus = checkpoint.passed()
                     ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
+            AtfReportStatus uiStatus = checkpoint.assertions().stream().allMatch(AtfAssertion::passed)
+                    ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
             body.step(checkpoint.keyword(), checkpoint.title(), page.url(), evidence.base64Png(),
                     checkpoint.assertions(), ShopReportUiActionAdapters.from(actions.drain()),
-                    checkpoint.apiEvidence(), capturePoint, checkpointStatus);
+                    checkpoint.apiValidation(), capturePoint, uiStatus);
         }
 
         /** Unified-flow reports reserve their single screenshot for the terminal screen. */

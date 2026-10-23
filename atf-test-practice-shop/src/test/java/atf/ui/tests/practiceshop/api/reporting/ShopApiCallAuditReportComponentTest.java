@@ -1,6 +1,10 @@
 package atf.ui.tests.practiceshop.api.reporting;
 
 import atf.api.core.http.request.HttpMethod;
+import atf.api.core.http.response.ApiAttemptOutcome;
+import atf.api.core.http.response.ApiAttemptRecord;
+import atf.api.core.http.response.ApiExecutionResult;
+import atf.api.core.http.response.RetryEvent;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.extent.session.ExtentReportSession;
 import atf.api.reporting.semantic.AtfReportSemanticSnapshot;
@@ -13,6 +17,7 @@ import atf.ui.practiceshop.api.contract.ShopApiHttpStatus;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -135,6 +140,83 @@ class ShopApiCallAuditReportComponentTest {
                     "2 actual exchanges captured; 2 typed HTTP contracts attached"));
             assertFalse(html.contains("JUnit method outcome"));
             assertFalse(html.contains("API exchanges captured"));
+        } finally {
+            ShopApiCallAuditContextTestSupport.clear();
+        }
+    }
+
+    @Test
+    void retryAttemptsStayInsideOnePublishedRequestAndExecutionDisclosure() throws Exception {
+        List<ShopApiCallAuditContextTestSupport.CapturedExchange> exchanges = new ArrayList<>();
+        ShopApiCallAuditContextTestSupport.recordWith(exchanges::add);
+        ShopApiCallAuditContextTestSupport.expectNext(
+                "sign in after transient response", "login succeeds", ShopApiHttpStatus.OK);
+        try {
+            ShopApiComponentFixture.client().login(ShopApiScenarioFixture.validCredentials());
+            var original = exchanges.getFirst();
+            var execution = original.execution();
+            var retried = new ApiExecutionResult(execution.response(), 2, Duration.ofMillis(18),
+                    List.of(new RetryEvent(1, 503, "Retry-After", Duration.ofMillis(5), "temporary overload")),
+                    List.of(
+                            new ApiAttemptRecord(1, 503, Duration.ofMillis(7),
+                                    ApiAttemptOutcome.RETRYABLE_RESPONSE, "HTTP 503"),
+                            new ApiAttemptRecord(2, 200, Duration.ofMillis(11),
+                                    ApiAttemptOutcome.SUCCESS, "final response")),
+                    execution.request(), execution.provenance());
+
+            var output = Files.createTempDirectory("shop-api-audit-retry-").resolve("audit.html");
+            try (var report = new ExtentReportSession(output)) {
+                var scenario = report.startScenario("ShopApiClientContractTest", "api.reporting",
+                        "retry evidence remains exchange-local", List.of("api", "component"));
+                var phase = scenario.startPhase(TEST_BODY);
+                ShopApiReportPublisher.publishObserved(phase, retried, 1,
+                        original.contractValidation());
+                phase.complete(AtfReportStatus.PASS);
+                scenario.complete(AtfReportStatus.PASS);
+
+                var snapshot = report.semanticSnapshot();
+                assertEquals(1, snapshot.requestCount(), "retry must not become a second request node");
+                assertEquals(1, snapshot.validationCount(), "retry must not duplicate its contract");
+                var request = (AtfReportSemanticSnapshot.RequestSnapshot) snapshot.classes().getFirst()
+                        .scenarios().getFirst().phases().getFirst().nodes().getFirst();
+                assertTrue(request.executionPresent());
+            }
+            var html = Files.readString(output);
+            assertTrue(html.contains("Execution evidence · 2 attempts"));
+            assertTrue(html.contains("RETRYABLE_RESPONSE"));
+            assertTrue(html.contains("HTTP 503"));
+        } finally {
+            ShopApiCallAuditContextTestSupport.clear();
+        }
+    }
+
+    @Test
+    void identicalLocalEventIdsRemainDistinctAcrossIndependentScenarios() throws Exception {
+        List<ShopApiCallAuditContextTestSupport.CapturedExchange> exchanges = new ArrayList<>();
+        ShopApiCallAuditContextTestSupport.recordWith(exchanges::add);
+        ShopApiCallAuditContextTestSupport.expectNext("first scenario login", ShopApiHttpStatus.OK);
+        try {
+            ShopApiComponentFixture.client().login(ShopApiScenarioFixture.validCredentials());
+            var execution = exchanges.getFirst().execution();
+            var output = Files.createTempDirectory("shop-api-audit-scenario-scope-").resolve("audit.html");
+            try (var report = new ExtentReportSession(output)) {
+                for (String scenarioName : List.of("scenario one", "scenario two")) {
+                    var scenario = report.startScenario("ShopApiClientContractTest", "api.reporting",
+                            scenarioName, List.of("api", "component"));
+                    var phase = scenario.startPhase(TEST_BODY);
+                    ShopApiReportPublisher.publishObserved(phase, execution, 1,
+                            exchanges.getFirst().contractValidation());
+                    phase.complete(AtfReportStatus.PASS);
+                    scenario.complete(AtfReportStatus.PASS);
+                }
+
+                var snapshot = report.semanticSnapshot();
+                assertEquals(2, snapshot.scenarioCount());
+                assertEquals(2, snapshot.requestCount(),
+                        "scenario-local E1 identifiers must not deduplicate independent scenarios");
+                assertEquals(List.of("scenario one", "scenario two"), snapshot.classes().getFirst()
+                        .scenarios().stream().map(AtfReportSemanticSnapshot.ScenarioSnapshot::name).toList());
+            }
         } finally {
             ShopApiCallAuditContextTestSupport.clear();
         }

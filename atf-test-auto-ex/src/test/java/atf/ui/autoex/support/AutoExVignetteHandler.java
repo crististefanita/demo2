@@ -3,6 +3,7 @@ package atf.ui.autoex.support;
 import atf.api.ui.playwright.AtfLocator;
 import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.ui.autoex.locator.AutoExRoutes;
+import atf.ui.autoex.locator.AutoExSelectors;
 import com.microsoft.playwright.Frame;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
@@ -11,7 +12,6 @@ import java.util.Objects;
 
 /** Dismisses only the public site's visible Google vignette close control. */
 public final class AutoExVignetteHandler {
-    private static final String CLOSE_CONTROL = ":text-is(\"Close\")";
     private static final String CLOSE_EXPECTATION =
             "visible Google vignette is closed with its Close control";
 
@@ -27,9 +27,9 @@ public final class AutoExVignetteHandler {
         }
 
         for (Frame frame : page.frames()) {
-            Locator candidate = frame.locator(CLOSE_CONTROL);
+            Locator candidate = frame.locator(AutoExSelectors.VIGNETTE_CLOSE_CONTROL);
             if (candidate.count() == 1 && candidate.isVisible()) {
-                actions.click(new AtfLocator(candidate, CLOSE_CONTROL), CLOSE_EXPECTATION);
+                actions.click(new AtfLocator(candidate, AutoExSelectors.VIGNETTE_CLOSE_CONTROL), CLOSE_EXPECTATION);
                 dismissedUrl = currentUrl;
                 return true;
             }

@@ -10,9 +10,11 @@ import atf.api.reporting.api.ReportResponse;
 import atf.api.reporting.api.ReportTransportProvenance;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.model.ReportScreenshot;
+import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.ui.contract.ReportUiContract;
 import atf.api.reporting.ui.network.ReportNetworkInspector;
 import atf.api.reporting.ui.model.AtfUiActionRecord;
+import atf.api.reporting.ui.validation.UiApiValidationEvidence;
 
 import org.junit.jupiter.api.Test;
 
@@ -347,6 +349,95 @@ class ExtentReportUiEvidencePublishingTest {
                   () -> assertTrue(html.contains("RESPONSE HEADERS")),
                   () -> assertTrue(requestJson > uiStep),
                 () -> assertFalse(html.contains("REQUEST JSON</span></summary>")));
+    }
+
+    @Test
+    void keepsUiPassAndExchangeLocalApiFailureSeparate() throws Exception {
+        Path root = Files.createTempDirectory("atf-ui-api-owned-verdicts-");
+        Path report;
+        var add = execution("POST", "/carts/1", "add-contract");
+        var read = execution("GET", "/carts/1", "read-contract");
+        var api = new UiApiValidationEvidence(List.of(), List.of(
+                new UiApiValidationEvidence.Exchange(add,
+                        List.of(new AtfAssertion("add contract fails", "valid cart line", "wrong quantity", false))),
+                new UiApiValidationEvidence.Exchange(read,
+                        List.of(new AtfAssertion("read contract passes", "cart line visible", "cart line visible", true)))));
+
+        try (var session = UiExtentReportSession.openConfigured(root, "ui-api-owned-verdicts.html",
+                AtfConsoleSink.noOp())) {
+            report = session.reportPath();
+            var scenario = session.startScenario("UiTest", EXTENT_UI_TEST_PACKAGE,
+                    "owned API verdict", List.of("ui", "api"));
+            var body = scenario.startPhase(ReportUiContract.Phase.TEST_BODY.displayName());
+            body.step(THEN, "the cart page displays the configured line", "/cart", null,
+                    List.of(new AtfAssertion("screen contract passes", "cart is visible", "cart is visible", true)),
+                    List.of(), api, ReportScreenshotPolicy.CapturePoint.CHECKPOINT, AtfReportStatus.PASS);
+            body.complete(AtfReportStatus.FAIL);
+            scenario.complete(AtfReportStatus.FAIL);
+        }
+
+        String html = Files.readString(report);
+        int uiValidation = html.indexOf("UI validation");
+        int apiValidation = html.indexOf("API validation");
+        assertAll(
+                () -> assertTrue(uiValidation >= 0 && apiValidation > uiValidation),
+                () -> assertTrue(html.contains("screen contract passes")),
+                () -> assertTrue(html.contains("add contract fails")),
+                () -> assertTrue(html.contains("read contract passes")),
+                () -> assertTrue(html.contains("Exchange 1")),
+                () -> assertTrue(html.contains("Exchange 2")),
+                () -> assertTrue(html.contains("data-atf-evidence-status=\"fail\"")),
+                () -> assertTrue(html.contains("data-atf-evidence-status=\"pass\"")),
+                () -> assertTrue(html.contains("❌")),
+                () -> assertTrue(html.contains("✅")));
+    }
+
+    @Test
+    void keepsApiPassWhenTheIndependentUiAssertionFails() throws Exception {
+        Path root = Files.createTempDirectory("atf-ui-fail-api-pass-");
+        Path report;
+        var exchange = execution("POST", "/auth/login", "expected-rejection", 401);
+        var api = new UiApiValidationEvidence(List.of(), List.of(
+                new UiApiValidationEvidence.Exchange(exchange,
+                        List.of(new AtfAssertion("expected 401 rejection", "401 rejected", "401 rejected", true)))));
+
+        try (var session = UiExtentReportSession.openConfigured(root, "ui-fail-api-pass.html",
+                AtfConsoleSink.noOp())) {
+            report = session.reportPath();
+            var scenario = session.startScenario("UiTest", EXTENT_UI_TEST_PACKAGE,
+                    "independent channel failure", List.of("ui", "api"));
+            var body = scenario.startPhase(ReportUiContract.Phase.TEST_BODY.displayName());
+            body.step(THEN, "the rejection notice is visible", "/login", null,
+                    List.of(new AtfAssertion("screen assertion fails", "notice visible", "notice absent", false)),
+                    List.of(), api, ReportScreenshotPolicy.CapturePoint.CHECKPOINT, AtfReportStatus.FAIL);
+            body.complete(AtfReportStatus.FAIL);
+            scenario.complete(AtfReportStatus.FAIL);
+        }
+
+        String html = Files.readString(report);
+        int uiAssertion = html.indexOf("screen assertion fails");
+        int apiAssertion = html.indexOf("expected 401 rejection");
+        assertAll(
+                () -> assertTrue(uiAssertion >= 0 && apiAssertion > uiAssertion),
+                () -> assertTrue(html.contains("notice absent")),
+                () -> assertTrue(html.contains("401 rejected")),
+                () -> assertTrue(html.contains("data-atf-evidence-status=\"fail\"")),
+                () -> assertTrue(html.contains("data-atf-evidence-status=\"pass\"")));
+    }
+
+    private static ReportExecutionEvidence execution(String method, String path, String responseBody) {
+        return execution(method, path, responseBody, 200);
+    }
+
+    private static ReportExecutionEvidence execution(String method, String path,
+                                                     String responseBody, int status) {
+        var request = new ReportRequest(method, path, Map.of(), Map.of("Accept", "application/json"),
+                "none", "{}");
+        var response = new ReportResponse(status, "{\"result\":\"" + responseBody + "\"}",
+                Map.of("Content-Type", "application/json"), Duration.ofMillis(2),
+                "https://api.practicesoftwaretesting.com" + path);
+        return new ReportExecutionEvidence(response, 1, Duration.ofMillis(2), List.of(), List.of(),
+                request, ReportTransportProvenance.LIVE_HTTP);
     }
 
     @Test

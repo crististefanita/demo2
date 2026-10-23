@@ -1,54 +1,66 @@
-# Feedback — Automation Exercise consumer
+# Feedback — Automation Exercise
 
-Acest fișier păstrează numai cerințele funcționale și gap-urile deschise pentru
-consumerul [`atf-test-auto-ex`](../../atf-test-auto-ex/README.md). Contractele
-deja implementate și comenzile curente sunt documentate în README-ul modulului;
-controalele tehnice Git rămân în registrul separat de schimbări.
+Acest fișier păstrează numai cerințele de business încă deschise pentru
+consumerul [`atf-test-auto-ex`](../../atf-test-auto-ex/README.md). Contractul
+stabil, flow-ul implementat și regulile de reutilizare sunt documentate în
+README-ul modulului; arhitectura comună de test Shop/AutoEx este urmărită în
+[feedback-ul dedicat](ATF_Consumer_Test_Architecture_Feedback.md), iar
+guvernanța diff-urilor Git rămâne în baseline-ul tehnic.
 
-## Context confirmat
+## Context și boundary
 
-- Site-ul este o aplicație gratuită de practică UI/API, independentă de Practice
-  Shop.
-- [Test Case 14](https://automationexercise.com/test_cases#collapse14) confirmă
-  traseul „Register while Checkout”, plata demo, confirmarea și ștergerea
-  contului; [Test Case 24](https://automationexercise.com/test_cases#collapse24)
-  adaugă verificarea descărcării facturii.
-- API-ul public documentează catalog, căutare și conturi; nu documentează API
-  pentru coș, comandă sau plată.
-- Primul set implementat este declarat `UI`; nu presupune o corelare API pe care
-  site-ul nu o garantează.
-- Consumerul are un singur flow UI E2E complet; căutarea este validată în acel
-  flow și nu este duplicată într-un E2E separat.
+- Site-ul public este un magazin de practică separat de Practice Shop.
+- Consumerul verifică un singur journey real în trei configurații de evidence:
+  `UI`, `UI_API` și `UI` cu captură numai la starea terminală. Toate repetă
+  aceeași căutare și cumpărare, înregistrare
+  în checkout, adresă, plată demo, confirmare, factură și ștergerea contului.
+  Flow-ul este bazat pe [Test Case 14](https://automationexercise.com/test_cases#collapse14)
+  și [Test Case 24](https://automationexercise.com/test_cases#collapse24).
+- Varianta de bază este `UI`: căutarea browserului navighează la
+  `/products?search=...`. API-ul documentat `POST /api/searchProduct` este o
+  operație separată și nu a fost observat ca rezultat al aceleiași acțiuni UI.
+  Varianta experimentală `UI_API` nu lansează acel endpoint separat; ea
+  inspectează traficul first-party din sesiunea browserului și pică dacă nu
+  observă exchange-uri `/api/`. Rularea live și interpretarea corelării rămân
+  de confirmat. Endpoint-urile sunt descrise în
+  [API List](https://automationexercise.com/api_list).
+- Cele trei clase de business sunt orchestrate de `AutoExPurchaseSuite`, care
+  deține un singur raport Extent. Nu păstrăm teste cu DOM/iframe inventat sau
+  variante care testează numai etape deja incluse în purchase journey.
+- Datele contului și ale plății sunt sintetice, folosite numai pentru formularul
+  demo; contul este șters la final. Suportul necesar execuției reale (config,
+  page objects, lifecycle și cleanup) nu este o suită separată de teste.
 
-## Reutilizare și proprietate
+## Proprietate și reutilizare
 
-- Consumerul are numai E2E-uri de business pe site-ul real; nu păstrează probe cu
-  HTML/iframe inventat ori teste interne ale configului și launch policy.
-- Clasificarea testelor, Playwright, secvența de acțiuni, sesiunea Extent,
-  capturile și output-ul raportului sunt deja primitive ATF reutilizate direct.
-- Suportul Practice Shop pentru conturi locale, setup-uri, API journal și suite
-  partajate rămâne în ownerul Shop; nu este generic doar fiindcă este util acolo.
-- Compoziția JUnit/report per test din AutoEx și contextul mai bogat al Shop sunt
-  similare, dar nu au încă un contract comun. O eventuală extracție se face ca
-  infrastructură ATF cross-consumer, fără pagini/date de business, și numai cu
-  dovadă de paritate în ambii consumatori; nu se copiază suportul Shop în AutoEx.
+- `atf-test-kit`, `atf-ui` și `atf-reporting` dețin adnotările, Playwright,
+  acțiunile, capturile și Extent. AutoEx le compune direct.
+- Rutele, locatorii, datele și paginile Automation Exercise rămân în consumer;
+  vocabularul HTML generic aparține `atf-ui`. Practice Shop nu se copiază ca
+  pachet: se extrage în ATF numai o capabilitate fără date/configurație de
+  business, folosită și probată de consumatori independenți.
+- Precondițiile de mediu (consimțământul CMP și vignette-ul vizibil) sunt
+  gestionate prin UI-ul real și rămân în trace; ele nu justifică teste consumer
+  sintetice și nu înlocuiesc aserțiunile asupra cumpărării.
 
-## Cerințe rămase
+## ToDo de business
 
-| ID | Cerință | Criteriu de acceptare | Prioritate |
+| ID | Cerință rămasă | Criteriu de acceptare | Prioritate |
 |---|---|---|---:|
-| `AUTOEX-HYBRID-01` | Adaugă un scenariu plug-and-play `UI_API` numai pentru o acțiune cu schimb API observabil și allowlist sigur. Candidatul inițial este căutarea produselor. | Același checkpoint dovedește request/response corelat, rezultate vizibile și paritate a produselor; Network Inspector nu inventează verdicturi, iar raportul păstrează ownership-ul UI/API. Dacă site-ul nu expune un schimb stabil, scenariul rămâne `UI`. | 88 |
-| `AUTOEX-API-01` | Evaluează o colecție API separată pentru endpoint-urile public documentate, cu date și cleanup izolate per rulare. | Cererile, formatele body și răspunsurile sunt probate față de contractul public înainte de alegerea canalului; operațiile de cont folosesc identități sintetice și cleanup confirmat. Nu se presupune că POST/PUT acceptă JSON doar din cauza convențiilor altui API. | 78 |
-| `AUTOEX-E2E-RESILIENCE-01` | Confirmă comportamentul cleanup-ului pentru întreruperi în toate punctele de după crearea contului și pentru indisponibilitatea temporară a site-ului. | Rulări repetate și probe de eșec arată fie ștergerea contului creat, fie un diagnostic explicit care identifică cleanup-ul rămas; niciun secret sintetic nu apare în raport/capturi. | 72 |
-| `AUTOEX-DATA-01` | Definește cum se menține configurația produsului și a prețului când catalogul public se schimbă. | Datele așteptate sunt actualizate configurabil sau validate printr-un contract stabil; niciun test nu ascunde drift-ul prin aserțiuni permissive. | 65 |
+| `AUTOEX-EVIDENCE-MATRIX-01` | Validează live și vizual matricea de evidence implementată pentru aceeași purchase journey. | `AutoExPurchaseSuite` selectează UI, UI_API și UI final-screenshot; raportul comun conține doar schimburile browser observate, assertion-ul UI_API eșuează dacă nu apare niciun request `/api/`, iar varianta final-only publică o captură terminală într-un singur flow unificat. Rulează suita opt-in pe site și verifică raportul randat; nu inventa request-uri sau corelări. | 88 |
+| `AUTOEX-API-01` | Evaluează dacă endpoint-urile API public documentate justifică o colecție de teste API separată de E2E-ul UI. | Metoda, parametrii/body-ul, răspunsul și efectele sunt probate față de contractul site-ului; datele sunt izolate și cleanup-ul confirmat. Nu presupune JSON pentru POST/PUT și nu eticheta API drept precondiție UI fără o dependență reală. | 78 |
+| `AUTOEX-E2E-RESILIENCE-01` | Închide fereastra fără cleanup dintre submit-ul de creare a contului și armarea cleanup-ului; verifică și eșecul cleanup-ului. | Înregistrează cleanup-ul înainte de submit, îl face no-op dacă site-ul nu a creat contul și șterge contul dacă acesta există; un eșec de cleanup este vizibil în raport fără să înlocuiască excepția primară. Dovada include traseul real și un test de componentă al lifecycle-ului fără DOM/site simulat în consumer. | 72 |
+| `AUTOEX-DATA-01` | Protejează aserțiunile configurabile împotriva drift-ului catalogului. | Valorile așteptate rămân configurabile și stricte, iar raportul oferă un diagnostic clar. În codul curent, numele produsului este comparat exact, dar prețul din detalii folosește `contains(configuredUnitPrice)`; închide doar după ce un preț cu prefix comun, dar valoare diferită, este respins fără a ascunde drift-ul. | 65 |
 
-Google vignette-ul este tratat ca precondiție de mediu, nu drept comportament
-business și nu are teste consumer cu DOM sintetic. E2E-ul real îl închide numai
-prin controlul vizibil exact „Close”, condiționat de fragmentul
-`#google_vignette`; clickul apare în trace, iar lipsa controlului oprește fluxul
-fără bypass. Orice test al unei politici generice de browser aparține ownerului
-ATF, nu suitei de business AutoEx.
+Scorurile ordonează numai lucrul rămas; nu sunt o evaluare globală a modulului.
+Un ToDo se închide după probarea criteriului său, nu după simpla mutare a
+codului între module.
 
-Scorurile ordonează cerințele deschise și nu exprimă calitatea globală a
-modulului. O cerință se închide numai după dovada criteriului ei; progresul unui
-test UI nu închide implicit gap-ul `UI_API` sau API.
+## Dovezi live care țin cerințele deschise
+
+- `AccountPage.registerFromCheckout` armează `onFailureCleanup` după click-ul
+  de creare **și** după citirea heading-ului rezultatului. Dacă citirea eșuează
+  în acel interval, contul poate exista fără cleanup înregistrat.
+- Verificarea prețului în pagina de produs folosește `contains`, deci nu
+  respinge garantat valori cu același prefix. Cart price/total și numele
+  produsului au verificări distincte; ele nu închid singure acest caz.

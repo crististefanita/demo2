@@ -64,14 +64,20 @@ class UiCheckpointEvidenceProjectionTest {
 
     @Test
     void explicitTraceAndUnifiedFlowContractsRemainPublic() {
-        var fields = List.of(new ReportField(EVIDENCE_TYPE, API_TRACE),
-                new ReportField(EVIDENCE_TYPE, UNIFIED_UI_FLOW),
-                new ReportField(EVIDENCE_TYPE, UI_FAILURE),
+        var publicTrace = List.of(new ReportField(EVIDENCE_TYPE, API_TRACE),
+                new ReportField(EVIDENCE_TYPE, UNIFIED_UI_FLOW));
+        var failureContext = List.of(new ReportField(EVIDENCE_TYPE, UI_FAILURE),
                 new ReportField(EVIDENCE_POLICY, "screenshot disabled or unavailable"));
-        assertEquals(fields, EvidenceTableFormatter.technicalTraceFields(fields));
-        var legacy = fields.stream().map(field -> new String[]{field.name(), field.value()}).toList();
-        assertEquals(fields.stream().map(ReportField::value).toList(),
-                EvidenceTableFormatter.technicalTraceDetails(legacy).stream().map(row -> row[1]).toList());
+        assertAll(
+                () -> assertEquals(publicTrace, EvidenceTableFormatter.technicalTraceFields(publicTrace)),
+                () -> assertTrue(EvidenceTableFormatter.technicalTraceFields(failureContext).isEmpty()));
+        var legacyTrace = publicTrace.stream().map(field -> new String[]{field.name(), field.value()}).toList();
+        var legacyFailure = failureContext.stream().map(field -> new String[]{field.name(), field.value()}).toList();
+        assertAll(
+                () -> assertEquals(publicTrace.stream().map(ReportField::value).toList(),
+                        EvidenceTableFormatter.technicalTraceDetails(legacyTrace).stream()
+                                .map(row -> row[1]).toList()),
+                () -> assertTrue(EvidenceTableFormatter.technicalTraceDetails(legacyFailure).isEmpty()));
     }
 
     @Test

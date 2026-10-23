@@ -11,7 +11,7 @@ public final class CartPage extends AutoExPage {
     public void openFromHeader() { click(AutoExSelectors.CART_LINK, "cart page opens"); }
 
     public String productName(AutoExConfiguration.Catalog product) {
-        return text(row(product) + " h4", "cart product name is read");
+        return text(row(product) + " " + AutoExSelectors.CART_PRODUCT_NAME, "cart product name is read");
     }
 
     public String productPrice(AutoExConfiguration.Catalog product) {

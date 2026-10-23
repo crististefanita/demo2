@@ -36,7 +36,6 @@ import static atf.api.tests.governance.AtfGovernanceTestSupport.locateProjectRoo
 @DocumentationTarget("docs/README_Atf_DocumentationBestPractices.md")
 @DocumentationTarget("docs/README.md")
 @DocumentationTarget("docs/feedback/ATF_Reporting_Feedback.md")
-@DocumentationTarget("docs/feedback/ATF_Test_Changes_Feedback.md")
 @DocumentationTarget("docs/feedback/README.md")
 @DocumentationTarget("docs/feedback/README_AI_Evaluation.md")
 @DocumentationTarget("atf-tests/README.md")

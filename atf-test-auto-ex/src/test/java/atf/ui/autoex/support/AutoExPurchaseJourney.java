@@ -1,13 +1,7 @@
-package atf.ui.tests.autoex.e2e;
+package atf.ui.autoex.support;
 
-import atf.api.console.junit.AtfConsoleTestExtension;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfGherkinKeyword;
-import atf.api.testkit.AtfConsoleMessages;
-import atf.api.testkit.AtfE2eTest;
-import atf.api.testkit.channel.AtfTestChannel;
-import atf.api.testkit.channel.TestChannel;
-import atf.api.testkit.output.UiReportSubdirectory;
 import atf.ui.autoex.config.AutoExConfiguration;
 import atf.ui.autoex.page.AccountPage;
 import atf.ui.autoex.page.CartPage;
@@ -15,44 +9,17 @@ import atf.ui.autoex.page.CheckoutPage;
 import atf.ui.autoex.page.HomePage;
 import atf.ui.autoex.page.ProductPage;
 import atf.ui.autoex.page.ProductsPage;
-import atf.ui.autoex.support.AutoExE2eExtension;
-import atf.ui.autoex.support.AutoExE2eRun;
-import atf.ui.autoex.support.AutoExTestAccount;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.List;
 
-/** Plug-and-play UI scenarios; public-site execution is explicitly opt-in. */
-@AtfE2eTest
-@AtfTestChannel(TestChannel.UI)
-@UiReportSubdirectory("auto-ex")
-@AtfConsoleMessages(AtfConsoleMessages.Policy.DETAILS)
-@ExtendWith({AtfConsoleTestExtension.class, AutoExE2eExtension.class})
-@DisplayName("Automation Exercise customer journey")
-class AutoExPurchaseE2eTest {
-    @Test
-    @DisplayName("customer registers during checkout, completes a demo order and removes the account")
-    void completesRegisterAtCheckoutPurchaseAndCleanup(AutoExE2eRun run) {
+/** One end-to-end business journey on the actual public store. */
+public final class AutoExPurchaseJourney {
+    private AutoExPurchaseJourney() { }
+
+    public static void execute(AutoExE2eRun run) {
         AutoExConfiguration configuration = run.configuration();
         AutoExConfiguration.Catalog product = configuration.catalog();
-        String homeHeading = new HomePage(run).open();
-        run.checkpoint(AtfGherkinKeyword.GIVEN, "a new browser session opens the public store",
-                List.of(new AtfAssertion("Store availability", "Automation Exercise is visible",
-                        homeHeading, homeHeading.contains("Full-Fledged practice website"))));
-
-        new HomePage(run).openProducts();
-        ProductsPage products = new ProductsPage(run);
-        products.search(product.searchTerm());
-        String resultName = products.firstProductName();
-        String searchUrl = run.currentUrl();
-        run.checkpoint(AtfGherkinKeyword.WHEN, "the customer searches the catalog for the configured product",
-                List.of(
-                        new AtfAssertion("Search product", product.productName(), resultName,
-                                product.productName().equals(resultName)),
-                        new AtfAssertion("Search route", "/products?search=", searchUrl,
-                                searchUrl.contains("/products?search="))));
+        ProductsPage products = searchConfiguredProduct(run);
 
         ProductPage details = products.openFirstProduct();
         String detailText = details.details();
@@ -125,6 +92,56 @@ class AutoExPurchaseE2eTest {
 
         checkout.downloadInvoice();
         checkout.continueAfterInvoice();
-        accountPage.accountDeletionResult();
+        String deletion = accountPage.accountDeletionResult();
+        String landingUrl = run.currentUrl();
+        String expectedLandingUrl = configuration.baseUrl().toString().replaceAll("/$", "") + "/";
+        List<AtfAssertion> finalAssertions = new java.util.ArrayList<>(List.of(
+                new AtfAssertion("Post-cleanup landing page", expectedLandingUrl,
+                        landingUrl, expectedLandingUrl.equals(landingUrl)),
+                new AtfAssertion("Account cleanup remains confirmed", "ACCOUNT DELETED!",
+                        deletion, deletion.contains("ACCOUNT DELETED!"))));
+        if (run.channel() == atf.api.testkit.channel.TestChannel.UI_API) {
+            int exchanges = run.apiExchangeCount();
+            finalAssertions.add(new AtfAssertion("Observed first-party API exchanges",
+                    "> 0 API requests caused by this browser journey", Integer.toString(exchanges),
+                    exchanges > 0));
+        }
+        run.finalScreenshot("the deleted-account flow returns to the store", finalAssertions);
+    }
+
+    /** Opens the store, submits the configured search and validates the public UI result and route. */
+    public static ProductsPage searchConfiguredProduct(AutoExE2eRun run) {
+        AutoExConfiguration.Catalog product = run.configuration().catalog();
+        String homeHeading = new HomePage(run).open();
+        run.checkpoint(AtfGherkinKeyword.GIVEN, "a new browser session opens the public store",
+                List.of(new AtfAssertion("Store availability", "Automation Exercise is visible",
+                        homeHeading, homeHeading.contains("Full-Fledged practice website"))));
+
+        if (run.channel() == atf.api.testkit.channel.TestChannel.UI_API) {
+            AutoExE2eRun.CatalogApiSnapshot catalog = run.inspectCatalogApi(product.productName());
+            run.checkpoint(AtfGherkinKeyword.GIVEN,
+                    "the catalog API confirms the configured product before UI purchase",
+                    List.of(
+                            new AtfAssertion("Catalog API status", "HTTP 200",
+                                    "HTTP " + catalog.status(), catalog.status() == 200),
+                            new AtfAssertion("Catalog API products", "> 0 products",
+                                    Integer.toString(catalog.productCount()), catalog.productCount() > 0),
+                            new AtfAssertion("Configured product price", product.unitPrice(),
+                                    catalog.configuredProductPrice(),
+                                    product.unitPrice().equals(catalog.configuredProductPrice()))));
+        }
+
+        new HomePage(run).openProducts();
+        ProductsPage products = new ProductsPage(run);
+        products.search(product.searchTerm());
+        String resultName = products.firstProductName();
+        String searchUrl = run.currentUrl();
+        run.checkpoint(AtfGherkinKeyword.WHEN, "the customer searches the catalog for the configured product",
+                List.of(
+                new AtfAssertion("Search product", product.productName(), resultName,
+                        product.productName().equals(resultName)),
+                new AtfAssertion("Search route", "/products?search=", searchUrl,
+                        searchUrl.contains("/products?search="))));
+        return products;
     }
 }

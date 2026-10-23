@@ -140,6 +140,49 @@ class ShopApiNetworkJournalTest {
     }
 
     @Test
+    void registrationThenLoginSelectsEachCheckpointExchangeExactlyOnce() {
+        var journal = new ShopApiNetworkJournal(ShopValidationProfile.UI_API,
+                ShopApiEvidenceBinding.fromCsv(ShopValidationProfile.UI_API, "registration,login"));
+        long registrationFence = journal.sequenceMarker();
+        journal.recordCapturedExchange(exchange("api.practicesoftwaretesting.com", HttpMethod.POST.value(),
+                "/users/register", "{}", "{\"id\":\"user-1\"}"));
+        var registration = journal.registrationConfirmed(registrationFence,
+                ApiUris.httpsEndpoint("api.practicesoftwaretesting.com"));
+        journal.recordCapturedExchange(exchange("api.practicesoftwaretesting.com", HttpMethod.POST.value(),
+                ShopApiRoutes.LOGIN,
+                "{\"email\":\"user@example.test\",\"password\":\"secret\"}",
+                "{\"access_token\":\"redacted\"}"));
+        var login = journal.loginConfirmed(null, null);
+
+        assertTrue(registration.stream().allMatch(atf.api.reporting.contract.AtfAssertion::passed));
+        assertTrue(login.stream().allMatch(atf.api.reporting.contract.AtfAssertion::passed));
+        assertEquals(1, journal.evidence(ShopApiCheckpoint.REGISTRATION).size());
+        assertEquals(1, journal.evidence(ShopApiCheckpoint.LOGIN).size());
+        assertEquals(List.of("E1", "E2"), journal.selectedEvidence().stream()
+                .map(evidence -> evidence.trace().eventId()).toList());
+        assertEquals(List.of("/users/register", ShopApiRoutes.LOGIN), journal.selectedEvidence().stream()
+                .map(evidence -> evidence.request().path()).toList());
+    }
+
+    @Test
+    void eventIdsAreLocalToIndependentScenarioJournals() {
+        var firstScenario = new ShopApiNetworkJournal(ShopValidationProfile.UI_API,
+                ShopApiEvidenceBinding.fromCsv(ShopValidationProfile.UI_API, "login"));
+        var secondScenario = new ShopApiNetworkJournal(ShopValidationProfile.UI_API,
+                ShopApiEvidenceBinding.fromCsv(ShopValidationProfile.UI_API, "login"));
+        for (var journal : List.of(firstScenario, secondScenario)) {
+            journal.recordCapturedExchange(exchange(HttpMethod.POST.value(), ShopApiRoutes.LOGIN,
+                    "{}", "{\"access_token\":\"redacted\"}"));
+            journal.loginConfirmed(null, null);
+        }
+
+        assertEquals("E1", firstScenario.selectedEvidence().getFirst().trace().eventId());
+        assertEquals("E1", secondScenario.selectedEvidence().getFirst().trace().eventId());
+        assertEquals(1, firstScenario.selectedEvidence().size());
+        assertEquals(1, secondScenario.selectedEvidence().size());
+    }
+
+    @Test
     void ordinaryApiExchangesRedactIdentityFieldsBeforeEnteringTheJournal() {
         var journal = new ShopApiNetworkJournal(ShopValidationProfile.UI_API,
                 ShopApiEvidenceBinding.fromCsv(ShopValidationProfile.UI_API, "order"));

@@ -81,7 +81,6 @@ function evidenceTableDistributeReservedSlack(widths, reservedIndexes, columnKin
     capacities = reservedIndexes.map(index => Math.max(0,
       evidenceTableReservedMaximumWidth(columnKinds[index], count) - (widths[index] || 0))),
     capacityTotal = capacities.reduce((sum, value) => sum + value, 0);
-  // Proportional capacity allocation exhausts either slack or capacity in one pass.
   if (remaining > 0.01 && capacityTotal) reservedIndexes.forEach((index, position) => {
     widths[index] += Math.min(capacities[position], remaining * capacities[position] / capacityTotal);
   });
@@ -214,7 +213,6 @@ function evidenceTablesFromMutation(record) {
 
 function normalizeEvidenceTableColumns(root) {
   evidenceTableCandidates(root).forEach(table => {
-    // Legacy/failure adapter: inspect only the data table's parent; Java markup owns new viewports.
     var parent = table.parentElement;
     if (parent && !parent.matches('${TABLE_VIEWPORTS}')) {
       var viewport = document.createElement('div');

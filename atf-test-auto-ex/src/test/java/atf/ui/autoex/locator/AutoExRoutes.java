@@ -6,15 +6,20 @@ import java.net.URI;
 public enum AutoExRoutes {
     HOME("/"),
     PRODUCTS("/products"),
+    PRODUCTS_API("/api/productsList"),
     CART("/view_cart"),
     LOGIN("/login"),
-    PAYMENT("/payment");
+    PAYMENT("/payment"),
+    DELETE_ACCOUNT("/delete_account"),
+    INVOICE_DOWNLOAD("/download_invoice/");
 
     public static final String GOOGLE_VIGNETTE_FRAGMENT = "#google_vignette";
 
     private final String path;
 
     AutoExRoutes(String path) { this.path = path; }
+
+    public String path() { return path; }
 
     public URI resolve(URI baseUrl) {
         String root = baseUrl.toString().endsWith("/")

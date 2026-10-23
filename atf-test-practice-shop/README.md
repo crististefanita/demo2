@@ -327,6 +327,13 @@ eticheta stabilă din `ShopApiOperation`.
 `ShopApiCallAuditSuite` rulează numai selecția de teste pentru audit, în timp ce
 `ShopApiComponentSuite` include și componentele fără schimburi HTTP.
 
+Retry-ul executat de client aparține unui singur `ApiExecutionResult`: raportul
+păstrează un request și un contract, iar numărul de încercări, retry events și
+history rămân în `Execution evidence`. Pentru traficul capturat din browser,
+`ShopApiNetworkJournal` selectează exchange-uri pe checkpoint; registration-ul
+nu este republicat la login. `eventId` precum `E1` este local jurnalului și nu
+este cheie de deduplicare între scenarii independente.
+
 În matrice, cererile de înregistrare și de facturare pentru vizitator folosesc
 numai transportul determinist; nu se creează conturi sau comenzi în serviciul
 real. Fluxul E2E rămâne proba separată a integrării și a rezultatului de business
@@ -356,11 +363,14 @@ real. Fluxul E2E rămâne proba separată a integrării și a rezultatului de bu
 
 Canalul TestKit și preflight-ul sunt implementate conform
 [contractului adnotărilor](../docs/ATF_Test_Infrastructure_Annotations.md).
-Harness-ul browser acceptă UI/UI_API, iar auditul API cere API. Selecția
-canalului nu are gap deschis; paritatea raportului și ownership-ul verdictelor
-rămân cerințe Reporting în
-[feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md). Settlement-ul
-network este verificat separat de componentele Shop descrise mai sus.
+
+- Harness-ul browser acceptă `UI`/`UI_API`; auditul API cere `API`.
+- Selecția canalului nu are gap deschis; paritatea raportului și ownership-ul
+  verdictelor rămân în [feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md).
+- Settlement-ul network este verificat separat de componentele Shop descrise
+  mai sus.
+- Boundary-ul test/support și dicționarul de fraze Gherkin Shop/AutoEx sunt
+  urmărite în [feedback-ul arhitecturii testelor consumer](../docs/feedback/ATF_Consumer_Test_Architecture_Feedback.md).
 
 Cele două E2E autentificate au aceeași structură de purchase; setup-ul contului
 este intenționat diferit:
@@ -660,6 +670,12 @@ Practice Shop.
 - Secvența pentru vizitator este `1 GIVEN → 1 WHEN → 7 AND → 1 THEN`.
 - `SETUP` este separat de `TEST BODY`; nu intră în cei zece checkpoint-uri.
 - `UI validation`, `API validation` și network aggregate nu creează pași Gherkin suplimentari; UI/API sunt copii ai aceluiași checkpoint.
+- `ShopPurchaseCheckpoint` păstrează aserțiunile UI separate de `UiApiValidationEvidence`;
+  `ShopApiValidationResult` leagă explicit verificările search/detail, cart
+  add/read, payment și order de exchange-ul owner, iar verificarea invoice-ului
+  UI↔API rămâne corelare la nivelul validării API. Checkpoint-ul agregă verdictul
+  pentru flow/JUnit, dar tabelul UI și exchange-urile API își păstrează statusul
+  local; nu se clasifică după nume și nu se deduce verdictul doar din HTTP.
 - `AUTHENTICATED_CHECKOUT` aparține ramurii authenticated, în afara acestei cardinalități guest.
 
 Regresia locală a vocabularului rulează fără browser sau trafic extern:

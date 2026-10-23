@@ -11,6 +11,7 @@ import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
 
 import atf.api.reporting.ui.model.AtfUiActionRecord;
+import atf.api.reporting.ui.validation.UiApiValidationEvidence;
 import atf.api.reporting.markup.AtfReportEvidenceKeys;
 
 import java.util.Collection;
@@ -130,6 +131,48 @@ public final class UiEvidencePublisher {
                 validationTitle, actions, List.of(), ReportScreenshotPolicy.CapturePoint.CHECKPOINT);
     }
 
+    /** Publishes separately owned UI and API verdicts for a single journey checkpoint. */
+    void publishAction(String keyword, String title, String target, String base64Png,
+                       Collection<AtfAssertion> uiAssertions, AtfReportStatus uiStatus,
+                       String validationTitle, Collection<AtfUiActionRecord> actions,
+                       UiApiValidationEvidence apiValidation,
+                       ReportScreenshotPolicy.CapturePoint capturePoint) {
+        String stepTitle = stepTitle(keyword, title);
+        var request = phase.startRequest(stepTitle, "", "");
+        try {
+            request.detail(AtfReportEvidenceKeys.REQUEST_ACTION, stepTitle);
+            detailTarget(request, target);
+            boolean visualValidation = SCREEN_VALIDATION.equals(validationTitle);
+            boolean hasApiValidation = apiValidation != null && !apiValidation.isEmpty();
+            if (visualValidation) {
+                request.detail(AtfReportEvidenceKeys.EVIDENCE_TYPE, AtfReportEvidenceKeys.SCREEN_VALIDATION);
+                request.detail(AtfReportEvidenceKeys.EVIDENCE_POLICY,
+                        "one Base64 screenshot link per visual state; policy="
+                                + screenshotPolicy.configValue());
+            }
+            if (visualValidation || (uiAssertions != null && !uiAssertions.isEmpty())) {
+                var validation = request.startValidation(validationTitle);
+                publishActions(validation, actions);
+                publishScreenshot(validation, target, title, base64Png, uiStatus, "UI assertion", capturePoint);
+                validation.assertions(uiAssertions);
+                validation.complete(defaultStatus(uiStatus, AtfReportStatus.PASS));
+            }
+            if (hasApiValidation) {
+                var validation = request.startValidation(API_VALIDATION);
+                try {
+                    publishApiEvidence(validation, apiValidation);
+                    validation.complete(apiValidation.status());
+                } finally {
+                    validation.close();
+                }
+            }
+            request.complete(AtfReportStatus.worst(defaultStatus(uiStatus, AtfReportStatus.PASS),
+                    hasApiValidation ? apiValidation.status() : AtfReportStatus.INFO));
+        } finally {
+            request.close();
+        }
+    }
+
     void publishAction(String keyword, String title, String target, String base64Png,
                        Collection<AtfAssertion> assertions, AtfReportStatus status,
                        String validationTitle, Collection<AtfUiActionRecord> actions,
@@ -197,8 +240,10 @@ public final class UiEvidencePublisher {
                 .flatMap(checkpoint -> checkpoint.assertions().stream()).toList();
         List<AtfUiActionRecord> actions = checkpoints.stream()
                 .flatMap(checkpoint -> checkpoint.actions().stream()).toList();
-        List<ReportExecutionEvidence> apiEvidence = checkpoints.stream()
-                .flatMap(checkpoint -> checkpoint.apiEvidence().stream()).toList();
+        List<UiApiValidationEvidence.Exchange> apiExchanges = checkpoints.stream()
+                .flatMap(checkpoint -> checkpoint.apiValidation().exchanges().stream()).toList();
+        List<AtfAssertion> apiAssertions = checkpoints.stream()
+                .flatMap(checkpoint -> checkpoint.apiValidation().assertions().stream()).toList();
         boolean hasUiEvidence = false;
         for (UiUnifiedFlowCheckpoint checkpoint : checkpoints) {
             AtfReportStatus checkpointStatus = effectiveStatus(checkpoint);
@@ -207,8 +252,8 @@ public final class UiEvidencePublisher {
                 hasUiEvidence = true;
                 uiStatus = AtfReportStatus.worst(uiStatus, checkpoint.status());
             }
-            if (hasApiEvidence(checkpoint.apiEvidence())) {
-                apiStatus = AtfReportStatus.worst(apiStatus, checkpointStatus);
+            if (!checkpoint.apiValidation().isEmpty()) {
+                apiStatus = AtfReportStatus.worst(apiStatus, checkpoint.apiValidation().status());
             }
         }
 
@@ -239,10 +284,11 @@ public final class UiEvidencePublisher {
                     validation.close();
                 }
             }
-            if (hasApiEvidence(apiEvidence)) {
+            if (!apiExchanges.isEmpty() || !apiAssertions.isEmpty()) {
                 var apiValidation = flow.startValidation(API_VALIDATION);
                 try {
-                    publishApiEvidence(apiValidation, apiEvidence, apiStatus);
+                    publishApiEvidence(apiValidation,
+                            new UiApiValidationEvidence(apiAssertions, apiExchanges));
                     apiValidation.complete(apiStatus);
                 } finally {
                     apiValidation.close();
@@ -261,13 +307,7 @@ public final class UiEvidencePublisher {
     }
 
     private static AtfReportStatus effectiveStatus(UiUnifiedFlowCheckpoint checkpoint) {
-        AtfReportStatus status = checkpoint.status();
-        if (hasApiEvidence(checkpoint.apiEvidence())
-                && checkpoint.apiEvidence().stream().anyMatch(evidence -> evidence != null
-                && evidence.response() != null && evidence.response().status() < 0)) {
-            return AtfReportStatus.worst(status, AtfReportStatus.WARNING);
-        }
-        return status;
+        return AtfReportStatus.worst(checkpoint.status(), checkpoint.apiValidation().status());
     }
 
     private void publishUnifiedScreenshot(AtfReportPorts.Validation validation,
@@ -349,6 +389,35 @@ public final class UiEvidencePublisher {
         }
     }
 
+    private static void publishApiEvidence(AtfReportPorts.Validation validation,
+                                           UiApiValidationEvidence apiValidation) {
+        validation.assertions(apiValidation.assertions());
+        int exchangeNumber = 0;
+        for (UiApiValidationEvidence.Exchange exchange : apiValidation.exchanges()) {
+            ReportExecutionEvidence evidence = exchange.evidence();
+            if (evidence.request() == null || evidence.response() == null) continue;
+            ReportRequest apiRequest = evidence.request();
+            var request = validation.startRequest(exchangeTitle(apiRequest, ++exchangeNumber),
+                    apiRequest.method(), apiRequest.path());
+            try {
+                request.detail("trace.exchange", "#" + exchangeNumber);
+                ApiExchangeEvidence.publish(request, evidence);
+                if (!exchange.assertions().isEmpty()) {
+                    var exchangeValidation = request.startValidation("API assertions");
+                    try {
+                        exchangeValidation.assertions(exchange.assertions());
+                        exchangeValidation.complete(exchange.status());
+                    } finally {
+                        exchangeValidation.close();
+                    }
+                }
+                request.complete(exchange.status());
+            } finally {
+                request.close();
+            }
+        }
+    }
+
     private static String exchangeTitle(ReportRequest request, int number) {
         return "Exchange " + number;
     }
@@ -392,8 +461,7 @@ public final class UiEvidencePublisher {
     void publishFailure(String title, String target, Collection<AtfUiActionRecord> actions,
                         Throwable failure, String base64Png) {
         String safeTitle = !hasText(title) ? "UI audit failure" : title.trim();
-        String cause = failure == null ? "failure recorded" : failure.getClass().getSimpleName()
-                + ": " + (failure.getMessage() == null ? "" : failure.getMessage());
+        String cause = failureCause(failure, actions);
         var request = phase.startRequest(AtfGherkinKeyword.THEN.text() + " " + safeTitle, "", "");
         try {
             request.detail(AtfReportEvidenceKeys.REQUEST_ACTION, safeTitle);
@@ -453,6 +521,26 @@ public final class UiEvidencePublisher {
 
     private static void detailTarget(AtfReportPorts.Request request, String target) {
         if (hasText(target)) request.detail(AtfReportEvidenceKeys.REQUEST_TARGET, target);
+    }
+
+    private static String failureCause(Throwable failure, Collection<AtfUiActionRecord> actions) {
+        if (failure != null) {
+            String message = failure.getMessage();
+            return failure.getClass().getSimpleName()
+                    + (hasText(message) ? ": " + message : "");
+        }
+        if (actions != null) {
+            return actions.stream()
+                    .filter(action -> action != null && action.status() == AtfReportStatus.FAIL)
+                    .findFirst()
+                    .map(action -> "No exception supplied; failed UI action: "
+                            + action.operation() + " -> " + action.target()
+                            + (hasText(action.observed()) ? "; observed=" + action.observed() : ""))
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "UI failure evidence requires a Throwable or a failed UI action"));
+        }
+        throw new IllegalArgumentException(
+                "UI failure evidence requires a Throwable or a failed UI action");
     }
 
     private static String stepTitle(String keyword, String title) {

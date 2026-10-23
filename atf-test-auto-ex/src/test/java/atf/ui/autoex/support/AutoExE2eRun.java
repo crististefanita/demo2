@@ -6,30 +6,51 @@ import atf.api.reporting.configuration.AtfReportConfigurationLoader;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.api.ReportRequest;
+import atf.api.reporting.api.ReportResponse;
+import atf.api.reporting.api.ReportTransportProvenance;
+import atf.api.reporting.api.ReportTraceMetadata;
+import atf.api.reporting.evidence.ReportScreenshotPolicy;
+import atf.api.reporting.evidence.profile.ReportEvidenceCaptureSource;
+import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
 import atf.api.reporting.evidence.profile.ReportEvidenceProfile;
+import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.ui.UiExtentReportSession;
+import atf.api.reporting.ui.network.ReportNetworkInspector;
 import atf.api.testkit.files.AtfTestResourceReader;
 import atf.api.testkit.output.ReportOutputDirectory;
+import atf.api.testkit.channel.AtfTestChannelResolver;
+import atf.api.testkit.channel.TestChannel;
 import atf.api.ui.config.UiScreenValidationConfiguration;
+import atf.api.ui.config.UiBrowserConfiguration;
+import atf.api.ui.config.UiNetworkInspectionConfiguration;
 import atf.api.ui.playwright.AtfLocator;
 import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.api.ui.playwright.PlaywrightUiSession;
 import atf.api.ui.playwright.UiScreenValidation;
 import atf.ui.autoex.config.AutoExConfiguration;
 import atf.ui.autoex.config.AutoExConfigurationLoader;
+import atf.ui.autoex.locator.AutoExRoutes;
 import atf.ui.autoex.locator.AutoExSelectors;
 import com.microsoft.playwright.Page;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.Set;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
 /** Per-test composition root for one headless browser and one UI Extent artifact. */
 public final class AutoExE2eRun {
-    private static final String REPORT_FILE_PREFIX = "ui-atf-auto-ex-";
+    private static final ExtensionContext.Namespace NAMESPACE =
+            ExtensionContext.Namespace.create(AutoExE2eRun.class);
+    private static final String SUITE_REPORT_KEY = "auto-ex-suite-report";
+    private static final String NETWORK_SUMMARY_TITLE = "API network inspector — journey summary";
+    private static final String REPORT_FILE_PREFIX = "ui-atf-auto-ex-purchase-suite_";
     private static final DateTimeFormatter REPORT_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss-SSS");
 
     private final AutoExConfiguration configuration;
@@ -37,24 +58,58 @@ public final class AutoExE2eRun {
     private final UiExtentReportSession report;
     private final UiExtentReportSession.UiScenario scenario;
     private final UiExtentReportSession.UiPhase phase;
+    private final ReportEvidenceProfile evidenceProfile;
+    private final AutoExEvidenceMode.Mode screenshotMode;
+    private final TestChannel channel;
+    private final List<ReportNetworkInspector.Step> networkSteps = new ArrayList<>();
     private final PlaywrightActionSequence actions;
+    private int networkCursor;
     private final AutoExVignetteHandler vignetteHandler = new AutoExVignetteHandler();
+    private final AutoExPrivacyConsentHandler privacyConsentHandler = new AutoExPrivacyConsentHandler();
     private Cleanup failureCleanup;
     private boolean finished;
 
     private AutoExE2eRun(AutoExConfiguration configuration, PlaywrightUiSession browser,
                          UiExtentReportSession report, UiExtentReportSession.UiScenario scenario,
-                         UiExtentReportSession.UiPhase phase) {
+                         UiExtentReportSession.UiPhase phase, ReportEvidenceProfile evidenceProfile,
+                         AutoExEvidenceMode.Mode screenshotMode, TestChannel channel) {
         this.configuration = configuration;
         this.browser = browser;
         this.report = report;
         this.scenario = scenario;
         this.phase = phase;
+        this.evidenceProfile = evidenceProfile;
+        this.screenshotMode = screenshotMode;
+        this.channel = channel;
         this.actions = browser.newActionSequence();
     }
 
     static AutoExE2eRun open(ExtensionContext context) {
         AutoExConfiguration configuration = AutoExConfigurationLoader.load();
+        TestChannel channel = AtfTestChannelResolver.resolve(context.getRequiredTestClass())
+                .orElseThrow(() -> new IllegalStateException("AutoEx E2E must declare @AtfTestChannel"))
+                .channel();
+        if (channel != TestChannel.UI && channel != TestChannel.UI_API) {
+            throw new IllegalStateException("AutoEx purchase journey supports UI or UI_API channels only");
+        }
+        AutoExEvidenceMode evidenceMode = context.getRequiredTestClass()
+                .getAnnotation(AutoExEvidenceMode.class);
+        AutoExEvidenceMode.Mode screenshotMode = evidenceMode == null
+                ? AutoExEvidenceMode.Mode.CONFIGURED : evidenceMode.value();
+        ReportScreenshotPolicy configuredScreenshotPolicy =
+                screenshotMode == AutoExEvidenceMode.Mode.FINAL_SCREENSHOT_ONLY
+                        ? ReportScreenshotPolicy.FINAL_ONLY
+                        : AtfReportConfigurationLoader.load().screenshotPolicy();
+        ReportEvidenceProfile reportEvidence = ReportEvidenceProfile.builder()
+                .flowMode(ReportEvidenceFlowMode.UNIFIED_FLOW)
+                .screenshotPolicy(ReportScreenshotPolicy.EACH_CHECKPOINT)
+                .captureSource(ReportEvidenceCaptureSource.BROWSER)
+                .build();
+        ReportEvidenceProfile evidence = reportEvidence.toBuilder()
+                .screenshotPolicy(configuredScreenshotPolicy).build();
+        if (channel == TestChannel.UI_API) {
+            configuration = withNetworkInspection(configuration);
+        }
         var projectRoot = AutoExProjectRoot.discover();
         var uiBase = AtfTestResourceReader.resolveContained(
                 projectRoot, configuration.uiReportBaseDirectory());
@@ -62,9 +117,11 @@ public final class AutoExE2eRun {
                 context.getRequiredTestClass());
         var console = AtfConsoleTestContext.configuredSink();
         var reportConsole = AutoExConsoleBridge.reportingSink(console);
-        var screenshotPolicy = AtfReportConfigurationLoader.load().screenshotPolicy();
-        var evidence = ReportEvidenceProfile.forScreenshotPolicy(screenshotPolicy);
-        var report = UiExtentReportSession.openConfigured(output, reportName(context), reportConsole, evidence);
+        ReportResource reportResource = context.getRoot().getStore(NAMESPACE)
+                .getOrComputeIfAbsent(SUITE_REPORT_KEY,
+                        ignored -> new ReportResource(output, reportName(context), reportConsole, reportEvidence),
+                        ReportResource.class);
+        UiExtentReportSession report = reportResource.report();
         PlaywrightUiSession browser = null;
         try {
             browser = PlaywrightUiSession.open(configuration.browser(), console);
@@ -72,12 +129,35 @@ public final class AutoExE2eRun {
                     context.getRequiredTestClass().getPackageName(), context.getDisplayName(),
                     List.of("e2e", "ui", "automation-exercise"));
             var phase = scenario.startPhase("TEST BODY");
-            return new AutoExE2eRun(configuration, browser, report, scenario, phase);
+            return new AutoExE2eRun(configuration, browser, report, scenario, phase, evidence,
+                    screenshotMode, channel);
         } catch (RuntimeException | Error failure) {
             if (browser != null) browser.close();
-            report.close();
             throw failure;
         }
+    }
+
+    private static AutoExConfiguration withNetworkInspection(AutoExConfiguration source) {
+        UiBrowserConfiguration current = source.browser();
+        var network = UiNetworkInspectionConfiguration.forHosts(Set.of(source.baseUrl().getHost()));
+        var browser = new UiBrowserConfiguration(current.baseUrl(), current.browser(), current.headless(),
+                current.timeout(), current.navigationTimeout(), current.viewportWidth(), current.viewportHeight(),
+                current.zoomPercent(), current.screenshotOnFailure(), current.retryPolicy(), network);
+        return new AutoExConfiguration(source.baseUrl(), source.e2eEnabled(), browser,
+                source.uiReportBaseDirectory(), source.catalog(), source.registration(), source.payment());
+    }
+
+    private static final class ReportResource implements ExtensionContext.Store.CloseableResource {
+        private final UiExtentReportSession report;
+
+        private ReportResource(java.nio.file.Path output, String name,
+                               atf.api.reporting.console.AtfConsoleSink console,
+                               ReportEvidenceProfile evidence) {
+            report = UiExtentReportSession.openConfigured(output, name, console, evidence);
+        }
+
+        private UiExtentReportSession report() { return report; }
+        @Override public void close() { report.close(); }
     }
 
     private static String reportName(ExtensionContext context) {
@@ -90,6 +170,34 @@ public final class AutoExE2eRun {
     public AutoExConfiguration configuration() { return configuration; }
     public Page page() { return browser.page(); }
     public String currentUrl() { return page().url(); }
+
+    /** Reads the configured product through the site's real, read-only catalog API. */
+    @SuppressWarnings("unchecked")
+    public CatalogApiSnapshot inspectCatalogApi(String productName) {
+        java.net.URI endpoint = AutoExRoutes.PRODUCTS_API.resolve(configuration.baseUrl());
+        Object result = page().evaluate("""
+                async endpoint => {
+                  const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
+                  return { status: response.status, body: await response.json() };
+                }
+                """, endpoint.toString());
+        if (!(result instanceof Map<?, ?> response)
+                || !(response.get("status") instanceof Number status)
+                || !(response.get("body") instanceof Map<?, ?> body)
+                || !(body.get("products") instanceof List<?> products)) {
+            throw new IllegalStateException("Catalog API returned an unexpected response shape");
+        }
+        String price = products.stream().filter(Map.class::isInstance)
+                .map(Map.class::cast)
+                .filter(product -> productName.equals(product.get("name")))
+                .map(product -> Objects.toString(product.get("price"), ""))
+                .findFirst().orElse("");
+        actions.observation("API GET", AutoExRoutes.PRODUCTS_API.path(),
+                "HTTP 200; configured product is listed", "HTTP " + status.intValue()
+                        + "; products=" + products.size() + "; " + productName + " price="
+                        + (price.isBlank() ? "not found" : price));
+        return new CatalogApiSnapshot(status.intValue(), products.size(), price);
+    }
 
     public void navigate(java.net.URI uri) {
         prepareUiInteraction();
@@ -126,11 +234,6 @@ public final class AutoExE2eRun {
         return actions.getText(new AtfLocator(page().locator(selector).first(), selector + " (first match)"), expected);
     }
 
-    public String value(String selector, String expected) {
-        prepareUiInteraction();
-        return actions.expectValue(locator(selector), expected);
-    }
-
     public void select(String selector, String label, String expected) {
         prepareUiInteraction();
         actions.selectOption(locator(selector), label, expected);
@@ -154,12 +257,53 @@ public final class AutoExE2eRun {
     public void checkpoint(AtfGherkinKeyword keyword, String title, List<AtfAssertion> assertions) {
         prepareUiInteraction();
         boolean passed = assertions.stream().allMatch(AtfAssertion::passed);
-        var screenshot = UiScreenValidation.capture(page(), UiScreenValidationConfiguration.defaults(), title,
-                List.of(page().locator(AutoExSelectors.SENSITIVE_FIELDS)));
-        phase.step(keyword, title, currentUrl(), screenshot.base64Png(), assertions,
-                ReportModelAdapters.uiActions(actions.drain()),
-                passed ? AtfReportStatus.PASS : AtfReportStatus.FAIL);
+        String screenshot = screenshotMode.capturesCheckpointScreenshots()
+                && evidenceProfile.captures(ReportScreenshotPolicy.CapturePoint.CHECKPOINT)
+                ? capture(title) : "";
+        List<ReportExecutionEvidence> apiEvidence = channel == TestChannel.UI_API
+                ? networkEvidenceSinceCursor() : List.of();
+        var actionEvidence = ReportModelAdapters.uiActions(actions.drain());
+        AtfReportStatus status = passed ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
+        phase.step(keyword, title, currentUrl(), screenshot, assertions, actionEvidence,
+                apiEvidence, ReportScreenshotPolicy.CapturePoint.CHECKPOINT, status);
+        if (channel == TestChannel.UI_API) {
+            networkSteps.add(ReportNetworkInspector.Step.from(keyword.text(), title, assertions, apiEvidence));
+        }
         if (!passed) throw new AssertionError("UI checkpoint failed: " + title);
+    }
+
+    /** Publishes the terminal state; FINAL_ONLY creates exactly this one screenshot. */
+    public void finalScreenshot(String title, List<AtfAssertion> assertions) {
+        prepareUiInteraction();
+        boolean passed = assertions.stream().allMatch(AtfAssertion::passed);
+        String screenshot = evidenceProfile.captures(ReportScreenshotPolicy.CapturePoint.FINAL)
+                ? capture(title) : "";
+        phase.screenValidation(title, currentUrl(), screenshot, assertions,
+                ReportModelAdapters.uiActions(actions.drain()), ReportScreenshotPolicy.CapturePoint.FINAL,
+                passed ? AtfReportStatus.PASS : AtfReportStatus.FAIL);
+        if (channel == TestChannel.UI_API) {
+            List<ReportExecutionEvidence> apiEvidence = networkEvidenceSinceCursor();
+            networkSteps.add(ReportNetworkInspector.Step.from(AtfGherkinKeyword.THEN.text(),
+                    title, assertions, apiEvidence));
+        }
+        if (!passed) throw new AssertionError("Final screen validation failed: " + title
+                + ". Failed assertions: " + failedAssertionSummary(assertions));
+    }
+
+    private String capture(String title) {
+        return UiScreenValidation.capture(page(), UiScreenValidationConfiguration.defaults(), title,
+                List.of(page().locator(AutoExSelectors.SENSITIVE_FIELDS))).base64Png();
+    }
+
+    private List<ReportExecutionEvidence> networkEvidenceSinceCursor() {
+        var observations = apiObservations();
+        List<ReportExecutionEvidence> result = new ArrayList<>();
+        for (int index = networkCursor; index < observations.size(); index++) {
+            var observation = observations.get(index);
+            result.add(toExecutionEvidence(observation));
+        }
+        networkCursor = observations.size();
+        return List.copyOf(result);
     }
 
     public void onFailureCleanup(Cleanup cleanup) {
@@ -186,14 +330,17 @@ public final class AutoExE2eRun {
         }
 
         if (terminalFailure != null) publishFailure(terminalFailure);
+        if (channel == TestChannel.UI_API) {
+            phase.networkInspector(NETWORK_SUMMARY_TITLE,
+                    apiObservations().stream()
+                            .map(AutoExE2eRun::toExecutionEvidence).toList(), networkSteps);
+        }
         AtfReportStatus status = terminalFailure == null ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
         try { phase.complete(status); }
         catch (RuntimeException | Error reportFailure) { terminalFailure = combine(terminalFailure, reportFailure); }
         try { scenario.complete(status); }
         catch (RuntimeException | Error reportFailure) { terminalFailure = combine(terminalFailure, reportFailure); }
         try { browser.close(); }
-        catch (RuntimeException | Error closeFailure) { terminalFailure = combine(terminalFailure, closeFailure); }
-        try { report.close(); }
         catch (RuntimeException | Error closeFailure) { terminalFailure = combine(terminalFailure, closeFailure); }
 
         if (testFailure == null && terminalFailure != null) {
@@ -205,12 +352,14 @@ public final class AutoExE2eRun {
 
     private void publishFailure(Throwable failure) {
         String screenshot = "";
-        try {
-            screenshot = UiScreenValidation.capture(page(), UiScreenValidationConfiguration.defaults(),
-                    "Failure state — sensitive fields masked",
-                    List.of(page().locator(AutoExSelectors.SENSITIVE_FIELDS))).base64Png();
-        } catch (RuntimeException | Error captureFailure) {
-            failure.addSuppressed(captureFailure);
+        if (screenshotMode != AutoExEvidenceMode.Mode.FINAL_SCREENSHOT_ONLY) {
+            try {
+                screenshot = UiScreenValidation.capture(page(), UiScreenValidationConfiguration.defaults(),
+                        "Failure state — sensitive fields masked",
+                        List.of(page().locator(AutoExSelectors.SENSITIVE_FIELDS))).base64Png();
+            } catch (RuntimeException | Error captureFailure) {
+                failure.addSuppressed(captureFailure);
+            }
         }
         try {
             phase.failureEvidence("Automation Exercise UI E2E failure", currentUrl(),
@@ -224,8 +373,42 @@ public final class AutoExE2eRun {
         return vignetteHandler.dismissIfPresent(page(), actions);
     }
 
+    public boolean dismissPrivacyPromptIfPresent() {
+        return privacyConsentHandler.rejectOptionalProcessingIfPrompted(page(), actions);
+    }
+
+    public int apiExchangeCount() { return apiObservations().size(); }
+    public TestChannel channel() { return channel; }
+
+    private static ReportExecutionEvidence toExecutionEvidence(
+            atf.api.ui.network.UiNetworkObservation observation) {
+        var request = new ReportRequest(observation.method(), observation.path(), Map.of(),
+                observation.requestHeaders(), "browser-observed", observation.requestBody());
+        var response = new ReportResponse(observation.status(), observation.responseBody(),
+                observation.responseHeaders(), null, observation.url());
+        var trace = new ReportTraceMetadata("", observation.sequence(), "TEST BODY", "api", "",
+                "browser", "", observation.requestSignature(), "", "",
+                observation.evidenceSource(), observation.service(), "", "");
+        return new ReportExecutionEvidence(response, 1, null, List.of(), List.of(), request,
+                ReportTransportProvenance.LIVE_HTTP, trace);
+    }
+
+    private List<atf.api.ui.network.UiNetworkObservation> apiObservations() {
+        return browser.networkInspector().observations().stream()
+                .filter(observation -> observation.path().startsWith("/api/"))
+                .toList();
+    }
+
     private void prepareUiInteraction() {
+        dismissPrivacyPromptIfPresent();
         dismissGoogleVignetteIfPresent();
+    }
+
+    private static String failedAssertionSummary(List<AtfAssertion> assertions) {
+        return assertions.stream().filter(assertion -> !assertion.passed())
+                .map(assertion -> assertion.name() + " [expected=" + assertion.expected()
+                        + "; actual=" + assertion.actual() + "]")
+                .collect(java.util.stream.Collectors.joining("; "));
     }
 
     private static Throwable combine(Throwable primary, Throwable secondary) {
@@ -238,4 +421,10 @@ public final class AutoExE2eRun {
 
     @FunctionalInterface
     public interface Cleanup { void run() throws Exception; }
+
+    public record CatalogApiSnapshot(int status, int productCount, String configuredProductPrice) {
+        public CatalogApiSnapshot {
+            configuredProductPrice = configuredProductPrice == null ? "" : configuredProductPrice;
+        }
+    }
 }

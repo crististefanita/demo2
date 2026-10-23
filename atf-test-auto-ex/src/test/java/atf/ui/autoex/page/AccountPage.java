@@ -19,13 +19,11 @@ public final class AccountPage extends AutoExPage {
         fill(AutoExSelectors.SIGNUP_EMAIL, account.email(), "unique test email is entered");
         click(AutoExSelectors.SIGNUP_BUTTON, "signup details are submitted");
         AutoExConfiguration.Registration profile = account.profile();
-        click(AutoExSelectors.ACCOUNT_GENDER, "test profile title is selected");
+        click(AutoExSelectors.ACCOUNT_GENDER_MR, "demo customer title is selected");
         fill(AutoExSelectors.ACCOUNT_PASSWORD, account.password(), "generated test password is entered");
         select(AutoExSelectors.ACCOUNT_DAYS, profile.birthDay(), "birth day is selected");
         select(AutoExSelectors.ACCOUNT_MONTHS, profile.birthMonth(), "birth month is selected");
         select(AutoExSelectors.ACCOUNT_YEARS, profile.birthYear(), "birth year is selected");
-        click(AutoExSelectors.ACCOUNT_NEWSLETTER, "newsletter option is selected for the demo profile");
-        click(AutoExSelectors.ACCOUNT_OFFERS, "partner-offers option is selected for the demo profile");
         fill(AutoExSelectors.ACCOUNT_FIRST_NAME, profile.firstName(), "synthetic first name is entered");
         fill(AutoExSelectors.ACCOUNT_LAST_NAME, profile.lastName(), "synthetic last name is entered");
         fill(AutoExSelectors.ACCOUNT_COMPANY, profile.company(), "test company is entered");

@@ -5,6 +5,7 @@ import atf.api.ui.network.UiNetworkInspector;
 import atf.api.ui.network.UiNetworkObservation;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Request;
+import com.microsoft.playwright.Response;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
@@ -197,6 +198,82 @@ class UiNetworkInspectionConfigurationTest {
         assertTrue(failure.url().endsWith("?redacted-query"));
         inspector.close();
         assertNull(listener.get());
+    }
+
+    @Test
+    void playwrightResponseBodyIsReadAfterRequestFinishedInsteadOfInsideResponseCallback() {
+        var listener = new AtomicReference<Consumer<Request>>();
+        Page page = (Page) Proxy.newProxyInstance(Page.class.getClassLoader(),
+                new Class<?>[]{Page.class}, (proxy, method, args) -> {
+                    if ("onRequestFinished".equals(method.getName())) {
+                        @SuppressWarnings("unchecked")
+                        Consumer<Request> callback = (Consumer<Request>) args[0];
+                        listener.set(callback);
+                    } else if ("offRequestFinished".equals(method.getName())) {
+                        listener.set(null);
+                    }
+                    return null;
+                });
+        var responseRef = new AtomicReference<Response>();
+        Request request = (Request) Proxy.newProxyInstance(Request.class.getClassLoader(),
+                new Class<?>[]{Request.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "url" -> "https://api.example.test/products";
+                    case "method" -> "GET";
+                    case "headers" -> Map.of("accept", "application/json");
+                    case "postData" -> null;
+                    case "response" -> responseRef.get();
+                    default -> null;
+                });
+        Response response = (Response) Proxy.newProxyInstance(Response.class.getClassLoader(),
+                new Class<?>[]{Response.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "url" -> "https://api.example.test/products";
+                    case "request" -> request;
+                    case "status" -> 200;
+                    case "headers" -> Map.of("content-type", "application/json");
+                    case "finished" -> null;
+                    case "body" -> "{\"products\":[]}".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                    default -> null;
+                });
+        responseRef.set(response);
+        var inspector = new UiNetworkInspector(UiNetworkInspectionConfiguration.forHosts(
+                List.of("api.example.test")));
+
+        inspector.attach(page);
+        listener.get().accept(request);
+
+        assertEquals(1, inspector.observations().size());
+        assertEquals("{\"products\":[]}", inspector.observations().get(0)
+                .responseBody().replaceAll("\\s", ""));
+        inspector.close();
+        assertNull(listener.get());
+    }
+
+    @Test
+    void malformedUnrelatedBrowserUrlsCannotAbortAUiAction() {
+        var listener = new AtomicReference<Consumer<Request>>();
+        Page page = (Page) Proxy.newProxyInstance(Page.class.getClassLoader(),
+                new Class<?>[]{Page.class}, (proxy, method, args) -> {
+                    if ("onRequestFinished".equals(method.getName())) {
+                        @SuppressWarnings("unchecked")
+                        Consumer<Request> callback = (Consumer<Request>) args[0];
+                        listener.set(callback);
+                    }
+                    return null;
+                });
+        Request unrelatedFontRequest = (Request) Proxy.newProxyInstance(
+                Request.class.getClassLoader(), new Class<?>[]{Request.class},
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "url" -> "https://fonts.googleapis.com/css?family=Open+Sans:400,500|Roboto";
+                    default -> null;
+                });
+        var inspector = new UiNetworkInspector(UiNetworkInspectionConfiguration.forHosts(
+                List.of("api.example.test")));
+
+        inspector.attach(page);
+        listener.get().accept(unrelatedFontRequest);
+
+        assertTrue(inspector.observations().isEmpty());
+        inspector.close();
     }
 
     private static UiNetworkObservation observation(String url, int status) {

@@ -319,6 +319,11 @@ UI checkpoint
 - în consumerul UI, forma țintă este `un singur pas Gherkin → UI validation +
   API validation → exchange disclosures`; cele două validation nodes sunt copii
   semantici ai aceluiași pas și au statusuri proprii;
+- publisher-ul tipizat `UiApiValidationEvidence` separă aserțiunile UI de cele
+  API: corelările sunt atașate validării API, iar fiecare exchange își păstrează
+  assertions/status propriu. Statusul de checkpoint se agregă în sus, fără să
+  recoloreze copiii sau exchange-urile frate. Verdictul de business este explicit
+  în assertion, nu dedus numai din statusul HTTP;
 - `apiTrace(...)` nu trebuie să producă un al doilea card vizibil cu același
   titlu Gherkin ca checkpoint-ul UI. Dacă un consumer are API evidence pentru
   aceeași propoziție, publisher-ul trebuie să atașeze validation-ul la nodul
@@ -521,6 +526,18 @@ disclosure-urile pentru request/response/JSON/assertions, al doilea proiectează
 failure evidence UI, iar al treilea măsoară valorile reale și publică lățimi de
 coloane deterministe. Nu se amestecă layout-ul cu semantica evidence și nu se
 introduce un al doilea owner al aceleiași funcții.
+
+Invariantele de implementare ale acestor asset-uri sunt documentate aici, nu
+în payload-ul JavaScript: `table-viewport.js` gestionează tastele doar când
+viewport-ul are focus (fără să fure tastele controalelor imbricate) și captează
+rotița înaintea handlerelor vendor pentru a păstra scroll-ul local. Evidence
+disclosure reutilizează linkul media canonic pentru referințe și ascultă `toggle`
+în capture deoarece evenimentul nu bubble-uiește; disclosure-ul JSON își păstrează
+ownership-ul și nu este confundat cu trace-ul vecin. Normalizarea scenariilor
+mută doar diagnosticele explicite în panel și elimină wrapper-ul de log vendor.
+Alocarea lățimilor distribuie proporțional slack-ul coloanelor rezervate într-o
+trecere, iar adapterul legacy inspectează doar părintele imediat al tabelului;
+viewport-urile noi sunt deținute de markup-ul Java.
 
 `appendUiFailureEvidence` rulează pe nodurile typed `request` și `validation`:
 request-ul deține failure API, iar validarea Screen validation deține eșecul

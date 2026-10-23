@@ -41,13 +41,12 @@ public record AutoExConfiguration(URI baseUrl, boolean e2eEnabled,
         }
     }
 
-    public record Registration(String title, String birthDay, String birthMonth, String birthYear,
+    public record Registration(String birthDay, String birthMonth, String birthYear,
                                String firstName, String lastName, String company,
                                String address1, String address2, String country,
                                String state, String city, String postalCode,
                                String mobileNumber) {
         public Registration {
-            title = required(title, "registration.title");
             birthDay = required(birthDay, "registration.birthDay");
             birthMonth = required(birthMonth, "registration.birthMonth");
             birthYear = required(birthYear, "registration.birthYear");

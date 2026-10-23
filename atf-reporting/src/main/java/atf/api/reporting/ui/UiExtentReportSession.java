@@ -15,6 +15,7 @@ import atf.api.reporting.configuration.ExtentReportConfiguration;
 import atf.api.reporting.configuration.ReportEnvironmentSnapshot;
 import atf.api.reporting.extent.session.ExtentReportSession;
 import atf.api.reporting.ui.model.AtfUiActionRecord;
+import atf.api.reporting.ui.validation.UiApiValidationEvidence;
 
 import java.nio.file.Path;
 import java.time.Clock;
@@ -267,6 +268,17 @@ public final class UiExtentReportSession implements AutoCloseable {
                          AtfReportStatus status) {
             lifecycle.step(keyword, title, target, base64Png, assertions, actions,
                     capturePoint, status);
+        }
+
+        /** Publishes typed UI/API ownership; each API exchange keeps its own assertions and status. */
+        public void step(AtfGherkinKeyword keyword, String title, String target,
+                         String base64Png, Collection<AtfAssertion> uiAssertions,
+                         Collection<AtfUiActionRecord> actions,
+                         UiApiValidationEvidence apiValidation,
+                         ReportScreenshotPolicy.CapturePoint capturePoint,
+                         AtfReportStatus uiStatus) {
+            lifecycle.step(keyword, title, target, base64Png, uiAssertions, actions,
+                    apiValidation, capturePoint, uiStatus);
         }
 
         public void step(AtfGherkinKeyword keyword, String title, String target,

@@ -55,6 +55,17 @@ public final class UiFailureReportInspector {
             case ASSERTION -> failedAssertionRows(owner.detail());
         };
         if (matching == 0) violations.add("no rendered failure found for " + surface);
+        boolean siblingIsolationClean = surface != UiFailureSurface.PLAYWRIGHT_ACTION
+                || validatePlaywrightFailureIsolation(owner.detail(), violations);
+        if (surface == UiFailureSurface.PLAYWRIGHT_ACTION) {
+            String actionEvidence = String.join(" ",
+                    fixture.locators().actionSequences(owner.detail()).allInnerTexts());
+            if (!actionEvidence.contains("Wait for visible")
+                    || !actionEvidence.contains("button[data-test='login-submit']")
+                    || !actionEvidence.contains("Timeout 20000ms exceeded")) {
+                violations.add("Tests must retain the failed wait action, locator and observed timeout");
+            }
+        }
         validateConcreteFailureStatus(surface, owner.detail(), violations);
 
         Page fails = fixture.audit().openTab(ReportUiContract.Tab.FAILS.hash());
@@ -63,8 +74,38 @@ public final class UiFailureReportInspector {
         if (failRows == 0) violations.add("Fails tab does not expose the fixture failures");
         validateFailsProjection(surface, fails, failsView, violations);
         return new Observation(surface, matching, failRows, expandedOnArrival,
-                visibleClosedEvidenceBodies, fabricatedHttpDisclosures,
+                visibleClosedEvidenceBodies, fabricatedHttpDisclosures, siblingIsolationClean,
                 violations.isEmpty(), List.copyOf(violations));
+    }
+
+    private boolean validatePlaywrightFailureIsolation(Locator ownerDetail,
+                                                         List<String> violations) {
+        Locator scenarios = fixture.locators().scenarios(ownerDetail);
+        int failureOwners = 0;
+        int siblingLeaks = 0;
+        for (int index = 0; index < scenarios.count(); index++) {
+            String text = Objects.requireNonNullElse(scenarios.nth(index).textContent(), "");
+            if (text.contains("Timeout 20000ms exceeded")) {
+                failureOwners++;
+                if (!text.contains("button[data-test='login-submit']")) {
+                    violations.add("the timeout cause is not colocated with its actionable Playwright locator");
+                }
+            } else if (text.contains("raw-ui-password") || text.contains("raw-ui-token")) {
+                siblingLeaks++;
+            }
+        }
+        if (scenarios.count() < 2) {
+            violations.add("the Extent fixture must contain a sibling scenario to prove failure isolation");
+        }
+        if (failureOwners != 1) {
+            violations.add("the Playwright timeout cause must belong to exactly one Extent scenario; found "
+                    + failureOwners);
+        }
+        if (siblingLeaks > 0) {
+            violations.add("the Playwright timeout cause or raw credentials leaked into "
+                    + siblingLeaks + " sibling scenario(s)");
+        }
+        return scenarios.count() >= 2 && failureOwners == 1 && siblingLeaks == 0;
     }
 
     private void validateFailsProjection(UiFailureSurface surface, Page page, Locator fails,
@@ -83,6 +124,14 @@ public final class UiFailureReportInspector {
                 .filter(marker -> !detail.contains(marker))
                 .forEach(marker -> violations.add(
                         "Fails detail for " + surface + " is missing concrete marker: " + marker));
+        if (surface == UiFailureSurface.PLAYWRIGHT_ACTION) {
+            if (detail.contains("raw-ui-password") || detail.contains("raw-ui-token")) {
+                violations.add("Fails detail exposes a raw credential from the timeout cause");
+            }
+            if (!detail.contains("***REDACTED***")) {
+                violations.add("Fails detail must show that timeout credentials were redacted");
+            }
+        }
         validateUiFailureVocabulary(fails, surface, violations);
         validateNarrowFailsLayout(page, surface, violations);
     }
@@ -248,7 +297,8 @@ public final class UiFailureReportInspector {
     public record Observation(UiFailureSurface surface, int matchingFailures,
                               int failRows, int expandedOnArrival,
                               int visibleClosedEvidenceBodies,
-                              int fabricatedHttpDisclosures, boolean valid,
+                              int fabricatedHttpDisclosures,
+                              boolean siblingIsolationClean, boolean valid,
                               List<String> violations) {
         public Observation {
             surface = Objects.requireNonNull(surface, "surface");
@@ -256,7 +306,7 @@ public final class UiFailureReportInspector {
         }
 
         static Observation invalid(UiFailureSurface surface, String violation) {
-            return new Observation(surface, 0, 0, 0, 0, 0, false, List.of(violation));
+            return new Observation(surface, 0, 0, 0, 0, 0, false, false, List.of(violation));
         }
     }
 }

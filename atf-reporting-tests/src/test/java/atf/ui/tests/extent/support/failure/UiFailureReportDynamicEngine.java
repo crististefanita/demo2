@@ -45,7 +45,10 @@ public final class UiFailureReportDynamicEngine {
                                                                     result.visibleClosedEvidenceBodies() == 0),
                                                             ReportAuditChecks.check("Invented HTTP evidence", "0 disclosures",
                                                                     String.valueOf(result.fabricatedHttpDisclosures()),
-                                                                    result.fabricatedHttpDisclosures() == 0)),
+                                                                    result.fabricatedHttpDisclosures() == 0),
+                                                            ReportAuditChecks.check("Sibling isolation", "failure remains in one owner",
+                                                                    String.valueOf(result.siblingIsolationClean()),
+                                                                    result.siblingIsolationClean())),
                                                     result.valid() ? AtfReportStatus.PASS : AtfReportStatus.FAIL);
                                             assertTrue(result.valid(), () -> String.join("; ", result.violations()));
                                             return null;

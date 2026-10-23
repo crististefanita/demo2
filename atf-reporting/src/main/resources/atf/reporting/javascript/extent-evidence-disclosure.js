@@ -23,7 +23,6 @@ function openReferencedScreenshot(event) {
       !/^data:image\//.test(original.getAttribute('href') || '')) return;
   event.preventDefault();
   event.stopImmediatePropagation();
-  // Reuse the canonical media control even when its scenario/disclosure is collapsed.
   original.click();
 }
 function bindEvidenceDisclosureAria() {
@@ -31,7 +30,6 @@ function bindEvidenceDisclosureAria() {
   if (document.documentElement.hasAttribute('data-atf-evidence-toggle-bound')) return;
   document.documentElement.setAttribute('data-atf-evidence-toggle-bound', 'true');
   document.addEventListener('click', openReferencedScreenshot, true);
-  // toggle does not bubble; capture also covers Java markup and selected copies.
   document.addEventListener('toggle', function (event) {
     var details = event.target;
     if (details && details.tagName === 'DETAILS') synchronizeEvidenceDisclosureAria(details);
@@ -71,7 +69,6 @@ function normalizeEvidenceDisclosures() {
         var row = rows[i],
           next = rows[i + 1],
           label = text(row.cells[2], '').trim();
-        // Native disclosures own their JSON; do not replace them with a neighbouring trace row.
         if (row.querySelector('details')) continue;
         if (next && /^Execution evidence/.test(label)) {
           var executionBody = document.createElement('div');

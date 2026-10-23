@@ -156,7 +156,7 @@ de coeziune și celelalte reguli de arhitectură continuă să i se aplice.
 | Control | Regulă |
 |---|---|
 | Scope | toate fișierele din `<modul>/src/test/`, inclusiv suport, resurse și suite; `pom.xml` rădăcină și POM-urile modulelor, cu excepția exactă Shop |
-| Cerere/control | bloc YAML `testChanges`, ID unic, `ACTIVE` în registrul activ sau `VERIFIED` în registrul verificat, motiv, comandă Maven de probă, expirare și SHA-ul baseline-ului |
+| Cerere/control | bloc YAML `testChanges`, ID unic, `ACTIVE` în feedback-ul ownerului sau `VERIFIED` în baseline, motiv, comandă Maven de probă, expirare și SHA-ul baseline-ului |
 | Fișiere | căi relative exacte; fără wildcard, traversal sau owneri multipli pentru aceeași schimbare |
 | Ștergere / redenumire | `allowDelete: true` pentru vechea cale; redenumirea este evaluată ca ștergere + adăugare |
 | Diferență Git | committed față de baseline, staged, unstaged și fișiere noi; nici testele noi ignorate de Git nu sunt exceptate |
@@ -178,14 +178,14 @@ cererea fixează SHA-ul rezolvat, nu un ref mobil.
 | Informație | Owner documentar | Conținut |
 |---|---|---|
 | Cerință funcțională | feedback-ul domeniului, de exemplu [Reporting](../docs/feedback/ATF_Reporting_Feedback.md) | lacună observabilă, responsabil, criteriu și dovadă lipsă |
-| Control tehnic activ | [Registrul activ](../docs/feedback/ATF_Test_Changes_Feedback.md) | numai intrări `ACTIVE` pentru diff-uri în lucru |
+| Control tehnic activ | documentul feedback al ownerului din [`docs/feedback`](../docs/feedback/README.md) | numai intrări `ACTIVE` pentru diff-uri în lucru, alături de cerința pe care o autorizează |
 | Control tehnic verificat | [Registrul verificat](../docs/ATF_Test_Changes_Baseline.md) | context business, roluri, lifecycle și intrări `VERIFIED` colapsate |
 | Comportament stabil | README-ul sau contractul ownerului | regula implementată și demonstrată |
 
 Parserul descoperă blocurile YAML în toate documentele Markdown din
 `docs/feedback` și în `docs/ATF_Test_Changes_Baseline.md`. Procedura proiectului
-centralizează controalele în cele două registre, păstrând feedback-ul funcțional
-concentrat pe cerințe.
+ține controalele `ACTIVE` lângă feedback-ul ownerului și controalele `VERIFIED`
+în baseline; nu este necesar un registru activ separat.
 
 <details>
 <summary><strong>Schema controlului și efectul câmpurilor</strong></summary>
@@ -213,10 +213,10 @@ concentrat pe cerințe.
 ### Reconciliere și închidere
 
 1. Inspectează sursele live, criteriul funcțional și diferența față de baza revizuirii.
-2. Înregistrează controlul `ACTIVE` cu path-uri exacte înaintea modificării protejate.
+2. Înregistrează controlul `ACTIVE` în feedback-ul ownerului, cu path-uri exacte, înaintea modificării protejate.
 3. Rulează proba relevantă și gate-ul în [staging extern cu Git real](../docs/ATF_Build_And_Execution_Safety.md#staging-pentru-guvernanța-schimbării-testelor); rendererul cere și verificarea randării.
 4. Promovează contractul demonstrat la owner; elimină din feedback numai criteriul îndeplinit.
-5. Mută controlul în registrul `VERIFIED` dacă diff-ul încă îl cere, păstrând ID-ul și eliminând intrarea activă.
+5. Mută controlul în baseline-ul `VERIFIED` dacă diff-ul încă îl cere, păstrând ID-ul și eliminând blocul `ACTIVE` din feedback.
 6. Elimină controlul când baza folosită de gate nu mai raportează schimbările acoperite; verifică din nou corespondența diff–control.
 
 `VERIFIED` atestă incrementul verificat, separat de acceptanța întregii cerințe.
@@ -224,9 +224,9 @@ Gate-ul validează metadatele și corespondența diff–control; comenzile `proo
 se execută separat, iar aprobarea unei schimbări de regulă rămâne explicită.
 
 La expirare sau schimbarea bazei se revizuiesc perimetrul și dovada înaintea
-actualizării controlului. Un registru activ rămas gol poate fi eliminat împreună
-cu referințele sale; procedura rămâne aici și indexul `docs/feedback/README.md`
-se păstrează permanent.
+actualizării controlului. Controalele active nu au un fișier dedicat: ele stau
+în feedback-ul ownerului numai cât timp sunt necesare; procedura rămâne aici, iar
+indexul `docs/feedback/README.md` se păstrează permanent.
 
 ## Guvernanța detaliilor la consolă
 

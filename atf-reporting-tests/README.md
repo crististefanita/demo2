@@ -24,12 +24,18 @@ verifică diferența Git și probele negative ale regulii.
 - testele business aparțin modulului consumer, precum `atf-test-practice-shop`;
 - `atf-tests` rămâne dedicat guvernanței whole-ATF.
 
-`UiFailureReportContractTest` este proba browser pentru failure UI în Extent:
-SETUP, acțiune Playwright, observație și assertion trebuie să păstreze leaf-ul
-FAIL sub ownerul semantic, să apară în Fails/deep-link și să rămână collapsed
-la sosire; contractul respinge și Request/Response HTTP fictive. Acest test
-nu pretinde încă paritatea fallback-ului sau acoperirea negativă generică a
-redacției/izolării; acestea rămân explicit în feedback până la probe dedicate.
+`UiFailureReportContractTest` este proba browser annotation-driven pentru
+failure UI în Extent: SETUP, timeout Playwright, observație și assertion
+păstrează leaf-ul FAIL sub ownerul semantic, apar în Fails/deep-link și rămân
+collapsed la sosire. Scenariul Playwright verifică `TimeoutError`, locator,
+durata și redacția; UI failure nu trebuie să creeze disclosure HTTP.
+`ExtentReportUiFailureEvidenceTest` și `UiFallbackFailureEvidenceTest` verifică
+și componenta fallback, inclusiv izolarea unui scenariu-frate. Renderer-ul
+Extent redă targetul locatorului prin redactor; pentru cauza absentă, publicarea
+derivează cauza dintr-o acțiune FAIL sau respinge input-ul fără diagnostic.
+Contractul browser verifică și că timeout-ul rămâne într-un singur scenariu și
+nu ajunge în scenariile sibling. Dovada și istoricul criteriului sunt în
+[feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md).
 
 Contractul stabil pentru ierarhia vizibilă, layout, responsive viewport,
 disclosure-uri și dovezile browser este
@@ -318,10 +324,12 @@ limitat; nu execută journey-uri pe aplicația externă și nu reduce capturile.
 | Output | directorul configurabil este creat înaintea logului JVM copil; proba poate porni într-un director nou |
 | Conținut | Unicode, 1.500 referințe PNG inline; două imagini distincte repetate |
 | Integritate | exit code 0, heap peak raportat, HTML peste 9 MB, marker final, temă, runtime și ambele referințe media |
-| Limită | nu dovedește volume arbitrare, PNG-uri mari/distincte sau failure-path fără artifact parțial |
+| Failure-path | `ExtentReportSessionLifecycleTest` verifică prin sesiunea publică o destinație blocată: sentinelul rămâne intact, publicarea eșuează clar și staging-ul privat este curățat |
+| Limită | nu dovedește volume arbitrare, PNG-uri distincte mari sau un buget de durată calibrat |
 
 Bugetul fork-ului rămâne configurabil prin `atf.test.heap.max`; un heap mai
-mare nu este dovadă de scalabilitate. Criteriile restante sunt PUB-01 din
+mare nu este dovadă de scalabilitate. Proba bounded-heap și lifecycle-ul au
+trecut împreună 9/9 teste. Criteriile de scalare și durată rămase sunt PUB-01 din
 [feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md).
 
 ### Bugetul asset-urilor publicate
@@ -332,6 +340,11 @@ Pragurile sunt contract de regresie; numărul de bytes observat într-un run est
 doar o măsurătoare, nu un nou prag. Orice rebugetare cere motiv și verificarea
 impactului asupra artifactului, nu o relaxare incidentală pentru ca testul să
 treacă.
+
+Inventarul curent este sub baseline-ul neschimbat: JavaScript nativ `124.950 B`
+față de `125.000 B`. Rularea `ReportAssetSizeInventoryTest`,
+`ReportAssetSizeBudgetTest`, componenta viewport, disclosure/accessibility și
+probele browser aferente a trecut `23/23`; pragul nu a fost mărit.
 
 ### Verificarea randării responsive
 
