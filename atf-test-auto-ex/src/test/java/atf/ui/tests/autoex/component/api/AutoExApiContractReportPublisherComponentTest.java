@@ -3,6 +3,8 @@ package atf.ui.tests.autoex.component.api;
 import atf.api.core.http.response.ApiExecutionResult;
 import atf.api.core.http.response.ApiResponse;
 import atf.api.core.http.transport.ApiTransportProvenance;
+import atf.api.core.http.request.HttpHeader;
+import atf.ui.autoex.api.AutoExApiRoute;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.contract.AtfReportPorts;
@@ -25,6 +27,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import static atf.api.core.http.request.HttpMethod.POST;
+import static atf.api.core.http.request.MediaTypes.APPLICATION_FORM_URLENCODED;
+import static atf.ui.tests.autoex.support.AutoExApiFixture.BASE_URI;
+import static atf.api.reporting.ui.contract.ReportUiContract.Phase.TEST_BODY;
+import static atf.ui.autoex.api.AutoExApiOutcome.USER_EXISTS;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -34,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @AtfComponentTest
 class AutoExApiContractReportPublisherComponentTest {
     private static final String REPORT_DIRECTORY = "custom/api-reports";
-    private static final String EXPECTED_MESSAGE = "User exists!";
+    private static final String EXPECTED_MESSAGE = USER_EXISTS.message();
     private static final String SECRET = "synthetic-report-password";
     private static final String RESPONSE_BODY = "{\"responseCode\":200,\"message\":\"User exists!\"}";
 
@@ -49,10 +56,10 @@ class AutoExApiContractReportPublisherComponentTest {
             var validation = (ReportExecutionModel.Validation) request.children().getFirst();
             assertAll(
                     () -> assertEquals("API 7 valid login", request.title()),
-                    () -> assertEquals("POST", request.method()),
-                    () -> assertEquals("/api/verifyLogin", request.path()),
-                    () -> assertTrue(request.execution().request().headers().values()
-                            .contains("application/x-www-form-urlencoded")),
+                    () -> assertEquals(POST.value(), request.method()),
+                    () -> assertEquals(AutoExApiRoute.VERIFY_LOGIN.path(), request.path()),
+                    () -> assertEquals(APPLICATION_FORM_URLENCODED,
+                            request.execution().request().headers().get(HttpHeader.CONTENT_TYPE.value())),
                     () -> assertTrue(request.execution().response().headers().values()
                             .contains("text/html; charset=utf-8")),
                     () -> assertEquals("Validate documented JSON response contract", validation.title()),
@@ -114,7 +121,7 @@ class AutoExApiContractReportPublisherComponentTest {
         try (var session = new HtmlReportSession(report)) {
             var scenario = session.startScenario("AutoExApiReadOnlyLiveContractTest",
                     "read-only API evidence", List.of("api", "auto-ex", "component"));
-            var phase = scenario.startPhase("TEST BODY");
+            var phase = scenario.startPhase(TEST_BODY.displayName());
             var failure = new IllegalStateException("request failed", new java.io.IOException(
                     "authorization: Bearer " + secret));
             failure.addSuppressed(new IllegalArgumentException("cleanup failure"));
@@ -137,15 +144,48 @@ class AutoExApiContractReportPublisherComponentTest {
         var request = new AutoExApiRequestFactory().verifyLogin("report@example.test", SECRET);
         var response = new ApiResponse(status, body,
                 Map.of("content-type", "text/html; charset=utf-8"), Duration.ofMillis(4),
-                "https://automationexercise.invalid/api/verifyLogin");
+                BASE_URI.resolve(AutoExApiRoute.VERIFY_LOGIN.path()).toString());
         return new ApiExecutionResult(response, 1, Duration.ofMillis(4), List.of(), List.of(),
                 request, ApiTransportProvenance.ACCEPTANCE_MOCK);
+    }
+
+    @Test
+    void diagnosticsBoundFailureGraphsAndLongMessagesWithoutLooping(@TempDir Path directory) {
+        var failure = new IllegalStateException("root");
+        var cause = new IllegalArgumentException("cause");
+        failure.initCause(cause);
+        cause.initCause(failure);
+        failure.addSuppressed(new UnsupportedOperationException("suppressed-one"));
+        failure.addSuppressed(new ArithmeticException("suppressed-two"));
+        failure.addSuppressed(new IndexOutOfBoundsException("outside-bound"));
+
+        String boundedGraph = diagnostic(directory.resolve("graph.html"), failure);
+        assertAll(
+                () -> assertTrue(boundedGraph.contains("IllegalStateException: root")),
+                () -> assertTrue(boundedGraph.contains("IllegalArgumentException: cause")),
+                () -> assertTrue(boundedGraph.contains("UnsupportedOperationException: suppressed-one")),
+                () -> assertTrue(boundedGraph.contains("ArithmeticException: suppressed-two")),
+                () -> assertFalse(boundedGraph.contains("outside-bound")));
+        String boundedMessage = diagnostic(directory.resolve("long-message.html"),
+                new IllegalStateException("detail ".repeat(400)));
+        assertEquals(1_000, boundedMessage.length());
+    }
+
+    private static String diagnostic(Path report, Throwable failure) {
+        try (var session = new HtmlReportSession(report)) {
+            var scenario = session.startScenario("AutoExDiagnostics", "bounded failure graph", List.of("component"));
+            var phase = scenario.startPhase(TEST_BODY.displayName());
+            AutoExApiContractReportExtension.recordExecutionFailure(phase, failure);
+            phase.complete(AtfReportStatus.FAIL);
+            scenario.complete(AtfReportStatus.FAIL);
+            return session.executionModel().scenarios().getFirst().phases().getFirst().details().getFirst().value();
+        }
     }
 
     private static void publish(AtfReportPorts.Session session, ApiExecutionResult execution) {
         var scenario = session.startScenario("AutoExApiLiveContractTest", "verify login report contract",
                 List.of("api", "auto-ex", "component"));
-        var phase = scenario.startPhase("TEST BODY");
+        var phase = scenario.startPhase(TEST_BODY.displayName());
         int status = execution.response().status();
         AutoExApiContractReportExtension.publish(phase, "API 7 valid login", execution, 200,
                 EXPECTED_MESSAGE, List.of(new AtfAssertion("HTTP transport status", "200",

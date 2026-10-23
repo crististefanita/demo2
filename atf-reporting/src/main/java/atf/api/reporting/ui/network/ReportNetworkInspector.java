@@ -35,6 +35,12 @@ public final class ReportNetworkInspector {
     /** Projects only the compact index attached to the inspector request. */
     public static List<ReportField> fields(Collection<ReportExecutionEvidence> evidence,
                                            Collection<Step> steps) {
+        return fields(evidence, steps, null);
+    }
+
+    public static List<ReportField> fields(Collection<ReportExecutionEvidence> evidence,
+                                           Collection<Step> steps,
+                                           ReportNetworkCaptureStatus capture) {
         List<ReportExecutionEvidence> exchanges = evidence == null
                 ? List.of()
                 : evidence.stream().filter(Objects::nonNull).toList();
@@ -53,6 +59,15 @@ public final class ReportNetworkInspector {
         }
         fields.add(ReportField.of("network.unique.signatures",
                 signatures.size() + " unique request signatures; details are shown once below"));
+        if (capture != null) {
+            fields.add(ReportField.of("network.capture.scope", capture.scope()));
+            fields.add(ReportField.of("network.capture.completeness", capture.completeness()));
+            fields.add(ReportField.of("network.capture.accepted", Long.toString(capture.accepted())));
+            fields.add(ReportField.of("network.capture.retained", Long.toString(capture.retained())));
+            fields.add(ReportField.of("network.capture.dropped", Long.toString(capture.dropped())));
+            fields.add(ReportField.of("network.capture.setup", Long.toString(capture.setupRetained())));
+            fields.add(ReportField.of("network.capture.causal", Long.toString(capture.causalRetained())));
+        }
         return List.copyOf(fields);
     }
 
@@ -140,6 +155,14 @@ public final class ReportNetworkInspector {
         return List.copyOf(observations);
     }
 
+    /** Adds capture coverage without conflating it with causal exchange or assertion counts. */
+    public static JourneyAggregate aggregate(Collection<ReportExecutionEvidence> evidence,
+                                             Collection<Step> steps, ReportNetworkCaptureStatus capture) {
+        JourneyAggregate aggregate = aggregate(evidence, steps);
+        return new JourneyAggregate(aggregate.authentication(), aggregate.correlation(),
+                aggregate.transport(), aggregate.signatures(), aggregate.diagnostics(), capture);
+    }
+
     /** Causal, renderer-neutral summary for one UI checkpoint. */
     public record Step(String keyword, String title, int assertionCount,
                        boolean passed, Collection<ReportExecutionEvidence> exchanges) {
@@ -175,7 +198,13 @@ public final class ReportNetworkInspector {
                                    List<ScenarioCorrelation> correlation,
                                    TransportCounters transport,
                                    List<SignatureObservation> signatures,
-                                   List<DiagnosticObservation> diagnostics) {
+                                   List<DiagnosticObservation> diagnostics,
+                                   ReportNetworkCaptureStatus capture) {
+        public JourneyAggregate(List<AuthenticationObservation> authentication,
+                                List<ScenarioCorrelation> correlation, TransportCounters transport,
+                                List<SignatureObservation> signatures, List<DiagnosticObservation> diagnostics) {
+            this(authentication, correlation, transport, signatures, diagnostics, null);
+        }
         public JourneyAggregate {
             authentication = List.copyOf(authentication == null ? List.of() : authentication);
             correlation = List.copyOf(correlation == null ? List.of() : correlation);

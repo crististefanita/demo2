@@ -25,6 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** Guards AutoEx flow composition and screenshot-policy mapping without a live site or browser. */
 @AtfComponentTest
 class AutoExEvidenceProfileComponentTest {
+    private static final String CONFIRMATION_URL = "https://example.test/confirmation";
+
     @Test
     void annotationOverridesOnlyDeclaredAxesAndConfiguredAxesRemainConfigured() {
         var configured = AutoExEvidenceProfile.forRun(AtfUiEvidenceFlow.CONFIGURED,
@@ -71,7 +73,7 @@ class AutoExEvidenceProfileComponentTest {
         actions.observation("Prior UI evidence", "#checkout", "ready", "ready");
 
         AutoExScreenAuditObservations.recordTerminalScreenContract(actions,
-                "purchase confirmation is displayed", "https://example.test/confirmation",
+                "purchase confirmation is displayed", CONFIRMATION_URL,
                 List.of(new AtfAssertion("Confirmation", "visible", "visible", true)),
                 true, true);
         var evidence = actions.drain();

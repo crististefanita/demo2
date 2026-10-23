@@ -2,6 +2,7 @@ package atf.ui.autoex.page;
 
 import atf.ui.autoex.locator.AutoExSelectors;
 import atf.ui.autoex.support.journey.AutoExPurchaseSession;
+import atf.ui.autoex.support.validation.AutoExUiText;
 
 /** Product detail and add-to-cart actions. */
 public final class ProductPage extends AutoExPage {
@@ -13,8 +14,9 @@ public final class ProductPage extends AutoExPage {
     }
 
     public String addConfirmation() {
-        return text(AutoExSelectors.CART_ADD_CONFIRMATION,
-                "cart confirms that the selected product was added");
+        run.waitForText(AutoExSelectors.CART_ADD_CONFIRMATION, AutoExUiText.CART_ADDED.text(),
+                "the successful add-to-cart confirmation is visible");
+        return text(AutoExSelectors.CART_ADD_CONFIRMATION, "cart confirms that the selected product was added");
     }
 
     public void addQuantityToCart(int quantity) {

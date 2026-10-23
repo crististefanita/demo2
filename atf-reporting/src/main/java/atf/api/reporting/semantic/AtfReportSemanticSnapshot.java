@@ -74,7 +74,7 @@ public record AtfReportSemanticSnapshot(List<ClassSnapshot> classes) {
     private static NodeSnapshot nodeSnapshot(ReportExecutionModel.Node node) {
         if (node instanceof ReportExecutionModel.Request request) {
             return new RequestSnapshot(request.title(), request.method(), request.path(),
-                    request.details().stream().map(field -> field.name()).toList(),
+                    requestDetailNames(request),
                     request.json().stream().map(body -> body.label()).toList(),
                     request.execution() != null, request.uiActionCount(), request.screenshotCount(),
                     validationSnapshots(request.children()), request.status());
@@ -95,6 +95,12 @@ public record AtfReportSemanticSnapshot(List<ClassSnapshot> classes) {
             }
         }
         return List.copyOf(result);
+    }
+
+    private static List<String> requestDetailNames(ReportExecutionModel.Request request) {
+        var names = new ArrayList<>(request.details().stream().map(field -> field.name()).toList());
+        if (request.networkAggregate() != null) names.add("network.aggregate");
+        return List.copyOf(names);
     }
 
     private static final class ClassAccumulator {

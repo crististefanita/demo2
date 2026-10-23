@@ -12,6 +12,7 @@ import atf.ui.autoex.support.journey.AutoExPurchaseJourney;
 import atf.ui.autoex.support.journey.AutoExPurchaseSession;
 import atf.ui.autoex.support.journey.AutoExPurchaseTraceStep;
 import atf.ui.autoex.support.trace.AutoExCustomerTraceStep;
+import atf.ui.autoex.support.validation.AutoExStoreAssertions;
 
 import java.util.List;
 
@@ -36,16 +37,14 @@ public final class AutoExCartJourney {
                 AutoExCheckoutAssertions.orderLine(updated, updated.expectedTotal(), cart.orderLine(updated)));
 
         String emptyMessage = cart.removeProductAndReadEmptyCart(updated);
-        var emptyAssertion = new AtfAssertion("Empty cart", "Cart is empty!", emptyMessage,
-                emptyMessage.contains("Cart is empty!"));
+        var emptyAssertion = AutoExStoreAssertions.emptyCart(emptyMessage);
         run.finalScreenshot(AutoExCustomerTraceStep.CART_EMPTY, List.of(emptyAssertion));
     }
 
     public static void preservesGuestCartAfterLogin(AutoExPurchaseSession run) {
         String heading = new HomePage(run).open();
         run.checkpoint(AutoExPurchaseTraceStep.STORE_OPEN,
-                List.of(new AtfAssertion("Store availability", "Automation Exercise is visible", heading,
-                        heading.contains("Full-Fledged practice website"))));
+                List.of(AutoExStoreAssertions.storeAvailability(heading)));
         AutoExTestAccount account = AutoExTestAccount.create(run.configuration().registration());
         var accountPage = new AccountPage(run);
         accountPage.registerFromStore(account);
@@ -69,8 +68,7 @@ public final class AutoExCartJourney {
                 AutoExCheckoutAssertions.orderLine(product, product.expectedTotal(), cart.orderLine(product)));
         String deletion = accountPage.accountDeletionResult(account);
         run.finalScreenshot(AutoExPurchaseTraceStep.TERMINAL_STATE,
-                List.of(new AtfAssertion("Disposable account removed", "ACCOUNT DELETED!", deletion,
-                        deletion.contains("ACCOUNT DELETED!"))));
+                List.of(AutoExStoreAssertions.accountDeleted(deletion)));
     }
 
     private static CartPage addProduct(AutoExPurchaseSession run, ProductsPage products, Catalog product) {
@@ -78,8 +76,7 @@ public final class AutoExCartJourney {
         details.addQuantityToCart(product.quantity());
         String confirmation = details.addConfirmation();
         run.checkpoint(AutoExPurchaseTraceStep.CART_ADD,
-                List.of(new AtfAssertion("Add-to-cart confirmation", "Added!", confirmation,
-                        confirmation.contains("Added!") && confirmation.contains("added to cart"))));
+                List.of(AutoExStoreAssertions.cartAddition(confirmation)));
         return details.viewCartFromConfirmation();
     }
 

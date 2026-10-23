@@ -6,26 +6,18 @@ istoricul rapoartelor, capturilor sau rulărilor.
 
 ## Pe scurt
 
-Prioritățile active includ capturarea traficului UI/AutoEx și profilele E2E.
-Auditul terminal UI și flow-ul Shop unificat peste
-faze sunt închise după corecții și verificare în TAB MCP prin ATF Debug.
-Aliasurile de redactare sunt
-implementate și documentate în README-ul `atf-ui`; nu mai au un TODO activ.
-
-Cleanup-ul comun, mutarea harness-ului Shop în `src/test`, activarea fail-closed
-Shop, baseline-ul API AutoEx, inventory-ul/coezunea și lifecycle-ul AutoEx —
-inclusiv sincronizarea checkout-ului și capturarea failure-evidence înainte de
-închiderea browserului — sunt închise și documentate la ownerii lor.
-Selecția network și completitudinea jurnalului AutoEx au însă gap-uri
-reproductibile separate, urmărite în feedback-ul Network.
-
-Evaluarea AI rămâne în afara priorităților curente. Pentru API Shop:
-
-- numele, nivelurile și separarea unit/component sunt reconciliate cu schimbările live;
-- gate-ul unit/component trece cu 95 de teste;
-- dovada HTTP live autentificată pentru sort/filter și mutațiile coșului a
-  trecut după înlocuirea fixture-ului sintetic; detaliile și limita auditului
-  vizual sunt în [feedback-ul Shop](ATF_Practice_Shop_API_Test_Design_Feedback.md).
+- Reporting păstrează explicația capturii lipsă la failure și oracolul Client
+  rămas în urmă; formatul 24h este implementat și verificat la owner.
+- Consumerii păstrează acceptanța reducerii profilelor live și auditul
+  interactiv al raportului API Shop.
+- Multipart/whitespace și Network failure/overflow au implementare și probe la
+  owneri; rămân în documentația oficială, fără backlog funcțional duplicat.
+- Cleanup-ul comun, clasificarea claselor vechi, profilele generice, auditul terminal
+  și flow-ul Shop cross-phase sunt închise; contractele lor sunt la owneri.
+- Diagrama și regulile selecției traficului sunt în
+  [arhitectura proiectului](../ATF_Architecture.md#capturarea-și-selecția-traficului-ui)
+  și [README-ul ATF UI](../../atf-ui/README.md#inspectorul-de-rețea--limită-generică-de-responsabilitate),
+  nu într-un checklist de implementare deja rezolvat.
 
 ## Prioritatea curentă
 
@@ -35,18 +27,19 @@ scorurile ordonează backlog-ul și nu reprezintă evaluări de calitate.
 
 | Ordine | Owner / feedback | Impact /40 | Lacună /30 | Lucrabil /20 | Doc. /10 | Pondere | Scor | Rezumatul gap-ului |
 |---:|---|---:|---:|---:|---:|---:|---:|---|
-| 1 | [Network UI / AutoEx — selecție și captură completă](ATF_UI_Network_Inspection_Feedback.md) | 37 | 27 | 20 | 8 | 1.00 | **92** | XHR-ul coșului este exclus de filtrul `/api/`; asset-urile umplu jurnalul comun înainte de checkout; probele generice aparțin `atf-ui` și `atf-reporting-tests`. |
-| 2 | [Consumer — profile E2E](ATF_Consumer_Business_Test_Focus_Feedback.md#consumer-e2e-profiles-01--variantele-de-evidence-și-acoperirea-business) | 24 | 10 | 17 | 6 | 1.00 | **57** | AutoEx separă gate-ul business de matricea manuală; reducerea Shop și acceptanța profilelor cer încă smoke local succes/failure și păstrarea exemplelor configurabile. |
+| 1 | [Reporting — owner UI pentru Network](ATF_Reporting_Feedback.md#report-browser-placement-02--proba-network-trebuie-plasată-la-ownerul-ui) | 36 | 27 | 20 | 8 | 1.00 | **91** | NetworkCaptureEvidenceTest trece funcțional, dar încalcă regula importurilor Playwright; mutare fără pierderea celor cinci cazuri și fără relaxarea guard-ului. |
+| 2 | [Reporting — failure fără captură](ATF_Reporting_Feedback.md#ui-failure-capture-02--lipsa-capturii-trebuie-explicată-în-raport) | 34 | 24 | 20 | 6 | 1.00 | **84** | Regresie reprodusă de UiAuditLifecycleTest; motivul din evidence.policy este filtrat și lipsește din HTML, deși acțiunile și FAIL rămân. |
+| 3 | [Reporting — oracol Client](ATF_Reporting_Feedback.md#report-client-expectation-02--oracol-html-rămas-în-urmă) | 21 | 15 | 20 | 5 | 1.00 | **61** | Aserțiunea HTML veche contrazice default-ul neutru corect; aliniere exactă și probă pentru Client explicit, fără schimbarea producției. |
+| 4 | [Consumer — profile E2E](ATF_Consumer_Business_Test_Focus_Feedback.md#consumer-e2e-profiles-01--variantele-de-evidence-și-acoperirea-business) | 24 | 10 | 17 | 6 | 1.00 | **57** | Reducerea selecției Shop și acceptanța profilelor cer smoke local succes/failure, echivalență și exemple manuale păstrate. |
+| 5 | [Shop API — auditul standalone](ATF_Practice_Shop_API_Test_Design_Feedback.md) | 10 | 5 | 15 | 3 | 1.00 | **33** | HTTP live este probat; randarea interactivă a artifactului consumerului nu este încă atestată. |
 
 ## Revizuit, dar neprioritizat pentru implementare
 
 | Domeniu | Stare curentă |
 |---|---|
-| [Geometrie browser / iframe](ATF_UI_Browser_Geometry_Feedback.md) | Zoom-ul documentului copil nu se compune; pentru pointer la zoom CSS non-nativ rămâne o limită probată. Alegerea AutoEx 100% nu închide acest contract generic. |
-| [Reporting — body-uri externe non-JSON](ATF_Reporting_Feedback.md#api-body-media-01--etichete-corecte-pentru-body-uri-externe-non-json) | Request-ul real form-urlencoded este etichetat JSON; proiecția trebuie să separe formatul de direcția evidence-ului. |
+| [AutoEx — compatibilitate business](ATF_Automation_Exercise_Feedback.md) | Integrarea Close opt-in la 70% este în verificare UI/UI_API; confirmarea ștergerii după reclamă rămâne distinctă. |
+| [Geometrie browser / iframe](ATF_UI_Browser_Geometry_Feedback.md) | Pentru pointer la zoom CSS non-nativ rămâne o limită probată; activarea DOM explicită AutoEx nu o închide. |
 | [Evaluarea AI](README_AI_Evaluation.md) | În afara acestei reconcilieri; conținutul și scorurile nu au fost reevaluate. |
-| [Clasificarea testelor — guard Test Kit](ATF_Consumer_Business_Test_Focus_Feedback.md#test-layer-declarations-01--metadate-preexistente-de-clasificare) | Două verificări de clasificare eșuează pe metadate preexistente; guvernanța principală verde nu le înlocuiește. |
-| [Automation Exercise — business](ATF_Automation_Exercise_Feedback.md) | Recalcularea/eliminarea coșului, continuitatea după login și cleanup-ul sub reclamă reală sunt probate; închiderea controlului Google vignette rămâne deschisă, iar suita business nu este încă verde. |
 
 `GOV-API-01`, profilele generice per scenariu și integrarea AutoEx final-only
 nu mai sunt TODO-uri. Ele se redeschid numai dacă o probă nominală/regresie

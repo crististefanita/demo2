@@ -1,5 +1,6 @@
 package atf.api.console.junit;
 
+import atf.api.testkit.AtfIntegrationTest;
 import atf.api.core.reporting.console.AtfConsoleEvent;
 import atf.api.testkit.AtfConsoleMessages;
 import atf.api.testkit.reporting.AtfReportPath;
@@ -37,6 +38,7 @@ import static org.junit.platform.engine.discovery.DiscoverySelectors.selectClass
 /** Exercises the real Jupiter extension callbacks, rather than only its lifecycle helper. */
 @ResourceLock(Resources.SYSTEM_OUT)
 @ResourceLock("atf.report.config")
+@AtfIntegrationTest
 class AtfConsoleTestExtensionIntegrationTest {
     @TempDir Path temporary;
 

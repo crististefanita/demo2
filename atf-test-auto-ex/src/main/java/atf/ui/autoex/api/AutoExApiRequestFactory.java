@@ -12,10 +12,13 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import static atf.api.core.http.request.MediaTypes.APPLICATION_FORM_URLENCODED;
+import static atf.ui.autoex.api.AutoExApiFormField.EMAIL;
+import static atf.ui.autoex.api.AutoExApiFormField.PASSWORD;
+import static atf.ui.autoex.api.AutoExApiFormField.SEARCH_PRODUCT;
+
 /** Pure form/query request construction for the consumer's documented API contract. */
 public final class AutoExApiRequestFactory {
-    private static final String FORM_CONTENT_TYPE = "application/x-www-form-urlencoded";
-
     public ApiRequest productsList() { return get(AutoExApiRoute.PRODUCTS_LIST); }
     public ApiRequest postProductsList() { return form(HttpMethod.POST, AutoExApiRoute.PRODUCTS_LIST, Map.of()); }
     public ApiRequest brandsList() { return get(AutoExApiRoute.BRANDS_LIST); }
@@ -23,16 +26,16 @@ public final class AutoExApiRequestFactory {
 
     public ApiRequest searchProduct(String term) {
         return form(HttpMethod.POST, AutoExApiRoute.SEARCH_PRODUCT,
-                term == null ? Map.of() : Map.of("search_product", term));
+                term == null ? Map.of() : Map.of(SEARCH_PRODUCT.value(), term));
     }
 
     public ApiRequest verifyLogin(String email, String password) {
         return form(HttpMethod.POST, AutoExApiRoute.VERIFY_LOGIN,
-                fields("email", email, "password", password));
+                credentials(email, password));
     }
 
     public ApiRequest verifyLoginWithoutEmail(String password) {
-        return form(HttpMethod.POST, AutoExApiRoute.VERIFY_LOGIN, fields("password", password));
+        return form(HttpMethod.POST, AutoExApiRoute.VERIFY_LOGIN, credentials(null, password));
     }
 
     public ApiRequest deleteMethodOnVerifyLogin() {
@@ -46,7 +49,7 @@ public final class AutoExApiRequestFactory {
 
     public ApiRequest deleteAccount(String email, String password) {
         return form(HttpMethod.DELETE, AutoExApiRoute.DELETE_ACCOUNT,
-                fields("email", email, "password", password));
+                credentials(email, password));
     }
 
     public ApiRequest updateAccount(AutoExApiAccount account) {
@@ -57,7 +60,7 @@ public final class AutoExApiRequestFactory {
     public ApiRequest userDetail(String email) {
         if (email == null || email.isBlank()) throw new IllegalArgumentException("email is required");
         return new ApiRequest(HttpRequest.BodyPublishers.noBody(), HttpMethod.GET.value(),
-                AutoExApiRoute.USER_DETAIL_BY_EMAIL.path(), Map.of("email", email.trim()), Map.of(),
+                AutoExApiRoute.USER_DETAIL_BY_EMAIL.path(), Map.of(EMAIL.value(), email.trim()), Map.of(),
                 AuthProfiles.NONE, null, "");
     }
 
@@ -72,19 +75,16 @@ public final class AutoExApiRequestFactory {
                 .map(field -> encode(field.getKey()) + "=" + encode(field.getValue()))
                 .collect(java.util.stream.Collectors.joining("&"));
         Map<String, String> headers = !body.isEmpty()
-                ? Map.of(HttpHeader.CONTENT_TYPE.value(), FORM_CONTENT_TYPE) : Map.of();
+                ? Map.of(HttpHeader.CONTENT_TYPE.value(), APPLICATION_FORM_URLENCODED) : Map.of();
         return new ApiRequest(body.isEmpty() ? HttpRequest.BodyPublishers.noBody()
                         : HttpRequest.BodyPublishers.ofString(body),
                 method.value(), route.path(), Map.of(), headers, AuthProfiles.NONE, null, body);
     }
 
-    private static Map<String, String> fields(String... entries) {
-        if (entries.length % 2 != 0) throw new IllegalArgumentException("field pairs are incomplete");
+    private static Map<String, String> credentials(String email, String password) {
         Map<String, String> fields = new LinkedHashMap<>();
-        for (int index = 0; index < entries.length; index += 2) {
-            String value = entries[index + 1];
-            if (value != null) fields.put(entries[index], value);
-        }
+        if (email != null) fields.put(EMAIL.value(), email);
+        if (password != null) fields.put(PASSWORD.value(), password);
         return fields;
     }
 

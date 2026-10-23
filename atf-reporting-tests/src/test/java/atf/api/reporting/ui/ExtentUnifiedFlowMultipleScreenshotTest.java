@@ -1,5 +1,6 @@
 package atf.api.reporting.ui;
 
+import atf.api.testkit.AtfComponentTest;
 import atf.api.reporting.console.AtfConsoleSink;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
@@ -18,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Regression proof: unified checkpoints keep separate screenshots after their shared action table. */
+@AtfComponentTest
 class ExtentUnifiedFlowMultipleScreenshotTest {
     @Test
     void publishesEveryCheckpointScreenshotWithoutCombiningThemIntoOneActionSequence() throws Exception {

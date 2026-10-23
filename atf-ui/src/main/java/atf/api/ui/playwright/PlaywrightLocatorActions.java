@@ -10,6 +10,10 @@ import com.microsoft.playwright.options.SelectOption;
 
 /** Executes and records actions whose target is a Playwright locator. */
 final class PlaywrightLocatorActions {
+    private static final String JAVASCRIPT_CLICK_OPERATION = "JavaScript click";
+    private static final String JAVASCRIPT_CLICK_SCRIPT = "element => element.click()";
+    private static final String JAVASCRIPT_CLICK_OBSERVATION =
+            "HTMLElement.click() completed; caller postcondition satisfied; DOM activation, not a trusted pointer click";
     private static final Pattern SENSITIVE_TARGET = Pattern.compile(
             "password|token|secret|credential|authorization|cookie|api[-_]?key"
                     + "|(?:^|[^a-z])(?:e-?mail|first[_-]?name|last[_-]?name|date[_-]?of[_-]?birth|dob"
@@ -34,6 +38,22 @@ final class PlaywrightLocatorActions {
             requireExactlyOne(element, "Click");
             element.locator().click();
             return "click completed";
+        });
+    }
+
+    void clickWithJavaScript(AtfLocator element, String expected, Runnable postcondition) {
+        Objects.requireNonNull(element, "element");
+        Objects.requireNonNull(postcondition, "postcondition");
+        recorder.run(JAVASCRIPT_CLICK_OPERATION, element.selector(), expected, isSensitiveTarget(element), () -> {
+            requireExactlyOne(element, JAVASCRIPT_CLICK_OPERATION);
+            Locator target = element.locator();
+            target.waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE));
+            if (!target.isEnabled()) {
+                throw new IllegalStateException("JavaScript click target must be enabled: " + element.selector());
+            }
+            target.evaluate(JAVASCRIPT_CLICK_SCRIPT);
+            postcondition.run();
+            return JAVASCRIPT_CLICK_OBSERVATION;
         });
     }
 

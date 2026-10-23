@@ -3,6 +3,7 @@ package atf.api.ui.config;
 import atf.api.testkit.AtfComponentTest;
 import atf.api.ui.network.UiNetworkInspector;
 import atf.api.ui.network.UiNetworkObservation;
+import atf.api.ui.network.UiNetworkCapturePolicy;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Request;
 import com.microsoft.playwright.Response;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -246,6 +248,62 @@ class UiNetworkInspectionConfigurationTest {
                 .responseBody().replaceAll("\\s", ""));
         inspector.close();
         assertNull(listener.get());
+    }
+
+    @Test
+    void routeAndResourceSelectionPrecedeBodyReadAndBudgetConsumption() {
+        var configuration = new UiNetworkInspectionConfiguration(true,
+                Set.of("shop.example.test"), 1, 100, true,
+                UiNetworkSettlementPolicy.disabled(),
+                UiNetworkCapturePolicy.browserApi(List.of("/api/", "/add_to_cart/")));
+        var inspector = new UiNetworkInspector(configuration);
+        var bodyReads = new AtomicInteger();
+
+        assertTrue(inspector.capture(response("https://shop.example.test/app.js", "script",
+                "text/javascript", bodyReads)).isEmpty());
+        assertTrue(inspector.capture(response("https://shop.example.test/unrelated", "xhr",
+                "text/html", bodyReads)).isEmpty());
+        assertEquals(0, bodyReads.get(), "excluded browser events must not read response bodies");
+        assertTrue(inspector.capture(response("https://shop.example.test/add_to_cart/1", "xhr",
+                "text/html", bodyReads)).isPresent(), "HTML-returning cart XHR is browser API evidence");
+        int cursor = inspector.observationCursor();
+        assertTrue(inspector.capture(response("https://shop.example.test/api/productsList", "fetch",
+                "text/html", bodyReads)).isEmpty(), "a matching exchange over budget is observable as loss");
+        assertEquals(1, bodyReads.get(), "over-budget exchange must not read its body");
+        assertEquals(cursor, inspector.observationCursor(), "cursor counts retained events only");
+        assertEquals("/add_to_cart/1", inspector.observations().get(0).path());
+        assertEquals(UiNetworkCapturePolicy.ResourceKind.XHR,
+                inspector.observations().get(0).resourceKind());
+        assertEquals(2, inspector.captureSummary().accepted());
+        assertEquals(1, inspector.captureSummary().retained());
+        assertEquals(1, inspector.captureSummary().dropped());
+        assertTrue(inspector.captureSummary().limitReached());
+    }
+
+    private static Response response(String url, String resourceType, String contentType,
+                                     AtomicInteger bodyReads) {
+        Request request = (Request) Proxy.newProxyInstance(Request.class.getClassLoader(),
+                new Class<?>[]{Request.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "url" -> url;
+                    case "method" -> "GET";
+                    case "resourceType" -> resourceType;
+                    case "headers" -> Map.of("accept", "text/html");
+                    case "postData" -> null;
+                    default -> null;
+                });
+        return (Response) Proxy.newProxyInstance(Response.class.getClassLoader(),
+                new Class<?>[]{Response.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "url" -> url;
+                    case "request" -> request;
+                    case "status" -> 200;
+                    case "headers" -> Map.of("content-type", contentType);
+                    case "finished" -> null;
+                    case "body" -> {
+                        bodyReads.incrementAndGet();
+                        yield "<html>accepted</html>".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                    }
+                    default -> null;
+                });
     }
 
     @Test

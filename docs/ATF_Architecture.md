@@ -254,6 +254,46 @@ Regula pentru `SETUP` este:
   `Screen validation`;
 - `Screen validation` există numai în `TEST BODY`, după acțiunile reale de browser.
 
+## Capturarea și selecția traficului UI
+
+Cum ajunge traficul produs de browser la checkpoint-ul care îl explică?
+Selecția se aplică înainte de citirea body-ului și de consumarea bugetului
+jurnalului; un cursor separă observațiile de setup de cele cauzate ulterior
+de acțiunile UI.
+
+```mermaid
+flowchart LR
+    Browser["Browser"] -->|emite| Select["Selecție UI"]
+    Select -->|reține| Journal["Jurnal bounded"]
+    Journal -->|delimitează| Baseline["Baseline"]
+    Baseline -->|înainte| Setup["Setup API"]
+    Baseline -->|după| Step["Pas UI + API"]
+    Setup -->|publică| Report["Raport"]
+    Step -->|publică| Report
+```
+
+<details>
+<summary><strong>Legendă — selecția și ownership-ul dovezii</strong></summary>
+
+- `atf-ui` aplică allowlist-ul de host și politica typed pentru tipul resursei
+  și prefixul rutei. Resursele excluse nu sunt citite ca body și nu ocupă
+  jurnalul; plafonul păstrează contori accepted/retained/dropped.
+- Consumerul declară rutele business și marchează baseline-ul după setup.
+  În AutoEx, `GET /api/productsList` este un fetch al aceleiași sesiuni
+  browser, publicat la precondiția catalogului; nu devine încă un exchange
+  cauzal al coșului. `GET /add_to_cart/1` este observat după baseline și
+  aparține checkpoint-ului cart-add, fără replay.
+- `atf-reporting` afișează schimbul lângă pasul său și rezumă separat scope-ul,
+  setup/causal și `COMPLETE`/`INCOMPLETE`. Inspectorul nu decide verdictul
+  business și nu clonează request-urile în sumar.
+
+</details>
+
+Contractul generic al filtrului și cursorului este în
+[README-ul ATF UI](../atf-ui/README.md#inspectorul-de-rețea--limită-generică-de-responsabilitate);
+selecția rutelor și asocierea cu pașii AutoEx sunt în
+[README-ul AutoEx](../atf-test-auto-ex/README.md#boundary-ul-cauzal-pentru-ui_api).
+
 ## Fluxul unei cereri
 
 ```mermaid

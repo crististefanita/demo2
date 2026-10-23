@@ -1,243 +1,117 @@
 # ATF Reporting — cerințe rămase
 
-Acest feedback urmărește gap-ul de format pentru body-uri API și păstrează
-dovezile de închidere și controalele temporare de teste. Contractele stabile sunt în
-[contractul semantic](../ATF_Reporting_Contract.md),
-[contractul de display și layout](../ATF_Reporting_Display_Contract.md) și
-README-urile [ATF Reporting](../../atf-reporting/README.md) și
-[ATF Reporting Tests](../../atf-reporting-tests/README.md).
+Feedback-ul păstrează numai lacunele deschise și controalele temporare.
+Contractele stabile aparțin [contractului semantic](../ATF_Reporting_Contract.md),
+[contractului de display](../ATF_Reporting_Display_Contract.md) și README-urilor
+[Reporting](../../atf-reporting/README.md) / [Reporting Tests](../../atf-reporting-tests/README.md).
 
-## API-BODY-MEDIA-01 — etichete corecte pentru body-uri externe non-JSON
+## Ordinea intervențiilor
 
-**Stare: deschis, observat în raportul API live AutoEx prin MCP.**
-`ApiExchangeEvidence.body(...)` etichetează payload-ul real
-`application/x-www-form-urlencoded` ca `REQUEST JSON`. Body-ul și redacția
-sunt păstrate, însă eticheta sugerează un format pe care request-ul nu îl are.
+Scorul folosește formula registrului: impact /40 + lacună /30 + lucrabil /20 +
+datorie documentară /10. Este prioritate de remediere, nu notă de calitate.
 
-### Criterii de acceptare
+| ID | Scor | Motivul ordinii |
+|---|---:|---|
+| `REPORT-BROWSER-PLACEMENT-02` | 91 = 36 + 27 + 20 + 8 | noua probă Network cu Playwright încalcă ownerul UI component și face Test Kit roșu |
+| `UI-FAILURE-CAPTURE-02` | 84 = 34 + 24 + 20 + 6 | motivul lipsei capturii dispare din evidence-ul de eșec |
+| `REPORT-CLIENT-EXPECTATION-02` | 61 = 21 + 15 + 20 + 5 | testul HTML cere încă fallback-ul Client vechi, contrar contractului neutru |
 
-- [ ] Separați direcția request/response de formatul body-ului în proiecția
-      evidence; gruparea nu trebuie să depindă de prefixul textului etichetei.
-- [ ] Păstrați JSON pentru documentele JSON și folosiți o etichetă neutră ori
-      specifică pentru form/text. MIME-ul upstream rămâne neschimbat, inclusiv
-      când serviciul trimite JSON declarat `text/html`.
-- [ ] Probați component standalone și UI+API pentru JSON, form, text, absent și
-      not-captured, păstrând escaping-ul, redacția și disclosure-urile inline.
-- [ ] Verificați în MCP consumerul real. Nu convertiți artificial request-urile
-      site-ului în JSON și nu duplicați publisherul în AutoEx pentru a masca
-      limita infrastructurii comune.
+## REPORT-BROWSER-PLACEMENT-02 — proba Network trebuie plasată la ownerul UI
 
-## DOC-REPORT-SYNC-01 — referințe README rămase în urmă
+**Stare: deschis, reprodus de Test Kit pe codul nou.**
+`AtfTestLayerArchitectureTest` respinge importurile Playwright din
+`atf.api.reporting.ui.network.NetworkCaptureEvidenceTest`, clasă componentă
+aflată în afara pachetului UI permis.
 
-**Stare: deschis, drift documentar confirmat; modificările rămân în feedback
-conform regulii curente de lucru.**
+- [ ] Mutați proba neutră la `atf.ui.tests.extent.component`, după modelul
+      retry deja mutat; alternativ separați cazurile pure de cele browser.
+      Păstrați toate cele cinci cazuri și adnotarea componentei.
+- [ ] Păstrați testele generice în Reporting Tests, nu în Shop/AutoEx;
+      nu extindeți allowlist-ul guvernanței pentru a ascunde placement-ul.
+- [ ] Autorizați exact ștergerea/adăugarea prin `testChanges`, actualizați
+      package/importuri/comenzi și comparați invocările înainte/după mutare.
+- [ ] Rulați clasa, `AtfReportingComponentSuite` și toate testele Test Kit;
+      trecerea componentei funcționale nu închide failure-ul de arhitectură.
 
-- [Practice Shop — profil și faze](../../atf-test-practice-shop/README.md#configurația-modulului):
-  paragraful imediat anterior încă numește auditul vizual `SHOP-CAPTURE-01`
-  drept restant, deși verificarea prin ATF Debug/TAB MCP este consemnată mai jos.
-- [Practice Shop — boundary API](../../atf-test-practice-shop/README.md#boundary-ul-probelor-api):
-  matricele pentru `ShopStandaloneApiReportTest` încă declară ultima rulare
-  blocată la 401. Feedback-ul Shop are deja dovada HTTP autentificată verde;
-  aceasta nu trebuie confundată cu validitatea unui login UI ulterior.
-- [Reporting Tests](../../atf-reporting-tests/README.md) folosește ancora
-  `#shop-capture-01`, care nu corespunde heading-ului complet din acest document.
-  Referința corectă este
-  [profil per scenariu și flow peste faze](#shop-capture-01--profil-per-scenariu-și-flow-unificat-peste-faze).
-- La promovarea contractului `API-BODY-MEDIA-01`, ownerii README Reporting și
-  Reporting Tests trebuie să descrie canalul body tipizat și compatibilitatea
-  portului JSON istoric; textul despre JSON nu trebuie extins implicit la form/text.
+## UI-FAILURE-CAPTURE-02 — lipsa capturii trebuie explicată în raport
 
-## Stare curentă
+**Stare: deschis, reprodus în suita unit Reporting.**
+`UiAuditLifecycleTest.preservesActionsWhenFailureHasNoScreenshot` păstrează
+acțiunile, cauza și verdictul FAIL, dar nu găsește explicația vizibilă
+`screenshot disabled or unavailable`.
 
-| Stare | ID | Dovadă | Owner principal |
-|---|---|---|---|
-| Închis | `SHOP-CAPTURE-01` | Flow autentificat cu setup de înregistrare, login și achiziție trecut; raport fresh verificat prin ATF Debug în TAB MCP, inclusiv ownership API corectat | Reporting + Practice Shop |
-| Închis | `UI-AUDIT-01` | Rapoarte Shop și AutoEx verificate interactiv: observație terminală, assertions, captură Base64 deschisă; fallback fără captură probat separat | Reporting + consumatori |
+- `UiEvidencePublisher.publishFailure` pune motivul în `evidence.policy`;
+  `EvidenceTableFormatter` filtrează acea cheie pentru `ui-failure`, în ambele
+  căi de proiecție. Modelul conține informația, dar artifactul o pierde.
+- [ ] Publicați explicit starea capturii în `Failure evidence`, fără a
+      reintroduce `Audit details` sau metadate HTTP fictive la pasul UI.
+- [ ] Păstrați aserțiunea comportamentală: acțiunile/cauza/FAIL rămân prezente,
+      motivul lipsei capturii este vizibil și nu se inventează link Base64.
+- [ ] Acoperiți cu fixture neutră Extent și fallback: captură permisă validă,
+      captură indisponibilă și politică dezactivată; separați motivele fără
+      duplicarea acțiunilor sau a propoziției Gherkin.
+- [ ] Revedeți clasificarea probei: sesiune → publisher → HTML este boundary
+      de componentă, deși clasa declară acum `@AtfUnitTest`. Cazurile trebuie
+      executate și prin entry point-ul component, fără relaxarea guvernanței.
 
-## REPORT-START-ATOMICITY-01 — închis: crearea atomică a nodurilor de raport
+Comanda de reproducere este locală și nu cere aplicație externă:
 
-**Stare: închis pentru punctele injectabile din lifecycle-ul curent.**
+```text
+mvn -pl atf-reporting-tests -am "-Dtest=UiAuditLifecycleTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
 
-### Fapt live
+## REPORT-CLIENT-EXPECTATION-02 — oracol HTML rămas în urmă
 
-- `ExtentReportTree.startScenario` normalizează acum tag-urile înainte de
-  crearea oricărui nod Extent sau semantic. O colecție caller-owned care aruncă
-  la iterare nu mai lasă rădăcină/clasă/scenariu parțial.
-- `UiExtentReportSession.startScenario(..., scenarioProfile)` validează acum
-  profilul nenul înainte să delege pornirea scenariului; argumentul invalid nu
-  mai produce un nod Extent fără handle UI.
-- Regresii în `ExtentReportSessionLifecycleTest` și
-  `ReportEvidenceProfileIntegrationTest` verifică snapshot-ul/HTML-ul după
-  aceste două intrări invalide și faptul că următorul scenariu valid se publică.
-- Dacă pornirea semantică eșuează după crearea nodului Extent, scenariul/faza
-  este retrasă din arborele Extent. O rădăcină de clasă nouă rămasă goală este
-  retrasă și din raport; cauza inițială rămâne primară, iar eroarea de
-  compensare devine `suppressed`.
-- Un probe intern, inaccesibil consumatorului, injectează eșecul între
-  mutația Extent și pornirea semantică pentru scenariu și fază.
-- Evenimentele sink-ului Console sunt acum best-effort: o excepție runtime la
-  `SCENARIO`/`PHASE` start sau completion nu mai întrerupe lifecycle-ul. Regresia
-  este probată de `ExtentReportSessionLifecycleTest` cu sink intenționat defect.
-- Dacă o operație din acest interval aruncă, apelantul nu primește handle-ul
-  necesar pentru a completa nodul parțial. Consumerul poate păstra setup failure
-  ca eroare primară, dar nu poate repara singur modelul intern Reporting.
-- `TestRunInitialization` din Test Kit închide resursele și nodurile pentru care a
-  primit handle; proba sa nu poate închide această fereastră internă a API-ului.
+**Stare: deschis în test, nu regresie demonstrată a producției.**
+`ExtentReportSessionContractTest.publishesTheSharedVisualContract` cere încă
+`ATF ApiTransport (configured per execution)` într-o sesiune fără Client explicit.
+Artifactul publică `Configured per execution`, conform contractului neutru și
+`ReportEnvironmentSnapshotTest.genericClientFallbackDoesNotClaimAnApiTransportForUiOnlyRuns`.
 
-### Contractul verificat
+- [ ] Aliniați proba HTML la contractul neutru exact și păstrați verificarea că
+      un raport fără transport explicit nu pretinde `ATF ApiTransport`.
+- [ ] Probați separat Client explicit furnizat de consumer → aceeași valoare
+      în System, cu redactare; nu schimbați default-ul reutilizabil ca să
+      satisfaceți vechea aserțiune.
+- [ ] Revedeți layer-ul cazurilor care publică și citesc HTML: clasa este acum
+      unit, astfel că suita componentă nu vede această divergență. Migrarea
+      cere inventar înainte/după, control exact și păstrarea aserțiunilor de stil.
 
-Inițializarea trebuie să fie atomică față de caller. Dacă un efect secundar
-eșuează după publicarea parțială, Reporting fie retrage nodul în siguranță, fie
-îl lasă într-o stare terminală `FAIL` cu diagnosticul cauzei; nu rămâne un nod
-orfan `IN_PROGRESS` și raportul/snapshot-ul semantic rămân reconciliabile.
-Eșecul inițial rămâne primar, iar erorile de rollback sunt păstrate ca
-`suppressed`.
+## REPORT-TIMESTAMP-01 — format coerent în Categories
 
-### Probe în `atf-reporting-tests`
+**Stare: închis — format exclusiv 24h, componentă nativă și audit TAB MCP.**
 
-- Tag-uri invalide înainte de mutație, profil UI nul înainte de delegare,
-  eșec semantic injectat după crearea scenariului și fazei, plus compensare
-  secundară defectă. Probele verifică snapshot-ul, absența nodului orfan în
-  HTML, cauza primară/suppressed și reutilizarea sesiunii.
-- Console rămâne probat separat ca sink diagnostic best-effort. Testele sunt
-  deterministe și nu pornesc browser ori site real.
+- [x] Folosiți exclusiv format 24h (`HH:mm:ss`), fără `AM/PM`, în toate
+      tab-urile; păstrați aceeași zonă temporală pentru același instant.
+- [x] Probați la owner ore după prânz, miezul nopții și deep-link-ul din
+      Categories, fără modificarea timestamp-ului semantic al evenimentului.
 
-## SHOP-CAPTURE-01 — profil per scenariu și flow unificat peste faze
+- `ExtentReportTimestampReporter` este adaptorul de prezentare Spark folosit
+  de sesiunea canonică. Configurează timpul și data/ora în 24h; adaptează în
+  memorie numai expresia Categories hardcodată de vendor ca `HH:mm:ss a`.
+  Nu modifică JAR-ul, instanții, fusul orar, duratele sau payload-urile.
+- `ReportingTimestampComponentTest` locuiește în `atf-reporting/src/test`, în
+  pachetul standalone și cu tag JUnit `component`; nu importă Test Kit sau
+  alt modul ATF. Probează `00`, `12`, `15`, `23`, navbar/Overview/Tests/log/Categories,
+  conservarea instanților și duratei, plus integrarea sesiunii canonice.
+- Gate-uri în staging extern: 14 teste native Reporting, inclusiv cele cinci
+  cazuri noi, și 36 de regresii de compoziție trecute, fără teste sărite.
+- TAB MCP prin ATF Debug: Categories afișează `15:05:07` și `00:05:07`;
+  linkurile deschid testul original, Overview păstrează începutul/sfârșitul în
+  24h, iar durata rămâne `2 s`. Zero console error/warn și zero overflow la 1280 px.
 
-**Stare: închis după rularea și verificarea interactivă a artifactelor fresh.**
+## Contracte închise, promovate în documentația proiectului
 
-| Dovada | Stare live |
+| Contract stabil | Owner canonic |
 |---|---|
-| Profil explicit și izolare generică între scenarii | `UiExtentReportSession.startScenario(..., scenarioProfile)` este probat în `ReportEvidenceProfileIntegrationTest`, inclusiv ordinea inversă. |
-| Mapping Automation Exercise | Folosește profilul per scenariu pentru varianta final-only. |
-| Mapping Practice Shop | `ShopE2eContext` transmite profilul rezolvat; `ShopE2eContextEvidenceProfileTest` verifică override-ul față de YAML, nu izolarea a doi frați. |
+| Direcție/format body, JSON/form/text, absent/not-captured, MIME și escaping | [Dovezi body în Reporting](../../atf-reporting/README.md#dovezi-json-și-componentele-de-randare-ui) |
+| Pornire atomică, rollback și cauză primară/suppressed | [Lifecycle Reporting](../../atf-reporting/README.md#pornirea-atomică-a-scenariilor-și-fazelor) |
+| Profil per scenariu, izolare și flow unificat peste faze | [Contractul raportului](../../atf-reporting/README.md#contractul-raportului) și [mapping-ul Shop](../../atf-test-practice-shop/README.md#raport-partajat--starea-consumerului) |
+| Audit terminal, separarea ACTION/OBSERVE și captură conform profilului | [Audit terminal](../../atf-reporting/README.md#audit-terminal-în-screen-validation) |
 
-### Stare implementată
-
-- `UiScenario.unifyAcrossPhases()` activează bufferul de scenariu numai pentru
-  `UNIFIED_FLOW`; `UiPhase.completeFinal(...)` publică o singură propoziție
-  Gherkin cu checkpoints în ordine. Fiecare checkpoint păstrează faza,
-  verdictul fazei și al pasului, aserțiunile și API validation imediat după
-  evidence-ul UI proprietar. Modul obișnuit per fază rămâne nemodificat.
-- Shop activează opțiunea din profilul efectiv. `finishSetup(FAIL)` finalizează
-  flow-ul în `SETUP`; `TEST BODY` nu este creat și captura finală nu este
-  inventată. `pass`, `complete` și `fail` închid faza terminală explicit.
-- Probele în staging: `ShopComponentSuite` — 200 teste verzi;
-  `ReportEvidenceProfileIntegrationTest` +
-  `ExtentUnifiedFlowMultipleScreenshotTest` — 9 teste verzi;
-  `ShopUiOnlySingleFlowPurchaseE2eTest` — 1 test live trecut, raport nou în
-  staging. Testele noi acoperă setup + body, ownership API, verdictul unui
-  setup eșuat și absența `TEST BODY`/capturii terminale după eșec.
-- Auditul browser a descoperit repetarea înregistrării la checkpoint-ul de
-  login. `ShopAuthenticatedAccountTestSupport` publică acum liste locale
-  fiecărui checkpoint, fără acumularea request-ului sau aserțiunilor anterioare.
-  Rerularea autentificată a trecut; TAB MCP confirmă exact un nod de schimb
-  pentru `POST /users/register` și unul pentru `POST /users/login`.
-
-### Contractul țintă
-
-- **Implementat:** consumerul transmite profilul rezolvat fiecărui scenariu în
-  raportul comun; configurația furnizează baza, iar `@AtfUiEvidence` suprascrie
-  axele declarate. Politica de captură folosește același profil per context;
-  `UI_ONLY`/`UI_API` nu schimbă presentation-ul.
-- `UNIFIED_FLOW` publică acțiunile relevante din setup și body o singură dată,
-  în ordine cronologică, într-o narațiune coerentă. Păstrează identitatea fazei,
-  verdicturile, aserțiunile și relația cauzală a schimburilor API; nu dublează
-  propoziția Gherkin și nu mută request-uri între checkpoint-uri.
-- Politica de captură rămâne independentă de gruparea acțiunilor. O captură
-  terminală nu se inventează dacă execuția eșuează înainte de starea finală.
-- `Overview/System` rămâne metadata de raport, nu container pentru conținutul
-  journey-ului.
-
-### Probe și acceptanță
-
-- `atf-reporting-tests` păstrează probe neutre pentru profile per scenariu,
-  ordinea inversă și semantica `UNIFIED_FLOW`; aici se testează numai invariantul
-  generic de lifecycle/rendering.
-- **Acoperit generic:** `ReportEvidenceProfileIntegrationTest` publică profile
-  diferite într-o sesiune comună și verifică izolarea; Shop verifică separat
-  mapping-ul override-ului, nu repetă proba generică.
-- **Confirmat în TAB MCP:** setup explicit autentificat, ordinea setup/body,
-  un singur owner Gherkin, API validation după checkpoint-ul proprietar și o
-  singură captură finală. Fixture-ul diagnostic din staging reutilizează
-  journey-ul existent cu adnotări explicite; nu a fost promovat în testele live.
-- Calea negativă cu fixture reutilizat a expirat la `h1`: raportul a păstrat
-  `SETUP` eșuat fără `TEST BODY`; cauza și deep-link-ul Fails au fost verificate.
-  Această probă nu declară fixture-ul reutilizat drept cont UI valid.
-- E2E-ul consumer confirmă integrarea reală; nu se complică journey-urile doar
-  pentru a testa rendererul.
-- Artifactul verifică o singură apariție a fiecărei acțiuni, ordinea, un singur
-  owner Gherkin pentru flow-ul unificat, evidence API la checkpoint-ul corect,
-  capturile conforme cu profilul efectiv și lipsa scurgerii de profil între frați.
-
-## UI-AUDIT-01 — audit terminal pentru Screen validation
-
-**Stare: închis — cod, probe și verificare vizuală prin ATF Debug/TAB MCP.**
-
-`Screen validation` grupează acțiunile, observațiile, aserțiunile și captura;
-wiring-ul terminal și probele componente sunt implementate în Shop și AutoEx.
-Verificarea interactivă a fost făcută pe artifactele fresh generate în staging.
-
-| Aspect | Stare și dovadă cerută |
-|---|---|
-| Probe automate | Verifică structura evidence-ului; succesul lor nu certifică randarea vizuală. |
-| Artifact inspectat | Shop UI-only, Shop autentificat unificat și AutoEx final-only, deschise prin ATF Debug pe loopback în TAB MCP. |
-| Închidere | Click pe observații/assertions și deschidere efectivă a capturilor PNG; la 1280 px pagina nu are overflow orizontal, zero `<hr>` decorative și zero mesaje console error/warn. |
-
-### Contractul țintă
-
-- Pentru o validare terminală care afirmă că starea UI finală respectă
-  contractul, raportul publică o singură observație cu sens, de tip
-  `Audit screen contract`, în disclosure-ul `Audit observations` al aceleiași
-  validări. Nu se adaugă un nod Gherkin repetat și nu se creează un pas separat.
-- Observația este evidence explicativă, nu o a doua acțiune Playwright și nu o
-  aserțiune duplicată. Tabelul Playwright rămâne o singură secvență; tabelul de
-  assertions rămâne sursa verdictelor; screenshot-ul rămâne captura terminală
-  unică în modul final-only.
-- Observația identifică obiectul verificat și rezultatul contractului, numărul
-  aserțiunilor relevante, starea capturii și URL-ul sigur. Nu copiază body-uri,
-  secrete sau payload-uri complete și nu declară `PASS` doar pentru că există o
-  captură.
-- În modelul generic se păstrează distincția `ACTION`/`OBSERVE`; adaptorul nu
-  convertește observația în click sau altă acțiune. Înregistrarea are loc
-  înaintea oricărui `drain()`/snapshot al secvenței, ori este transmisă ca
-  evidence typed separat dacă aceasta este calea stabilă oferită de Reporting.
-- Domeniul este dovada contractului terminal, nu cerința de a inventa observații
-  pentru orice pas UI. Dacă un consumer nu capturează screenshot conform
-  politicii efective, raportul trebuie să spună explicit asta și să nu pretindă
-  că există evidence vizuală.
-
-### Probe și criterii de închidere
-
-- `atf-reporting-tests` construiește fixture neutrală cu acțiuni, exact o
-  observație `OBSERVE`, assertions și screenshot și verifică DOM-ul randat:
-  `Audit observations` este distinct, observația nu intră în tabelul de acțiuni,
-  ordinea și cardinalitățile sunt stabile. Proba verifică acum și contractul
-  exact `Audit screen contract`, starea PNG și URL-ul; fixture-ul include și
-  absența observației pentru detectarea regresiei, fără un site real.
-- Implementat în AutoEx: `finalScreenshot(...)` înregistrează o observație
-  terminală înainte de drenare; proba de componentă verifică unicitatea,
-  păstrarea ordinii, sursa `OBSERVE`, starea capturii și consumarea secvenței.
-  Aserțiunile nu se dublează.
-- Implementat în Shop: `pass(...)` folosește
-  `drainScreenContractEvidence(...)`, care validează PNG-ul, înregistrează
-  observația și abia apoi drenează secvența pentru publicare. Calea fără captură
-  păstrează fallback-ul `THEN` fără pretenție de evidence vizuală. Proba de
-  componentă validează lista exactă predată adaptorului, inclusiv ordinea
-  `record -> drain`, și păstrează separat testele checkpoint-urilor.
-- Reauditul a găsit și reparat ramura terminală Shop fără captură: publica
-  acțiunile fără observația de audit. `terminalContractEvidence(...)` păstrează
-  acum observația și mesajul explicit `screenshot=not captured` înainte de
-  drenare. `ShopTerminalEvidenceComponentTest` verifică ordinea, unicitatea,
-  drenarea și faptul că un payload invalid nu este declarat PNG valid.
-- Verificare în staging extern: 34 de teste Reporting (lifecycle, profile,
-  flow unificat și randare HTML), 3 probe AutoEx pentru profil/audit și suita
-  Shop cu 200 de teste au trecut. Aceste probe nu închid gate-ul vizual.
-- Testele componente ale rendererului și consumerilor sunt probele automate;
-  această verificare nu le înlocuiește și nu cere schimbarea testelor E2E.
-- În TAB MCP confirmă în artifactul randat că observația rămâne în același
-  `Screen validation`, fără Gherkin duplicat, și că politica efectivă de captură
-  este respectată. Nu deschide alt browser și nu modifica tabul utilizatorului.
+Multipart și whitespace sunt implementate la owner și au probe componente;
+nu mai sunt TODO-uri. Regresiile de failure fără captură, oracolul Client și
+formatul timestamp rămân distincte; o suită componentă verde nu le închide.
 
 ## Aprobări temporare pentru modificări de teste
 
@@ -247,6 +121,26 @@ testelor de guvernanță.
 
 ```yaml
 testChanges:
+  - id: REPORT-OPEN-GAPS-COMPONENT-03
+    status: ACTIVE
+    base: 5eb3fd3cb099fc67b49be3c17de564db63755db7
+    expires: 2026-11-23
+    reason: Păstrează toate cazurile Network la ownerul UI component, reclasifică publicarea HTML ca probă componentă și verifică motivul capturii și Client neutru sau explicit redactat. Ștergerea vechiului path Network este deja autorizată de UI-NETWORK-CAPTURE-PROOFS-01.
+    proof: mvn -pl atf-reporting-tests,atf-test-kit -am "-Dtest=AtfReportingComponentSuite,UiAuditLifecycleTest,UiFailureCaptureComponentTest,ExtentReportSessionContractTest,NetworkCaptureEvidenceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
+    paths:
+      - atf-reporting-tests/src/test/java/atf/ui/tests/extent/component/inspection/network/NetworkCaptureEvidenceTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/ui/UiAuditLifecycleTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/ui/failure/UiFailureCaptureComponentTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/extent/session/ExtentReportSessionContractTest.java
+  - id: REPORT-NATIVE-CLOCK-LAYER-03
+    status: ACTIVE
+    base: 5eb3fd3cb099fc67b49be3c17de564db63755db7
+    expires: 2026-11-23
+    reason: Înregistrează exact proba nativă ReportingTimestampComponentTest în inventarul standalone finit, fără a permite alte importuri sau a extinde allowlist-ul browser.
+    proof: mvn -pl atf-test-kit -am test
+    paths:
+      - atf-test-kit/src/test/java/atf/api/testkit/AtfTestLayerArchitectureTest.java
+      - atf-reporting/src/test/java/atf/api/reporting/standalone/ReportingTimestampComponentTest.java
   - id: SHOP-CAPTURE-01
     status: ACTIVE
     base: 0f6a95265024a78c20754d5c18937d24434a2d2d

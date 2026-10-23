@@ -1,4 +1,4 @@
-package atf.api.reporting.api.retry;
+package atf.ui.tests.extent.component.inspection.retry;
 
 import atf.api.reporting.api.ReportAttemptRecord;
 import atf.api.reporting.api.ReportRequest;

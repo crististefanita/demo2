@@ -1,5 +1,6 @@
 package atf.ui.tests.practiceshop.support.lifecycle;
 
+import atf.api.testkit.AtfComponentTest;
 
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfGherkinKeyword;
@@ -19,6 +20,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@AtfComponentTest
 class ShopE2eContextEvidenceProfileTest {
     @TempDir
     Path temporaryReports;

@@ -4,6 +4,7 @@ import atf.ui.autoex.config.AutoExConfiguration;
 import atf.ui.autoex.locator.AutoExSelectors;
 import atf.ui.autoex.support.checkout.AutoExOrderLine;
 import atf.ui.autoex.support.journey.AutoExPurchaseSession;
+import atf.ui.autoex.support.validation.AutoExUiText;
 
 /** Cart rows and checkout transition. */
 public final class CartPage extends AutoExPage {
@@ -35,7 +36,7 @@ public final class CartPage extends AutoExPage {
 
     public String removeProductAndReadEmptyCart(AutoExConfiguration.Catalog product) {
         click(row(product) + " " + AutoExSelectors.CART_REMOVE, "selected product is removed from the cart");
-        run.waitForText(AutoExSelectors.EMPTY_CART, "Cart is empty!",
+        run.waitForText(AutoExSelectors.EMPTY_CART, AutoExUiText.CART_EMPTY.text(),
                 "cart confirms that its last product was removed");
         return text(AutoExSelectors.EMPTY_CART, "empty-cart confirmation is read");
     }

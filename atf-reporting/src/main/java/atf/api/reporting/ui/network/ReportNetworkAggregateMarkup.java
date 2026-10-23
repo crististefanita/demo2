@@ -66,6 +66,24 @@ public final class ReportNetworkAggregateMarkup {
             ReportNetworkInspector.JourneyAggregate aggregate) {
         if (aggregate == null) return List.of();
         List<String> sections = new ArrayList<>();
+        if (aggregate.capture() != null) {
+            var capture = aggregate.capture();
+            var coverage = ReportEvidenceTable.of(List.of("METRIC", "VALUE"), List.of(
+                    List.of("Scope", capture.scope()),
+                    List.of("Capture", capture.complete() ? "Complete within scope" : "Incomplete within scope"),
+                    List.of("Accepted", Long.toString(capture.accepted())),
+                    List.of("Retained", Long.toString(capture.retained())),
+                    List.of("Excluded", Long.toString(capture.excluded())),
+                    List.of("Dropped", Long.toString(capture.dropped())),
+                    List.of("In flight", Long.toString(capture.inFlight())),
+                    List.of("Limit reached", Boolean.toString(capture.limitReached())),
+                    List.of("Setup exchanges", Long.toString(capture.setupExchanges())),
+                    List.of("Causal exchanges", Integer.toString(aggregate.observations()))));
+            sections.add(section("Capture coverage", AtfReportMarkup.tableHtml(
+                    AtfReportHtmlVocabulary.classList(
+                            AtfReportHtmlVocabulary.CssClass.HELM_EVIDENCE_TABLE,
+                            AtfReportHtmlVocabulary.CssClass.HELM_TRACE_TABLE), coverage)));
+        }
         if (!aggregate.authentication().isEmpty()) sections.add(
                 section(AUTHENTICATION, aggregate.authentication().size(),
                         ReportEvidenceTable.of(

@@ -274,9 +274,13 @@ Registration este o mutație remote; nu se reîncearcă automat și contul nu es
 | Izolarea scenariilor-surori | Probată generic în `atf-reporting-tests`; `ShopE2eContextEvidenceProfileTest` verifică override-ul peste YAML, dar nu publică doi frați cu profile diferite. |
 | Agregarea fazelor | În profilul `UNIFIED_FLOW`, Shop activează acumularea pe scenariu: `SETUP` și `TEST BODY` păstrează statusurile de fază, iar un singur nod Gherkin din faza terminală redă checkpoint-urile în ordine, cu provenance, assertions și API validation lângă checkpoint-ul lor. Un setup eșuat finalizează flow-ul în `SETUP`, fără `TEST BODY` sau captură terminală inventată. Profilurile `SCREEN_CHECKPOINTS` păstrează publicarea pe faze. |
 
-Verificarea vizuală rămasă și criteriul de închidere sunt urmărite în
-[SHOP-CAPTURE-01](../docs/feedback/ATF_Reporting_Feedback.md#shop-capture-01--profil-per-scenariu-și-flow-unificat-peste-faze);
-contractul generic de lifecycle și randare rămâne în [`atf-reporting`](../atf-reporting/README.md).
+Contractul generic de lifecycle și randare este deținut de
+[`atf-reporting`](../atf-reporting/README.md#politică-tipizată-pentru-dovezile-de-captură).
+Probe generice verifică izolarea profilurilor; probele Shop verifică mapping-ul
+și integrarea. Auditul browser urmărește ordinea fazelor și ownership-ul API,
+inclusiv setup eșuat fără `TEST BODY`; acest contract este închis și păstrat în
+[documentația Reporting](../atf-reporting/README.md#contractul-raportului), nu ca
+TODO de implementare în feedback.
 
 ## Configurația modulului
 
@@ -452,13 +456,24 @@ mvn -pl atf-test-practice-shop -am "-Dtest=ShopApiComponentSuite" "-Dsurefire.fa
 | `ShopApiUnitSuite` | reguli pure de rutare, request, selecție, recovery și evidence, fără client sau transport | comportamentul serviciului Practice Shop |
 | `ShopApiComponentSuite` | clientul și publisherul cu vecini controlați; variante de request/response și flow-uri API compuse | sortarea/filtrarea efectivă sau persistența remote |
 | `ShopApiCallAuditSuite` | auditul exchange-urilor emise de componentele Shop prin transporturile lor de test | traficul live al site-ului |
-| `ShopStandaloneApiReportTest` | login, catalog, filtrare/sortare din răspuns și mutații/read-back pe un coș izolat, adresă/payment prin HTTP live | invoice final; semantica live rămâne neconfirmată până la o rulare autentificată verde |
+| `ShopStandaloneApiReportTest` | login, catalog, filtrare/sortare din răspuns și mutații/read-back pe un coș izolat, adresă/payment prin HTTP live | invoice final, validitatea permanentă a fixture-ului sau autentificarea sesiunii UI |
 
 În component suite, `ShopApiEndpointMatrixTest` verifică invariants comune de
 transport; `ShopApiContractVariantTest` și `ShopApiScreenFlowTest` adaugă
 aserțiunile semantice distincte pentru payload și propagarea datelor. Suprapunerea
 unei rute este intenționată când dovada diferă; matricea nu substituie testul
 semantic și niciun fixture mock nu este prezentat ca dovadă de comportament live.
+
+Contractul live păstrează următoarele protecții:
+
+- filtrarea verifică apartenența fiecărui produs la categoria cerută, iar
+  sortarea compară prețurile numeric, nu lexicografic;
+- `ShopApiLiveCartScope` deține coșul izolat, verifică read-back după update și
+  remove și confirmă coșul gol la cleanup; DELETE-ul nu este repetat;
+- operațiile mutative au o singură încercare; cleanup-ul pe succes și după
+  întrerupere are probe deterministe, fără a fabrica o eroare remote;
+- fixture-ul autentificat este precondiție, nu garanție permanentă; un 401
+  oprește flow-ul, iar credentialele nu ajung în documentație sau raport.
 
 ### Limita dintre testele Shop și testele Reporting
 
@@ -541,13 +556,15 @@ Pentru rulare individuală din Maven cu un cont existent:
 mvn -pl atf-test-practice-shop -am "-Dtest=ShopAuthenticatedPurchaseE2eTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
-| Proba | Boundary și efect | Stare live |
+| Proba | Boundary și efect | Criteriu de verificare |
 |---|---|---|
-| `ShopStandaloneApiReportTest` | Opt-in prin `atf.practice.authenticated-e2e=true` și fixture autentificat în `src/test/resources`; codul verifică filtrarea/sortarea răspunsului și update/remove cu read-back pe coș izolat, plus checkout/payment. Nu creează invoice-ul final. | Ultima rulare s-a oprit la login HTTP 401 înainte de crearea coșului; semantica remote pentru sort/filter și cart mutations rămâne neconfirmată. |
+| `ShopStandaloneApiReportTest` | Opt-in prin `atf.practice.authenticated-e2e=true` și fixture autentificat în `src/test/resources`; verifică sort/filter, update/remove cu read-back pe coș izolat și checkout/payment, fără invoice final. | Rulare autentificată `LIVE / HTTP`, contracte business trecute și cleanup confirmat; un login eșuat publică diagnosticul și nu validează mutațiile ulterioare. |
 | Suitele unit/component | Variații de request, validator și lifecycle cu vecini controlați; fără cont și fără trafic către serviciul extern. | Deterministe; nu sunt prezentate ca dovadă a semanticii serverului. |
 
-Sortarea/filtrarea remote și mutațiile de coș rămân deschise în
+Contractele HTTP autentificate pentru sort/filter și mutațiile coșului sunt
+probate; verificarea interactivă a raportului standalone rămâne în
 [feedback-ul API](../docs/feedback/ATF_Practice_Shop_API_Test_Design_Feedback.md).
+Login-ul API nu dovedește automat autentificarea UI a aceluiași cont.
 
 ## Modificări și întreținere
 

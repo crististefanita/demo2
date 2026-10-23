@@ -13,7 +13,6 @@ import atf.api.reporting.evidence.profile.ReportUiActionDetailsMode;
 import atf.api.reporting.configuration.ReportingSettings;
 import atf.api.reporting.security.SensitiveDataRedactor;
 import com.aventstack.extentreports.ExtentReports;
-import com.aventstack.extentreports.reporter.ExtentSparkReporter;
 import com.aventstack.extentreports.reporter.configuration.Theme;
 
 import java.nio.file.Files;
@@ -81,7 +80,7 @@ public final class ExtentReportSession implements AtfReportPorts.Session, AutoCl
         Objects.requireNonNull(redactor, "redactor");
         this.console = Objects.requireNonNull(console, "console");
         this.publication = ExtentReportSessionPublication.open(this.reportPath);
-        var spark = new ExtentSparkReporter(publication.stagedReport().toString());
+        var spark = new ExtentReportTimestampReporter(publication.stagedReport().toString());
         spark.config().setTheme(Theme.DARK);
         spark.config().setDocumentTitle(AtfReportLabels.REPORT_TITLE);
         spark.config().setReportName(AtfReportLabels.REPORT_TITLE);

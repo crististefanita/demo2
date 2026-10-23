@@ -182,9 +182,11 @@ Testarea este împărțită după responsabilitate:
   rezolvare, precedență și maparea policy-ului la `ConsoleSettings`;
 - `AtfConsoleConfigurationLoaderTest` — discovery, precedence, path resolution
   și validarea boolean-urilor;
-- testele de lifecycle JUnit — integrarea extension-ului opțional;
-- `AtfReportPathPolicyResolverTest`, `AtfReportPathOptInTest` — adnotări,
-  conflicte și agregare indiferent de ordinea ownerilor;
+- `AtfConsoleTestExtensionIntegrationTest` — `@AtfIntegrationTest`, callback-uri
+  Jupiter reale prin `EngineTestKit`, inclusiv invocări dinamice și concurente;
+- `AtfReportPathPolicyResolverTest` din Test Kit și `AtfReportPathOptInTest`
+  din Console — `@AtfUnitTest`, politici locale, conflicte și agregare
+  indiferent de ordinea ownerilor;
 - testele de execuție — publicarea separată a evenimentelor.
 
 - Jupiter nu rulează `BeforeEachCallback`/`TestWatcher` pentru fiecare copil din `@TestFactory`.

@@ -46,6 +46,10 @@ Fiecare clasă executabilă declară exact un nivel:
   inclusiv compoziția imbricată; ciclurile nu inventează un nivel;
 - regula este fail-closed: o clasă fără nivel sau cu mai multe niveluri oprește
   build-ul, inclusiv când nivelurile provin din adnotări compuse.
+- Nivelul aparține clasei executabile, nu numelui fișierului sau profilului
+  raportului; fixture-urile de meta-adnotări sunt separate de ownerul executabil.
+- Probele Reporting care folosesc direct Playwright rămân la ownerul component UI,
+  în `atf.ui.tests.extent.component`; un contract API randat nu justifică o excepție.
 
 ### Verificări de compoziție
 

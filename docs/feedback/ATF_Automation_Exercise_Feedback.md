@@ -1,73 +1,78 @@
-# Automation Exercise — cerințe business rămase
+# AutoEx — compatibilitatea business rămasă
 
-Consumerul verifică magazinul public prin journey-uri reale și reutilizează
-browserul, adnotările, cleanup-ul și raportarea ATF. Contractul stabil și
-comenzile sunt în [README-ul AutoEx](../../atf-test-auto-ex/README.md).
+Contractele stabile pentru vocabularul UI/API, validarea căutării și ownership-ul
+fazelor sunt în [README-ul AutoEx](../../atf-test-auto-ex/README.md#vocabular-și-adrese).
+Feedback-ul păstrează numai lacunele business încă neînchise.
 
-## ToDo — acceptanță încă deschisă
+## AUTOEX-VIGNETTE-70-01 — închiderea reclamei la 70%
 
-| ID | Cerință | Acceptanță | Prioritate |
-|---|---|---|---:|
-| `AUTOEX-VIGNETTE-DISMISS-01` | Închiderea auditabilă a reclamei reale | În `AutoExBusinessSuite`, controlul vizibil `#dismiss-button` este uneori interceptat de corpul iframe-ului. Rezolvarea trebuie să folosească o interacțiune UI reală cu Close, fără force-click/DOM injectat, cu probă component și o rulare live în care toate cele trei povești trec. Eșecul și cleanup-ul actual nu trebuie mascate. | 76 |
-`AUTOEX-CLEANUP-RECOVERY-01` este probat pe o reclamă **reală**, nu doar pe
-un hash controlat: rularea `AutoExBusinessSuite` a păstrat `TimeoutError` de la
-Close ca eroare primară și `Failure evidence` cu captură, a navigat din
-`#google_vignette` la Home și a publicat confirmarea ștergerii contului acelei
-rulări. Corecția care a permis cleanup-ul evită tratarea ca unic a selectorului
-`h2.title.text-center` pe pagina Home. Proba controlată de staging a verificat
-suplimentar aceeași ordine fără să fie confundată cu dovada live.
+**Stare: în verificare.** Integrarea folosește explicit
+`clickWithJavaScript(..., postcondition)` numai pentru Close; profilul AutoEx
+revine la 70%. Click-urile business obișnuite și gap-ul generic al pointerului
+rămân separate de această activare DOM.
 
-## Verificat — povești business
+### De la experiment la integrarea opt-in
 
-| ID | Dovadă din rularea izolată, pe magazinul public |
+- `HTMLElement.click()` pe controlul Close vizibil a închis vignette-ul real
+  din flow-ul coșului; fragmentul din URL a dispărut și adăugarea produsului
+  a continuat normal. Cele trei povești business au trecut în aceeași probă.
+- Raportul inspectat în MCP arată scala 70%, acțiunea `JavaScript click`,
+  observația separată a închiderii și captura stării ulterioare `Added!`.
+- Este activare DOM programatică, nu click de pointer trusted. Nu repară
+  geometria și nu certifică închiderea reclamei în toate contextele checkout.
+- API-ul integrat cere postcondiție și publică un singur rezultat după aceasta;
+  nu există fallback JavaScript silențios și nici retry automat al activării.
+
+### Gate-uri de închidere
+
+- [ ] Probați API-ul opt-in `atf-ui`, cu înregistrare distinctă și fără
+      schimbarea click-urilor business obișnuite.
+- [ ] Probați la owner ținta unică/vizibilă/activă, propagarea erorii și
+      postcondiția nereușită; AutoEx nu primește teste artificiale de reclamă.
+- [ ] Verificați separat UI_API și apariția naturală a reclamei în checkout la
+      70%, păstrând cleanup-ul și failure evidence dacă închiderea eșuează.
+
+| Responsabilitate | Owner |
 |---|---|
-| `AUTOEX-CART-EDIT-01` | `AutoExCartUiE2eTest#recalculatesAndRemovesCartProduct` a trecut: același produs a fost adăugat din nou, cantitatea și totalul au fost recalculate, apoi rândul a fost eliminat și mesajul coșului gol verificat. A doua căutare a necesitat așteptarea rezultatului; pagina are și un `#empty_cart` ascuns, deci confirmarea folosește numai elementul vizibil. |
-| `AUTOEX-SESSION-01` | `AutoExCartUiE2eTest#preservesGuestCartAfterLoginAndRemovesAccount` a trecut: identitatea sintetică, produsul, cantitatea și totalul au fost verificate după login, apoi ștergerea contului a fost confirmată. |
-| `AUTOEX-CLEANUP-RECOVERY-01` | Proba live negativă din `AutoExBusinessSuite` a păstrat eșecul de închidere a vignette-ului, captura, revenirea la magazin și ștergerea contului. Testul a rămas corect marcat FAIL; cleanup-ul nu transformă eșecul în PASS. |
+| Geometria pointerului la zoom non-nativ | [ATF UI — gap generic](ATF_UI_Browser_Geometry_Feedback.md) |
+| Proba reclamei reale și păstrarea flow-ului business | `atf-test-auto-ex` |
+| Cleanup și contractele business deja probate | [README AutoEx](../../atf-test-auto-ex/README.md#contul-creat-și-cleanup-ul-sub-vignette) |
 
-Pentru `AUTOEX-VIGNETTE-DISMISS-01`, o probă izolată cu focus + Enter pe
-controlul vizibil a trecut pe un iframe de test, **dar a eșuat pe reclama
-reală**: Enter nu a închis-o, iar click-ul a fost interceptat în continuare
-de `body` din iframe. Varianta experimentului meu nu a fost promovată; între
-timp, în codul live a apărut separat o variantă Enter-only, care necesită
-probă live și nu poate fi declarată remediu pe baza fixture-ului. Nu folosiți
-un fixture sintetic drept dovadă suficientă și nu rezolvați prin force-click
-sau injectare de DOM; este necesară o interacțiune UI reală, verificată pe
-reclama efectivă.
+### Acceptanță consumer
 
-Cele două fluxuri au trecut separat și în gate-ul combinat din staging.
-`AutoExBusinessSuite` a rulat 3 teste: 2 PASS, 1 ERROR din interacțiunea
-cu reclama reală; nu declarăm gate-ul verde. Testele generice de adnotări,
-Playwright, lifecycle, HTML/CSS/JS și layout aparțin modulelor ATF owner.
+- [ ] Verificați cele trei povești din `AutoExBusinessSuite` și UI_API la 70%,
+      fără reclamă simulată; nu declarați pointerul reparat pe baza unui click DOM.
+- [ ] Inspectați raportul nou în MCP: scala efectivă, acțiunea JavaScript,
+      starea ulterioară și failure evidence anterior recuperării, dacă e cazul.
 
-## Increment în lucru — coș, sesiune și cleanup observat
+Poveștile de coș, continuitatea după login, factura și recuperarea cleanup-ului
+nu sunt ToDo-uri noi. Selecția și completitudinea traficului UI_API sunt
+documentate la [boundary-ul cauzal AutoEx](../../atf-test-auto-ex/README.md#boundary-ul-cauzal-pentru-ui_api).
 
-Implementarea păstrează confirmarea creării înainte de navigarea cleanup-ului,
-verifică identitatea înaintea ștergerii și reia autentificarea numai cu datele
-contului sintetic al rulării. Recuperarea din vignette se publică numai când
-fragmentul a fost observat efectiv; proba negativă nu este simulată și nu se
-închide printr-o rulare fără reclamă.
+## AUTOEX-DELETE-AFTER-AD-01 — confirmarea ștergerii după reclamă
 
-- `AutoExBusinessSuite` selectează trei povești distincte, nu trei formate ale
-  aceleiași comenzi; `AutoExApiComponentSuite` separă componentele offline de
-  suitele API live existente.
-- `AutoExComponentSuite` a trecut în staging cu 49 de teste și zero failure/error.
-- Inspectarea vizuală prin MCP a rapoartelor locale rămâne necesară înaintea
-  acceptanței finale a suitei; protocolul `file:` nu este disponibil agentului
-  în tabul MCP.
+O rulare UI_API la 100% a trecut checkout-ul și factura, dar după Close la
+ștergerea contului a ajuns pe Home. `accountDeletionResult()` a găsit două
+headings `h2.title.text-center`, iar testul a rămas FAIL. Cleanup-ul de
+recuperare a revenit la `/delete_account` și a confirmat ștergerea.
+
+- [ ] Corelați rezultatul ștergerii cu ruta și confirmarea business după Close,
+      fără `first()` care ar accepta un heading Home și fără mascarea erorii.
+- [ ] Probați tranziția în componenta business AutoEx și pe site-ul real;
+      păstrați failure evidence înainte de recuperare.
+
+## Control tehnic temporar pentru integrarea opt-in
 
 ```yaml
 testChanges:
-  - id: AUTOEX-CART-SESSION-01
+  - id: UI-JAVASCRIPT-CLICK-01
     status: ACTIVE
-    base: 0f6a95265024a78c20754d5c18937d24434a2d2d
+    base: 5eb3fd3cb099fc67b49be3c17de564db63755db7
     expires: 2026-11-23
-    reason: Adauga povesti business reale pentru recalcularea cosului si continuitatea dupa login, pastrand cleanup-ul identitatii si suite API separate.
-    proof: mvn -pl atf-test-auto-ex,atf-tests -am "-Dtest=AutoExComponentSuite,AutoExBusinessSuite,AutoExApiReadOnlyLiveSuite,AutoExApiLiveSuite,WholeAtfGovernanceSuiteTest" "-Datf.autoex.e2e.enabled=true" "-Datf.autoex.api.readonly.live.enabled=true" "-Datf.autoex.api.live.enabled=true" "-Datf.governance.testChanges.baseRef=0f6a95265024a78c20754d5c18937d24434a2d2d" "-Dsurefire.failIfNoSpecifiedTests=false" test
+    reason: Integreaza activarea DOM explicita cu postconditie atomica si probe neutre la ownerul UI; inlocuieste fallback-ul AutoEx 100 cu profilul 70 fara schimbarea click-urilor business.
+    proof: mvn "-pl=atf-test-auto-ex,atf-tests" -am "-Dtest=PlaywrightJavaScriptClickComponentTest,PlaywrightActionSequenceTest,PlaywrightUiSessionTest,AutoExComponentSuite,AutoExBusinessSuite,AutoExPurchaseUiApiE2eTest,WholeAtfGovernanceSuiteTest" "-Datf.autoex.e2e.enabled=true" "-Datf.governance.testChanges.baseRef=5eb3fd3cb099fc67b49be3c17de564db63755db7" "-Dsurefire.failIfNoSpecifiedTests=false" test
     paths:
-      - atf-test-auto-ex/src/test/java/atf/ui/autoex/support/AutoExE2eRun.java
-      - atf-test-auto-ex/src/test/java/atf/ui/tests/autoex/api/AutoExApiLiveContractTest.java
-      - atf-test-auto-ex/src/test/java/atf/ui/tests/autoex/e2e/AutoExCartUiE2eTest.java
-      - atf-test-auto-ex/src/test/java/atf/ui/tests/autoex/suites/AutoExApiComponentSuite.java
-      - atf-test-auto-ex/src/test/java/atf/ui/tests/autoex/suites/AutoExBusinessSuite.java
+      - atf-ui/src/test/java/atf/api/ui/playwright/PlaywrightJavaScriptClickComponentTest.java
+      - atf-ui/src/test/resources/atf/ui/playwright/javascript-click.html
+      - atf-test-auto-ex/src/test/resources/atf-auto-ex.yaml
 ```

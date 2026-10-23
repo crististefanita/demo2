@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Generic DOM activation contract</title></head>
+<body>
+  <button id="visible">Activate</button>
+  <output id="result">untouched</output>
+  <output id="count">0</output>
+  <button id="hidden" hidden>Hidden</button>
+  <button id="disabled" disabled>Disabled</button>
+  <button class="ambiguous">First</button>
+  <button class="ambiguous">Second</button>
+  <button id="script-error">Script failure</button>
+  <button id="password-close">Sensitive failure</button>
+  <iframe id="embedded" srcdoc="<button onclick=&quot;this.textContent = 'activated:' + event.isTrusted&quot;>Activate</button>"></iframe>
+  <iframe id="isolated" sandbox="allow-scripts" srcdoc="<button onclick=&quot;this.textContent = 'activated:' + event.isTrusted&quot;>Activate</button>"></iframe>
+  <div id="overlay" hidden style="position:fixed;inset:0;background:white;z-index:10">Pointer interception</div>
+  <script>
+    document.querySelector('#visible').addEventListener('click', event => {
+      const counter = document.querySelector('#count');
+      document.querySelector('#result').textContent = String(event.isTrusted);
+      counter.textContent = Number(counter.textContent) + 1;
+    });
+    document.querySelector('#script-error').click = () => {
+      throw new Error('controlled dispatch failure');
+    };
+    document.querySelector('#password-close').click = () => {
+      throw new Error('synthetic-private-activation-value');
+    };
+  </script>
+</body>
+</html>

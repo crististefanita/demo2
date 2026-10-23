@@ -10,14 +10,16 @@ import atf.ui.autoex.support.account.AutoExTestAccount;
 import atf.ui.autoex.support.trace.AutoExCustomerTraceStep;
 import atf.ui.autoex.support.journey.AutoExPurchaseSession;
 import atf.ui.autoex.support.journey.AutoExPurchaseTraceStep;
+import atf.ui.autoex.support.validation.AutoExStoreAssertions;
 
 import java.net.URI;
 import java.util.List;
 
+import static atf.ui.autoex.support.validation.AutoExUiText.ACCOUNT_CREATED;
+import static atf.ui.autoex.support.validation.AutoExUiText.ACCOUNT_DELETED;
+
 /** Registration during checkout and deterministic disposal of the synthetic account. */
 public final class AccountPage extends AutoExPage {
-    private static final String CREATED_MESSAGE = "ACCOUNT CREATED!";
-    private static final String DELETED_MESSAGE = "ACCOUNT DELETED!";
     private boolean creationConfirmed;
     private boolean creationAttempted;
 
@@ -58,9 +60,10 @@ public final class AccountPage extends AutoExPage {
         click(AutoExSelectors.CREATE_ACCOUNT, "disposable account is created on the practice site");
 
         String result = text(AutoExSelectors.ACCOUNT_RESULT_HEADING, "account-creation result is read");
-        creationConfirmed = result.contains(CREATED_MESSAGE);
+        AtfAssertion creation = AutoExStoreAssertions.accountCreated(result);
+        creationConfirmed = creation.passed();
         run.checkpoint(AutoExPurchaseTraceStep.ACCOUNT_CREATED,
-                List.of(new AtfAssertion("Account creation", CREATED_MESSAGE, result, creationConfirmed)));
+                List.of(creation));
         click(AutoExSelectors.CONTINUE, "created account session continues to the store");
     }
 
@@ -105,18 +108,18 @@ public final class AccountPage extends AutoExPage {
         }
         click(AutoExSelectors.DELETE_ACCOUNT, "this run's disposable customer account is deleted");
         String result = text(AutoExSelectors.ACCOUNT_RESULT_HEADING, "account-deletion result is read");
-        boolean deleted = result.contains(DELETED_MESSAGE);
-        if (deleted) run.clearFailureCleanup();
+        AtfAssertion deletion = AutoExStoreAssertions.accountDeleted(result);
+        if (deletion.passed()) run.clearFailureCleanup();
         run.checkpoint(AutoExPurchaseTraceStep.ACCOUNT_DELETED,
                 List.of(new AtfAssertion("Disposable customer identity", account.signupName(), identity,
                                 account.signupName().equals(identity)),
-                        new AtfAssertion("Account cleanup", DELETED_MESSAGE, result, deleted)));
+                        deletion));
         click(AutoExSelectors.CONTINUE, "deleted account flow returns to the store");
         return result;
     }
 
     private void deleteIfCreatedAndLoggedIn(AutoExTestAccount account) {
-        if (accountResultContains(DELETED_MESSAGE)) {
+        if (accountResultContains(ACCOUNT_DELETED.text())) {
             run.clearFailureCleanup();
             return;
         }
@@ -138,7 +141,7 @@ public final class AccountPage extends AutoExPage {
     }
 
     private void cleanupFromCurrentPage(AutoExTestAccount account) {
-        if (accountResultContains(DELETED_MESSAGE)) {
+        if (accountResultContains(ACCOUNT_DELETED.text())) {
             run.clearFailureCleanup();
             return;
         }
@@ -164,7 +167,7 @@ public final class AccountPage extends AutoExPage {
     }
 
     private boolean accountCreationWasConfirmed() {
-        return accountResultContains(CREATED_MESSAGE);
+        return accountResultContains(ACCOUNT_CREATED.text());
     }
 
     private boolean accountResultContains(String expected) {

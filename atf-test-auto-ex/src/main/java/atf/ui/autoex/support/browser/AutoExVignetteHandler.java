@@ -10,7 +10,7 @@ import com.microsoft.playwright.Page;
 
 import java.util.Objects;
 
-/** Dismisses only the public site's visible Google vignette close control. */
+/** Opts into DOM activation only for the public site's visible Google vignette Close control. */
 public final class AutoExVignetteHandler {
     private static final String CLOSE_EXPECTATION =
             "visible Google vignette is closed with its Close control";
@@ -27,8 +27,8 @@ public final class AutoExVignetteHandler {
             Locator candidate = frame.locator(AutoExSelectors.VIGNETTE_CLOSE_CONTROL);
             if (candidate.count() == 1 && candidate.isVisible()) {
                 var closeControl = new AtfLocator(candidate, AutoExSelectors.VIGNETTE_CLOSE_CONTROL);
-                actions.click(closeControl, CLOSE_EXPECTATION);
-                page.waitForURL(url -> !url.contains(AutoExRoutes.GOOGLE_VIGNETTE_FRAGMENT));
+                actions.clickWithJavaScript(closeControl, CLOSE_EXPECTATION,
+                        () -> page.waitForURL(url -> !url.contains(AutoExRoutes.GOOGLE_VIGNETTE_FRAGMENT)));
                 return true;
             }
         }

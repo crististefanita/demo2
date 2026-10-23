@@ -5,6 +5,8 @@ public enum AutoExApiJsonField {
     RESPONSE_CODE("responseCode"),
     MESSAGE("message"),
     PRODUCTS("products"),
+    NAME("name"),
+    PRICE("price"),
     BRANDS("brands"),
     USER("user"),
     USER_EMAIL("user.email");

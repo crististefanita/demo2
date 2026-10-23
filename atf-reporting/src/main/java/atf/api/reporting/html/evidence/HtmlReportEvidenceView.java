@@ -26,7 +26,6 @@ import atf.api.reporting.ui.network.ReportNetworkAggregateMarkup;
 import atf.api.reporting.ui.network.ReportNetworkInspector;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 
 import static atf.api.reporting.html.HtmlReportMarkupSupport.escape;
@@ -74,7 +73,8 @@ public final class HtmlReportEvidenceView {
 
     public void renderRequestDetails(StringBuilder html, ReportExecutionModel.Request request) {
         var details = EvidenceTableFormatter.requestFields(request.details());
-        var json = request.json().stream().filter(item -> isRequestJson(item.label())).toList();
+        var json = request.json().stream()
+                .filter(item -> item.direction() == ReportJsonBody.Direction.REQUEST).toList();
         if (details.isEmpty() && json.isEmpty()) return;
         html.append(ReportEvidenceMarkup.disclosureStart(
                         REQUEST_EVIDENCE.value(), AtfReportLabels.requestDetails(details.size())))
@@ -86,7 +86,8 @@ public final class HtmlReportEvidenceView {
 
     public void renderResponseDetails(StringBuilder html, ReportExecutionModel.Request request) {
         var details = EvidenceTableFormatter.technicalTraceFields(request.details());
-        var json = request.json().stream().filter(item -> !isRequestJson(item.label())).toList();
+        var json = request.json().stream()
+                .filter(item -> item.direction() == ReportJsonBody.Direction.RESPONSE).toList();
         if (details.isEmpty() && json.isEmpty()) return;
         html.append(ReportEvidenceMarkup.disclosureStart(
                         RESPONSE_EVIDENCE.value(), AtfReportLabels.responseDetails(details.size())))
@@ -115,10 +116,6 @@ public final class HtmlReportEvidenceView {
                     .append(escape(ReportEvidenceJsonFormatter.displayBody(item, redactor, settings)))
                     .append(closeTag(PRE)).append(closeTag(DIV));
         }
-    }
-
-    private boolean isRequestJson(String label) {
-        return label != null && label.trim().toUpperCase(Locale.ROOT).startsWith(AtfReportLabels.REQUEST_PREFIX);
     }
 
     public void renderExecution(StringBuilder html, ReportExecutionEvidence execution) {

@@ -26,6 +26,15 @@ public final class ReportJsonBodyFormatter {
     private ReportJsonBodyFormatter() {
     }
 
+    public static boolean isJsonDocument(String body) {
+        if (body == null || body.isBlank()) return false;
+        try {
+            return STRICT_READER.readTree(body) != null;
+        } catch (JsonProcessingException | RuntimeException invalidDocument) {
+            return false;
+        }
+    }
+
     private static DefaultPrettyPrinter prettyPrinter() {
         DefaultIndenter indenter = new DefaultIndenter("  ", "\n");
         DefaultPrettyPrinter printer = new DefaultPrettyPrinter();

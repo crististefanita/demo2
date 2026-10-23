@@ -9,7 +9,12 @@ automationExercise:
     viewport:
       width: 1440
       height: 1000
-    zoomPercent: 100
+    # Only the visible vignette Close opts into JavaScript; ordinary business clicks remain pointer actions.
+    zoomPercent: 70
+    networkInspection:
+      includeDocuments: false
+      maxObservations: 256
+      maxBodyPreviewCharacters: 12000
   reports:
     uiBaseDirectory: artifacts/reports/ui
   catalog:

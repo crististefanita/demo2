@@ -1,5 +1,6 @@
 package atf.api.console.junit;
 
+import atf.api.testkit.AtfUnitTest;
 import atf.api.core.reporting.console.AtfConsoleEvent;
 import atf.api.testkit.reporting.AtfReportPath;
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@AtfUnitTest
 class AtfReportPathOptInTest {
     @Test
     void sharedArtifactUsesAnyOwnerOptInRegardlessOfOwnerOrder() {

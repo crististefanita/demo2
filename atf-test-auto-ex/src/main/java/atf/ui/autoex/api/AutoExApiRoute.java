@@ -11,6 +11,8 @@ public enum AutoExApiRoute {
     UPDATE_ACCOUNT("/api/updateAccount"),
     USER_DETAIL_BY_EMAIL("/api/getUserDetailByEmail");
 
+    public static final String PATH_PREFIX = "/api/";
+
     private final String path;
 
     AutoExApiRoute(String path) { this.path = path; }

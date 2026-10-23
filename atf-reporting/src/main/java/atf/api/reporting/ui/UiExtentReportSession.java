@@ -332,6 +332,14 @@ public final class UiExtentReportSession implements AutoCloseable {
             lifecycle.networkInspector(title, evidence, steps);
         }
 
+        /** Registers scope and completeness independently of the UI/API business verdict. */
+        public void networkInspector(String title,
+                                     Collection<atf.api.reporting.model.ReportExecutionEvidence> evidence,
+                                     Collection<ReportNetworkInspector.Step> steps,
+                                     atf.api.reporting.ui.network.ReportNetworkCaptureStatus capture) {
+            lifecycle.networkInspector(title, evidence, steps, capture);
+        }
+
         public void setup(String keyword, String title, String target,
                           Collection<AtfAssertion> assertions, AtfReportStatus status) {
             lifecycle.setup(keyword, title, target, assertions, status);
@@ -406,6 +414,17 @@ public final class UiExtentReportSession implements AutoCloseable {
                                             Collection<AtfUiActionRecord> actions,
                                             AtfReportStatus status) {
             lifecycle.screenValidationAsMedia(title, target, base64Png, assertions, actions, status);
+        }
+
+        /** Keeps terminal document/form exchanges alongside the screen that caused them. */
+        public void screenValidation(String title, String target, String base64Png,
+                                     Collection<AtfAssertion> assertions,
+                                     Collection<AtfUiActionRecord> actions,
+                                     Collection<atf.api.reporting.model.ReportExecutionEvidence> apiEvidence,
+                                     ReportScreenshotPolicy.CapturePoint capturePoint,
+                                     AtfReportStatus status) {
+            lifecycle.screenValidation(title, target, base64Png, assertions, actions, apiEvidence,
+                    capturePoint, status);
         }
 
         public void failureEvidence(String title, String target,

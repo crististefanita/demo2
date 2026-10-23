@@ -2,6 +2,8 @@ package atf.ui.autoex.config;
 
 import atf.api.ui.config.UiBrowserConfiguration;
 import atf.api.ui.config.UiNetworkInspectionConfiguration;
+import atf.api.ui.network.UiNetworkCapturePolicy;
+import atf.api.ui.config.UiNetworkSettlementPolicy;
 import atf.api.ui.config.UiRetryPolicy;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -108,7 +110,7 @@ public final class AutoExConfigurationLoader {
             }
             JsonNode browser = requiredNode(site, "browser");
             rejectUnknownFields(browser, "automationExercise.browser", "engine", "headless", "timeout",
-                    "navigationTimeout", "viewport", "zoomPercent");
+                    "navigationTimeout", "viewport", "zoomPercent", "networkInspection");
             JsonNode viewport = requiredNode(browser, "viewport");
             rejectUnknownFields(viewport, "automationExercise.browser.viewport", "width", "height");
             UiBrowserConfiguration browserConfiguration = new UiBrowserConfiguration(baseUrl,
@@ -117,7 +119,7 @@ public final class AutoExConfigurationLoader {
                     duration(browser, "navigationTimeout", "PT45S"),
                     integer(viewport, "width", 1440), integer(viewport, "height", 1000),
                     integer(browser, "zoomPercent", UiBrowserConfiguration.DEFAULT_ZOOM_PERCENT),
-                    true, UiRetryPolicy.none(), UiNetworkInspectionConfiguration.disabled());
+                    true, UiRetryPolicy.none(), networkInspection(browser, baseUrl));
 
             JsonNode reports = requiredNode(site, "reports");
             JsonNode catalog = requiredNode(site, "catalog");
@@ -157,6 +159,21 @@ public final class AutoExConfigurationLoader {
         JsonNode node = parent.path(name);
         if (!node.isObject()) throw new IllegalArgumentException("Missing configuration object: " + name);
         return node;
+    }
+
+    private static UiNetworkInspectionConfiguration networkInspection(JsonNode browser, URI baseUrl) {
+        JsonNode network = browser.path("networkInspection");
+        if (!network.isMissingNode() && !network.isObject()) {
+            throw new IllegalArgumentException("networkInspection must be a configuration object");
+        }
+        rejectUnknownFields(network, "automationExercise.browser.networkInspection",
+                "includeDocuments", "maxObservations", "maxBodyPreviewCharacters");
+        UiNetworkCapturePolicy policy = UiNetworkCapturePolicy.asynchronous();
+        if (bool(network, "includeDocuments", false)) policy = policy.includingDocuments();
+        return new UiNetworkInspectionConfiguration(false, Set.of(baseUrl.getHost()),
+                integer(network, "maxObservations", 256),
+                integer(network, "maxBodyPreviewCharacters", 12000), true,
+                UiNetworkSettlementPolicy.disabled(), policy);
     }
 
     private static void rejectUnknownFields(JsonNode node, String path, String... allowedFields) {

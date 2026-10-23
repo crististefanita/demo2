@@ -1,6 +1,7 @@
 package atf.api.reporting.html.scope;
 
 import atf.api.reporting.model.ReportExecutionEvidence;
+import atf.api.reporting.model.ReportJsonBody;
 import atf.api.reporting.console.AtfConsoleEvent;
 import atf.api.reporting.console.AtfConsoleSink;
 import atf.api.reporting.contract.AtfReportPorts;
@@ -57,6 +58,12 @@ public final class HtmlReportRequestScope implements AtfReportPorts.Request {
     }
 
     @Override
+    public void body(ReportJsonBody body) {
+        model.addBody(body);
+        semantic.json(body.label());
+    }
+
+    @Override
     public void execution(ReportExecutionEvidence result) {
         model.execution(result);
         semantic.execution();
@@ -65,7 +72,7 @@ public final class HtmlReportRequestScope implements AtfReportPorts.Request {
     @Override
     public void networkAggregate(ReportNetworkInspector.JourneyAggregate aggregate) {
         networkAggregate = aggregate;
-        semantic.detail("network.aggregate");
+        if (aggregate != null) semantic.detail("network.aggregate");
         model.networkAggregate(aggregate);
     }
 

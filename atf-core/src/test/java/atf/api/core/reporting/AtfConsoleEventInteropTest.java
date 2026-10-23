@@ -1,5 +1,6 @@
 package atf.api.core.reporting;
 
+import atf.api.testkit.AtfUnitTest;
 import atf.api.core.reporting.console.AtfConsoleEvent;
 import atf.api.core.reporting.contract.AtfReportStatus;
 import org.junit.jupiter.api.Test;
@@ -9,6 +10,7 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+@AtfUnitTest
 class AtfConsoleEventInteropTest {
     private enum ExternalType { START, COMPLETE, REPORT_PUBLISHED, UNKNOWN }
     private enum ExternalScope { SCENARIO, REPORT, UNKNOWN }

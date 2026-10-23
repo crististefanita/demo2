@@ -1,6 +1,8 @@
 package atf.ui.tests.autoex.api;
 
 import atf.api.console.junit.AtfConsoleTestExtension;
+import atf.api.core.reporting.console.AtfConsoleEvent;
+import atf.api.reporting.console.AtfConsoleSink;
 import atf.api.core.http.response.ApiExecutionResult;
 import atf.api.reporting.contract.AtfReportPorts;
 import atf.api.reporting.contract.AtfReportStatus;
@@ -34,11 +36,17 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.UUID;
 
+import static atf.api.reporting.ui.contract.ReportUiContract.Phase.TEST_BODY;
+import static atf.api.reporting.console.AtfConsoleEvent.Type.REPORT_PUBLISHED;
+
 /** Publishes direct Automation Exercise API contract runs as one auditable Extent artifact. */
 public final class AutoExApiContractReportExtension implements BeforeAllCallback, BeforeEachCallback,
         AfterEachCallback, AfterAllCallback {
     public static final String REPORT_DIRECTORY_PROPERTY = "atf.autoex.api.report-directory";
     private static final String DEFAULT_REPORT_DIRECTORY = "artifacts/reports/api/auto-ex";
+    private static final String REPORT_FILE_PREFIX = "api-atf-auto-ex-contract_";
+    private static final int MAX_DIAGNOSTIC_FAILURES = 4;
+    private static final int MAX_DIAGNOSTIC_LENGTH = 1_000;
     private static final ExtensionContext.Namespace NAMESPACE =
             ExtensionContext.Namespace.create(AutoExApiContractReportExtension.class);
     private static final String SESSION = "session";
@@ -55,7 +63,7 @@ public final class AutoExApiContractReportExtension implements BeforeAllCallback
                 System.getProperty(REPORT_DIRECTORY_PROPERTY, DEFAULT_REPORT_DIRECTORY));
         Files.createDirectories(directory);
         String timestamp = Instant.now().toString().replace(":", "-");
-        Path report = directory.resolve("api-atf-auto-ex-contract_" + timestamp + "_"
+        Path report = directory.resolve(REPORT_FILE_PREFIX + timestamp + "_"
                 + UUID.randomUUID().toString().substring(0, 8) + ".html");
         var environment = ReportEnvironmentSnapshot.builder()
                 .put(ReportEnvironmentField.ENVIRONMENT, "LIVE OPT-IN")
@@ -79,7 +87,7 @@ public final class AutoExApiContractReportExtension implements BeforeAllCallback
         Class<?> owner = context.getRequiredTestClass();
         var scenario = session.startScenario(owner.getSimpleName(), owner.getPackageName(),
                 context.getDisplayName(), List.of("api", "auto-ex", "contract", "live"));
-        var run = new Run(scenario, scenario.startPhase("TEST BODY"));
+        var run = new Run(scenario, scenario.startPhase(TEST_BODY.displayName()));
         context.getStore(NAMESPACE).put(RUN, run);
         CURRENT.set(run);
     }
@@ -137,8 +145,6 @@ public final class AutoExApiContractReportExtension implements BeforeAllCallback
         String actualMessage = jsonField(execution.response().body(), AutoExApiJsonField.MESSAGE.path());
         boolean codeMatches = Integer.toString(expectedResponseCode).equals(actualCode);
         boolean messageMatches = expectedMessage == null || expectedMessage.equals(actualMessage);
-        AtfReportStatus status = codeMatches && messageMatches
-                ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
         var validation = node.startValidation("Validate documented JSON response contract");
         var assertions = new java.util.ArrayList<AtfAssertion>();
         assertions.add(new AtfAssertion("JSON responseCode", Integer.toString(expectedResponseCode),
@@ -147,7 +153,7 @@ public final class AutoExApiContractReportExtension implements BeforeAllCallback
             assertions.add(new AtfAssertion("JSON message", expectedMessage, actualMessage, messageMatches));
         }
         assertions.addAll(additionalAssertions);
-        status = assertions.stream().allMatch(AtfAssertion::passed)
+        AtfReportStatus status = assertions.stream().allMatch(AtfAssertion::passed)
                 ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
         validation.assertions(assertions);
         validation.complete(status);
@@ -165,7 +171,7 @@ public final class AutoExApiContractReportExtension implements BeforeAllCallback
         var pending = new ArrayDeque<Throwable>();
         pending.add(failure);
         int relatedFailures = 0;
-        while (!pending.isEmpty() && relatedFailures < 4) {
+        while (!pending.isEmpty() && relatedFailures < MAX_DIAGNOSTIC_FAILURES) {
             Throwable current = pending.removeFirst();
             if (!seen.add(current)) continue;
             relatedFailures++;
@@ -176,7 +182,7 @@ public final class AutoExApiContractReportExtension implements BeforeAllCallback
             if (current.getCause() != null) pending.addLast(current.getCause());
             for (Throwable suppressed : current.getSuppressed()) pending.addLast(suppressed);
         }
-        if (description.length() > 1_000) description.setLength(1_000);
+        if (description.length() > MAX_DIAGNOSTIC_LENGTH) description.setLength(MAX_DIAGNOSTIC_LENGTH);
         return description.toString();
     }
 
@@ -194,12 +200,11 @@ public final class AutoExApiContractReportExtension implements BeforeAllCallback
         }
     }
 
-    private static atf.api.reporting.console.AtfConsoleSink reportPathSink(Class<?> owner) {
+    private static AtfConsoleSink reportPathSink(Class<?> owner) {
         var coreSink = AtfConsoleTestExtension.reportPathSink(owner);
         return event -> {
-            if (event.type() == atf.api.reporting.console.AtfConsoleEvent.Type.REPORT_PUBLISHED) {
-                coreSink.publish(atf.api.core.reporting.console.AtfConsoleEvent.reportPublished(
-                        Path.of(event.detailValue())));
+            if (event.type() == REPORT_PUBLISHED) {
+                coreSink.publish(AtfConsoleEvent.reportPublished(Path.of(event.detailValue())));
             }
         };
     }

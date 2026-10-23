@@ -1,9 +1,11 @@
 package atf.api.core.http.auth;
 
+import atf.api.testkit.AtfUnitTest;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@AtfUnitTest
 class AuthProfilesTest {
     @Test
     void normalizesMissingProfilesToNoAuthentication() {

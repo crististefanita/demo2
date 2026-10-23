@@ -1,7 +1,7 @@
 # ATF — focalizarea testelor consumer pe business
 
 Feedback-ul păstrează reducerea încă nevalidată a repetării live pentru
-profilele Shop/AutoEx și lacunele preexistente de clasificare.
+profilele Shop/AutoEx.
 Ownership-ul suportului și al probelor
 neutre este documentat în [ghidul de testare](../ATF_Testing_Guide.md#reducerea-suitei-fără-pierdere-de-acoperire)
 și README-urile ownerilor.
@@ -19,8 +19,8 @@ datorie documentară /10. El ordonează lucrul, nu evaluează calitatea modululu
 
 **Stare: parțial implementat.** AutoEx are `AutoExBusinessSuite` pentru povești
 distincte și păstrează separat matricea manuală `AutoExPurchaseSuite`.
-Acceptanța live a gate-ului business este urmărită în
-[feedback-ul AutoEx](ATF_Automation_Exercise_Feedback.md); selecția Shop nu este redusă.
+Acceptanța și comenzile gate-ului business sunt normate în
+[README-ul AutoEx](../../atf-test-auto-ex/README.md#rulare); selecția Shop nu este redusă.
 
 | Modul | Variante de păstrat ca dovadă reală | Repetare determinată de evidence |
 |---|---|---|
@@ -33,8 +33,10 @@ Acceptanța live a gate-ului business este urmărită în
       → captură/publicare, pe succes și failure; reflecția adnotării sau
       verificarea enum-ului nu sunt suficiente.
 - [ ] Reutilizați `ReportEvidenceProfileIntegrationTest` și
-      `UiScreenshotPolicyIntegrationTest` pentru contractul generic; gap-ul
-      verificarea vizuală Shop cross-phase `SHOP-CAPTURE-01` rămâne independentă.
+      `UiScreenshotPolicyIntegrationTest` pentru contractul generic, fără
+      duplicarea probelor de renderer în consumer. Izolarea profilurilor și
+      flow-ul Shop cross-phase sunt contracte închise; aici lipsește dovada
+      echivalenței selecției reduse, nu o nouă implementare a lor.
 - [ ] Păstrați exemplele de adnotări executabile manual; decideți dacă ies numai
       din suita live sau sunt înlocuite de fixture-uri locale. Clasa AutoEx
       este folosită direct de `AutoExEvidenceProfileComponentTest`.
@@ -45,23 +47,3 @@ Acceptanța live a gate-ului business este urmărită în
       nu devine precondiție ascunsă.
 - [ ] Aliniați README-urile și suitele după probele de echivalență; mock-ul nu
       înlocuiește confirmarea fluxului live UI+API.
-
-## TEST-LAYER-DECLARATIONS-01 — metadate preexistente de clasificare
-
-**Stare: deschis, separat de consolidarea probelor.** Owner: modulele claselor
-de test; regula executabilă rămâne în Test Kit.
-
-| Probă / zonă | Constatare |
-|---|---|
-| `mvn -pl atf-test-kit test` | 52 cazuri: 50 trecute, două eșecuri preexistente de clasificare |
-| `AtfTestLayerArchitectureTest` | `everyConcreteExecutableTestDeclaresExactlyOneLayer` și `moduleLayerMatrixIsDerivedFromDeclaredAnnotations` se opresc la `AtfConsoleTestExtensionIntegrationTest`, fără nivel ATF |
-| Inventarul claselor | `AtfReportPathOptInTest` nu are nici el declarația; oprirea la primul fișier nu reprezintă inventar complet |
-
-- [ ] Stabiliți lista completă și declarați nivelul potrivit boundary-ului
-      fiecărei clase, păstrând adnotările compuse și separarea
-      unit/component/integration/E2E.
-- [ ] Rulați guard-ul Test Kit și componentele ownerilor afectați; înregistrați
-      path-urile protejate fără relaxarea regulii sau omiterea claselor.
-
-`WholeAtfGovernanceSuiteTest` și acest guard sunt entry-point-uri distincte.
-Succesul primei suite nu certifică populația verificată de al doilea.

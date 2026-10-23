@@ -27,6 +27,7 @@ public final class ReportEvidenceJsonFormatter {
         Objects.requireNonNull(redactor, "redactor");
         Objects.requireNonNull(settings, "settings");
         String redacted = redactor.redactJson(body.body());
-        return ExtentReportNodeSupport.displayBody(ReportJsonBodyFormatter.format(redacted), settings);
+        return ExtentReportNodeSupport.displayBody(body.format() == ReportJsonBody.Format.JSON
+                ? ReportJsonBodyFormatter.format(redacted) : redacted, settings);
     }
 }

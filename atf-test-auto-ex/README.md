@@ -289,14 +289,33 @@ cu date business pozitive și negative în `AutoExPurchaseBusinessComponentTest`
 
 - Dialogul CMP este tratat prin interfața vizibilă, cu alegerea minimă pentru
   scopurile opționale.
-- Dacă apare vignette-ul Google, handler-ul consumerului apasă controlul vizibil
-  „Close” și așteaptă dispariția fragmentului vignette din URL.
-- Handler-ul nu modifică DOM-ul și nu folosește click forțat; interacțiunile rămân
-  în trace-ul E2E.
+- Dacă apare vignette-ul Google, handler-ul consumerului activează explicit
+  controlul vizibil „Close” și verifică dispariția fragmentului din URL.
+- Handler-ul nu ascunde/șterge overlay-ul, nu fabrică hash-uri și nu folosește
+  click forțat; mecanismul opt-in este delimitat mai jos.
 - În cleanup, o pagină rămasă pe `#google_vignette` este înlocuită prin navigare
   explicită la magazin înaintea ștergerii contului. Navigarea este înregistrată
   de ATF și nu reexecută plata; failure evidence este capturat înainte de
   recuperare și verdictul inițial rămâne FAIL.
+
+### Vignette și activare JavaScript
+
+AutoEx folosește `zoomPercent: 70`. Numai controlul Close al unei vignette reale
+apelează `clickWithJavaScript(..., postcondition)` din `atf-ui`; restul acțiunilor
+business rămân click-uri pointer Playwright. Configurația nu schimbă silențios
+zoom-ul și nu activează fallback JavaScript general.
+
+| Responsabilitate | Owner / contract |
+|---|---|
+| Controlul reclamei | `AutoExVignetteHandler`: fragment vignette prezent și un Close vizibil în frame |
+| Activare | `atf-ui`: țintă unică/activă, un singur `HTMLElement.click()`, fără retry automat |
+| Rezultat | callback read-only așteaptă eliminarea fragmentului; acțiunea trece numai după acesta |
+| Raport | rând distinct `JavaScript click`, selector real, durată și observație explicită „not a trusted pointer click” |
+| Limită | activarea DOM nu certifică geometria pointerului la 70% sau succesul pasului business următor |
+
+Probele generice ale API-ului aparțin `atf-ui`; AutoEx verifică reclama apărută
+natural în flow-urile reale UI/UI_API, fără teste artificiale de reclamă.
+Problema pointerului rămâne în [feedback-ul de geometrie](../docs/feedback/ATF_UI_Browser_Geometry_Feedback.md).
 
 ### Contul creat și cleanup-ul sub vignette
 
@@ -310,9 +329,9 @@ cu date business pozitive și negative în `AutoExPurchaseBusinessComponentTest`
 
 Ordinea generică a capturii, conservarea cauzei primare și a erorilor
 `suppressed` sunt probate în Test Kit. Proba integrată negativă cu reclama
-reală a confirmat recuperarea și ștergerea contului, păstrând eroarea inițială;
-închiderea vignette-ului în fluxul nominal rămâne
-[deschisă](../docs/feedback/ATF_Automation_Exercise_Feedback.md).
+reală a confirmat recuperarea și ștergerea contului, păstrând eroarea inițială.
+Activarea reclamei și recuperarea business sunt mecanisme distincte: închiderea
+overlay-ului nu este acceptată drept confirmare a creării sau ștergerii contului.
 
 ## Coș și continuitatea sesiunii
 
@@ -329,26 +348,49 @@ Fiecare metodă primește o sesiune de browser izolată prin aceeași extensie A
 - Așteptări: `Catalog.withQuantity(...)` calculează totalul; rezultatul
   căutării este așteptat înainte de deschiderea produsului.
 - Coș gol: se citește `#empty_cart` vizibil, nu elementul omonim ascuns.
-- Vignette: AutoEx folosește `zoomPercent: 100` pentru geometria nativă a
-  iframe-ului; click-ul standard Close este probat pe reclama reală. Zoom CSS
-  70% și focus + Enter nu au demonstrat aceeași interacțiune. Contractul
-  generic de geometrie aparține [ATF UI](../atf-ui/README.md).
+- Vignette: activarea Close este singurul opt-in JavaScript; contractul și
+  limita pointerului sunt descrise [mai sus](#vignette-și-activare-javascript).
+- Audit: Overview/System publică engine-ul, headless, viewport-ul și zoom-ul
+  CSS rezolvat pentru sesiune; închiderea reclamei nu modifică verdictul business.
 - Ownership: `support.cart` deține journey-urile, `support.trace` propozițiile
   Gherkin și portul `AutoExTraceStep`; purchase rămâne separat, iar Reporting
   acceptă ambele vocabulare.
 
 ## Rute și locatori ai site-ului
 
-`AutoExRoutes` este catalogul rutelor Automation Exercise, iar
-`AutoExSelectors` deține selectorii site-ului. Selectorii `href` se derivă din
-rute; page objects consumă catalogul și nu construiesc CSS inline. Aceste valori
-sunt contracte ale aplicației AutoEx, nu vocabular generic ATF.
+### Vocabular și adrese
 
-Regulile comune pentru selectori CSS, compoziția prin `HtmlElement` și
-`HtmlAttribute`, escaping și evitarea locatorilor fragili sunt documentate și
-testate de [`atf-ui` — Convenții pentru locatori UI](../atf-ui/README.md#convenții-pentru-locatori-ui).
-Testele AutoEx exercită selectorii pe markup-ul public real; nu duplică testele
-generice cu DOM sintetic ale modulului owner.
+| Valoare | Owner | Utilizare |
+|---|---|---|
+| Identitatea site-ului public | `AutoExSite.PUBLIC_BASE_URI` | referință canonică în Java; endpoint-ul efectiv rămâne `baseUrl` din YAML/override |
+| Endpoint fictiv pentru componente | `AutoExApiFixture.BASE_URI`, numai în `src/test` | transport determinist și evidence offline; fără apel la site-ul public |
+| Rute API | `AutoExApiRoute` | factory-ul API și aliasul `AutoExRoutes.PRODUCTS_API` folosesc aceeași definiție |
+| Câmpuri form/query și JSON | `AutoExApiFormField`, `AutoExApiJsonField` | cont typed, autentificare, căutare și citirea catalogului |
+| Rezultate API business | `AutoExApiOutcome` | perechi `responseCode`/`message`; HTTP transport rămâne un contract distinct |
+| Texte și verdicturi UI | `AutoExUiText`, `AutoExStoreAssertions` | reguli pure comune paginilor și journey-urilor de cont, coș și comandă |
+| Destinația căutării | `AutoExCatalogAssertions.searchLocation` | origin și path configurate, un singur parametru `AutoExRoutes.SEARCH_PARAMETER`, cu valoarea decodată exactă |
+| Faze reporting | `ReportUiContract.Phase` din Reporting | nume de fază comune, fără un catalog AutoEx duplicat |
+| Metode, headers și MIME | `HttpMethod`, `HttpHeader`, `MediaTypes` din Core | protocol comun, inclusiv `APPLICATION_FORM_URLENCODED` |
+
+Vocabularul site-ului rămâne separat de primitivele reutilizabile:
+
+- constanta site-ului nu este fallback ascuns; proba de configurație verifică
+  propagarea altui URL până la browser;
+- fixture-urile wire rămân oracol independent de serializer pentru numele
+  câmpurilor, encoding și omiterea parametrilor lipsă, inclusiv în cazuri negative;
+- componentele verifică mesaje parțiale și lipsă, query-uri duplicate, domenii
+  diferite, encoding și prefixe de configurare; testele nu înlocuiesc expected-ul
+  cu o valoare citită din același rezultat;
+- `AutoExRoutes` deține rutele, `AutoExSelectors` selectorii, iar page objects
+  consumă catalogul fără CSS inline; acestea sunt contracte AutoEx;
+- `atf-ui` deține [regulile CSS reutilizabile](../atf-ui/README.md#convenții-pentru-locatori-ui)
+  pentru `HtmlElement`, `HtmlAttribute` și escaping; AutoEx le exercită pe
+  markup real, fără a dubla probele generice cu DOM sintetic.
+
+Un selector Surefire de metodă (`Clasă#metodă`) se execută separat de clasele
+`@Suite`: filtrul metodei poate ajunge și în discovery-ul suitelor și produce
+`NoTestsDiscoveredException`. Pentru probele de mai sus rulează întâi
+`AutoExComponentSuite`, apoi, separat, metoda business selectată sau suita live.
 
 ### Reutilizare după analiza Practice Shop
 
@@ -359,14 +401,12 @@ generice cu DOM sintetic ale modulului owner.
 | Browser, acțiuni, captură și redactare | `atf-ui` | rute, selectori, CMP și vignette AutoEx |
 | Profil per scenariu, assertions și network inspector | `atf-reporting` | așteptările checkout-ului și asocierea observațiilor la pași |
 
-Nu există dependență AutoEx → Practice Shop. Validatoarele de ecran și jurnalul
-Shop includ selectorii, identitatea și contractul API Shop; mutarea lor integrală
-în infrastructură ar transfera business-ul. O extracție nouă trebuie să aibă un
-API neutru și același comportament probat în consumatorii relevanți.
-
-În acest
-increment se refolosesc primitivele comune existente; regulile de adresă,
-comandă și factură rămân în `support.checkout` AutoEx.
+- Independență: nu există dependență AutoEx → Practice Shop; validatoarele și
+  jurnalul Shop includ selectorii, identitatea și contractul acelui site.
+- Extracții: se mută doar un API neutru, cu același comportament probat în
+  consumatorii relevanți; business-ul nu se transferă în infrastructură.
+- Increment curent: se refolosesc primitivele comune existente; regulile de
+  adresă, comandă și factură rămân în `support.checkout` AutoEx.
 
 ## API direct și limita evidence-ului UI/API
 
@@ -413,29 +453,46 @@ flowchart LR
 | API live read-only | `AutoExApiReadOnlyLiveSuite`; `GET` products/brands și `POST` product search | cere `-Datf.autoex.api.readonly.live.enabled=true`; nu creează sau modifică conturi |
 | API live cu cont | `AutoExApiLiveSuite`; contracte positive/negative și lifecycle-ul contului sintetic cu cleanup | cere `-Datf.autoex.api.live.enabled=true`; efect extern, opt-in |
 | Raport API direct | `AutoExApiContractReportExtension` publică exchange-uri și assertions JSON; implicit `artifacts/reports/api/auto-ex`, override `atf.autoex.api.report-directory`; `@AtfReportPath` publică locația | publisher component verifică artifactul offline, dar nu substituie proba live |
-| Traficul E2E `UI_API` | precondiția catalogului este publicată separat de fereastra cauzală | selecția actuală `/api/` omite XHR-ul coșului; jurnalul bounded include și asset-uri; remedierea este în [feedback-ul Network](../docs/feedback/ATF_UI_Network_Inspection_Feedback.md) |
+| Traficul E2E `UI_API` | precondiția catalogului este publicată separat de fereastra cauzală | XHR/fetch first-party, inclusiv coșul fără prefix `/api/`; scope și completitudine în inspector |
 
 ### Boundary-ul cauzal pentru `UI_API`
+
+Diagrama comună pentru captură, baseline și publicare este în
+[arhitectura ATF](../docs/ATF_Architecture.md#capturarea-și-selecția-traficului-ui).
 
 - `AutoExCatalogApiPrecondition` execută și publică o singură precondiție
   `GET /api/productsList` înainte să marcheze baseline-ul traficului browserului.
 - Inspectorul agregă numai schimburile observate după baseline. Precondiția
   rămâne în checkpoint-ul ei `GIVEN`; nu este numărată din nou ca trafic UI/API
   cauzal.
-- În prezent, adaptorul selectează numai rute cu prefix `/api/`; XHR-ul real
-  `GET /add_to_cart/1` este capturat de inspector, dar exclus din evidence-ul
-  publicat pentru coș.
-- Jurnalul comun include și resursele statice ale hostului; poate atinge
-  plafonul înainte de checkout. `0 exchanges` descrie selecția publicată și nu
-  certifică absența traficului sau completitudinea capturii.
+- Politica implicită selectează XHR/fetch first-party înainte de body capture
+  și buget. XHR-ul real `GET /add_to_cart/1`, cu răspuns `text/html`, rămâne
+  în checkpoint-ul coșului; nu există filtrare după prefix `/api/`.
+- `UI_API` așteaptă bounded răspunsul XHR pornit de aceeași acțiune.
+  Confirmarea vizibilă „Added!” este așteptată înainte de citire; template-ul
+  ascuns nu certifică încheierea acțiunii. Nu se reexecută request-ul pentru
+  raport.
+- Resursele statice nu ocupă jurnalul. `Capture coverage` expune scope,
+  accepted/retained/excluded/dropped, plafon și separarea setup/causal.
+  `0 exchanges` se interpretează numai în scope-ul și starea capturii.
 - Când există schimburi cauzale, acestea rămân legate de fereastra și
   checkpoint-ul observat; căutarea UI navighează la `/products?search=...` și
   nu este confundată cu endpoint-ul direct `POST /api/searchProduct`.
 
-Testele componente pentru baseline/fereastră verifică separarea setup/causal.
-Selecția traficului și completitudinea capturii au criterii deschise în
-[feedback-ul Network](../docs/feedback/ATF_UI_Network_Inspection_Feedback.md),
-cu probe generice în `atf-ui` / `atf-reporting-tests` și probe business la AutoEx.
+| YAML: `automationExercise.browser.networkInspection` | Implicit | Efect |
+|---|---|---|
+| `includeDocuments` | `false` | `true` include navigări/formulare, inclusiv checkout/payment; nu le numește automat API |
+| `maxObservations` | `256` | plafon pentru traficul selectat; overflow-ul rămâne vizibil |
+| `maxBodyPreviewCharacters` | `12000` | limita capturii; limita mai mică de afișare Reporting se aplică separat |
+
+Profilul UI-only păstrează inspectorul dezactivat; `UI_API` activează aceeași
+configurație validată, fără să-i înlocuiască setările. Headerele/auth și
+proveniența originale sunt adaptate typed către Reporting, nu inferate dintr-un
+profil fictiv. Capturile terminale pot publica și exchange-urile finale.
+
+Probele de selecție/buget/cursor aparțin `atf-ui`; prezentarea și snapshot-ul
+aparțin `atf-reporting-tests`. AutoEx verifică YAML-ul, ruta reală a coșului,
+precondiția catalogului și journey-ul business, fără teste generice de renderer.
 
 ### Acoperirea celor 14 cazuri publicate în API List
 

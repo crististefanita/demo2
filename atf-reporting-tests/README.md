@@ -304,10 +304,29 @@ Izolarea profilului per scenariu este un contract generic implementat și testat
 Consumerul trebuie să transmită profilul rezolvat la crearea fiecărui scenariu;
 un profil furnizat doar la deschiderea raportului rămâne valoarea implicită a
 sesiunii. Wiring-ul Practice Shop pentru rapoarte partajate și agregarea fazelor
-`SETUP` + `TEST BODY` sunt urmărite separat în
-[SHOP-CAPTURE-01](../docs/feedback/ATF_Reporting_Feedback.md#shop-capture-01).
+`SETUP` + `TEST BODY` sunt implementate la consumer și documentate în
+[contractul raportului](../atf-reporting/README.md#contractul-raportului).
+
+`ExtentUnifiedFlowMultipleScreenshotTest` verifică regresia generică de
+publicare; mapping-ul local rămâne în probele Shop, fără copierea rendererului.
+
+`UiAuditLifecycleTest` este încă declarat unit și nu intră în component suite.
+Cazul fără screenshot eșuează la explicația vizibilă a lipsei capturii;
+[feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md#ui-failure-capture-02--lipsa-capturii-trebuie-explicată-în-raport)
+cere remedierea proiecției și acoperire la boundary-ul component, nu eliminarea
+aserțiunii existente.
+
+`ExtentReportSessionContractTest` are și o așteptare HTML veche pentru Client:
+default-ul neutru este corect, dar proba cere încă un transport API implicit.
+[Reconcilierea oracolului și a layer-ului](../docs/feedback/ATF_Reporting_Feedback.md#report-client-expectation-02--oracol-html-rămas-în-urmă)
+rămâne deschisă; un component gate verde nu înseamnă că întreaga suită unit trece.
 
 ## Matricea de integrare și limitele verificate
+
+Proba nouă `NetworkCaptureEvidenceTest` trece funcțional, dar importurile sale
+Playwright sunt încă în pachetul non-UI și fac Test Kit roșu.
+[Corectarea placement-ului](../docs/feedback/ATF_Reporting_Feedback.md#report-browser-placement-02--proba-network-trebuie-plasată-la-ownerul-ui)
+trebuie să păstreze cele cinci cazuri și selecția lor prin component suite.
 
 Integration tests rămân grupate după boundary-ul observat, nu după numele
 modulului consumat:
@@ -481,6 +500,14 @@ flowchart LR
 - component/integration publisher tests verifică faptul că body-urile rămân în
   disclosures canonical și aggregate-ul nu primește credentiale sau mesaje
   volatile;
+- `ApiBodyMediaComponentTest` verifică JSON, JSON declarat `text/html`, form,
+  text adversarial, body absent și necapturat în standalone Extent, fallback și
+  UI+API; păstrează MIME-ul, redacția și escaping-ul, fără conversie artificială;
+- aceeași probă verifică direcția request/response independent de eticheta
+  afișată; modelul `ReportJsonBody` și canalul `Request.body(...)` sunt tipizate,
+  iar constructorul cu două argumente și `json(...)` păstrează convenția legacy;
+  [contractul și limita adaptorilor legacy](../atf-reporting/README.md#dovezi-json-și-componentele-de-randare-ui)
+  sunt deținute de Reporting, nu redefinite de fixture-uri;
 - publisher proof trebuie să verifice și shape-ul, nu numai prezența label-urilor:
   pentru `0..N` exchange-uri, fiecare pereche request/response și execution
   evidence trebuie să rămână scanabilă ca unitate API; un tabel comun cu prefixe
@@ -641,6 +668,9 @@ atf-test-practice-shop/src/test/java/atf/ui/tests/practiceshop/
 - Cardinalitatea și ordinea Request/Response/Execution sunt verificate în DOM-ul
   nodului API din Tests prin locatorii comuni, nu prin numărarea tuturor copiilor
   din Category/Fails sau a datelor serializate.
+- `ApiRetryProjectionContractTest` aparține pachetului component UI
+  `atf.ui.tests.extent.component.inspection.retry`; păstrează `@AtfComponentTest`
+  și selecția existentă din `AtfReportingComponentSuite`.
 - Probe neutre consolidate: formatul auth, filtrarea providerului și retry pe
   cele trei proiecții. Niciuna nu substituie forwarding-ul mapperului sau siguranța
   artifactului produs de adaptorul local.

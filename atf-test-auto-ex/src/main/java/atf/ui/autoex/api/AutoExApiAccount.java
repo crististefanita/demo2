@@ -4,6 +4,24 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import static atf.ui.autoex.api.AutoExApiFormField.ADDRESS1;
+import static atf.ui.autoex.api.AutoExApiFormField.ADDRESS2;
+import static atf.ui.autoex.api.AutoExApiFormField.BIRTH_DATE;
+import static atf.ui.autoex.api.AutoExApiFormField.BIRTH_MONTH;
+import static atf.ui.autoex.api.AutoExApiFormField.BIRTH_YEAR;
+import static atf.ui.autoex.api.AutoExApiFormField.CITY;
+import static atf.ui.autoex.api.AutoExApiFormField.COMPANY;
+import static atf.ui.autoex.api.AutoExApiFormField.COUNTRY;
+import static atf.ui.autoex.api.AutoExApiFormField.EMAIL;
+import static atf.ui.autoex.api.AutoExApiFormField.FIRST_NAME;
+import static atf.ui.autoex.api.AutoExApiFormField.LAST_NAME;
+import static atf.ui.autoex.api.AutoExApiFormField.MOBILE_NUMBER;
+import static atf.ui.autoex.api.AutoExApiFormField.NAME;
+import static atf.ui.autoex.api.AutoExApiFormField.PASSWORD;
+import static atf.ui.autoex.api.AutoExApiFormField.STATE;
+import static atf.ui.autoex.api.AutoExApiFormField.TITLE;
+import static atf.ui.autoex.api.AutoExApiFormField.ZIPCODE;
+
 /** Typed form fields for the documented create/update account API contract. */
 public record AutoExApiAccount(String name, String email, String password, String title,
                                String birthDate, String birthMonth, String birthYear,
@@ -11,44 +29,44 @@ public record AutoExApiAccount(String name, String email, String password, Strin
                                String address1, String address2, String country,
                                String zipcode, String state, String city, String mobileNumber) {
     public AutoExApiAccount {
-        name = required(name, "name");
-        email = required(email, "email");
-        password = required(password, "password");
-        title = required(title, "title");
-        birthDate = required(birthDate, "birth_date");
-        birthMonth = required(birthMonth, "birth_month");
-        birthYear = required(birthYear, "birth_year");
-        firstName = required(firstName, "firstname");
-        lastName = required(lastName, "lastname");
-        company = required(company, "company");
-        address1 = required(address1, "address1");
+        name = required(name, NAME);
+        email = required(email, EMAIL);
+        password = required(password, PASSWORD);
+        title = required(title, TITLE);
+        birthDate = required(birthDate, BIRTH_DATE);
+        birthMonth = required(birthMonth, BIRTH_MONTH);
+        birthYear = required(birthYear, BIRTH_YEAR);
+        firstName = required(firstName, FIRST_NAME);
+        lastName = required(lastName, LAST_NAME);
+        company = required(company, COMPANY);
+        address1 = required(address1, ADDRESS1);
         address2 = Objects.requireNonNullElse(address2, "");
-        country = required(country, "country");
-        zipcode = required(zipcode, "zipcode");
-        state = required(state, "state");
-        city = required(city, "city");
-        mobileNumber = required(mobileNumber, "mobile_number");
+        country = required(country, COUNTRY);
+        zipcode = required(zipcode, ZIPCODE);
+        state = required(state, STATE);
+        city = required(city, CITY);
+        mobileNumber = required(mobileNumber, MOBILE_NUMBER);
     }
 
     public Map<String, String> formFields() {
         Map<String, String> fields = new LinkedHashMap<>();
-        fields.put("name", name);
-        fields.put("email", email);
-        fields.put("password", password);
-        fields.put("title", title);
-        fields.put("birth_date", birthDate);
-        fields.put("birth_month", birthMonth);
-        fields.put("birth_year", birthYear);
-        fields.put("firstname", firstName);
-        fields.put("lastname", lastName);
-        fields.put("company", company);
-        fields.put("address1", address1);
-        fields.put("address2", address2);
-        fields.put("country", country);
-        fields.put("zipcode", zipcode);
-        fields.put("state", state);
-        fields.put("city", city);
-        fields.put("mobile_number", mobileNumber);
+        fields.put(NAME.value(), name);
+        fields.put(EMAIL.value(), email);
+        fields.put(PASSWORD.value(), password);
+        fields.put(TITLE.value(), title);
+        fields.put(BIRTH_DATE.value(), birthDate);
+        fields.put(BIRTH_MONTH.value(), birthMonth);
+        fields.put(BIRTH_YEAR.value(), birthYear);
+        fields.put(FIRST_NAME.value(), firstName);
+        fields.put(LAST_NAME.value(), lastName);
+        fields.put(COMPANY.value(), company);
+        fields.put(ADDRESS1.value(), address1);
+        fields.put(ADDRESS2.value(), address2);
+        fields.put(COUNTRY.value(), country);
+        fields.put(ZIPCODE.value(), zipcode);
+        fields.put(STATE.value(), state);
+        fields.put(CITY.value(), city);
+        fields.put(MOBILE_NUMBER.value(), mobileNumber);
         return Map.copyOf(fields);
     }
 
@@ -57,8 +75,8 @@ public record AutoExApiAccount(String name, String email, String password, Strin
         return "AutoExApiAccount[email=" + email + ", name=" + name + ", credentials=<redacted>]";
     }
 
-    private static String required(String value, String field) {
-        if (value == null || value.isBlank()) throw new IllegalArgumentException(field + " is required");
+    private static String required(String value, AutoExApiFormField field) {
+        if (value == null || value.isBlank()) throw new IllegalArgumentException(field.value() + " is required");
         return value.trim();
     }
 }

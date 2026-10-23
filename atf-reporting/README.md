@@ -224,6 +224,23 @@ provider de sesiune: trace-ul poate varia la fiecare exchange, în timp ce
 snapshot-ul System este stabil pe durata raportului. Contractul combinat este
 verificat cu un consumer sintetic în `ReportTraceMetadataRenderingTest`.
 
+## Pornirea atomică a scenariilor și fazelor
+
+- Tag-urile caller-owned și profilul scenariului sunt validate înainte de
+  crearea nodurilor; un argument invalid nu lasă un nod fără handle utilizabil.
+- Dacă pornirea semantică eșuează după crearea nodului Extent, compensarea
+  retrage scenariul/faza și rădăcina de clasă nouă rămasă goală. Cauza inițială
+  rămâne primară; un eșec secundar de compensare este păstrat ca `suppressed`.
+- Sink-ul Console este diagnostic best-effort: excepțiile runtime la notificare
+  nu întrerup lifecycle-ul și nu inventează verdicturi sau exchange-uri HTTP.
+- `TestRunInitialization` închide doar resursele pentru care a primit handle;
+  atomicitatea internă Reporting nu este delegată consumerului sau Test Kit-ului.
+
+`ExtentReportSessionLifecycleTest` și `ReportEvidenceProfileIntegrationTest`
+protejează argumentele invalide, eșecul injectat după mutația Extent, compensarea
+secundară și reutilizarea sesiunii. Probele sunt locale și deterministe; nu
+necesită endpoint extern sau journey de produs.
+
 ## Contractul raportului
 
 Regulile canonice pentru ierarhia vizibilă, glyph-ul inline, disclosure-uri,
@@ -237,8 +254,8 @@ TestCase
 ├── SETUP (opțional; precondiții / dobândire și verificare fixture)
 ├── TEST BODY (acțiunea și validarea)
 │   ├── Request
-│   │   ├── Request details + REQUEST JSON / null
-│   │   ├── Response details + RESPONSE JSON / null
+│   │   ├── Request details + body (JSON / form / text / absent)
+│   │   ├── Response details + body (JSON / form / text / absent)
 │   │   ├── Execution evidence
 │   │   └── Contract validation (când este evaluat un contract al răspunsului)
 │   │       └── aggregate assertion table
@@ -249,8 +266,8 @@ TestCase
 |---|---|
 | ownership API direct | response contract validation este copilul request-ului care deține schimbul; tabelul de assertions aparține validation-ului |
 | setup evidence | tabelul `CHECK / EXPECTED / ACTUAL / RESULT` rezumă precondiția; exchange-urile reale rămân `API validation` distinctă sub același checkpoint `SETUP` |
-| write body | `POST` și `PUT` au request JSON și response JSON valide, ne-goale |
-| read/no body | `GET`, `204`, `304` păstrează disclosure-urile și afișează explicit `null` când body-ul lipsește |
+| format body | request/response păstrează formatul capturat (JSON, form sau text); un contract JSON este cerut de validatorul consumerului, nu dedus din metoda HTTP |
+| body absent | disclosure-urile rămân prezente; `ABSENT` afișează explicit `null`, iar `NOT_CAPTURED` nu inventează un document JSON |
 | UI evidence | `SETUP` este setup; `Screen validation` este în `TEST BODY` după acțiuni și observații |
 | UI `UNIFIED_FLOW` peste faze | Consumerul apelează `UiScenario.unifyAcrossPhases()` înainte de prima fază și `UiPhase.completeFinal(status)` la faza terminală. Un singur nod Gherkin publică checkpoint-urile în ordine, cu faza și verdictul fiecăruia; UI/API validations rămân lângă checkpoint-ul proprietar. `completeFinal(FAIL)` în `SETUP` nu creează `TEST BODY` sau o captură finală. Fără opt-in, comportamentul existent per fază rămâne valabil. |
 | layout | `＋/−` este inline înaintea propoziției; Request details, Response details și Execution evidence sunt disclosures surori în request; Contract validation este copilul lui; UI/API validations sunt copii surori ale aceluiași checkpoint Gherkin |
@@ -364,6 +381,30 @@ UI checkpoint
 Verdictul este calculat de execution/validation și doar publicat de reporting.
 Rendererul nu inventează statusuri.
 
+### Audit terminal în Screen validation
+
+- Validarea contractului terminal publică exact o observație `Audit screen
+  contract` în `Audit observations`, în aceeași validare cu acțiunile,
+  aserțiunile și captura; nu creează un al doilea Gherkin checkpoint.
+- Observația are sursa `OBSERVE`, nu devine acțiune Playwright sau aserțiune
+  duplicată. Se înregistrează înainte de drenarea secvenței pentru publicare.
+- Observația identifică obiectul, verdictul contractului, numărul aserțiunilor,
+  starea capturii și URL-ul sigur; nu copiază body-uri ori secrete.
+- Screenshot-ul este în afara viewportului tabelului de acțiuni, imediat după
+  acesta, conform profilului efectiv. Calea fără captură declară explicit
+  absența; un payload invalid nu este prezentat drept PNG valid.
+- Aserțiunile rămân sursa verdictului; o captură nu dovedește singură `PASS`.
+  `FINAL_ONLY` nu inventează starea finală după un setup eșuat.
+
+`ExtentReportUiEvidenceRenderingTest` verifică DOM-ul generic și separarea
+`ACTION`/`OBSERVE`; probele terminale Shop/AutoEx verifică mapping-ul local,
+unicitatea și ordinea `record → drain`. Verificarea browser a unui layout
+schimbat rămâne distinctă de aceste probe automate.
+
+Limită curentă: în calea de failure fără screenshot, explicația din model este
+filtrată din HTML; [regresia și acceptanța](../docs/feedback/ATF_Reporting_Feedback.md#ui-failure-capture-02--lipsa-capturii-trebuie-explicată-în-raport)
+rămân deschise. Contractul terminal normal nu certifică această ramură.
+
 ### Inspector agregat pentru flux UI/API
 
 `ReportNetworkInspector.JourneyAggregate` este proiecția semantică a journey-ului;
@@ -375,6 +416,23 @@ Contractul pentru un summary solicitat este:
 - summary-ul este ultimul nod tehnic al `TEST BODY`, fără checkpoint sau dovadă de eșec după el;
 - o cerere explicită fără exchange-uri produce `0 exchanges`; profilul UI-only îl omite prin necerere;
 - summary-ul rămâne informativ (`PASS`); verdictul aparține checkpoint-urilor și scenariului.
+
+Overload-ul `networkInspector(..., ReportNetworkCaptureStatus)` adaugă
+`Capture coverage`: scope, accepted/retained/excluded/dropped, capturi în
+curs, plafon și separarea setup/causal. `Complete within scope` cere zero
+pierderi și zero capturi în curs la snapshot; nu promite trafic viitor.
+Fără metadatele opționale, API-ul anterior nu inventează completitudinea.
+
+| Situație | Ce exprimă raportul | Ce nu deduce |
+|---|---|---|
+| Zero exchange-uri, captură completă | nu există trafic cauzal în scope la snapshot | absența întregului trafic browser |
+| Captură cu overflow sau în curs | `Incomplete within scope`, cu totalurile explicite | verdict business FAIL sau request-uri fabricate |
+| Setup + trafic cauzal | setup rămâne la precondiție; agregatul numără numai causal | dublarea precondiției în totalul cauzal |
+
+`screenValidation(..., apiEvidence, capturePoint, status)` păstrează
+exchange-urile terminale alături de ecranul final, ca frați ai validării UI,
+fără repetarea propoziției Gherkin. Probe: `NetworkCaptureEvidenceTest` în
+`atf-reporting-tests`, inclusiv artifact și browser local.
 
 `NetworkInspectorSummaryRoleTest` verifică ordinea în ambele moduri de randare.
 
@@ -392,6 +450,7 @@ flowchart LR
 
 - `authentication` grupează numai method/source/status/count; semantica este
   `observed`, nu validarea tokenului, issuerului sau claims-urilor;
+  prezența unui Cookie nu certifică identitatea sau autentificarea utilizatorului;
 - `correlation` păstrează legătura dintre checkpoint și exchange-urile cauzate;
 - `transport` numără observations, success/failure, attempts, retries și
   provenance live/mock/unknown;
@@ -821,15 +880,52 @@ publication policy, validarea target-ului și proiecția în artifact.
 
 ### Dovezi JSON și componentele de randare UI
 
-- `ReportJsonBody` păstrează body-ul semantic așa cum a fost primit;
-- Extent și fallback HTML folosesc același `ReportJsonBodyFormatter`;
-- redaction-ul se aplică primul, pretty-print-ul este determinist, iar limita
-  `bodyMaxDisplayCharacters` se aplică numai după formatare;
+Contractul body-ului HTTP separă direcția de format, inclusiv pentru trafic
+extern non-JSON:
+
+- `ReportJsonBody` păstrează payload-ul, `Direction.REQUEST/RESPONSE` și
+  `Format.JSON/FORM/TEXT`; numele istoric nu impune formatul JSON;
+- `AtfReportPorts.Request.body(...)` este canalul tipizat; Extent și fallback
+  grupează după direcție, nu după textul etichetei;
+- constructorul cu două argumente și portul `json(label, body)` păstrează
+  convenția JSON istorică; direcția legacy se deduce o singură dată la intrare
+  din prefixul `REQUEST`, altfel este `RESPONSE`;
+- adaptorii legacy care implementează numai `json(...)` rămân compatibili prin
+  delegarea implicită a `body(...)`; pentru păstrarea metadatelor tipizate
+  implementează explicit canalul nou;
+- `ApiExchangeEvidence` clasifică form-urlencoded/multipart ca `FORM`, documentul
+  JSON valid ca `JSON` chiar dacă MIME-ul este `text/html`, iar restul ca `TEXT`;
+  MIME-ul upstream nu este rescris;
+- etichetele sunt `REQUEST/RESPONSE JSON`, `REQUEST/RESPONSE FORM BODY` sau
+  `REQUEST/RESPONSE BODY`; `ABSENT` păstrează `null` cu explicația absenței,
+  iar `NOT_CAPTURED` publică diagnosticul fără document JSON inventat.
+
+Formatarea comună nu modifică request-ul executat:
+
+- redaction-ul se aplică primul; numai `Format.JSON` folosește pretty-print-ul
+  determinist comun `ReportJsonBodyFormatter`;
+- form/text păstrează conținutul redactat fără conversie în JSON; limita
+  `bodyMaxDisplayCharacters` se aplică după formatarea pentru afișare;
 - markerul de truncare arată prefixul și lungimea totală; `0` publică body-ul
   complet;
 - obiectele, array-urile, scalarul și `null` sunt păstrate;
 - payload-ul invalid rămâne neschimbat pentru diagnostic și nu este transformat
-  artificial.
+  artificial în JSON; escaping-ul HTML protejează și secvențe precum `</textarea>`;
+- `ApiBodyMediaComponentTest` din `atf-reporting-tests` verifică media/capture,
+  redacția și escaping-ul în Extent, fallback și UI+API, plus direcția independentă
+  de eticheta vizibilă.
+
+Protecții comune pentru body-uri deja implementate:
+
+- `MultipartEvidenceRedactor` redactează valorile sensibile înainte de display,
+  replay și console, inclusiv multiline, delimitări incomplete și aliasuri;
+  datele publice și delimitările rămân auditabile.
+- `AVAILABLE` whitespace rămâne text capturat și apare în replay; nu este
+  confundat cu `ABSENT`, JSON literal `null` sau `NOT_CAPTURED`.
+- Semnătura body-ului text păstrează whitespace-ul; canonicalizarea JSON și
+  portul JSON legacy au contract separat.
+- `ApiMultipartBodyComponentTest` și `ApiWhitespaceBodyComponentTest` verifică
+  Extent, fallback și UI+API cu date sintetice; proba nu cere cont sau site real.
 
 `ExtentUiEvidenceRenderer` este orchestration-only:
 

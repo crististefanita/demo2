@@ -5,6 +5,8 @@ import atf.ui.autoex.config.AutoExConfiguration;
 import atf.ui.autoex.support.account.AutoExTestAccount;
 import atf.ui.autoex.support.catalog.AutoExCatalogAssertions;
 import atf.ui.autoex.support.checkout.AutoExCheckoutAssertions;
+import atf.ui.autoex.support.validation.AutoExStoreAssertions;
+import atf.ui.autoex.locator.AutoExRoutes;
 import atf.ui.autoex.page.AccountPage;
 import atf.ui.autoex.page.CartPage;
 import atf.ui.autoex.page.CheckoutPage;
@@ -34,14 +36,13 @@ public final class AutoExPurchaseJourney {
                         new AtfAssertion("Product price", product.unitPrice(), detailText,
                                 AutoExCatalogAssertions.containsExactLine(
                                         detailText, product.unitPrice())),
-                        new AtfAssertion("Availability", "In Stock", detailText,
-                                detailText.contains("In Stock"))));
+                        AutoExStoreAssertions.stockAvailability(detailText)));
 
         details.addQuantityToCart(product.quantity());
         String added = details.addConfirmation();
+        if (run.observesApiTraffic()) run.awaitCartExchange(product.productId());
         run.checkpoint(AutoExPurchaseTraceStep.CART_ADD,
-                List.of(new AtfAssertion("Add-to-cart confirmation", "Added!", added,
-                        added.contains("Added!") && added.contains("added to cart"))));
+                List.of(AutoExStoreAssertions.cartAddition(added)));
 
         CartPage cart = details.viewCartFromConfirmation();
         run.checkpoint(AutoExPurchaseTraceStep.CART_VERIFIED,
@@ -72,28 +73,23 @@ public final class AutoExPurchaseJourney {
         run.checkpoint(AutoExPurchaseTraceStep.CHECKOUT_REVIEW, checkoutAssertions);
         String paymentHeading = checkout.placeOrder("Synthetic ATF E2E order; demo environment only.");
         run.checkpoint(AutoExPurchaseTraceStep.PAYMENT_FORM,
-                List.of(new AtfAssertion("Payment page", "Payment", paymentHeading,
-                        "Payment".equals(paymentHeading))));
+                List.of(AutoExStoreAssertions.paymentPage(paymentHeading)));
         String confirmation = checkout.payWithDemoCard(configuration.payment());
         String confirmationMessage = checkout.orderConfirmationMessage();
         run.checkpoint(AutoExPurchaseTraceStep.ORDER_CONFIRMED,
                 List.of(
-                        new AtfAssertion("Order status", "Order Placed! (case-insensitive)", confirmation,
-                                "Order Placed!".equalsIgnoreCase(confirmation)),
-                        new AtfAssertion("Order confirmation", "Congratulations! Your order has been confirmed!",
-                                confirmationMessage,
-                                confirmationMessage.contains("Your order has been confirmed!"))));
+                        AutoExStoreAssertions.orderPlaced(confirmation),
+                        AutoExStoreAssertions.orderConfirmation(confirmationMessage)));
 
         checkout.downloadInvoice();
         checkout.continueAfterInvoice();
         String deletion = accountPage.accountDeletionResult(account);
         String landingUrl = run.currentUrl();
-        String expectedLandingUrl = configuration.baseUrl().toString().replaceAll("/$", "") + "/";
+        String expectedLandingUrl = AutoExRoutes.HOME.resolve(configuration.baseUrl()).toString();
         List<AtfAssertion> finalAssertions = List.of(
                 new AtfAssertion("Post-cleanup landing page", expectedLandingUrl,
                         landingUrl, expectedLandingUrl.equals(landingUrl)),
-                new AtfAssertion("Account cleanup remains confirmed", "ACCOUNT DELETED!",
-                        deletion, deletion.contains("ACCOUNT DELETED!")));
+                AutoExStoreAssertions.accountDeleted(deletion));
         run.finalScreenshot(AutoExPurchaseTraceStep.TERMINAL_STATE, finalAssertions);
     }
 
@@ -102,8 +98,7 @@ public final class AutoExPurchaseJourney {
         AutoExConfiguration.Catalog product = run.configuration().catalog();
         String homeHeading = new HomePage(run).open();
         run.checkpoint(AutoExPurchaseTraceStep.STORE_OPEN,
-                List.of(new AtfAssertion("Store availability", "Automation Exercise is visible",
-                        homeHeading, homeHeading.contains("Full-Fledged practice website"))));
+                List.of(AutoExStoreAssertions.storeAvailability(homeHeading)));
 
         if (run.observesApiTraffic()) {
             AutoExCatalogApiPrecondition.verifyAndMarkBaseline(product.productName(), product.unitPrice(),
@@ -121,8 +116,8 @@ public final class AutoExPurchaseJourney {
                 List.of(
                 new AtfAssertion("Search product", product.productName(), resultName,
                         product.productName().equals(resultName)),
-                new AtfAssertion("Search route", "/products?search=", searchUrl,
-                        searchUrl.contains("/products?search="))));
+                AutoExCatalogAssertions.searchLocation(
+                        run.configuration().baseUrl(), product.searchTerm(), searchUrl)));
         return products;
     }
 }

@@ -47,7 +47,8 @@ public final class ExtentTransportEvidenceRenderer {
     void renderRequestDetails(ExtentTest node, List<ReportField> details,
                               List<ReportJsonBody> json) {
         List<ReportField> requestDetails = EvidenceTableFormatter.requestFields(details);
-        List<ReportJsonBody> requestJson = json.stream().filter(item -> isRequestJson(item.label())).toList();
+        List<ReportJsonBody> requestJson = json.stream()
+                .filter(item -> item.direction() == ReportJsonBody.Direction.REQUEST).toList();
         if (requestDetails.isEmpty() && requestJson.isEmpty()) return;
         node.info(ReportEvidenceMarkup.disclosure(
                 AtfReportHtmlVocabulary.CssClass.REQUEST_EVIDENCE.value(),
@@ -58,7 +59,8 @@ public final class ExtentTransportEvidenceRenderer {
     void renderResponseDetails(ExtentTest node, List<ReportField> details,
                                List<ReportJsonBody> json) {
         List<ReportField> responseDetails = EvidenceTableFormatter.technicalTraceFields(details);
-        List<ReportJsonBody> responseJson = json.stream().filter(item -> !isRequestJson(item.label())).toList();
+        List<ReportJsonBody> responseJson = json.stream()
+                .filter(item -> item.direction() == ReportJsonBody.Direction.RESPONSE).toList();
         if (responseDetails.isEmpty() && responseJson.isEmpty()) return;
         node.info(ReportEvidenceMarkup.disclosure(
                 AtfReportHtmlVocabulary.CssClass.RESPONSE_EVIDENCE.value(),
@@ -174,17 +176,17 @@ public final class ExtentTransportEvidenceRenderer {
                     .append(AtfReportHtmlVocabulary.openTag(AtfReportHtmlVocabulary.Tag.DIV,
                             AtfReportHtmlVocabulary.classAttribute(
                                     AtfReportHtmlVocabulary.CssClass.HELM_SCROLL_BLOCK_BODY)))
-                    .append(MarkupHelper.createCodeBlock(ReportEvidenceJsonFormatter.displayBody(
-                            item, redactor, settings)).getMarkup())
+                    .append(MarkupHelper.createCodeBlock(codeBlockText(
+                            ReportEvidenceJsonFormatter.displayBody(item, redactor, settings))).getMarkup())
                     .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DIV))
                     .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DIV));
         }
         return html.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DIV)).toString();
     }
 
-    private boolean isRequestJson(String label) {
-        return label != null && label.trim().toUpperCase(java.util.Locale.ROOT)
-                .startsWith(AtfReportLabels.REQUEST_JSON);
+    /** Extent stores code in a textarea: escape RCDATA without changing its visible text. */
+    private static String codeBlockText(String text) {
+        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 
     void renderExecution(ExtentTest node, ReportExecutionEvidence execution) {

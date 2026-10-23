@@ -56,6 +56,15 @@ public final class PlaywrightActionSequence {
         locatorActions.click(element, expected);
     }
 
+    /**
+     * Explicit DOM activation, never an automatic fallback for {@link #click(AtfLocator, String)}.
+     * The caller's read-only postcondition must succeed before the single action is recorded as PASS.
+     * This does not exercise trusted pointer input or hit testing and is never automatically retried.
+     */
+    public void clickWithJavaScript(AtfLocator element, String expected, Runnable postcondition) {
+        locatorActions.clickWithJavaScript(element, expected, postcondition);
+    }
+
     public Page clickAndWaitForPopup(Page page, Locator locator, String locatorTarget,
                                      String expected) {
         return browserActions.clickAndWaitForPopup(page, locator, locatorTarget, expected);

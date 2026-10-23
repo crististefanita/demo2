@@ -3,11 +3,6 @@ package atf.api.testkit.reporting;
 import atf.api.testkit.AtfUnitTest;
 import org.junit.jupiter.api.Test;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -40,12 +35,7 @@ class AtfReportPathPolicyResolverTest {
     @AtfReportPath
     static class DirectOptIn { }
 
-    @Target(ElementType.TYPE)
-    @Retention(RetentionPolicy.RUNTIME)
-    @AtfReportPath
-    @interface ReportOwner { }
-
-    @ReportOwner
+    @TestReportPathOwner
     static class MetaOptIn { }
 
     @AtfReportPath
@@ -55,11 +45,6 @@ class AtfReportPathPolicyResolverTest {
     static class ExplicitOptOut extends InheritedOwner { }
 
     @AtfReportPath
-    @DisabledReportPath
+    @TestDisabledReportPathOwner
     static class Conflicting { }
-
-    @Target(ElementType.TYPE)
-    @Retention(RetentionPolicy.RUNTIME)
-    @AtfReportPath(AtfReportPath.Policy.DISABLED)
-    @interface DisabledReportPath { }
 }

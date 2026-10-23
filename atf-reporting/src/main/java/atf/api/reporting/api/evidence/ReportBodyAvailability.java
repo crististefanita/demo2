@@ -5,6 +5,6 @@ public enum ReportBodyAvailability {
     AVAILABLE, ABSENT, NOT_CAPTURED;
 
     public static ReportBodyAvailability from(String body) {
-        return body == null ? NOT_CAPTURED : body.isBlank() ? ABSENT : AVAILABLE;
+        return body == null ? NOT_CAPTURED : body.isEmpty() ? ABSENT : AVAILABLE;
     }
 }

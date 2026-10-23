@@ -2,6 +2,7 @@ package atf.api.reporting.contract;
 
 import atf.api.reporting.inventory.ValidationSink;
 import atf.api.reporting.model.ReportExecutionEvidence;
+import atf.api.reporting.model.ReportJsonBody;
 import atf.api.reporting.model.diagnostic.ReportPhaseDiagnostic;
 import atf.api.reporting.api.ReportModelAdapters;
 import atf.api.reporting.ui.model.AtfUiActionRecord;
@@ -36,6 +37,10 @@ public final class AtfReportPorts {
     }
     public interface Request extends ValidationSink, AutoCloseable {
         void detail(String name, String value); void json(String label, String json);
+        /** Typed HTTP body channel; the legacy JSON seam remains source-compatible. */
+        default void body(ReportJsonBody body) {
+            json(body.label(), body.body());
+        }
         default void screenshot(String title, String base64Png) { }
         default void uiActions(Collection<AtfUiActionRecord> actions) { }
         default void execution(ReportExecutionEvidence result) { }

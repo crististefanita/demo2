@@ -112,4 +112,30 @@ class NetworkInspectorSummaryRoleTest {
             assertTrue(html.contains("API validation"), "API evidence remains attached in " + flowMode);
         }
     }
+
+    @Test
+    void publishesSelectionScopeAndCompletenessWithoutChangingTheBusinessVerdict() throws Exception {
+        for (boolean truncated : List.of(false, true)) {
+            Path root = Files.createTempDirectory("atf-network-completeness-");
+            Path report;
+            try (var session = UiExtentReportSession.openConfigured(root,
+                    "capture-" + truncated + ".html", AtfConsoleSink.noOp())) {
+                report = session.reportPath();
+                var scenario = session.startScenario("UiTest", "atf.ui", "journey", List.of("ui", "api"));
+                var phase = scenario.startPhase("TEST BODY");
+                phase.networkInspector("API network inspector — journey summary", List.of(), List.of(),
+                        new ReportNetworkCaptureStatus("resourceKinds=[XHR, FETCH]; paths=[/api/, /add_to_cart/]",
+                                truncated ? 2 : 0, truncated ? 1 : 0,
+                                truncated ? 1 : 0, 0, truncated));
+                phase.complete(AtfReportStatus.PASS);
+                scenario.complete(AtfReportStatus.PASS);
+            }
+            String html = Files.readString(report);
+            assertTrue(html.contains("/add_to_cart/"));
+            assertTrue(html.contains(truncated ? "INCOMPLETE" : "COMPLETE"));
+            assertTrue(html.contains("NETWORK CAPTURE DROPPED"));
+            assertTrue(html.contains("Pass</span>"),
+                    "capture loss is diagnostic; it cannot silently rewrite the UI verdict");
+        }
+    }
 }

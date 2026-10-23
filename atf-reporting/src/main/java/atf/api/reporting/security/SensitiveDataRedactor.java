@@ -23,6 +23,7 @@ public final class SensitiveDataRedactor {
             "(?i)([?&](?:" + SECRET_NAME + ")=)[^&#\\s'\"\\]}]+");
     private static final Pattern PATH_SECRET = Pattern.compile(
             "(?i)(/+(?:token|api[-_]?key|secret|password)/)[^/?#\\s'\"\\]}]+" );
+    private static final Pattern SECRET_FIELD_NAME = Pattern.compile("(?i)(?:" + SECRET_NAME + ")");
     private static final Set<String> SENSITIVE_FIELDS = Set.of(
             "authorization", "cookie", "set-cookie", "token", "access_token", "accesstoken",
             "refresh_token", "refreshtoken", "password", "secret", "client_secret",
@@ -42,7 +43,10 @@ public final class SensitiveDataRedactor {
     public String redactText(String value) {
         if (value == null) return null;
         String mask = Matcher.quoteReplacement(replacement);
-        String safe = JSON_SECRET.matcher(value).replaceAll("$1" + mask + "$3");
+        String multipartSafe = MultipartEvidenceRedactor.redact(value, replacement,
+                field -> SENSITIVE_FIELDS.contains(field.trim().toLowerCase(Locale.ROOT))
+                        || SECRET_FIELD_NAME.matcher(field.trim()).matches());
+        String safe = JSON_SECRET.matcher(multipartSafe).replaceAll("$1" + mask + "$3");
         safe = AUTH.matcher(safe).replaceAll("$1$2$3" + mask);
         safe = BEARER_CREDENTIAL.matcher(safe).replaceAll("$1" + mask);
         safe = KEY_VALUE_SECRET.matcher(safe).replaceAll("$1" + mask);

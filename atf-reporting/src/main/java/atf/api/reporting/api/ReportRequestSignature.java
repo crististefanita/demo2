@@ -84,14 +84,15 @@ public final class ReportRequestSignature {
     }
 
     public static String canonicalBody(String body) {
-        if (body == null || body.isBlank()) return ABSENT_BODY;
+        if (body == null || body.isEmpty()) return ABSENT_BODY;
+        if (body.isBlank()) return body;
         try {
             JsonNode node = JSON.readTree(body);
-            return node == null ? ABSENT_BODY : canonicalJson(node);
+            return node == null ? body : canonicalJson(node);
         } catch (Exception ignored) {
             // Non-JSON bodies remain distinct and deterministic. JSON
             // contracts are validated separately by ReportJsonBodyPolicy.
-            return body.trim();
+            return body;
         }
     }
 

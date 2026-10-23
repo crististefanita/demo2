@@ -17,6 +17,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.LongFunction;
 
 /**
  * Generic Playwright boundary for bounded, typed API observations.
@@ -31,6 +32,12 @@ public final class UiNetworkInspector implements AutoCloseable {
     private final AtomicLong sequence = new AtomicLong();
     private final List<UiNetworkObservation> observations = new CopyOnWriteArrayList<>();
     private final List<Consumer<UiNetworkObservation>> subscribers = new CopyOnWriteArrayList<>();
+    private final Object captureLock = new Object();
+    private long accepted;
+    private long excluded;
+    private long dropped;
+    private long inFlight;
+    private boolean limitReached;
     private Page page;
     private Consumer<Request> requestFinishedListener;
     private Consumer<Request> requestFailedListener;
@@ -65,9 +72,11 @@ public final class UiNetworkInspector implements AutoCloseable {
 
     /** Component-test seam and a safe adapter entry point for custom capture. */
     public Optional<UiNetworkObservation> capture(Response response) {
-        if (!configuration.enabled() || response == null || response.request() == null
-                || !configuration.accepts(response.url())) return Optional.empty();
-        return capture(UiNetworkObservation.from(response, sequence.incrementAndGet(), configuration));
+        if (!configuration.enabled() || response == null) return Optional.empty();
+        Request request = response.request();
+        if (request == null) return Optional.empty();
+        return captureSelected(request.url(), UiNetworkCapturePolicy.ResourceKind.fromPlaywright(request.resourceType()),
+                next -> UiNetworkObservation.from(response, next, configuration));
     }
 
     /**
@@ -78,13 +87,66 @@ public final class UiNetworkInspector implements AutoCloseable {
      * signature policy before storage or subscriber notification.
      */
     public Optional<UiNetworkObservation> capture(UiNetworkObservation observation) {
-        if (!configuration.enabled() || observation == null
-                || !configuration.accepts(observation.url())) return Optional.empty();
-        if (observations.size() >= configuration.maxObservations()) return Optional.empty();
-        UiNetworkObservation safeObservation = observation.sanitizedFor(configuration);
-        observations.add(safeObservation);
-        subscribers.forEach(subscriber -> notifySafely(subscriber, safeObservation));
-        return Optional.of(safeObservation);
+        if (observation == null) return Optional.empty();
+        return captureSelected(observation.url(), observation.resourceKind(),
+                ignored -> observation.sanitizedFor(configuration));
+    }
+
+    /** Scope-local counters; excluded traffic never consumes the bounded journal. */
+    public UiNetworkCaptureStatistics statistics() {
+        synchronized (captureLock) {
+            return new UiNetworkCaptureStatistics(accepted, observations.size(), excluded,
+                    dropped, inFlight, limitReached);
+        }
+    }
+
+    /** Compatibility view; statistics() also exposes exclusions and pending reservations. */
+    public CaptureSummary captureSummary() {
+        var snapshot = statistics();
+        return new CaptureSummary(configuration.capturePolicy().scope(),
+                Math.toIntExact(snapshot.accepted()), Math.toIntExact(snapshot.retained()),
+                Math.toIntExact(snapshot.dropped()), snapshot.limitReached());
+    }
+
+    public record CaptureSummary(String scope, int accepted, int retained, int dropped,
+                                 boolean limitReached) { }
+
+    private Optional<UiNetworkObservation> captureSelected(String url, UiNetworkCapturePolicy.ResourceKind type,
+                                                          LongFunction<UiNetworkObservation> factory) {
+        if (!configuration.enabled()) return Optional.empty();
+        boolean selected;
+        try {
+            selected = configuration.accepts(url) && configuration.capturePolicy().accepts(url, type);
+        } catch (IllegalArgumentException | IllegalStateException malformedUrl) {
+            selected = false;
+        }
+        synchronized (captureLock) {
+            if (!selected) {
+                excluded++;
+                return Optional.empty();
+            }
+            accepted++;
+            if (observations.size() + inFlight >= configuration.maxObservations()) {
+                dropped++;
+                limitReached = true;
+                return Optional.empty();
+            }
+            inFlight++;
+        }
+        UiNetworkObservation observation;
+        try {
+            observation = Objects.requireNonNull(factory.apply(sequence.incrementAndGet()), "observation");
+        } catch (RuntimeException | Error failure) {
+            synchronized (captureLock) { inFlight--; dropped++; }
+            throw failure;
+        }
+        synchronized (captureLock) {
+            observations.add(observation);
+            inFlight--;
+        }
+        // Subscriber failures cannot turn a retained observation into a dropped one.
+        subscribers.forEach(subscriber -> notifySafely(subscriber, observation));
+        return Optional.of(observation);
     }
 
     /** Returns lossless bounded observations in browser order. */
@@ -95,6 +157,15 @@ public final class UiNetworkInspector implements AutoCloseable {
     /** Capture this cursor before a UI action to exclude earlier read-backs. */
     public int observationCursor() {
         return observations.size();
+    }
+
+    /** An append-only window; presentation collapsing does not change cursor semantics. */
+    public List<UiNetworkObservation> observationsSince(int cursor) {
+        List<UiNetworkObservation> snapshot = observations();
+        if (cursor < 0 || cursor > snapshot.size()) {
+            throw new IllegalArgumentException("UI network observation cursor is outside this journal");
+        }
+        return List.copyOf(snapshot.subList(cursor, snapshot.size()));
     }
 
     /**
@@ -177,10 +248,13 @@ public final class UiNetworkInspector implements AutoCloseable {
     }
 
     private void observeFinished(Request request) {
-        if (!acceptsBrowserEvent(request)) return;
+        if (request == null) return;
         try {
-            Response response = request.response();
-            if (response != null) capture(response);
+            captureSelected(request.url(), UiNetworkCapturePolicy.ResourceKind.fromPlaywright(request.resourceType()), next -> {
+                Response response = request.response();
+                if (response == null) throw new IllegalStateException("Completed request has no response");
+                return UiNetworkObservation.from(response, next, configuration);
+            });
         } catch (RuntimeException transientBrowserState) {
             // Network evidence is diagnostic and must never abort the UI action
             // when the page replaces its execution context during navigation.
@@ -188,19 +262,12 @@ public final class UiNetworkInspector implements AutoCloseable {
     }
 
     private void observeFailure(Request request) {
-        if (!acceptsBrowserEvent(request)) return;
-        capture(UiNetworkObservation.fromFailure(request, sequence.incrementAndGet(), configuration));
-    }
-
-    private boolean acceptsBrowserEvent(Request request) {
-        if (!configuration.enabled() || request == null) return false;
+        if (request == null) return;
         try {
-            return configuration.accepts(request.url());
-        } catch (IllegalStateException malformedThirdPartyUrl) {
-            // Browser events also include unrelated resources. An unparsable
-            // third-party URL cannot match the explicit host allowlist and must
-            // not abort a UI action or navigation while filtering that event.
-            return false;
+            captureSelected(request.url(), UiNetworkCapturePolicy.ResourceKind.fromPlaywright(request.resourceType()),
+                    next -> UiNetworkObservation.fromFailure(request, next, configuration));
+        } catch (RuntimeException transientBrowserState) {
+            // Evidence collection cannot replace the UI action's original outcome.
         }
     }
 

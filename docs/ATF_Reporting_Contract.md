@@ -242,8 +242,8 @@ rendererul fallback:
 | request context | `Request details · N fields` |
 | disclosure trace | `Response details · N fields` |
 | clasificare internă | `TECHNICAL TRACE` |
-| request payload | `REQUEST JSON` |
-| response payload | `RESPONSE JSON` |
+| request payload | `REQUEST JSON`, `REQUEST FORM BODY` sau `REQUEST BODY`, după format |
+| response payload | `RESPONSE JSON`, `RESPONSE FORM BODY` sau `RESPONSE BODY`, după format |
 | transport execution | `Execution evidence · N attempts` |
 | assertions | `Assertions · N` |
 
@@ -299,6 +299,10 @@ rendererul fallback:
   `Execution evidence`;
 - `REQUEST JSON` și `RESPONSE JSON` există și pentru body absent, caz în care
   valoarea explicită este `null`;
+- direcția request/response este typed și independentă de eticheta vizibilă;
+  form/text nu sunt redenumite JSON, iar MIME-ul upstream nu este rescris.
+  `NOT_CAPTURED` este explicit și nu fabrică payload; compatibilitatea legacy
+  JSON și regulile formatului sunt în [README-ul Reporting](../atf-reporting/README.md#dovezi-json-și-componentele-de-randare-ui);
 - `TRANSPORT PROVENANCE` vine din composition root: `ACCEPTANCE / MOCK` nu a
   executat rețea, `LIVE / HTTP` a contactat endpointul, iar `UNKNOWN` nu dovedește
   un apel;
@@ -335,10 +339,10 @@ Gherkin checkpoint
 flowchart LR
     Request[HTTP request] -->|descrie| RequestDetails[Request details · N fields]
     RequestDetails -->|expune| ResponseDetails[Response details · N fields]
-    RequestDetails -->|atașează| RequestBody[REQUEST JSON or null]
+    RequestDetails -->|atașează| RequestBody["Body request"]
     ResponseDetails -->|produce| ResponseEvidence[response payload +<br/>technical trace]
     ResponseDetails -->|înregistrează| Execution[Execution evidence · N attempts]
-    ResponseEvidence -->|atașează| ResponseBody[RESPONSE JSON or null]
+    ResponseEvidence -->|atașează| ResponseBody["Body response"]
     ResponseEvidence -->|explică| Trace[TECHNICAL TRACE · response context]
     Execution -->|păstrează| ExecutionContext[retry · provenance ·<br/>manual replay · assertions]
 ```

@@ -218,6 +218,13 @@ izolat este acceptabil numai după un reactor build verde sau dacă dependențel
 folosite sunt explicit construite din același stage; altfel nu este dovadă
 pentru codul live.
 
+După un re-sync în același staging, timestamp-urile păstrate de copiere pot fi
+mai vechi decât clasele deja compilate, chiar dacă semnătura sursei s-a schimbat.
+Un mesaj Maven `Nothing to compile` nu dovedește atunci echivalența sursă/class.
+Folosește un staging nou sau `clean test` numai în staging-ul privat, după
+terminarea build-ului propriu; checkout-ul live și output-ul altor execuții
+nu se curăță. Artifactele deja produse rămân separat de `target`.
+
 </details>
 
 ### Bucla periodică de sync pentru feedback și build

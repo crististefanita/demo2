@@ -7,13 +7,34 @@ poate fi respins cu `body/html intercepts pointer events`. Efectul a apărut
 pe vignette-ul real AutoEx și se reproduce independent cu un control HTML
 neutru în browserul de componentă `atf-ui`; nu este un mock al reclamei.
 
-Inițializarea nu trebuie să aplice încă o dată zoom-ul în documentele copil.
-Această separare previne compunerea scalei, dar nu rezolvă singură coordonatele
-pointerului când documentul părinte rămâne la zoom CSS non-nativ. AutoEx
-selectează explicit 100%; click-ul standard Close a fost probat pe reclama
-reală. Această alegere nu certifică geometria pointerului la zoom non-nativ.
+- Inițializarea nu trebuie să aplice încă o dată zoom-ul în documentele copil.
+  Această separare previne compunerea scalei, dar nu rezolvă singură coordonatele
+  pointerului când documentul părinte rămâne la zoom CSS non-nativ.
+- AutoEx selectează 70% și folosește activare JavaScript explicită numai pentru
+  Close; click-ul standard în iframe la scara nativă rămâne proba distinctă
+  a pointerului, nu rezolvarea cerinței la 70%.
+
+Proba neutră la owner distinge documentul principal de iframe: click-ul normal
+în pagina principală trece la 70% și 100%, iar cel din iframe eșuează la 70%
+și trece la 100%. Observația privește configurația locală Playwright 1.49.0,
+nu toate versiunile sau toate browserele.
+
+- Alternativă opt-in: `clickWithJavaScript(..., postcondition)` activează un
+  control DOM și verifică efectul înainte de PASS; nu este fallback automat.
+- Limită: activarea programatică nu repară coordonatele pointerului;
+  [contractul consumerului](../../atf-test-auto-ex/README.md#vignette-și-activare-javascript)
+  rămâne separat de acest contract generic.
+
+Context upstream: [solicitarea de zoom nativ Playwright](https://github.com/microsoft/playwright/issues/31836)
+distinge zoom-ul browserului de simularea CSS. Nu presupunem că un upgrade
+rezolvă această regresie fără proba locală echivalentă.
 
 ### Criterii rămase
+
+- [ ] Publicați viewport-ul și scala efectiv rezolvate în metadatele operaționale
+      ale rapoartelor celorlalți consumeri; AutoEx publică deja engine, headless,
+      viewport și zoom CSS rezolvat prin snapshot-ul Reporting.
+      Reutilizați mapping-ul comun, nu un renderer în consumer.
 
 - [ ] Alegeți și probați la owner o soluție pentru pointer și iframe la zoom
       non-nativ: compatibilitate driver/browser sau mecanism de scalare cu
@@ -21,23 +42,9 @@ reală. Această alegere nu certifică geometria pointerului la zoom non-nativ.
 - [ ] Verificați click real, focus, tastatură și captură pe documentul părinte
       și iframe-uri same-origin/cross-origin la limitele relevante ale scalei.
 - [ ] Nu folosiți `force`, dispatch de evenimente sau modificarea DOM-ului
-      site-ului pentru a declara un click trecut. 100% rămâne alegerea sigură
-      pentru consumerii cu controale embedded până la demonstrarea soluției.
+      pentru a declara pointerul reparat. Activarea DOM explicită are evidence
+      distinct; 100% rămâne scara nativă pentru proba de pointer embedded.
 
 Regulile stabile sunt în [README ATF UI](../../atf-ui/README.md#configurație-generică-fără-flag-redundant).
-Recuperarea contului AutoEx sub reclama observată rămâne o acceptanță separată
-în [feedback-ul consumerului](ATF_Automation_Exercise_Feedback.md).
-
-## Controlul incrementului de platformă
-
-```yaml
-testChanges:
-  - id: UI-FRAME-ZOOM-01
-    status: ACTIVE
-    base: 0f6a95265024a78c20754d5c18937d24434a2d2d
-    expires: 2026-11-23
-    reason: Separa zoom-ul documentului principal de iframe si probeaza geometria pointerului la scara nativa in ownerul UI, fara reclama sau site artificial AutoEx.
-    proof: mvn -pl atf-ui,atf-test-auto-ex,atf-tests -am "-Dtest=PlaywrightUiSessionTest,AutoExComponentSuite,AutoExBusinessSuite,WholeAtfGovernanceSuiteTest" "-Datf.autoex.e2e.enabled=true" "-Datf.governance.testChanges.baseRef=0f6a95265024a78c20754d5c18937d24434a2d2d" "-Dsurefire.failIfNoSpecifiedTests=false" test
-    paths:
-      - atf-ui/src/test/java/atf/api/ui/playwright/PlaywrightUiSessionTest.java
-```
+Recuperarea contului este normată în
+[contractul AutoEx](../../atf-test-auto-ex/README.md#contul-creat-și-cleanup-ul-sub-vignette).

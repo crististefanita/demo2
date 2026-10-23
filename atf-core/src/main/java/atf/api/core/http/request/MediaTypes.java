@@ -5,6 +5,7 @@ import java.util.Locale;
 /** Canonical media types used by API fixtures and contracts. */
 public final class MediaTypes {
     public static final String APPLICATION_JSON = "application/json";
+    public static final String APPLICATION_FORM_URLENCODED = "application/x-www-form-urlencoded";
     public static final String TEXT_PLAIN = "text/plain";
     public static final String TEXT_CSV = "text/csv";
 

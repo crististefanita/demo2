@@ -66,10 +66,14 @@ final class ExtentRequestScope implements AtfReportPorts.Request {
     }
 
     @Override public void json(String label, String value) {
-        String redacted = tree.redactor().redactJson(value);
-        json.add(new ReportJsonBody(label == null || label.isBlank() ? "JSON BODY" : label, redacted));
-        semantic.json(label);
-        tree.consoleCode(atf.api.reporting.console.AtfConsoleEvent.Scope.REQUEST, label, redacted);
+        body(new ReportJsonBody(label == null || label.isBlank() ? "JSON BODY" : label, value));
+    }
+
+    @Override public void body(ReportJsonBody body) {
+        String redacted = tree.redactor().redactJson(body.body());
+        json.add(new ReportJsonBody(body.label(), redacted, body.direction(), body.format()));
+        semantic.json(body.label());
+        tree.consoleCode(atf.api.reporting.console.AtfConsoleEvent.Scope.REQUEST, body.label(), redacted);
     }
 
     @Override public void screenshot(String title, String base64Png) {

@@ -31,7 +31,8 @@ public record UiNetworkObservation(
         String evidenceSource,
         String requestSignature,
         boolean responseBodyAvailable,
-        String failureReason) {
+        String failureReason,
+        UiNetworkCapturePolicy.ResourceKind resourceKind) {
     private static final SensitiveDataRedactor REDACTOR = new SensitiveDataRedactor();
 
     public UiNetworkObservation {
@@ -49,6 +50,19 @@ public record UiNetworkObservation(
         evidenceSource = normalize(evidenceSource);
         requestSignature = normalize(requestSignature);
         failureReason = normalize(failureReason);
+        resourceKind = resourceKind == null ? UiNetworkCapturePolicy.ResourceKind.OTHER : resourceKind;
+    }
+
+    /** Compatibility constructor; browser observations always carry a known resource type. */
+    public UiNetworkObservation(long sequence, Instant capturedAt, String method, String url,
+                                String path, int status, Map<String, String> requestHeaders,
+                                Map<String, String> responseHeaders, String requestBody,
+                                String responseBody, String authMethod, String authSource,
+                                String service, String evidenceSource, String requestSignature,
+                                boolean responseBodyAvailable, String failureReason) {
+        this(sequence, capturedAt, method, url, path, status, requestHeaders, responseHeaders,
+                requestBody, responseBody, authMethod, authSource, service, evidenceSource,
+                requestSignature, responseBodyAvailable, failureReason, UiNetworkCapturePolicy.ResourceKind.OTHER);
     }
 
     /** Compatibility constructor for response observations created before request-failure evidence. */
@@ -79,13 +93,15 @@ public record UiNetworkObservation(
             bodyAvailable = false;
             responseBody = "<unavailable: " + unavailable.getClass().getSimpleName() + ">";
         }
-        Map<String, String> requestHeaders = redact(request.headers());
+        Map<String, String> browserHeaders = requestHeaders(request);
+        Map<String, String> requestHeaders = redact(browserHeaders);
         Map<String, String> responseHeaders = redact(response.headers());
-        String[] auth = authentication(request.headers(), url);
+        String[] auth = authentication(browserHeaders, url);
         return new UiNetworkObservation(sequence, Instant.now(), request.method(), safeUrl(url),
                 path(url), response.status(), requestHeaders, responseHeaders, requestBody,
                 responseBody, auth[0], auth[1], host(url), "UI_BROWSER",
-                signature(request.method(), url, requestBody), bodyAvailable);
+                signature(request.method(), url, requestBody), bodyAvailable, "",
+                UiNetworkCapturePolicy.ResourceKind.fromPlaywright(request.resourceType()));
     }
 
     static UiNetworkObservation fromFailure(Request request, long sequence,
@@ -98,13 +114,14 @@ public record UiNetworkObservation(
                 failure.replaceAll("https?://[^\\s]+", "<url-redacted>")),
                 configuration.maxBodyPreviewCharacters());
         if (reason.isBlank()) reason = "request failed before response";
-        Map<String, String> requestHeaders = redact(request.headers());
-        String[] auth = authentication(request.headers(), url);
+        Map<String, String> browserHeaders = requestHeaders(request);
+        Map<String, String> requestHeaders = redact(browserHeaders);
+        String[] auth = authentication(browserHeaders, url);
         return new UiNetworkObservation(sequence, Instant.now(), request.method(), safeUrl(url),
                 path(url), -1, requestHeaders, Map.of(), requestBody,
                 "<unavailable: request failed before response>", auth[0], auth[1], host(url),
                 "UI_BROWSER_REQUEST_FAILED", signature(request.method(), url, requestBody),
-                false, reason);
+                false, reason, UiNetworkCapturePolicy.ResourceKind.fromPlaywright(request.resourceType()));
     }
 
     /** Returns a copy with a consumer-owned service label; the generic inspector stays host-based. */
@@ -112,7 +129,7 @@ public record UiNetworkObservation(
         return new UiNetworkObservation(sequence, capturedAt, method, url, path, status,
                 requestHeaders, responseHeaders, requestBody, responseBody, authMethod,
                 authSource, consumerService, evidenceSource, requestSignature,
-                responseBodyAvailable, failureReason);
+                responseBodyAvailable, failureReason, resourceKind);
     }
 
     public boolean requestFailed() {
@@ -153,7 +170,7 @@ public record UiNetworkObservation(
                 path(safeUrl), status, redact(requestHeaders), redact(responseHeaders),
                 safeRequestBody, safeResponseBody, safeAuthMethod, safeAuthSource,
                 safeService, safeEvidenceSource, signature(method, safeUrl, safeRequestBody),
-                responseBodyAvailable, safeFailureReason);
+                responseBodyAvailable, safeFailureReason, resourceKind);
     }
 
     private static String[] authentication(Map<String, String> headers, String url) {
@@ -187,14 +204,43 @@ public record UiNetworkObservation(
     private static Map<String, String> redact(Map<String, String> headers) {
         Map<String, String> safe = new LinkedHashMap<>();
         if (headers == null) return safe;
-        headers.forEach((key, value) -> safe.put(key,
-                sensitive(key) ? "REDACTED" : normalize(value)));
+        headers.forEach((key, value) -> {
+            // HTTP/2 pseudo-headers duplicate the typed method/URL and can expose raw query values.
+            if (!normalize(key).startsWith(":")) {
+                safe.put(key, sensitive(key) ? "REDACTED" : safeHeaderValue(key, value));
+            }
+        });
         return safe;
+    }
+
+    private static Map<String, String> requestHeaders(Request request) {
+        // Cached headers omit browser security headers; observe them before redaction.
+        Map<String, String> complete = request.allHeaders();
+        return complete == null ? request.headers() : complete;
+    }
+
+    private static String safeHeaderValue(String key, String value) {
+        String safe = normalize(value);
+        String name = normalize(key).toLowerCase(Locale.ROOT);
+        if (name.equals("location") || name.equals("content-location") || name.equals("referer")) {
+            try {
+                if (URI.create(safe).getHost() != null) {
+                    boolean relativeProtocol = safe.startsWith("//");
+                    String redacted = safeUrl(relativeProtocol ? "https:" + safe : safe);
+                    return relativeProtocol ? redacted.substring("https:".length()) : redacted;
+                }
+            } catch (IllegalArgumentException malformedHeaderUrl) {
+                // Preserve useful relative/invalid target text, never its query or fragment.
+            }
+            safe = safe.replaceFirst("[?#].*$", "?redacted-query");
+        }
+        return REDACTOR.redactText(safe);
     }
 
     private static boolean sensitive(String key) {
         String name = normalize(key).toLowerCase(Locale.ROOT);
-        return name.equals("authorization") || name.equals("cookie")
+        return name.equals("authorization") || name.equals("proxy-authorization")
+                || name.equals("cookie") || name.equals("set-cookie") || name.equals("set-cookie2")
                 || name.contains("token") || name.contains("secret")
                 || name.equals("x-api-key") || name.equals("api-key");
     }
@@ -238,7 +284,7 @@ public record UiNetworkObservation(
 
     private static String safeTarget(String url) {
         try {
-            URI uri = URI.create(url);
+            URI uri = URI.create(safeUrl(url));
             return uri.getRawPath() + (uri.getRawQuery() == null ? "" : "?<redacted-query>");
         } catch (IllegalArgumentException error) {
             throw new IllegalStateException("Cannot derive a safe request target from URL: " + url, error);
@@ -253,8 +299,8 @@ public record UiNetworkObservation(
                 throw new IllegalArgumentException("URL has no host");
             }
             String authority = host + (uri.getPort() < 0 ? "" : ":" + uri.getPort());
-            return uri.getScheme() + "://" + authority + uri.getRawPath()
-                    + (uri.getRawQuery() == null ? "" : "?redacted-query");
+            return REDACTOR.redactText(uri.getScheme() + "://" + authority + uri.getRawPath()
+                    + (uri.getRawQuery() == null ? "" : "?redacted-query"));
         } catch (IllegalArgumentException error) {
             throw new IllegalStateException("Cannot derive a safe request URL: " + url, error);
         }
@@ -262,7 +308,7 @@ public record UiNetworkObservation(
 
     private static String path(String url) {
         try {
-            URI uri = URI.create(url);
+            URI uri = URI.create(safeUrl(url));
             return uri.getRawPath() + (uri.getRawQuery() == null ? "" : "?redacted-query");
         } catch (IllegalArgumentException error) {
             throw new IllegalStateException("Cannot derive a request path from URL: " + url, error);

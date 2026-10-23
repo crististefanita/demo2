@@ -59,7 +59,7 @@ Celulele arată doar nivelurile care există în suitele executabile curente.
 |---|:---:|:---:|:---:|:---:|---|
 | [`atf-core`](../atf-core/README.md) | ✅ | — | — | — | contracte neutre și politici reutilizabile |
 | [`atf-validation`](../atf-validation/README.md) | ✅ | ✅ | — | — | reguli de validare și rezultate typed |
-| [`atf-console`](../atf-console/README.md) | ✅ | — | — | — | formatter, output și lifecycle de consolă |
+| [`atf-console`](../atf-console/README.md) | ✅ | — | ✅ | — | policy/formatter unitare; integrarea extension-ului cu Jupiter real |
 | [`atf-mock`](../atf-mock/README.md) | — | ✅ | — | — | transport fake și comportament determinist |
 | [`atf-ui`](../atf-ui/README.md) | ✅ | ✅ | — | — | policy și adapter Playwright generic |
 | [`atf-debug-ui`](../atf-debug-ui/README.md) | — | ✅ | — | — | server și launcher read-only pentru inspecție |
@@ -121,6 +121,30 @@ neutră, nu doar pentru că sunt folosite de două aplicații.
 - Testele cu transport controlat protejează clientul și contractele aplicației.
   Confirmarea serverului și a fluxului real rămâne în probele live opt-in;
   succesul fixture-ului nu certifică persistența ori semantica remote.
+
+### Inventarul executabil după mutări și reclasificare
+
+- Rulați entry point-urile reale ale suitelor, fără selectarea încă o dată a
+  claselor incluse; altfel aceeași probă poate fi numărată de două ori.
+- Comparați identitățile `clasă + metodă + invocare parametrizată`, nu numai
+  totalurile. Pentru un rename/package move, documentați maparea vechi → nou
+  și verificați păstrarea cazurilor și aserțiunilor.
+- Legați XML-urile Surefire de clasele raportate în logul acelei execuții;
+  fișierele rămase de la o selecție anterioară nu intră în inventarul curent.
+- `ShopComponentSuite` include intenționat și pachete unit/support;
+  `AutoExComponentSuite` selectează pachetul component;
+  `AtfReportingComponentSuite` cere tag-ul `component` și exclude clasele Suite.
+- Probele unit/integration mutate rămân verificate separat la owner, inclusiv
+  Test Kit; absența lor din component suite este corectă numai cu dovadă de
+  execuție în layer-ul declarat.
+- Nu compensați un test pierdut printr-un test nou fără legătură; comparați
+  cazurile dispărute și echivalența invariantului înainte de ștergerea copiei.
+
+Gate-ul comun se rulează în staging extern, fără trafic business live:
+
+```text
+mvn -pl atf-test-practice-shop,atf-test-auto-ex,atf-reporting-tests -am "-Dtest=ShopComponentSuite,AutoExComponentSuite,AtfReportingComponentSuite" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
 
 ## Traseul UI/API și ce verifică testele
 

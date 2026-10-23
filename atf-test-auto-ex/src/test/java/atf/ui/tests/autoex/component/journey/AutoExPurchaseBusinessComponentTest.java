@@ -2,6 +2,11 @@ package atf.ui.tests.autoex.component.journey;
 
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.testkit.AtfComponentTest;
+import atf.api.ui.config.UiBrowserConfiguration;
+import atf.api.ui.playwright.AtfLocator;
+import atf.api.ui.playwright.PlaywrightUiSession;
+import atf.ui.autoex.page.ProductPage;
+import atf.ui.autoex.support.journey.AutoExPurchaseSession;
 import atf.ui.autoex.config.AutoExConfiguration.Catalog;
 import atf.ui.autoex.config.AutoExConfiguration.Registration;
 import atf.ui.autoex.support.checkout.AutoExCheckoutAssertions;
@@ -13,6 +18,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.stream.Stream;
+import java.lang.reflect.Proxy;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -112,5 +118,35 @@ class AutoExPurchaseBusinessComponentTest {
     void emptyDownloadOrAnHtmlErrorPageCannotPassAsAnInvoice() {
         assertTrue(AutoExInvoiceAssertions.validate(CUSTOMER.displayName(), TOTAL, "error.html", "")
                 .stream().noneMatch(AtfAssertion::passed));
+    }
+
+    @Test
+    void hiddenAddToCartTextCannotCompleteTheCartCheckpoint() {
+        try (var browser = PlaywrightUiSession.open(UiBrowserConfiguration.defaults())) {
+            var page = browser.page();
+            page.setContent("<div id='cartModal' style='display:none'>Added! Product added to cart</div>");
+            var sequence = browser.newActionSequence();
+            var session = (AutoExPurchaseSession)
+                    Proxy.newProxyInstance(getClass().getClassLoader(),
+                            new Class<?>[]{AutoExPurchaseSession.class},
+                            (object, method, args) -> {
+                                String selector = (String) args[0];
+                                var target = new AtfLocator(page.locator(selector), selector);
+                                if (method.getName().equals("waitForText")) {
+                                    sequence.waitForText(page, target, (String) args[1], (String) args[2]);
+                                    return null;
+                                }
+                                if (method.getName().equals("text")) {
+                                    return sequence.getText(target, (String) args[1]);
+                                }
+                                throw new UnsupportedOperationException(method.getName());
+                            });
+            page.evaluate("() => setTimeout(() => document.getElementById('cartModal').style.display='block', 100)");
+            String confirmation = new ProductPage(session).addConfirmation();
+            assertTrue(page.locator("div[id='cartModal']").isVisible());
+            assertTrue(confirmation.contains("Added!"));
+            assertTrue(sequence.snapshot().getFirst().operation().equals("Wait for text"),
+                    "The checkpoint must await visible business confirmation, not hidden template text");
+        }
     }
 }

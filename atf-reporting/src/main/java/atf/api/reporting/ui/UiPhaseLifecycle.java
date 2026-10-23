@@ -162,6 +162,13 @@ public final class UiPhaseLifecycle implements AutoCloseable {
     void networkInspector(String title,
                           Collection<ReportExecutionEvidence> executionEvidence,
                           Collection<ReportNetworkInspector.Step> steps) {
+        networkInspector(title, executionEvidence, steps, null);
+    }
+
+    void networkInspector(String title,
+                          Collection<ReportExecutionEvidence> executionEvidence,
+                          Collection<ReportNetworkInspector.Step> steps,
+                          atf.api.reporting.ui.network.ReportNetworkCaptureStatus capture) {
         ensureOpen();
         if (networkSummary != null) {
             throw new IllegalStateException(
@@ -169,7 +176,7 @@ public final class UiPhaseLifecycle implements AutoCloseable {
         }
         networkSummary = new PendingNetworkSummary(
                 title == null || title.isBlank() ? "API network inspector" : title.trim(),
-                immutableCopy(executionEvidence), immutableCopy(steps));
+                immutableCopy(executionEvidence), immutableCopy(steps), capture);
     }
 
     private void publishNetworkSummary() {
@@ -183,11 +190,11 @@ public final class UiPhaseLifecycle implements AutoCloseable {
             request.detail("evidence.role", "journey summary; not an additional business step");
             request.detail(AtfReportEvidenceKeys.EVIDENCE_TYPE,
                     AtfReportEvidenceKeys.API_TRACE);
-            ReportNetworkInspector.fields(summary.evidence(), summary.steps()).stream()
+            ReportNetworkInspector.fields(summary.evidence(), summary.steps(), summary.capture()).stream()
                     .filter(field -> !field.name().startsWith("network.aggregate."))
                     .forEach(field -> request.detail(field.name(), field.value()));
             request.networkAggregate(ReportNetworkInspector.aggregate(
-                    summary.evidence(), summary.steps()));
+                    summary.evidence(), summary.steps(), summary.capture()));
             // This node is a passive journey summary, not an API assertion.
             // Failed exchanges retain their evidence here; checkpoint/API validation
             // nodes own the verdict. No independent browser runtime signals are accepted.
@@ -233,6 +240,14 @@ public final class UiPhaseLifecycle implements AutoCloseable {
                           AtfReportStatus status) {
         action(AtfGherkinKeyword.THEN.text(), title, target, base64Png, assertions, status,
                 "Screen validation", actions, capturePoint);
+    }
+
+    void screenValidation(String title, String target, String base64Png,
+                          Collection<AtfAssertion> assertions, Collection<AtfUiActionRecord> actions,
+                          Collection<ReportExecutionEvidence> apiEvidence,
+                          ReportScreenshotPolicy.CapturePoint capturePoint, AtfReportStatus status) {
+        action(AtfGherkinKeyword.THEN.text(), title, target, base64Png, assertions, status,
+                "Screen validation", actions, apiEvidence, capturePoint);
     }
 
     void screenValidationAsMedia(String title, String target, String base64Png,
@@ -377,5 +392,6 @@ public final class UiPhaseLifecycle implements AutoCloseable {
 
     private record PendingNetworkSummary(String title,
                                         List<ReportExecutionEvidence> evidence,
-                                        List<ReportNetworkInspector.Step> steps) { }
+                                        List<ReportNetworkInspector.Step> steps,
+                                        atf.api.reporting.ui.network.ReportNetworkCaptureStatus capture) { }
 }

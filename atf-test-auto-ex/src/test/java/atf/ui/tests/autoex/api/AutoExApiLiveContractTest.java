@@ -19,6 +19,7 @@ import atf.api.testkit.channel.AtfTestChannel;
 import atf.api.testkit.channel.TestChannel;
 import atf.api.testkit.reporting.AtfReportPath;
 import atf.ui.autoex.api.AutoExApiAccount;
+import atf.ui.autoex.api.AutoExApiOutcome;
 import atf.ui.autoex.api.AutoExApiJsonField;
 import atf.ui.autoex.api.AutoExApiRequestFactory;
 import atf.ui.autoex.config.AutoExConfiguration;
@@ -36,6 +37,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static atf.ui.autoex.api.AutoExApiOutcome.ACCOUNT_DELETED;
+import static atf.ui.autoex.api.AutoExApiOutcome.LOGIN_PARAMETER_MISSING;
+import static atf.ui.autoex.api.AutoExApiOutcome.METHOD_NOT_SUPPORTED;
+import static atf.ui.autoex.api.AutoExApiOutcome.SEARCH_PARAMETER_MISSING;
+import static atf.ui.autoex.api.AutoExApiOutcome.USER_CREATED;
+import static atf.ui.autoex.api.AutoExApiOutcome.USER_EXISTS;
+import static atf.ui.autoex.api.AutoExApiOutcome.USER_NOT_FOUND;
+import static atf.ui.autoex.api.AutoExApiOutcome.USER_UPDATED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -52,7 +61,7 @@ public class AutoExApiLiveContractTest {
     static final String TIMEOUT_PROPERTY = "atf.autoex.api.timeout";
     private static final String DEFAULT_TIMEOUT = "PT20S";
     private static final int EXPECTED_HTTP_STATUS = 200;
-    private static final String UNSUPPORTED_METHOD_MESSAGE = "This request method is not supported.";
+    private static final String TRANSPORT_PROFILE = "autoex-live";
     private static final ObjectMapper JSON = new ObjectMapper();
 
     @Test
@@ -64,39 +73,32 @@ public class AutoExApiLiveContractTest {
 
         assertResponse("API 1 products list", api, requests.productsList(), 200, null,
                 AutoExApiJsonField.PRODUCTS);
-        assertResponse("API 2 unsupported products POST", api, requests.postProductsList(), 405,
-                UNSUPPORTED_METHOD_MESSAGE);
+        assertResponse("API 2 unsupported products POST", api, requests.postProductsList(), METHOD_NOT_SUPPORTED);
         assertResponse("API 3 brands list", api, requests.brandsList(), 200, null,
                 AutoExApiJsonField.BRANDS);
-        assertResponse("API 4 unsupported brands PUT", api, requests.putBrandsList(), 405,
-                UNSUPPORTED_METHOD_MESSAGE);
+        assertResponse("API 4 unsupported brands PUT", api, requests.putBrandsList(), METHOD_NOT_SUPPORTED);
         assertResponse("API 5 search product", api,
                 requests.searchProduct(configuration.catalog().searchTerm()), 200, null,
                 AutoExApiJsonField.PRODUCTS);
-        assertResponse("API 6 missing search parameter", api, requests.searchProduct(null), 400,
-                "Bad request, search_product parameter is missing in POST request.");
+        assertResponse("API 6 missing search parameter", api, requests.searchProduct(null), SEARCH_PARAMETER_MISSING);
         assertResponse("API 8 missing login email", api,
-                requests.verifyLoginWithoutEmail(account.password()), 400,
-                "Bad request, email or password parameter is missing in POST request.");
-        assertResponse("API 9 unsupported login DELETE", api, requests.deleteMethodOnVerifyLogin(), 405,
-                UNSUPPORTED_METHOD_MESSAGE);
+                requests.verifyLoginWithoutEmail(account.password()), LOGIN_PARAMETER_MISSING);
+        assertResponse("API 9 unsupported login DELETE", api, requests.deleteMethodOnVerifyLogin(), METHOD_NOT_SUPPORTED);
         assertResponse("API 10 invalid login", api,
-                requests.verifyLogin(account.email(), "invalid-" + account.password()), 404,
-                "User not found!");
+                requests.verifyLogin(account.email(), "invalid-" + account.password()), USER_NOT_FOUND);
 
         try (AutoExApiAccountCleanup cleanup = new AutoExApiAccountCleanup(() ->
                 assertResponse("API 12 cleanup", api,
-                        requests.deleteAccount(account.email(), account.password()), 200, "Account deleted!"))) {
+                        requests.deleteAccount(account.email(), account.password()), ACCOUNT_DELETED))) {
             cleanup.armBeforeCreateAttempt();
-            assertResponse("API 11 create account", api, requests.createAccount(account), 201,
-                    "User created!");
+            assertResponse("API 11 create account", api, requests.createAccount(account), USER_CREATED);
             assertResponse("API 7 valid login", api,
-                    requests.verifyLogin(account.email(), account.password()), 200, "User exists!");
+                    requests.verifyLogin(account.email(), account.password()), USER_EXISTS);
             assertResponseWithTextFields("API 14 user detail", api,
                     requests.userDetail(account.email()), 200, null,
                     Map.of(AutoExApiJsonField.USER_EMAIL.path(), account.email()));
             assertResponse("API 13 update account", api,
-                    requests.updateAccount(updatedName(account)), 200, "User updated!");
+                    requests.updateAccount(updatedName(account)), USER_UPDATED);
         }
     }
 
@@ -104,10 +106,10 @@ public class AutoExApiLiveContractTest {
         URI baseUrl = URI.create(System.getProperty(BASE_URL_PROPERTY,
                 configuration.baseUrl().toString()));
         Duration timeout = Duration.parse(System.getProperty(TIMEOUT_PROPERTY, DEFAULT_TIMEOUT));
-        ApiLiveTransportCatalog catalog = ApiLiveTransportCatalog.single("autoex-live", baseUrl,
+        ApiLiveTransportCatalog catalog = ApiLiveTransportCatalog.single(TRANSPORT_PROFILE, baseUrl,
                 AuthProfiles.NONE, timeout,
                 (endpoint, authenticator) -> new UrlConnectionTransport(authenticator, endpoint.timeout()));
-        var transport = catalog.open("autoex-live", ApiTransportPolicy.explicitLive(),
+        var transport = catalog.open(TRANSPORT_PROFILE, ApiTransportPolicy.explicitLive(),
                 new ConfiguredApiAuthenticator(Map.of()));
         var settings = new ApiSettings(baseUrl, AuthProfiles.NONE, timeout, Set.of(), 1);
         return new ApiExecutor(transport, settings.snapshot(), ApiTransportMode.LIVE);
@@ -137,6 +139,10 @@ public class AutoExApiLiveContractTest {
     static JsonNode assertResponse(String name, ApiExecutor api, ApiRequest request,
                                    int responseCode, String message) {
         return assertResponse(name, api, request, responseCode, message, Map.of(), new AutoExApiJsonField[0]);
+    }
+
+    static JsonNode assertResponse(String name, ApiExecutor api, ApiRequest request, AutoExApiOutcome outcome) {
+        return assertResponse(name, api, request, outcome.responseCode(), outcome.message());
     }
 
     static JsonNode assertResponse(String name, ApiExecutor api, ApiRequest request,

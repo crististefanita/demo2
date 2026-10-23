@@ -1,13 +1,16 @@
 package atf.ui.autoex.locator;
 
+import atf.ui.autoex.api.AutoExApiRoute;
+
 import java.net.URI;
 
 /** Application routes kept separate from page behavior and selectors. */
 public enum AutoExRoutes {
     HOME("/"),
     PRODUCTS("/products"),
-    PRODUCTS_API("/api/productsList"),
+    PRODUCTS_API(AutoExApiRoute.PRODUCTS_LIST.path()),
     CART("/view_cart"),
+    ADD_TO_CART("/add_to_cart/"),
     LOGIN("/login"),
     LOGOUT("/logout"),
     PAYMENT("/payment"),
@@ -15,6 +18,7 @@ public enum AutoExRoutes {
     INVOICE_DOWNLOAD("/download_invoice/");
 
     public static final String GOOGLE_VIGNETTE_FRAGMENT = "#google_vignette";
+    public static final String SEARCH_PARAMETER = "search";
 
     private final String path;
 

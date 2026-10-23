@@ -10,10 +10,12 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.parallel.Resources;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static atf.ui.autoex.config.AutoExSite.PUBLIC_BASE_URI;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -23,6 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** Protects the AutoEx YAML contract and path override without starting a browser or public-site call. */
 @AtfComponentTest
 class AutoExConfigurationLoaderComponentTest {
+    private static final URI OVERRIDE_BASE_URI = URI.create("https://autoex-configuration.invalid");
+
     @TempDir
     Path temporaryDirectory;
 
@@ -31,13 +35,15 @@ class AutoExConfigurationLoaderComponentTest {
         AutoExConfiguration configuration = AutoExConfigurationLoader.load();
 
         assertAll(
-                () -> assertEquals("https://automationexercise.com", configuration.baseUrl().toString()),
+                () -> assertEquals(PUBLIC_BASE_URI, configuration.baseUrl()),
                 () -> assertFalse(configuration.e2eEnabled(), "live E2E must remain opt-in by default"),
                 () -> assertEquals("chromium", configuration.browser().browser()),
                 () -> assertEquals(20, configuration.browser().timeout().toSeconds()),
                 () -> assertEquals(45, configuration.browser().navigationTimeout().toSeconds()),
                 () -> assertEquals(1440, configuration.browser().viewportWidth()),
                 () -> assertEquals(1000, configuration.browser().viewportHeight()),
+                () -> assertEquals(70, configuration.browser().zoomPercent(),
+                        "AutoEx uses 70%; only the vignette Close opts into DOM activation"),
                 () -> assertEquals(Path.of("artifacts/reports/ui"), configuration.uiReportBaseDirectory()),
                 () -> assertEquals("Blue Top", configuration.catalog().productName()),
                 () -> assertEquals(2, configuration.catalog().quantity()),
@@ -48,7 +54,9 @@ class AutoExConfigurationLoaderComponentTest {
     @Test
     void explicitYamlPathOverridesPackagedDefaults() throws IOException {
         String yaml = Files.readString(defaultYaml())
+                .replace(PUBLIC_BASE_URI.toString(), OVERRIDE_BASE_URI.toString())
                 .replace("e2eEnabled: false", "e2eEnabled: true")
+                .replace("zoomPercent: 70", "zoomPercent: 100")
                 .replace("searchTerm: Blue Top", "searchTerm: Green Top")
                 .replace("productName: Blue Top", "productName: Green Top");
         Path override = temporaryDirectory.resolve("autoex-local.yaml");
@@ -57,6 +65,11 @@ class AutoExConfigurationLoaderComponentTest {
         AutoExConfiguration configuration = AutoExConfigurationLoader.load(override);
 
         assertTrue(configuration.e2eEnabled());
+        assertEquals(100, configuration.browser().zoomPercent(),
+                "an explicit browser scale override is not silently coerced to the default");
+        assertEquals(OVERRIDE_BASE_URI, configuration.baseUrl());
+        assertEquals(OVERRIDE_BASE_URI, configuration.browser().baseUrl(),
+                "the public site constant must not override the configured browser endpoint");
         assertEquals("Green Top", configuration.catalog().searchTerm());
         assertEquals("Green Top", configuration.catalog().productName());
     }
@@ -80,8 +93,9 @@ class AutoExConfigurationLoaderComponentTest {
 
     @Test
     void rejectsInvalidBaseUrlAndEscapingReportDirectory() throws IOException {
-        Path invalidUrl = writeVariant("baseUrl: https://automationexercise.com",
-                "baseUrl: ftp://automationexercise.com");
+        String configuredBaseUrl = "baseUrl: " + PUBLIC_BASE_URI;
+        String invalidBaseUrl = configuredBaseUrl.replace("https:", "ftp:");
+        Path invalidUrl = writeVariant(configuredBaseUrl, invalidBaseUrl);
         Path escapingReports = writeVariant("uiBaseDirectory: artifacts/reports/ui",
                 "uiBaseDirectory: ../outside");
         Path misspelledSetting = writeVariant("navigationTimeout: PT45S", "navigationTimout: PT30S");
@@ -117,6 +131,28 @@ class AutoExConfigurationLoaderComponentTest {
         Path file = temporaryDirectory.resolve("variant-" + Math.abs(replacement.hashCode()) + ".yaml");
         Files.writeString(file, yaml);
         return file;
+    }
+
+    @Test
+    void uiApiProfileIncludesCartXhrOutsideApiPrefixAndDocumentsRemainExplicit() throws IOException {
+        var network = AutoExConfigurationLoader.load().browser().networkInspection();
+        var policy = network.capturePolicy();
+        var cartType = atf.api.ui.network.UiNetworkCapturePolicy.ResourceKind.XHR;
+        var document = atf.api.ui.network.UiNetworkCapturePolicy.ResourceKind.DOCUMENT;
+        String cart = PUBLIC_BASE_URI.resolve("/add_to_cart/1").toString();
+        String checkout = PUBLIC_BASE_URI.resolve("/checkout").toString();
+        assertFalse(network.enabled(), "Only the UI_API channel enables browser capture");
+        assertTrue(network.withEnabled(true).accepts(cart));
+        assertTrue(policy.accepts(cart, cartType), "The real cart XHR does not use an /api/ prefix");
+        assertFalse(policy.accepts(checkout, document));
+        Path override = writeVariant("includeDocuments: false", "includeDocuments: true");
+        var configured = AutoExConfigurationLoader.load(override).browser().networkInspection();
+        assertTrue(configured.capturePolicy().accepts(checkout, document));
+        assertEquals(256, configured.withEnabled(true).maxObservations());
+        assertThrows(IllegalStateException.class, () -> AutoExConfigurationLoader.load(
+                writeVariant("includeDocuments: false", "includeDocuments: yesplease")));
+        assertThrows(IllegalStateException.class, () -> AutoExConfigurationLoader.load(
+                writeVariant("maxObservations: 256", "maxObservations: 0")));
     }
 
     private static Path defaultYaml() {

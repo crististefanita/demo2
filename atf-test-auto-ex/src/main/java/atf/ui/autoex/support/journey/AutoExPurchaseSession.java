@@ -30,6 +30,7 @@ public interface AutoExPurchaseSession {
     AutoExCatalogSnapshot inspectCatalogApi(String productName);
     boolean observesApiTraffic();
     void markCausalApiTrafficBaseline();
+    void awaitCartExchange(String productId);
     void onFailureCleanup(AutoExAccountCleanup cleanup);
     void clearFailureCleanup();
     boolean dismissGoogleVignetteIfPresent();

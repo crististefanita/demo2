@@ -186,6 +186,7 @@ Valorile stabile ale contractului nu se repetă ca string-uri brute.
 |---|---|
 | HTTP method/header/media type | enum sau catalog HTTP |
 | rută API | catalog de rute al ownerului API |
+| adresă de aplicație / origin fictiv | identitate canonică la consumer / fixture numai în `src/test` |
 | status reporting | `AtfReportStatus` |
 | fază, tab, evidence type | vocabular reporting |
 | CSS class, `id`, `data-*`, rol DOM | vocabular HTML/UI |
@@ -195,11 +196,15 @@ Valorile stabile ale contractului nu se repetă ca string-uri brute.
 - [ ] Enum-ul reprezintă un vocabular închis și are conversie explicită spre
       textul rendererului.
 - [ ] Constanta este pusă în ownerul semantic, nu într-un bucket global.
+- [ ] Adresa canonică este o constantă `URI`; execuția folosește endpoint-ul
+      configurat. O probă cu alt origin verifică propagarea override-ului.
 - [ ] Rutele și header-ele provin din catalog, nu din testul concret.
 - [ ] Textele variabile se construiesc cu `String.format` sau builder typed;
       nu se concatenează HTML în assertions.
-- [ ] Un literal rămâne local numai când este un edge-case nereutilizabil și are
-      nume semantic.
+- [ ] În afara oracolelor wire, un literal rămâne local numai când este un
+      edge-case nereutilizabil și are nume semantic.
+- [ ] Un oracol wire independent poate păstra explicit payload-ul și numele
+      câmpurilor așteptate; nu se generează expected-ul prin serializerul testat.
 
 ### Importuri statice
 

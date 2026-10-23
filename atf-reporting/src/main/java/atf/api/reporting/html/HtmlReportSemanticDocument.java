@@ -13,6 +13,7 @@ import atf.api.reporting.ui.network.ReportNetworkInspector;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -163,6 +164,10 @@ public final class HtmlReportSemanticDocument {
 
         public void addJson(String label, String json) {
             this.json.add(new ReportJsonBody(label, json));
+        }
+
+        public void addBody(ReportJsonBody body) {
+            this.json.add(Objects.requireNonNull(body, "body"));
         }
 
         public void execution(ReportExecutionEvidence result) {

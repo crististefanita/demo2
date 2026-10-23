@@ -1,5 +1,7 @@
 package atf.api.ui.config;
 
+import atf.api.ui.network.UiNetworkCapturePolicy;
+
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Locale;
@@ -21,7 +23,8 @@ public record UiNetworkInspectionConfiguration(
         int maxObservations,
         int maxBodyPreviewCharacters,
         boolean collapseConsecutiveSignatures,
-        UiNetworkSettlementPolicy settlementPolicy) {
+        UiNetworkSettlementPolicy settlementPolicy,
+        UiNetworkCapturePolicy capturePolicy) {
 
     public UiNetworkInspectionConfiguration {
         allowedHosts = normalizeHosts(allowedHosts);
@@ -34,10 +37,20 @@ public record UiNetworkInspectionConfiguration(
         }
         settlementPolicy = settlementPolicy == null
                 ? UiNetworkSettlementPolicy.disabled() : settlementPolicy;
+        capturePolicy = capturePolicy == null ? UiNetworkCapturePolicy.allResources() : capturePolicy;
         if (enabled && allowedHosts.isEmpty()) {
             throw new IllegalArgumentException(
                     "ui.network.allowedHosts must contain at least one host when enabled");
         }
+    }
+
+    public UiNetworkInspectionConfiguration(boolean enabled, Set<String> allowedHosts,
+                                            int maxObservations, int maxBodyPreviewCharacters,
+                                            boolean collapseConsecutiveSignatures,
+                                            UiNetworkSettlementPolicy settlementPolicy) {
+        this(enabled, allowedHosts, maxObservations, maxBodyPreviewCharacters,
+                collapseConsecutiveSignatures, settlementPolicy,
+                UiNetworkCapturePolicy.allResources());
     }
 
     public static UiNetworkInspectionConfiguration disabled() {
@@ -58,6 +71,26 @@ public record UiNetworkInspectionConfiguration(
         } catch (IllegalArgumentException error) {
             throw new IllegalStateException("UI network observation received an invalid URL: " + url, error);
         }
+    }
+
+    public boolean accepts(String url, UiNetworkCapturePolicy.ResourceKind resourceKind) {
+        return accepts(url) && capturePolicy.accepts(url, resourceKind);
+    }
+
+    public UiNetworkInspectionConfiguration withCapturePolicy(UiNetworkCapturePolicy policy) {
+        return new UiNetworkInspectionConfiguration(enabled, allowedHosts, maxObservations,
+                maxBodyPreviewCharacters, collapseConsecutiveSignatures, settlementPolicy, policy);
+    }
+
+    /** Enables capture without replacing the caller's selection or limits. */
+    public UiNetworkInspectionConfiguration withEnabled(boolean enabled) {
+        return new UiNetworkInspectionConfiguration(enabled, allowedHosts, maxObservations,
+                maxBodyPreviewCharacters, collapseConsecutiveSignatures, settlementPolicy, capturePolicy);
+    }
+
+    public UiNetworkInspectionConfiguration withSettlementPolicy(UiNetworkSettlementPolicy policy) {
+        return new UiNetworkInspectionConfiguration(enabled, allowedHosts, maxObservations,
+                maxBodyPreviewCharacters, collapseConsecutiveSignatures, policy, capturePolicy);
     }
 
     private static Set<String> normalizeHosts(Collection<String> hosts) {

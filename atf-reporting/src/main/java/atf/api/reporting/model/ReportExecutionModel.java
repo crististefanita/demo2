@@ -137,7 +137,8 @@ public record ReportExecutionModel(List<Scenario> scenarios) {
             status = Objects.requireNonNull(status, "status");
             networkAggregate = networkAggregate == null ? null : new ReportNetworkInspector.JourneyAggregate(
                     networkAggregate.authentication(), networkAggregate.correlation(),
-                    networkAggregate.transport(), networkAggregate.signatures(), networkAggregate.diagnostics());
+                    networkAggregate.transport(), networkAggregate.signatures(), networkAggregate.diagnostics(),
+                    networkAggregate.capture());
             if (uiActionCount < 0 || screenshotCount < 0) {
                 throw new IllegalArgumentException("Evidence counts must be non-negative");
             }

@@ -107,7 +107,8 @@ ui:
 - `ui.zoomPercent` controlează zoom-ul CSS al documentului principal navigat;
 - scriptul nu aplică zoom suplimentar în iframe-uri; ele sunt deja scalate de container;
 - `70` poate fi folosit pentru inspecția rapoartelor Extent fără controale embedded;
-- pentru interacțiuni business cu iframe-uri, alegerea sigură este `100`;
+- pentru click-uri de pointer în iframe-uri, scara nativă `100` evită limita
+  de geometrie cunoscută; activarea DOM explicită descrisă mai jos nu o repară;
 - `viewport.width` și `viewport.height` rămân neschimbate;
 - valoarea este validată în intervalul `25..200`, iar lipsa cheii păstrează `100`;
 - YAML loading, override-ul `-Datf.ui.config`/`-Datf.ui.report` și rezoluția
@@ -219,6 +220,26 @@ override de bootstrap:
 - validatorul pur din `atf-reporting` decide dacă snapshot-ul DOM corespunde
   proiecției așteptate.
 
+### Activare JavaScript explicită
+
+`clickWithJavaScript(AtfLocator, String, Runnable)` este opt-in pentru un control
+care permite activare DOM. Nu este fallback pentru `click(...)` și nu simulează
+un eveniment de pointer trusted. Consumerul justifică alegerea și furnizează
+o postcondiție read-only care aruncă eroare dacă efectul așteptat lipsește.
+
+| Contract | Comportament |
+|---|---|
+| Precondiții | țintă unică, vizibilă și activă; postcondiție obligatorie |
+| Execuție | `HTMLElement.click()` o singură dată, apoi postcondiția |
+| Evidence | un singur rând `JavaScript click`; PASS numai după postcondiție, cu durată comună |
+| Eșec | FAIL la activare sau postcondiție; eroarea propagată, datele sensibile redactate |
+| Retry | fără reluare automată a mutației, inclusiv când sunt activate retry-uri read-only |
+| Click normal | rămâne pointer Playwright, cu hit testing; nu trece automat pe JavaScript |
+
+`PlaywrightJavaScriptClickComponentTest` verifică aceste reguli la 70%, în
+documentul principal și în iframe-uri same-origin/izolate. Fixture-ul este HTML
+neutru deținut de `atf-ui`, nu o reclamă sau o pagină business simulată.
+
 ## Validarea ecranului și capturi de ecran
 
 `UiScreenValidation.capture(page, configuration, title)` returnează un payload
@@ -249,9 +270,12 @@ markup și randare este în
 
 ## Inspectorul de rețea — limită generică de responsabilitate
 
+Fluxul cross-module și baseline-ul setup/causal au un singur owner în
+[diagrama arhitecturii](../docs/ATF_Architecture.md#capturarea-și-selecția-traficului-ui).
+
 `UiNetworkInspector` este opt-in și restrâns la host-urile configurate:
 
-- listenerii observă `response` și `request-failed`; nu execută replay și nu
+- listenerii observă `request-finished` și `request-failed`; nu execută replay și nu
   decid verdictul testului;
 - observațiile devin date typed, cu URL/query, headers și body redacted/bounded;
 - failure-ul fără response are status `Unavailable` și motiv explicit;
@@ -263,6 +287,49 @@ markup și randare este în
 | așteptarea bounded printr-o settlement policy explicită, fără retry/replay de acțiune | `atf-ui` |
 | aliasul de serviciu, corelarea cu checkpoint-ul și verdictul business | consumerul |
 | cardurile HTML și sumarul agregat | `atf-reporting` |
+
+Selecția precedă citirea body-ului și rezervarea bugetului:
+
+```mermaid
+flowchart LR
+    Event["Request finished / failed"] -->|filtrează| Host["Host allowlist"]
+    Host -->|selectează| Policy["Resource type + path policy"]
+    Policy -->|rezervă| Budget["Bounded journal"]
+    Budget -->|citește și redactează| Body["Typed observation"]
+    Body -->|publică| Consumer["Subscriber / reporting adapter"]
+```
+
+<details>
+<summary><strong>Legendă — scope, buget și cursor</strong></summary>
+
+- `UiNetworkCapturePolicy.asynchronous()` selectează XHR/fetch indiferent de
+  prefixul rutei sau Content-Type; resursele statice nu consumă jurnalul.
+- `includingDocuments()` include explicit navigări și formulare;
+  `forPaths(...)` restrânge opțional scope-ul consumerului. Allowlist-ul de
+  host rămâne obligatoriu. Constructorii anteriori păstrează `allResources()`
+  pentru compatibilitate; consumerul API configurează explicit politica async.
+- `UiNetworkObservation.resourceKind()` păstrează clasificarea Playwright;
+  `OTHER` menține compatibilitatea fixture-urilor typed anterioare,
+  fără să transforme resursele browser cunoscute în trafic API.
+- `statistics()` separă accepted, retained, excluded și dropped; inFlight
+  numără rezervările de captură în curs, nu toate request-urile browserului.
+  `limitReached` indică respingerea la plafon, nu simpla umplere exactă.
+- `captureSummary()` păstrează proiecția compatibilă a contorilor anteriori;
+  `statistics()` este snapshot-ul extins.
+- Captura este completă în scope la snapshot numai dacă nu are observații
+  pierdute sau capturi în curs; nu certifică traficul viitor.
+- `observationsSince(cursor)` păstrează ordinea append-only și separă setup
+  de trafic cauzal. Colapsarea pentru prezentare nu mută cursorul.
+- Cookie/Set-Cookie, headerele auth și credentialele cu chei/path-uri cunoscute
+  sunt redactate înainte de subscribers; redirecturile și Referer nu publică
+  query-uri sau fragmente. Pseudo-headerele HTTP/2 nu dublează URL-ul brut în
+  headers/replay. Politica PII specifică aplicației rămâne la consumer.
+
+`UiNetworkInspectorComponentTest` probează și în browser local, cu trafic
+interceptat controlat, filtrarea asset-urilor, fetch-ul reușit/eșuat și overflow-ul.
+Probele nu depind de un magazin public sau de Reporting.
+
+</details>
 
 `capture(UiNetworkObservation)` acceptă și fixture-uri/adaptoare. Înainte de
 storage și notificarea subscriberilor, inspectorul reconstruiește sau limitează

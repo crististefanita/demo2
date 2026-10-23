@@ -1,11 +1,13 @@
 package atf.api.core.diagnostics;
 
+import atf.api.testkit.AtfUnitTest;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@AtfUnitTest
 class ThrowableDiagnosticsTest {
     @Test
     void keepsTypeAndCompactsTheCauseMessage() {

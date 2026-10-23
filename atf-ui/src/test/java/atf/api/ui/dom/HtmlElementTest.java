@@ -1,10 +1,12 @@
 package atf.api.ui.dom;
 
+import atf.api.testkit.AtfUnitTest;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+@AtfUnitTest
 class HtmlElementTest {
     @Test
     void buildsCanonicalElementAndAttributeSelectors() {

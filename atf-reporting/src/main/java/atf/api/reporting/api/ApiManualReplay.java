@@ -80,7 +80,7 @@ public final class ApiManualReplay {
                 .append(" --url ").append(shellQuote(REDACTOR.redactText(url)));
         effectiveHeaders(request).forEach((name, value) -> command.append(" --header ")
                 .append(shellQuote(name + ": " + REDACTOR.redactField(name, value))));
-        if (requestBody != null && !requestBody.isBlank()) {
+        if (requestBody != null && request.bodyAvailability() == ReportBodyAvailability.AVAILABLE) {
             command.append(" --data-raw ")
                     .append(shellQuote(REDACTOR.redactJson(requestBody)));
         }

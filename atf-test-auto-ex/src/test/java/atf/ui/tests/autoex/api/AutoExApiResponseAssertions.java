@@ -21,7 +21,7 @@ public final class AutoExApiResponseAssertions {
         List<String> names = products == null || !products.isArray()
                 ? List.of()
                 : StreamSupport.stream(products.spliterator(), false)
-                        .map(product -> product.path("name").asText(""))
+                        .map(product -> product.path(AutoExApiJsonField.NAME.path()).asText(""))
                         .filter(name -> !name.isBlank())
                         .toList();
         String expected = searchTerm == null ? "" : searchTerm.trim();
