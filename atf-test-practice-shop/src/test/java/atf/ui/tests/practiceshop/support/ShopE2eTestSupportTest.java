@@ -15,7 +15,10 @@ import atf.ui.practiceshop.config.ShopValidationProfile;
 import atf.api.ui.config.UiNetworkInspectionConfiguration;
 import atf.ui.practiceshop.flow.ShopPurchaseFlow;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -75,6 +78,30 @@ class ShopE2eTestSupportTest {
                 () -> ShopE2eTestSupport.configurationForChannel(
                         configured.withValidationProfile(ShopValidationProfile.UI_ONLY), null,
                         CombinedChannel.class));
+    }
+
+    @Test
+    void explicitlyEmptyYamlCheckpointBindingFailsUiApiChannelPreflight(@TempDir Path temporary)
+            throws Exception {
+        Path yaml = temporary.resolve("empty-api-evidence.yaml");
+        Files.writeString(yaml, """
+                practiceShop:
+                  baseUrl: https://practicesoftwaretesting.com
+                  validation:
+                    profile: ui-api
+                    apiEvidence: []
+                  networkInspector:
+                    enabled: true
+                    allowedHosts: [api.practicesoftwaretesting.com]
+                """);
+        var configuration = ShopConfigurationLoader.load(yaml);
+
+        IllegalStateException failure = assertThrows(IllegalStateException.class,
+                () -> ShopE2eTestSupport.configurationForChannel(
+                        configuration, null, CombinedChannel.class));
+
+        assertTrue(failure.getMessage().contains("requires selected API checkpoints"));
+        assertTrue(configuration.api().evidenceBinding().checkpoints().isEmpty());
     }
 
     @Test

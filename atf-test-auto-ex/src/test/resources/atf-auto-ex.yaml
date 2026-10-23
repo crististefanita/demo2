@@ -1,0 +1,41 @@
+automationExercise:
+  baseUrl: https://automationexercise.com
+  e2eEnabled: false
+  browser:
+    engine: chromium
+    headless: true
+    timeout: PT20S
+    navigationTimeout: PT45S
+    viewport:
+      width: 1440
+      height: 1000
+    zoomPercent: 100
+  reports:
+    uiBaseDirectory: artifacts/reports/ui
+  catalog:
+    searchTerm: Blue Top
+    productId: "1"
+    productName: Blue Top
+    unitPrice: Rs. 500
+    quantity: 2
+  registration:
+    title: Mr
+    birthDay: "10"
+    birthMonth: May
+    birthYear: "1990"
+    firstName: ATF
+    lastName: AutoEx
+    company: ATF disposable E2E
+    address1: 10 Test Avenue
+    address2: Test District
+    country: United States
+    state: Test State
+    city: Test City
+    postalCode: "10001"
+    mobileNumber: "5550100100"
+  payment:
+    nameOnCard: ATF AutoEx Demo
+    cardNumber: "4242424242424242"
+    cvc: "123"
+    expiryMonth: "12"
+    expiryYear: "2030"

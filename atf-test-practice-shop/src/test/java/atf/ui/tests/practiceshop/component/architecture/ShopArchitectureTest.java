@@ -68,11 +68,9 @@ class ShopArchitectureTest {
 
         assertTrue(locators.contains("HtmlElement.INPUT.attributeEquals(ID, \"email\")"));
         assertTrue(locators.contains("HtmlElement.INPUT.attributeEquals(ID, \"search-query\")"));
-        assertTrue(locators.contains(
-                "HtmlElement.BUTTON.attributeEquals(DATA_TEST, \"login-submit\")"));
+        assertTrue(locators.contains("DATA_TEST.equalsSelector(\"login-submit\")"));
+        assertTrue(locators.contains("DATA_TEST.equalsSelector(\"register-submit\")"));
         assertFalse(locators.contains("input#"), "ID shorthand must not be the default selector form");
-        assertFalse(locators.contains("DATA_TEST.equalsSelector(\"login-submit\")"),
-                "known button tag must not be hidden behind a generic attribute selector");
         assertTrue(locators.contains("atf.api.ui.dom.HtmlElement")
                         && locators.contains("atf.api.ui.dom.HtmlAttribute"),
                 "physical DOM vocabulary must be reused from atf-ui");

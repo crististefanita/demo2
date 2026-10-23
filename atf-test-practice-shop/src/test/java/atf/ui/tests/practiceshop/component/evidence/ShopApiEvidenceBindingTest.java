@@ -30,6 +30,15 @@ class ShopApiEvidenceBindingTest {
     }
 
     @Test
+    void missingCsvInheritsProfileButExplicitlyBlankCsvSelectsNone() {
+        var inherited = ShopApiEvidenceBinding.fromCsv(ShopValidationProfile.UI_API, null);
+        var explicitlyEmpty = ShopApiEvidenceBinding.fromCsv(ShopValidationProfile.UI_API, "  ");
+
+        assertEquals(6, inherited.checkpoints().size());
+        assertTrue(explicitlyEmpty.checkpoints().isEmpty());
+    }
+
+    @Test
     void explicitSelectionIsTypedAndDoesNotEnableUnselectedCheckpoints() {
         var binding = ShopApiEvidenceBinding.fromCsv(
                 ShopValidationProfile.UI_API, "product, payment");

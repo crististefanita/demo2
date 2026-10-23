@@ -14,6 +14,12 @@
     <dependencies>
         <dependency>
             <groupId>atf.api</groupId>
+            <artifactId>atf-test-kit</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>atf.api</groupId>
             <artifactId>atf-core</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -31,9 +37,8 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>atf.api</groupId>
-            <artifactId>atf-test-kit</artifactId>
-            <version>${project.version}</version>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-testkit</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -14,6 +14,7 @@ cunoaște rutele sau intenția unui test de produs.
 | artifact | `atf-reporting` | renderer semantic standalone, Extent/HTML și contracte pure | POM standalone + unit/component |
 | reporting composition | `atf-reporting-tests` | mock → API → raport, cu component/integration proof și browser/E2E pentru contractul reporting | component + integration/API + Chromium/Playwright |
 | Practice Shop consumer | `atf-test-practice-shop` | journey de purchase, config, pages, flow-uri și locatori | component + E2E |
+| Automation Exercise consumer | `atf-test-auto-ex` | UI E2E separat, config, page objects și raport Extent | component + opt-in E2E |
 | guvernanță whole-ATF | `atf-tests` | graph, dependency direction și architecture boundary | architecture/component |
 
 - `atf-reporting` este biblioteca standalone și nu compune suita;
@@ -41,11 +42,12 @@ flowchart LR
 - `folosește test scope` = consumatorii leagă suportul platformei numai în
   test scope; nu transferă ownership-ul în production;
 - `governance` este `atf-tests`, iar `consumers` sunt
-  `atf-reporting-tests` și `atf-test-practice-shop`;
+  `atf-reporting-tests`, `atf-test-practice-shop` și `atf-test-auto-ex`;
 - `reporting` este `atf-reporting`, iar `platform` grupează
   `atf-core`, `atf-mock`, `atf-validation`, `atf-console`, `atf-ui`,
   `atf-debug-ui` și `atf-test-kit`;
-- `consumers` grupează `atf-reporting-tests` și `atf-test-practice-shop`, fără să le
+- `consumers` grupează `atf-reporting-tests`, `atf-test-practice-shop` și
+  `atf-test-auto-ex`, fără să le
   transforme într-un modul comun;
 - `platform` grupează adaptoarele și suportul de test; relațiile interne sunt
   explicate în textul de sub diagramă și în README-urile ownerilor;
@@ -67,6 +69,8 @@ dedusă din poziția nodurilor:
   pentru guvernanța întregului reactor;
 - `atf-test-practice-shop` găzduiește testele aplicației consumatoare; configurația
   și flow-urile aplicației nu intră în `atf-reporting-tests`.
+- `atf-test-auto-ex` este un consumer independent; nu partajează selectorii,
+  datele sau page objects cu Practice Shop.
 
 - Standalone înseamnă zero dependențe ATF pentru `atf-reporting/src/main`.
 - Testele de integrare pot compune modulele ATF în test-scope prin adaptoare
@@ -131,6 +135,7 @@ Limitele de compoziție și ownership sunt:
 | atf-test-kit | adnotări pentru nivel/canal/output/setup/docs, resolvere neutre și guard transversal al testelor; [contract implementat](ATF_Test_Infrastructure_Annotations.md) | cod production, fixture-uri, browser și business rules |
 | atf-reporting-tests | contracte component/integration API/mock și E2E UI care verifică exclusiv `atf-reporting`; fixture-uri și adaptoare ale raportului | nu devine suita unei aplicații și nu mută aceste responsabilități în production |
 | atf-test-practice-shop | testele aplicației consumatoare, config/flows/locators/pages și purchase E2E | renderer, publisher și guvernanța whole-ATF |
+| atf-test-auto-ex | testele UI E2E ale Automation Exercise, config/locators/pages în test-scope | fixture-uri sau flow-uri Practice Shop |
 | atf-tests | guvernanța whole-ATF și gates de arhitectură | teste de produs și contracte interne ale `atf-reporting` |
 
 | **Dovada cerută** | **Owner** |
@@ -138,6 +143,7 @@ Limitele de compoziție și ownership sunt:
 | fake-ul poate valida modelul, rendererul, markup-ul sau publisherul | `atf-reporting` |
 | trebuie verificată compoziția JUnit/mock ori randarea raportului | `atf-reporting-tests` |
 | trebuie verificat comportamentul aplicației | modulul consumer, de exemplu `atf-test-practice-shop` |
+| trebuie verificat un alt site de practică UI/API | consumer separat `atf-test-auto-ex`, cu canalul declarat prin Test Kit |
 | trebuie contactat un serviciu real | test separat, opt-in explicit |
 
 ## Limitele de responsabilitate ale testelor API și auditului UI
@@ -416,6 +422,8 @@ flowchart LR
 - configurația aplicației este test-owned de `atf-test-practice-shop`;
 - configurația aplicației este în
   `atf-test-practice-shop/src/test/resources/atf-practice-shop.yaml`;
+- configurația Automation Exercise este test-owned de `atf-test-auto-ex` și se
+  află în `atf-test-auto-ex/src/test/resources/atf-auto-ex.yaml`;
 - nu există `ui.enabled`;
 - rutele, răspunsurile, body-urile și fallback-ul pentru raportare sunt încărcate
   explicit prin resursa de test, nu dintr-un endpoint extern.

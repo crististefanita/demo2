@@ -10,6 +10,7 @@ consumatorul deține resursele, execuția și publicarea dovezilor.
 |---|---|---|
 | Nivel și tag JUnit | `AtfUnitTest`, `AtfComponentTest`, `AtfIntegrationTest`, `AtfE2eTest` | un singur nivel executabil per clasă |
 | Canal | `channel.AtfTestChannel`, `TestChannel`, `AtfTestChannelResolver`, `TestChannelPlan` | selecție `UI`, `API` sau `UI_API` și verificarea suportului |
+| Mesaje consolă | `AtfConsoleMessages`, `console.AtfConsoleMessagePolicyResolver` | politică typed `INHERIT`, `DETAILS`, `SUMMARY`, `OFF`; `atf-console` o aplică peste YAML |
 | Output UI | `output.UiReportSubdirectory`, `ProjectRelativeUiReportDirectory`, `ReportOutputDirectory` | director relativ la baza UI sau la proiect |
 | Setup API | `setup.api.ApiScenarioSetup`, `ApiTestRef` | metode exacte sau familii definite de consumator |
 | Documentație | `documentation.DocumentationTarget` și containerul repeatable | documente selectate pentru validatoarele consumatorului |
@@ -103,6 +104,33 @@ Contractul este per clasă; nu există override de canal per metodă.
 browserului. `UI` elimină selecția dovezilor API; YAML-ul păstrează controlul
 capturilor și permisiunilor externe.
 
+### Politica mesajelor de consolă
+
+`@AtfConsoleMessages` este o declarație per clasă, neutră față de formatter și
+stdout. `AtfConsoleTestExtension` rezolvă politica înaintea testului; adaptorii
+UI/API reutilizează sink-ul activ prin `AtfConsoleTestContext.configuredSink()`.
+Astfel, evenimentele rămân în același formatter și nu se dublează.
+
+```java
+@AtfConsoleMessages(AtfConsoleMessages.Policy.DETAILS)
+@ExtendWith(AtfConsoleTestExtension.class)
+class ApiContractTest { }
+```
+
+| Politică | Efect |
+|---|---|
+| `INHERIT` | păstrează `reporting.console` din YAML și fallback-ul existent |
+| `DETAILS` | păstrează lifecycle-ul și activează detaliile dacă consola globală este enabled |
+| `SUMMARY` | păstrează lifecycle-ul/verdictul și suprimă evenimentele detail/code |
+| `OFF` | suprimă proiecția pentru clasa curentă |
+
+Dezactivarea YAML (`reporting.console.enabled: false`) rămâne autoritară; nici
+`DETAILS` nu o reactivează. Declarațiile meta-adnotate sunt acceptate,
+subclasa poate suprascrie superclass-ul, iar politicile diferite la același
+nivel eșuează înaintea execuției. Fără adnotare, comportamentul nu se schimbă.
+
+- `@TestFactory` nu primește callbacks de lifecycle pentru fiecare copil; folosește `AtfConsoleTestContext.dynamicTest(owner, name, body)` când ai nevoie de policy și verdict per copil.
+
 ## Directoare UI cu ancore distincte
 
 Consumatorul apelează `ReportOutputDirectory.resolve(projectRoot, uiReportBase, owner)`.
@@ -157,6 +185,7 @@ generic de meta-adnotări, superclass sau override per metodă.
 | Boundary | Probe existente | Limită |
 |---|---|---|
 | Nivel / tag | `AtfTestLayerArchitectureTest` | clasifică sursele de teste; nu certifică output-ul Extent |
+| Consolă | `AtfConsoleMessagePolicyResolverTest`, `AtfConsoleMessagePolicyTest`, Shop E2E/API și API resource tests | policy, precedență, conflict, override global și consumatori deterministici; concurența/lifecycle dinamic rămâne o probă separată |
 | Canal | `AtfTestChannelResolverTest`, `ShopE2eTestSupportTest`, `ShopApiCallAuditPreflightTest`, `ShopArchitectureTest` | resolver și preflight; matricea completă de evidence/verdict rămâne deschisă |
 | Output | `ReportOutputDirectoryTest`, `UiReportSubdirectoryTest`, `AtfUiConfigurationLoaderTest` | ancore, inheritance/compoziție, cicluri, conflicte, path-uri invalide și working directory extern; symlink poate fi SKIP |
 | Setup | `ApiScenarioSetupCatalogTest`, `ApiScenarioManifestTest`, `ApiSelectionMockPublisherComponentTest` | selecție și compoziție locală, fără servicii externe |

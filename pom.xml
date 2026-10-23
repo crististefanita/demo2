@@ -21,6 +21,7 @@
         <module>atf-ui</module>
         <module>atf-debug-ui</module>
         <module>atf-test-practice-shop</module>
+        <module>atf-test-auto-ex</module>
         <module>atf-tests</module>
         <module>atf-reporting-tests</module>
     </modules>

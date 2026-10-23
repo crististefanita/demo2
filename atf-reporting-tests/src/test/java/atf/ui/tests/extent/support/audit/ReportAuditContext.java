@@ -76,8 +76,8 @@ public final class ReportAuditContext implements AutoCloseable {
                     + inspection.violations());
         }
 
-        String auditFileName = configuration.timestampedReportFileName(auditSuffix,
-                Clock.systemDefaultZone());
+        String auditFileName = configuration.reserveTimestampedReportPath(auditSuffix,
+                Clock.systemDefaultZone()).getFileName().toString();
         var console = ReportingTestConsole.configured();
         UiExtentReportSession audit = UiExtentReportSession.openConfiguredResolved(
                 configuration.reportDirectory(), auditFileName,

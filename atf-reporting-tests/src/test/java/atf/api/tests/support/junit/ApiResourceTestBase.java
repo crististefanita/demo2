@@ -4,6 +4,7 @@ import atf.api.core.http.response.ApiExecutionResult;
 import atf.api.core.http.response.ApiOperationLabel;
 import atf.api.core.http.request.HttpMethod;
 import atf.api.console.junit.AtfConsoleTestExtension;
+import atf.api.testkit.AtfConsoleMessages;
 import atf.api.validation.contract.ResponseContract;
 import atf.api.validation.evaluation.ValidationDecision;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 /** Shared direct-run composition for resource-oriented API tests. */
 @ExtendWith({AtfConsoleTestExtension.class, AtfExtentReportTestExtension.class})
+@AtfConsoleMessages(AtfConsoleMessages.Policy.DETAILS)
 public abstract class ApiResourceTestBase {
     private ApiTestFixture fixture;
 

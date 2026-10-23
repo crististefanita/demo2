@@ -38,9 +38,11 @@ public record ShopApiEvidenceBinding(Set<ShopApiCheckpoint> checkpoints) {
         return configured == null ? all() : new ShopApiEvidenceBinding(Set.copyOf(configured));
     }
 
+    /** Null inherits the profile default; an explicitly blank value selects no checkpoints. */
     public static ShopApiEvidenceBinding fromCsv(
             ShopValidationProfile profile, String csv) {
-        if (csv == null || csv.isBlank()) return forProfile(profile, null);
+        if (csv == null) return forProfile(profile, null);
+        if (csv.isBlank()) return forProfile(profile, Set.of());
         Set<ShopApiCheckpoint> checkpoints = java.util.Arrays.stream(csv.split(","))
                 .map(ShopApiCheckpoint::from)
                 .collect(Collectors.toCollection(() -> EnumSet.noneOf(ShopApiCheckpoint.class)));

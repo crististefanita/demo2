@@ -26,8 +26,8 @@ public final class ShopLocators {
             + ", " + CONTENTEDITABLE.equalsSelector("true");
     private static final String LOGIN_EMAIL = HtmlElement.INPUT.attributeEquals(ID, "email");
     private static final String LOGIN_PASSWORD = HtmlElement.INPUT.attributeEquals(ID, "password");
-    private static final String LOGIN_SUBMIT =
-            HtmlElement.BUTTON.attributeEquals(DATA_TEST, "login-submit");
+    // The live contract guarantees the data-test hook; the rendered tag may be input or button.
+    private static final String LOGIN_SUBMIT = DATA_TEST.equalsSelector("login-submit");
     private static final String REGISTER_FIRST_NAME =
             HtmlElement.INPUT.attributeEquals(ID, "first_name");
     private static final String REGISTER_LAST_NAME =
@@ -44,8 +44,7 @@ public final class ShopLocators {
     private static final String REGISTER_PHONE = HtmlElement.INPUT.attributeEquals(ID, "phone");
     private static final String REGISTER_EMAIL = HtmlElement.INPUT.attributeEquals(ID, "email");
     private static final String REGISTER_PASSWORD = HtmlElement.INPUT.attributeEquals(ID, "password");
-    private static final String REGISTER_SUBMIT =
-            HtmlElement.BUTTON.attributeEquals(DATA_TEST, "register-submit");
+    private static final String REGISTER_SUBMIT = DATA_TEST.equalsSelector("register-submit");
     private static final String SEARCH_QUERY = HtmlElement.INPUT.attributeEquals(ID, "search-query");
     private static final String HOME_NAVIGATION = HtmlElement.NAVIGATION.selector() + ".navbar";
     private static final String HOME_BRAND = HtmlElement.ANCHOR.selector() + ".navbar-brand";

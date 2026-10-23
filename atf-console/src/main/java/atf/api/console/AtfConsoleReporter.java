@@ -31,6 +31,11 @@ public final class AtfConsoleReporter implements AtfConsoleSink {
         return new AtfConsoleReporter(System.out, AtfConsoleConfigurationLoader.load().settings());
     }
 
+    /** Creates the configured process-console adapter with a per-test projection policy. */
+    public static AtfConsoleReporter configuredStdout(ConsoleSettings settings) {
+        return new AtfConsoleReporter(System.out, settings);
+    }
+
     /** Publishes one launcher/diagnostic line without leaking a PrintStream to callers. */
     public synchronized void info(String message) {
         if (!settings.enabled()) return;

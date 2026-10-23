@@ -27,6 +27,7 @@ final class ReportTreeLocators {
             + "[class~='card-toolbar'] [class~='fail-bg']";
     private static final String PHASE_DIRECT_BODY = ":scope > [class~='card-body']";
     private static final String PHASE_FAILURE_DISCLOSURE = "details[class~='failure-evidence']";
+    private static final String UI_FAILURE_DISCLOSURE = "details[class~='atf-ui-failure-evidence']";
     private static final String PHASE_FAILURE_TRACE = PHASE_FAILURE_DISCLOSURE
             + " [class~='helm-trace-table']";
     private static final String PHASE_FAILURE_CAUSE = PHASE_FAILURE_TRACE + " tbody tr";
@@ -205,6 +206,7 @@ final class ReportTreeLocators {
                 + "):not(" + classToken("accordion") + ")");
     }
     Locator phaseFailureDisclosures(Locator phase) { return phase.locator(PHASE_FAILURE_DISCLOSURE); }
+    Locator uiFailureEvidenceDisclosures(Locator scope) { return scope.locator(UI_FAILURE_DISCLOSURE); }
     Locator phaseFailureTraceTables(Locator phase) { return phase.locator(PHASE_FAILURE_TRACE); }
     Locator phaseFailureCauseValues(Locator phase) {
         return phase.locator(PHASE_FAILURE_CAUSE)

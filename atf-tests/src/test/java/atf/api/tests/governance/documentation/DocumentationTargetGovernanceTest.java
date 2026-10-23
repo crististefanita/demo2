@@ -41,6 +41,7 @@ import static atf.api.tests.governance.AtfGovernanceTestSupport.locateProjectRoo
 @DocumentationTarget("docs/feedback/README_AI_Evaluation.md")
 @DocumentationTarget("atf-tests/README.md")
 @DocumentationTarget("atf-test-practice-shop/README.md")
+@DocumentationTarget("atf-test-auto-ex/README.md")
 @DocumentationTarget("atf-ui/README.md")
 @DocumentationTarget("atf-validation/README.md")
 public class DocumentationTargetGovernanceTest {

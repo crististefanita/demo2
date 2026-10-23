@@ -270,8 +270,8 @@ public final class ShopConfigurationLoader {
         String productPath = System.getProperty("atf.practice.product-path", base.productPath());
         String profile = System.getProperty("atf.practice.validation-profile", base.validationProfile().name());
         ShopValidationProfile validationProfile = ShopValidationProfile.from(profile);
-        String checkpoints = System.getProperty("atf.practice.api-evidence-checkpoints", "");
-        ShopApiEvidenceBinding evidenceBinding = checkpoints.isBlank()
+        String checkpoints = System.getProperty("atf.practice.api-evidence-checkpoints");
+        ShopApiEvidenceBinding evidenceBinding = checkpoints == null
                 ? base.api().evidenceBinding()
                 : ShopApiEvidenceBinding.fromCsv(validationProfile, checkpoints);
         String apiEndpoint = System.getProperty("atf.practice.api-endpoint", base.api().endpoint().toString());

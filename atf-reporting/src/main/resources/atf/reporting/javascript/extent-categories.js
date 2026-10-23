@@ -81,7 +81,15 @@ function applyCategoryFilters() {
     if (item === selected) selectedVisible = match;
     if (match && !firstVisible) firstVisible = item;
   });
-  if (!selectedVisible && firstVisible) selectCategory(firstVisible);
+  if (!selectedVisible) {
+    if (firstVisible) {
+      selectCategory(firstVisible);
+    } else {
+      categoryItems().forEach(item => item.classList.remove('active'));
+      atfCategoryState.selectedName = '';
+      renderCategoryDetail(null);
+    }
+  }
   refreshCategoryFilterSelection();
 }
 function setCategoryFilter(kind, value) {
@@ -170,11 +178,12 @@ function normalizeCategoryLinks() {
 }
 function renderCategoryDetail(item) {
   var detail = document.querySelector(
-      '#category-view .test-content-detail .detail-body'
-    ),
-    source = item && item.querySelector(':scope>.test-contents');
-  if (!detail || !source) return;
+    '#category-view .test-content-detail .detail-body'
+  );
+  if (!detail) return;
   detail.innerHTML = '';
+  var source = item && item.querySelector(':scope>.test-contents');
+  if (!source) return;
   var projection = source.cloneNode(true);
   projection.classList.remove('d-none');
   projection.classList.add('atf-category-detail');

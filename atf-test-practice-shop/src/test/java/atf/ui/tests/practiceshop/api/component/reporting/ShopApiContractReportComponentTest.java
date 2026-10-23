@@ -1,10 +1,12 @@
 package atf.ui.tests.practiceshop.api.component.reporting;
 
-import atf.api.console.AtfConsoleReporter;
 import atf.api.core.reporting.console.AtfConsoleSink;
+import atf.api.console.junit.AtfConsoleTestContext;
 import atf.api.core.http.request.HttpMethod;
 import atf.api.core.http.response.ApiExecutionResult;
 import atf.api.testkit.AtfComponentTest;
+import atf.api.testkit.AtfConsoleMessages;
+import atf.api.console.junit.AtfConsoleTestExtension;
 import atf.ui.practiceshop.api.ShopApiClient;
 import atf.ui.practiceshop.api.ShopApiRoutes;
 import atf.ui.practiceshop.api.ShopApiScreenFlow;
@@ -17,6 +19,7 @@ import atf.ui.tests.practiceshop.api.support.ShopApiComponentFixture;
 import atf.ui.tests.practiceshop.support.ShopReportHtmlTestSupport;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,6 +36,8 @@ import static atf.ui.tests.practiceshop.api.support.ShopApiScenarioFixture.QUANT
 
 /** Publishes the same request/response/execution evidence without opening a browser. */
 @AtfComponentTest
+@AtfConsoleMessages(AtfConsoleMessages.Policy.DETAILS)
+@ExtendWith(AtfConsoleTestExtension.class)
 class ShopApiContractReportComponentTest {
     @Test
     @DisplayName("Practice Shop API screen flow publishes standalone Extent evidence")
@@ -55,7 +60,7 @@ class ShopApiContractReportComponentTest {
         Path reportPath = configuration.apiReportDirectory().resolve(
                 "api-atf-practice-shop-standalone_" + Instant.now().toString()
                         .replace(":", "-") + ".html");
-        AtfConsoleSink console = AtfConsoleReporter.configuredStdout();
+        AtfConsoleSink console = AtfConsoleTestContext.configuredSink();
         Path report = ShopApiReportPublisher.publishStandalone(reportPath,
                 ShopApiReportMetadataFixture.COMPONENT_TEST_CLASS,
                 ShopApiReportMetadataFixture.COMPONENT_TEST_PACKAGE,

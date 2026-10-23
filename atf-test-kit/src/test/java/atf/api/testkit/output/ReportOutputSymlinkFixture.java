@@ -3,6 +3,7 @@ package atf.api.testkit.output;
 import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.TimeUnit;
 
 /** Optional OS facility used only by the symlink boundary probe. */
 final class ReportOutputSymlinkFixture {
@@ -16,6 +17,29 @@ final class ReportOutputSymlinkFixture {
             return false;
         } catch (java.io.IOException error) {
             throw new IllegalStateException("Cannot create symlink fixture: " + link, error);
+        }
+    }
+
+    static boolean createJunctionIfSupported(Path link, Path target) {
+        if (!System.getProperty("os.name", "").toLowerCase().contains("windows")) return false;
+        try {
+            Files.createDirectories(link.getParent());
+            String command = "mklink /J \"" + link.toAbsolutePath() + "\" \""
+                    + target.toAbsolutePath() + "\"";
+            Process process = new ProcessBuilder("cmd.exe", "/d", "/c", command)
+                    .redirectErrorStream(true)
+                    .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                    .start();
+            if (!process.waitFor(10, TimeUnit.SECONDS)) {
+                process.destroyForcibly();
+                return false;
+            }
+            return process.exitValue() == 0 && Files.isDirectory(link);
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            return false;
+        } catch (java.io.IOException | UnsupportedOperationException unavailable) {
+            return false;
         }
     }
 }

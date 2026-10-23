@@ -21,6 +21,7 @@ import atf.ui.tests.extent.support.locators.ReportUiLocators;
 import atf.ui.tests.extent.support.inspection.layout.ScrollableApiAggregateReportFixture;
 import atf.ui.tests.extent.support.inspection.layout.ScrollableTableReportFixture;
 import atf.ui.tests.extent.support.inspection.layout.ScrollableTableViewportBrowserProbe;
+import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
@@ -68,12 +69,62 @@ class CategoryCardinalityBrowserFixtureTest {
                 .map(fixture -> DynamicTest.dynamicTest(
                         fixture.gherkinProposition(),
                         () -> verifyFixture(fixture)));
+        DynamicTest emptyStatusFilter = DynamicTest.dynamicTest(
+                "GIVEN one Pass category WHEN Fail has no matches THEN stale detail clears and Clear restores it",
+                this::verifyEmptyStatusFilter);
         Stream<DynamicTest> scrollViewports = Stream.of(
                         ScrollableTableReportFixture.Density.SHORT,
                         ScrollableTableReportFixture.Density.LONG)
                 .map(density -> DynamicTest.dynamicTest(
                         scrollViewportProposition(density), () -> verifyScrollViewport(density)));
-        return Stream.concat(categories, scrollViewports);
+        return Stream.concat(Stream.concat(categories, Stream.of(emptyStatusFilter)), scrollViewports);
+    }
+
+    private void verifyEmptyStatusFilter() throws Exception {
+        Path root = Files.createTempDirectory("atf-category-empty-filter-");
+        Path report = CategoryCardinalityReportFixtures.publish(root, CategoryCardinalityFixture.ONE);
+        try (ReportAuditContext context = ReportAuditContext.open(CONFIGURATION, report,
+                "category-empty-status-filter")) {
+            UiAuditFlow audit = new UiAuditFlow(context, CONFIGURATION,
+                    getClass().getSimpleName(), getClass().getPackageName(),
+                    List.of("ui", "categories", "empty-filter"),
+                    "GIVEN a category report with Pass results is available",
+                    "Empty category status filter retained stale detail", ReportUiContract.Tab.CATEGORIES.hash());
+            Page page = audit.openTab(ReportUiContract.Tab.CATEGORIES.hash());
+            ReportUiLocators locators = new ReportUiLocators();
+            Locator detail = locators.visibleCategoryDetail(page);
+            assertEquals(1, locators.categoryTitle(detail).count(), "The initial category detail must be selected");
+
+            audit.actions().click(locators.categoryStatusFilterTriggerAction(page),
+                    "open Categories status filters");
+            var fail = locators.categoryStatusOptionAction(page, "fail");
+            audit.actions().waitForVisible(fail);
+            audit.actions().click(fail, "filter categories to Fail");
+            assertEquals(0, locators.categoryVisibleItems(locators.categoryView(page)).count(),
+                    "The Pass-only fixture must have no visible category under the Fail filter");
+            assertEquals(0, locators.categoryTitle(detail).count(),
+                    "The detail from the previously selected category must be cleared");
+            assertEquals(0, page.locator("#category-view .test-item.active").count(),
+                    "No hidden category may remain selected when the filter has no matches");
+
+            var clear = locators.categoryStatusOptionAction(page, "clear");
+            if (!clear.locator().isVisible()) {
+                audit.actions().click(locators.categoryStatusFilterTriggerAction(page),
+                        "reopen Categories status filters");
+                audit.actions().waitForVisible(clear);
+            }
+            audit.actions().click(clear, "clear the status filter");
+            assertEquals(1, locators.categoryVisibleItems(locators.categoryView(page)).count(),
+                    "Clear must restore the category list");
+            assertEquals(1, locators.categoryTitle(detail).count(),
+                    "Clear must restore readable detail for the category");
+            assertEquals(1, page.locator("#category-view .test-item.active").count(),
+                    "Clear must select the restored category detail owner");
+        } finally {
+            if (!Boolean.getBoolean("atf.keep.category.fixtures")) {
+                CategoryCardinalityReportFixtures.deleteTree(root);
+            }
+        }
     }
 
     private static String scrollViewportProposition(ScrollableTableReportFixture.Density density) {

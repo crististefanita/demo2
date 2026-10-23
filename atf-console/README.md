@@ -6,16 +6,20 @@ ExtentReports și nu calculează verdicturi.
 
 ## Pe scurt
 
-Politica declarativă a mesajelor de consolă este o evoluție propusă, urmărită
-prin ANN-CONSOLE-11/12/13 în [feedback-ul infrastructurii](../docs/feedback/ATF_Test_Infrastructure_Annotations_Feedback.md).
-API-ul implementat folosește în continuare `ConsoleSettings`, configurația
-YAML și extensia `AtfConsoleTestExtension`.
+Politica declarativă per clasă este implementată prin
+`@AtfConsoleMessages` din TestKit și aplicată de `AtfConsoleTestExtension` peste
+`ConsoleSettings`/YAML. Testele dinamice folosesc helperul explicit descris mai jos;
+concurența și lifecycle-ul sunt acoperite de o probă JUnit Platform. Detaliile rămân în
+[feedback-ul infrastructurii](../docs/feedback/ATF_Test_Infrastructure_Annotations_Feedback.md);
+contractul API și precedența sunt în
+[documentația adnotărilor](../docs/ATF_Test_Infrastructure_Annotations.md).
 
 | Intrare | Output | Limită |
 |---|---|---|
 | `AtfConsoleEvent` + `ConsoleSettings` | diagnostic stdout/stderr | nu produce artifact |
 | lifecycle execution | evenimente formatate | nu decide verdictul |
 | YAML `reporting.console` | detalii configurabile | nu schimbă execuția |
+| `@AtfConsoleMessages` | policy per clasă, inclusiv meta/inheritance | nu reactivează consola dezactivată global |
 
 ## Diagramă de bază
 
@@ -31,6 +35,8 @@ flowchart LR
 <summary><strong>Legendă — proiecția de consolă</strong></summary>
 
 - atf-core definește evenimentul neutru și portul; atf-console îl formatează;
+- extensia JUnit din atf-console consumă opțional declarația neutră din
+  TestKit; dependența nu este propagată pe classpath-ul aplicațiilor;
 - configurația reporting.console controlează numai această proiecție;
 - ieșirea este diagnostică (stdout/stderr), nu artifact HTML și nu verdict;
 - muchia punctată este o limită: consola nu deține rendererul atf-reporting.
@@ -135,7 +141,14 @@ Testarea este împărțită după responsabilitate:
   apoi `s`), redaction boundary, pretty-print, detalii și fallback ASCII/UTF-8;
 - `ConsoleLifecycleStateTest` — tranziții de nesting și completarea defensivă
   la adâncime zero;
+- `AtfConsoleMessagePolicyResolverTest` și `AtfConsoleMessagePolicyTest` —
+  rezolvare, precedență și maparea policy-ului la `ConsoleSettings`;
 - `AtfConsoleConfigurationLoaderTest` — discovery, precedence, path resolution
   și validarea boolean-urilor;
 - testele de lifecycle JUnit — integrarea extension-ului opțional;
 - testele de execuție — publicarea separată a evenimentelor.
+
+- Jupiter nu rulează `BeforeEachCallback`/`TestWatcher` pentru fiecare copil din `@TestFactory`.
+- Pentru verdict și lifecycle per copil, folosește `AtfConsoleTestContext.dynamicTest(owner, displayName, body)`.
+- Factory-ul nu primește un start/end fals; helperul finalizează fiecare copil cu PASS, SKIP sau FAIL.
+- Copiii construiți direct cu `DynamicTest.dynamicTest` nu au proiecție console per-copil.

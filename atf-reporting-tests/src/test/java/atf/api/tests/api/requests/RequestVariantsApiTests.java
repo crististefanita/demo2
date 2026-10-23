@@ -1,5 +1,6 @@
 package atf.api.tests.api.requests;
 import atf.api.testkit.AtfIntegrationTest;
+import atf.api.testkit.AtfConsoleMessages;
 
 import atf.api.core.config.module.AtfModule;
 import atf.api.reporting.test.AtfModuleTest;
@@ -19,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Focused request-shape tests: query parameters, large JSON and auth profiles. */
 @ExtendWith(AtfConsoleTestExtension.class)
+@AtfConsoleMessages(AtfConsoleMessages.Policy.DETAILS)
 @AtfModuleTest(requires = {AtfModule.API, AtfModule.REPORTING})
 @AtfIntegrationTest
 class RequestVariantsApiTests {

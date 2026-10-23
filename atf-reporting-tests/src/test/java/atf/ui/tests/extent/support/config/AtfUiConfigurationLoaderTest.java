@@ -12,6 +12,9 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -31,6 +34,20 @@ class AtfUiConfigurationLoaderTest {
         assertNotEquals(unrelated, root);
         assertTrue(Files.isRegularFile(root.resolve("atf-reporting/pom.xml")));
         assertTrue(resource.startsWith(root));
+        assertEquals(root.resolve("artifacts/reports/ui"),
+                ReportingTestResources.uiConfiguration().reportDirectory());
+    }
+
+    @Test
+    void reportingOutputRootIsStableWhenLaunchedFromTheReportingModuleDirectory() throws Exception {
+        Path moduleDirectory = Path.of("").toAbsolutePath().normalize();
+        var process = new AtfUiConfigurationContext(moduleDirectory, null, null);
+
+        Path root = ReportingTestResources.projectRoot(process);
+
+        assertNotEquals(moduleDirectory, root,
+                "the classpath resource must locate the reactor root, not adopt a module cwd");
+        assertEquals(moduleDirectory.getParent(), root);
         assertEquals(root.resolve("artifacts/reports/ui"),
                 ReportingTestResources.uiConfiguration().reportDirectory());
     }
@@ -102,6 +119,33 @@ class AtfUiConfigurationLoaderTest {
     }
 
     @Test
+    void systemPropertyConfigurationWinsOverEnvironmentConfigurationAndReportOverrideWinsOverYaml(
+            ) throws Exception {
+        Path root = Files.createTempDirectory("atf-ui-config-precedence-");
+        Path propertyYaml = root.resolve("property.yaml");
+        Path environmentYaml = root.resolve("environment.yaml");
+        Files.writeString(propertyYaml, """
+                ui:
+                  browser: firefox
+                  audit:
+                    inputReport: from-property-yaml.html
+                """);
+        Files.writeString(environmentYaml, """
+                ui:
+                  browser: webkit
+                """);
+
+        UiConfiguration selected = AtfUiConfigurationLoader.load(new AtfUiConfigurationContext(
+                root, propertyYaml.toString(), environmentYaml.toString(), "manual-override.html"));
+
+        assertEquals("firefox", selected.browser().browser(),
+                "an explicit system property must outrank the environment configuration");
+        assertEquals(root.resolve("manual-override.html").toAbsolutePath().normalize(),
+                selected.auditInputReport().orElseThrow(),
+                "the explicit report override must outrank YAML while resolving beside that YAML");
+    }
+
+    @Test
     void explicitReportOverrideWinsOverYamlInputReport() throws Exception {
         Path root = Files.createTempDirectory("atf-ui-report-override-");
         Path yaml = root.resolve("atf.yaml");
@@ -157,6 +201,55 @@ class AtfUiConfigurationLoaderTest {
         assertEquals("ui-audit_existing_2026-10-16_10-00-00-123.html",
                 configuration.timestampedReportFileName("existing", Clock.fixed(
                         Instant.parse("2026-10-16T10:00:00.123Z"), ZoneOffset.UTC)));
+    }
+
+    @Test
+    void reservesCollisionFreeReportPathsUnderParallelWritersAndIndependentRoots() throws Exception {
+        Path firstRoot = Files.createTempDirectory("atf-reserved-report-first-");
+        Path secondRoot = Files.createTempDirectory("atf-reserved-report-second-");
+        var first = UiConfiguration.defaults(firstRoot).withReportDirectory(firstRoot.resolve("reports"));
+        var second = UiConfiguration.defaults(secondRoot).withReportDirectory(secondRoot.resolve("reports"));
+        Clock sameTick = Clock.fixed(Instant.parse("2026-10-23T12:00:00.123Z"), ZoneOffset.UTC);
+
+        Set<Path> parallelPaths;
+        try (var executor = Executors.newFixedThreadPool(8)) {
+            parallelPaths = IntStream.range(0, 32)
+                    .mapToObj(index -> executor.submit(() -> first.reserveTimestampedReportPath(
+                            "same-owner", sameTick)))
+                    .map(future -> {
+                        try {
+                            return future.get();
+                        } catch (Exception failure) {
+                            throw new IllegalStateException("Parallel report reservation failed", failure);
+                        }
+                    })
+                    .collect(java.util.stream.Collectors.toSet());
+        }
+
+        assertEquals(32, parallelPaths.size(), "same owner and clock tick must never collide");
+        assertTrue(parallelPaths.stream().allMatch(path -> path.getParent().equals(first.reportDirectory())));
+        assertTrue(parallelPaths.stream().allMatch(Files::isRegularFile),
+                "each reservation must be an atomic filesystem claim, not just a distinct string");
+        var expectedContents = new java.util.concurrent.ConcurrentHashMap<Path, String>();
+        parallelPaths.forEach(path -> {
+            String marker = "report-owner-" + path.getFileName();
+            try {
+                Files.writeString(path, marker);
+            } catch (Exception failure) {
+                throw new IllegalStateException("Could not write reserved report " + path, failure);
+            }
+            expectedContents.put(path, marker);
+        });
+        expectedContents.forEach((path, marker) -> {
+            try {
+                assertEquals(marker, Files.readString(path), "a later reservation must not overwrite output");
+            } catch (Exception failure) {
+                throw new IllegalStateException("Could not verify reserved report " + path, failure);
+            }
+        });
+        var otherRootPath = second.reserveTimestampedReportPath("same-owner", sameTick);
+        assertEquals(second.reportDirectory(), otherRootPath.getParent());
+        assertFalse(parallelPaths.contains(otherRootPath));
     }
 
     @Test

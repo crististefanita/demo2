@@ -1,5 +1,6 @@
 package atf.ui.practiceshop.api;
 import atf.api.console.AtfConsoleReporter;
+import atf.api.console.junit.AtfConsoleTestContext;
 import atf.api.core.reporting.console.AtfConsoleSink;
 import atf.api.core.reporting.console.AtfConsoleEvent;
 import atf.ui.practiceshop.support.ShopJsonEvidence;
@@ -61,7 +62,7 @@ public final class ShopApiClient implements AutoCloseable {
                 new ConfiguredApiAuthenticator(Map.of()));
         return new ShopApiClient(configuration.endpoint(), transport,
                 new ShopApiRequestFactory(), configuration.timeout(), ApiTransportMode.LIVE,
-                AtfConsoleReporter.configuredStdout());
+                configuredConsoleSink());
     }
 
     public static ShopApiClient forTransport(URI endpoint, ApiTransport transport) {
@@ -75,7 +76,13 @@ public final class ShopApiClient implements AutoCloseable {
      */
     public static ShopApiClient forTransport(URI endpoint, ApiTransport transport,
                                                      ApiTransportMode transportMode) {
-        return forTransport(endpoint, transport, transportMode, AtfConsoleReporter.configuredStdout());
+        return forTransport(endpoint, transport, transportMode, configuredConsoleSink());
+    }
+
+    private static AtfConsoleSink configuredConsoleSink() {
+        return AtfConsoleTestContext.current() == null
+                ? AtfConsoleReporter.configuredStdout()
+                : AtfConsoleTestContext.configuredSink();
     }
 
     public static ShopApiClient forTransport(URI endpoint, ApiTransport transport,

@@ -52,7 +52,8 @@ public final class ShopAuthenticatedAccountTestSupport {
                             "registration outcome is unsuccessful or uncertain; the form will not be replayed", false));
                     setup.fail("new account registration could not be verified",
                             failedSetup,
-                            setup.apiNetwork().evidence(ShopApiCheckpoint.REGISTRATION));
+                            setup.apiNetwork().evidence(ShopApiCheckpoint.REGISTRATION),
+                            uncertainSubmission);
                     throw uncertainSubmission;
                 }
                 assertions.addAll(registrationAssertions(responseStatus,

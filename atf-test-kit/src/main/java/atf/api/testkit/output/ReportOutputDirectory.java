@@ -2,6 +2,7 @@ package atf.api.testkit.output;
 
 import java.lang.annotation.Annotation;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -34,7 +35,13 @@ public final class ReportOutputDirectory {
                     || value.matches("(?i)^[a-z][a-z0-9+.-]*:.*")) {
                 throw new IllegalStateException("Invalid UI report directory on " + type.getName() + ": " + value);
             }
-            Path relative = Path.of(value);
+            Path relative;
+            try {
+                relative = Path.of(value);
+            } catch (InvalidPathException error) {
+                throw new IllegalStateException("Invalid UI report directory path on " + type.getName()
+                        + " relative to " + base + ": " + value, error);
+            }
             if (relative.isAbsolute()) {
                 throw new IllegalStateException("UI report directory must be relative: " + value);
             }

@@ -5,6 +5,9 @@
 UI și API afișează implicit detalii la consolă atât din IntelliJ, cât și din Maven.
 
 - Auditul UI folosește `ReportingTestConsole` pentru browser și raport.
+- Testele API direct-runnable declară `@AtfConsoleMessages(DETAILS)`; fixture-ul
+  API reutilizează sink-ul lifecycle-ului, astfel încât request/validation apar
+  prin aceeași proiecție `[ATF]`, fără reporter duplicat.
 - API-ul folosește consola configurată și fără lifecycle JUnit curent.
 - `reporting.console.detailsEnabled: false` restrânge detaliile;
   `enabled: false` oprește proiecția. [ATF Console](../atf-console/README.md)
@@ -342,14 +345,15 @@ Invarianturile de randare sunt:
 - `TECHNICAL TRACE` este măsurat în API direct și în schimbul API publicat lângă
   checkpoint-ul UI, pentru date scurte și lungi; testele de markup și CSS
   verifică aceeași structură și același token în rendererul fallback;
-- `ExtentReportDisclosureBrowserComponentTest` generează metadata request și
-  retry history lungi, apoi verifică scroll local, ultimul rând și antetul sticky
-  la viewport standard și `760px`; `HtmlReportViewsTest` verifică wrapperul
-  comun în fallback, nu doar prezența claselor în CSS;
+- `ExtentReportDisclosureBrowserComponentTest` verifică tabelul lung
+  `Request details`, imbricat în disclosure-ul request-ului, și retry history
+  în Extent: scroll local, ultimul rând accesibil și antet sticky la viewport
+  standard și `760px`;
 - `ReportApiViewportParityComponentTest` completează matricea cu tabele scurte
-  Extent și cu tabele scurte/lungi fallback la `1280px` și `760px`: înălțime
-  naturală pentru scurt, scroll local/ultimul rând/sticky pentru lung, fără
-  overflow orizontal al documentului;
+  Request details/retry Extent și scurte/lungi în fallback la `1280px` și
+  `760px`: înălțime naturală pentru scurt, scroll local/ultimul rând/sticky
+  pentru lung, fără overflow orizontal al documentului. `HtmlReportViewsTest`
+  păstrează separat contractul structural al wrapperului fallback;
 - pentru conținut lung, ultimul rând rămâne accesibil, antetul tabelului rămâne
   fix, iar zona scrollabilă nu depășește plafonul comun;
 - `ReportTableViewportComponentTest` verifică wrapperul implicit, inclusiv

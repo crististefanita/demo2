@@ -69,6 +69,12 @@ de textul `Contract validation`, de metoda HTTP sau de numărul de câmpuri.
 - controalele de navigare și deep-link-urile păstrează aceeași identitate în
   `Tests`, `Overview`, `Categories` și `Fails`.
 
+În `Categories`, aplicarea unui filtru fără rezultate elimină selecția și
+detaliul categoriei precedente; nu este permis ca panoul să afișeze conținut
+care nu aparține rezultatului curent. `Clear` restaurează lista și selectează
+din nou o categorie cu detaliul ei. Filtrele modifică numai proiecția de
+navigare, nu statusul sau evidence-ul testelor.
+
 ## Contractul API, UI și UI+API
 
 | Canal | Ce trebuie să fie vizibil | Ce nu se inventează |
@@ -89,6 +95,7 @@ vocabularul comun, nu de publisheri locali.
 |---|---|
 | document | fără overflow orizontal; wrapping-ul păstrează identificatorii și URL-urile lizibile, fără crop sau break arbitrar |
 | tabel de date | wrapper comun, `height: auto`, `max-height: var(--atf-table-scroll-height)`; conținutul scurt rămâne natural, iar conținutul lung derulează local |
+| Request details | tabelul metadatelor request-ului respectă același viewport, inclusiv când este imbricat în disclosure-ul request-ului; JSON-ul și disclosure-ul exterior nu devin containere de scroll ale tabelului |
 | tabel lung | header sticky, ultimul rând accesibil prin mouse și tastatură; titlul și contoarele nu se schimbă când apare scroll-ul |
 | payload JSON/code | este pane de payload, nu tabel; nu intră în wrapper-ul de viewport al tabelului |
 | viewport îngust | padding-ul și coloanele se adaptează prin token-uri/media queries; nu se ascunde overflow-ul pentru a masca o geometrie greșită |

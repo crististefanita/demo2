@@ -1,11 +1,13 @@
 package atf.ui.tests.practiceshop.api.integration;
 
 import atf.api.console.AtfConsoleReporter;
+import atf.api.console.junit.AtfConsoleTestExtension;
 import atf.api.core.http.request.HttpMethod;
 import atf.api.core.http.response.ApiExecutionResult;
 import atf.api.core.http.transport.ApiTransportProvenance;
 import atf.api.core.reporting.console.AtfConsoleSink;
 import atf.api.testkit.AtfIntegrationTest;
+import atf.api.testkit.AtfConsoleMessages;
 import atf.ui.practiceshop.api.ShopApiClient;
 import atf.ui.practiceshop.api.ShopApiScreenFlow;
 import atf.ui.practiceshop.api.contract.ShopPaymentMethod;
@@ -22,6 +24,7 @@ import atf.ui.tests.practiceshop.support.ShopReportHtmlTestSupport;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import atf.ui.tests.practiceshop.support.ShopTestSupport;
 
 import java.nio.file.Files;
@@ -37,6 +40,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Tag("api")
 @AtfIntegrationTest
+@AtfConsoleMessages(AtfConsoleMessages.Policy.DETAILS)
+@ExtendWith(AtfConsoleTestExtension.class)
 @ShopTestSupport.RequiresLiveAuthenticatedApi
 class ShopStandaloneApiReportTest {
     private static final String REPORT_PREFIX = "api-atf-practice-shop-standalone_";

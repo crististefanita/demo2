@@ -1,5 +1,6 @@
 package atf.api.console.junit;
 import atf.api.console.AtfConsoleReporter;
+import atf.api.console.ConsoleSettings;
 import atf.api.core.reporting.console.AtfConsoleEvent;
 import atf.api.core.reporting.console.AtfConsoleSink;
 import atf.api.core.reporting.contract.AtfReportStatus;
@@ -35,6 +36,13 @@ public final class AtfConsoleTestLifecycle {
     public static AtfConsoleTestLifecycle configured(String scenarioName, String testName) {
         return new AtfConsoleTestLifecycle(
                 AtfConsoleReporter.configuredStdout(), scenarioName, testName);
+    }
+
+    /** Creates a lifecycle using the supplied effective policy over the configured process console. */
+    public static AtfConsoleTestLifecycle configured(String scenarioName, String testName,
+                                                      ConsoleSettings settings) {
+        return new AtfConsoleTestLifecycle(
+                AtfConsoleReporter.configuredStdout(settings), scenarioName, testName);
     }
 
     public void start() {

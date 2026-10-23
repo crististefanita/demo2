@@ -4,6 +4,9 @@ import atf.api.ui.config.UiBrowserConfiguration;
 import atf.api.ui.config.UiScreenValidationConfiguration;
 
 import java.nio.file.Path;
+import java.nio.file.Files;
+import java.nio.file.FileAlreadyExistsException;
+import java.io.IOException;
 import java.time.Clock;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -86,6 +89,35 @@ public record UiConfiguration(UiBrowserConfiguration browser, Path reportDirecto
         if (!suffix.isEmpty() && !suffix.endsWith("_")) suffix += "_";
         return reportFilePrefix + suffix
                 + REPORT_TIMESTAMP.withZone(clock.getZone()).format(clock.instant()) + ".html";
+    }
+
+    /**
+     * Atomically reserves a unique report path, including across parallel JVMs
+     * sharing the same output directory and clock tick.
+     */
+    public Path reserveTimestampedReportPath(String logicalSuffix, Clock clock) {
+        Objects.requireNonNull(clock, "clock");
+        String baseName = timestampedReportFileName(logicalSuffix, clock);
+        try {
+            Files.createDirectories(reportDirectory);
+            for (int collision = 1; ; collision++) {
+                String candidateName = collision == 1 ? baseName : disambiguate(baseName, collision);
+                Path candidate = reportDirectory.resolve(candidateName);
+                try {
+                    return Files.createFile(candidate);
+                } catch (FileAlreadyExistsException collisionOnDisk) {
+                    // CREATE_NEW is the cross-process arbitration boundary.
+                }
+            }
+        } catch (IOException failure) {
+            throw new IllegalStateException("Cannot reserve a unique UI report path under "
+                    + reportDirectory, failure);
+        }
+    }
+
+    private static String disambiguate(String fileName, int collision) {
+        int extension = fileName.lastIndexOf('.');
+        return fileName.substring(0, extension) + "_" + collision + fileName.substring(extension);
     }
 
     public static UiConfiguration defaults(Path baseDirectory) {

@@ -7,6 +7,9 @@
 - composition roots și teste în `src/test`;
 - `atf-reporting` consumat ca bibliotecă standalone;
 - `atf-console` folosit ca proiecție diagnostică, nu ca verdict;
+- E2E UI/UI+API declară `@AtfConsoleMessages(DETAILS)` prin harness; probele API
+  de raport declară politica direct; mesajele Playwright/API reutilizează sink-ul
+  testului și respectă `reporting.console.enabled`;
 - journey-uri E2E puține; variațiile rămân în component și API integration.
 
 ```mermaid
@@ -932,6 +935,9 @@ Reguli pentru selectors:
 
 - `ShopLocators` este singurul owner al selectorilor;
 - se preferă locatorii semantici și forma stabilă `element[attribute=value]`;
+- controalele de submit pentru login și registration folosesc doar hook-ul
+  `[data-test=...]`: aplicația live poate reda același contract ca `input` sau
+  `button`, iar testul nu trebuie să lege business-ul de tag-ul HTML;
 - pentru un produs configurat se folosește `ShopProductSelector`, cu
   `a[data-test^='product-']:has([data-test='product-name']:text-is(...))`;
   potrivirea exactă este obligatorie pentru a nu selecta accidental un produs

@@ -8,28 +8,29 @@ resurselor; contractul livrat este în [documentația adnotărilor](../ATF_Test_
 
 | Prioritate / ID | Gap confirmat | Owner | Dovada pentru închidere |
 |---|---|---|---|
-| P1 — KIND-02 | aliasul YAML `api` încă selectează tăcut `UI_API`; lipsește proba întregii precedențe YAML → canal → binding | Shop / config | diagnostic de migrare explicit; API-only distinct; canalul și selecția absentă versus `[]` păstrează sensul |
-| P1 — KIND-03 | există probe pentru exchange fără contract, asociere lipsă și checkpoint necunoscut; lipsește compoziția lor cu selecția canalului și lista YAML explicit goală | consumator / Reporting | API fără contract rămâne observație; contract lipsă/necunoscut și selecție explicit goală sunt probate fără PASS inventat |
+| P1 — KIND-03 | există probe pentru exchange fără contract, asociere lipsă și checkpoint necunoscut; compoziția completă cu selecția canalului și rezultatele locale nu este încă probată | consumator / Reporting | API fără contract rămâne observație; contract lipsă/necunoscut și selecție goală au diagnostic local, fără PASS inventat |
 | P1 — KIND-04 | settlement-ul bounded și refuzul read-back-ului vechi au probe; rămâne completitudinea terminală per checkpoint UI+API | Shop / UI / Reporting | inspector terminal unic; apel obligatoriu lipsă, late, timeout, overflow și failure au diagnostice și verdict local corect |
 | P1 — KIND-05 | paritatea Extent/fallback și verdictele locale pentru toate canalele | Reporting / consumator | UI PASS/API FAIL și invers, contract negativ așteptat, mai multe exchange-uri și copii Tests/Categories/Fails |
 | P2 — KIND-06 | guard structural și matrice JUnit/lifecycle completă | TestKit / ATF Tests / consumator | individual/suită, parameterized/dynamic, disabled/aborted, failure, teardown și concurență; fiecare clasă relevantă consumă planul |
 
-KIND-01 și documentarea API-ului implementat sunt promovate în documentul
-normativ. Rezolvarea canalului și refuzul capabilităților lipsă nu închid
-automat matricea de evidence, verdict și lifecycle de mai sus.
+KIND-01 și KIND-02 sunt rezolvate și documentate normativ:
+
+- `api` primește diagnostic de migrare; API-only rămâne `@AtfTestChannel(API)`, iar `ui-api` selectează UI+API.
+- YAML absent versus `apiEvidence: []` și override absent versus explicit gol au probe distincte, inclusiv preflight-ul UI+API.
+- Rămân deschise completitudinea evidence, verdictele locale, proiecțiile și lifecycle-ul adaptoarelor Shop/Reporting.
 
 ### Următorul increment, fără reluarea probelor existente
 
 | Se reutilizează | Se mai adaugă |
 |---|---|
-| `ShopApiEvidenceBindingTest`: absent, selecție typed și checkpoint necunoscut | probă YAML reală absent versus `[]`, urmată de preflight-ul canalului; CLI gol nu trebuie confundat cu o listă goală explicită |
+| `ShopApiEvidenceBindingTest` și `ShopConfigurationTest`: alias diagnosticat, YAML absent versus `[]`, override absent versus gol | matricea completă a verdictului UI/API și verificarea tuturor proiecțiilor Extent/fallback |
 | `ShopApiCallAuditReportComponentTest`: două exchange-uri, contract negativ, fără contract și asociere neconsumată | aceeași matrice prin adaptoarele de canal, cu verdict local și scenariu distinct, inclusiv aborted |
 | `ShopUiNetworkSettlementComponentTest`: read-back întârziat, timeout, cursor și fără replay | un singur diagnostic terminal pentru checkpoint obligatoriu lipsă, late/overflow/failure, cu owner identificabil |
-| `ShopE2eTestSupportTest`: preflight, close o singură dată și failure primar păstrat la teardown | execuții reale JUnit parameterized/dynamic, disabled/aborted și concurență; testul helperului nu dovedește întreg lifecycle-ul JUnit |
+| `ShopE2eTestSupportTest`: preflight UI+API respinge lista explicit goală înainte de execuție | execuții reale JUnit în toate adaptoarele de canal și completitudinea exchange-urilor terminale; proba de lifecycle Console nu substituie lifecycle-ul Shop |
 
-Aceste probe existente reduc lucrul restant, dar nu închid automat KIND-02–06.
-Nu se adaugă un dispatcher generic sau încă un mecanism de captură pentru a
-completa matricea; se verifică adaptoarele și inspectorul existente.
+KIND-02 este închis de probele noi; KIND-03–06 rămân active. Completarea lor
+verifică adaptoarele și inspectorul existenți, fără dispatcher generic sau
+mecanism de captură duplicat.
 
 ## Cod existent și limitele probelor
 

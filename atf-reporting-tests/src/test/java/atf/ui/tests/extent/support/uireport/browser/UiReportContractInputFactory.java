@@ -28,8 +28,8 @@ public final class UiReportContractInputFactory {
 
     public static Path create(UiConfiguration configuration) {
         Objects.requireNonNull(configuration, "configuration");
-        String fileName = configuration.timestampedReportFileName(
-                "ui-contract-input", Clock.systemDefaultZone());
+        String fileName = configuration.reserveTimestampedReportPath(
+                "ui-contract-input", Clock.systemDefaultZone()).getFileName().toString();
         UiExtentReportOptions options = UiExtentReportOptions.builder(configuration.reportDirectory())
                 .fileName(fileName)
                 .console(AtfConsoleSink.noOp())

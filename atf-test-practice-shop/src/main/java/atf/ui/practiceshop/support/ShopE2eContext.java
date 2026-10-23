@@ -1,6 +1,8 @@
 package atf.ui.practiceshop.support;
 
 import atf.api.console.AtfConsoleReporter;
+import atf.api.console.junit.AtfConsoleTestContext;
+import atf.api.core.diagnostics.ThrowableDiagnostics;
 import atf.api.core.reporting.console.AtfConsoleSink;
 import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.api.reporting.contract.AtfAssertion;
@@ -107,7 +109,9 @@ public final class ShopE2eContext implements AutoCloseable {
     private static ShopE2eContext openBrowser(ShopConfiguration configuration,
                                                        UiExtentReportSession report,
                                                        boolean ownsReport) {
-        AtfConsoleSink console = AtfConsoleReporter.configuredStdout();
+        AtfConsoleSink console = AtfConsoleTestContext.current() == null
+                ? AtfConsoleReporter.configuredStdout()
+                : AtfConsoleTestContext.configuredSink();
         try {
             PlaywrightUiSession browser = PlaywrightUiSession.open(configuration.browser(), console);
             ShopBrowserCaptureProvider browserCaptureProvider =
@@ -131,6 +135,14 @@ public final class ShopE2eContext implements AutoCloseable {
             current = current.getParent();
         }
         return Path.of(System.getProperty("user.dir", ".")).toAbsolutePath().normalize();
+    }
+
+    /** Shared component seam for setup failures; keeps the real cause on the setup phase. */
+    static void publishSetupFailureEvidence(UiExtentReportSession.UiPhase phase, String target,
+                                            Collection<atf.api.reporting.ui.model.AtfUiActionRecord> actions,
+                                            Throwable failure, String screenshot) {
+        phase.failureEvidence("authenticated account setup failure", target,
+                actions, failure, screenshot);
     }
 
     public Page page() { return browser.page(); }
@@ -378,27 +390,33 @@ public final class ShopE2eContext implements AutoCloseable {
 
         public void fail(Page page, PlaywrightActionSequence actions, Throwable failure) {
             if (complete) return;
-            if (body == null && setupPhase != null && !setupFinished) {
+            if (body == null && setupPhase != null) {
+                if (setupFinished) {
+                    // A setup owner may already have published and closed a failed checkpoint.
+                    // Never dereference the not-yet-created TEST BODY or mask the original cause.
+                    complete = true;
+                    return;
+                }
                 try {
                     if (!setupStepPublished) {
                         AtfAssertion failed = new AtfAssertion("Authenticated account setup",
                                 "registration/login setup passes before TEST BODY",
-                                "setup failed; business flow was not started", false);
-                        ReportScreenshot screenshot = actions.snapshot().isEmpty() ? null
-                                : captureCheckpointScreenshot("authenticated account setup",
-                                ReportScreenshotPolicy.CapturePoint.FAILURE);
+                                ThrowableDiagnostics.unavailable(failure), false);
                         setupPhase.setup(AtfGherkinKeyword.GIVEN,
                                 "authenticated account setup completes before the purchase flow",
                                 page.url(), List.of(failed),
-                                ShopReportUiActionAdapters.from(actions.drain()),
-                                setupEvidence(), screenshot, AtfReportStatus.FAIL);
+                                List.of(), setupEvidence(), null, AtfReportStatus.FAIL);
                         setupStepPublished = true;
                     }
+                    publishSetupFailureEvidence(page, actions, failure);
                     setupPhase.complete(AtfReportStatus.FAIL);
                     setupFinished = true;
                     scenario.complete(AtfReportStatus.FAIL);
                 } catch (IllegalStateException alreadyClosed) {
                     // Preserve the original setup failure if report publication already closed the phase.
+                    failure.addSuppressed(alreadyClosed);
+                } catch (RuntimeException reportFailure) {
+                    failure.addSuppressed(reportFailure);
                 } finally {
                     complete = true;
                 }
@@ -420,9 +438,25 @@ public final class ShopE2eContext implements AutoCloseable {
             } catch (IllegalStateException alreadyClosed) {
                 // A renderer may close the scenario while publishing a partial failure.
                 // Preserve the browser/test exception rather than masking it.
+                failure.addSuppressed(alreadyClosed);
+            } catch (RuntimeException reportFailure) {
+                failure.addSuppressed(reportFailure);
             } finally {
                 complete = true;
             }
+        }
+
+        /** Retains the real setup exception and action trace even though TEST BODY never started. */
+        void publishSetupFailureEvidence(Page page, PlaywrightActionSequence actions, Throwable failure) {
+            String screenshot = "";
+            try {
+                screenshot = capture(page, "authenticated account setup failure",
+                        ReportScreenshotPolicy.CapturePoint.FAILURE);
+            } catch (RuntimeException captureFailure) {
+                failure.addSuppressed(captureFailure);
+            }
+            ShopE2eContext.publishSetupFailureEvidence(setupPhase, page.url(),
+                    ShopReportUiActionAdapters.from(actions.drain()), failure, screenshot);
         }
 
         private String capture(Page page, String title,

@@ -12,6 +12,7 @@ import atf.ui.practiceshop.config.ShopValidationProfile;
 import atf.ui.practiceshop.routes.ShopUiRoutes;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -91,6 +92,66 @@ class ShopConfigurationTest {
                       productName: "%s"
                     """.formatted(product));
             assertEquals(product, ShopConfigurationLoader.load(yaml).productName());
+        }
+    }
+
+    @Test
+    void yamlDistinguishesMissingApiEvidenceFromAnExplicitlyEmptyList(@TempDir Path temp) throws Exception {
+        Path missingSelection = temp.resolve("missing-selection.yaml");
+        Path emptySelection = temp.resolve("empty-selection.yaml");
+        Files.writeString(missingSelection, """
+                practiceShop:
+                  baseUrl: https://practicesoftwaretesting.com
+                  validation:
+                    profile: ui-api
+                """);
+        Files.writeString(emptySelection, """
+                practiceShop:
+                  baseUrl: https://practicesoftwaretesting.com
+                  validation:
+                    profile: ui-api
+                    apiEvidence: []
+                """);
+
+        var inherited = ShopConfigurationLoader.load(missingSelection);
+        var explicitlyEmpty = ShopConfigurationLoader.load(emptySelection);
+
+        assertEquals(6, inherited.api().evidenceBinding().checkpoints().size());
+        assertTrue(explicitlyEmpty.api().evidenceBinding().checkpoints().isEmpty());
+    }
+
+    @Test
+    @ResourceLock("atf.practice.api-evidence-checkpoints")
+    void explicitlyBlankCheckpointOverrideClearsYamlSelectionButAbsentOverrideInheritsIt(
+            @TempDir Path temp) throws Exception {
+        String property = "atf.practice.api-evidence-checkpoints";
+        String previous = System.getProperty(property);
+        Path yaml = temp.resolve("checkpoint-override.yaml");
+        Files.writeString(yaml, """
+                practiceShop:
+                  baseUrl: https://practicesoftwaretesting.com
+                  validation:
+                    profile: ui-api
+                    apiEvidence: [product]
+                """);
+        try {
+            System.clearProperty(property);
+            assertEquals(1, ShopConfigurationLoader.load(yaml)
+                    .api().evidenceBinding().checkpoints().size());
+
+            System.setProperty(property, "");
+            assertTrue(ShopConfigurationLoader.load(yaml)
+                    .api().evidenceBinding().checkpoints().isEmpty());
+
+            System.setProperty(property, "payment, order");
+            var overridden = ShopConfigurationLoader.load(yaml).api().evidenceBinding();
+            assertEquals(2, overridden.checkpoints().size());
+            assertTrue(overridden.includes(ShopApiCheckpoint.PAYMENT));
+            assertTrue(overridden.includes(ShopApiCheckpoint.ORDER));
+            assertFalse(overridden.includes(ShopApiCheckpoint.PRODUCT));
+        } finally {
+            if (previous == null) System.clearProperty(property);
+            else System.setProperty(property, previous);
         }
     }
 

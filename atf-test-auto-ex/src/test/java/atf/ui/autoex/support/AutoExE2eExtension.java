@@ -1,0 +1,50 @@
+package atf.ui.autoex.support;
+
+import atf.ui.autoex.config.AutoExConfigurationLoader;
+import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.ConditionEvaluationResult;
+import org.junit.jupiter.api.extension.ExecutionCondition;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.ParameterContext;
+import org.junit.jupiter.api.extension.ParameterResolutionException;
+import org.junit.jupiter.api.extension.ParameterResolver;
+
+/** Opt-in site boundary. It opens no browser for a normal reactor build. */
+public final class AutoExE2eExtension implements ExecutionCondition,
+        BeforeEachCallback, AfterEachCallback, ParameterResolver {
+    private static final ExtensionContext.Namespace NAMESPACE =
+            ExtensionContext.Namespace.create(AutoExE2eExtension.class);
+    private static final String RUN_KEY = "auto-ex-e2e-run";
+
+    @Override
+    public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext context) {
+        boolean enabled = AutoExConfigurationLoader.e2eEnabled(AutoExConfigurationLoader.load());
+        return enabled
+                ? ConditionEvaluationResult.enabled("Automation Exercise live UI E2E was explicitly enabled")
+                : ConditionEvaluationResult.disabled("set -Datf.autoex.e2e.enabled=true to run public-site E2E");
+    }
+
+    @Override
+    public void beforeEach(ExtensionContext context) {
+        context.getStore(NAMESPACE).put(RUN_KEY, AutoExE2eRun.open(context));
+    }
+
+    @Override
+    public void afterEach(ExtensionContext context) throws Exception {
+        AutoExE2eRun run = context.getStore(NAMESPACE).remove(RUN_KEY, AutoExE2eRun.class);
+        if (run != null) run.finish(context.getExecutionException().orElse(null));
+    }
+
+    @Override
+    public boolean supportsParameter(ParameterContext parameter, ExtensionContext context) {
+        return parameter.getParameter().getType() == AutoExE2eRun.class;
+    }
+
+    @Override
+    public Object resolveParameter(ParameterContext parameter, ExtensionContext context) {
+        AutoExE2eRun run = context.getStore(NAMESPACE).get(RUN_KEY, AutoExE2eRun.class);
+        if (run == null) throw new ParameterResolutionException("Automation Exercise E2E run is not open");
+        return run;
+    }
+}

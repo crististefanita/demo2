@@ -5,6 +5,7 @@ import atf.ui.practiceshop.config.ShopValidationProfile;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @AtfComponentTest
@@ -25,5 +26,15 @@ class ShopValidationProfileTest {
     void unsupportedProfilesFailBeforeTheBrowserStarts() {
         assertThrows(IllegalArgumentException.class,
                 () -> ShopValidationProfile.from("ui-api-and-random-switches"));
+    }
+
+    @Test
+    void ambiguousApiAliasFailsWithDistinctMigrationChoices() {
+        IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
+                () -> ShopValidationProfile.from("API"));
+
+        assertTrue(failure.getMessage().contains("ambiguous"));
+        assertTrue(failure.getMessage().contains("'ui-api'"));
+        assertTrue(failure.getMessage().contains("@AtfTestChannel(API)"));
     }
 }

@@ -7,6 +7,8 @@ import atf.api.reporting.ui.UiExtentReportSession;
 import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
 import atf.api.reporting.evidence.profile.ReportEvidenceProfile;
 import atf.api.reporting.evidence.profile.ReportUiActionDetailsMode;
+import atf.api.console.junit.AtfConsoleTestExtension;
+import atf.api.testkit.AtfConsoleMessages;
 import atf.api.testkit.channel.AtfTestChannelResolver;
 import atf.api.testkit.channel.TestChannel;
 import atf.api.ui.playwright.PlaywrightActionSequence;
@@ -71,7 +73,8 @@ public final class ShopE2eTestSupport {
 
     @Target(ElementType.TYPE)
     @Retention(RetentionPolicy.RUNTIME)
-    @ExtendWith(E2eExtension.class)
+    @AtfConsoleMessages(AtfConsoleMessages.Policy.DETAILS)
+    @ExtendWith({AtfConsoleTestExtension.class, E2eExtension.class})
     public @interface WithE2eHarness {
         HarnessProfile profile() default HarnessProfile.CONFIGURED;
         ReportFlow reportFlow() default ReportFlow.CONFIGURED;
@@ -368,11 +371,12 @@ public final class ShopE2eTestSupport {
         }
 
         public void fail(String title, Collection<AtfAssertion> assertions,
-                         Collection<atf.api.reporting.model.ReportExecutionEvidence> apiEvidence) {
+                         Collection<atf.api.reporting.model.ReportExecutionEvidence> apiEvidence,
+                         Throwable failure) {
             if (completed || failed) throw new IllegalStateException("SETUP is already finished");
             scenario.setupCheckpoint(page(), actions, AtfGherkinKeyword.GIVEN, title,
                     assertions, apiEvidence, AtfReportStatus.FAIL);
-            scenario.finishSetup(AtfReportStatus.FAIL);
+            scenario.fail(page(), actions, failure);
             failed = true;
         }
 

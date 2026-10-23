@@ -27,8 +27,8 @@ public final class UiFailureReportFactory {
     private UiFailureReportFactory() { }
 
     public static Path create(UiConfiguration configuration) {
-        String fileName = configuration.timestampedReportFileName(
-                "ui-failure-contract-input", Clock.systemDefaultZone());
+        String fileName = configuration.reserveTimestampedReportPath(
+                "ui-failure-contract-input", Clock.systemDefaultZone()).getFileName().toString();
         UiExtentReportSession report = UiExtentReportSession.openConfiguredResolved(
                 configuration.reportDirectory(), fileName, AtfConsoleSink.noOp(),
                 UiReportEnvironmentSnapshotFactory.fixture(

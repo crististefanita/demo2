@@ -43,11 +43,11 @@ public final class UiFailureReportDynamicEngine {
                                                             ReportAuditChecks.check("Collapsed evidence bodies", "0 visible",
                                                                     String.valueOf(result.visibleClosedEvidenceBodies()),
                                                                     result.visibleClosedEvidenceBodies() == 0),
-                                                            ReportAuditChecks.check("Semantic evidence disclosures",
-                                                                    surface == UiFailureSurface.SETUP ? "not applicable" : ">= 2",
-                                                                    String.valueOf(result.semanticEvidenceDisclosures()),
+                                                            ReportAuditChecks.check("UI failure disclosures",
+                                                                    surface == UiFailureSurface.SETUP ? "not applicable" : ">= 1; no HTTP evidence invented",
+                                                                    String.valueOf(result.failureEvidenceDisclosures()),
                                                                     surface == UiFailureSurface.SETUP
-                                                                            || result.semanticEvidenceDisclosures() >= 2)),
+                                                                            || result.failureEvidenceDisclosures() >= 1)),
                                                     result.valid() ? AtfReportStatus.PASS : AtfReportStatus.FAIL);
                                             assertTrue(result.valid(), () -> String.join("; ", result.violations()));
                                             return null;

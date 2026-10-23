@@ -65,6 +65,9 @@ class ReportOutputDirectoryTest {
     @ProjectRelativeUiReportDirectory("//server/share") private static class UncOwner { }
     @ProjectRelativeUiReportDirectory("../outside") private static class ProjectEscapeOwner { }
     @ProjectRelativeUiReportDirectory("owner/./project") private static class NormalizedOwner { }
+    @UiReportSubdirectory("résultats de test/é2e") private static class UnicodeAndSpaceOwner { }
+    @UiReportSubdirectory("bad<path") private static class InvalidNativePathOwner { }
+    @UiReportSubdirectory("junction/new/nested") private static class JunctionChildOwner { }
 
     @Test
     void anchorsStayDistinctAndInheritanceCanBeOverridden() {
@@ -76,6 +79,8 @@ class ReportOutputDirectoryTest {
         assertEquals(ui.resolve("owner/ui"), ReportOutputDirectory.resolve(project, ui, EquivalentOwner.class));
         assertEquals(project.resolve("cyclic"), ReportOutputDirectory.resolve(project, ui, CyclicMetaOwner.class));
         assertEquals(project.resolve("owner/project"), ReportOutputDirectory.resolve(project, ui, NormalizedOwner.class));
+        assertEquals(ui.resolve("résultats de test/é2e"),
+                ReportOutputDirectory.resolve(project, ui, UnicodeAndSpaceOwner.class));
         assertEquals(ui, ReportOutputDirectory.resolve(project, ui, null));
     }
 
@@ -93,6 +98,21 @@ class ReportOutputDirectoryTest {
     }
 
     @Test
+    void invalidNativePathHasAnActionableOwnerAndAnchorDiagnostic() {
+        assumeTrue(System.getProperty("os.name", "").toLowerCase().contains("windows"),
+                "the invalid character in this fixture is Windows-specific");
+        Path ui = project.resolve("artifacts/reports/ui");
+
+        IllegalStateException failure = assertThrows(IllegalStateException.class,
+                () -> ReportOutputDirectory.resolve(project, ui, InvalidNativePathOwner.class));
+
+        assertEquals(java.nio.file.InvalidPathException.class, failure.getCause().getClass());
+        org.junit.jupiter.api.Assertions.assertTrue(failure.getMessage().contains(
+                InvalidNativePathOwner.class.getName()));
+        org.junit.jupiter.api.Assertions.assertTrue(failure.getMessage().contains(ui.toString()));
+    }
+
+    @Test
     void symlinkCannotEscapeExistingAnchor() throws Exception {
         Path ui = Files.createDirectories(project.resolve("artifacts/reports/ui"));
         Path outside = Files.createDirectories(project.resolve("outside"));
@@ -100,5 +120,18 @@ class ReportOutputDirectoryTest {
                 "OS does not allow creating a test symlink");
         assertThrows(IllegalStateException.class,
                 () -> ReportOutputDirectory.resolve(project, ui, UiOwner.class));
+    }
+
+    @Test
+    void junctionCannotEscapeAnchorWhenDestinationDoesNotExistYet() throws Exception {
+        assumeTrue(System.getProperty("os.name", "").toLowerCase().contains("windows"),
+                "directory junctions are a Windows-specific boundary");
+        Path ui = Files.createDirectories(project.resolve("artifacts/reports/ui"));
+        Path outside = Files.createDirectories(project.resolve("outside"));
+        assumeTrue(ReportOutputSymlinkFixture.createJunctionIfSupported(ui.resolve("junction"), outside),
+                "runner cannot create a directory junction");
+
+        assertThrows(IllegalStateException.class,
+                () -> ReportOutputDirectory.resolve(project, ui, JunctionChildOwner.class));
     }
 }
