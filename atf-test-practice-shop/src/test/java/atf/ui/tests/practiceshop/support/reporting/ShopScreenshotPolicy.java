@@ -1,4 +1,4 @@
-package atf.ui.practiceshop.support.reporting;
+package atf.ui.tests.practiceshop.support.reporting;
 
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.evidence.profile.ReportEvidenceCaptureSource;

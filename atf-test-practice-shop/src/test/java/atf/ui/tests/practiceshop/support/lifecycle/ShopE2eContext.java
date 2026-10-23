@@ -1,8 +1,9 @@
-package atf.ui.practiceshop.support;
+package atf.ui.tests.practiceshop.support.lifecycle;
 
 import atf.api.console.AtfConsoleReporter;
 import atf.api.console.junit.AtfConsoleTestContext;
 import atf.api.core.diagnostics.ThrowableDiagnostics;
+import atf.api.testkit.lifecycle.FailureAwareCleanup;
 import atf.api.core.reporting.console.AtfConsoleSink;
 import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.api.reporting.contract.AtfAssertion;
@@ -20,11 +21,18 @@ import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.api.ui.playwright.PlaywrightUiSession;
 import atf.api.ui.playwright.UiScreenValidation;
 import atf.ui.practiceshop.config.ShopConfiguration;
+import atf.ui.practiceshop.support.ShopPurchaseCheckpoint;
+import atf.ui.practiceshop.support.ShopPurchaseTraceStep;
+import atf.ui.practiceshop.support.ShopPageContract;
+import atf.ui.practiceshop.support.ShopJsonEvidence;
+import atf.ui.practiceshop.support.ShopAuditObservations;
+import atf.ui.practiceshop.support.ShopLoginBodyRecovery;
+import atf.ui.practiceshop.support.ShopCountryOption;
 import atf.ui.practiceshop.support.api.ShopApiNetworkJournal;
-import atf.ui.practiceshop.support.evidence.ShopBrowserCaptureProvider;
-import atf.ui.practiceshop.support.reporting.ShopReportSystemMetadata;
-import atf.ui.practiceshop.support.reporting.ShopReportUiActionAdapters;
-import atf.ui.practiceshop.support.reporting.ShopScreenshotPolicy;
+import atf.ui.tests.practiceshop.support.evidence.ShopBrowserCaptureProvider;
+import atf.ui.tests.practiceshop.support.reporting.ShopReportSystemMetadata;
+import atf.ui.tests.practiceshop.support.reporting.ShopReportUiActionAdapters;
+import atf.ui.tests.practiceshop.support.reporting.ShopScreenshotPolicy;
 import com.microsoft.playwright.Page;
 
 import java.nio.file.Path;
@@ -91,8 +99,8 @@ public final class ShopE2eContext implements AutoCloseable {
                 ? openReport(configuration, selectedProfile, reportConsole) : sharedReport;
         try {
             return openBrowser(configuration, selectedProfile, report, ownsReport);
-        } catch (RuntimeException error) {
-            if (ownsReport) report.close();
+        } catch (RuntimeException | Error error) {
+            if (ownsReport) FailureAwareCleanup.closeAfterFailure(error, report);
             throw error;
         }
     }
@@ -128,8 +136,9 @@ public final class ShopE2eContext implements AutoCloseable {
         AtfConsoleSink console = AtfConsoleTestContext.current() == null
                 ? AtfConsoleReporter.configuredStdout()
                 : AtfConsoleTestContext.configuredSink();
+        PlaywrightUiSession browser = null;
         try {
-            PlaywrightUiSession browser = PlaywrightUiSession.open(configuration.browser(), console);
+            browser = PlaywrightUiSession.open(configuration.browser(), console);
             ShopBrowserCaptureProvider browserCaptureProvider =
                     new ShopBrowserCaptureProvider(browser.page(),
                             UiScreenValidationConfiguration.defaults());
@@ -143,7 +152,8 @@ public final class ShopE2eContext implements AutoCloseable {
             apiNetwork.attach(browser.page());
             return new ShopE2eContext(configuration, evidenceProfile, report, browser, browserCaptureProvider,
                     ownsReport, apiNetwork);
-        } catch (RuntimeException error) {
+        } catch (RuntimeException | Error error) {
+            FailureAwareCleanup.closeAfterFailure(error, browser);
             throw error;
         }
     }

@@ -58,7 +58,9 @@ class AutoExConsumerArchitectureComponentTest {
         Path moduleRoot = locateModuleRoot();
         Path mainSource = moduleRoot.resolve("src/main/java/atf/ui/autoex");
         Path journey = mainSource.resolve("support/journey/AutoExPurchaseJourney.java");
+        Path session = mainSource.resolve("support/journey/AutoExPurchaseSession.java");
         String journeySource = Files.readString(journey);
+        String sessionSource = Files.readString(session);
 
         assertTrue(Files.isRegularFile(moduleRoot.resolve("src/test/resources/atf-auto-ex.yaml")),
                 "the site-specific E2E profile belongs to test resources");
@@ -67,6 +69,12 @@ class AutoExConsumerArchitectureComponentTest {
         assertTrue(Files.isRegularFile(mainSource.resolve("config/AutoExConfigurationLoader.java")));
         assertTrue(Files.isRegularFile(mainSource.resolve("page/AccountPage.java")));
         assertTrue(Files.isRegularFile(mainSource.resolve("locator/AutoExSelectors.java")));
+        assertTrue(sessionSource.contains("com.microsoft.playwright.Page"),
+                "the consumer runtime port may expose its browser capability to AutoEx page objects");
+        assertTrue(sessionSource.contains("atf.api.reporting.contract.AtfAssertion"),
+                "the consumer runtime port may expose reporting assertions to the AutoEx journey");
+        assertFalse(sessionSource.contains("org.junit") || sessionSource.contains("atf.api.testkit"),
+                "JUnit lifecycle and generic test-kit concerns belong in test scope, not in the runtime port");
         assertTrue(journeySource.contains("AutoExPurchaseTraceStep."));
         assertTrue(!journeySource.contains("checkpoint(AtfGherkinKeyword"),
                 "business Gherkin titles must come from the typed phrase catalog");

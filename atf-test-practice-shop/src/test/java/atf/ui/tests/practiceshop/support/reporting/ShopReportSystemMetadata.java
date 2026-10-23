@@ -1,4 +1,4 @@
-package atf.ui.practiceshop.support.reporting;
+package atf.ui.tests.practiceshop.support.reporting;
 
 import atf.ui.practiceshop.config.ShopConfiguration;
 import atf.api.core.config.ApiTransportMode;

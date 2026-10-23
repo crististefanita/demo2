@@ -65,6 +65,14 @@ Fiecare clasă executabilă declară exact un nivel:
 | `atf.api.testkit.setup.api` | `ApiScenarioSetup`, `ApiTestRef` | declarații; catalogul și executarea rămân la consumator |
 | `atf.api.testkit.documentation` | `DocumentationTarget` repeatable | selecție de documente; validatorii rămân în ATF Tests |
 | `atf.api.testkit.evidence` | `AtfUiEvidence`, `AtfUiEvidenceFlow`, `AtfUiScreenshotPolicy` | declară independent gruparea flow-ului și intenția capturilor; adaptorii consumer le mapează în profilul Reporting |
+| `atf.api.testkit.lifecycle` | `FailureAwareCleanup` | primitive test-only pentru acumularea cleanup-ului și închiderea inversă a resurselor parțial dobândite; fără API UI/Reporting |
+
+`FailureAwareCleanup` păstrează prima eroare ca primară, atașează eșecurile
+ulterioare ca `suppressed`, încearcă toate etapele declarate și închide
+resursele dobândite în ordine inversă. Este folosit numai din source set-ul de
+teste; fiecare consumer păstrează local decizia privind resursele și etapele pe
+care le deține. Comportamentul generic este probat în
+`FailureAwareCleanupTest`, iar testele Shop/AutoEx rămân la boundary-ul lor.
 
 Contractul complet, precedența, exemplele și probele sunt în
 [Adnotări de infrastructură pentru teste](../docs/ATF_Test_Infrastructure_Annotations.md).
@@ -106,10 +114,10 @@ Nu se creează un modul UI nou și nu se mută harness-urile consumerilor ca ata
 
 | Contract | Owner / limită |
 |---|---|
-| Primitive candidate: resource ownership, close-once, combinarea erorilor | `atf-test-kit`, numai după probe comportamentale Shop + AutoEx; încă neimplementate |
+| `FailureAwareCleanup`: închiderea inversă a resurselor dobândite și agregarea eșecurilor | implementat în `atf-test-kit`; probat direct și prin adaptoarele Shop/AutoEx, fără API UI/Reporting |
 | Browser, `Page`, Playwright, Extent, capture profile, network inspector și business | adaptorul `src/test` al fiecărui consumer; nu intră în Test Kit |
-| Compoziția/extensia JUnit UI | locală, până când testele demonstrează același contract; `atf-ui` consumă deja Test Kit în test scope, deci dependența inversă ar crea ciclu |
-| Scope-ul Shop pentru Test Kit | importurile sunt în `src/test`; POM-ul trebuie restrâns la `test` scope |
+| Lifecycle-ul sau extensia JUnit UI | rămân locale până când ambele consumatoare demonstrează același contract; `atf-ui` consumă deja Test Kit în test scope, deci dependența inversă ar crea ciclu |
+| Scope-ul Shop pentru Test Kit | importurile și dependența Maven sunt în `test` scope; verificat de `ShopArchitectureTest` |
 | Clasificare, evidence, activare și instalare | `@AtfE2eTest`, `@AtfUiEvidence` și extensia/configurația consumerului au roluri distincte; detalii în [feedback-ul E2E](../docs/feedback/ATF_E2E_Test_Support_Architecture_Feedback.md) |
 
 ## Dependențe

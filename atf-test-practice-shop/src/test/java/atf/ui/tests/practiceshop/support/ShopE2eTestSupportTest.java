@@ -133,13 +133,13 @@ class ShopE2eTestSupportTest {
         assertEquals(ReportScreenshotPolicy.EACH_CHECKPOINT, reportProfile.screenshotPolicy());
         assertEquals(ReportEvidenceCaptureSource.BROWSER, reportProfile.captureSource());
         assertEquals(ReportUiActionDetailsMode.INCLUDED_COLLAPSED, reportProfile.actionDetailsMode());
-        assertFalse(atf.ui.practiceshop.support.ShopE2eContext.Scenario
+        assertFalse(atf.ui.tests.practiceshop.support.lifecycle.ShopE2eContext.Scenario
                 .shouldCaptureCheckpointScreenshot(reportProfile, true, true),
                 "unified flow reserves its one screenshot for the final screen");
-        assertTrue(atf.ui.practiceshop.support.ShopE2eContext.Scenario
+        assertTrue(atf.ui.tests.practiceshop.support.lifecycle.ShopE2eContext.Scenario
                 .shouldCaptureCheckpointScreenshot(reportProfile, true, false),
                 "failed checkpoints still retain failure screenshots");
-        assertFalse(atf.ui.practiceshop.support.ShopE2eContext.Scenario
+        assertFalse(atf.ui.tests.practiceshop.support.lifecycle.ShopE2eContext.Scenario
                 .shouldCaptureCheckpointScreenshot(reportProfile, false, false));
 
         var yamlConfiguration = ShopConfigurationLoader.load();

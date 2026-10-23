@@ -6,7 +6,7 @@ Acest document separă gap-urile evaluatorului AI de readiness-ul implementării
 Designul țintă și pattern-urile extrase din ATF1/.NET sunt în
 [designul AI al proiectului](../ATF_AI_Evaluation_Design.md).
 
-Backlog-ul AI nu intră în ordinea celor trei priorități active din registrul comun.
+Backlog-ul AI nu intră în ordinea celor patru priorități active din registrul comun.
 
 | Stare | Owner / limită |
 |---|---|

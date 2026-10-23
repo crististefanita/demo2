@@ -1,8 +1,7 @@
 package atf.ui.autoex.support.lifecycle;
 
-import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.testkit.lifecycle.FailureAwareCleanup;
 
-import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -18,38 +17,22 @@ public final class AutoExE2eInitialization {
                                        Consumer<P> failPhase,
                                        Consumer<S> failScenario,
                                        Consumer<B> closeBrowser) {
-        Objects.requireNonNull(browserFactory, "browserFactory");
-        Objects.requireNonNull(scenarioFactory, "scenarioFactory");
-        Objects.requireNonNull(phaseFactory, "phaseFactory");
-        Objects.requireNonNull(runFactory, "runFactory");
-        Objects.requireNonNull(failPhase, "failPhase");
-        Objects.requireNonNull(failScenario, "failScenario");
-        Objects.requireNonNull(closeBrowser, "closeBrowser");
-
         B browser = null;
         S scenario = null;
         P phase = null;
         try {
-            browser = Objects.requireNonNull(browserFactory.get(), "browserFactory returned null");
-            scenario = Objects.requireNonNull(scenarioFactory.apply(browser), "scenarioFactory returned null");
-            phase = Objects.requireNonNull(phaseFactory.apply(scenario), "phaseFactory returned null");
-            return Objects.requireNonNull(runFactory.create(browser, scenario, phase), "runFactory returned null");
+            browser = browserFactory.get();
+            scenario = scenarioFactory.apply(browser);
+            phase = phaseFactory.apply(scenario);
+            return runFactory.create(browser, scenario, phase);
         } catch (RuntimeException | Error setupFailure) {
             P acquiredPhase = phase;
-            if (acquiredPhase != null) {
-                AutoExTeardown.attempt(setupFailure,
-                        () -> failPhase.accept(acquiredPhase));
-            }
             S acquiredScenario = scenario;
-            if (acquiredScenario != null) {
-                AutoExTeardown.attempt(setupFailure,
-                        () -> failScenario.accept(acquiredScenario));
-            }
             B acquiredBrowser = browser;
-            if (acquiredBrowser != null) {
-                AutoExTeardown.attempt(setupFailure,
-                        () -> closeBrowser.accept(acquiredBrowser));
-            }
+            FailureAwareCleanup.runAll(setupFailure,
+                    () -> { if (acquiredPhase != null) failPhase.accept(acquiredPhase); },
+                    () -> { if (acquiredScenario != null) failScenario.accept(acquiredScenario); },
+                    () -> { if (acquiredBrowser != null) closeBrowser.accept(acquiredBrowser); });
             throw setupFailure;
         }
     }

@@ -1,4 +1,4 @@
-package atf.ui.practiceshop.support.reporting;
+package atf.ui.tests.practiceshop.support.reporting;
 
 import atf.api.reporting.api.ReportModelAdapters;
 import atf.api.reporting.ui.model.AtfUiActionRecord;

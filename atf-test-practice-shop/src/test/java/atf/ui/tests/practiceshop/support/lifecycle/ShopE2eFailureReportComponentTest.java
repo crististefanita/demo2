@@ -1,4 +1,4 @@
-package atf.ui.practiceshop.support;
+package atf.ui.tests.practiceshop.support.lifecycle;
 
 import atf.api.reporting.console.AtfConsoleSink;
 import atf.api.reporting.contract.AtfReportStatus;

@@ -54,13 +54,13 @@ flowchart LR
 | Configurație | `src/test/resources/atf-practice-shop.yaml`, `ShopConfigurationLoader` | valori și fixture-uri Practice Shop, nu configurare globală ATF |
 | UI | `routes`, `locators`, `pages`, `flow` în `src/main/java/atf/ui/practiceshop` | semantică a aplicației; browserul generic rămâne în `atf-ui` |
 | API | `api` și `support/api` în același source root | contractele wire și maparea către dovezile Shop; transportul generic rămâne în `atf-core` |
-| Evidence consumer | `support`, `support/reporting`, `support/evidence` | mapping-ul și lifecycle-ul Shop; rendererul și schema Extent rămân în `atf-reporting` |
+| Evidence consumer | `src/test/.../support/{lifecycle,evidence,reporting}` | harness-ul și adaptoarele exclusiv E2E sunt test-scoped; rendererul și schema Extent rămân în `atf-reporting` |
 | Teste | `src/test/java/atf/ui/tests/practiceshop` | compun și verifică Shop; testele reutilizabile ATF aparțin modulului care deține contractul generic |
 
 Comportamentele Shop folosesc `atf-core`, `atf-console`, `atf-reporting` și
-`atf-ui`. POM-ul declară momentan și `atf-test-kit` fără scope, deși importurile
-sale sunt în `src/test`; această dependență trebuie restrânsă la `test` scope.
-Niciun modul generic ATF nu depinde de Practice Shop.
+`atf-ui`; `atf-test-kit` este declarat în `test` scope pentru adnotările și
+contractele folosite numai de testele consumerului. Niciun modul generic ATF nu
+depinde de Practice Shop.
 
 <details>
 <summary><strong>Harta source roots și a responsabilităților locale</strong></summary>
@@ -73,7 +73,7 @@ src/main/java/atf/ui/practiceshop
 ├── locators/     CSS selectors și selecția exactă a produsului
 ├── pages/        page objects, inclusiv account flows
 ├── flow/         journey-ul semantic și stage-urile lui
-└── support/      checkpoint, validation, network journal și adaptere Shop
+└── support/      checkpoint, validation, API report mapping și network journal Shop
 
 src/test/java/atf/ui/tests/practiceshop
 ├── e2e/          composition roots pentru journey-uri reale
@@ -85,33 +85,37 @@ src/test/java/atf/ui/tests/practiceshop
 │   ├── network/      observație UI și settlement controlat
 │   ├── reporting/    auditul exchange-urilor de componentă
 │   └── support/      fixture-uri și transporturi locale test-only
-└── support/      harness, fixture-uri și probe ale lifecycle-ului E2E
+└── support/
+    ├── lifecycle/  context browser/report per scenariu și probele sale
+    ├── evidence/   capture provider-ul cu mascarea câmpurilor sensibile
+    ├── reporting/ metadata/adaptoare și politica de screenshot Shop
+    └── ...         fixture-uri, extension și probe E2E
 ```
 
-**API live versus API component:** `ShopStandaloneApiReportTest` execută flow-ul
-cu `ShopApiClient.live` și verifică proveniența `LIVE_HTTP`. Testele din
-`api/component` nu formează o suită live: cele care execută clientul injectează
-fixture-uri `ApiTransport` deterministe (`ACCEPTANCE_MOCK`), iar celelalte
-verifică offline request factory-ul și rutele. Aceste teste rămân aici fiindcă
-verifică sesiunile, payload-urile și contractele Practice Shop. Un raport HTML
-generat de un test nu îl transformă automat într-un test `atf-reporting-tests`.
+`src/main` păstrează modelul de aplicație, locatoarele, paginile, flow-urile și
+contractele Shop care pot fi reutilizate de consumer. Contextul browser/report,
+capture provider-ul și adaptoarele de prezentare sunt strict infrastructură de
+test și nu intră în artefactul produs; `atf-test-kit` are același scope de test.
+Suita consumatorului rămâne concentrată pe `e2e`, `component` și `api`; `support`
+este infrastructură de test, nu un al treilea tip de test.
 
-`src/main` nu conține clase de test; `src/test` nu devine owner pentru
-comportamente reutilizabile de aplicație. Suita consumatorului rămâne concentrată
-pe `e2e`, `component` și `api`; `support` este infrastructură de test, nu un al
-treilea tip de test.
+`ShopE2eTestSupport` compune testele, iar
+[`ShopE2eContext`](src/test/java/atf/ui/tests/practiceshop/support/lifecycle/ShopE2eContext.java)
+deține resursele browser/report doar pentru rulări E2E. `ShopArchitectureTest`
+verifică explicit source-set-ul harness-ului și al adaptoarelor și cere ca
+`atf-test-kit` să rămână `test` scope; paginile, flow-urile și locatoarele rămân
+în `src/main`.
 
-`ShopE2eTestSupport` compune testele; `ShopE2eContext` se află în prezent în
-`src/main`, iar folosirea directă a `atf-test-kit` este în sursele de test, deși
-POM-ul îl declară fără scope. Acestea sunt fapte despre layout-ul live, nu
-contracte de API public și nici dovada că tot pachetul `support` trebuie mutat.
+Cleanup-ul generic failure-aware este furnizat de `atf-test-kit` și consumat
+numai din test scope; contextul, browserul, raportarea și ownership-ul rămân
+adaptoare locale Shop. `ShopE2eActivationExtension` activează direct rularea
+IntelliJ, dezactivează implicit alte runnere și permite override JVM explicit;
+`false` prevalează asupra detectării IDE, iar valoarea invalidă eșuează închis.
+Politica este probată în `ShopE2eActivationPolicyComponentTest`.
 
-Decizia privind primitivele comune de lifecycle și boundary-ul adaptorului
-console–Reporting rămâne în feedback-urile ownerilor:
-[suport E2E](../docs/feedback/ATF_E2E_Test_Support_Architecture_Feedback.md) și
-[arhitectura consumerilor](../docs/feedback/ATF_Consumer_Test_Architecture_Feedback.md).
-Browserul, raportarea și regulile Practice Shop nu sunt promovate în Test Kit
-fără un contract generic demonstrat de ambii consumatori.
+Plasarea adaptorului Console–Reporting este încă în reconciliere cu guvernanța
+whole-ATF; vezi [feedback-ul de boundary](../docs/feedback/ATF_Consumer_Test_Architecture_Feedback.md).
+Browserul, raportarea și regulile Practice Shop nu sunt promovate în Test Kit.
 
 </details>
 
@@ -458,6 +462,11 @@ confirmarea UI și nu creează invoice-ul final.
   dedicat din `src/main`.
 - Variațiile deterministe se adaugă în component/API component; API live rămâne
   opt-in, iar E2E-ul se păstrează pentru wiring-ul și efectul real în browser.
+- `ShopApiContractVariantTest` este modelul pentru o matrice mică de cazuri cu
+  aceleași aserțiuni și boundary-uri de rezultat distincte; nu este șablon pentru
+  orice test API. Evitați suprapunerea cu `ShopApiEndpointMatrixTest` și verificați
+  că numele fiecărui caz este susținut de aserțiunile sale. Analiza detaliată este
+  în [feedback-ul de design al testelor API](../docs/feedback/ATF_Practice_Shop_API_Test_Design_Feedback.md).
 - Schimbările generic Playwright, reporting, console sau TestKit se fac la
   ownerul ATF respectiv, nu prin fork local în Practice Shop.
 - Un contract stabil intră aici; registrul de feedback păstrează doar gap-ul

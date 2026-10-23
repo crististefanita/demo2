@@ -19,6 +19,7 @@ import atf.api.testkit.files.AtfTestResourceReader;
 import atf.api.testkit.output.ReportOutputDirectory;
 import atf.api.testkit.channel.AtfTestChannelResolver;
 import atf.api.testkit.channel.TestChannel;
+import atf.api.testkit.lifecycle.FailureAwareCleanup;
 import atf.api.testkit.evidence.AtfUiEvidence;
 import atf.api.testkit.evidence.AtfUiEvidenceFlow;
 import atf.api.testkit.evidence.AtfUiScreenshotPolicy;
@@ -32,7 +33,6 @@ import atf.api.ui.playwright.UiScreenValidation;
 import atf.ui.autoex.config.AutoExConfiguration;
 import atf.ui.autoex.support.browser.AutoExPrivacyConsentHandler;
 import atf.ui.autoex.support.browser.AutoExVignetteHandler;
-import atf.ui.autoex.support.lifecycle.AutoExTeardown;
 import atf.ui.autoex.support.lifecycle.AutoExE2eInitialization;
 import atf.ui.autoex.support.catalog.AutoExCatalogSnapshot;
 import atf.ui.autoex.support.journey.AutoExPurchaseSession;
@@ -331,7 +331,7 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
         if (failureCleanup != null) {
             try { failureCleanup.run(); }
             catch (Exception | Error cleanupFailure) {
-                terminalFailure = AutoExFailureCombiner.combine(terminalFailure, cleanupFailure);
+                terminalFailure = FailureAwareCleanup.combine(terminalFailure, cleanupFailure);
             }
             failureCleanup = null;
         }
@@ -340,18 +340,20 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
                     "E2E completed without explicitly deleting its disposable account");
         }
 
-        if (channel == TestChannel.UI_API) {
-            terminalFailure = AutoExTeardown.attempt(terminalFailure, () ->
-                    phase.networkInspector(NETWORK_SUMMARY_TITLE,
-                            causalApiObservations().stream()
-                                    .map(AutoExE2eRun::toExecutionEvidence).toList(), networkSteps));
-        }
-        terminalFailure = AutoExTeardown.attempt(terminalFailure, browser::close);
+        terminalFailure = FailureAwareCleanup.runAll(terminalFailure,
+                () -> {
+                    if (channel == TestChannel.UI_API) {
+                        phase.networkInspector(NETWORK_SUMMARY_TITLE,
+                                causalApiObservations().stream()
+                                        .map(AutoExE2eRun::toExecutionEvidence).toList(), networkSteps);
+                    }
+                },
+                browser::close);
         if (terminalFailure != null) publishFailure(terminalFailure);
         AtfReportStatus status = terminalFailure == null ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
-        terminalFailure = AutoExTeardown.attempt(terminalFailure, () -> phase.complete(status));
+        terminalFailure = FailureAwareCleanup.runAll(terminalFailure, () -> phase.complete(status));
         AtfReportStatus scenarioStatus = terminalFailure == null ? status : AtfReportStatus.FAIL;
-        terminalFailure = AutoExTeardown.attempt(terminalFailure, () -> scenario.complete(scenarioStatus));
+        terminalFailure = FailureAwareCleanup.runAll(terminalFailure, () -> scenario.complete(scenarioStatus));
 
         if (testFailure == null && terminalFailure != null) {
             if (terminalFailure instanceof Exception exception) throw exception;
@@ -391,6 +393,7 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
         causalApiTraffic.markBaseline(apiObservations());
     }
     public boolean observesApiTraffic() { return channel == TestChannel.UI_API; }
+
     public TestChannel channel() { return channel; }
 
     private static ReportExecutionEvidence toExecutionEvidence(

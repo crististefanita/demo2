@@ -1,4 +1,5 @@
-package atf.ui.practiceshop.support;
+package atf.ui.tests.practiceshop.support.lifecycle;
+
 
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;

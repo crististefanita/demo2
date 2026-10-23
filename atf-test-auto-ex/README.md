@@ -63,21 +63,47 @@ Configurația implicită este [`atf-auto-ex.yaml`](src/test/resources/atf-auto-e
   demo și directorul raportului sunt configurate acolo;
 - YAML-ul dezactivează E2E-ul implicit pentru rulările Maven obișnuite; extensia
   recunoaște markerul IntelliJ și îl poate activa chiar dacă `e2eEnabled: false`.
-  Proprietatea JVM explicită `-Datf.autoex.e2e.enabled=false` oprește testul în
-  ambele moduri.
 - `AutoExE2eActivationPolicy` deține precedența și motivul deciziei: proprietatea
-  JVM explicită prevalează, urmată de YAML și apoi de heuristică IntelliJ;
-  fără niciun opt-in, rularea este dezactivată. Testele componente verifică
-  separat fiecare sursă și override-ul `false`.
+  JVM explicită prevalează, urmată de YAML și apoi de heuristică IntelliJ.
+- Proprietatea explicită `-Datf.autoex.e2e.enabled=false` oprește testul în orice
+  runner; `AutoExE2eActivationPolicyComponentTest` probează sursele și override-ul.
 
 Profilul conține numai date sintetice și date de plată demonstrative; nu introduce
 în YAML date personale reale, parole sau instrumente de plată reale. Modelul
 redactează câmpurile de înregistrare și plată din reprezentarea textuală.
 
-`AutoExPurchaseJourney` consumă portul `AutoExPurchaseSession` din `src/main`;
-`AutoExE2eRun` îl adaptează în `src/test` la browser, raport și lifecycle JUnit.
-Separarea păstrează suportul specific site-ului testabil fără ca sursele de
-producție ale consumerului să depindă de runner sau de Test Kit.
+- `AutoExPurchaseJourney` consumă portul `AutoExPurchaseSession` din `src/main`.
+- `AutoExE2eRun` îl adaptează în `src/test` la browser, raport și lifecycle JUnit.
+- Separarea păstrează suportul specific site-ului testabil, fără ca sursele de
+  producție să depindă de runner sau de Test Kit.
+- La teardown, inspectorul, finalizarea fazei, închiderea browserului și
+  finalizarea scenariului sunt încercate independent.
+- `FailureAwareCleanupTest` verifică ordinea și agregarea generică; deciziile
+  locale AutoEx rămân în `AutoExE2eRun`, fără browser/report API în helper.
+
+`AutoExE2eRun.finish` folosește `FailureAwareCleanup` pentru a încerca
+independent publicarea network inspector-ului, închiderea fazei/scenariului și
+închiderea browserului. O eroare de teardown nu împiedică pașii următori; cauza
+inițială rămâne primară, iar eșecurile suplimentare sunt atașate ca `suppressed`.
+`AutoExTeardownComponentTest` a fost păstrat ca probă a ordinii consumerului,
+dar folosește acum primitiva comună din Test Kit; nu există un al doilea helper
+de cleanup local.
+
+`AutoExE2eInitialization` face rollback-ul inițializării cu factory-uri
+injectabile. Contractul component verifică:
+
+- eșec după fiecare handle dobândit: doar faza/scenariul disponibile sunt
+  marcate FAIL, apoi browserul este închis;
+- toate etapele de rollback sunt încercate; eroarea setup rămâne primară, iar
+  eșecurile rollback sunt `suppressed`;
+- nodurile Extent create intern înainte ca un factory să returneze handle-ul
+  țin de atomicitatea contractului `atf-reporting`, nu de consumer.
+
+**Limită de arhitectură încă deschisă:** `AutoExPurchaseSession` se află în
+`src/main` și expune `Page`, `AtfAssertion`, configurația și semantica journey-ului
+AutoEx. Este un port specific consumerului, nu un API generic ATF; relocarea sau
+îngustarea lui este urmărită în
+[feedback-ul suportului E2E](../docs/feedback/ATF_E2E_Test_Support_Architecture_Feedback.md#boundary-ul-autoex-rămas-deschis).
 
 ## Contractul testelor AutoEx
 
@@ -139,20 +165,10 @@ pragul de coeziune este regula ATF comună din
 [bunele practici de cod](../docs/README_Atf_CodeBestPractices.md#coeziunea-pachetelor-pragul-de-opt-clase),
 nu un număr de clase duplicat aici.
 
-`AutoExE2eRun.finish` folosește `AutoExTeardown` pentru finalizare best-effort:
-
-- publicarea network inspector-ului, închiderea browserului și completarea
-  fazei/scenariului sunt încercate independent;
-- cauza inițială rămâne primară, iar erorile ulterioare sunt atașate ca
-  `suppressed`;
-- `AutoExTeardownComponentTest` verifică ordinea și agregarea erorilor fără
-  browser sau site real.
-
-`AutoExTeardown` este un adaptor local în `src/test`, nu API generic pentru
-`atf-test-kit`. Rutele, payload-urile, handler-ele browserului, trace-ul și
-purchase journey-ul rămân specifice AutoEx. Candidații de reutilizare
-cross-consumer și criteriul de promovare sunt urmăriți în
-[feedback-ul arhitecturii suportului E2E](../docs/feedback/ATF_E2E_Test_Support_Architecture_Feedback.md).
+Rutele, payload-urile, browser handlers, trace-ul și purchase journey-ul rămân
+specifice AutoEx. Candidații de reutilizare cross-consumer și criteriul de
+promovare sunt urmăriți în [feedback-ul arhitecturii suportului E2E](../docs/feedback/ATF_E2E_Test_Support_Architecture_Feedback.md),
+nu redefiniți în acest README.
 
 ## Journey-ul de cumpărare
 
@@ -233,7 +249,7 @@ flowchart LR
 | API live read-only | `AutoExApiReadOnlyLiveSuite`; `GET` products/brands și `POST` product search | cere `-Datf.autoex.api.readonly.live.enabled=true`; nu creează sau modifică conturi |
 | API live cu cont | `AutoExApiLiveSuite`; contracte positive/negative și lifecycle-ul contului sintetic cu cleanup | cere `-Datf.autoex.api.live.enabled=true`; efect extern, opt-in |
 | Raport API direct | `AutoExApiContractReportExtension` publică exchange-uri și assertions JSON; implicit `artifacts/reports/api/auto-ex`, override `atf.autoex.api.report-directory`; `@AtfReportPath` publică locația | publisher component verifică artifactul offline, dar nu substituie proba live |
-| Traficul E2E `UI_API` | `AutoExCatalogApiPrecondition` publică precondiția catalogului înainte de baseline; `AutoExApiTrafficWindow` păstrează schimburile cauzale ulterioare | contract verificat: setup-ul API nu se dublează în traficul browserului, iar zero schimburi cauzale este un rezultat valid |
+| Traficul E2E `UI_API` | `AutoExCatalogApiPrecondition` publică precondiția catalogului înainte de baseline; `AutoExApiTrafficWindow` păstrează schimburile cauzale ulterioare | contractul verifică separat precondiția și traficul browserului; `0 exchanges` este valid când journey-ul nu emite request-uri first-party |
 
 ### Boundary-ul cauzal pentru `UI_API`
 
@@ -252,7 +268,7 @@ flowchart LR
 
 Acest boundary este verificat de testele componente pentru baseline/fereastră
 și de `AutoExPurchaseUiApiE2eTest`; criteriul și decizia de acceptare sunt
-păstrate în [feedback-ul rezolvat](../docs/feedback/ATF_Automation_Exercise_Feedback.md).
+păstrate în [feedback-ul Automation Exercise](../docs/feedback/ATF_Automation_Exercise_Feedback.md).
 
 ### Acoperirea celor 14 cazuri publicate în API List
 
@@ -341,10 +357,13 @@ mvn -pl atf-test-auto-ex -am "-Dtest=AutoExPurchaseSuite" "-Datf.autoex.e2e.enab
   precedență și îl dezactivează.
 - În Maven, rularea obișnuită rămâne dezactivată de YAML-ul implicit. Opt-in-ul se
   face prin `e2eEnabled: true` sau `-Datf.autoex.e2e.enabled=true`; `false` explicit
-  dezactivează în orice runner. Mesajul de activare trebuie să distingă YAML,
-  proprietate JVM și detectarea IDE, nu să le numească pe toate „explicit”.
+  dezactivează în orice runner. Diagnosticul distinge YAML, proprietate JVM și
+  detectarea IDE; markerul IDE nu este raportat ca opt-in explicit.
 - Rapoartele sunt publicate sub `artifacts/reports/ui/auto-ex/`; execuția suitei
   partajează sesiunea de raportare și o finalizează la închiderea root-ului JUnit.
 
-Deciziile închise și cerințele încă deschise ale consumerului sunt păstrate în
-[feedback-ul Automation Exercise](../docs/feedback/ATF_Automation_Exercise_Feedback.md).
+Închiderea contractelor API și a precondiției pentru `UI_API` este păstrată ca
+rezoluție verificabilă în
+[feedback-ul API Automation Exercise](../docs/feedback/ATF_Automation_Exercise_Feedback.md).
+Boundary-ul E2E încă deschis pentru `AutoExPurchaseSession` este urmărit separat
+în [feedback-ul arhitecturii E2E](../docs/feedback/ATF_E2E_Test_Support_Architecture_Feedback.md).

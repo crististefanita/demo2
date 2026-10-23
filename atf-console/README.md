@@ -2,9 +2,10 @@
 
 `atf-console` este implementarea separată și configurabilă YAML a proiecției de
 consolă pentru evenimentele neutre ATF. Nu produce HTML și nu calculează
-verdicturi. Pachetul `atf.api.console.reporting` găzduiește adaptorul unic care
-traduce evenimentele renderer-neutral din `atf-reporting` în portul Core;
-adaptorul nu apelează rendererul și nu schimbă semantica raportului.
+verdicturi. Codul curent conține `AtfReportingConsoleSinkAdapter`, dar plasarea
+sa în production `atf-console` intră în conflict cu regula whole-ATF care
+interzice referințele `atf.api.reporting` din acest modul; decizia este urmărită
+în [feedback-ul de boundary](../docs/feedback/ATF_Consumer_Test_Architecture_Feedback.md).
 
 ## Pe scurt
 

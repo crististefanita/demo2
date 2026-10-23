@@ -23,6 +23,33 @@ import static org.junit.jupiter.api.Assertions.*;
 @AtfUnitTest
 class ExtentReportSessionLifecycleTest {
     @Test
+    void consoleSinkFailureCannotInterruptScenarioLifecycleOrReportPublication() throws Exception {
+        Path root = Files.createTempDirectory("atf-console-sink-lifecycle-");
+        Path report = root.resolve("console-failure.html");
+        try {
+            var throwingConsole = (atf.api.reporting.console.AtfConsoleSink) event -> {
+                throw new IllegalStateException("console unavailable");
+            };
+            try (var session = new ExtentReportSession(report, ReportingSettings.defaults(),
+                    new atf.api.reporting.security.SensitiveDataRedactor(), throwingConsole)) {
+                var scenario = session.startScenario("ConsoleFailureTests", "report lifecycle survives",
+                        List.of("reporting"));
+                var phase = scenario.startPhase("TEST BODY");
+                phase.complete(AtfReportStatus.PASS);
+                scenario.complete(AtfReportStatus.PASS);
+            }
+
+            String html = Files.readString(report);
+            assertAll(
+                    () -> assertTrue(Files.isRegularFile(report)),
+                    () -> assertTrue(html.contains("report lifecycle survives")),
+                    () -> assertTrue(html.contains("ConsoleFailureTests")));
+        } finally {
+            deleteTree(root);
+        }
+    }
+
+    @Test
     void extentJsonBodyUsesConfiguredLimitAfterRedactionAndKeepsCodeBlockContract() throws Exception {
         Path root = Files.createTempDirectory("atf-extent-body-limit-");
         Path report = root.resolve("bounded.html");

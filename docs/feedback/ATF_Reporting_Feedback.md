@@ -24,98 +24,114 @@ ownerul Reporting; testul Shop păstrează numai integrarea sa.
 
 ## SHOP-REPORT-TEST-OWNERSHIP-01 — decizie de owner închisă
 
-**Stare: închisă ca analiză de ownership.** Inventarul și ownerii sunt
-clarificați; nu există o clasă Shop întreagă care să poată fi mutată în
-siguranță doar pe baza numelui sau a pachetului.
-Owner-ul se decide după comportamentul verificat și dependențele testului, nu
-după faptul că un fișier se află sub `api/reporting` sau conține aserțiuni HTML.
-`atf.ui.tests.practiceshop` nu trebuie redus la teste care fac trafic extern:
-consumerul își păstrează testele de componentă și E2E pentru contractele sale,
-inclusiv atunci când transportul este simulat.
+**Stare: închisă ca analiză de ownership.** Regula stabilă este promovată în
+[README-ul ATF Reporting Tests](../../atf-reporting-tests/README.md#limitele-de-responsabilitate-ale-aplicațiilor-consumatoare)
+și [README-ul Practice Shop](../../atf-test-practice-shop/README.md#ce-deține-modulul).
+`atf-reporting-tests` deține fixture-urile neutre pentru model, publisher,
+renderer și DOM; Practice Shop păstrează testele mock-backed sau live care
+verifică propriile rute, payload-uri, redactare, checkpoint-uri și semantica
+business. Mock-ul descrie izolarea transportului, nu owner-ul comportamentului,
+iar un raport HTML nu schimbă owner-ul testului consumer.
 
-| Test / comportament | Owner corect | Limită de mutare |
-|---|---|---|
-| Request-uri live și contracte de business Practice Shop | `atf-test-practice-shop` | `ShopStandaloneApiReportTest` folosește `ShopApiClient.live`; journey-urile UI E2E rămân tot la consumer. Raportul rezultat este parte din dovada consumerului. |
-| Teste Shop API cu `ShopApiComponentFixture` | `atf-test-practice-shop` | Transportul este determinist, nu un apel extern; testele verifică rute, payload-uri, sesiuni, statusuri și flow-uri Shop. Nu le mutați în `atf-mock` doar fiindcă folosesc un transport fake. |
-| Redactare, schema de autentificare, checkpoint binding, metadata și proiecția Shop → raport | `atf-test-practice-shop` | Sunt contracte de securitate și mapping ale consumerului. Păstrați probe înguste cu date simulate; nu duplicați aici testarea generică a rendererului. |
-| HTML/DOM/CSS/JavaScript, modelul și publisherul Reporting, policy generică de screenshot/evidence | `atf-reporting-tests` | Fixture-urile trebuie să fie neutre și să nu importe `atf.ui.practiceshop`, `ShopApiClient`, `ShopApiRoutes` sau configurația Shop. |
-| Matching-ul și răspunsurile transportului mock | `atf-mock` | Modulul testează implementarea proprie; nu devine owner pentru request-urile sau contractele de business ale Shop. |
-| Adnotări și primitive test-only fără UI/Reporting | `atf-test-kit` | Nu introduceți dependență de Reporting în Kit. `atf-reporting-tests` este owner de teste, nu o bibliotecă de fixtures pentru consumeri. |
-
-### Inventarul live care schimbă interpretarea
-
-- `ShopStandaloneApiReportTest` este testul de integrare care construiește un
-  client live, execută flow-ul API de business și verifică proveniența `LIVE_HTTP`.
-- Testele din `api/component/**` nu sunt, în general, apeluri către serviciul
-  public: fixture-ul injectează un `ApiTransport` determinist și etichetează
-  execuțiile `ACCEPTANCE_MOCK`. Rămân totuși teste Shop valide, deoarece probează
-  contractele clientului și ale aplicației, nu rendererul ATF.
-- `ShopApiCallAuditReportComponentTest` exercită raportarea unor exchange-uri
-  sintetice prin publisherul și modelul de audit Shop. Se analizează test cu
-  test: invarianta neutră de request/response/retry/HTML se mută sau se acoperă
-  la Reporting; asocierea așteptărilor Shop cu exchange-uri și mapping-ul către
-  statusuri/intenții de business rămân la consumer. Nu se mută clasa întreagă
-  doar fiindcă produce un raport.
-- `ShopApiContractReportComponentTest` rulează un screen-flow Shop prin
-  transport determinist și verifică forma raportului rezultat; este probă de
-  integrare a clientului și publisherului Shop, nu test autonom al rendererului.
-- Testele de redactare, auth și body evidence verifică politica Shop de
-  clasificare/mapping înainte de publicare. `atf-reporting-tests` verifică
-  separat redactorul și rendererul generice; nu se mută testul Shop fără a
-  separa mai întâi regula de date de adaptorul consumerului.
-- `api/component/reporting/**` conține atât proiecții Reporting, cât și reguli
-  Shop (redactare PII, mecanism de auth, statusuri și corpuri observate). Numele
-  pachetului nu justifică relocarea automată.
-- În `atf-test-practice-shop/src/test/resources` nu există imagini raster;
-  captura browserului este dinamică. PNG-urile de un pixel sunt fixture-uri
-  sintetice inline, iar `ReportTestScreenshots` din `atf-reporting-tests`
-  deservește deja contractele rendererului. Nu mutați capturi sau fixture-uri
-  raport-only în consumer; nici nu transformați modulul de teste Reporting într-o
-  dependență de test reutilizată de Shop.
-
-### Criteriu pentru mutarea fiecărei probe
-
-1. Testul live sau journey-ul de business rămâne la consumer. Un test mock-backed
-   rămâne tot la Shop dacă validează clientul, rutele, payload-ul sau politica
-   aplicației; mock-ul descrie izolarea transportului, nu owner-ul comportamentului.
-2. O probă poate fi mutată la Reporting numai dacă nu validează un contract Shop
-   și intrările pot fi exprimate ca modele/fixture-uri neutre, fără
-   `Shop*`, rute de aplicație, credențiale sau YAML consumer.
-3. Invarianta este exprimată o singură dată la ownerul Reporting; în Shop rămâne
-   numai proba că adaptorul transmite corect datele consumerului.
-4. Testele Shop API cu transport mock nu se șterg pentru că nu sunt live:
-   mock-ul izolează transportul, dar contractul testat rămâne al aplicației.
-5. Mutarea nu face `atf-test-practice-shop` dependent de `atf-reporting-tests`;
-   acesta din urmă este un modul de probe, nu un test-support artifact.
-
-Regula stabilă a fost promovată în [README-ul ATF Reporting
+Regula stabilă este descrisă în [README-ul ATF Reporting
 Tests](../../atf-reporting-tests/README.md) și [README-ul Practice
 Shop](../../atf-test-practice-shop/README.md): testele de renderer rămân neutre
 în Reporting, iar contractele Shop — inclusiv cele mock-backed — rămân la
-consumer. Redeschideți ID-ul numai dacă apare un invariant generic nominal care
-lipsește ori este duplicat în Reporting; o clasă consumer nu se mută integral
-doar fiindcă publică HTML.
+consumer.
+
+- Redeschideți ID-ul numai dacă apare un invariant Reporting concret, duplicat
+  ori lipsă în `atf-reporting-tests`.
+- O clasă consumer nu se mută integral doar fiindcă publică HTML.
 
 ## Cerințe deschise
 
 | Prioritate | ID | Gap | Owner principal |
 |---|---|---|---|
-| P2 | `REPORT-START-ATOMICITY-01` | Crearea atomică sau finalizarea explicită a nodurilor dacă `startScenario`/`startPhase` eșuează după efecte parțiale, înainte de returnarea handle-ului | `atf-reporting` + `atf-reporting-tests` |
+| P1 | `REPORT-UI-ACTION-REDACTION-01` | Acțiunile UI pot publica valori de plată introduse în câmpuri sensibile | `atf-ui` pentru captură; `atf-reporting-tests` pentru contractul artifactului |
+| P2 | `REPORT-START-ATOMICITY-01` | Finalizarea/reconcilierea nodurilor dacă lifecycle-ul semantic aruncă după mutația Extent și înainte de returnarea handle-ului; eșecurile sink-ului Console sunt deja izolate | `atf-reporting` + `atf-reporting-tests` |
 | P2 | `SHOP-CAPTURE-01` | Agregarea evidence-ului `SETUP` + `TEST BODY` în `UNIFIED_FLOW`, păstrând proveniența și lifecycle-ul | Reporting pentru contractul generic; Practice Shop pentru mapping-ul și lifecycle-ul consumerului |
+| P2 | `REPORT-CLIENT-METADATA-01` | `System/Environment → Client` poate declara `ATF ApiTransport` pentru un raport UI-only, deși execuția folosește Playwright | Reporting pentru fallback-ul neutru; consumerul pentru metadata de canal |
 | P3 | `UI-AUDIT-01` | Confirmare vizuală în TAB MCP a observației terminale în artifactele AutoEx și Shop; implementarea și probele sunt deja în cod | Verificare manuală a artifactelor; fără schimbare de renderer dacă randarea este conformă |
+
+## REPORT-UI-ACTION-REDACTION-01 — redactarea valorilor sensibile din acțiunile UI
+
+**Stare:** deschis. **Prioritate:** 82/100 (impact 35 + lacună 24 + lucrabil
+16 + datorie documentară 7).
+
+Raportul UI publică valorile introduse în câmpurile de număr de card și cod de
+securitate. Cauza este în `PlaywrightLocatorActions`: lista de selectori
+sensibili maschează parola, token-ul și datele de identitate/contact, dar nu
+recunoaște câmpurile de plată. `fill` inserează valoarea în ambele coloane ale
+acțiunii (`expected` și `observed`), iar `SensitiveDataRedactor` din Reporting
+nu poate reconstitui sigur sensibilitatea pierdută. Mascarea screenshot-ului
+este o protecție separată și nu acoperă tabelul Playwright.
+
+### Contractul de închidere
+
+- PAN, CVC/CVV, parole, token-uri și alte valori declarate sensibile nu sunt
+  păstrate în `AtfUiActionRecord` și nu apar în HTML, loguri sau replay evidence;
+  mascarea se aplică înainte ca valoarea să intre în modelul de evidence.
+- Sensibilitatea nu depinde numai de o listă fragilă de fragmente CSS. Câmpurile
+  standard sunt recunoscute, iar consumatorul poate declara explicit un locator
+  sensibil fără să schimbe verdictul ori acțiunea executată.
+- Ambele proiecții — valoarea așteptată și cea observată — folosesc aceeași
+  decizie. Valoarea originală nu se păstrează prin hash, prefix/sufix sau
+  metadata auxiliară.
+- Testele `atf-ui` demonstrează că valori sintetice unice nu supraviețuiesc în
+  record și în șirurile de replay pentru selectorii card/CVC și pentru
+  sensibilitatea explicită; valorile non-sensibile rămân utile pentru debug.
+- Proba neutră de randare din `atf-reporting-tests` verifică absența valorilor
+  sensibile în artifactul complet, nu doar în captură. Consumatorii păstrează
+  numai testele de integrare ale mapping-ului lor.
+
+Datele demo observate nu sunt publicate în acest feedback; constatarea privește
+contractul general al evidence-ului UI și nu depinde de un card sau de o rulare
+anume.
+
+## REPORT-CLIENT-METADATA-01 — clientul afișat trebuie să corespundă canalului
+
+**Stare:** deschis. **Prioritate:** 63/100 (impact 26 + lacună 17 + lucrabil
+15 + datorie documentară 5).
+
+`ReportEnvironment.defaults()` publică literal `Client = ATF ApiTransport
+(configured per execution)`. Valoarea devine incorectă pentru un raport UI-only
+când consumerul nu o suprascrie: `AutoExE2eRun` deschide o sesiune Playwright,
+dar folosește `UiExtentReportSession.openConfigured(...)` fără metadata de
+client. Practice Shop transmite explicit `Playwright browser`, deci același
+raport nu are o regulă coerentă între consumeri.
+
+### Contractul țintă
+
+- Fallback-ul Reporting nu afirmă un transport sau un client specific, dacă
+  composition root-ul nu l-a declarat.
+- Consumerul publică un descriptor scurt și adevărat pentru canalul efectiv:
+  browser/Playwright pentru UI, transportul configurat pentru API, respectiv
+  o descriere combinată numai când ambele sunt folosite de execuție.
+- `System/Environment` rămâne metadata despre mediul și mecanismul real de
+  execuție; nu se adaugă acolo identitatea testului, pașii sau detaliile flow-ului.
+- Probe componente verifică valoarea pentru UI-only, API-only și UI+API,
+  inclusiv cazul fără metadata consumer, care nu trebuie să moștenească o
+  afirmație falsă din fallback-ul generic.
+
+Observația este despre corectitudinea semantică a metadatelor, nu despre
+randarea tabelului. Remedierea aparține contractului de environment snapshot și
+mapping-ului consumer; nu necesită un raport special sau logică bazată pe numele
+clasei de test.
 
 ## REPORT-START-ATOMICITY-01 — crearea atomică a nodurilor de raport
 
-**Stare: deschisă. Prioritate: 77/100** (impact 34 + lacună 21 + lucrabil
+**Stare: parțial închisă; gap-ul de atomicitate internă rămâne deschis. Prioritate: 77/100** (impact 34 + lacună 21 + lucrabil
 15 + datorie documentară 7).
 
 ### Fapt live
 
-- `ExtentReportTree.startScenario` creează și pornește nodul Extent, apoi
-  publică evenimentul Console și pornește starea semantică înainte să returneze
-  `ExtentScenarioScope`.
-- `ExtentScenarioScope.startPhase` publică evenimentul de start, creează nodul
-  copil și pornește faza semantică înainte să returneze `ExtentPhaseScope`.
+- `ExtentReportTree.startScenario` creează nodul Extent înainte de a porni
+  înregistrarea semantică și de a returna `ExtentScenarioScope`.
+- `ExtentScenarioScope.startPhase` creează nodul copil înainte de a porni faza
+  semantică și de a returna `ExtentPhaseScope`.
+- Evenimentele sink-ului Console sunt acum best-effort: o excepție runtime la
+  `SCENARIO`/`PHASE` start sau completion nu mai întrerupe lifecycle-ul. Regresia
+  este probată de `ExtentReportSessionLifecycleTest` cu sink intenționat defect.
 - Dacă o operație din acest interval aruncă, apelantul nu primește handle-ul
   necesar pentru a completa nodul parțial. Consumerul poate păstra setup failure
   ca eroare primară, dar nu poate repara singur modelul intern Reporting.
@@ -133,8 +149,9 @@ Eșecul inițial rămâne primar, iar erorile de rollback sunt păstrate ca
 
 ### Probe cerute în `atf-reporting-tests`
 
-- Fault-injection după fiecare etapă de `startScenario` și `startPhase`, inclusiv
-  Console, modelul Extent și lifecycle-ul semantic.
+- Fault-injection după fiecare etapă de `startScenario` și `startPhase`, în
+  special între mutația Extent și lifecycle-ul semantic; Console este deja
+  probat separat ca sink diagnostic best-effort.
 - Verificarea absenței nodurilor orfane sau a unei proiecții Extent/semantic
   contradictorii și confirmarea că sesiunea poate fi publicată după eșec.
 - Verificarea păstrării cauzei inițiale și a tuturor eșecurilor secundare de
@@ -186,8 +203,8 @@ ul unui scenariu nu schimbă politica screenshot a scenariului-soră.
   Gherkin duplicat, fără pierderea fazei de proveniență și fără schimbarea
   verdictului/setup failure. Testele componente nu pornesc site-ul.
 - `ShopE2eContextEvidenceProfileTest` verifică izolarea profilelor per scenariu;
-  suita Shop trece pe snapshot-ul curent. Aceste probe nu închid agregarea
-  cross-phase și nu justifică relaxarea vreunui test de arhitectură.
+  această probă nu închide agregarea cross-phase și nu justifică relaxarea
+  vreunui test de arhitectură.
 - E2E-ul consumer confirmă integrarea reală; nu se complică journey-urile doar
   pentru a testa rendererul.
 - Artifactul verifică o singură apariție a fiecărei acțiuni, ordinea, un singur
@@ -196,15 +213,12 @@ ul unui scenariu nu schimbă politica screenshot a scenariului-soră.
 
 ## REPORT-TEST-PACKAGE-01 — închis ca backlog
 
-Suportul UI comun a fost mutat în `atf.api.reporting.ui.support`; pachetul
-principal rămâne în pragul de opt clase, iar suitele/selectoarele păstrează
-execuția testelor la ownerul `atf-reporting-tests`. Contractul de coeziune este
-promovat în README-ul modulului și pragul nu a fost relaxat.
-
-În staging curat, `AtfReportingComponentSuite` a trecut. Acest rezultat închide
-gap-ul local Reporting; nu afirmă că gate-ul transversal
-whole-ATF este verde. Constatările transversale AutoEx rămân în feedback-ul E2E
-și nu redeschid acest ID fără o regresie la pachetul Reporting.
+- Helperul de UI este în `atf.api.reporting.ui.support`, iar pachetul principal
+  respectă pragul de opt clase.
+- Suitele/selectoarele păstrează testele la ownerul `atf-reporting-tests`; regula
+  și structura sunt documentate în [README-ul modulului](../../atf-reporting-tests/README.md).
+- `AtfPackageCohesionGovernanceTest` protejează coeziunea. ID-ul este închis;
+  blocul `testChanges` rămas este numai control temporar de guvernanță.
 
 ## Aprobări temporare pentru modificări de teste
 
@@ -228,6 +242,21 @@ testChanges:
       - atf-reporting-tests/src/test/java/atf/api/reporting/ui/ExtentReportUiFailureEvidenceTest.java
       - atf-reporting-tests/src/test/java/atf/api/reporting/ui/ExtentReportUiScreenshotContractTest.java
       - atf-reporting-tests/src/test/java/atf/api/reporting/ui/support/ExtentReportUiEvidenceTestSupport.java
+```
+
+Control temporar pentru izolarea excepțiilor sink-ului Console față de
+lifecycle-ul raportului:
+
+```yaml
+testChanges:
+  - id: REPORT-CONSOLE-LIFECYCLE-SAFETY-01
+    status: ACTIVE
+    base: 84a8e9d92334d86f835d6dae3347170ef0e0e02e
+    expires: 2026-10-30
+    reason: Keep diagnostic Console sink failures from interrupting Extent scenario/phase lifecycle or artifact publication; prove the behavior with a deliberately throwing sink.
+    proof: mvn -pl atf-reporting-tests -am -Dtest=ExtentReportSessionLifecycleTest -Dsurefire.failIfNoSpecifiedTests=false test
+    paths:
+      - atf-reporting-tests/src/test/java/atf/api/reporting/extent/session/ExtentReportSessionLifecycleTest.java
 ```
 
 ## UI-AUDIT-01 — audit terminal pentru Screen validation

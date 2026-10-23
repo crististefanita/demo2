@@ -1,4 +1,4 @@
-package atf.ui.practiceshop.support.evidence;
+package atf.ui.tests.practiceshop.support.evidence;
 
 import atf.api.reporting.evidence.profile.ReportEvidenceCaptureProvider;
 import atf.api.reporting.evidence.profile.ReportEvidenceCaptureSource;

@@ -135,9 +135,12 @@ SETUP
   propoziție de business; nu dubla titlul Gherkin pentru a le separa;
 - diagnosticele runtime nu devin pași Gherkin și nu schimbă verdictul business.
 
-Lifecycle-ul browser/report rămâne în harness-ul test-only al consumerului;
-numai primitivele neutre de resurse și agregare a erorilor sunt candidate pentru
-`atf-test-kit`. Boundary-ul și gap-urile live sunt urmărite în
+Lifecycle-ul browser/report rămâne în harness-ul test-only al consumerului.
+`FailureAwareCleanup` oferă deja în `atf-test-kit` cleanup neutru cu închidere
+inversă și agregarea erorilor; alte primitive se promovează numai după probe
+comportamentale la consumatorii relevanți. Excepția AutoEx curentă este
+`AutoExPurchaseSession` din `src/main`, care expune tipuri Playwright și Reporting;
+nu este precedent pentru un port generic și rămâne un boundary deschis în
 [feedback-ul suportului E2E comun](feedback/ATF_E2E_Test_Support_Architecture_Feedback.md).
 
 Forma raportului și ownership-ul fiecărei dovezi sunt normative în

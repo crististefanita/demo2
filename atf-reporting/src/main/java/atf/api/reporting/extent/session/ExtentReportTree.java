@@ -89,8 +89,8 @@ public final class ExtentReportTree {
         ExtentNodeLifecycle.start(test);
         List<String> normalizedTags = ReportTagNormalizer.normalize(tags);
         if (!normalizedTags.isEmpty()) test.assignCategory(normalizedTags.toArray(String[]::new));
-        console.publish(AtfConsoleEvent.started(AtfConsoleEvent.Scope.SCENARIO,
-                className + " :: " + (scenario == null ? "Scenario" : scenario)));
+        consoleStarted(AtfConsoleEvent.Scope.SCENARIO,
+                className + " :: " + (scenario == null ? "Scenario" : scenario));
         return new ExtentScenarioScope(this, test, className,
                 semantic.startScenario(className, packageName, scenario, normalizedTags));
     }
@@ -187,21 +187,29 @@ public final class ExtentReportTree {
     }
 
     public void consoleStarted(AtfConsoleEvent.Scope scope, String name) {
-        console.publish(AtfConsoleEvent.started(scope, name));
+        publishConsoleSafely(AtfConsoleEvent.started(scope, name));
     }
 
     public void consoleDetail(AtfConsoleEvent.Scope scope, String name, String value) {
-        console.publish(AtfConsoleEvent.detail(scope, name, value));
+        publishConsoleSafely(AtfConsoleEvent.detail(scope, name, value));
     }
 
     public void consoleCode(AtfConsoleEvent.Scope scope, String name, String value) {
-        console.publish(AtfConsoleEvent.code(scope, name, value));
+        publishConsoleSafely(AtfConsoleEvent.code(scope, name, value));
     }
 
     public void consoleCompleted(AtfConsoleEvent.Scope scope, String name,
                                  AtfReportStatus status, ExtentTest node) {
-        console.publish(AtfConsoleEvent.completed(scope, name, status,
+        publishConsoleSafely(AtfConsoleEvent.completed(scope, name, status,
                 ExtentNodeLifecycle.durationMillis(node)));
+    }
+
+    private void publishConsoleSafely(AtfConsoleEvent event) {
+        try {
+            console.publish(event);
+        } catch (RuntimeException ignored) {
+            // Console output is diagnostic; it must not interrupt report lifecycle or verdicts.
+        }
     }
 
 }

@@ -128,6 +128,37 @@ nu marcăm un TODO ca rezolvat numai pentru că textul a fost modificat.
 - [ ] verifică toate linkurile relative, naming-ul și delimitarea `<details>`;
 - [ ] aliniază feedback-ul cu codul și testele înainte de închidere.
 
+La revizuirile arhitecturale, păstrează o trasabilitate scurtă pentru fiecare
+afirmație care poate schimba o decizie tehnică:
+
+```text
+afirmație → sursă live → README owner → test/guard → verificare executată
+```
+
+Sursa live trebuie să fie cea care deține faptul:
+
+- `pom.xml` pentru dependențe, scope și propagarea `optional`;
+- codul public pentru API și ownership;
+- testul pentru comportamentul verificat.
+
+O diagramă sau un raport generat este o reprezentare ori o dovadă de run, nu
+sursa canonică. Dacă sursa, documentația și verificarea nu concordă, documentează
+drift-ul ca gap; nu transforma comportamentul observat într-un contract
+intenționat fără confirmare.
+
+Rezumatul verificărilor distinge explicit nivelurile executate:
+
+| Nivel | Ce confirmă | Ce nu confirmă singur |
+|---|---|---|
+| verificare statică Markdown | structură, linkuri și reguli editoriale inspectate | compilarea sau comportamentul modulului |
+| test de guvernanță/componentă | regula verificată de testul respectiv | alte teste sau randarea unui raport real |
+| build/test de modul | compilarea și testele efectiv incluse în comanda rulată | suite neincluse sau medii externe |
+| randare/UI | aspectul artifactului și scenariul observat | validitatea generală a contractului ori toate configurațiile |
+
+Raportează comanda și nivelul efectiv rulat; marchează separat `passed`, `not run`
+și `blocked`. O comandă documentată, un path de artifact sau un test omis din
+cauza unei precondiții nu constituie dovadă de trecere.
+
 Un document este gata când cititorul poate decide unde să continue fără să
 caute prin alte README-uri pentru scopul, ownerul sau limita principală.
 
@@ -315,6 +346,15 @@ O legendă bună explică nodurile, săgețile, limitele și tabelul colapsat al
 aceleiași diagrame. Nu repetă mecanic textul vizibil și nu devine al doilea
 document de arhitectură.
 
+Pentru diagramele de module:
+
+- fiecare muchie exprimă un singur tip de relație și corespunde sursei live;
+- dacă schimbă interpretarea, legenda distinge scope-uri Maven precum `compile`,
+  `test`, `runtime` și `provided`, precum și propagarea `optional`;
+- plugin-urile și extensiile nu sunt prezentate ca dependențe de runtime;
+- validarea semantică se face prin compararea cu POM-urile relevante, nu printr-un
+  test care potrivește rigid formularea liberă a diagramei.
+
 ### Documentarea dovezilor în funcție de scop
 
 Când un README descrie un raport, fiecare fapt trebuie pus în zona care îi
@@ -404,7 +444,12 @@ să concureze cu README-urile stabile.
       nivel de test;
 - [ ] descrierea este a problemei observabile, nu copia unei reguli deja
       implementate;
-- [ ] scorul 1–100 este folosit numai pentru prioritizare;
+- [ ] scorul 1–100 din backlog indică prioritatea și nu este confundat cu un
+      scor editorial al documentului;
+- [ ] un scor editorial folosește criterii declarate și dovezi din codul live,
+      linkuri, ownership și lizibilitate; este comparativ, nu o țintă de
+      acceptare și nu înlocuiește verificarea factuală; într-un clasament,
+      toate documentele folosesc aceeași rubrică și aceleași ponderi;
 - [ ] nu se păstrează rapoarte HTML, capturi, timestamp-uri sau rezultate ale
       unui run ca documentație permanentă;
 - [ ] când gap-ul este închis, regula stabilă se promovează în README-ul

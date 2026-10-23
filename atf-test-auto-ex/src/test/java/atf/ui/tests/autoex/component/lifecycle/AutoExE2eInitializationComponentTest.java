@@ -64,90 +64,21 @@ class AutoExE2eInitializationComponentTest {
     void rollbackFailuresAreSuppressedWithoutReplacingTheSetupFailure() {
         var events = new ArrayList<String>();
         var setupFailure = new IllegalStateException("phase creation failed");
-        var phaseFailure = new IllegalArgumentException("phase report close failed");
+        var scenarioFailure = new IllegalArgumentException("scenario report close failed");
         var browserFailure = new UnsupportedOperationException("browser close failed");
 
         var actual = assertThrows(IllegalStateException.class, () -> AutoExE2eInitialization.create(
                 () -> { events.add("browser"); return "browser"; },
                 ignored -> { events.add("scenario"); return "scenario"; },
-                ignored -> { events.add("phase"); return "phase"; },
-                (browser, scenario, phase) -> { throw setupFailure; },
-                ignored -> { events.add("phase FAIL"); throw phaseFailure; },
-                ignored -> events.add("scenario FAIL"),
+                ignored -> { throw setupFailure; },
+                (browser, scenario, phase) -> "run",
+                ignored -> events.add("phase FAIL"),
+                ignored -> { events.add("scenario FAIL"); throw scenarioFailure; },
                 ignored -> { events.add("close browser"); throw browserFailure; }));
 
         assertSame(setupFailure, actual);
-        assertEquals(List.of("browser", "scenario", "phase", "phase FAIL", "scenario FAIL", "close browser"), events);
-        assertEquals(List.of(phaseFailure, browserFailure), List.of(actual.getSuppressed()));
-    }
-
-    @Test
-    void nullBrowserIsRejectedBeforeAnyDependentResourceIsCreated() {
-        var events = new ArrayList<String>();
-
-        var failure = assertThrows(NullPointerException.class, () -> AutoExE2eInitialization.create(
-                () -> { events.add("browser"); return null; },
-                ignored -> { events.add("scenario"); return "scenario"; },
-                ignored -> { events.add("phase"); return "phase"; },
-                (browser, scenario, phase) -> "run",
-                ignored -> events.add("phase FAIL"),
-                ignored -> events.add("scenario FAIL"),
-                ignored -> events.add("close browser")));
-
-        assertEquals("browserFactory returned null", failure.getMessage());
-        assertEquals(List.of("browser"), events);
-    }
-
-    @Test
-    void nullScenarioRollsBackTheAcquiredBrowser() {
-        var events = new ArrayList<String>();
-
-        var failure = assertThrows(NullPointerException.class, () -> AutoExE2eInitialization.create(
-                () -> { events.add("browser"); return "browser"; },
-                ignored -> { events.add("scenario"); return null; },
-                ignored -> { events.add("phase"); return "phase"; },
-                (browser, scenario, phase) -> "run",
-                ignored -> events.add("phase FAIL"),
-                ignored -> events.add("scenario FAIL"),
-                ignored -> events.add("close browser")));
-
-        assertEquals("scenarioFactory returned null", failure.getMessage());
-        assertEquals(List.of("browser", "scenario", "close browser"), events);
-    }
-
-    @Test
-    void nullPhaseFailsScenarioAndClosesTheAcquiredBrowser() {
-        var events = new ArrayList<String>();
-
-        var failure = assertThrows(NullPointerException.class, () -> AutoExE2eInitialization.create(
-                () -> { events.add("browser"); return "browser"; },
-                ignored -> { events.add("scenario"); return "scenario"; },
-                ignored -> { events.add("phase"); return null; },
-                (browser, scenario, phase) -> "run",
-                ignored -> events.add("phase FAIL"),
-                ignored -> events.add("scenario FAIL"),
-                ignored -> events.add("close browser")));
-
-        assertEquals("phaseFactory returned null", failure.getMessage());
-        assertEquals(List.of("browser", "scenario", "phase", "scenario FAIL", "close browser"), events);
-    }
-
-    @Test
-    void nullRunFailsAvailableReportNodesAndClosesTheBrowser() {
-        var events = new ArrayList<String>();
-
-        var failure = assertThrows(NullPointerException.class, () -> AutoExE2eInitialization.create(
-                () -> { events.add("browser"); return "browser"; },
-                ignored -> { events.add("scenario"); return "scenario"; },
-                ignored -> { events.add("phase"); return "phase"; },
-                (browser, scenario, phase) -> { events.add("run"); return null; },
-                ignored -> events.add("phase FAIL"),
-                ignored -> events.add("scenario FAIL"),
-                ignored -> events.add("close browser")));
-
-        assertEquals("runFactory returned null", failure.getMessage());
-        assertEquals(List.of("browser", "scenario", "phase", "run", "phase FAIL", "scenario FAIL",
-                "close browser"), events);
+        assertEquals(List.of("browser", "scenario", "scenario FAIL", "close browser"), events);
+        assertEquals(List.of(scenarioFailure, browserFailure), List.of(actual.getSuppressed()));
     }
 
     private static void create(List<String> events,

@@ -55,7 +55,7 @@ flowchart LR
 | Zonă | Responsabilitate | Nu deține |
 |---|---|---|
 | `atf-core` | contracte runtime neutre și utilități reutilizabile | Extent, browser, fixture business, lifecycle de test |
-| `atf-test-kit` | clasificare/adnotări de test și primitive test-only candidate | Playwright, browser lifecycle, Extent, profile sau flow-uri de consumer |
+| `atf-test-kit` | clasificare/adnotări de test și cleanup test-only failure-aware; alte primitive numai după probe | Playwright, browser lifecycle, Extent, profile sau flow-uri de consumer |
 | `atf-reporting` | modele, renderer, asset-uri și contracte reporting standalone | mock, browser și aplicație consumatoare |
 | `atf-mock` | transport/fixture determinist | reguli de randare |
 | `atf-ui` | Playwright și politici browser generice | configurarea concretă a raportului |

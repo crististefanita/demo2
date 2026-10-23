@@ -79,23 +79,48 @@ class ShopArchitectureTest {
     }
 
     @Test
-    void reusableApplicationSupportDoesNotRemainUnderTheTestSourcePackage() throws IOException {
+    void browserHarnessAndReportAdaptersAreTestScoped() throws IOException {
         Path moduleRoot = locateModuleRoot();
-        for (Path path : AtfFileTree.regularFiles(
-                moduleRoot.resolve("src/test/java/atf/ui/tests/practiceshop"),
-                List.of(Path.of(".")), path -> path.getFileName().toString().endsWith(".java"))) {
+        Path context = moduleRoot.resolve(
+                "src/test/java/atf/ui/tests/practiceshop/support/lifecycle/ShopE2eContext.java");
+        assertTrue(Files.isRegularFile(context), "E2E browser/report harness belongs to test sources");
+        assertFalse(Files.exists(moduleRoot.resolve(
+                        "src/main/java/atf/ui/practiceshop/support/ShopE2eContext.java")),
+                "test lifecycle must not ship as application production code");
+
+        for (String helper : List.of(
+                "support/evidence/ShopBrowserCaptureProvider.java",
+                "support/reporting/ShopReportSystemMetadata.java",
+                "support/reporting/ShopReportUiActionAdapters.java",
+                "support/reporting/ShopScreenshotPolicy.java")) {
+            assertTrue(Files.isRegularFile(moduleRoot.resolve(
+                            "src/test/java/atf/ui/tests/practiceshop/" + helper)),
+                    "E2E-only reporting adapter must remain test-scoped: " + helper);
+            assertFalse(Files.exists(moduleRoot.resolve(
+                            "src/main/java/atf/ui/practiceshop/" + helper)),
+                    "E2E-only reporting adapter must not ship in the main artifact: " + helper);
+        }
+
+        Path testSources = moduleRoot.resolve("src/test/java/atf/ui/tests/practiceshop");
+        for (Path path : AtfFileTree.regularFiles(testSources, List.of(Path.of(".")),
+                candidate -> candidate.getFileName().toString().endsWith(".java"))) {
             String fileName = path.getFileName().toString();
             assertFalse(fileName.endsWith("Page.java") || fileName.endsWith("Flow.java")
-                            || fileName.equals("ShopLocators.java")
-                            || fileName.equals("ShopE2eContext.java"),
-                    "reusable support must live under src/main/java: " + path);
-            assertTrue(fileName.endsWith("Test.java") || fileName.endsWith("TestSupport.java")
-                            || fileName.endsWith("Fixture.java") || fileName.equals("ShopE2eSuite.java")
-                            || fileName.equals("ShopComponentSuite.java")
-                            || fileName.equals("ShopApiComponentSuite.java")
-                            || fileName.equals("ShopApiCallAuditSuite.java")
-                            || fileName.equals("ShopApiCallComponentTest.java"),
-                    "test source must be a test or an explicitly test-scoped helper: " + path);
+                            || fileName.equals("ShopLocators.java"),
+                    "application page, flow and locator types belong to src/main: " + path);
+            boolean testType = fileName.endsWith("Test.java") || fileName.endsWith("TestSupport.java")
+                    || fileName.endsWith("Fixture.java") || fileName.equals("ShopE2eContext.java")
+                    || fileName.equals("ShopE2eActivationExtension.java")
+                    || fileName.equals("ShopE2eActivationPolicy.java")
+                    || fileName.equals("ShopBrowserCaptureProvider.java")
+                    || fileName.equals("ShopReportSystemMetadata.java")
+                    || fileName.equals("ShopReportUiActionAdapters.java")
+                    || fileName.equals("ShopScreenshotPolicy.java")
+                    || fileName.equals("ShopE2eSuite.java") || fileName.equals("ShopComponentSuite.java")
+                    || fileName.equals("ShopApiComponentSuite.java")
+                    || fileName.equals("ShopApiCallAuditSuite.java")
+                    || fileName.equals("ShopApiCallComponentTest.java");
+            assertTrue(testType, "test source must be a test or an explicitly scoped helper: " + path);
         }
     }
 
@@ -121,7 +146,7 @@ class ShopArchitectureTest {
         List<Class<?>> auditTypes = List.of(ShopApiCallAuditTestSupport.class,
                 ShopApiCallAuditContextTestSupport.class, ShopApiCallComponentTest.class,
                 ShopApiCallAuditSuite.class,
-                Class.forName("atf.ui.practiceshop.support.ShopE2eFailureBoundaryTest"));
+                Class.forName("atf.ui.tests.practiceshop.support.lifecycle.ShopE2eFailureBoundaryTest"));
         assertTrue(auditTypes.stream().allMatch(type -> type.getSimpleName().startsWith("Shop")),
                 "new Practice Shop test types must use the Shop prefix from the feedback contract");
 
@@ -133,7 +158,7 @@ class ShopArchitectureTest {
     @Test
     void reusableSupportDependenciesAreAvailableToMainSources() throws IOException {
         String pom = Files.readString(locateModuleRoot().resolve("pom.xml"));
-        for (String artifact : new String[]{"atf-core", "atf-console", "atf-test-kit", "atf-reporting", "atf-ui"}) {
+        for (String artifact : new String[]{"atf-core", "atf-console", "atf-reporting", "atf-ui"}) {
             int dependencyStart = pom.indexOf("<artifactId>" + artifact + "</artifactId>");
             assertTrue(dependencyStart >= 0, "missing module dependency: " + artifact);
             int dependencyEnd = pom.indexOf("</dependency>", dependencyStart);
@@ -142,6 +167,12 @@ class ShopArchitectureTest {
             assertFalse(dependency.contains("<scope>test</scope>"),
                     "main reusable support cannot depend on test-scoped " + artifact);
         }
+        int testKitStart = pom.indexOf("<artifactId>atf-test-kit</artifactId>");
+        int testKitEnd = pom.indexOf("</dependency>", testKitStart);
+        assertTrue(testKitStart >= 0 && testKitEnd > testKitStart,
+                "test-kit dependency must remain available to component tests");
+        assertTrue(pom.substring(testKitStart, testKitEnd).contains("<scope>test</scope>"),
+                "test-kit is used only by test sources and must be test-scoped");
     }
 
     @Test

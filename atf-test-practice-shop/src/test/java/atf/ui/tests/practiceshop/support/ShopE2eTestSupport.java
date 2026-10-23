@@ -24,10 +24,11 @@ import atf.ui.practiceshop.config.ShopValidationProfile;
 import atf.ui.practiceshop.flow.ShopPurchaseFlow;
 import atf.ui.practiceshop.locators.ShopLocators;
 import atf.ui.practiceshop.support.api.ShopApiNetworkJournal;
-import atf.ui.practiceshop.support.ShopE2eContext;
+import atf.ui.tests.practiceshop.support.lifecycle.ShopE2eContext;
+import atf.ui.tests.practiceshop.support.lifecycle.ShopE2eActivationExtension;
 import atf.ui.practiceshop.support.ShopPurchaseTraceStep;
 import atf.ui.practiceshop.support.ShopPurchaseCheckpoint;
-import atf.ui.practiceshop.support.reporting.ShopScreenshotPolicy;
+import atf.ui.tests.practiceshop.support.reporting.ShopScreenshotPolicy;
 import com.microsoft.playwright.Page;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
@@ -75,7 +76,7 @@ public final class ShopE2eTestSupport {
     @Retention(RetentionPolicy.RUNTIME)
     @AtfConsoleMessages(AtfConsoleMessages.Policy.DETAILS)
     @AtfReportPath
-    @ExtendWith({AtfConsoleTestExtension.class, E2eExtension.class})
+    @ExtendWith({AtfConsoleTestExtension.class, ShopE2eActivationExtension.class, E2eExtension.class})
     public @interface WithE2eHarness {
         HarnessProfile profile() default HarnessProfile.CONFIGURED;
         ActionDetailsMode actionDetails() default ActionDetailsMode.CONFIGURED;
