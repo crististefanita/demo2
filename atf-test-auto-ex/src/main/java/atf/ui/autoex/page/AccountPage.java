@@ -7,6 +7,7 @@ import atf.ui.autoex.locator.AutoExSelectors;
 import atf.ui.autoex.support.account.AutoExAccountCleanupAction;
 import atf.ui.autoex.support.account.AutoExAccountCleanupDecision;
 import atf.ui.autoex.support.account.AutoExTestAccount;
+import atf.ui.autoex.support.trace.AutoExCustomerTraceStep;
 import atf.ui.autoex.support.journey.AutoExPurchaseSession;
 import atf.ui.autoex.support.journey.AutoExPurchaseTraceStep;
 
@@ -14,10 +15,23 @@ import java.util.List;
 
 /** Registration during checkout and deterministic disposal of the synthetic account. */
 public final class AccountPage extends AutoExPage {
+    private static final String CREATED_MESSAGE = "ACCOUNT CREATED!";
+    private static final String DELETED_MESSAGE = "ACCOUNT DELETED!";
+    private boolean creationConfirmed;
+
     public AccountPage(AutoExPurchaseSession run) { super(run); }
 
     public void registerFromCheckout(AutoExTestAccount account) {
         clickLast(AutoExSelectors.REGISTER_LOGIN, "registration form opens from checkout");
+        register(account);
+    }
+
+    public void registerFromStore(AutoExTestAccount account) {
+        click(AutoExSelectors.HEADER_LOGIN, "registration form opens from the store header");
+        register(account);
+    }
+
+    private void register(AutoExTestAccount account) {
         fill(AutoExSelectors.SIGNUP_NAME, account.signupName(), "synthetic account name is entered");
         fill(AutoExSelectors.SIGNUP_EMAIL, account.email(), "unique test email is entered");
         click(AutoExSelectors.SIGNUP_BUTTON, "signup details are submitted");
@@ -41,10 +55,31 @@ public final class AccountPage extends AutoExPage {
         click(AutoExSelectors.CREATE_ACCOUNT, "disposable account is created on the practice site");
 
         String result = text(AutoExSelectors.ACCOUNT_RESULT_HEADING, "account-creation result is read");
+        creationConfirmed = result.contains(CREATED_MESSAGE);
         run.checkpoint(AutoExPurchaseTraceStep.ACCOUNT_CREATED,
-                List.of(new AtfAssertion("Account creation", "ACCOUNT CREATED!", result,
-                        result.contains("ACCOUNT CREATED!"))));
+                List.of(new AtfAssertion("Account creation", CREATED_MESSAGE, result, creationConfirmed)));
         click(AutoExSelectors.CONTINUE, "created account session continues to the store");
+    }
+
+    public String loggedInName() {
+        return text(AutoExSelectors.LOGGED_IN_NAME, "signed-in customer identity is read");
+    }
+
+    public void login(AutoExTestAccount account) {
+        if (!visible(AutoExSelectors.LOGIN_EMAIL)) {
+            click(AutoExSelectors.HEADER_LOGIN, "existing customer login form opens");
+        }
+        fill(AutoExSelectors.LOGIN_EMAIL, account.email(), "disposable customer email is entered");
+        fill(AutoExSelectors.LOGIN_PASSWORD, account.password(), "disposable customer password is entered");
+        click(AutoExSelectors.LOGIN_BUTTON, "existing customer signs in");
+        run.waitForText(AutoExSelectors.LOGGED_IN_NAME, account.signupName(),
+                "the signed-in session belongs to this test's disposable customer");
+    }
+
+    public boolean logout() {
+        click(AutoExSelectors.LOGOUT, "the disposable customer signs out");
+        run.waitForText(AutoExSelectors.LOGIN_BUTTON, "Login", "the customer login form is ready");
+        return visible(AutoExSelectors.LOGIN_EMAIL) && !visible(AutoExSelectors.DELETE_ACCOUNT);
     }
 
     public String deliveryAddress(String expectedDisplayName) {
@@ -59,23 +94,50 @@ public final class AccountPage extends AutoExPage {
         return text(AutoExSelectors.BILLING_ADDRESS, "billing address is read");
     }
 
-    public String accountDeletionResult() {
+    public String accountDeletionResult(AutoExTestAccount account) {
         run.dismissGoogleVignetteIfPresent();
+        String identity = loggedInName();
+        if (!account.signupName().equals(identity)) {
+            throw new IllegalStateException("Refusing account deletion: signed-in customer is not this run's identity");
+        }
         click(AutoExSelectors.DELETE_ACCOUNT, "disposable account is deleted after the demo order");
         String result = text(AutoExSelectors.ACCOUNT_RESULT_HEADING, "account-deletion result is read");
+        boolean deleted = result.contains(DELETED_MESSAGE);
+        if (deleted) run.clearFailureCleanup();
         run.checkpoint(AutoExPurchaseTraceStep.ACCOUNT_DELETED,
-                List.of(new AtfAssertion("Account cleanup", "ACCOUNT DELETED!", result,
-                        result.contains("ACCOUNT DELETED!"))));
+                List.of(new AtfAssertion("Disposable customer identity", account.signupName(), identity,
+                                account.signupName().equals(identity)),
+                        new AtfAssertion("Account cleanup", DELETED_MESSAGE, result, deleted)));
         click(AutoExSelectors.CONTINUE, "deleted account flow returns to the store");
-        run.clearFailureCleanup();
         return result;
     }
 
     private void deleteIfCreatedAndLoggedIn(AutoExTestAccount account) {
-        if (run.currentUrl().contains(AutoExRoutes.GOOGLE_VIGNETTE_FRAGMENT)) {
-            run.navigate(AutoExRoutes.HOME.resolve(run.configuration().baseUrl()));
+        creationConfirmed |= accountCreationWasConfirmed();
+        recoverObservedVignette();
+        try {
+            cleanupFromCurrentPage(account);
+        } catch (RuntimeException | AssertionError firstFailure) {
+            if (!onVignette()) throw firstFailure;
+            try {
+                recoverObservedVignette();
+                cleanupFromCurrentPage(account);
+            } catch (RuntimeException | AssertionError recoveryFailure) {
+                firstFailure.addSuppressed(recoveryFailure);
+                throw firstFailure;
+            }
         }
-        boolean creationConfirmed = accountCreationWasConfirmed();
+    }
+
+    private void cleanupFromCurrentPage(AutoExTestAccount account) {
+        if (accountResultContains(DELETED_MESSAGE)) {
+            run.clearFailureCleanup();
+            return;
+        }
+        if (creationConfirmed && !visible(AutoExSelectors.DELETE_ACCOUNT)
+                && !accountCreationWasConfirmed()) {
+            login(account);
+        }
         AutoExAccountCleanupAction action = AutoExAccountCleanupDecision.resolve(
                 creationConfirmed, visible(AutoExSelectors.CONTINUE),
                 visible(AutoExSelectors.DELETE_ACCOUNT));
@@ -90,12 +152,33 @@ public final class AccountPage extends AutoExPage {
                     "Disposable account creation was confirmed, but its cleanup action is unavailable: "
                             + account.email());
         }
-        accountDeletionResult();
+        accountDeletionResult(account);
     }
 
     private boolean accountCreationWasConfirmed() {
-        return visible(AutoExSelectors.ACCOUNT_RESULT_HEADING)
-                && run.page().locator(AutoExSelectors.ACCOUNT_RESULT_HEADING)
-                .innerText().contains("ACCOUNT CREATED!");
+        return accountResultContains(CREATED_MESSAGE);
+    }
+
+    private boolean accountResultContains(String expected) {
+        var heading = run.page().locator(AutoExSelectors.ACCOUNT_RESULT_HEADING);
+        return heading.isVisible() && heading.innerText().contains(expected);
+    }
+
+    private boolean onVignette() {
+        return run.currentUrl().contains(AutoExRoutes.GOOGLE_VIGNETTE_FRAGMENT);
+    }
+
+    private void recoverObservedVignette() {
+        String interruptedUrl = run.currentUrl();
+        if (!onVignette()) return;
+        var home = AutoExRoutes.HOME.resolve(run.configuration().baseUrl());
+        run.navigate(home);
+        String recoveredUrl = run.currentUrl();
+        run.checkpoint(AutoExCustomerTraceStep.CLEANUP_RECOVERED,
+                List.of(new AtfAssertion("Observed cleanup interruption",
+                                AutoExRoutes.GOOGLE_VIGNETTE_FRAGMENT, interruptedUrl,
+                                interruptedUrl.contains(AutoExRoutes.GOOGLE_VIGNETTE_FRAGMENT)),
+                        new AtfAssertion("Cleanup recovery destination", home.toString(), recoveredUrl,
+                                home.toString().equals(recoveredUrl))));
     }
 }

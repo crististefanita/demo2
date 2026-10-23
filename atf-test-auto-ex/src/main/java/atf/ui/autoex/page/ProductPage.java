@@ -13,7 +13,8 @@ public final class ProductPage extends AutoExPage {
     }
 
     public String addConfirmation() {
-        return text("#cartModal", "cart confirms that the selected product was added");
+        return text(AutoExSelectors.CART_ADD_CONFIRMATION,
+                "cart confirms that the selected product was added");
     }
 
     public void addQuantityToCart(int quantity) {

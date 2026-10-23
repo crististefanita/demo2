@@ -15,6 +15,8 @@ import atf.api.core.http.transport.UrlConnectionTransport;
 import atf.api.console.junit.AtfConsoleTestExtension;
 import atf.api.testkit.AtfConsoleMessages;
 import atf.api.testkit.AtfIntegrationTest;
+import atf.api.testkit.channel.AtfTestChannel;
+import atf.api.testkit.channel.TestChannel;
 import atf.api.testkit.reporting.AtfReportPath;
 import atf.ui.autoex.api.AutoExApiAccount;
 import atf.ui.autoex.api.AutoExApiJsonField;
@@ -39,6 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Opt-in live contract proof; default component gates never contact the public service. */
 @AtfIntegrationTest
+@AtfTestChannel(TestChannel.API)
 @EnabledIfSystemProperty(named = "atf.autoex.api.live.enabled", matches = "true")
 @AtfConsoleMessages(AtfConsoleMessages.Policy.DETAILS)
 @AtfReportPath

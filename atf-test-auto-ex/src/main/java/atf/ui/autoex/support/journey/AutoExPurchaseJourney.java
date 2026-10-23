@@ -86,7 +86,7 @@ public final class AutoExPurchaseJourney {
 
         checkout.downloadInvoice();
         checkout.continueAfterInvoice();
-        String deletion = accountPage.accountDeletionResult();
+        String deletion = accountPage.accountDeletionResult(account);
         String landingUrl = run.currentUrl();
         String expectedLandingUrl = configuration.baseUrl().toString().replaceAll("/$", "") + "/";
         List<AtfAssertion> finalAssertions = List.of(

@@ -106,7 +106,6 @@ testChanges:
     reason: Valideaza propagarea completa a adreselor si comenzii, clientul si suma facturii, cu diagnostic business si recuperare cleanup pastrand cauza initiala.
     proof: mvn -pl atf-test-auto-ex,atf-tests -am "-Dtest=AutoExComponentSuite,AutoExPurchaseUiE2eTest,WholeAtfGovernanceSuiteTest" "-Datf.autoex.e2e.enabled=true" "-Datf.governance.testChanges.baseRef=0f6a95265024a78c20754d5c18937d24434a2d2d" "-Dsurefire.failIfNoSpecifiedTests=false" test
     paths:
-      - atf-test-auto-ex/src/test/java/atf/ui/autoex/support/AutoExE2eRun.java
       - atf-test-auto-ex/src/test/java/atf/ui/tests/autoex/component/journey/AutoExPurchaseBusinessComponentTest.java
   - id: CONSOLE-COMPOSITION-BOUNDARY-02
     status: VERIFIED

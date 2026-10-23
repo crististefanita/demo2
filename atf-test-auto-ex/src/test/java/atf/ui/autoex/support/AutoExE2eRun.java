@@ -40,7 +40,7 @@ import atf.ui.autoex.support.browser.AutoExVignetteHandler;
 import atf.ui.autoex.support.lifecycle.AutoExE2eInitialization;
 import atf.ui.autoex.support.catalog.AutoExCatalogSnapshot;
 import atf.ui.autoex.support.journey.AutoExPurchaseSession;
-import atf.ui.autoex.support.journey.AutoExPurchaseTraceStep;
+import atf.ui.autoex.support.trace.AutoExTraceStep;
 import atf.ui.autoex.config.AutoExConfigurationLoader;
 import atf.ui.autoex.locator.AutoExRoutes;
 import atf.ui.autoex.locator.AutoExSelectors;
@@ -290,7 +290,7 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
                 + ". Failed assertions: " + failedAssertionSummary(assertions));
     }
 
-    public void checkpoint(AutoExPurchaseTraceStep step, List<AtfAssertion> assertions) {
+    public void checkpoint(AutoExTraceStep step, List<AtfAssertion> assertions) {
         checkpoint(step.keyword(), step.title(), assertions);
     }
 
@@ -314,7 +314,7 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
                 + ". Failed assertions: " + failedAssertionSummary(assertions));
     }
 
-    public void finalScreenshot(AutoExPurchaseTraceStep step, List<AtfAssertion> assertions) {
+    public void finalScreenshot(AutoExTraceStep step, List<AtfAssertion> assertions) {
         finalScreenshot(step.title(), assertions);
     }
 

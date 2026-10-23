@@ -1,6 +1,7 @@
 package atf.ui.autoex.support.journey;
 
 import atf.ui.autoex.support.catalog.AutoExCatalogSnapshot;
+import atf.ui.autoex.support.trace.AutoExTraceStep;
 
 import atf.api.reporting.contract.AtfAssertion;
 import atf.ui.autoex.config.AutoExConfiguration;
@@ -24,8 +25,8 @@ public interface AutoExPurchaseSession {
     String textFirst(String selector, String expected);
     void select(String selector, String label, String expected);
     boolean visible(String selector);
-    void checkpoint(AutoExPurchaseTraceStep step, List<AtfAssertion> assertions);
-    void finalScreenshot(AutoExPurchaseTraceStep step, List<AtfAssertion> assertions);
+    void checkpoint(AutoExTraceStep step, List<AtfAssertion> assertions);
+    void finalScreenshot(AutoExTraceStep step, List<AtfAssertion> assertions);
     AutoExCatalogSnapshot inspectCatalogApi(String productName);
     boolean observesApiTraffic();
     void markCausalApiTrafficBaseline();

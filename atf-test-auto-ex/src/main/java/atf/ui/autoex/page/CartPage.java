@@ -33,6 +33,13 @@ public final class CartPage extends AutoExPage {
 
     public void proceedToCheckout() { click(AutoExSelectors.CHECKOUT, "checkout begins from the cart"); }
 
+    public String removeProductAndReadEmptyCart(AutoExConfiguration.Catalog product) {
+        click(row(product) + " " + AutoExSelectors.CART_REMOVE, "selected product is removed from the cart");
+        run.waitForText(AutoExSelectors.EMPTY_CART, "Cart is empty!",
+                "cart confirms that its last product was removed");
+        return text(AutoExSelectors.EMPTY_CART, "empty-cart confirmation is read");
+    }
+
     private static String row(AutoExConfiguration.Catalog product) {
         return AutoExSelectors.CART_PRODUCT_ROW_PREFIX + product.productId();
     }

@@ -43,6 +43,16 @@ public record AutoExConfiguration(URI baseUrl, boolean e2eEnabled,
             unitPrice = required(unitPrice, "catalog.unitPrice");
             if (quantity < 1) throw new IllegalArgumentException("catalog.quantity must be positive");
         }
+
+        public Catalog withQuantity(int value) {
+            return new Catalog(searchTerm, productId, productName, unitPrice, value);
+        }
+
+        public String expectedTotal() {
+            String digits = unitPrice.replaceAll("[^0-9]", "");
+            if (digits.isEmpty()) throw new IllegalStateException("Configured unit price has no numeric amount");
+            return "Rs. " + Math.multiplyExact(Integer.parseInt(digits), quantity);
+        }
     }
 
     public record Registration(String birthDay, String birthMonth, String birthYear,
@@ -77,9 +87,7 @@ public record AutoExConfiguration(URI baseUrl, boolean e2eEnabled,
     }
 
     public String expectedCartTotal() {
-        String digits = catalog.unitPrice().replaceAll("[^0-9]", "");
-        if (digits.isEmpty()) throw new IllegalStateException("Configured unit price has no numeric amount");
-        return "Rs. " + Math.multiplyExact(Integer.parseInt(digits), catalog.quantity());
+        return catalog.expectedTotal();
     }
 
     /** Avoid exposing configured form data if the aggregate is ever logged for diagnostics. */

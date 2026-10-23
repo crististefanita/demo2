@@ -179,6 +179,14 @@ atunci nu declarăm randarea vizuală închisă.
   păstrează fallback-ul `THEN` fără pretenție de evidence vizuală. Proba de
   componentă validează lista exactă predată adaptorului, inclusiv ordinea
   `record -> drain`, și păstrează separat testele checkpoint-urilor.
+- Reauditul a găsit și reparat ramura terminală Shop fără captură: publica
+  acțiunile fără observația de audit. `terminalContractEvidence(...)` păstrează
+  acum observația și mesajul explicit `screenshot=not captured` înainte de
+  drenare. `ShopTerminalEvidenceComponentTest` verifică ordinea, unicitatea,
+  drenarea și faptul că un payload invalid nu este declarat PNG valid.
+- Verificare în staging extern: 34 de teste Reporting (lifecycle, profile,
+  flow unificat și randare HTML), 3 probe AutoEx pentru profil/audit și suita
+  Shop cu 200 de teste au trecut. Aceste probe nu închid gate-ul vizual.
 - Testele componente ale rendererului și consumerilor sunt probele automate;
   această verificare nu le înlocuiește și nu cere schimbarea testelor E2E.
 - În TAB MCP confirmă în artifactul randat că observația rămâne în același

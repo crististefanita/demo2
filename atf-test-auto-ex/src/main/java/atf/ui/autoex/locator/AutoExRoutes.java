@@ -9,6 +9,7 @@ public enum AutoExRoutes {
     PRODUCTS_API("/api/productsList"),
     CART("/view_cart"),
     LOGIN("/login"),
+    LOGOUT("/logout"),
     PAYMENT("/payment"),
     DELETE_ACCOUNT("/delete_account"),
     INVOICE_DOWNLOAD("/download_invoice/");

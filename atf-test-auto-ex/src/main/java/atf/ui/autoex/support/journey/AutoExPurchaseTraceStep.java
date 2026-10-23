@@ -1,9 +1,10 @@
 package atf.ui.autoex.support.journey;
 
 import atf.api.reporting.contract.AtfGherkinKeyword;
+import atf.ui.autoex.support.trace.AutoExTraceStep;
 
 /** Stable business vocabulary for every reported checkpoint in the AutoEx purchase journey. */
-public enum AutoExPurchaseTraceStep {
+public enum AutoExPurchaseTraceStep implements AutoExTraceStep {
     STORE_OPEN(AtfGherkinKeyword.GIVEN, "a new browser session opens the public store"),
     CATALOG_API_PRECONDITION(AtfGherkinKeyword.GIVEN,
             "the catalog API confirms the configured product before UI purchase"),

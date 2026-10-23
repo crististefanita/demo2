@@ -244,8 +244,8 @@ cu [Test Case 24 — Download Invoice after purchase](https://automationexercise
 `CheckoutPage.downloadInvoice()` citește acum fișierul descărcat;
 `AutoExInvoiceAssertions` verifică numele `invoice.txt`, clientul și suma față
 de comanda configurată. Probe pozitive și negative sunt în
-`AutoExPurchaseBusinessComponentTest`; integrarea live a incrementului este
-urmărită în [feedback-ul business AutoEx](../docs/feedback/ATF_Automation_Exercise_Feedback.md#increment-în-lucru).
+`AutoExPurchaseBusinessComponentTest`; journey-ul UI exercită aceleași reguli
+pe comanda și factura obținute de la magazinul public.
 
 | Etapă | Așteptare business | Sursa așteptării |
 |---|---|---|
@@ -291,6 +291,38 @@ cu date business pozitive și negative în `AutoExPurchaseBusinessComponentTest`
   explicită la magazin înaintea ștergerii contului. Navigarea este înregistrată
   de ATF și nu reexecută plata; failure evidence este capturat înainte de
   recuperare și verdictul inițial rămâne FAIL.
+
+### Contul creat și cleanup-ul sub vignette
+
+| Situație observată | Comportament | Limită de siguranță |
+|---|---|---|
+| Crearea este confirmată | `AccountPage` reține confirmarea înaintea checkpoint-ului și a navigării Continue | schimbarea paginii nu transformă contul creat într-un cleanup `NO_OP` |
+| Cleanup începe sau este întrerupt pe vignette | navighează la Home și publică triggerul și destinația observate | cel mult o reluare după o întrerupere nouă; fără DOM injectat, hash fabricat sau retry de plată |
+| Clientul este delogat | reautentifică numai contul sintetic deja confirmat | numele din header trebuie să coincidă exact cu identitatea rulării înainte de Delete account |
+| Ștergerea este confirmată | dezarmează imediat callback-ul, înaintea capturii și a Continue | o eroare ulterioară nu repetă ștergerea unui cont deja eliminat |
+
+Ordinea generică a capturii, conservarea cauzei primare și a erorilor
+`suppressed` sunt probate în Test Kit. Proba integrată negativă AutoEx cere
+reclama reală și eroarea reală; un journey trecut fără vignette nu închide
+[cerința de recuperare observată](../docs/feedback/ATF_Automation_Exercise_Feedback.md).
+
+## Coș și continuitatea sesiunii
+
+`AutoExCartUiE2eTest` delegă două povești independente către `AutoExCartJourney`.
+Fiecare metodă primește o sesiune de browser izolată prin aceeași extensie ATF.
+
+| Poveste | Interacțiuni business | Rezultat verificat |
+|---|---|---|
+| Recalculare și eliminare | adaugă o unitate, apoi cantitatea configurată a aceluiași produs, apoi elimină rândul | preț unitar, cantitate cumulată, total calculat și mesajul coșului gol |
+| Guest cart după login | creează un cont sintetic, face logout, adaugă produsul ca guest și se autentifică din nou | aceeași identitate și aceeași linie de coș înainte/după login; apoi ștergere explicită |
+
+Site-ul nu oferă editarea cantității direct în rândul coșului. Testul folosește
+adăugarea repetată reală, nu modifică valori în DOM și nu inventează un endpoint.
+`Catalog.withQuantity(...)` produce așteptările imutabile pentru totalul nou.
+
+`support.cart` deține aceste journey-uri, iar `support.trace` definește portul
+comun `AutoExTraceStep` și propozițiile lor Gherkin. Catalogul purchase existent
+rămâne separat; adaptorul Reporting acceptă ambele vocabulare.
 
 ## Rute și locatori ai site-ului
 
@@ -447,6 +479,22 @@ Din root-ul reactorului, testele componente offline:
 mvn -pl atf-test-auto-ex -am "-Dtest=AutoExComponentSuite" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
+### Suite API independente
+
+| Suită | Nivel și perimetru | Activare / efect extern |
+|---|---|---|
+| `AutoExApiComponentSuite` | modele, assertions și adaptoare API din `component.api` | offline; este deja inclusă semantic în selecția mai largă `AutoExComponentSuite` |
+| `AutoExApiReadOnlyLiveSuite` | catalog, branduri și căutare pe serviciul real | opt-in read-only; fără mutații de cont |
+| `AutoExApiLiveSuite` | contractele API publicate și lifecycle sintetic create/login/read/update/delete | opt-in separat; cleanup armat înainte de create |
+
+Nu se adaugă o suită unit goală pentru simetrie cu Shop. Componentele API
+existente au acest nivel declarat; o suită unit separată se justifică numai
+când apar teste unit reale. Suitele live nu selectează teste UI/E2E.
+
+```powershell
+mvn -pl atf-test-auto-ex -am "-Dtest=AutoExApiComponentSuite" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
 Proba API live read-only este separată și nu creează conturi:
 
 ```powershell
@@ -472,6 +520,16 @@ Gate-ul business E2E live, cu o singură cumpărare și un raport:
 ```powershell
 mvn -pl atf-test-auto-ex -am "-Dtest=AutoExPurchaseUiE2eTest" "-Datf.autoex.e2e.enabled=true" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
+
+Gate-ul complet al celor trei povești business distincte, fără variantele
+redundante de evidence ale aceleiași comenzi:
+
+```powershell
+mvn -pl atf-test-auto-ex -am "-Dtest=AutoExBusinessSuite" "-Datf.autoex.e2e.enabled=true" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+Clasele și suitele pot fi lansate direct din IntelliJ. `AutoExPurchaseSuite`
+rămâne matricea manuală a formatelor de evidence, nu gate-ul minim de business.
 
 - În IntelliJ se poate rula direct `AutoExPurchaseSuite` sau o clasă E2E; markerul
   runner-ului activează implicit testul când proprietatea JVM lipsește, chiar
