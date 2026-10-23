@@ -1,7 +1,7 @@
-package atf.ui.tests.practiceshop.api.component.reporting;
+package atf.ui.tests.practiceshop.api.unit.reporting;
 
 import atf.api.reporting.contract.AtfAssertion;
-import atf.api.testkit.AtfComponentTest;
+import atf.api.testkit.AtfUnitTest;
 import atf.ui.practiceshop.support.api.ShopApiReportValidation;
 import org.junit.jupiter.api.Test;
 
@@ -10,7 +10,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@AtfComponentTest
+@AtfUnitTest
 class ShopApiReportValidationTest {
     @Test
     void businessValidationAggregatesEveryAssertion() {

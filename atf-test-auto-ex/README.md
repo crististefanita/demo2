@@ -99,11 +99,12 @@ injectabile. Contractul component verifică:
 - nodurile Extent create intern înainte ca un factory să returneze handle-ul
   țin de atomicitatea contractului `atf-reporting`, nu de consumer.
 
-**Limită de arhitectură încă deschisă:** `AutoExPurchaseSession` se află în
-`src/main` și expune `Page`, `AtfAssertion`, configurația și semantica journey-ului
-AutoEx. Este un port specific consumerului, nu un API generic ATF; relocarea sau
-îngustarea lui este urmărită în
-[feedback-ul suportului E2E](../docs/feedback/ATF_E2E_Test_Support_Architecture_Feedback.md#boundary-ul-autoex-rămas-deschis).
+**Decizie de boundary:** `AutoExPurchaseSession` rămâne în `src/main` ca API
+intern al runtime-ului consumer, deoarece journey-ul de producție îl folosește.
+Nu este API generic ATF; JUnit/evidence și lifecycle-ul browserului rămân în
+`src/test`. Reevaluați decizia numai dacă se schimbă apelanții runtime sau dacă
+testul de arhitectură nu mai confirmă acest ownership; orice extracție generică
+trebuie demonstrată comportamental în ambii consumatori.
 
 ## Contractul testelor AutoEx
 
@@ -132,8 +133,27 @@ partajat:
 
 `AutoExComponentSuite` verifică local fără a deschide site-ul public:
 
+Aplică [regula comună de ownership](../docs/ATF_Testing_Guide.md#owner-ul-testului-business-adaptor-sau-infrastructură);
+punctele următoare descriu numai ce afirmă testele specifice Automation Exercise.
+
 - selectează testele componente din `atf.ui.tests.autoex.component`;
 - acestea acoperă decizii și adaptoare specifice consumerului;
+- testele de catalog, contract API, cleanup de cont, răspunsuri și traffic window
+  rămân aici chiar dacă folosesc fixture-uri, fiindcă afirmă reguli Automation
+  Exercise, nu comportament generic ATF;
+- `AutoExApiContractReportPublisherComponentTest` verifică adaptorul AutoEx:
+  contractul `responseCode`/mesaj, titlul API și diagnosticarea eșecului JUnit.
+  El nu este proprietarul formatării generice Extent; tabelul, disclosure-urile,
+  redacția comună și lifecycle-ul rendererului se probează în
+  [`atf-reporting-tests`](../atf-reporting-tests/README.md);
+- directorul default și override-ul raportului API sunt specifice consumerului;
+  validarea reutilizabilă a unui path relativ sub rădăcina proiectului, inclusiv
+  prevenirea ieșirii prin traversal/reparse-point, aparține
+  [`atf-test-kit`](../atf-test-kit/README.md#regula-de-promovare-a-testelor-reutilizabile);
+- `AutoExEvidenceProfileComponentTest` verifică numai cum consumerul aplică
+  adnotarea `@AtfUiEvidence` peste configurația lui. Test Kit deține declarația
+  neutră și Reporting deține profilele/lifecycle-ul generic; nu se introduce o
+  dependență Test Kit → Reporting pentru a elimina un adaptor al consumerului;
 - ownership-ul cross-consumer este definit în [arhitectura ATF](../docs/ATF_Architecture.md)
   și în [ghidul de testare](../docs/ATF_Testing_Guide.md);
 - limita de opt clase per pachet este definită în
@@ -166,9 +186,10 @@ pragul de coeziune este regula ATF comună din
 nu un număr de clase duplicat aici.
 
 Rutele, payload-urile, browser handlers, trace-ul și purchase journey-ul rămân
-specifice AutoEx. Candidații de reutilizare cross-consumer și criteriul de
-promovare sunt urmăriți în [feedback-ul arhitecturii suportului E2E](../docs/feedback/ATF_E2E_Test_Support_Architecture_Feedback.md),
-nu redefiniți în acest README.
+specifice AutoEx. Primitivele comune se promovează numai după demonstrarea
+aceluiași contract în consumatorii relevanți și păstrarea unui API neutru;
+boundary-ul Test Kit este descris în [README-ul ownerului](../atf-test-kit/README.md)
+și în [arhitectura ATF](../docs/ATF_Architecture.md).
 
 ## Journey-ul de cumpărare
 
@@ -267,8 +288,8 @@ flowchart LR
   nu este confundată cu endpoint-ul direct `POST /api/searchProduct`.
 
 Acest boundary este verificat de testele componente pentru baseline/fereastră
-și de `AutoExPurchaseUiApiE2eTest`; criteriul și decizia de acceptare sunt
-păstrate în [feedback-ul Automation Exercise](../docs/feedback/ATF_Automation_Exercise_Feedback.md).
+și de `AutoExPurchaseUiApiE2eTest`. Contractul API și decizia privind traficul
+cauzal sunt descrise aici, în README-ul ownerului.
 
 ### Acoperirea celor 14 cazuri publicate în API List
 
@@ -361,9 +382,10 @@ mvn -pl atf-test-auto-ex -am "-Dtest=AutoExPurchaseSuite" "-Datf.autoex.e2e.enab
   detectarea IDE; markerul IDE nu este raportat ca opt-in explicit.
 - Rapoartele sunt publicate sub `artifacts/reports/ui/auto-ex/`; execuția suitei
   partajează sesiunea de raportare și o finalizează la închiderea root-ului JUnit.
+  Overview/System declară `Client = Playwright browser`; fallback-ul generic
+  Reporting rămâne neutru pentru consumerii care nu furnizează acest context.
 
-Închiderea contractelor API și a precondiției pentru `UI_API` este păstrată ca
-rezoluție verificabilă în
-[feedback-ul API Automation Exercise](../docs/feedback/ATF_Automation_Exercise_Feedback.md).
-Boundary-ul E2E încă deschis pentru `AutoExPurchaseSession` este urmărit separat
-în [feedback-ul arhitecturii E2E](../docs/feedback/ATF_E2E_Test_Support_Architecture_Feedback.md).
+Contractele API și precondiția pentru `UI_API` sunt normate în acest README.
+`AutoExPurchaseSession` rămâne boundary intern al runtime-ului consumer; nu
+există un TODO activ de extracție generică; lifecycle-ul JUnit/evidence și
+politica E2E rămân în adaptorul test-scoped.

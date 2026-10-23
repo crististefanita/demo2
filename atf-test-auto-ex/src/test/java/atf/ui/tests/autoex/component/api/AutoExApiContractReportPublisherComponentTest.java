@@ -25,7 +25,6 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Exercises the consumer API-report publisher offline, including form-secret redaction. */
@@ -79,17 +78,14 @@ class AutoExApiContractReportPublisherComponentTest {
     }
 
     @Test
-    void reportDirectoryMustRemainInsideTheReactor(@TempDir Path projectRoot) {
-        Path expected = projectRoot.resolve(REPORT_DIRECTORY).toAbsolutePath().normalize();
-
+    void reportDirectoryUsesTheAutoExDefaultOrConfiguredProjectRelativeOverride(@TempDir Path projectRoot) {
         assertAll(
-                () -> assertEquals(expected,
+                () -> assertEquals(projectRoot.resolve("artifacts/reports/api/auto-ex"),
+                        AutoExApiContractReportExtension.resolveDirectory(projectRoot, null)),
+                () -> assertEquals(projectRoot.resolve(REPORT_DIRECTORY),
                         AutoExApiContractReportExtension.resolveDirectory(projectRoot, REPORT_DIRECTORY)),
-                () -> assertThrows(IllegalArgumentException.class,
-                        () -> AutoExApiContractReportExtension.resolveDirectory(projectRoot, "../outside")),
-                () -> assertThrows(IllegalArgumentException.class,
-                        () -> AutoExApiContractReportExtension.resolveDirectory(projectRoot,
-                                projectRoot.resolve("outside").toString())));
+                () -> assertTrue(AutoExApiContractReportExtension.resolveDirectory(
+                        projectRoot, REPORT_DIRECTORY).startsWith(projectRoot)));
     }
 
     @Test

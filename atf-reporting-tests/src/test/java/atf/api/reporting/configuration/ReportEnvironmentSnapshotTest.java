@@ -5,12 +5,18 @@ import atf.api.testkit.AtfUnitTest;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Unit contract for the operational Overview/System projection boundary. */
 @AtfUnitTest
 class ReportEnvironmentSnapshotTest {
+    @Test
+    void genericClientFallbackDoesNotClaimAnApiTransportForUiOnlyRuns() {
+        assertEquals("Configured per execution", ReportEnvironment.defaults().get("Client"));
+    }
+
     @Test
     void keepsRunContextTypedButPublishesOnlyOperationalSystemFields() {
         var snapshot = ReportEnvironmentSnapshot.builder()

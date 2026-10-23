@@ -98,6 +98,48 @@ class ReportOutputDirectoryTest {
     }
 
     @Test
+    void projectRelativeArtifactDirectoryUsesDefaultAndExplicitValuesUnderTheProjectRoot() {
+        assertEquals(project.resolve("artifacts/reports/api/default"),
+                ReportOutputDirectory.resolveProjectRelative(project, null,
+                        "artifacts/reports/api/default"));
+        assertEquals(project.resolve("custom/api-reports"),
+                ReportOutputDirectory.resolveProjectRelative(project, "custom/api-reports",
+                        "artifacts/reports/api/default"));
+    }
+
+    @Test
+    void projectRelativeArtifactDirectoryRejectsTraversalAbsoluteUriAndDriveRelativePaths() {
+        assertThrows(IllegalArgumentException.class,
+                () -> ReportOutputDirectory.resolveProjectRelative(project, "../outside", "reports/api"));
+        assertThrows(IllegalArgumentException.class,
+                () -> ReportOutputDirectory.resolveProjectRelative(project,
+                        project.resolve("outside").toString(), "reports/api"));
+        assertThrows(IllegalArgumentException.class,
+                () -> ReportOutputDirectory.resolveProjectRelative(project,
+                        "https://example.invalid/reports", "reports/api"));
+        assertThrows(IllegalArgumentException.class,
+                () -> ReportOutputDirectory.resolveProjectRelative(project,
+                        "C:drive-relative", "reports/api"));
+    }
+
+    @Test
+    void projectRelativeArtifactDirectoryRejectsExistingReparsePointThatLeavesTheProject() throws Exception {
+        Path root = Files.createDirectories(project.resolve("workspace"));
+        Path outside = Files.createDirectories(project.resolve("outside"));
+        Path link = root.resolve("linked");
+        assumeTrue(ReportOutputSymlinkFixture.createDirectoryEscapePointIfSupported(link, outside),
+                "OS does not allow creating a directory reparse-point fixture");
+
+        try {
+            assertThrows(IllegalStateException.class,
+                    () -> ReportOutputDirectory.resolveProjectRelative(root,
+                            "linked/new/nested", "reports/api"));
+        } finally {
+            Files.deleteIfExists(link);
+        }
+    }
+
+    @Test
     void invalidNativePathHasAnActionableOwnerAndAnchorDiagnostic() {
         assumeTrue(System.getProperty("os.name", "").toLowerCase().contains("windows"),
                 "the invalid character in this fixture is Windows-specific");

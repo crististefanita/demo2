@@ -167,7 +167,7 @@ Contractul este verificat pe două seam-uri:
 |---|---|
 | core vocabulary | `ApiOperationDescriptorContractTest` validează formatul și input-ul invalid |
 | reporting fallback/Extent | `HtmlReportComponentContractTest` și `ExtentReportSessionContractTest` validează titlul publicat în artifact |
-| consumer Practice Shop | `PracticeShopApiOperationTest` și `PracticeShopStandaloneApiReportTest` validează method/path/intent, absența `QUERY`, operation kind și route template |
+| consumer Practice Shop | `ShopApiOperationTest`, `ShopStandaloneApiReportTest` și `ShopApiMethodFidelityTest` validează method/path/intent, absența `QUERY`, operation kind și route template |
 
 ### Fidelitatea metodei și a timpilor API
 
@@ -574,7 +574,9 @@ Ancorele de output sunt:
 
 ## Limitele de responsabilitate ale aplicațiilor consumatoare
 
-`atf-reporting-tests` nu deține adaptere de aplicație. El deține în primul rând
+Se aplică [regula comună de ownership](../docs/ATF_Testing_Guide.md#owner-ul-testului-business-adaptor-sau-infrastructură):
+acest README fixează exemplele de boundary Reporting, nu mută testele consumerilor.
+`atf-reporting-tests` nu deține adaptoare de aplicație. El deține în primul rând
 probele reutilizabile ale bibliotecii: model și publisher, API fixtures neutre,
 paritate între renderere, artifact HTML, DOM/CSS și interacțiuni browser. Aceste
 probe folosesc mock/fake determinist, nu depind de endpoint-ul sau regulile de
@@ -601,8 +603,17 @@ atf-test-practice-shop/src/test/java/atf/ui/tests/practiceshop/
   redactare specifică, flow sau adaptarea publică spre Reporting.
 - `ShopE2eFailureReportComponentTest` verifică wiring-ul `ShopE2eContext`;
   contractele generice de failure și redactare sunt probate separat aici.
-- Dacă un test Shop verifică un invariant Reporting independent de consumer,
-  mută proba neutră aici și păstrează în Shop doar integrarea îngustă.
+- Dacă un test consumer verifică un invariant Reporting independent de consumer,
+  mută proba neutră aici și păstrează în Shop/AutoEx doar integrarea îngustă.
+- Un test consumer care produce HTML poate rămâne local numai dacă verifică
+  traducerea contractului propriu (de exemplu titlu/rută/intenție business,
+  asocierea unei așteptări cu exchange-ul capturat sau politica proprie de
+  redactare). Nu verifica în consumer coloanele, nesting-ul, clasele CSS,
+  disclosure-urile generice ori semantica generică de retry/failure.
+- `AtfReportSemanticSnapshotTest.sameRequestInIndependentScenariosRemainsOwnedByBothScenarios`
+  protejează acum în acest modul izolarea generică a request-urilor identice
+  între scenarii; copia consumerului Shop a fost eliminată. Shop păstrează
+  separat probele asocierii și publicării auditului său API.
 - La testele API Shop, separați transportul de owner: probele cu
   `ShopApiComponentFixture` sunt mock-backed, dar validează clientul și
   contractele Practice Shop, deci rămân în consumer. Mutați aici numai

@@ -5,7 +5,9 @@ import atf.api.reporting.api.ReportRequestSignature;
 import atf.api.reporting.api.ReportQueryParameter;
 import atf.api.reporting.api.ReportQueryParameters;
 import atf.api.core.http.request.MediaTypes;
+import atf.api.core.http.request.HttpMethod;
 import atf.ui.practiceshop.api.ShopApiOperation;
+import atf.ui.practiceshop.api.contract.ShopProductSort;
 import atf.ui.practiceshop.api.contract.ShopApiHttpStatus;
 import atf.ui.practiceshop.api.contract.ShopApiJsonField;
 import atf.ui.practiceshop.api.contract.ShopApiQueryParameter;
@@ -14,6 +16,7 @@ import atf.ui.practiceshop.support.ShopJsonEvidence;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.net.URI;
+import java.math.BigDecimal;
 import java.util.List;
 
 import static atf.api.reporting.audit.ReportAuditChecks.check;
@@ -113,6 +116,110 @@ public final class ShopApiAssertions {
                         cartItemMatches(readJson, productId, quantity)),
                 trace("cart add", add),
                 trace("cart read", read));
+    }
+
+    public static List<AtfAssertion> categoryProductsSortedByPrice(
+            ShopApiNetworkJournal.Exchange collection, String categoryId) {
+        JsonNode response = collection == null ? null
+                : ShopJsonEvidence.parse(collection.responseBody());
+        JsonNode products = response == null ? null
+                : response.path(ShopApiJsonField.DATA.wireValue());
+        boolean hasProducts = products != null && products.isArray() && !products.isEmpty();
+        boolean categoryMatches = hasProducts;
+        boolean priceAscending = hasProducts;
+        BigDecimal previousPrice = null;
+        StringBuilder observed = new StringBuilder();
+
+        if (hasProducts) {
+            for (JsonNode product : products) {
+                String productCategory = product.path(ShopApiJsonField.CATEGORY.wireValue())
+                        .path(ShopApiJsonField.ID.wireValue()).asText("");
+                JsonNode price = product.path(ShopApiJsonField.PRICE.wireValue());
+                categoryMatches &= categoryId.equals(productCategory);
+                if (!price.isNumber()) {
+                    priceAscending = false;
+                } else {
+                    BigDecimal currentPrice = price.decimalValue();
+                    if (previousPrice != null && previousPrice.compareTo(currentPrice) > 0) {
+                        priceAscending = false;
+                    }
+                    previousPrice = currentPrice;
+                }
+                if (!observed.isEmpty()) observed.append("; ");
+                observed.append(product.path(ShopApiJsonField.ID.wireValue()).asText("?"))
+                        .append('@').append(price.isNumber() ? price.asText() : "missing-price");
+            }
+        }
+
+        boolean successfulJson = collection != null
+                && SUCCESS_STATUS.matches(collection.status()) && collection.isJsonResponse();
+        return List.of(
+                check("API response · filtered catalog", "200 application/json with products",
+                        collection == null ? "missing" : collection.summary(), successfulJson && hasProducts),
+                check("API query · catalog category", ShopApiQueryParameter.CATEGORY.wireValue()
+                                + "=" + categoryId,
+                        collection == null ? "missing" : query(collection.url(),
+                                ShopApiQueryParameter.CATEGORY.wireValue()), collection != null
+                                && categoryId.equals(query(collection.url(),
+                                ShopApiQueryParameter.CATEGORY.wireValue()))),
+                check("API query · catalog sort", ShopApiQueryParameter.SORT.wireValue()
+                                + "=" + ShopProductSort.PRICE_ASC.wireValue(),
+                        collection == null ? "missing" : query(collection.url(),
+                                ShopApiQueryParameter.SORT.wireValue()), collection != null
+                                && ShopProductSort.PRICE_ASC.wireValue().equals(query(collection.url(),
+                                ShopApiQueryParameter.SORT.wireValue()))),
+                check("API response · category filter", "all returned products belong to " + categoryId,
+                        observed.toString(), categoryMatches),
+                check("API response · ascending price order", ShopProductSort.PRICE_ASC.wireValue(),
+                        observed.toString(), priceAscending),
+                trace("filtered and sorted catalog", collection));
+    }
+
+    public static List<AtfAssertion> cartQuantityUpdateAndRemoval(
+            ShopApiNetworkJournal.Exchange update,
+            ShopApiNetworkJournal.Exchange readAfterUpdate,
+            ShopApiNetworkJournal.Exchange remove,
+            ShopApiNetworkJournal.Exchange readAfterRemoval,
+            String cartId, String productId, int updatedQuantity) {
+        JsonNode updateRequest = update == null ? null : ShopJsonEvidence.parse(update.requestBody());
+        JsonNode updatedCart = readAfterUpdate == null ? null
+                : ShopJsonEvidence.parse(readAfterUpdate.responseBody());
+        JsonNode finalCart = readAfterRemoval == null ? null
+                : ShopJsonEvidence.parse(readAfterRemoval.responseBody());
+        boolean emptyAfterRemoval = finalCart != null
+                && finalCart.path(ShopApiJsonField.CART_ITEMS.wireValue()).isArray()
+                && finalCart.path(ShopApiJsonField.CART_ITEMS.wireValue()).isEmpty();
+        return List.of(
+                check("API request · cart quantity update",
+                        "PUT " + ShopApiRoutes.updateCartQuantity(cartId)
+                                + " · product_id=" + productId + " · quantity=" + updatedQuantity,
+                        update == null ? "missing" : update.method() + " " + update.path()
+                                + " · " + compact(update.requestBody(), 180),
+                        update != null && HttpMethod.PUT.value().equals(update.method())
+                                && ShopApiRoutes.updateCartQuantity(cartId).equals(update.path())
+                                && exactText(updateRequest, ShopApiJsonField.PRODUCT_ID.wireValue(), productId)
+                                && exactInt(updateRequest, ShopApiJsonField.QUANTITY.wireValue(), updatedQuantity)),
+                check("API response · cart quantity update", SUCCESS_STATUS.wireValue(),
+                        update == null ? "missing" : Integer.toString(update.status()),
+                        update != null && SUCCESS_STATUS.matches(update.status())),
+                check("API state · updated cart quantity", productId + " quantity=" + updatedQuantity,
+                        readAfterUpdate == null ? "missing" : compact(readAfterUpdate.responseBody(), 220),
+                        readAfterUpdate != null && cartItemMatches(updatedCart, productId, updatedQuantity)),
+                check("API request · cart item removal",
+                        "DELETE " + ShopApiRoutes.removeCartProduct(cartId, productId),
+                        remove == null ? "missing" : remove.method() + " " + remove.path()
+                                + " · status=" + remove.status(),
+                        remove != null && HttpMethod.DELETE.value().equals(remove.method())
+                                && ShopApiRoutes.removeCartProduct(cartId, productId).equals(remove.path())
+                                && ShopApiHttpStatus.NO_CONTENT.matches(remove.status())
+                                && remove.responseBody().isBlank()),
+                check("API state · cart empty after removal", "cart_items=[]",
+                        readAfterRemoval == null ? "missing" : compact(readAfterRemoval.responseBody(), 220),
+                        emptyAfterRemoval),
+                trace("cart quantity update", update),
+                trace("cart read after update", readAfterUpdate),
+                trace("cart item removal", remove),
+                trace("cart read after removal", readAfterRemoval));
     }
 
     public static List<AtfAssertion> payment(ShopApiNetworkJournal.Exchange payment,

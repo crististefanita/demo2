@@ -113,6 +113,33 @@ class AtfReportSemanticSnapshotTest {
     }
 
     @Test
+    void sameRequestInIndependentScenariosRemainsOwnedByBothScenarios() throws Exception {
+        Path report = Files.createTempDirectory("atf-scenario-request-ownership-").resolve("report.html");
+        try (var session = new ExtentReportSession(report)) {
+            for (String scenarioName : List.of("scenario one", "scenario two")) {
+                var scenario = session.startScenario("SharedTestClass", "shared request", scenarioName,
+                        List.of("api", "component"));
+                var phase = scenario.startPhase("TEST BODY");
+                phase.startRequest("GET /users/1 — read profile", "GET", "/users/1")
+                        .complete(AtfReportStatus.PASS);
+                phase.complete(AtfReportStatus.PASS);
+                scenario.complete(AtfReportStatus.PASS);
+            }
+
+            var snapshot = session.semanticSnapshot();
+            var scenarios = snapshot.classes().getFirst().scenarios();
+            assertEquals(2, snapshot.scenarioCount());
+            assertEquals(2, snapshot.requestCount(),
+                    "the same local request coordinates must not deduplicate sibling scenarios");
+            assertEquals(List.of("scenario one", "scenario two"),
+                    scenarios.stream().map(AtfReportSemanticSnapshot.ScenarioSnapshot::name).toList());
+            assertTrue(scenarios.stream().allMatch(scenario ->
+                    scenario.phases().getFirst().nodes().size() == 1));
+        }
+        assertTrue(Files.isRegularFile(report));
+    }
+
+    @Test
     void lifecycleRejectsMutationAfterAParentOrChildScopeIsComplete() {
         var recorder = new AtfReportSemanticRecorder();
         var scenario = recorder.startScenario("Tests", "atf.api", "scenario", List.of("api"));

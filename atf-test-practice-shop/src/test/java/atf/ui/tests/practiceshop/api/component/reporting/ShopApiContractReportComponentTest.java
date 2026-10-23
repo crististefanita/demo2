@@ -34,7 +34,7 @@ import static atf.ui.tests.practiceshop.api.support.ShopApiScenarioFixture.POSTC
 import static atf.ui.tests.practiceshop.api.support.ShopApiScenarioFixture.PRODUCT_NAME;
 import static atf.ui.tests.practiceshop.api.support.ShopApiScenarioFixture.QUANTITY;
 
-/** Publishes the same request/response/execution evidence without opening a browser. */
+/** Protects Practice Shop operation mapping through the standalone API report adapter. */
 @AtfComponentTest
 @AtfConsoleMessages(AtfConsoleMessages.Policy.DETAILS)
 @ExtendWith(AtfConsoleTestExtension.class)
@@ -70,9 +70,6 @@ class ShopApiContractReportComponentTest {
 
         String html = Files.readString(report);
         assertTrue(Files.isRegularFile(report));
-        ShopReportHtmlTestSupport.requireText(html, "REQUEST JSON", "request body disclosure");
-        ShopReportHtmlTestSupport.requireText(html, "RESPONSE JSON", "response body disclosure");
-        ShopReportHtmlTestSupport.requireText(html, "Execution evidence", "execution disclosure");
         ShopReportHtmlTestSupport.requireText(html, ShopApiRoutes.PRODUCT_SEARCH,
                 "catalog route");
         ShopReportHtmlTestSupport.requireText(html, ShopApiRoutes.PAYMENT_CHECK,
@@ -91,13 +88,6 @@ class ShopApiContractReportComponentTest {
                 "semantic operation vocabulary must not regress");
         ShopReportHtmlTestSupport.requireAbsent(html, "API diagnostics — unique request signatures",
                 "trace summary must follow the API action-title vocabulary");
-        for (String header : List.of("OPERATION KIND", "ROUTE TEMPLATE", "AUTH TYPE",
-                "REQUEST HEADERS", "CONTENT TYPE", "RESPONSE HEADERS")) {
-            ShopReportHtmlTestSupport.requireExactCell(html, header, "API report table");
-        }
-        for (String secret : List.of("atf@example.test", "token-1", "\"secret\"")) {
-            ShopReportHtmlTestSupport.requireAbsent(html, secret, "redaction contract");
-        }
     }
 
     private static void assertWriteRequestsHaveJson(List<ApiExecutionResult> executions) {

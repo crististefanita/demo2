@@ -1,6 +1,6 @@
-package atf.ui.tests.practiceshop.api.component.auth;
+package atf.ui.tests.practiceshop.api.unit.auth;
 
-import atf.api.testkit.AtfComponentTest;
+import atf.api.testkit.AtfUnitTest;
 import atf.ui.practiceshop.support.api.ShopApiBodyEvidence;
 import atf.ui.practiceshop.support.ShopLoginBodyRecovery;
 import org.junit.jupiter.api.Test;
@@ -10,7 +10,7 @@ import java.io.IOException;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@AtfComponentTest
+@AtfUnitTest
 class ShopLoginBodyRecoveryTest {
     @Test
     void recoveredBodyIsReturnedAsTheEffectiveEvidence() {

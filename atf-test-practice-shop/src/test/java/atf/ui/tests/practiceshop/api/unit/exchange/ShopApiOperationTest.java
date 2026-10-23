@@ -1,14 +1,14 @@
-package atf.ui.tests.practiceshop.api.component.exchange;
+package atf.ui.tests.practiceshop.api.unit.exchange;
 
 import atf.api.core.http.request.HttpMethod;
-import atf.api.testkit.AtfComponentTest;
+import atf.api.testkit.AtfUnitTest;
 import atf.ui.practiceshop.api.ShopApiOperation;
 import atf.ui.practiceshop.api.ShopApiRoutes;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@AtfComponentTest
+@AtfUnitTest
 class ShopApiOperationTest {
     @Test
     void resolvesStableIntentWithoutPuttingDynamicIdsIntoTheEnum() {

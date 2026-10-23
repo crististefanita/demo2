@@ -22,7 +22,7 @@ particular.
 | practică | `README_Atf_BestPractices.md` | cum adăugăm cod fără drift? |
 | testare | `ATF_Testing_Guide.md` | ce layer, modul și proof aleg pentru un comportament? |
 | infrastructură de test | `ATF_Test_Infrastructure_Annotations.md` | cum declar nivelul, canalul, output-ul, setup-ul și documentația? |
-| suport E2E transversal | `feedback/ATF_E2E_Test_Support_Architecture_Feedback.md`, README-urile Test Kit/Shop/AutoEx | ce primitive neutre pot fi reutilizate în Test Kit, păstrând harness-ul UI în consumer? |
+| suport E2E transversal | README-urile [Test Kit](../atf-test-kit/README.md), [Practice Shop](../atf-test-practice-shop/README.md) și [Automation Exercise](../atf-test-auto-ex/README.md), împreună cu [arhitectura ATF](ATF_Architecture.md) | ce primitive neutre se reutilizează în Test Kit, iar ce harness UI rămâne la consumer? |
 | design propus | `ATF_AI_Evaluation_Design.md` | ce boundary și contract țintă discutăm, fără a le declara livrate? |
 | execuție | `ATF_Build_And_Execution_Safety.md` | cum lucrăm fără să oprim run-uri? |
 | feedback / guvernanță | `feedback/README.md`, documentele active pe owner și `ATF_Test_Changes_Baseline.md` | ce gap observabil, regulă sau control tehnic de tranziție rămâne? |

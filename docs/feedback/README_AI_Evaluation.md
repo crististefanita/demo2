@@ -6,7 +6,7 @@ Acest document separă gap-urile evaluatorului AI de readiness-ul implementării
 Designul țintă și pattern-urile extrase din ATF1/.NET sunt în
 [designul AI al proiectului](../ATF_AI_Evaluation_Design.md).
 
-Backlog-ul AI nu intră în ordinea celor patru priorități active din registrul comun.
+Backlog-ul AI nu intră în ordinea celor șase priorități active din registrul comun.
 
 | Stare | Owner / limită |
 |---|---|
@@ -65,7 +65,7 @@ rămâne la owner; designul propus nu este probă de livrare.
 | Fundamentul ATF Java pentru evidence/reporting | **87/100** | request/response, retry history, provenance, auth observations, semantic snapshot și renderer-neutral projection | vocabularul este generic, nu AI-specific |
 | Validator generic reutilizabil | **66/100** | `ValidationEvaluator`, `ValidationTable`, validatori de contract API și comparator AI tipat | evaluatorul AI rămâne separat de rubricile business și de reporting |
 | AI evaluation implementată în ATF Java | **50/100** | comparatorul, hard-fails, invocation evidence, grounding per field, snapshot-ul `COMPLETE` și package cohesion sunt executabile și testate | clasificarea `AMBIGUOUS`, provider real, evidence ledger și proiecție raport lipsesc |
-| AI-assisted workflow governance | **31/100** | guvernanță whole-ATF și scope-uri `testChanges` cu Git, expirare, ownership unic și probe negative | lipsesc expected delta tipizat, proof ledger și handoff; scope-ul singur nu justifică ridicarea scorului |
+| AI-assisted workflow governance | **31/100** | guvernanță whole-ATF și scope-uri `testChanges` cu Git, expirare, ownership unic și probe negative | lipsesc expected delta tipizat, proof ledger și handoff; scope-ul singur nu justifică ridicarea scorului. Whole-ATF acoperă aceste reguli, dar gate-ul live are încă abateri de boundary/readability, fără să fie o dovadă de AI quality |
 | Pregătirea modulului agentic | **25/100** | responsabilitățile sunt delimitate în design | modulul, configurația și controalele sunt încă neimplementate |
 | Potrivirea principiilor ATF1 pentru adoptare | **86/100** | cold baseline, claim → proof → artifact, handoff, anti-copy și separarea orchestrator/execution/reporting sunt direct transferabile | nu trebuie importată economia de runs/slots ca runtime ATF |
 | Potrivirea pattern-urilor .NET pentru adoptare | **92/100** | read models typed, field decisions, retry contract, evidence policy, auth evidence și ownership unic | modelele sunt business-specific și trebuie transpuse, nu copiate |
@@ -94,7 +94,7 @@ frumos sau transportul `LIVE_HTTP` nu demonstrează evaluare AI.
 | lifecycle și checkpoint unic | UI/API au phase lifecycle și evidence publisher; AI validation nu este încă un sibling semantic real al UI/API | **36/100** |
 | Extent/fallback parity | există semantic snapshot comun pentru raportare și fallback; nu există proiecție AI | **52/100** |
 | regression semantic delta | există snapshot și audit de raport, nu comparator AI pentru changed fields/grounding/review/invocation | **26/100** |
-| governance transversală | `WholeAtfGovernanceSuiteTest` include boundary, ownership, cohesion, readability, documentație și politica schimbării testelor | **82/100** |
+| governance transversală | `WholeAtfGovernanceSuiteTest` acoperă boundary, ownership, coeziune, readability, documentație și politica schimbării testelor; scorul măsoară acoperirea, nu faptul că execuția curentă este verde | **82/100** |
 | governance pentru agent handoff | nu există încă proposal bounded, proof plan, machine-readable handoff sau compiled feedback | **18/100** |
 
 ### Dovezi concrete din ATF Java

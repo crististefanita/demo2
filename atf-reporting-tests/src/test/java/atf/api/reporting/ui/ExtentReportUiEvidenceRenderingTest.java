@@ -162,6 +162,33 @@ class ExtentReportUiEvidenceRenderingTest {
     }
 
     @Test
+    void rendersSensitivePlaywrightEvidenceWithoutPublishingTheOriginalValues() throws Exception {
+        Path root = Files.createTempDirectory("atf-ui-sensitive-evidence-");
+        Path report = root.resolve("ui-sensitive-evidence.html");
+        try (var session = new ExtentReportSession(report)) {
+            var scenario = session.startScenario("UiTest", EXTENT_UI_TEST_PACKAGE,
+                    "sensitive payment evidence", List.of("ui"));
+            var phase = scenario.startPhase("TEST BODY");
+            var step = phase.startRequest("WHEN payment credentials are entered", "", "");
+            step.uiActions(List.of(new AtfUiActionRecord(1, "Fill",
+                    "input[id='card-number']", "payment card is entered · value=[REDACTED]",
+                    "value entered: [REDACTED]", 5, AtfReportStatus.PASS),
+                    new AtfUiActionRecord(2, "Fill", "input[id='cvc']",
+                            "security code is entered · value=[REDACTED]",
+                            "value entered: [REDACTED]", 2, AtfReportStatus.PASS)));
+            step.complete(AtfReportStatus.PASS);
+            phase.complete(AtfReportStatus.PASS);
+            scenario.complete(AtfReportStatus.PASS);
+        }
+
+        String html = Files.readString(report);
+        assertTrue(html.contains("Playwright action sequence (2 entries)"));
+        assertTrue(html.contains("value entered: [REDACTED]"));
+        assertFalse(html.contains("4111111111111111"));
+        assertFalse(html.contains("987"));
+    }
+
+    @Test
     void summaryOnlyKeepsOneCollapsedDisclosureAndOmitsTheActionTable() throws Exception {
         Path root = Files.createTempDirectory("atf-ui-action-summary-only-");
         var profile = ReportEvidenceProfile.builder()

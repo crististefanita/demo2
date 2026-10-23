@@ -195,6 +195,9 @@ Regulile snapshot-ului typed sunt explicite:
 - `Overview/System` afișează o listă plată de perechi label/value. `Client` este
   metadata operațională din grupul `Browser`; `Suite` și alte detalii contextuale
   nu ajung în această secțiune.
+- Fallback-ul generic pentru `Client` este `Configured per execution`; Reporting
+  nu presupune că orice run folosește ApiTransport. Composition root-ul declară
+  valoarea concretă (de exemplu browserul UI) numai când cunoaște canalul efectiv.
 - `ReportEnvironmentSnapshot` este immutable, ignoră valorile goale și separă
   `displayValues()` (context typed) de `systemDisplayValues()` (allowlist-ul
   operațional pentru `Overview/System`). `ReportEnvironment` aplică redaction la

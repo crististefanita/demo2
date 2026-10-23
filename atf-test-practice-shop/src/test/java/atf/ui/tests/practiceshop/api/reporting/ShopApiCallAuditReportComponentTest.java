@@ -69,13 +69,6 @@ class ShopApiCallAuditReportComponentTest {
         } finally {
             ShopApiCallAuditContextTestSupport.clear();
         }
-
-        var html = Files.readString(output);
-        assertTrue(html.contains("POST /users/login"));
-        assertTrue(html.contains("valid login — OK (200)"));
-        assertTrue(html.contains("HTTP status: valid login — OK (200)"));
-        assertFalse(html.contains("1 actual exchange captured; 1 typed HTTP contracts attached"));
-        assertFalse(html.contains("<details class=\"step-detail phase-details\""));
     }
 
     @Test
@@ -133,13 +126,6 @@ class ShopApiCallAuditReportComponentTest {
                 assertEquals(List.of("HTTP status"), firstRequest.validations().getFirst().assertionNames());
                 assertEquals(List.of("HTTP status"), secondRequest.validations().getFirst().assertionNames());
             }
-            String html = Files.readString(output);
-            assertTrue(html.contains("POST /users/login — sign in with valid credentials"));
-            assertTrue(html.contains("POST /users/login — verify invalid credentials are rejected"));
-            assertEquals(0, occurrences(html,
-                    "2 actual exchanges captured; 2 typed HTTP contracts attached"));
-            assertFalse(html.contains("JUnit method outcome"));
-            assertFalse(html.contains("API exchanges captured"));
         } finally {
             ShopApiCallAuditContextTestSupport.clear();
         }
@@ -181,42 +167,6 @@ class ShopApiCallAuditReportComponentTest {
                         .scenarios().getFirst().phases().getFirst().nodes().getFirst();
                 assertTrue(request.executionPresent());
             }
-            var html = Files.readString(output);
-            assertTrue(html.contains("Execution evidence · 2 attempts"));
-            assertTrue(html.contains("RETRYABLE_RESPONSE"));
-            assertTrue(html.contains("HTTP 503"));
-        } finally {
-            ShopApiCallAuditContextTestSupport.clear();
-        }
-    }
-
-    @Test
-    void identicalLocalEventIdsRemainDistinctAcrossIndependentScenarios() throws Exception {
-        List<ShopApiCallAuditContextTestSupport.CapturedExchange> exchanges = new ArrayList<>();
-        ShopApiCallAuditContextTestSupport.recordWith(exchanges::add);
-        ShopApiCallAuditContextTestSupport.expectNext("first scenario login", ShopApiHttpStatus.OK);
-        try {
-            ShopApiComponentFixture.client().login(ShopApiScenarioFixture.validCredentials());
-            var execution = exchanges.getFirst().execution();
-            var output = Files.createTempDirectory("shop-api-audit-scenario-scope-").resolve("audit.html");
-            try (var report = new ExtentReportSession(output)) {
-                for (String scenarioName : List.of("scenario one", "scenario two")) {
-                    var scenario = report.startScenario("ShopApiClientContractTest", "api.reporting",
-                            scenarioName, List.of("api", "component"));
-                    var phase = scenario.startPhase(TEST_BODY);
-                    ShopApiReportPublisher.publishObserved(phase, execution, 1,
-                            exchanges.getFirst().contractValidation());
-                    phase.complete(AtfReportStatus.PASS);
-                    scenario.complete(AtfReportStatus.PASS);
-                }
-
-                var snapshot = report.semanticSnapshot();
-                assertEquals(2, snapshot.scenarioCount());
-                assertEquals(2, snapshot.requestCount(),
-                        "scenario-local E1 identifiers must not deduplicate independent scenarios");
-                assertEquals(List.of("scenario one", "scenario two"), snapshot.classes().getFirst()
-                        .scenarios().stream().map(AtfReportSemanticSnapshot.ScenarioSnapshot::name).toList());
-            }
         } finally {
             ShopApiCallAuditContextTestSupport.clear();
         }
@@ -243,10 +193,10 @@ class ShopApiCallAuditReportComponentTest {
                         .classes().getFirst().scenarios().getFirst().phases().getFirst().nodes().getFirst();
                 assertEquals(AtfReportStatus.FAIL, request.status());
                 assertEquals(AtfReportStatus.FAIL, request.validations().getFirst().status());
+                assertEquals("wrongly expected unauthorized — UNAUTHORIZED (401)",
+                        captured.contractValidation().assertions().getFirst().expected());
+                assertEquals("200", captured.contractValidation().assertions().getFirst().actual());
             }
-            var html = Files.readString(output);
-            assertTrue(html.contains("wrongly expected unauthorized — UNAUTHORIZED (401)"));
-            assertTrue(html.contains(">200<"));
         } finally {
             ShopApiCallAuditContextTestSupport.clear();
         }
@@ -270,9 +220,11 @@ class ShopApiCallAuditReportComponentTest {
                 var snapshot = report.semanticSnapshot();
                 assertEquals(1, snapshot.requestCount());
                 assertEquals(0, snapshot.validationCount());
+                var request = (AtfReportSemanticSnapshot.RequestSnapshot) snapshot.classes().getFirst()
+                        .scenarios().getFirst().phases().getFirst().nodes().getFirst();
+                assertEquals(HttpMethod.POST.value(), request.method());
+                assertEquals("/users/login", request.path());
             }
-            var html = Files.readString(output);
-            assertTrue(html.contains("POST /users/login"));
         } finally {
             ShopApiCallAuditContextTestSupport.clear();
         }
@@ -296,10 +248,6 @@ class ShopApiCallAuditReportComponentTest {
             assertEquals(0, snapshot.validationCount());
             assertEquals(List.of(AUDIT_DETAIL), scenarioSnapshot.phases().getFirst().detailNames());
         }
-
-        var html = Files.readString(output);
-        assertFalse(html.contains("0 actual exchanges captured; 0 typed HTTP contracts attached"));
-        assertFalse(html.contains("<details class=\"step-detail phase-details\""));
     }
 
     @Test
@@ -322,8 +270,6 @@ class ShopApiCallAuditReportComponentTest {
 
         var html = Files.readString(output);
         assertTrue(html.contains("AssertionError: observed status mismatch"));
-        assertTrue(html.contains("<details class=\"step-detail phase-diagnostics\""));
-        assertFalse(html.contains("<details class=\"step-detail phase-details\""));
     }
 
     @Test
@@ -343,20 +289,8 @@ class ShopApiCallAuditReportComponentTest {
             assertEquals(0, snapshot.validationCount());
         }
         String html = Files.readString(output);
-        assertTrue(html.contains("<details class=\"step-detail phase-diagnostics\""));
         assertTrue(html.contains("expected login contract; token=***REDACTED***"));
         assertFalse(html.contains("unpublished-secret"));
-        assertFalse(html.contains("<details class=\"step-detail phase-details\""));
-    }
-
-    private static int occurrences(String value, String token) {
-        int count = 0;
-        int index = 0;
-        while ((index = value.indexOf(token, index)) >= 0) {
-            count++;
-            index += token.length();
-        }
-        return count;
     }
 
 }

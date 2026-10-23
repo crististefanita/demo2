@@ -27,24 +27,28 @@ final class UiActionRecorder {
     }
 
     <T> T run(String operation, String target, String expected, Action<T> action) {
+        return run(operation, target, expected, false, action);
+    }
+
+    <T> T run(String operation, String target, String expected, boolean sensitive, Action<T> action) {
         long started = System.nanoTime();
+        String safeExpected = expected;
         publish(new UiActionTrace.UiActionEvent(UiActionTrace.Kind.START,
-                operation, target, expected, "", null, 0));
+                operation, target, safeExpected, "", null, 0));
         int attempt = 1;
         while (true) {
             try {
                 T observed = action.run();
                 String value = observed == null ? "operation completed" : observed.toString();
                 long duration = elapsedMillis(started);
-                add(operation, target, expected, value, duration, AtfReportStatus.PASS);
+                add(operation, target, safeExpected, value, duration, AtfReportStatus.PASS);
                 publish(new UiActionTrace.UiActionEvent(UiActionTrace.Kind.COMPLETE,
-                        operation, target, expected, value, AtfReportStatus.PASS, duration));
+                        operation, target, safeExpected, value, AtfReportStatus.PASS, duration));
                 return observed;
             } catch (RuntimeException | AssertionError failure) {
                 if (retryPolicy.allows(operation, attempt)) {
                     int nextAttempt = attempt + 1;
-                    String failureObserved = failure.getClass().getSimpleName() + ": "
-                            + failure.getMessage();
+                    String failureObserved = failureDescription(failure, sensitive);
                     String attemptExpected = "attempt " + attempt + " failed; retrying as attempt "
                             + nextAttempt + " of " + retryPolicy.maxAttempts();
                     add("Retry attempt", target, attemptExpected, failureObserved,
@@ -61,14 +65,25 @@ final class UiActionRecorder {
                     attempt = nextAttempt;
                     continue;
                 }
-                String value = failure.getClass().getSimpleName() + ": " + failure.getMessage();
+                String value = failureDescription(failure, sensitive);
                 long duration = elapsedMillis(started);
-                add(operation, target, expected, value, duration, AtfReportStatus.FAIL);
+                add(operation, target, safeExpected, value, duration, AtfReportStatus.FAIL);
                 publish(new UiActionTrace.UiActionEvent(UiActionTrace.Kind.COMPLETE,
-                        operation, target, expected, value, AtfReportStatus.FAIL, duration));
+                        operation, target, safeExpected, value, AtfReportStatus.FAIL, duration));
+                if (sensitive) throwSafeFailure(failure, value);
                 throw failure;
             }
         }
+    }
+
+    private static String failureDescription(Throwable failure, boolean sensitive) {
+        if (sensitive) return "Sensitive UI action failed (" + failure.getClass().getSimpleName() + ")";
+        return failure.getClass().getSimpleName() + ": " + failure.getMessage();
+    }
+
+    private static void throwSafeFailure(Throwable failure, String safeMessage) {
+        if (failure instanceof AssertionError) throw new AssertionError(safeMessage);
+        throw new IllegalStateException(safeMessage);
     }
 
     void observation(String operation, String target, String expected, String observed) {

@@ -15,6 +15,36 @@ import java.util.Set;
 public final class ReportOutputDirectory {
     private ReportOutputDirectory() { }
 
+    /** Resolves an arbitrary configured artifact directory below the project root. */
+    public static Path resolveProjectRelative(Path projectRoot, String configured,
+                                              String defaultRelativePath) {
+        Path project = Objects.requireNonNull(projectRoot, "projectRoot").toAbsolutePath().normalize();
+        String value = configured == null || configured.isBlank()
+                ? Objects.requireNonNull(defaultRelativePath, "defaultRelativePath").trim()
+                : configured.trim();
+        if (value.isEmpty() || value.startsWith("\\\\") || value.startsWith("//")
+                || value.matches("(?i)^[a-z][a-z0-9+.-]*:.*")) {
+            throw new IllegalArgumentException("Configured artifact directory must be a relative path: " + value);
+        }
+
+        Path relative;
+        try {
+            relative = Path.of(value).normalize();
+        } catch (InvalidPathException error) {
+            throw new IllegalArgumentException("Invalid configured artifact directory: " + value, error);
+        }
+        if (relative.isAbsolute() || relative.startsWith("..") || relative.toString().isBlank()) {
+            throw new IllegalArgumentException("Configured artifact directory must stay inside the project: " + value);
+        }
+
+        Path result = project.resolve(relative).normalize();
+        if (!result.startsWith(project) || result.equals(project)) {
+            throw new IllegalArgumentException("Configured artifact directory must stay inside the project: " + value);
+        }
+        verifyExistingAncestors(project, result);
+        return result;
+    }
+
     public static Path resolve(Path projectRoot, Path uiReportBase, Class<?> owner) {
         Path project = Objects.requireNonNull(projectRoot, "projectRoot").toAbsolutePath().normalize();
         Path ui = Objects.requireNonNull(uiReportBase, "uiReportBase").toAbsolutePath().normalize();

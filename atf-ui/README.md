@@ -193,6 +193,13 @@ override de bootstrap:
 `PlaywrightActionSequence` este recorderul, nu auditorul:
 
 - înregistrează ordinea, target-ul, expected, observed, durata și statusul;
+- redactează valorile sensibile înainte să intre în records sau în trace-ul
+  diagnostic. Selectorii uzuali pentru parole, date personale (inclusiv
+  `mobile_number`, `postal_code` și `zipcode`) și card/CVC sunt recunoscuți
+  automat; pentru un control cu nume opac, consumerul folosește
+  `new AtfLocator(locator, selector).withSensitiveData()`. Acțiunea reală
+  primește valoarea originală, însă report/replay/trace nu o păstrează, iar
+  mesajele de eșec ale locatorului nu sunt propagate cu textul brut;
 - ordinalul acțiunii este monoton pentru o secvență și continuă peste `drain()`;
   în E2E, aceeași secvență păstrează identificarea între setup și checkpoint-urile
   body-ului;

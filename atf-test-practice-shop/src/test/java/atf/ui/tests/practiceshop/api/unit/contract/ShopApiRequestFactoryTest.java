@@ -1,10 +1,10 @@
-package atf.ui.tests.practiceshop.api.component.contract;
+package atf.ui.tests.practiceshop.api.unit.contract;
 
 import atf.api.core.http.request.ApiRequest;
 import atf.api.core.http.request.HttpHeader;
 import atf.api.core.http.request.HttpMethod;
 import atf.api.core.http.request.MediaTypes;
-import atf.api.testkit.AtfComponentTest;
+import atf.api.testkit.AtfUnitTest;
 import atf.api.core.http.auth.AuthProfiles;
 import atf.api.core.http.auth.AuthType;
 import atf.ui.practiceshop.api.contract.ShopApiJsonField;
@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@AtfComponentTest
+@AtfUnitTest
 class ShopApiRequestFactoryTest {
     private final ShopApiRequestFactory requests = new ShopApiRequestFactory();
 

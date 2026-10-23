@@ -13,6 +13,7 @@ import atf.api.reporting.configuration.ReportEnvironmentField;
 import atf.api.reporting.configuration.ReportEnvironmentSnapshot;
 import atf.api.reporting.extent.session.ExtentReportSession;
 import atf.api.reporting.security.SensitiveDataRedactor;
+import atf.api.testkit.output.ReportOutputDirectory;
 import atf.ui.autoex.api.AutoExApiJsonField;
 import atf.ui.autoex.support.AutoExProjectRoot;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -180,13 +181,7 @@ public final class AutoExApiContractReportExtension implements BeforeAllCallback
     }
 
     public static Path resolveDirectory(Path projectRoot, String configured) {
-        Path relative = Path.of(configured == null || configured.isBlank()
-                ? DEFAULT_REPORT_DIRECTORY : configured).normalize();
-        if (relative.isAbsolute() || relative.startsWith("..") || relative.toString().isBlank()) {
-            throw new IllegalArgumentException(REPORT_DIRECTORY_PROPERTY
-                    + " must be a non-empty path inside the project");
-        }
-        return projectRoot.toAbsolutePath().normalize().resolve(relative).normalize();
+        return ReportOutputDirectory.resolveProjectRelative(projectRoot, configured, DEFAULT_REPORT_DIRECTORY);
     }
 
     private static String jsonField(String json, String field) {

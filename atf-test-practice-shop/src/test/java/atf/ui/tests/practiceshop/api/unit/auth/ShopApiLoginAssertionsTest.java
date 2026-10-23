@@ -1,10 +1,10 @@
-package atf.ui.tests.practiceshop.api.component.auth;
+package atf.ui.tests.practiceshop.api.unit.auth;
 
 import atf.api.core.http.protocol.HttpHeaderProfiles;
 import atf.api.core.http.request.HttpMethod;
 import atf.api.core.http.request.HttpHeader;
 import atf.api.core.http.request.MediaTypes;
-import atf.api.testkit.AtfComponentTest;
+import atf.api.testkit.AtfUnitTest;
 import atf.ui.practiceshop.support.api.ShopApiAssertions;
 import atf.ui.practiceshop.support.api.ShopApiNetworkJournal;
 import atf.ui.practiceshop.api.ShopApiRoutes;
@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Component contract for a JSON login response whose browser body is deferred. */
-@AtfComponentTest
+@AtfUnitTest
 class ShopApiLoginAssertionsTest {
     @Test
     void acceptsJsonTransportWhenPlaywrightCannotExposeCompressedBody() {

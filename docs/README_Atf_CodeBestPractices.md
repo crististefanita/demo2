@@ -107,8 +107,9 @@ primitivelor neutre care se repetă și pot fi testate fără browser sau site.
   semantica rețelei, păstrează-l local;
 - nu crea un modul nou pentru a ascunde un contract încă neclar.
 
-Detaliile gap-ului, inventarul și criteriile de acceptare sunt în
-[feedback-ul suportului E2E](feedback/ATF_E2E_Test_Support_Architecture_Feedback.md).
+Boundary-ul neutru al infrastructurii comune este documentat în
+[README-ul Test Kit](../atf-test-kit/README.md); source-set-ul și compoziția
+concretă rămân în README-ul ownerului fiecărui consumer.
 
 ## Contracte protejate și schimbări controlate
 

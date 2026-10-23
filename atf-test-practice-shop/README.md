@@ -113,6 +113,14 @@ IntelliJ, dezactivează implicit alte runnere și permite override JVM explicit;
 `false` prevalează asupra detectării IDE, iar valoarea invalidă eșuează închis.
 Politica este probată în `ShopE2eActivationPolicyComponentTest`.
 
+Pachetul `support.reporting` rămâne în `src/test`: `ShopReportSystemMetadata`
+proiectează numai configurația Shop în allowlist-ul System, iar
+`ShopScreenshotPolicy` transformă politica YAML Shop într-un
+`ReportEvidenceProfile`. `ShopReportUiActionAdapters` este bridge-ul typed din
+modelul UI din `atf-core` către DTO-ul renderer-neutral din `atf-reporting`;
+maparea efectivă rămâne centralizată în `ReportModelAdapters`. Nu este un
+renderer Shop și nu justifică mutarea în `atf-test-kit` sau un modul nou.
+
 Plasarea adaptorului Console–Reporting este încă în reconciliere cu guvernanța
 whole-ATF; vezi [feedback-ul de boundary](../docs/feedback/ATF_Consumer_Test_Architecture_Feedback.md).
 Browserul, raportarea și regulile Practice Shop nu sunt promovate în Test Kit.
@@ -251,11 +259,13 @@ Registration este o mutație remote; nu se reîncearcă automat și contul nu es
 
 ### Raport partajat — starea consumerului
 
-Profilul UI evidence este rezolvat per scenariu, iar izolarea politicilor de
-captură între scenarii-surori este verificată component-level. Shop păstrează
-încă `SETUP` și `TEST BODY` ca faze distincte; agregarea lor într-un singur
-`UNIFIED_FLOW` rămâne deschisă până când se păstrează proveniența și semantica
-unui setup eșuat. Criteriul activ și starea live sunt urmărite în
+| Parte a contractului | Stare și owner |
+|---|---|
+| Profilul scenariului | `ShopE2eContext` transmite profilul rezolvat la publicarea în sesiunea comună; config-ul furnizează baza, iar adnotarea poate suprascrie axele declarate. |
+| Izolarea scenariilor-surori | Probată generic în `atf-reporting-tests`; `ShopE2eContextEvidenceProfileTest` verifică override-ul peste YAML, dar nu publică doi frați cu profile diferite. |
+| Agregarea fazelor | `SETUP` și `TEST BODY` rămân separate în Shop. `UNIFIED_FLOW` nu le agregă încă peste faze cu proveniența și semantica setup failure păstrate. |
+
+Gap-ul rămas și criteriul de închidere sunt urmărite în
 [SHOP-CAPTURE-01](../docs/feedback/ATF_Reporting_Feedback.md#shop-capture-01--profil-per-scenariu-și-flow-unificat-peste-faze);
 contractul generic de lifecycle și randare rămâne în [`atf-reporting`](../atf-reporting/README.md).
 
@@ -395,10 +405,19 @@ consumerul le configurează și le leagă de checkpoint-urile Practice Shop.
 Comenzile de mai jos rulează suitele definite în `src/test`; `-am` construiește
 și modulele ATF de care depinde consumerul.
 
-`ShopComponentSuite` include contracte de configurare, UI/API, evidence și
-arhitectură; selectorul său exclude pachetele E2E și integration. `ShopApiCallAuditSuite`
-rulează numai testele cu tag-ul `api-call`, care folosesc transporturile proprii
-de test.
+`ShopComponentSuite` este gate-ul rapid agregat: include suportul consumer,
+contractele API `unit` și `component`, evidence și arhitectură, dar exclude
+journey-urile E2E și integrarea live. Pentru diagnoză API se pot rula separat
+`ShopApiUnitSuite` (logică pură, fără client/transport),
+`ShopApiComponentSuite` (client și publisher cu vecini controlați) și
+`ShopApiCallAuditSuite` (componente cu tag-ul `api-call`, prin transporturile
+lor de test).
+
+API unit contracts, fără client sau transport:
+
+```text
+mvn -pl atf-test-practice-shop -am "-Dtest=ShopApiUnitSuite" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
 
 Component/API contracts fără journey-uri live:
 
@@ -411,6 +430,37 @@ Subsetul de contracte și rapoarte API component:
 ```text
 mvn -pl atf-test-practice-shop -am "-Dtest=ShopApiComponentSuite" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
+
+### Boundary-ul probelor API
+
+| Probă | Dovedește | Nu dovedește |
+|---|---|---|
+| `ShopApiUnitSuite` | reguli pure de rutare, request, selecție, recovery și evidence, fără client sau transport | comportamentul serviciului Practice Shop |
+| `ShopApiComponentSuite` | clientul și publisherul cu vecini controlați; variante de request/response și flow-uri API compuse | sortarea/filtrarea efectivă sau persistența remote |
+| `ShopApiCallAuditSuite` | auditul exchange-urilor emise de componentele Shop prin transporturile lor de test | traficul live al site-ului |
+| `ShopStandaloneApiReportTest` | login, catalog, filtrare/sortare din răspuns și mutații/read-back pe un coș izolat, adresă/payment prin HTTP live | invoice final; semantica live rămâne neconfirmată până la o rulare autentificată verde |
+
+În component suite, `ShopApiEndpointMatrixTest` verifică invariants comune de
+transport; `ShopApiContractVariantTest` și `ShopApiScreenFlowTest` adaugă
+aserțiunile semantice distincte pentru payload și propagarea datelor. Suprapunerea
+unei rute este intenționată când dovada diferă; matricea nu substituie testul
+semantic și niciun fixture mock nu este prezentat ca dovadă de comportament live.
+
+### Limita dintre testele Shop și testele Reporting
+
+Aplicăm [regula comună de ownership](../docs/ATF_Testing_Guide.md#owner-ul-testului-business-adaptor-sau-infrastructură);
+secțiunea de mai jos fixează numai exemplele și limitele specifice Shop. Owner-ul
+se stabilește după invariantul afirmat, nu după faptul că testul publică un raport.
+
+| Invariant | Owner și exemplu | Nu se mută aici |
+|---|---|---|
+| Intenție, rute, ordine și redactare business Shop | Shop; `ShopApiContractReportComponentTest` și `ShopApiCallAuditReportComponentTest` verifică semantica adaptorului și asocierea exchange-urilor | markup Extent sau implementarea rendererului |
+| HTML, tabele, Request/Response/Execution, disclosure, retry rendering și izolare generică | `atf-reporting-tests`; fixture-uri neutre, fără site real | politica Shop pentru câmpuri de înregistrare/adresă |
+| Adnotări, resolver-e și cleanup reutilizabil strict test-only | `atf-test-kit` | screenshot policy, profilul Shop sau browser harness |
+
+Izolarea request-urilor identice între scenarii este probată generic în
+Reporting; Shop păstrează aserțiunile sale asupra intențiilor și apelurilor
+distincte `/users/login`.
 
 Auditul componentelor care emit API exchanges prin transporturile lor de test:
 
@@ -448,12 +498,13 @@ Pentru rulare individuală din Maven cu un cont existent:
 mvn -pl atf-test-practice-shop -am "-Dtest=ShopAuthenticatedPurchaseE2eTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
-Proba API business live este `ShopStandaloneApiReportTest` și cere explicit
-`atf.practice.authenticated-e2e=true` plus un fixture autentificat valid în
-`src/test/resources`. Ea este separată de suitele component/API, care verifică
-variațiile fără a depinde de un cont remote. Proba live autentifică utilizatorul,
-caută produsul, pregătește un coș și verifică checkout/payment; nu execută
-confirmarea UI și nu creează invoice-ul final.
+| Proba | Boundary și efect | Stare live |
+|---|---|---|
+| `ShopStandaloneApiReportTest` | Opt-in prin `atf.practice.authenticated-e2e=true` și fixture autentificat în `src/test/resources`; codul verifică filtrarea/sortarea răspunsului și update/remove cu read-back pe coș izolat, plus checkout/payment. Nu creează invoice-ul final. | Ultima rulare s-a oprit la login HTTP 401 înainte de crearea coșului; semantica remote pentru sort/filter și cart mutations rămâne neconfirmată. |
+| Suitele unit/component | Variații de request, validator și lifecycle cu vecini controlați; fără cont și fără trafic către serviciul extern. | Deterministe; nu sunt prezentate ca dovadă a semanticii serverului. |
+
+Sortarea/filtrarea remote și mutațiile de coș rămân deschise în
+[feedback-ul API](../docs/feedback/ATF_Practice_Shop_API_Test_Design_Feedback.md).
 
 ## Modificări și întreținere
 
@@ -462,11 +513,9 @@ confirmarea UI și nu creează invoice-ul final.
   dedicat din `src/main`.
 - Variațiile deterministe se adaugă în component/API component; API live rămâne
   opt-in, iar E2E-ul se păstrează pentru wiring-ul și efectul real în browser.
-- `ShopApiContractVariantTest` este modelul pentru o matrice mică de cazuri cu
-  aceleași aserțiuni și boundary-uri de rezultat distincte; nu este șablon pentru
-  orice test API. Evitați suprapunerea cu `ShopApiEndpointMatrixTest` și verificați
-  că numele fiecărui caz este susținut de aserțiunile sale. Analiza detaliată este
-  în [feedback-ul de design al testelor API](../docs/feedback/ATF_Practice_Shop_API_Test_Design_Feedback.md).
+- `ShopApiEndpointMatrixTest` păstrează invariants comune de transport, iar
+  `ShopApiContractVariantTest` verifică forme și rezultate semantice distincte;
+  unit/component ownership-ul și suitele sunt documentate mai sus.
 - Schimbările generic Playwright, reporting, console sau TestKit se fac la
   ownerul ATF respectiv, nu prin fork local în Practice Shop.
 - Un contract stabil intră aici; registrul de feedback păstrează doar gap-ul

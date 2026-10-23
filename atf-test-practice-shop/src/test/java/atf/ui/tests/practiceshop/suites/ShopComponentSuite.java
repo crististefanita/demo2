@@ -9,6 +9,7 @@ import org.junit.platform.suite.api.Suite;
 @SelectPackages({
         "atf.ui.tests.practiceshop.component",
         "atf.ui.tests.practiceshop.api.component",
+        "atf.ui.tests.practiceshop.api.unit",
         "atf.ui.tests.practiceshop.api.reporting",
         "atf.ui.tests.practiceshop.api.network",
         "atf.ui.tests.practiceshop.support"

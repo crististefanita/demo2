@@ -65,13 +65,40 @@ class ShopApiScreenFlowTest {
         var paymentResponse = checkout.payment().response();
         var addressResponse = checkout.addressLookup().response();
         var addressBody = ShopJsonEvidence.parse(addressResponse.body());
+        var searchBody = ShopJsonEvidence.parse(catalog.search().response().body());
+        var detailBody = ShopJsonEvidence.parse(catalog.detail().response().body());
+        var cartBody = ShopJsonEvidence.parse(cartResponse.body());
+        var paymentBody = ShopJsonEvidence.parse(paymentResponse.body());
 
         assertTrue(ShopApiHttpStatus.OK.matches(cartResponse.status()));
         assertTrue(ShopApiHttpStatus.OK.matches(paymentResponse.status()));
         assertTrue(ShopApiHttpStatus.OK.matches(addressResponse.status()));
+        assertNotNull(searchBody);
+        var searchProducts = searchBody.path(ShopApiJsonField.DATA.wireValue());
+        assertEquals(1, searchProducts.size());
+        assertEquals(ShopApiScenarioFixture.PRODUCT_ID,
+                searchProducts.get(0).path(ShopApiJsonField.ID.wireValue()).asText());
+        assertEquals(productName,
+                searchProducts.get(0).path(ShopApiJsonField.NAME.wireValue()).asText());
+        assertNotNull(detailBody);
+        assertEquals(ShopApiScenarioFixture.PRODUCT_ID,
+                detailBody.path(ShopApiJsonField.ID.wireValue()).asText());
+        assertEquals(productName,
+                detailBody.path(ShopApiJsonField.NAME.wireValue()).asText());
+        assertNotNull(cartBody);
+        var cartItems = cartBody.path(ShopApiJsonField.CART_ITEMS.wireValue());
+        assertEquals(1, cartItems.size());
+        assertEquals(catalog.productId(), cartItems.get(0)
+                .path(ShopApiJsonField.PRODUCT_ID.wireValue()).asText());
+        assertEquals(quantity, cartItems.get(0)
+                .path(ShopApiJsonField.QUANTITY.wireValue()).asInt());
+        assertNotNull(paymentBody);
+        assertEquals(ShopApiScenarioFixture.PAYMENT_SUCCESS_MESSAGE,
+                paymentBody.path(ShopApiJsonField.MESSAGE.wireValue()).asText());
         assertEquals(AddressLookupPolicy.ADVISORY, checkout.addressLookupPolicy());
         assertEquals(postcode, checkout.requestedAddress().postcode());
         assertNotNull(addressBody);
+        assertEquals(country, addressBody.path(ShopApiJsonField.COUNTRY.wireValue()).asText());
         assertEquals(postcode, addressBody.path(ShopApiJsonField.POSTCODE.wireValue()).asText());
     }
 }

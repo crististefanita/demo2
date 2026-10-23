@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -148,13 +149,19 @@ class PlaywrightActionSequenceTest {
                 List.of("input[id='last_name']", "Lovelace"),
                 List.of("input[id='dob']", "1990-01-01"),
                 List.of("input[id='postal_code']", "010101"),
+                List.of("input[id='mobile_number']", "0700000001"),
+                List.of("input[id='zipcode']", "90210"),
                 List.of("input[id='house_number']", "10"),
                 List.of("input[id='street']", "Secret Street"),
                 List.of("input[id='city']", "Private City"),
                 List.of("input[id='state']", "Private State"),
                 List.of("input[id='phone']", "0700000000"),
                 List.of("input[id='email']", "private.person@example.test"),
-                List.of("input[id='password']", "Secret!123"));
+                List.of("input[id='password']", "Secret!123"),
+                List.of("input[name='card-number']", "4111111111111111"),
+                List.of("input[autocomplete='cc-number']", "5555555555554444"),
+                List.of("input[id='cvc']", "987"),
+                List.of("input[name='security-code']", "654"));
 
         for (List<String> targetAndValue : targetsAndValues) {
             String target = targetAndValue.getFirst();
@@ -179,6 +186,62 @@ class PlaywrightActionSequenceTest {
             assertEquals("registration field is entered · value=[REDACTED]", records.get(index).expected());
             assertTrue(!records.get(index).observed().contains(entered.get(index)));
         }
+    }
+
+    @Test
+    void explicitlySensitiveLocatorRedactsValuesEvenWhenSelectorHasNoSensitiveName() {
+        String rawValue = "private-payment-value";
+        var locator = (com.microsoft.playwright.Locator) Proxy.newProxyInstance(
+                com.microsoft.playwright.Locator.class.getClassLoader(),
+                new Class<?>[]{com.microsoft.playwright.Locator.class},
+                (proxy, method, arguments) -> switch (method.getName()) {
+                    case "count" -> 1;
+                    case "fill" -> null;
+                    case "inputValue" -> rawValue;
+                    case "toString" -> "input[data-test='opaque-field']";
+                    default -> throw new UnsupportedOperationException(method.getName());
+                });
+
+        var actions = new PlaywrightActionSequence();
+        var sensitive = new AtfLocator(locator, "input[data-test='opaque-field']").withSensitiveData();
+        actions.fill(sensitive, rawValue, "private field is set to " + rawValue);
+        actions.expectValue(sensitive, rawValue);
+
+        var records = actions.snapshot();
+        assertEquals("value entered: [REDACTED]", records.get(0).observed());
+        assertEquals("private field is set to [REDACTED] · value=[REDACTED]",
+                records.get(0).expected());
+        assertEquals("value equals: [REDACTED]", records.get(1).expected());
+        assertTrue(!records.toString().contains(rawValue));
+        assertEquals("[REDACTED]", records.get(1).observed());
+    }
+
+    @Test
+    void sensitiveFailureDoesNotLeakThroughRecordOrDiagnosticTrace() {
+        String privateValue = "4111111111111111";
+        var events = new ArrayList<UiActionTrace.UiActionEvent>();
+        var locator = (com.microsoft.playwright.Locator) Proxy.newProxyInstance(
+                com.microsoft.playwright.Locator.class.getClassLoader(),
+                new Class<?>[]{com.microsoft.playwright.Locator.class},
+                (proxy, method, arguments) -> switch (method.getName()) {
+                    case "count" -> 1;
+                    case "fill" -> throw new IllegalStateException("browser echoed " + privateValue);
+                    case "toString" -> "input[id='card-number']";
+                    default -> throw new UnsupportedOperationException(method.getName());
+                });
+        var actions = new PlaywrightActionSequence(events::add);
+
+        var failure = assertThrows(IllegalStateException.class, () -> actions.fill(
+                new AtfLocator(locator, "input[id='card-number']"), privateValue,
+                "payment card " + privateValue + " is entered"));
+
+        var record = actions.snapshot().getFirst();
+        assertTrue(record.expected().contains("[REDACTED]"));
+        assertTrue(record.observed().contains("IllegalStateException"));
+        assertFalse(record.observed().contains(privateValue));
+        assertFalse(failure.getMessage().contains(privateValue));
+        assertFalse(events.toString().contains(privateValue));
+        assertTrue(events.toString().contains("Sensitive UI action failed"));
     }
 
     @Test

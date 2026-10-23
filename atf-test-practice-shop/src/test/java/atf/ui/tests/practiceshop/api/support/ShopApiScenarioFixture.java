@@ -23,6 +23,7 @@ public final class ShopApiScenarioFixture {
     public static final String CART_ID = "01cart";
     public static final String CATEGORY_ID = "category-1";
     public static final String OUT_OF_STOCK_PRODUCT_ID = "out-of-stock";
+    public static final String FILTERED_PRODUCT_ID = "oos";
     public static final String MUTATION_CART_ID = "cart-1";
     public static final String MUTATION_PRODUCT_ID = "product-1";
     public static final String INVALID_PRODUCT_ID = "missing-product";
@@ -44,31 +45,43 @@ public final class ShopApiScenarioFixture {
     public static final String NOT_FOUND_BODY = "{\"message\":\"Not found\"}";
     public static final String UNPROCESSABLE_BODY = "{\"message\":\"The given data was invalid.\"}";
     public static final String PAYMENT_SUCCESS_BODY = "{\"message\":\"Payment was successful\"}";
+    public static final String PAYMENT_SUCCESS_MESSAGE = "Payment was successful";
+    public static final String REGISTERED_USER_ID = "user-1";
+    public static final String CREATED_ORDER_ID = "order-1";
+    public static final String CREATED_INVOICE_NUMBER = "INV-TEST-1";
+    public static final double CREATED_ORDER_TOTAL = 24.02;
+    public static final int QUANTITY = 2;
+    public static final int UPDATED_QUANTITY = 3;
     public static final String LOGIN_TOKEN_BODY =
             "{\"access_token\":\"" + BEARER_TOKEN + "\"}";
     public static final String REGISTERED_USER_BODY =
-            "{\"id\":\"user-1\",\"email\":\"atf@example.test\"}";
+            "{\"id\":\"" + REGISTERED_USER_ID + "\",\"email\":\"" + VALID_EMAIL + "\"}";
     public static final String CREATED_INVOICE_BODY =
-            "{\"id\":\"order-1\",\"invoice_number\":\"INV-TEST-1\",\"total\":24.02}";
+            "{\"id\":\"" + CREATED_ORDER_ID + "\",\"invoice_number\":\""
+                    + CREATED_INVOICE_NUMBER + "\",\"total\":" + CREATED_ORDER_TOTAL + "}";
     public static final String PRODUCT_SEARCH_BODY =
-            "{\"data\":[{\"id\":\"01product\",\"name\":\"Combination Pliers\"}]}";
+            "{\"data\":[{\"id\":\"" + PRODUCT_ID + "\",\"name\":\""
+                    + PRODUCT_NAME + "\"}]}";
     public static final String PRODUCT_COLLECTION_BODY =
-            "{\"data\":[{\"id\":\"oos\",\"name\":\"Out of stock\",\"in_stock\":false}],"
-                    + "\"category\":\"category-1\"}";
+            "{\"data\":[{\"id\":\"" + FILTERED_PRODUCT_ID
+                    + "\",\"name\":\"Out of stock\",\"in_stock\":false}],"
+                    + "\"category\":\"" + CATEGORY_ID + "\"}";
     public static final String CATEGORIES_BODY = "[{\"id\":\"category-1\",\"name\":\"Hand Tools\"}]";
     public static final String OUT_OF_STOCK_BODY =
-            "{\"id\":\"out-of-stock\",\"name\":\"Out of stock\",\"in_stock\":false}";
-    public static final String PRODUCT_BODY = "{\"id\":\"01product\",\"name\":\"Combination Pliers\"}";
-    public static final String CART_BODY = "{\"id\":\"01cart\"}";
+            "{\"id\":\"" + OUT_OF_STOCK_PRODUCT_ID
+                    + "\",\"name\":\"Out of stock\",\"in_stock\":false}";
+    public static final String PRODUCT_BODY = "{\"id\":\"" + PRODUCT_ID + "\",\"name\":\""
+            + PRODUCT_NAME + "\"}";
+    public static final String CART_BODY = "{\"id\":\"" + CART_ID + "\"}";
     public static final String CART_ITEM_BODY =
-            "{\"cart_items\":[{\"product_id\":\"01product\",\"quantity\":2}]}";
+            "{\"cart_items\":[{\"product_id\":\"" + PRODUCT_ID + "\",\"quantity\":"
+                    + QUANTITY + "}]}";
     public static final String CART_MUTATION_BODY = "{\"result\":\"item added or updated\"}";
     public static final String CART_UPDATE_BODY = "{\"result\":\"item updated\"}";
     public static final String CART_UPDATE_RESULT = "item updated";
-    public static final String ADDRESS_BODY = "{\"country\":\"RO\",\"postcode\":\"010101\"}";
+    public static final String ADDRESS_BODY = "{\"country\":\"" + COUNTRY
+            + "\",\"postcode\":\"" + POSTCODE + "\"}";
     public static final String UNEXPECTED_ROUTE_BODY = "{\"message\":\"unexpected route\"}";
-    public static final int QUANTITY = 2;
-    public static final int UPDATED_QUANTITY = 3;
 
     private ShopApiScenarioFixture() { }
 

@@ -7,6 +7,7 @@ import atf.ui.practiceshop.api.contract.ShopApiJsonField;
 import atf.ui.practiceshop.api.ShopApiRequestFactory;
 import atf.ui.practiceshop.api.ShopApiRoutes;
 import atf.ui.practiceshop.api.ShopProductQuery;
+import atf.ui.practiceshop.api.contract.ShopApiQueryParameter;
 import atf.ui.practiceshop.api.contract.ShopProductSort;
 import atf.ui.practiceshop.support.ShopJsonEvidence;
 import atf.ui.tests.practiceshop.api.support.ShopApiScenarioFixture;
@@ -24,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @ShopApiCallComponentTest
 class ShopApiCatalogCartVariantTest {
     @Test
-    void categorySortAndOutOfStockRemainObservableWithoutASecondE2e() {
+    void categoryQueryAndOutOfStockRemainObservableWithoutASecondE2e() {
         ShopApiClient client = ShopApiComponentFixture.client();
         ShopApiRequestFactory requests = client.requests();
 
@@ -50,14 +51,29 @@ class ShopApiCatalogCartVariantTest {
         var outOfStockBody = ShopJsonEvidence.parse(outOfStockResponse.body());
 
         assertTrue(ShopApiHttpStatus.OK.matches(filteredResponse.status()));
+        assertEquals(categoryId, filteredExecution.request().query()
+                .get(ShopApiQueryParameter.CATEGORY.wireValue()));
+        assertEquals(Boolean.toString(rentalOnly), filteredExecution.request().query()
+                .get(ShopApiQueryParameter.RENTAL.wireValue()));
+        assertEquals(ShopProductSort.PRICE_ASC.wireValue(), filteredExecution.request().query()
+                .get(ShopApiQueryParameter.SORT.wireValue()));
+        assertEquals(Integer.toString(page), filteredExecution.request().query()
+                .get(ShopApiQueryParameter.PAGE.wireValue()));
         assertNotNull(filteredBody);
         assertEquals(categoryId, filteredBody.path(ShopApiJsonField.CATEGORY.wireValue()).asText());
-        assertTrue(filteredBody.path(ShopApiJsonField.DATA.wireValue()).isArray());
+        var filteredProducts = filteredBody.path(ShopApiJsonField.DATA.wireValue());
+        assertEquals(1, filteredProducts.size());
+        assertEquals(ShopApiScenarioFixture.FILTERED_PRODUCT_ID,
+                filteredProducts.get(0).path(ShopApiJsonField.ID.wireValue()).asText());
+        assertFalse(filteredProducts.get(0).path(ShopApiJsonField.IN_STOCK.wireValue())
+                .asBoolean(true));
         assertTrue(ShopApiHttpStatus.OK.matches(categoriesResponse.status()));
         assertNotNull(categoriesBody);
         assertTrue(categoriesBody.findValuesAsText(ShopApiJsonField.ID.wireValue()).contains(categoryId));
         assertTrue(ShopApiHttpStatus.OK.matches(outOfStockResponse.status()));
         assertNotNull(outOfStockBody);
+        assertEquals(outOfStockProductId,
+                outOfStockBody.path(ShopApiJsonField.ID.wireValue()).asText());
         assertFalse(outOfStockBody.path(ShopApiJsonField.IN_STOCK.wireValue()).asBoolean(true));
     }
 

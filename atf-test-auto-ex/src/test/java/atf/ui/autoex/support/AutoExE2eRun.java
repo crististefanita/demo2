@@ -3,6 +3,8 @@ package atf.ui.autoex.support;
 import atf.api.console.junit.AtfConsoleTestContext;
 import atf.api.reporting.api.ReportModelAdapters;
 import atf.api.reporting.configuration.AtfReportConfigurationLoader;
+import atf.api.reporting.configuration.ReportEnvironmentField;
+import atf.api.reporting.configuration.ReportEnvironmentSnapshot;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.api.reporting.contract.AtfReportStatus;
@@ -14,6 +16,7 @@ import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.evidence.profile.ReportEvidenceProfile;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.ui.UiExtentReportSession;
+import atf.api.reporting.ui.UiExtentReportOptions;
 import atf.api.reporting.ui.network.ReportNetworkInspector;
 import atf.api.testkit.files.AtfTestResourceReader;
 import atf.api.testkit.output.ReportOutputDirectory;
@@ -155,7 +158,15 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
         private ReportResource(java.nio.file.Path output, String name,
                                atf.api.reporting.console.AtfConsoleSink console,
                                ReportEvidenceProfile evidence) {
-            report = UiExtentReportSession.openConfigured(output, name, console, evidence);
+            var environment = ReportEnvironmentSnapshot.builder()
+                    .put(ReportEnvironmentField.CLIENT, "Playwright browser")
+                    .build();
+            report = UiExtentReportSession.openConfigured(UiExtentReportOptions.builder(output)
+                    .fileName(name)
+                    .console(console)
+                    .evidenceProfile(evidence)
+                    .environment(environment)
+                    .build());
         }
 
         private UiExtentReportSession report() { return report; }

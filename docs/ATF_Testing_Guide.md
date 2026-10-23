@@ -84,6 +84,27 @@ purchase journey — UI, UI+API și screenshot final — nu intenții de busines
 independente. Suitele API live sunt opt-in; nu se includ ca precondiție pentru
 rularea UI obișnuită.
 
+### Owner-ul testului: business, adaptor sau infrastructură
+
+Numele clasei și faptul că un test produce HTML nu stabilesc owner-ul. Se mută
+invariantul, nu fixture-ul și nici testul întreg:
+
+| Ce afirmă testul | Owner | Ce rămâne local în consumer |
+|---|---|---|
+| regulile aplicației, traseele UI/API, payload-ul și propagarea datelor | [`atf-test-practice-shop`](../atf-test-practice-shop/README.md#limita-dintre-testele-shop-și-testele-reporting) / [`atf-test-auto-ex`](../atf-test-auto-ex/README.md#suite-și-variante-de-evidence) | toate probele business, inclusiv cele cu mock; mock-ul izolează transportul, nu schimbă owner-ul |
+| traducerea contractului aplicației în portul public Reporting | consumerul care deține adaptorul | intenția/titlul business, asocierea așteptării la exchange, statusul specific și politica locală de redactare |
+| semantica generică a modelului, lifecycle-ului, publisherului, markup-ului, tabelelor, disclosure-urilor, CSS/JS ori browserului raportului | [`atf-reporting-tests`](../atf-reporting-tests/README.md#regula-limitelor-de-responsabilitate) (sau testele standalone ale `atf-reporting`, după boundary) | probe neutre, fără dependență de Shop/AutoEx |
+| API-uri și lifecycle-uri reutilizabile strict test-only: adnotări, resolver-e, clasificare și primitive generice | [`atf-test-kit`](../atf-test-kit/README.md#regula-de-promovare-a-testelor-reutilizabile) | aplicația păstrează fixture-ul, lifecycle-ul și adaptarea de business; Kit-ul nu preia aserțiuni business sau teste Reporting |
+
+O probă poate rămâne consumer-owned chiar dacă publică un artifact: trebuie să
+verifice exclusiv contractul adaptorului aplicației și să folosească snapshot-ul
+semantic sau rezultatul typed pentru acea mapare. Structura DOM/HTML, CSS,
+formatul disclosures, retry rendering și alte invariants independente se testează
+o singură dată, cu fixture generică, la ownerul Reporting. Test Kit nu este un
+loc general de mutare a testelor: nu depinde de Reporting, Playwright sau codul
+consumerilor; candidatele se promovează numai dacă sunt primitive de infrastructură
+neutră, nu doar pentru că sunt folosite de două aplicații.
+
 ## Traseul UI/API și ce verifică testele
 
 Contractul checkpoint-ului mixt este deținut de
@@ -138,10 +159,11 @@ SETUP
 Lifecycle-ul browser/report rămâne în harness-ul test-only al consumerului.
 `FailureAwareCleanup` oferă deja în `atf-test-kit` cleanup neutru cu închidere
 inversă și agregarea erorilor; alte primitive se promovează numai după probe
-comportamentale la consumatorii relevanți. Excepția AutoEx curentă este
-`AutoExPurchaseSession` din `src/main`, care expune tipuri Playwright și Reporting;
-nu este precedent pentru un port generic și rămâne un boundary deschis în
-[feedback-ul suportului E2E comun](feedback/ATF_E2E_Test_Support_Architecture_Feedback.md).
+comportamentale la consumatorii relevanți. `AutoExPurchaseSession` rămâne
+intenționat API intern al runtime-ului consumer; nu este precedent pentru un port
+generic și nu are TODO activ de extracție. Boundary-ul este descris în
+[README-ul Automation Exercise](../atf-test-auto-ex/README.md), iar regula
+cross-consumer în [README-ul Test Kit](../atf-test-kit/README.md).
 
 Forma raportului și ownership-ul fiecărei dovezi sunt normative în
 [ATF Reporting Contract](ATF_Reporting_Contract.md#dovezile-configurării-inițiale).

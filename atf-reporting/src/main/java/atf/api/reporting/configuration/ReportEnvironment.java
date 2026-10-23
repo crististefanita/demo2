@@ -16,7 +16,7 @@ public final class ReportEnvironment {
         metadata.put("Runtime", "Java " + System.getProperty("java.version", "unknown"));
         metadata.put("OS", System.getProperty("os.name", "unknown") + " "
                 + System.getProperty("os.version", "unknown"));
-        metadata.put("Client", "ATF ApiTransport (configured per execution)");
+        metadata.put("Client", "Configured per execution");
         metadata.put("Reporting", "Extent · embedded offline HTML");
         return Collections.unmodifiableMap(metadata);
     }

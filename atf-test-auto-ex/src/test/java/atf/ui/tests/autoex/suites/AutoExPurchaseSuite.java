@@ -15,7 +15,9 @@ import org.junit.platform.suite.api.Suite;
 /** Three evidence configurations of the same business purchase; one shared Extent report. */
 @Suite
 @TestClassOrder(ClassOrderer.OrderAnnotation.class)
-@SelectClasses({AutoExPurchaseUiE2eTest.class, AutoExPurchaseUiApiE2eTest.class,
+@SelectClasses({
+        AutoExPurchaseUiE2eTest.class,
+        AutoExPurchaseUiApiE2eTest.class,
         AutoExPurchaseUiFinalScreenshotE2eTest.class})
 @IncludeTags("e2e")
 @AtfE2eTest

@@ -1,4 +1,4 @@
-package atf.ui.tests.practiceshop.api.component.exchange;
+package atf.ui.tests.practiceshop.api.unit.exchange;
 
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.api.ReportRequest;

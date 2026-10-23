@@ -1,8 +1,8 @@
-package atf.ui.tests.practiceshop.api.component.exchange;
+package atf.ui.tests.practiceshop.api.unit.exchange;
 
 import atf.api.core.http.protocol.HttpHeaderProfiles;
 import atf.api.core.http.request.HttpMethod;
-import atf.api.testkit.AtfComponentTest;
+import atf.api.testkit.AtfUnitTest;
 import atf.ui.practiceshop.api.ShopApiOperation;
 import atf.ui.practiceshop.api.ShopApiRoutes;
 import atf.ui.practiceshop.api.contract.ShopApiHttpStatus;
@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-@AtfComponentTest
+@AtfUnitTest
 class ShopApiExchangeSelectorTest {
     @Test
     void latestSelectsTheMostRecentMatchingExchangeWithoutChangingCaptureOrder() {

@@ -13,7 +13,10 @@ final class PlaywrightLocatorActions {
     private static final Pattern SENSITIVE_TARGET = Pattern.compile(
             "password|token|secret|credential|authorization|cookie|api[-_]?key"
                     + "|(?:^|[^a-z])(?:e-?mail|first[_-]?name|last[_-]?name|date[_-]?of[_-]?birth|dob"
-                    + "|phone|postal[_-]?code|house[_-]?number|street|city|state|address)(?:$|[^a-z])",
+                    + "|phone|mobile|postal[_-]?code|zip[_-]?code|house[_-]?number|street|city|state|address"
+                    + "|card[-_ ]?(?:number|no|num|holder)|cc[-_ ]?(?:number|num)"
+                    + "|pan|cvc|cvv|security[-_ ]?code|payment[-_ ]?(?:card|number|security)"
+                    + ")(?:$|[^a-z])",
             Pattern.CASE_INSENSITIVE);
     private final UiActionRecorder recorder;
 
@@ -27,7 +30,7 @@ final class PlaywrightLocatorActions {
 
     void click(AtfLocator element, String expected) {
         String target = element.selector();
-        recorder.run("Click", target, expected, () -> {
+        recorder.run("Click", target, expected, isSensitiveTarget(element), () -> {
             requireExactlyOne(element, "Click");
             element.locator().click();
             return "click completed";
@@ -40,14 +43,16 @@ final class PlaywrightLocatorActions {
 
     String getText(AtfLocator element, String expected) {
         String target = element.selector();
-        return recorder.run("Get text", target, expected,
-                () -> readableText(element.locator()));
+        return recorder.run("Get text", target, expected, isSensitiveTarget(element), () -> {
+            String observed = readableText(element.locator());
+            return isSensitiveTarget(element) ? "[REDACTED]" : observed;
+        });
     }
 
     void fill(AtfLocator element, String value, String expected) {
         String target = element.selector();
-        String displayValue = displayValue(target, value);
-        recorder.run("Fill", target, withValue(expected, displayValue), () -> {
+        String displayValue = displayValue(element, value);
+        recorder.run("Fill", target, withValue(expected, displayValue, value), isSensitiveTarget(element), () -> {
             requireExactlyOne(element, "Fill");
             element.locator().fill(value == null ? "" : value);
             return "value entered: " + displayValue;
@@ -56,8 +61,9 @@ final class PlaywrightLocatorActions {
 
     void selectOption(AtfLocator element, String label, String expected) {
         String target = element.selector();
-        String displayLabel = displayValue(target, label);
-        recorder.run("Select option", target, withValue(expected, displayLabel), () -> {
+        String displayLabel = displayValue(element, label);
+        recorder.run("Select option", target, withValue(expected, displayLabel, label),
+                isSensitiveTarget(element), () -> {
             requireExactlyOne(element, "Select option");
             element.locator().selectOption(new SelectOption().setLabel(label));
             return "option selected: " + displayLabel;
@@ -70,7 +76,7 @@ final class PlaywrightLocatorActions {
 
     Locator findElement(AtfLocator element) {
         String target = element.selector();
-        recorder.run("Find element", target, "element exists", () -> {
+        recorder.run("Find element", target, "element exists", isSensitiveTarget(element), () -> {
             if (element.locator().count() == 0) {
                 throw new AssertionError("Element was not found: " + target);
             }
@@ -86,25 +92,30 @@ final class PlaywrightLocatorActions {
     String expectText(AtfLocator element, String expected) {
         String target = element.selector();
         String expectedText = expected == null ? "" : expected.trim();
-        return recorder.run("Expect text", target, "text contains: " + expectedText, () -> {
+        boolean sensitive = isSensitiveTarget(element);
+        String displayExpected = sensitive ? "[REDACTED]" : expectedText;
+        return recorder.run("Expect text", target, "text contains: " + displayExpected, sensitive, () -> {
             String observed = readableText(element.locator());
             if (!observed.contains(expectedText)) {
-                throw new AssertionError("Expected text '" + expectedText + "' but observed '"
-                        + observed + "'");
+                throw new AssertionError(sensitive ? "Sensitive text did not match the expected value"
+                        : "Expected text '" + expectedText + "' but observed '" + observed + "'");
             }
-            return observed;
+            return sensitive ? "[REDACTED]" : observed;
         });
     }
 
     String expectValue(AtfLocator element, String expectedValue) {
         String target = element.selector();
         String expected = expectedValue == null ? "" : expectedValue;
-        return recorder.run("Expect value", target, "value equals: " + expected, () -> {
+        boolean sensitive = isSensitiveTarget(element);
+        String displayExpected = sensitive ? "[REDACTED]" : expected;
+        return recorder.run("Expect value", target, "value equals: " + displayExpected, sensitive, () -> {
             String observed = element.locator().inputValue();
             if (!observed.equals(expected)) {
-                throw new AssertionError("Expected value '" + expected + "' but observed '" + observed + "'");
+                throw new AssertionError(sensitive ? "Sensitive field value did not match the expected value"
+                        : "Expected value '" + expected + "' but observed '" + observed + "'");
             }
-            return observed;
+            return sensitive ? "[REDACTED]" : observed;
         });
     }
 
@@ -114,7 +125,7 @@ final class PlaywrightLocatorActions {
 
     void focus(AtfLocator element, String expected) {
         String target = element.selector();
-        recorder.run("Focus", target, expected, () -> {
+        recorder.run("Focus", target, expected, isSensitiveTarget(element), () -> {
             element.locator().focus();
             return "focus completed";
         });
@@ -126,7 +137,7 @@ final class PlaywrightLocatorActions {
 
     void waitForVisible(AtfLocator element) {
         String target = element.selector();
-        recorder.run("Wait for visible", target, "state=Visible", () -> {
+        recorder.run("Wait for visible", target, "state=Visible", isSensitiveTarget(element), () -> {
             element.locator().waitFor(new Locator.WaitForOptions().setState(WaitForSelectorState.VISIBLE));
             return "state reached";
         });
@@ -138,7 +149,7 @@ final class PlaywrightLocatorActions {
 
     void assertVisible(AtfLocator element) {
         String target = element.selector();
-        recorder.run("Expect visible", target, "locator is visible", () -> {
+        recorder.run("Expect visible", target, "locator is visible", isSensitiveTarget(element), () -> {
             if (!element.locator().isVisible()) {
                 throw new AssertionError("Locator is not visible: " + target);
             }
@@ -154,18 +165,21 @@ final class PlaywrightLocatorActions {
         }
     }
 
-    private static String withValue(String expected, String value) {
+    private static String withValue(String expected, String value, String originalValue) {
         String context = expected == null ? "" : expected.trim();
+        if (value.equals("[REDACTED]") && originalValue != null && !originalValue.isBlank()) {
+            context = context.replace(originalValue, "[REDACTED]");
+        }
         return (context.isBlank() ? "value" : context) + " · value=" + value;
     }
 
-    private static String displayValue(String target, String value) {
-        if (isSensitiveTarget(target)) return "[REDACTED]";
+    private static String displayValue(AtfLocator element, String value) {
+        if (isSensitiveTarget(element)) return "[REDACTED]";
         return value == null || value.isBlank() ? "<empty>" : value;
     }
 
-    private static boolean isSensitiveTarget(String target) {
-        return target != null && SENSITIVE_TARGET.matcher(target).find();
+    private static boolean isSensitiveTarget(AtfLocator element) {
+        return element.sensitiveData() || SENSITIVE_TARGET.matcher(element.selector()).find();
     }
 
     private static String readableText(Locator locator) {

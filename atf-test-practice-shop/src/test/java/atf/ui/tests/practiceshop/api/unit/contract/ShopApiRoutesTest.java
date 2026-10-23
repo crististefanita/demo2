@@ -1,13 +1,13 @@
-package atf.ui.tests.practiceshop.api.component.contract;
+package atf.ui.tests.practiceshop.api.unit.contract;
 
-import atf.api.testkit.AtfComponentTest;
+import atf.api.testkit.AtfUnitTest;
 import atf.ui.practiceshop.api.ShopApiRoutes;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-@AtfComponentTest
+@AtfUnitTest
 class ShopApiRoutesTest {
     @Test
     void dynamicRoutesUseTheSameCanonicalPathVocabularyAsTheFactory() {

@@ -61,7 +61,7 @@ Fiecare clasă executabilă declară exact un nivel:
 | `atf.api.testkit.channel` | `AtfTestChannel`, `TestChannelPlan`, resolver | canal UI/API/UI_API, separat de tag-ul JUnit al nivelului |
 | `atf.api.testkit` + `.console` | `AtfConsoleMessages`, `AtfConsoleMessagePolicyResolver` | politică typed de consolă; `atf-console` o aplică fără sink/formatter duplicat |
 | `atf.api.testkit.reporting` | `AtfReportPath`, `AtfReportPathPolicyResolver` | opt-in separat pentru calea raportului publicat |
-| `atf.api.testkit.output` | cele două adnotări de director și `ReportOutputDirectory` | ancoră UI sau project-relative furnizată de consumator |
+| `atf.api.testkit.output` | adnotările de director și `ReportOutputDirectory` | ancoră UI prin adnotare sau path project-relative validat pentru un artifact |
 | `atf.api.testkit.setup.api` | `ApiScenarioSetup`, `ApiTestRef` | declarații; catalogul și executarea rămân la consumator |
 | `atf.api.testkit.documentation` | `DocumentationTarget` repeatable | selecție de documente; validatorii rămân în ATF Tests |
 | `atf.api.testkit.evidence` | `AtfUiEvidence`, `AtfUiEvidenceFlow`, `AtfUiScreenshotPolicy` | declară independent gruparea flow-ului și intenția capturilor; adaptorii consumer le mapează în profilul Reporting |
@@ -118,7 +118,7 @@ Nu se creează un modul UI nou și nu se mută harness-urile consumerilor ca ata
 | Browser, `Page`, Playwright, Extent, capture profile, network inspector și business | adaptorul `src/test` al fiecărui consumer; nu intră în Test Kit |
 | Lifecycle-ul sau extensia JUnit UI | rămân locale până când ambele consumatoare demonstrează același contract; `atf-ui` consumă deja Test Kit în test scope, deci dependența inversă ar crea ciclu |
 | Scope-ul Shop pentru Test Kit | importurile și dependența Maven sunt în `test` scope; verificat de `ShopArchitectureTest` |
-| Clasificare, evidence, activare și instalare | `@AtfE2eTest`, `@AtfUiEvidence` și extensia/configurația consumerului au roluri distincte; detalii în [feedback-ul E2E](../docs/feedback/ATF_E2E_Test_Support_Architecture_Feedback.md) |
+| Clasificare, evidence, activare și instalare | `@AtfE2eTest` și `@AtfTestChannel` clasifică testul; `@AtfUiEvidence` declară forma dovezii; extensia și politica de activare rămân la consumer. Contractul adnotărilor este în [documentația infrastructurii de test](../docs/ATF_Test_Infrastructure_Annotations.md), iar alegerea layer-ului în [ghidul de testare](../docs/ATF_Testing_Guide.md). |
 
 ## Dependențe
 
@@ -135,3 +135,27 @@ vocabularul și enforce-uiește ierarhia; nu mută assertions, fixtures, locator
 CSS, JavaScript sau flow-uri între module. Săgeata `--test-->` este intenționată:
 compoziția poate consuma librăria reporting în test scope, în timp ce
 `atf-reporting/src/main` rămâne fără dependențe ATF.
+
+### Regula de promovare a testelor reutilizabile
+
+Se aplică [regula comună de ownership a testelor](../docs/ATF_Testing_Guide.md#owner-ul-testului-business-adaptor-sau-infrastructură);
+această secțiune delimitează API-urile și probele specifice Test Kit.
+
+| Contractul testat | Owner | Rămâne în afara ownerului |
+|---|---|---|
+| Adnotări, clasificare și primitive neutre de lifecycle/path | `atf-test-kit` | teste de business și harness-uri UI ale consumerilor |
+| Model, publisher, markup, CSS/JS, disclosure și randare | `atf-reporting-tests` | maparea semantică specifică Shop/AutoEx |
+| Maparea unui contract de aplicație către porturile ATF | consumerul respectiv | reguli de renderer generic |
+
+Test Kit deține și probele componentă pentru primitivele sale; nu este un
+depozit pentru teste extrase din Shop/AutoEx doar pentru a elimina dubluri.
+Nu primește dependențe de `atf-reporting`, `atf-ui` sau modulele consumerilor.
+
+AutoEx avea o validare locală a directoarelor API raport, fără verificare a
+reparse-point-urilor. Criteriul generic a fost promovat în
+`ReportOutputDirectory.resolveProjectRelative(...)` și este probat aici; AutoEx
+păstrează numai alegerea default-ului și path-ului său configurat. Nu a rezultat
+o altă primitivă generică din auditul Shop + AutoEx: `FailureAwareCleanup` și
+adnotările evidence sunt deja comune, iar profilele Reporting, captura browserului,
+corelarea traficului și redactarea identității au proprietari diferiți sau reguli
+dependente de consumer.
