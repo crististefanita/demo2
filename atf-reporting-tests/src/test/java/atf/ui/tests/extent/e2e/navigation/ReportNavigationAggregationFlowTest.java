@@ -10,6 +10,7 @@ import atf.api.reporting.ui.audit.vocabulary.UiAuditGherkin;
 
 import atf.ui.tests.extent.support.config.ReportingTestResources;
 import atf.ui.tests.extent.support.config.UiConfiguration;
+import atf.ui.tests.extent.support.config.UiReportSubdirectory;
 import atf.ui.tests.extent.support.audit.ReportAuditInputs;
 import atf.api.ui.playwright.UiScreenValidation;
 import atf.api.reporting.ui.audit.section.OverviewSectionValidator;
@@ -40,6 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Execution(ExecutionMode.SAME_THREAD)
 @DisplayName("Extent report navigation and aggregation flow")
 @AtfE2eTest
+@UiReportSubdirectory("e2e")
 class ReportNavigationAggregationFlowTest {
     private UiConfiguration configuration;
     private Path inputReport;
@@ -50,7 +52,7 @@ class ReportNavigationAggregationFlowTest {
 
     @BeforeAll
     void openConfiguredReport() {
-        configuration = ReportingTestResources.uiConfiguration();
+        configuration = ReportingTestResources.uiConfiguration(getClass());
         var input = ReportAuditInputs.configuredOrGenerated(getClass(), configuration);
         inputReport = input.report();
         assertTrue(Files.isRegularFile(inputReport), "Configured Extent report does not exist: " + inputReport);

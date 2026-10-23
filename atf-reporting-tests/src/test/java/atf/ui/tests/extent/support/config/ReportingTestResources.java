@@ -48,6 +48,10 @@ public final class ReportingTestResources {
     }
 
     public static UiConfiguration uiConfiguration() {
+        return uiConfiguration(null);
+    }
+
+    public static UiConfiguration uiConfiguration(Class<?> testClass) {
         AtfUiConfigurationContext process = AtfUiConfigurationContext.fromProcess();
         UiConfiguration loaded = process.explicitConfigPath() == null
                 ? AtfUiConfigurationLoader.load(resourcePath(UI_RESOURCE))
@@ -56,7 +60,25 @@ public final class ReportingTestResources {
         if (reportOverride != null) {
             loaded = loaded.withAuditInputReport(reportOverride);
         }
-        return loaded.withReportDirectory(projectArtifactDirectory(process));
+        return loaded.withReportDirectory(reportDirectory(projectArtifactDirectory(process), testClass));
+    }
+
+    static Path reportDirectory(Path uiReportDirectory, Class<?> testClass) {
+        Path base = uiReportDirectory.toAbsolutePath().normalize();
+        if (testClass == null) return base;
+        UiReportSubdirectory annotation = testClass.getAnnotation(UiReportSubdirectory.class);
+        if (annotation == null) return base;
+        String value = annotation.value() == null ? "" : annotation.value().trim();
+        if (value.isEmpty()) throw new IllegalStateException("UI report subdirectory must not be blank");
+        Path relative = Path.of(value);
+        if (relative.isAbsolute()) {
+            throw new IllegalStateException("UI report subdirectory must be relative: " + value);
+        }
+        Path resolved = base.resolve(relative).normalize();
+        if (!resolved.startsWith(base)) {
+            throw new IllegalStateException("UI report subdirectory escapes the standard output directory: " + value);
+        }
+        return resolved;
     }
 
     private static Path projectArtifactDirectory(AtfUiConfigurationContext process) {

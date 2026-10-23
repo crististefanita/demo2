@@ -6,6 +6,7 @@ import atf.ui.tests.extent.support.failure.UiFailureReportFixture;
 import atf.api.reporting.ui.failure.UiFailureReportAudit;
 import atf.ui.tests.extent.support.config.ReportingTestResources;
 import atf.ui.tests.extent.support.config.UiConfiguration;
+import atf.ui.tests.extent.support.config.UiReportSubdirectory;
 import atf.api.core.config.module.AtfModule;
 import atf.api.reporting.test.AtfModuleTest;
 import org.junit.jupiter.api.AfterAll;
@@ -26,12 +27,13 @@ import java.util.stream.Stream;
 @Execution(ExecutionMode.SAME_THREAD)
 @DisplayName("UI Extent failure report — setup, Playwright, audit and assertion")
 @AtfE2eTest
+@UiReportSubdirectory("e2e")
 class UiFailureReportContractTest {
     private UiFailureReportFixture fixture;
 
     @BeforeAll
     void open() {
-        UiConfiguration configuration = ReportingTestResources.uiConfiguration();
+        UiConfiguration configuration = ReportingTestResources.uiConfiguration(getClass());
         fixture = UiFailureReportFixture.open(getClass(), configuration);
     }
 

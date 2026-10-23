@@ -54,7 +54,7 @@ public enum ShopApiOperation {
         return method == null ? "" : method.value();
     }
 
-    /** Canonical method used by the report when a legacy UI alias was observed. */
+    /** Configured request verb; captured evidence must retain its own method instead. */
     public String reportMethod() {
         return wireValue();
     }
@@ -102,7 +102,6 @@ public enum ShopApiOperation {
 
     public static String reportTitle(String method, String path) {
         ShopApiOperation operation = resolve(method, path);
-        String reportMethod = operation == UNKNOWN ? method : operation.reportMethod();
-        return ApiOperationLabel.format(reportMethod, path, operation.description());
+        return ApiOperationLabel.format(method, path, operation.description());
     }
 }

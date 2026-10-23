@@ -52,6 +52,43 @@ public final class ReportPhaseAuditProbe {
 
     private ReportPhaseAuditProbe() { }
 
+    public static void verifyPhaseDiagnosticIsolation() {
+        String setupNote = "informational setup association";
+        String actualCause = "actual test body failure";
+        try (Playwright playwright = Playwright.create();
+             Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true))) {
+            for (boolean fallback : List.of(false, true)) {
+                Path report = TestReportPaths.report(fallback
+                        ? "fallback-phase-diagnostic-isolation.html" : "extent-phase-diagnostic-isolation.html");
+                try (AtfReportPorts.Session session = fallback
+                        ? new HtmlReportSession(report) : new ExtentReportSession(report)) {
+                    var scenario = session.startScenario("PhaseDiagnosticIsolation", "phase ownership", List.of("api"));
+                    var setup = scenario.startPhase("SETUP");
+                    setup.detail("API contract association", setupNote);
+                    setup.complete(AtfReportStatus.PASS);
+                    var body = scenario.startPhase("TEST BODY");
+                    body.detail("JUnit failure", actualCause);
+                    body.complete(AtfReportStatus.FAIL);
+                    scenario.complete(AtfReportStatus.FAIL);
+                }
+                Page page = browser.newPage();
+                page.navigate(report.toUri() + (fallback ? "" : "#test-view"));
+                if (!fallback) {
+                    LOCATORS.firstOwner(page).click();
+                    page.waitForFunction("() => document.documentElement.getAttribute('data-atf-test-view-ready') === 'true'");
+                }
+                assertTrue(LOCATORS.body(page).textContent().contains(setupNote),
+                        "the informational diagnostic remains available in Tests");
+                LOCATORS.failsTab(page, fallback).click();
+                String failures = LOCATORS.fails(page, fallback).innerText();
+                assertTrue(failures.contains(actualCause));
+                assertFalse(failures.contains(setupNote), "a passing phase must not contaminate another failure cause");
+                assertFalse(failures.contains("Playwright action"), "execution diagnostics are not UI action failures");
+                page.close();
+            }
+        }
+    }
+
     public static void rejectsHiddenRenamedAndEmptyPhaseLogBands() {
         try (Playwright playwright = Playwright.create();
              Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true))) {

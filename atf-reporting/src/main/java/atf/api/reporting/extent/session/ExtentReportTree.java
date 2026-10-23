@@ -10,6 +10,7 @@ import atf.api.reporting.evidence.ExtentEvidenceRenderer;
 import atf.api.reporting.extent.ExtentScenarioScope;
 import atf.api.reporting.markup.ExtentReportNodeSupport;
 import atf.api.reporting.model.ReportField;
+import atf.api.reporting.model.diagnostic.ReportPhaseDiagnostic;
 import atf.api.reporting.ui.network.ReportNetworkInspector;
 import atf.api.reporting.model.ReportJsonBody;
 import atf.api.reporting.model.ReportScreenshot;
@@ -135,8 +136,8 @@ public final class ExtentReportTree {
         evidence.renderRequestDetails(node, details, json);
     }
 
-    public void renderPhaseDiagnostics(ExtentTest scenario, String phase, List<ReportField> details) {
-        evidence.renderPhaseDiagnostics(scenario, phase, details);
+    public void renderPhaseDiagnostics(ExtentTest scenario, List<ReportPhaseDiagnostic> diagnostics) {
+        evidence.renderPhaseDiagnostics(scenario, diagnostics);
     }
 
     public void renderResponseDetails(ExtentTest node, List<ReportField> details,

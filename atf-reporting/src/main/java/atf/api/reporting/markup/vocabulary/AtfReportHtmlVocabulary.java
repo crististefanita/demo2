@@ -243,6 +243,7 @@ public final class AtfReportHtmlVocabulary {
         NODE_ROLE("data-atf-node-role"),
         EMPTY_STATE("data-atf-empty-state"),
         PHASE_NAME("data-atf-phase-name"),
+        DIAGNOSTIC_STATUS("data-atf-diagnostic-status"),
         SCREENSHOT("data-atf-screenshot"),
         SCREENSHOT_REF("data-atf-screenshot-ref"),
         TAB("data-atf-tab"),

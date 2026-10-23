@@ -14,6 +14,7 @@ import atf.api.reporting.ui.audit.plan.UiExtentReportSource;
 import atf.api.reporting.ui.audit.plan.UiExtentSectionAudit;
 import atf.ui.tests.extent.support.config.ReportingTestResources;
 import atf.ui.tests.extent.support.config.UiConfiguration;
+import atf.ui.tests.extent.support.config.UiReportSubdirectory;
 import atf.api.core.config.module.AtfModule;
 import atf.api.reporting.test.AtfModuleTest;
 import atf.ui.tests.extent.support.section.runtime.SectionAuditFixture;
@@ -58,12 +59,13 @@ import java.util.stream.Stream;
 @Execution(ExecutionMode.SAME_THREAD)
 @DisplayName("Selected API methods — complete Extent report sections")
 @AtfE2eTest
+@UiReportSubdirectory("e2e")
 class SelectedApiTestsReportUiTest {
     private SectionAuditFixture fixture;
 
     @BeforeAll
     void open() {
-        UiConfiguration configuration = ReportingTestResources.uiConfiguration();
+        UiConfiguration configuration = ReportingTestResources.uiConfiguration(getClass());
         fixture = SectionAuditFixture.open(getClass(), configuration);
     }
 

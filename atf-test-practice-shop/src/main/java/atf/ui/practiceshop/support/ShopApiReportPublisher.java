@@ -116,13 +116,11 @@ public final class ShopApiReportPublisher {
         var response = execution.response();
         var operation = ShopApiOperation.resolve(request.method(), request.path());
         String title = ShopApiOperation.reportTitle(request.method(), request.path());
-        String method = operation == ShopApiOperation.UNKNOWN
-                ? request.method() : operation.reportMethod();
         var evidence = ShopApiEvidenceMapper.toExecution(execution, sequence,
                 phaseFor(request.path()), "ApiCallComponentTest", phaseFor(request.path()),
                 title, execution.provenance().reportLabel(),
                 expectedContractSummary(contractValidation), "status=" + response.status());
-        var node = phase.startRequest(title, method, request.path());
+        var node = phase.startRequest(title, request.method(), request.path());
         try {
             node.detail("operation.kind", operation.name());
             if (!operation.routeTemplate().isBlank()) {
@@ -200,8 +198,6 @@ public final class ShopApiReportPublisher {
         ShopApiOperation operation = ShopApiOperation.resolve(
                 request.method(), request.path());
         String requestName = ShopApiOperation.reportTitle(request.method(), request.path());
-        String reportMethod = operation == ShopApiOperation.UNKNOWN
-                ? request.method() : operation.reportMethod();
         var evidence = ShopApiEvidenceMapper.toExecution(execution, sequence,
                 phaseFor(request.path()), "BusinessFlow", phaseFor(request.path()),
                 requestName, execution.provenance().reportLabel(),
@@ -215,15 +211,12 @@ public final class ShopApiReportPublisher {
         consolePublish(console, AtfConsoleEvent.detail(AtfConsoleEvent.Scope.REQUEST,
                 "transport", execution.provenance().reportLabel()));
         AtfReportPorts.Request node = phase.startRequest(
-                requestName, reportMethod, request.path());
+                requestName, request.method(), request.path());
         AtfReportStatus requestStatus = AtfReportStatus.FAIL;
         boolean validationStarted = false;
         boolean validationCompleted = false;
         try {
             node.detail("operation.kind", operation.name());
-            if (!reportMethod.equalsIgnoreCase(request.method())) {
-                node.detail("observed.method", request.method());
-            }
             if (!operation.routeTemplate().isBlank()) {
                 node.detail("route.template", operation.routeTemplate());
             }

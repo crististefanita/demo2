@@ -486,18 +486,11 @@ public final class ShopApiNetworkJournal {
         public String evidenceSource() { return evidenceSource; }
 
         /**
-         * Human-facing summary for assertions and report evidence. A browser
-         * capture alias is never allowed to obscure the real HTTP operation;
-         * when one is observed it remains explicit metadata in the suffix.
+         * Human-facing summary retains the captured verb. Business operation
+         * selection may recognize QUERY as search, but does not rewrite HTTP evidence.
          */
         public String reportSummary() {
-            ShopApiOperation operation = ShopApiOperation.resolve(method, path);
-            String reportMethod = operation == ShopApiOperation.UNKNOWN
-                    ? method : operation.reportMethod();
-            String summary = reportMethod + " " + path + " → " + statusLabel() + " " + contentType();
-            return operation != ShopApiOperation.UNKNOWN
-                    && !reportMethod.equalsIgnoreCase(method)
-                    ? summary + " (observed method=" + method + ")" : summary;
+            return summary();
         }
 
         private static String digest(String method, String path, int status,

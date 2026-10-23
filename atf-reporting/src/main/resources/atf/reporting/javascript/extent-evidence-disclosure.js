@@ -9,6 +9,29 @@ function disclosureSummary(title) {
     '</span>'
   );
 }
+function synchronizeEvidenceDisclosureAria(details) {
+  var summary = details.querySelector(':scope>summary');
+  if (summary) summary.setAttribute('aria-expanded', String(details.open));
+}
+function bindEvidenceDisclosureAria() {
+  q('details').forEach(synchronizeEvidenceDisclosureAria);
+  if (document.documentElement.hasAttribute('data-atf-evidence-toggle-bound')) return;
+  document.documentElement.setAttribute('data-atf-evidence-toggle-bound', 'true');
+  // toggle does not bubble; capture also covers Java markup and selected copies.
+  document.addEventListener('toggle', function (event) {
+    var details = event.target;
+    if (details && details.tagName === 'DETAILS') synchronizeEvidenceDisclosureAria(details);
+  }, true);
+  document.addEventListener('keydown', function (event) {
+    var summary = event.target,
+      details = summary && summary.parentElement;
+    if (!summary || summary.tagName !== 'SUMMARY' || !details || details.tagName !== 'DETAILS' ||
+        (event.key !== 'Enter' && event.key !== ' ')) return;
+    event.preventDefault();
+    details.open = !details.open;
+    synchronizeEvidenceDisclosureAria(details);
+  }, true);
+}
 function wrapEvidence(row, kind, title, node) {
   var cell = row && row.cells && row.cells[2];
   if (!cell || !node) return;
@@ -17,9 +40,6 @@ function wrapEvidence(row, kind, title, node) {
   var summary = document.createElement('summary');
   summary.setAttribute('aria-expanded', 'false');
   summary.innerHTML = disclosureSummary(title);
-  details.addEventListener('toggle', function () {
-    summary.setAttribute('aria-expanded', details.open ? 'true' : 'false');
-  });
   var body = document.createElement('div');
   body.className = 'body';
   if (kind === 'response-evidence') {
@@ -135,6 +155,7 @@ function normalizeEvidenceDisclosures() {
     }
   );
   normalizePhaseFailureDisclosures();
+  bindEvidenceDisclosureAria();
 }
 function wrapSemanticEvidence(row, kind, title, node) {
   var cell = row && row.cells && row.cells[2];
@@ -144,9 +165,6 @@ function wrapSemanticEvidence(row, kind, title, node) {
   var summary = document.createElement('summary');
   summary.setAttribute('aria-expanded', 'false');
   summary.innerHTML = disclosureSummary(title);
-  details.addEventListener('toggle', function () {
-    summary.setAttribute('aria-expanded', details.open ? 'true' : 'false');
-  });
   var body = document.createElement('div');
   body.className = 'body';
   body.appendChild(node);

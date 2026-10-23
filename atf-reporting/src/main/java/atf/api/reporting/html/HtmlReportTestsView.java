@@ -92,7 +92,7 @@ public final class HtmlReportTestsView {
                 .append(status(scenario.status()))
                 .append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.DIV));
         scenario.phases().forEach(phase -> html.append(ReportPhaseDiagnosticMarkup.render(
-                phase.name(), ReportPhaseDiagnostic.from(phase.name(), phase.details()), redactor)));
+                ReportPhaseDiagnostic.from(phase.name(), phase.details(), phase.status()), redactor)));
         scenario.phases().forEach(phase -> renderPhase(html, phase));
         html.append(AtfReportHtmlVocabulary.closeTag(AtfReportHtmlVocabulary.Tag.ARTICLE));
     }

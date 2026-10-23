@@ -1,6 +1,6 @@
 function failureCauseChain(item) {
   var causes = [];
-  q('details.phase-diagnostics tbody tr', item).forEach(function (row) {
+  q('details.phase-diagnostics [data-atf-diagnostic-status="fail"] tbody tr', item).forEach(function (row) {
     var cells = Array.prototype.slice.call(row.cells || []);
     if (cells.length > 1) causes.push(text(cells[0], '') + ': ' + text(cells[1], ''));
   });

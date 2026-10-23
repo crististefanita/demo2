@@ -39,6 +39,15 @@ class ReportPhaseDiagnosticTest {
     }
 
     @Test
+    void diagnosticsKeepTheOriginatingPhaseVerdictRatherThanTheScenarioVerdict() {
+        var fields = List.of(new ReportField("API contract association", "setup note"));
+        assertEquals(AtfReportStatus.PASS,
+                ReportPhaseDiagnostic.from("SETUP", fields, AtfReportStatus.PASS).getFirst().status());
+        assertEquals(AtfReportStatus.FAIL,
+                ReportPhaseDiagnostic.from("TEST BODY", fields, AtfReportStatus.FAIL).getFirst().status());
+    }
+
+    @Test
     void emptyAndUnrecognizedContextDoesNotInventAReportDiagnostic() {
         assertTrue(ReportPhaseDiagnostic.from("SETUP", List.of()).isEmpty());
         assertTrue(ReportPhaseDiagnostic.from("TEST BODY",

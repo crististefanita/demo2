@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @AtfUnitTest
 class ExtentReportRuntimeTestsComponentTest {
     private static final Pattern FUNCTION = Pattern.compile("function\\s+([A-Za-z0-9_]+)\\(");
+    private static final String DIAGNOSTIC_NORMALIZER = "function normalizeScenarioDiagnostics(";
 
     @Test
     void facadePreservesTypedTestsFragmentOrder() {
@@ -42,10 +43,13 @@ class ExtentReportRuntimeTestsComponentTest {
                     () -> "Duplicate Tests runtime function: " + matcher.group(1));
         }
 
-        assertEquals(27, names.size());
+        assertEquals(28, names.size());
         assertTrue(ExtentReportRuntimeTestFilters.script().contains("function bindTestFilters("));
         assertTrue(ExtentReportRuntimeCategories.script().contains("function bindCategoryFilters("));
         assertTrue(ExtentReportRuntimeScenarios.script().contains("function normalizeScenarioAnnotations("));
+        assertTrue(ExtentReportRuntimeScenarios.script().contains(DIAGNOSTIC_NORMALIZER));
+        assertFalse(ExtentReportRuntimeTestFilters.script().contains(DIAGNOSTIC_NORMALIZER));
+        assertFalse(ExtentReportRuntimeCategories.script().contains(DIAGNOSTIC_NORMALIZER));
         assertFalse(ExtentReportRuntimeTestFilters.script().contains("function selectCategory("));
         assertFalse(ExtentReportRuntimeCategories.script().contains("function applyTestFilters("));
         assertFalse(ExtentReportRuntimeScenarios.script().contains("function categoryFilterMarkup("));

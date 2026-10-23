@@ -7,6 +7,7 @@ import atf.api.reporting.ui.contract.UiExtentReportContract;
 
 import atf.ui.tests.extent.support.config.ReportingTestResources;
 import atf.ui.tests.extent.support.config.UiConfiguration;
+import atf.ui.tests.extent.support.config.UiReportSubdirectory;
 import atf.ui.tests.extent.support.uireport.browser.UiReportContractInputFactory;
 import atf.api.core.config.module.AtfModule;
 import atf.api.reporting.test.AtfModuleTest;
@@ -35,12 +36,13 @@ import java.util.stream.Stream;
 @Execution(ExecutionMode.SAME_THREAD)
 @DisplayName("Static UI Extent report — all tabs and renderer contract")
 @AtfE2eTest
+@UiReportSubdirectory("e2e")
 class StaticUiExtentReportContractTest {
     private UiReportContractFixture fixture;
 
     @BeforeAll
     void open() {
-        UiConfiguration configuration = ReportingTestResources.uiConfiguration();
+        UiConfiguration configuration = ReportingTestResources.uiConfiguration(getClass());
         String reportOverride = System.getProperty("atf.ui.report");
         Path inputReport = reportOverride != null && !reportOverride.isBlank()
                 ? Path.of(reportOverride).toAbsolutePath().normalize()

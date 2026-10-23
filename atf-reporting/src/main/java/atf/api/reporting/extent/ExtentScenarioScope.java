@@ -5,7 +5,7 @@ import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.contract.ReportStatusAggregator;
 import atf.api.reporting.extent.session.ExtentReportTree;
 import atf.api.reporting.semantic.AtfReportSemanticRecorder;
-import atf.api.reporting.model.ReportField;
+import atf.api.reporting.model.diagnostic.ReportPhaseDiagnostic;
 
 import com.aventstack.extentreports.ExtentTest;
 
@@ -54,9 +54,9 @@ public final class ExtentScenarioScope implements AtfReportPorts.Scenario {
     @Override public boolean hasWarnings() { return statuses.hasWarnings(); }
 
     void record(AtfReportStatus status) { statuses.record(status); }
-    void renderDiagnostics(String phaseName, List<ReportField> details) {
+    void renderDiagnostics(List<ReportPhaseDiagnostic> diagnostics) {
         ensureScenarioOpen();
-        tree.renderPhaseDiagnostics(test, phaseName, details);
+        tree.renderPhaseDiagnostics(test, diagnostics);
     }
     @Override public void close() { closed = true; }
 

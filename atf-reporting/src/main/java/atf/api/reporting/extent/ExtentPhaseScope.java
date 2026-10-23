@@ -5,6 +5,7 @@ import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.contract.ReportStatusAggregator;
 import atf.api.reporting.extent.session.ExtentReportTree;
 import atf.api.reporting.model.ReportField;
+import atf.api.reporting.model.diagnostic.ReportPhaseDiagnostic;
 import atf.api.reporting.semantic.AtfReportSemanticRecorder;
 
 import com.aventstack.extentreports.ExtentTest;
@@ -51,8 +52,8 @@ final class ExtentPhaseScope implements AtfReportPorts.Phase {
 
     @Override public void complete(AtfReportStatus status) {
         ensurePhaseOpen();
-        scenario.renderDiagnostics(phaseName, details);
         var effective = AtfReportStatus.worst(statuses.aggregate(), status);
+        scenario.renderDiagnostics(ReportPhaseDiagnostic.from(phaseName, details, effective));
         tree.complete(phase, effective);
         tree.markEnded(phase);
         scenario.record(effective);

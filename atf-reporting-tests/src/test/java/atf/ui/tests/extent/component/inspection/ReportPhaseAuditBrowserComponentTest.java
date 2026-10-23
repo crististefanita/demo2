@@ -7,6 +7,11 @@ import org.junit.jupiter.api.Test;
 @AtfComponentTest
 class ReportPhaseAuditBrowserComponentTest {
     @Test
+    void passingSetupDiagnosticDoesNotBecomeTheCauseOfAnotherPhaseFailure() {
+        ReportPhaseAuditProbe.verifyPhaseDiagnosticIsolation();
+    }
+
+    @Test
     void hidingRenamingOrEmptyingThePhaseLogBandDoesNotSatisfyTheContract() {
         ReportPhaseAuditProbe.rejectsHiddenRenamedAndEmptyPhaseLogBands();
     }

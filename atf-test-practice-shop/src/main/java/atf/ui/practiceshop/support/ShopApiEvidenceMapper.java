@@ -12,7 +12,6 @@ import atf.api.reporting.api.ReportModelAdapters;
 import atf.api.reporting.api.ReportQueryParameters;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.core.http.response.ApiExecutionResult;
-import atf.ui.practiceshop.api.ShopApiOperation;
 
 import java.net.URI;
 import java.time.Duration;
@@ -29,17 +28,13 @@ public final class ShopApiEvidenceMapper {
 
     static ReportExecutionEvidence toExecution(ShopApiNetworkJournal.Exchange exchange,
                                                String serviceAlias) {
-        ShopApiOperation operation = ShopApiOperation.resolve(
-                exchange.method(), exchange.path());
-        String reportMethod = operation == ShopApiOperation.UNKNOWN
-                ? exchange.method() : operation.reportMethod();
         var query = query(exchange.url());
         var authentication = ReportAuthObservation.from("none", exchange.requestHeaders(), query);
         var capturedMethod = ReportAuthMethod.fromProfile(exchange.authType());
         if (capturedMethod != ReportAuthMethod.NONE) {
             authentication = new ReportAuthObservation(capturedMethod, authentication.source());
         }
-        ReportRequest request = new ReportRequest(reportMethod, exchange.path(),
+        ReportRequest request = new ReportRequest(exchange.method(), exchange.path(),
                 query, ShopJsonEvidence.redactHeaders(exchange.requestHeaders()),
                 "none", redactJson(exchange.requestBody()), authentication);
         ReportResponse response = new ReportResponse(exchange.status(), redactJson(exchange.responseBody()),

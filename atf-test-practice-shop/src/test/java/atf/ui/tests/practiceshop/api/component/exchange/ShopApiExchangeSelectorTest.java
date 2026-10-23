@@ -40,7 +40,7 @@ class ShopApiExchangeSelectorTest {
 
         assertEquals(observed, ShopApiExchangeSelector.latest(
                 List.of(observed), ShopApiOperation.SEARCH, item -> true));
-        assertEquals("GET /products/search → 200 application/json (observed method=QUERY)",
+        assertEquals("QUERY /products/search → 200 application/json",
                 observed.reportSummary());
     }
 

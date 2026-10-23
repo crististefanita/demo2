@@ -18,7 +18,8 @@ public final class ReportPhaseAuditLocators {
     public Locator phaseLogTables(Locator phase) { return phaseLogBodies(phase).locator("table[class~='table']"); }
     public Locator phaseLogBodies(Locator phase) { return scenarioLogBodies(phase); }
     public Locator scenarioLogBodies(Locator scenario) {
-        return scenario.locator(":scope > div:not([class~='card-header']):not([class~='accordion'])");
+        return scenario.locator(":scope > div:not([class~='card-header']):not([class~='accordion'])"
+                + ":not([data-atf-node-role])");
     }
     public Locator auditBand(Locator scope) { return common.evidence(scope, CssClass.PHASE_DETAILS); }
     public Locator diagnostics(Locator scope) { return common.evidence(scope, CssClass.PHASE_DIAGNOSTICS); }

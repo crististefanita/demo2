@@ -8,6 +8,7 @@ import atf.api.reporting.evidence.profile.ReportUiActionDetailsMode;
 import atf.api.reporting.ui.model.AtfUiActionRecord;
 import atf.api.reporting.ui.network.ReportNetworkInspector;
 import atf.api.reporting.model.ReportField;
+import atf.api.reporting.model.diagnostic.ReportPhaseDiagnostic;
 import atf.api.reporting.model.ReportJsonBody;
 import atf.api.reporting.model.ReportScreenshot;
 import com.aventstack.extentreports.ExtentTest;
@@ -30,8 +31,8 @@ public final class ExtentEvidenceRenderer {
         this.ui = new ExtentUiEvidenceRenderer(settings, redactor, detailsMode);
     }
 
-    public void renderPhaseDiagnostics(ExtentTest scenario, String phase, List<ReportField> details) {
-        transport.renderPhaseDiagnostics(scenario, phase, details);
+    public void renderPhaseDiagnostics(ExtentTest scenario, List<ReportPhaseDiagnostic> diagnostics) {
+        transport.renderPhaseDiagnostics(scenario, diagnostics);
     }
 
     public void renderRequestDetails(ExtentTest node, List<ReportField> details,

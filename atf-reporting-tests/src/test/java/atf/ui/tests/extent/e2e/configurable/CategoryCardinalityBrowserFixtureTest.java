@@ -11,6 +11,7 @@ import atf.ui.tests.extent.support.audit.ReportAuditContext;
 import atf.ui.tests.extent.support.audit.screen.CategoryFilterAuditor;
 import atf.ui.tests.extent.support.config.ReportingTestResources;
 import atf.ui.tests.extent.support.config.UiConfiguration;
+import atf.ui.tests.extent.support.config.UiReportSubdirectory;
 import atf.ui.tests.extent.support.configurable.CategoryCardinalityFixture;
 import atf.ui.tests.extent.support.configurable.CategoryCardinalityReportFixtures;
 import atf.ui.tests.extent.support.lifecycle.UiAuditFlow;
@@ -50,8 +51,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Execution(ExecutionMode.SAME_THREAD)
 @AtfModuleTest(requires = {AtfModule.REPORTING, AtfModule.UI})
 @AtfE2eTest
+@UiReportSubdirectory("e2e")
 class CategoryCardinalityBrowserFixtureTest {
-    private static final UiConfiguration CONFIGURATION = ReportingTestResources.uiConfiguration();
+    private static final UiConfiguration CONFIGURATION =
+            ReportingTestResources.uiConfiguration(CategoryCardinalityBrowserFixtureTest.class);
 
     @TestFactory
     Stream<DynamicTest> generatedCategoryCardinalities() {

@@ -269,12 +269,13 @@ nu este un request API și nu trebuie introdus ca metodă `ASSERT`/rută sinteti
 devin diagnostic prin deducție. `ReportPhaseDiagnosticMarkup` este proiecția
 comună Extent/fallback; Fails păstrează cauza reală a fazelor eșuate.
 
-În Extent, `extent-scenarios.js` include diagnosticul în panoul scenariului și
-elimină wrapper-ul vendor al logului. Închiderea scenariului ascunde și
-diagnosticul; normalizarea repetată nu îl dublează. Fără exchange-uri nu se
-inventează HTTP sau PASS contractual, iar un diagnostic de asociere nu schimbă
-singur verdictul JUnit. `Setup evidence` și inspectorul agregat rămân canale
-distincte.
+- În Extent, `extent-scenarios.js` include diagnosticul în panoul scenariului
+  și elimină wrapper-ul vendor; închiderea îl ascunde, normalizarea nu îl dublează.
+- Fără exchange-uri nu se inventează HTTP sau PASS contractual; un diagnostic
+  de asociere nu schimbă singur verdictul JUnit.
+- Modelul păstrează statusul fazei sursă; Fails nu atribuie unui eșec notele
+  dintr-o fază care nu a eșuat.
+- `Setup evidence` și inspectorul agregat rămân canale distincte.
 
 ### Dovezi API atașate unui pas UI
 

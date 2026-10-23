@@ -47,10 +47,10 @@ class ShopApiOperationTest {
     }
 
     @Test
-    void treatsObservedQueryAsLegacySearchAliasButReportsCanonicalGet() {
+    void classifiesObservedQueryAsSearchWithoutChangingItsCapturedMethod() {
         assertEquals(ShopApiOperation.SEARCH,
                 ShopApiOperation.resolve("QUERY", ShopApiRoutes.PRODUCT_SEARCH));
-        assertEquals("GET /products/search — find configured product",
+        assertEquals("QUERY /products/search — find configured product",
                 ShopApiOperation.reportTitle("QUERY", ShopApiRoutes.PRODUCT_SEARCH));
     }
 

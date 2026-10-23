@@ -173,17 +173,15 @@ Faza organizează pașii reali, fără o bandă proprie
 intern și numele câmpurilor în snapshot-ul semantic, nu un disclosure public.
 Absența se verifică structural, inclusiv pentru wrapper-e goale sau ascunse.
 
-Diagnosticul explicit folosește `Phase.diagnostic(Kind, message)` și modelul
-`ReportPhaseDiagnostic`; cheile legacy de execuție/asociere au conversie
-delimitată. Scenariul deține `Execution diagnostics`, cu redacție înaintea
-publicării. Fails păstrează cauza reală și legătura către scenariul exact,
-inclusiv fără exchange sau aserțiune contractuală. Un diagnostic nu schimbă
-singur verdictul furnizat de consumer.
+| Canal | Regulă |
+|---|---|
+| Diagnostic explicit | `Phase.diagnostic(Kind, message)` și `ReportPhaseDiagnostic`; conversie delimitată pentru cheile legacy |
+| Scenariu | Deține `Execution diagnostics`, cu redacție; închiderea ascunde blocul, normalizarea nu îl dublează |
+| Fails | Cauza fazei eșuate și legătura către scenariul exact, inclusiv fără exchange; notele din fazele PASS nu contaminează cauza |
+| Verdict | Aparține consumerului; diagnosticul singur nu îl schimbă |
 
-Închiderea scenariului ascunde și diagnosticul, iar normalizarea nu îl
-republică. Nu se elimină incidental precondițiile `Setup evidence`,
-request/response/execution reale, validările de contract ori inspectorul API.
-Ownership-ul rendererului și probele sunt descrise în
+`Setup evidence`, request/response/execution reale, validările de contract și
+inspectorul API rămân intacte. Ownership-ul rendererului și probele sunt în
 [README Reporting](../atf-reporting/README.md#context-de-fază-și-diagnostic-de-execuție).
 
 ## Dovezile configurării inițiale

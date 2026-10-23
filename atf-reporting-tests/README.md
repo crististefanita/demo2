@@ -28,8 +28,8 @@ Proiecția contextului UI este verificată la componentă:
 | `UiCheckpointEvidenceProjectionTest` | cheile interne `request.action`/`request.target` rămân în model; proiecțiile typed/legacy și fallback nu le publică și nu le mută în response |
 | `ExtentReportUiEvidencePublishingTest` | publisher-ul UI nu adaugă un request HTTP sintetic; exchange-ul nested păstrează request/response/JSON/execution |
 | `ExtentReportDisclosureBrowserComponentTest` | artifact controlat cu PASS/WARNING/FAIL; niciun tabel introductiv la checkpoint, validări și screenshot disponibile, API exchange complet, close fără subarbore vizibil și titluri custom identificate semantic |
-| `ReportPhaseDiagnosticTest` | conversie explicită, chei legacy delimitate, context nemodificat și rezultat imutabil; portul diagnostic nu creează HTTP |
-| `ReportPhaseAuditBrowserComponentTest` | Extent/fallback cu zero/unul/mai multe exchange-uri și cu/fără metadata; eșec JUnit și asociere lipsă, redacție, Fails și închiderea diagnosticului; probe negative pentru bandă ascunsă, redenumită sau goală |
+| `ReportPhaseDiagnosticTest` | conversie explicită, statusul fazei sursă, chei legacy delimitate, context nemodificat și rezultat imutabil; portul diagnostic nu creează HTTP |
+| `ReportPhaseAuditBrowserComponentTest` | Extent/fallback cu zero/unul/mai multe exchange-uri și cu/fără metadata; eșec JUnit, asociere lipsă, redacție și închiderea diagnosticului; Fails exclude notele fazei PASS; probe negative pentru bandă ascunsă, redenumită sau goală |
 
 Fixture-ul browser este local și determinist; nu cere o nouă achiziție în
 Practice Shop. Raportul timestamped este dovadă de componentă, iar stările
@@ -390,6 +390,11 @@ rămâne entry-point-ul agregat pentru întregul E2E; `AtfReportingUiAuditSuite`
 este entry-point-ul îngust pentru auditul UI al reportingului. Astfel un run
 rapid nu pornește browserul, un run API fixture nu pornește UI, iar un run E2E
 nu ascunde failure-uri lower-level.
+
+Rapoartele UI publicate de clasele E2E care poartă `@UiReportSubdirectory("e2e")`
+se salvează în `artifacts/reports/ui/e2e`; rapoartele celorlalte layer-e rămân
+în `artifacts/reports/ui`. Valoarea adnotării este relativă la directorul UI și
+nu poate ieși din acesta.
 
 - importă root `pom.xml` ca proiect Maven și folosește **Reload All Maven Projects** înainte de prima rulare sau după schimbări de module;
 - run configuration-ul suitei reporting folosește modulul `atf-reporting-tests`, nu modulul legacy `atf-tests`;

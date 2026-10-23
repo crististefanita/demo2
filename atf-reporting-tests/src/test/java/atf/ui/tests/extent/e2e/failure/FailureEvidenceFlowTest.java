@@ -12,6 +12,7 @@ import atf.api.reporting.ui.UiExtentReportSession;
 import atf.api.reporting.ui.contract.ReportUiContract;
 import atf.ui.tests.extent.support.config.ReportingTestResources;
 import atf.ui.tests.extent.support.config.UiConfiguration;
+import atf.ui.tests.extent.support.config.UiReportSubdirectory;
 import atf.ui.tests.extent.support.audit.ReportAuditInputs;
 import atf.ui.tests.extent.support.audit.ReportUiActionAdapters;
 import atf.api.ui.playwright.PlaywrightActionSequence;
@@ -46,6 +47,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Execution(ExecutionMode.SAME_THREAD)
 @DisplayName("Extent failure evidence flow")
 @AtfE2eTest
+@UiReportSubdirectory("e2e")
 class FailureEvidenceFlowTest {
     private UiConfiguration configuration;
     private Path inputReport;
@@ -55,7 +57,7 @@ class FailureEvidenceFlowTest {
 
     @BeforeAll
     void openConfiguredReport() {
-        configuration = ReportingTestResources.uiConfiguration();
+        configuration = ReportingTestResources.uiConfiguration(getClass());
         var input = ReportAuditInputs.configuredOrGenerated(getClass(), configuration);
         inputReport = input.report();
         assertTrue(Files.isRegularFile(inputReport),
