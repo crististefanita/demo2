@@ -53,8 +53,9 @@ function failedUiEvidence(card) {
     card
   );
   for (var index = 0; index < zones.length; index++) {
-    var zone = zones[index],
-      rows = q('tbody tr', zone),
+    var zone = zones[index];
+    if (zone.closest('.card') !== card || zone.getAttribute('data-atf-evidence-owner') === 'api') continue;
+    var rows = q('tbody tr', zone),
       row = rows.find(function (candidate) {
         return (
           !!candidate.querySelector('.atf-ui-action-result-fail') ||

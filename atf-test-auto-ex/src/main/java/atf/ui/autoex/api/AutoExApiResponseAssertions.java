@@ -1,7 +1,6 @@
-package atf.ui.tests.autoex.api;
+package atf.ui.autoex.api;
 
 import atf.api.reporting.contract.AtfAssertion;
-import atf.ui.autoex.api.AutoExApiJsonField;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.List;

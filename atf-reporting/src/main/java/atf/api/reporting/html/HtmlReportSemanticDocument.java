@@ -1,4 +1,5 @@
 package atf.api.reporting.html;
+import atf.api.reporting.contract.evidence.ReportEvidenceOwner;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
@@ -211,6 +212,7 @@ public final class HtmlReportSemanticDocument {
     }
 
     public static final class ValidationModel implements NodeModel {
+        ReportEvidenceOwner evidenceOwner = ReportEvidenceOwner.UNSPECIFIED;
         final String title;
         List<AtfAssertion> assertions = List.of();
         final List<NodeModel> children = new ArrayList<>();
@@ -222,6 +224,10 @@ public final class HtmlReportSemanticDocument {
 
         ValidationModel(String title) {
             this.title = title;
+        }
+
+        public void evidenceOwner(ReportEvidenceOwner owner) {
+            evidenceOwner = java.util.Objects.requireNonNull(owner, "evidenceOwner");
         }
 
         public void assertions(Collection<AtfAssertion> assertions) {

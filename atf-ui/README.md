@@ -270,6 +270,15 @@ assert Java care ascunde acțiunea din raport. Contractul complet de cardinalita
 markup și randare este în
 [`atf-reporting/README.md`](../atf-reporting/README.md).
 
+### Audit comun al ecranului
+
+- `atf.api.ui.audit.UiScreenAudit` înregistrează observația de ecran și poate
+  transfera secvența de acțiuni printr-un singur `drain`.
+- Primește numărul aserțiunilor și verdictul consumerului; nu cunoaște Shop,
+  AutoEx, JUnit sau Reporting și nu calculează verdictul business.
+- Reutilizează `UiScreenValidation.Evidence.hasScreenshotPayload()`; o captură
+  cerută, dar absentă sau invalidă, nu consumă dovezile anterioare.
+
 ## Inspectorul de rețea — limită generică de responsabilitate
 
 Fluxul cross-module și baseline-ul setup/causal au un singur owner în

@@ -1,4 +1,5 @@
 package atf.api.reporting.evidence.ui;
+import atf.api.reporting.contract.evidence.ReportEvidenceOwner;
 
 import atf.api.reporting.configuration.ReportingSettings;
 import atf.api.reporting.contract.AtfAssertion;
@@ -26,6 +27,10 @@ public final class ExtentUiAssertionRenderer {
     }
 
     public void render(ExtentTest node, Collection<AtfAssertion> assertions) {
+        render(node, assertions, ReportEvidenceOwner.UNSPECIFIED);
+    }
+
+    public void render(ExtentTest node, Collection<AtfAssertion> assertions, ReportEvidenceOwner owner) {
         if (assertions == null || assertions.isEmpty()) return;
         var table = new String[assertions.size() + 1][4];
         table[0] = new String[]{AtfReportLabels.ASSERTION, AtfReportLabels.EXPECTED,
@@ -46,6 +51,8 @@ public final class ExtentUiAssertionRenderer {
         publish(node, open(AtfReportHtmlVocabulary.Tag.DIV,
                         AtfReportHtmlVocabulary.classAttribute(
                                 AtfReportHtmlVocabulary.CssClass.ATF_UI_ASSERTIONS),
+                        AtfReportHtmlVocabulary.attribute(
+                                AtfReportHtmlVocabulary.Attribute.EVIDENCE_OWNER, owner.attributeValue()),
                         AtfReportHtmlVocabulary.attribute(
                                 AtfReportHtmlVocabulary.Attribute.EVIDENCE_STATUS,
                                 ExtentUiEvidenceMarkup.statusKey(failed)))

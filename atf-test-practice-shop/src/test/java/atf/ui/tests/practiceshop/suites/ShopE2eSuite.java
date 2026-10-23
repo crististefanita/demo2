@@ -8,7 +8,6 @@ import atf.ui.tests.practiceshop.e2e.ShopUiOnlyPurchaseE2eTest;
 import atf.ui.tests.practiceshop.e2e.ShopUiOnlySingleFlowPurchaseE2eTest;
 import org.junit.jupiter.api.ClassOrderer;
 import org.junit.jupiter.api.TestClassOrder;
-import org.junit.platform.suite.api.IncludeTags;
 import org.junit.platform.suite.api.SelectClasses;
 import org.junit.platform.suite.api.Suite;
 
@@ -21,6 +20,5 @@ import org.junit.platform.suite.api.Suite;
         ShopPurchaseE2eTest.class,
         ShopUiOnlyPurchaseE2eTest.class,
         ShopUiOnlySingleFlowPurchaseE2eTest.class})
-@IncludeTags("e2e")
 @AtfE2eTest
 public class ShopE2eSuite { }

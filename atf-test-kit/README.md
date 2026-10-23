@@ -23,7 +23,7 @@ flowchart LR
 
 | Conține | Nu conține | Gate |
 |---|---|---|
-| adnotări de nivel/canal/console/output/setup/docs/UI evidence, resolvere neutre și layer guard | renderer, mock, browser | teste TestKit și `AtfTestLayerArchitectureTest` |
+| adnotări de nivel/canal/console/output/setup/docs/UI evidence, resolvere neutre | renderer, mock, browser | teste Test Kit; clasificarea globală în `atf-tests` |
 | clasificare test | business flow | fiecare clasă are un singur nivel |
 | reguli transversale | runtime dependency | fail-closed la drift |
 
@@ -40,7 +40,7 @@ Fiecare clasă executabilă declară exact un nivel:
 
 ### Ce verifică guvernanța
 
-- `AtfTestLayerArchitectureTest` inspectează toate directoarele `*/src/test/java`;
+- `AtfTestLayerArchitectureTest`, din `atf-tests` și suita whole-ATF, inspectează toate directoarele `*/src/test/java`;
 - verifică adnotarea, package-ul, importurile interzise și izolarea `support`;
 - rezolvă din surse și adnotările compuse, prin import sau același package,
   inclusiv compoziția imbricată; ciclurile nu inventează un nivel;
@@ -69,11 +69,16 @@ Fiecare clasă executabilă declară exact un nivel:
 | `atf.api.testkit.setup.api` | `ApiScenarioSetup`, `ApiTestRef` | declarații; catalogul și executarea rămân la consumator |
 | `atf.api.testkit.documentation` | `DocumentationTarget` repeatable | selecție de documente; validatorii rămân în ATF Tests |
 | `atf.api.testkit.evidence` | `AtfUiEvidence`, `AtfUiEvidenceFlow`, `AtfUiScreenshotPolicy` | declară independent gruparea flow-ului și intenția capturilor; adaptorii consumer le mapează în profilul Reporting |
-| `atf.api.testkit.lifecycle` | `TestRunInitialization`, `FailureAwareCleanup`, `FailureEvidenceCleanup`, `AtfE2eActivationPolicy` | achiziție/rollback, cleanup și activare E2E neutre; fără API UI/Reporting |
+| `atf.api.testkit.lifecycle` | `TestRunInitialization`, `CloseOnceResource`, `ArmedCleanup`, `FailureAwareCleanup`, `FailureEvidenceCleanup`, `AtfE2eActivationPolicy` | achiziție/rollback, cleanup și activare E2E neutre; fără API UI/Reporting |
+
+`atf.api.testkit.lifecycle` este un pachet al modulului existent
+`atf-test-kit`, nu un modul nou. Nu introduce dependențe către UI sau Reporting.
 
 | Contract | Comportament și probă |
 |---|---|
 | Inițializare | `TestRunInitialization.create(...)` primește factory-uri pentru resursă → scenariu → fază → run; la eșec execută callback-urile inverse pentru handle-urile returnate. `TestRunInitializationTest` verifică succesul, fiecare punct de eșec, `Error` și erorile `suppressed`. |
+| Închidere unică | `CloseOnceResource` păstrează handle-ul și încearcă close o singură dată, inclusiv dacă acesta eșuează; `closeAfter(primary)` păstrează cauza inițială fără self-suppression. |
+| Compensare | `ArmedCleanup.arm()` se apelează înainte de mutație; succesul dezarmează, iar eșecul păstrează posibilitatea unui retry explicit. Nu reprezintă cleanup automat retry și nu știe ce este un cont. |
 | Cleanup | `FailureAwareCleanup` încearcă toate etapele, păstrează prima eroare și atașează restul ca `suppressed`; resursele se închid invers. |
 | Failure evidence | `FailureEvidenceCleanup` capturează înaintea cleanup-ului care poate schimba pagina; consumerul deține callback-urile. Ambele primitive sunt probate în `FailureAwareCleanupTest`. |
 | Activare | `AtfE2eActivationPolicy`: override JVM → opt-in configurat → fallback IDE → dezactivare; extensiile citesc semnalele, iar `AtfE2eActivationPolicyTest` verifică precedența și respingerea valorilor invalide. |

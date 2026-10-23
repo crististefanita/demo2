@@ -5,7 +5,7 @@ ownerului; rapoartele și rezultatele unei rulări nu devin documentație perman
 
 ## Pe scurt
 
-- Reporting: fidelitatea request-ului observat și ownerul API din Fails.
+- Reporting: fidelitatea request-ului observat, ownerul API din Fails și lizibilitatea tabelelor foarte imbricate în panouri înguste.
 
 - AutoEx: register/delete și login/delete cu setup API sunt probate la 70%;
   rămâne vignette-ul natural chiar la Delete account, nu corecția nominală.
@@ -25,7 +25,7 @@ lor. Gap-urile secundare rămân vizibile în documentul ownerului.
 
 | Ordine | Feedback / owner | Scor /100 | Lacuna care decide ordinea |
 |---:|---|---:|---|
-| 1 | [Reporting](ATF_Reporting_Feedback.md) | **78** = 31 + 21 + 20 + 6 | fidelitatea headerelor/body-ului observat; separat, ownerul API în Fails (76) |
+| 1 | [Reporting](ATF_Reporting_Feedback.md) | **78** = 31 + 21 + 20 + 6 | fidelitatea headerelor/body-ului observat; separat, ownerul API în Fails (76) și lizibilitatea nesting-ului îngust (64) |
 | 2 | [ATF UI — geometrie browser](ATF_UI_Browser_Geometry_Feedback.md) | **72** = 31 + 25 + 10 + 6 | pointer în iframe la zoom CSS non-nativ; activarea JavaScript explicită nu închide această limită |
 | 3 | [AutoEx](ATF_Automation_Exercise_Feedback.md) | **65** = 36 + 18 + 10 + 1 | confirmarea și refuzul replay-ului sunt întărite; lipsește proba reclamei naturale chiar la Delete account la 70%, nu succesul din alte tranziții |
 | 4 | [Consumer — profile E2E](ATF_Consumer_Business_Test_Focus_Feedback.md) | **57** = 24 + 10 + 17 + 6 | selecția live redusă cere smoke succes/failure și echivalență business, nu doar mapping-ul adnotării |

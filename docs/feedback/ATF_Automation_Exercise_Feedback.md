@@ -29,6 +29,9 @@ nu încă în Delete account; succesul acelei navigări nu închide criteriul de
 - [ ] În MCP, verificați pasul Gherkin al continuării: zero request-uri înainte,
       identitate revalidată, un singur request final și confirmarea pe ruta corectă;
       dacă un request a pornit deja, lipsa confirmării rămâne FAIL fără replay.
+      Proba trebuie să includă și încărcarea reală a iframe-ului: handler-ul
+      așteaptă acum Close în timeout-ul browserului numai când fragmentul există;
+      lipsa reclamei nu justifică un test repetat până devine verde.
 
 Traseul suplimentar de [client existent](../../atf-test-auto-ex/README.md#pregătirea-clientului-existent)
 este livrat și verificat nominal. Succesul login/delete și al pregătirii API

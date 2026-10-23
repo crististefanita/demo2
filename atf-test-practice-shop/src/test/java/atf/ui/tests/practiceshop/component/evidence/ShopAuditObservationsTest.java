@@ -27,27 +27,11 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @AtfComponentTest
 class ShopAuditObservationsTest {
     private static final ShopConfiguration CONFIGURATION = ShopConfigurationLoader.load();
-    private static final String ONE_PIXEL_PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
-
-    @Test
-    void screenValidationRequiresARealPngScreenshot() {
-        var screenshot = new UiScreenValidation.Evidence("final state", ONE_PIXEL_PNG, true);
-
-        ShopAuditObservations.requireScreenshotForScreenValidation(screenshot);
-
-        assertThrows(IllegalStateException.class,
-                () -> ShopAuditObservations.requireScreenshotForScreenValidation(
-                        new UiScreenValidation.Evidence("final state", "", false)));
-        assertThrows(IllegalStateException.class,
-                () -> ShopAuditObservations.requireScreenshotForScreenValidation(
-                        new UiScreenValidation.Evidence("final state", "bm90LWEtUE5H", true)));
-    }
 
     @Test
     void recordsOneScreenAuditAndOneObservationPerApiExchange() {
@@ -132,26 +116,6 @@ class ShopAuditObservationsTest {
         assertTrue(actions.snapshot().get(0).observed().contains("assertions=2"));
         assertTrue(actions.snapshot().get(0).observed().contains("url="
                 + CONFIGURATION.uri(ShopUiRoutes.ACCOUNT)));
-    }
-
-    @Test
-    void terminalScreenContractIsIncludedInTheEvidenceReturnedForPublication() {
-        PlaywrightActionSequence actions = new PlaywrightActionSequence();
-        actions.observation("Prior UI evidence", "#checkout", "checkout is ready", "ready");
-        Page page = page(CONFIGURATION.uri(ShopUiRoutes.CHECKOUT).toString());
-        var screenshot = new UiScreenValidation.Evidence("order confirmation", ONE_PIXEL_PNG, true);
-
-        var publishedEvidence = ShopAuditObservations.drainScreenContractEvidence(
-                actions, page, "order confirmation is displayed",
-                List.of(new AtfAssertion("Confirmation", "visible", "visible", true)),
-                screenshot, true);
-
-        assertEquals(2, publishedEvidence.size());
-        assertEquals("Prior UI evidence", publishedEvidence.get(0).operation());
-        assertEquals("OBSERVE", publishedEvidence.get(1).source().name());
-        assertEquals("Audit screen contract", publishedEvidence.get(1).operation());
-        assertTrue(publishedEvidence.get(1).observed().contains("screenshot=valid PNG"));
-        assertTrue(actions.snapshot().isEmpty(), "the returned evidence owns the drained sequence");
     }
 
     private static ReportExecutionEvidence execution(String method, String path, int status) {

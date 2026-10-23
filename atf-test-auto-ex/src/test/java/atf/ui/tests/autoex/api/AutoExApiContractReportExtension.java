@@ -16,6 +16,7 @@ import atf.api.reporting.configuration.ReportEnvironmentSnapshot;
 import atf.api.reporting.extent.session.ExtentReportSession;
 import atf.api.reporting.security.SensitiveDataRedactor;
 import atf.api.testkit.output.ReportOutputDirectory;
+import atf.api.testkit.lifecycle.FailureAwareCleanup;
 import atf.ui.autoex.api.AutoExApiJsonField;
 import atf.ui.autoex.support.AutoExProjectRoot;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -87,26 +88,43 @@ public final class AutoExApiContractReportExtension implements BeforeAllCallback
         Class<?> owner = context.getRequiredTestClass();
         var scenario = session.startScenario(owner.getSimpleName(), owner.getPackageName(),
                 context.getDisplayName(), List.of("api", "auto-ex", "contract", "live"));
-        var run = new Run(scenario, scenario.startPhase(TEST_BODY.displayName()));
-        context.getStore(NAMESPACE).put(RUN, run);
-        CURRENT.set(run);
+        AtfReportPorts.Phase phase = null;
+        try {
+            phase = scenario.startPhase(TEST_BODY.displayName());
+            var run = new Run(scenario, phase);
+            context.getStore(NAMESPACE).put(RUN, run);
+            CURRENT.set(run);
+        } catch (RuntimeException | Error setupFailure) {
+            AtfReportPorts.Phase acquiredPhase = phase;
+            FailureAwareCleanup.runAll(setupFailure,
+                    () -> { if (acquiredPhase != null) acquiredPhase.close(); },
+                    () -> scenario.complete(AtfReportStatus.FAIL), scenario::close);
+            throw setupFailure;
+        }
     }
 
     @Override
-    public void afterEach(ExtensionContext context) {
+    public void afterEach(ExtensionContext context) throws Exception {
         Run run = context.getStore(NAMESPACE).remove(RUN, Run.class);
         CURRENT.remove();
         if (run == null) return;
         Throwable failure = context.getExecutionException().orElse(null);
-        AtfReportStatus status = failure == null ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
-        try {
-            if (failure != null) recordExecutionFailure(run.phase(), failure);
-            run.phase().complete(status);
-            run.scenario().complete(status);
-        } finally {
-            run.phase().close();
-            run.scenario().close();
-        }
+        finishRun(run.scenario(), run.phase(), failure);
+    }
+
+    /** App report adapter delegates cleanup ordering and failure aggregation to the existing Test Kit. */
+    public static void finishRun(AtfReportPorts.Scenario scenario, AtfReportPorts.Phase phase,
+                                 Throwable primary) throws Exception {
+        AtfReportStatus status = primary == null ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
+        Throwable failure = FailureAwareCleanup.runAll(primary,
+                () -> { if (primary != null) recordExecutionFailure(phase, primary); },
+                () -> phase.complete(status), phase::close);
+        AtfReportStatus finalStatus = failure == null ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
+        failure = FailureAwareCleanup.runAll(failure,
+                () -> scenario.complete(finalStatus), scenario::close);
+        if (primary != null || failure == null) return;
+        if (failure instanceof Exception exception) throw exception;
+        throw (Error) failure;
     }
 
     @Override

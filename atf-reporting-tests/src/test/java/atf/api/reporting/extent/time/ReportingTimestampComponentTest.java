@@ -1,4 +1,4 @@
-package atf.api.reporting.standalone;
+package atf.api.reporting.extent.time;
 
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.extent.session.ExtentReportFinalizer;
@@ -6,7 +6,7 @@ import atf.api.reporting.extent.session.ExtentReportSession;
 import atf.api.reporting.extent.session.ExtentReportTimestampReporter;
 import com.aventstack.extentreports.ExtentReports;
 import com.aventstack.extentreports.ExtentTest;
-import org.junit.jupiter.api.Tag;
+import atf.api.testkit.AtfComponentTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -26,8 +26,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Native Reporting component proof; no Test Kit, browser, consumer or service dependency. */
-@Tag("component")
+/** Reporting component proof; no browser, consumer or service dependency. */
+@AtfComponentTest
 class ReportingTimestampComponentTest {
     private static final LocalDate FIXTURE_DATE = LocalDate.of(2026, 7, 2);
     private static final String CATEGORY = "clock-format";

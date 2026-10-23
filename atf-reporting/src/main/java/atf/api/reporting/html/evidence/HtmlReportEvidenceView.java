@@ -179,7 +179,9 @@ public final class HtmlReportEvidenceView {
     }
 
     public void renderValidation(StringBuilder html, ReportExecutionModel.Validation validation) {
-        html.append(openTag(DIV, classAttribute(VALIDATION), attribute(NODE_ROLE, "validation")))
+        html.append(openTag(DIV, classAttribute(VALIDATION), attribute(NODE_ROLE, "validation"),
+                        attribute(AtfReportHtmlVocabulary.Attribute.EVIDENCE_OWNER,
+                                validation.evidenceOwner().attributeValue())))
                 .append(openTag(DIV, classAttribute(NODE_TITLE)))
                 .append(openTag(SPAN)).append(escape(validation.title())).append(closeTag(SPAN))
                 .append(ReportEvidenceMarkup.statusBadge(validation.status()))

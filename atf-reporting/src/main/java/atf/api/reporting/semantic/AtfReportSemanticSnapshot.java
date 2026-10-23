@@ -1,4 +1,5 @@
 package atf.api.reporting.semantic;
+import atf.api.reporting.contract.evidence.ReportEvidenceOwner;
 import atf.api.reporting.model.ReportExecutionModel;
 import atf.api.reporting.contract.AtfReportStatus;
 
@@ -82,7 +83,8 @@ public record AtfReportSemanticSnapshot(List<ClassSnapshot> classes) {
         var validation = (ReportExecutionModel.Validation) node;
         return new ValidationSnapshot(validation.title(),
                 validation.assertions().stream().map(assertion -> assertion.name()).toList(),
-                validation.uiActionCount(), validation.screenshotCount(), validation.status());
+                validation.uiActionCount(), validation.screenshotCount(), validation.status(), List.of(),
+                validation.evidenceOwner());
     }
 
     private static List<ValidationSnapshot> validationSnapshots(List<ReportExecutionModel.Node> nodes) {
@@ -183,7 +185,13 @@ public record AtfReportSemanticSnapshot(List<ClassSnapshot> classes) {
     public record ValidationSnapshot(String title, List<String> assertionNames,
                                      int uiActionCount, int screenshotCount,
                                      AtfReportStatus status,
-                                     List<RequestSnapshot> requests) implements NodeSnapshot {
+                                     List<RequestSnapshot> requests, ReportEvidenceOwner evidenceOwner) implements NodeSnapshot {
+        public ValidationSnapshot(String title, List<String> assertionNames,
+                                  int uiActionCount, int screenshotCount,
+                                  AtfReportStatus status, List<RequestSnapshot> requests) {
+            this(title, assertionNames, uiActionCount, screenshotCount, status, requests,
+                    ReportEvidenceOwner.UNSPECIFIED);
+        }
         public ValidationSnapshot(String title, List<String> assertionNames,
                                   int uiActionCount, int screenshotCount,
                                   AtfReportStatus status) {
@@ -191,6 +199,7 @@ public record AtfReportSemanticSnapshot(List<ClassSnapshot> classes) {
         }
 
         public ValidationSnapshot {
+            evidenceOwner = Objects.requireNonNull(evidenceOwner, "evidenceOwner");
             title = title == null ? "" : title;
             assertionNames = List.copyOf(Objects.requireNonNull(assertionNames, "assertionNames"));
             if (uiActionCount < 0 || screenshotCount < 0) {

@@ -55,6 +55,7 @@ src/test/java/atf/api/tests/governance/
 ├── ConstantsOwnershipGovernanceTest.java
 ├── changes/          change-control schema, diferență Git și probe negative
 ├── console/          default-uri și composition root-uri UI/API
+├── layers/           clasificare globală și acoperirea disjunctă a suitelor consumer
 ├── documentation/
 │   ├── DocumentationDiagramGovernanceTest.java
 │   ├── DocumentationProseGovernanceTest.java
@@ -82,6 +83,8 @@ testelor de reporting în acest modul:
   package-ul și clasele concrete pentru orice hotspot nou sau excepție stale;
 - `AtfSourceReadabilityGovernanceTest` — importuri duplicate și invocații
   fully-qualified care ascund intenția testului;
+- `layers.AtfTestLayerArchitectureTest` — fiecare clasă executabilă are exact un nivel; fixture-urile imbricate nu schimbă nivelul clasei exterioare;
+- `layers.ConsumerSuiteCoverageGovernanceTest` — exact trei suite principale per consumer, fără clase omise, selecții suprapuse sau amestec local/E2E/API live; include probe negative pentru omisiuni și suprapuneri;
 - `ConstantsOwnershipGovernanceTest` — vocabularul de protocol, rute și
   boundary-ul reporting standalone;
 - `governance.documentation.DynamicPathDocumentationArchitectureTest` — documentație

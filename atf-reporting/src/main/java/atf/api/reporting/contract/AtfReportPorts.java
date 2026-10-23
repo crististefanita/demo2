@@ -1,4 +1,5 @@
 package atf.api.reporting.contract;
+import atf.api.reporting.contract.evidence.ReportEvidenceOwner;
 
 import atf.api.reporting.inventory.ValidationSink;
 import atf.api.reporting.model.ReportExecutionEvidence;
@@ -52,6 +53,8 @@ public final class AtfReportPorts {
         void complete(AtfReportStatus status); @Override void close();
     }
     public interface Validation extends ValidationSink.Scope, AutoCloseable {
+        /** Explicit assertion channel; legacy lightweight sinks may ignore it. */
+        default void evidenceOwner(ReportEvidenceOwner owner) { }
         /**
          * Adds a nested request evidence node to this validation.  The seam is
          * intentionally optional so existing lightweight adapters remain

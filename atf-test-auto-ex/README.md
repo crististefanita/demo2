@@ -22,7 +22,7 @@ browserul și raportarea sunt furnizate de modulele ATF.
 
 ```mermaid
 flowchart LR
-    Config[atf-auto-ex.yaml] -->|configurează| Suite[AutoExPurchaseSuite]
+    Config[atf-auto-ex.yaml] -->|configurează| Suite[AutoExE2eSuite]
     Suite -->|rulează| Journey[Purchase journey]
     Journey -->|coordonează| Pages[page objects AutoEx]
     Pages -->|folosesc| Browser[sesiunea Playwright ATF]
@@ -134,7 +134,7 @@ trebuie demonstrată comportamental în ambii consumatori.
   singură browserul sau lifecycle-ul.
 - `@UiReportSubdirectory("auto-ex")` și `@AtfConsoleMessages(DETAILS)` păstrează
   output-ul și diagnosticul consumerului în locația/politica stabilite.
-- `AutoExE2eExtension` compune sesiunea per test; `AutoExPurchaseSuite` rulează
+- `AutoExE2eExtension` compune sesiunea per test; `AutoExE2eSuite` rulează
   clasele secvențial și partajează raportul.
 
 ## Suite și variante de evidence
@@ -174,9 +174,9 @@ Nu se rulează toate pentru a demonstra mai mult business și nu se adaugă o
 variantă de purchase pentru fiecare combinație de captură sau layout. Testele
 formatării, navigării și redării raportului aparțin `atf-reporting-tests`.
 
-`AutoExPurchaseSuite` păstrează matricea explicită cu toate cele trei profile,
-protejată de guvernanța existentă. Se lansează numai când se dorește acea
-matrice; rularea normală de business folosește clasa UI direct.
+`AutoExE2eSuite` este unicul gate UI complet: include cele șase clase E2E,
+cu poveștile de cont nou/existent, coș/sesiune și cele trei profile de purchase păstrate.
+Clasele concrete rămân selecția pentru un singur flow, fără suite suprapuse.
 
 `AutoExComponentSuite` verifică local fără a deschide site-ul public:
 
@@ -320,6 +320,8 @@ zoom-ul și nu activează fallback JavaScript general.
 | Responsabilitate | Owner / contract |
 |---|---|
 | Controlul reclamei | `AutoExVignetteHandler`: fragment vignette prezent și un Close vizibil în frame |
+| Încărcare asincronă | numai după observarea fragmentului, așteaptă read-only un Close vizibil/activ în iframe, în timeout-ul browserului; fără `sleep` sau pauză pentru provocarea reclamei |
+| Reclama lipsește | `dismissIfPresent` întoarce imediat `false`; dacă fragmentul dispare singur în timpul așteptării, nu inventează un click Close |
 | Observație pasivă | înaintea activării, `Observed Google vignette` păstrează URL-ul real și zoom-ul CSS calculat; nu solicită și nu modifică reclama |
 | Activare | `atf-ui`: țintă unică/activă, un singur `HTMLElement.click()`, fără retry automat |
 | Rezultat | callback read-only așteaptă eliminarea fragmentului; acțiunea trece numai după acesta |
@@ -329,6 +331,12 @@ zoom-ul și nu activează fallback JavaScript general.
 Probele generice ale API-ului aparțin `atf-ui`; AutoEx verifică reclama apărută
 natural în flow-urile reale UI/UI_API, fără teste artificiale de reclamă.
 Problema pointerului rămâne în [feedback-ul de geometrie](../docs/feedback/ATF_UI_Browser_Geometry_Feedback.md).
+
+- Vignette-ul este opțional și controlat de site/AdSense. Setarea efectivă de
+  eligibilitate/frecvență a acestui magazin nu este cunoscută de ATF.
+- O reclamă în catalog nu demonstrează întreruperea ștergerii. Nu resetăm
+  frecvența prin cookies/storage și nu lungim artificial flow-ul ca să obținem
+  încă o reclamă; acceptanța tranziției rămâne distinctă de regresia nominală.
 
 ### Contul creat și cleanup-ul sub vignette
 
@@ -370,11 +378,19 @@ depinde de activarea inspectorului UI_API.
   permisiunii când nu există întrerupere observată.
 - Probele E2E folosesc numai flow-uri business reale la 70%; nu injectează
   overlay-uri, hash-uri, răspunsuri sau navigări de reclamă fabricate.
+- Intermitența reclamei se tratează prin `dismissIfPresent`, nu prin retry-ul
+  întregului test. Un Close absent după timeout sau o țintă ambiguă rămân erori;
+  nu există `catch` general care transformă ștergerea neconfirmată în succes.
 
 `AutoExAccountUiE2eTest` verifică direct self-service-ul contului: deschide
 magazinul, înregistrează un client sintetic, verifică identitatea, șterge contul
-și confirmă revenirea pe Home. Se selectează manual ca regresie focalizată,
-independent de checkout/plată și fără a mări suita business implicită.
+și confirmă revenirea pe Home. Se selectează manual ca regresie focalizată
+sau prin gate-ul UI complet, independent de checkout/plată.
+
+`AutoExExistingCustomerUiApiE2eTest` pregătește un client prin API-ul public
+în setup, apoi verifică login-ul și ștergerea prin UI. Setup-ul și traficul
+cauzal al browserului rămân distincte; cele două căi reutilizează transportul
+`AutoExLiveApi`, fără retry automat al mutațiilor.
 
 ## Coș și continuitatea sesiunii
 
@@ -465,7 +481,7 @@ API live; ele nu sunt variante ale aceluiași test.
 
 ```mermaid
 flowchart LR
-    E2E[AutoExPurchaseSuite] -->|rulează| Journey[Purchase journey]
+    E2E[AutoExE2eSuite] -->|rulează| Journey[Purchase journey]
     Journey -->|conduce| Browser[ATF Playwright]
     Browser -->|vizitează| Site[Automation Exercise UI]
     Browser -.->|UI_API observă| Inspector[network inspector]
@@ -487,7 +503,7 @@ flowchart LR
   checkpoint-uri; pregătirea directă a contului nu este atribuită acelor acțiuni;
 - `AutoExComponentSuite` verifică modele și adaptoare cu fixture-uri locale,
   fără serviciul public;
-- `AutoExApiReadOnlyLiveSuite` trimite request-uri directe, inclusiv `POST`
+- `AutoExApiReadOnlyLiveContractTest` trimite request-uri directe, inclusiv `POST`
   pentru căutare, dar nu creează și nu modifică un cont;
 - `AutoExApiLiveSuite` este separat deoarece creează și actualizează un cont
   sintetic, apoi încearcă cleanup-ul;
@@ -499,7 +515,7 @@ flowchart LR
 |---|---|---|
 | Model request | `AutoExApiRoute`, `AutoExApiRequestFactory` și `AutoExApiAccount` descriu rutele și request-urile typed; reprezentarea contului redactează datele sensibile | verifică forma request-ului, nu comportamentul serviciului live |
 | Contract component | fixture-ul verifică metoda, ruta, query/form, răspuns JSON reprezentativ și exchange-ul raportat | offline; nu certifică serviciul public și nici schema lui completă |
-| API live read-only | `AutoExApiReadOnlyLiveSuite`; `GET` products/brands și `POST` product search | cere `-Datf.autoex.api.readonly.live.enabled=true`; nu creează sau modifică conturi |
+| API live read-only | `AutoExApiReadOnlyLiveContractTest`; `GET` products/brands și `POST` product search | cere `-Datf.autoex.api.readonly.live.enabled=true`; nu creează sau modifică conturi |
 | API live cu cont | `AutoExApiLiveSuite`; contracte positive/negative și lifecycle-ul contului sintetic cu cleanup | cere `-Datf.autoex.api.live.enabled=true`; efect extern, opt-in |
 | Raport API direct | `AutoExApiContractReportExtension` publică exchange-uri și assertions JSON; implicit `artifacts/reports/api/auto-ex`, override `atf.autoex.api.report-directory`; `@AtfReportPath` publică locația | publisher component verifică artifactul offline, dar nu substituie proba live |
 | Traficul E2E `UI_API` | precondiția catalogului este publicată separat de fereastra cauzală | XHR/fetch first-party, inclusiv coșul fără prefix `/api/`; scope și completitudine în inspector |
@@ -626,26 +642,26 @@ Din root-ul reactorului, testele componente offline:
 mvn -pl atf-test-auto-ex -am "-Dtest=AutoExComponentSuite" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
-### Suite API independente
+### Cele trei suite principale
 
 | Suită | Nivel și perimetru | Activare / efect extern |
 |---|---|---|
-| `AutoExApiComponentSuite` | modele, assertions și adaptoare API din `component.api` | offline; este deja inclusă semantic în selecția mai largă `AutoExComponentSuite` |
-| `AutoExApiReadOnlyLiveSuite` | catalog, branduri și căutare pe serviciul real | opt-in read-only; fără mutații de cont |
-| `AutoExApiLiveSuite` | contractele API publicate și lifecycle sintetic create/login/read/update/delete | opt-in separat; cleanup armat înainte de create |
+| `AutoExComponentSuite` | toate contractele locale de business și adaptoare | fără contact cu magazinul public |
+| `AutoExE2eSuite` | povești UI și profilele de evidence păstrate | opt-in E2E; fiecare clasă intră o singură dată |
+| `AutoExApiLiveSuite` | contracte read-only și lifecycle sintetic de cont | opt-in-uri independente; read-only nu activează mutațiile |
 
 Nu se adaugă o suită unit goală pentru simetrie cu Shop. Componentele API
 existente au acest nivel declarat; o suită unit separată se justifică numai
 când apar teste unit reale. Suitele live nu selectează teste UI/E2E.
 
 ```powershell
-mvn -pl atf-test-auto-ex -am "-Dtest=AutoExApiComponentSuite" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -pl atf-test-auto-ex -am "-Dtest=AutoExComponentSuite" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
 Proba API live read-only este separată și nu creează conturi:
 
 ```powershell
-mvn -pl atf-test-auto-ex -am "-Dtest=AutoExApiReadOnlyLiveSuite" "-Datf.autoex.api.readonly.live.enabled=true" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -pl atf-test-auto-ex -am "-Dtest=AutoExApiReadOnlyLiveContractTest" "-Datf.autoex.api.readonly.live.enabled=true" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
 Contractele API live cu lifecycle de cont formează un gate distinct și explicit:
@@ -668,17 +684,15 @@ Gate-ul business E2E live, cu o singură cumpărare și un raport:
 mvn -pl atf-test-auto-ex -am "-Dtest=AutoExPurchaseUiE2eTest" "-Datf.autoex.e2e.enabled=true" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
-Gate-ul complet al celor trei povești business distincte, fără variantele
-redundante de evidence ale aceleiași comenzi:
+Gate-ul UI complet, cu poveștile business și profilele de evidence păstrate:
 
 ```powershell
-mvn -pl atf-test-auto-ex -am "-Dtest=AutoExBusinessSuite" "-Datf.autoex.e2e.enabled=true" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -pl atf-test-auto-ex -am "-Dtest=AutoExE2eSuite" "-Datf.autoex.e2e.enabled=true" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
-Clasele și suitele pot fi lansate direct din IntelliJ. `AutoExPurchaseSuite`
-rămâne matricea manuală a formatelor de evidence, nu gate-ul minim de business.
+Clasele și cele trei suite principale pot fi lansate direct din IntelliJ.
 
-- În IntelliJ se poate rula direct `AutoExPurchaseSuite` sau o clasă E2E; markerul
+- În IntelliJ se poate rula direct `AutoExE2eSuite` sau o clasă E2E; markerul
   runner-ului activează implicit testul când proprietatea JVM lipsește, chiar
   dacă YAML-ul spune `e2eEnabled: false`. `-Datf.autoex.e2e.enabled=false` are
   precedență și îl dezactivează.
@@ -695,3 +709,12 @@ Contractele API și precondiția pentru `UI_API` sunt normate în acest README.
 `AutoExPurchaseSession` rămâne boundary intern al runtime-ului consumer; nu
 există un TODO activ de extracție generică; lifecycle-ul JUnit/evidence și
 politica E2E rămân în adaptorul test-scoped.
+
+### Suport partajat și source-set-uri
+
+| Owner | Contract |
+|---|---|
+| AutoEx `src/main/java` | pagini, journey-uri, `AutoExLiveApi` și `AutoExApiResponseAssertions`, fără JUnit |
+| AutoEx `src/test/java` | teste business, fixture-ul sintetic și adaptorul de aserțiuni/publicare `AutoExApiTestSupport`; testele nu apelează alte clase de test |
+| `atf-test-kit.lifecycle` | `TestRunInitialization`, cleanup și compensare; este pachet în Kit-ul existent, nu modul nou |
+| `atf-ui` | `UiNetworkInspector.observationCursor()` / `observationsSince(...)` și `UiScreenAudit`: observație terminală și validare PNG comune; nu calculează verdictul aplicației |

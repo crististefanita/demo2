@@ -708,3 +708,18 @@ font, culoare, scroll sau overflow are nevoie de test de cod și verificare a
 artifactului. Un string găsit în HTML nu dovedește că elementul se comportă
 corect la click.
 
+## Suport consumer și selecții principale
+
+| Contract | Owner |
+|---|---|
+| Cont, catalog, coș, checkout, confirmare și factură | runtime-ul și testele business Shop/AutoEx |
+| Extensie JUnit și configurarea scenariului aplicației | `src/test/java` al consumerului |
+| Inițializare, close-once și compensare armată | pachetul `lifecycle` din `atf-test-kit`, fără modul nou |
+| Audit neutru al ecranului, cursorul observațiilor și validarea capturii | `atf-ui`; fără dependență de Reporting sau JUnit |
+| Failure evidence, replay și profile de randare | `atf-reporting-tests`, cu fixture-uri neutre |
+| Clasificare globală și acoperirea disjunctă a celor trei suite principale | `atf-tests`, în suita whole-ATF |
+
+Clasele executabile ale fiecărui consumer sunt repartizate exact o dată între
+local, UI E2E și API live. Opt-in-urile externe rămân independente; mutarea unui
+helper nu autorizează un apel remote și nu transformă un fixture în dovadă live.
+

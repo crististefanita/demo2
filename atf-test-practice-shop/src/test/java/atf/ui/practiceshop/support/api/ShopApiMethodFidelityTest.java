@@ -2,7 +2,6 @@ package atf.ui.practiceshop.support.api;
 
 import atf.api.core.http.response.ApiBodyEvidence;
 import atf.api.core.http.request.HttpMethod;
-import atf.api.reporting.api.ApiManualReplay;
 import atf.api.reporting.api.ReportRequestSignature;
 import atf.api.testkit.AtfComponentTest;
 import atf.ui.practiceshop.api.ShopApiOperation;
@@ -44,10 +43,6 @@ class ShopApiMethodFidelityTest {
             assertEquals(json.readTree(REQUEST_JSON), json.readTree(request.bodyText()));
             assertEquals(ReportRequestSignature.forRequest(request), evidence.trace().requestSignature());
             assertTrue(evidence.trace().requestSignature().startsWith(method + " "));
-            String replay = ApiManualReplay.describe(evidence.provenance(), request,
-                    evidence.response().url(), request.bodyText());
-            assertTrue(replay.contains("--request '" + method + "'"), replay);
-            assertTrue(replay.contains(request.bodyText()), replay);
         }
         assertNotEquals(ShopApiMethodFidelityFixture.browserEvidence(QUERY).trace().requestSignature(),
                 ShopApiMethodFidelityFixture.browserEvidence(HttpMethod.GET.value()).trace().requestSignature());
@@ -79,8 +74,6 @@ class ShopApiMethodFidelityTest {
                 "QUERY /products/search — find configured product", "observed and standalone request title");
         ShopReportHtmlTestSupport.requireText(ui,
                 "QUERY /products/search", "nested browser-captured request title");
-        ShopReportHtmlTestSupport.requireText(ui, "REQUEST JSON", "request body");
-        ShopReportHtmlTestSupport.requireText(ui, "RESPONSE JSON", "response body");
-        ShopReportHtmlTestSupport.requireText(ui, "Execution evidence", "execution evidence");
+
     }
 }

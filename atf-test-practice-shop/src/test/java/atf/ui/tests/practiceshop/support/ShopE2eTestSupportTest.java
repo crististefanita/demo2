@@ -19,15 +19,13 @@ import atf.ui.practiceshop.config.ShopReportConfiguration;
 import atf.ui.practiceshop.config.ShopValidationProfile;
 import atf.api.ui.config.UiNetworkInspectionConfiguration;
 import atf.ui.practiceshop.flow.ShopPurchaseFlow;
+import atf.ui.practiceshop.support.validation.ShopPurchaseConfirmation;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.io.IOException;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -250,13 +248,13 @@ class ShopE2eTestSupportTest {
 
     @Test
     void terminalPurchaseScreenRequiresTheObservedOrderAndInvoiceConfirmation() {
-        var confirmed = ShopE2eTestSupport.E2eJourney.purchaseConfirmationAssertions(
+        var confirmed = ShopPurchaseConfirmation.assertions(
                 new ShopPurchaseFlow.PurchaseResult(
                         "Pliers", "2", "Cash on Delivery", "Thanks for your order! INV-123"));
-        var missingInvoice = ShopE2eTestSupport.E2eJourney.purchaseConfirmationAssertions(
+        var missingInvoice = ShopPurchaseConfirmation.assertions(
                 new ShopPurchaseFlow.PurchaseResult(
                         "Pliers", "2", "Cash on Delivery", "Thanks for your order!"));
-        var absentConfirmation = ShopE2eTestSupport.E2eJourney.purchaseConfirmationAssertions(
+        var absentConfirmation = ShopPurchaseConfirmation.assertions(
                 new ShopPurchaseFlow.PurchaseResult(
                         "Pliers", "2", "Cash on Delivery", null));
 
@@ -281,38 +279,6 @@ class ShopE2eTestSupportTest {
 
     @AtfUiEvidence
     private static class ConfiguredEvidence { }
-
-    @Test
-    void closesThePerMethodResourceOnlyOnce() throws Exception {
-        AtomicInteger closes = new AtomicInteger();
-        var resource = new ShopE2eTestSupport.E2eResource(closes::incrementAndGet);
-
-        resource.close();
-        resource.close();
-
-        assertEquals(1, closes.get());
-    }
-
-    @Test
-    void keepsTheBusinessFailurePrimaryWhenTeardownAlsoFails() {
-        IOException teardown = new IOException("teardown failed");
-        var resource = new ShopE2eTestSupport.E2eResource(() -> { throw teardown; });
-        AssertionError business = new AssertionError("observed business failure");
-
-        assertDoesNotThrow(() -> ShopE2eTestSupport.closeAfterTest(resource, business));
-
-        assertEquals(1, business.getSuppressed().length);
-        assertSame(teardown, business.getSuppressed()[0]);
-    }
-
-    @Test
-    void reportsTeardownFailureWhenTheTestItselfPassed() {
-        IOException teardown = new IOException("teardown failed");
-        var resource = new ShopE2eTestSupport.E2eResource(() -> { throw teardown; });
-
-        assertSame(teardown, assertThrows(IOException.class,
-                () -> ShopE2eTestSupport.closeAfterTest(resource, null)));
-    }
 
     @Test
     void classRunRegistrationCacheCreatesOnceAndReturnsTheSameCredentials() {

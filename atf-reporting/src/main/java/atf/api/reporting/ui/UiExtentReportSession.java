@@ -1,6 +1,7 @@
 package atf.api.reporting.ui;
 
 import atf.api.reporting.ui.network.ReportNetworkInspector;
+import atf.api.reporting.semantic.AtfReportSemanticSnapshot;
 import atf.api.reporting.console.AtfConsoleSink;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfGherkinKeyword;
@@ -180,6 +181,11 @@ public final class UiExtentReportSession implements AutoCloseable {
                 uiConfiguration.reportingSettings(), new SensitiveDataRedactor(), options.console(),
                 systemInfo, options.evidenceProfile().actionDetailsMode()),
                 options.evidenceProfile());
+    }
+
+    /** Renderer-neutral checkpoint model for component audits and consumer diagnostics. */
+    public AtfReportSemanticSnapshot semanticSnapshot() {
+        return delegate.semanticSnapshot();
     }
 
     public Path reportPath() {

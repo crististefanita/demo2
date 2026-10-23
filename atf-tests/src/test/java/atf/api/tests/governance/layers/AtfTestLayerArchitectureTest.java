@@ -1,4 +1,7 @@
-package atf.api.testkit;
+package atf.api.tests.governance.layers;
+
+import atf.api.testkit.AtfIntegrationTest;
+import atf.api.tests.governance.AtfGovernanceTestSupport;
 
 import org.junit.jupiter.api.Test;
 
@@ -21,8 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Enforces one executable test hierarchy across every ATF module. */
-@AtfComponentTest
-class AtfTestLayerArchitectureTest {
+@AtfIntegrationTest
+public class AtfTestLayerArchitectureTest {
     private static final Set<String> LAYER_ANNOTATIONS = Set.of(
             "@AtfUnitTest", "@AtfComponentTest", "@AtfIntegrationTest", "@AtfE2eTest");
     private static final Pattern TEST_DECLARATION = Pattern.compile(
@@ -32,10 +35,13 @@ class AtfTestLayerArchitectureTest {
             "(?m)^\\s*(?:public\\s+)?@interface\\s+(\\w+)\\b");
     private static final Pattern PACKAGE = Pattern.compile("(?m)^\\s*package\\s+([\\w.]+)\\s*;");
     private static final Pattern IMPORT = Pattern.compile("(?m)^\\s*import\\s+([\\w.]+)\\s*;");
+    private static final Pattern TYPE_DECLARATION = Pattern.compile(
+            "(?m)^\\s*(?:(?:public|protected|private|static|final|abstract|sealed|non-sealed)\\s+)*"
+                    + "(?:class|interface|enum|record|@interface)\\s+\\w+");
     private static final String STANDALONE_REPORTING_LAYER = "standalone-independent";
     private static final Set<String> STANDALONE_REPORTING_TEST_NAMES = Set.of(
             "ReportingStandaloneContractTest.java", "ReportingStandaloneDependencyTest.java",
-            "ReportingStandaloneEvidenceLayoutTest.java", "ReportingTimestampComponentTest.java",
+            "ReportingStandaloneEvidenceLayoutTest.java",
             "ReportingStandaloneEnvironmentSnapshotTest.java");
 
     @Test
@@ -124,7 +130,7 @@ class AtfTestLayerArchitectureTest {
                 () -> "matrix contains an empty module layer: " + matrix);
     }
 
-    private static boolean isConcreteExecutable(String source) {
+    static boolean isConcreteExecutable(String source) {
         return TEST_DECLARATION.matcher(source).find()
                 && !source.matches("(?s).*\\babstract\\s+class\\s+\\w+.*");
     }
@@ -153,12 +159,25 @@ class AtfTestLayerArchitectureTest {
                         "import fixture.Loop;\n@Loop\nclass Example {}", annotations).isEmpty()));
     }
 
-    private static List<String> declaredLayers(String source, Map<String, String> annotations) {
+    @Test
+    void nestedFixtureAnnotationsDoNotChangeTheEnclosingExecutableLayer() {
+        assertEquals(List.of("@AtfComponentTest"), declaredLayers("""
+                @AtfComponentTest
+                class Executable {
+                    @AtfUnitTest
+                    static class Fixture { }
+                }
+                """, Map.of()));
+    }
+
+    static List<String> declaredLayers(String source, Map<String, String> annotations) {
         return declaredLayers(source, annotations, new HashSet<>());
     }
 
     private static List<String> declaredLayers(String source, Map<String, String> annotations,
                                                 Set<String> resolving) {
+        var declaration = TYPE_DECLARATION.matcher(source);
+        if (declaration.find()) source = source.substring(0, declaration.start());
         var imports = new HashMap<String, String>();
         IMPORT.matcher(source).results().forEach(match -> {
             String name = match.group(1);
@@ -184,15 +203,25 @@ class AtfTestLayerArchitectureTest {
         return List.copyOf(result);
     }
 
-    private static Map<String, String> annotationSources(Path root) throws Exception {
+    static Map<String, String> annotationSources(Path root) throws Exception {
         var result = new HashMap<String, String>();
         try (Stream<Path> files = Files.walk(root)) {
             for (Path file : files.filter(path -> path.toString().replace('\\', '/')
                     .matches(".*/src/(main|test)/java/.*\\.java$")).toList()) {
                 String source = Files.readString(file);
-                var type = ANNOTATION_TYPE.matcher(source);
                 var owner = PACKAGE.matcher(source);
-                if (type.find() && owner.find()) result.put(owner.group(1) + "." + type.group(1), source);
+                if (!owner.find()) continue;
+                var type = ANNOTATION_TYPE.matcher(source);
+                while (type.find()) {
+                    String prefix = source.substring(0, type.start()).replace("\r\n", "\n");
+                    int block = prefix.lastIndexOf("\n\n");
+                    String header = "package " + owner.group(1) + ";\n"
+                            + IMPORT.matcher(source).results()
+                                    .map(match -> "import " + match.group(1) + ";\n")
+                                    .collect(java.util.stream.Collectors.joining());
+                    result.put(owner.group(1) + "." + type.group(1),
+                            header + prefix.substring(block < 0 ? 0 : block));
+                }
             }
         }
         return Map.copyOf(result);
@@ -218,7 +247,7 @@ class AtfTestLayerArchitectureTest {
         }
     }
 
-    private static List<Path> testSources(Path projectRoot) throws Exception {
+    static List<Path> testSources(Path projectRoot) throws Exception {
         try (Stream<Path> files = Files.walk(projectRoot)) {
             return files.filter(AtfTestLayerArchitectureTest::isTestSource).toList();
         }
@@ -236,15 +265,6 @@ class AtfTestLayerArchitectureTest {
     }
 
     private static Path locateProjectRoot() {
-        Path current = Path.of(System.getProperty("user.dir", "."))
-                .toAbsolutePath().normalize();
-        while (current != null) {
-            if (Files.isDirectory(current.resolve("atf-reporting"))
-                    && Files.isDirectory(current.resolve("atf-core"))) {
-                return current;
-            }
-            current = current.getParent();
-        }
-        throw new IllegalStateException("Cannot locate ATF project root");
+        return AtfGovernanceTestSupport.locateProjectRoot();
     }
 }

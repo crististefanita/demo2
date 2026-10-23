@@ -12,7 +12,8 @@ import org.junit.platform.suite.api.Suite;
         "atf.ui.tests.practiceshop.api.unit",
         "atf.ui.tests.practiceshop.api.reporting",
         "atf.ui.tests.practiceshop.api.network",
-        "atf.ui.tests.practiceshop.support"
+        "atf.ui.tests.practiceshop.support",
+        "atf.ui.practiceshop.support.api"
 })
 @AtfComponentTest
 public class ShopComponentSuite { }

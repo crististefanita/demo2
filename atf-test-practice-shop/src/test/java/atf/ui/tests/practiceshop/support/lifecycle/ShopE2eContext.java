@@ -34,7 +34,8 @@ import atf.ui.practiceshop.support.ShopCountryOption;
 import atf.ui.practiceshop.support.api.ShopApiNetworkJournal;
 import atf.ui.tests.practiceshop.support.evidence.ShopBrowserCaptureProvider;
 import atf.ui.tests.practiceshop.support.reporting.ShopReportSystemMetadata;
-import atf.ui.tests.practiceshop.support.reporting.ShopReportUiActionAdapters;
+import atf.api.reporting.api.ReportModelAdapters;
+import atf.api.ui.audit.UiScreenAudit;
 import atf.ui.tests.practiceshop.support.reporting.ShopScreenshotPolicy;
 import com.microsoft.playwright.Page;
 
@@ -181,12 +182,8 @@ public final class ShopE2eContext implements AutoCloseable {
     static List<AtfUiActionRecord> terminalContractEvidence(
             PlaywrightActionSequence actions, Page page, String title,
             Collection<AtfAssertion> assertions, UiScreenValidation.Evidence screenshot) {
-        if (screenshot.hasScreenshotPayload()) {
-            return ShopAuditObservations.drainScreenContractEvidence(
-                    actions, page, title, assertions, screenshot, true);
-        }
-        ShopAuditObservations.recordScreenContract(actions, page, title, assertions, screenshot, true);
-        return actions.drain();
+        return UiScreenAudit.drain(actions, title, page.url(), assertions.size(),
+                screenshot, true, false);
     }
 
     public Page page() { return browser.page(); }
@@ -330,7 +327,7 @@ public final class ShopE2eContext implements AutoCloseable {
             ReportScreenshot screenshot = actions.snapshot().isEmpty()
                     ? null : captureCheckpointScreenshot(stepTitle, point);
             setupPhase.setup(keyword, stepTitle, page.url(), assertions,
-                    ShopReportUiActionAdapters.from(actions.drain()), new UiApiValidationEvidence(List.of(), (apiEvidence).stream()
+                    ReportModelAdapters.uiActions(actions.drain()), new UiApiValidationEvidence(List.of(), (apiEvidence).stream()
                             .map(exchange -> new UiApiValidationEvidence.Exchange(exchange, List.of())).toList()), screenshot, status);
             setupStepPublished = true;
         }
@@ -395,7 +392,7 @@ public final class ShopE2eContext implements AutoCloseable {
             AtfReportStatus uiStatus = checkpoint.assertions().stream().allMatch(AtfAssertion::passed)
                     ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
             body.step(checkpoint.keyword(), checkpoint.title(), page.url(), evidence.base64Png(),
-                    checkpoint.assertions(), ShopReportUiActionAdapters.from(actions.drain()),
+                    checkpoint.assertions(), ReportModelAdapters.uiActions(actions.drain()),
                     checkpoint.apiValidation(), capturePoint, uiStatus);
         }
 
@@ -415,7 +412,7 @@ public final class ShopE2eContext implements AutoCloseable {
             String payload = capture(page, evidenceTitle, ReportScreenshotPolicy.CapturePoint.FINAL);
             UiScreenValidation.Evidence evidence = new UiScreenValidation.Evidence(
                     evidenceTitle, payload, !payload.isBlank());
-            var actionEvidence = ShopReportUiActionAdapters.from(
+            var actionEvidence = ReportModelAdapters.uiActions(
                     terminalContractEvidence(actions, page, title, assertions, evidence));
             if (evidence.hasScreenshotPayload()) {
                 body.screenValidation(title, page.url(), evidence.base64Png(),
@@ -488,7 +485,7 @@ public final class ShopE2eContext implements AutoCloseable {
                     failure.addSuppressed(captureFailure);
                 }
                 body.failureEvidence("external E2E failure", page.url(),
-                        ShopReportUiActionAdapters.from(actions.drain()), failure, screenshot);
+                        ReportModelAdapters.uiActions(actions.drain()), failure, screenshot);
                 publishNetworkInspector();
                 body.completeFinal(AtfReportStatus.FAIL);
                 scenario.complete(AtfReportStatus.FAIL);
@@ -513,7 +510,7 @@ public final class ShopE2eContext implements AutoCloseable {
                 failure.addSuppressed(captureFailure);
             }
             ShopE2eContext.publishSetupFailureEvidence(setupPhase, page.url(),
-                    ShopReportUiActionAdapters.from(actions.drain()), failure, screenshot);
+                    ReportModelAdapters.uiActions(actions.drain()), failure, screenshot);
         }
 
         private String capture(Page page, String title,

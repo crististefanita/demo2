@@ -9,6 +9,7 @@ import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.api.ReportRequest;
+import atf.api.reporting.api.request.ReportRequestHeaders;
 import atf.api.reporting.api.ReportResponse;
 import atf.api.reporting.api.ReportTransportProvenance;
 import atf.api.reporting.api.ReportTraceMetadata;
@@ -42,6 +43,7 @@ import atf.api.ui.playwright.AtfLocator;
 import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.api.ui.playwright.PlaywrightUiSession;
 import atf.api.ui.playwright.UiScreenValidation;
+import atf.api.ui.audit.UiScreenAudit;
 import atf.ui.autoex.config.AutoExConfiguration;
 import atf.api.core.http.request.HttpHeader;
 import atf.api.core.http.response.ApiExecutionResult;
@@ -350,8 +352,8 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
         boolean passed = assertions.stream().allMatch(AtfAssertion::passed);
         String screenshot = evidenceProfile.captures(ReportScreenshotPolicy.CapturePoint.FINAL)
                 ? capture(title) : "";
-        AutoExScreenAuditObservations.recordTerminalScreenContract(
-                actions, title, currentUrl(), assertions, !screenshot.isBlank(), passed);
+        UiScreenAudit.record(actions, title, currentUrl(), assertions.size(),
+                new UiScreenValidation.Evidence(title, screenshot, !screenshot.isBlank()), passed);
         UiApiValidationEvidence apiValidation = channel == TestChannel.UI_API
                 ? networkValidationSinceCursor() : UiApiValidationEvidence.empty();
         phase.screenValidation(title, currentUrl(), screenshot, assertions,
@@ -483,14 +485,16 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
 
     private static ReportExecutionEvidence toExecutionEvidence(
             atf.api.ui.network.UiNetworkObservation observation) {
-        var request = new ReportRequest(observation.method(), observation.path(), Map.of(),
-                observation.requestHeaders(), observation.authMethod(), observation.requestBody(),
-                new ReportAuthObservation(ReportAuthMethod.fromProfile(observation.authMethod()),
+        var request = ReportRequest.builder(observation.method(), observation.path())
+                .headers(ReportRequestHeaders.observed(observation.requestHeaders()))
+                .authProfile(observation.authMethod())
+                .body(observation.requestBody(), ReportBodyAvailability.from(observation.requestBody()))
+                .authentication(new ReportAuthObservation(ReportAuthMethod.fromProfile(observation.authMethod()),
                         switch (observation.authSource()) {
                             case "request-header" -> ReportAuthSource.HEADER;
                             case "query" -> ReportAuthSource.QUERY;
                             default -> ReportAuthSource.NONE;
-                        }));
+                        })).build();
         var response = new ReportResponse(observation.status(), observation.responseBody(),
                 observation.responseHeaders(), null, observation.url(), observation.responseBodyAvailable()
                         ? ReportBodyAvailability.from(observation.responseBody())

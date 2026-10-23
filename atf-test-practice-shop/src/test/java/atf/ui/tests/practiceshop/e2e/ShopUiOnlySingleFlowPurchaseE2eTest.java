@@ -1,13 +1,11 @@
 package atf.ui.tests.practiceshop.e2e;
 
-import atf.api.reporting.contract.AtfAssertion;
 import atf.api.testkit.AtfE2eTest;
 import atf.api.testkit.channel.AtfTestChannel;
 import atf.api.testkit.channel.TestChannel;
 import atf.api.testkit.evidence.AtfUiEvidence;
 import atf.api.testkit.evidence.AtfUiEvidenceFlow;
 import atf.ui.practiceshop.flow.ShopPurchaseFlow;
-import atf.ui.practiceshop.support.ShopPurchaseTraceStep;
 import atf.ui.tests.practiceshop.support.ShopE2eTestSupport;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Order;
@@ -15,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 
-import java.util.List;
 
 /** One consolidated UI-only business proposition, action table and final screenshot. */
 @AtfE2eTest
@@ -35,12 +32,7 @@ public class ShopUiOnlySingleFlowPurchaseE2eTest {
                     var result = new ShopPurchaseFlow(journey.locators())
                             .purchaseConfiguredProduct(journey.page(), journey.actions(),
                                     journey.configuration(), journey::checkpoint);
-                    journey.pass(ShopPurchaseTraceStep.ORDER_CONFIRMATION,
-                            List.of(new AtfAssertion("Order confirmation",
-                                    "confirmation includes a successful order and invoice",
-                                    result.confirmation(),
-                                    result.confirmation().contains("Thanks for your order!")
-                                            && result.confirmation().contains("INV-"))));
+                    journey.completePurchase(result);
                 });
     }
 }

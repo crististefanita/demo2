@@ -140,6 +140,42 @@ class AutoExApiContractReportPublisherComponentTest {
         assertFalse(Files.readString(report).contains(secret), "the published diagnostic must redact credentials");
     }
 
+    @Test
+    void reportAdapterClosesBothHandlesAndPreservesTheFirstFailure() {
+        var calls = new java.util.ArrayList<String>();
+        var closeFailure = new AssertionError("phase close failed");
+        var scenarioFailure = new IllegalStateException("scenario close failed");
+        var phase = (AtfReportPorts.Phase) java.lang.reflect.Proxy.newProxyInstance(
+                AtfReportPorts.Phase.class.getClassLoader(), new Class<?>[]{AtfReportPorts.Phase.class},
+                (proxy, method, args) -> {
+                    calls.add("phase." + method.getName());
+                    if (method.getName().equals("close")) throw closeFailure;
+                    return null;
+                });
+        var scenario = (AtfReportPorts.Scenario) java.lang.reflect.Proxy.newProxyInstance(
+                AtfReportPorts.Scenario.class.getClassLoader(), new Class<?>[]{AtfReportPorts.Scenario.class},
+                (proxy, method, args) -> {
+                    calls.add("scenario." + method.getName()
+                            + (method.getName().equals("complete") ? "." + args[0] : ""));
+                    if (method.getName().equals("close")) throw scenarioFailure;
+                    return null;
+                });
+        var thrown = org.junit.jupiter.api.Assertions.assertThrows(AssertionError.class,
+                () -> AutoExApiContractReportExtension.finishRun(scenario, phase, null));
+        org.junit.jupiter.api.Assertions.assertSame(closeFailure, thrown);
+        org.junit.jupiter.api.Assertions.assertArrayEquals(new Throwable[]{scenarioFailure}, thrown.getSuppressed());
+        assertEquals(List.of("phase.complete", "phase.close", "scenario.complete.FAIL", "scenario.close"), calls);
+
+        calls.clear();
+        var primary = new IllegalArgumentException("actual business failure");
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(
+                () -> AutoExApiContractReportExtension.finishRun(scenario, phase, primary));
+        org.junit.jupiter.api.Assertions.assertArrayEquals(
+                new Throwable[]{closeFailure, scenarioFailure}, primary.getSuppressed());
+        assertTrue(calls.contains("phase.diagnostic"));
+        assertTrue(calls.contains("scenario.close"));
+    }
+
     private static ApiExecutionResult execution(int status, String body) {
         var request = new AutoExApiRequestFactory().verifyLogin("report@example.test", SECRET);
         var response = new ApiResponse(status, body,

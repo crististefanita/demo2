@@ -2,7 +2,7 @@ package atf.ui.tests.autoex.component.api;
 
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.testkit.AtfComponentTest;
-import atf.ui.tests.autoex.api.AutoExApiResponseAssertions;
+import atf.ui.autoex.api.AutoExApiResponseAssertions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 

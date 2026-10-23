@@ -76,4 +76,20 @@ class ApiManualReplayProjectionTest {
                 () -> assertFalse(headers.contains("Content-Length")),
                 () -> assertFalse(headers.contains("Access-Control-Allow-Origin")));
     }
+    @Test
+    void capturedMethodBodyAndSignatureStayFaithfulIncludingNonStandardMethods() {
+        String body = "{\"query\":\"configured value\"}";
+        for (String method : java.util.List.of("GET", "POST", "QUERY")) {
+            var request = new ReportRequest(method, "/search", Map.of(),
+                    Map.of("Content-Type", "application/json"), "none", body);
+            String replay = ApiManualReplay.describe(ReportTransportProvenance.LIVE_HTTP,
+                    request, "https://api.example.test/search", body);
+            assertTrue(replay.contains("--request '" + method + "'"), replay);
+            assertTrue(replay.contains(body));
+            assertTrue(ReportRequestSignature.forRequest(request).startsWith(method + " "));
+        }
+        org.junit.jupiter.api.Assertions.assertNotEquals(
+                ReportRequestSignature.forRequest(new ReportRequest("QUERY", "/search", Map.of(), Map.of(), "none", body)),
+                ReportRequestSignature.forRequest(new ReportRequest("GET", "/search", Map.of(), Map.of(), "none", body)));
+    }
 }

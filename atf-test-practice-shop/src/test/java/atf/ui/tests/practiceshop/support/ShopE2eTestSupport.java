@@ -16,6 +16,7 @@ import atf.api.console.junit.AtfConsoleTestExtension;
 import atf.api.console.junit.AtfReportPathOptIn;
 import atf.api.testkit.AtfConsoleMessages;
 import atf.api.testkit.reporting.AtfReportPath;
+import atf.api.testkit.lifecycle.CloseOnceResource;
 import atf.api.testkit.channel.AtfTestChannelResolver;
 import atf.api.testkit.channel.TestChannel;
 import atf.api.ui.playwright.PlaywrightActionSequence;
@@ -24,6 +25,7 @@ import atf.ui.practiceshop.config.ShopConfigurationLoader;
 import atf.ui.practiceshop.config.model.ShopCredentials;
 import atf.ui.practiceshop.config.ShopValidationProfile;
 import atf.ui.practiceshop.flow.ShopPurchaseFlow;
+import atf.ui.practiceshop.support.validation.ShopPurchaseConfirmation;
 import atf.ui.practiceshop.locators.ShopLocators;
 import atf.ui.practiceshop.support.api.ShopApiNetworkJournal;
 import atf.ui.tests.practiceshop.support.lifecycle.ShopE2eContext;
@@ -127,7 +129,7 @@ public final class ShopE2eTestSupport {
             String accountRunScope = ShopTestSupport.suiteModeEnabled(context)
                     ? ShopAuthenticatedAccountTestSupport.suiteAccountScope(rootId)
                     : rootId + "::" + context.getRequiredTestClass().getName();
-            context.getStore(NAMESPACE).put(HARNESS_KEY, new E2eResource(
+            context.getStore(NAMESPACE).put(HARNESS_KEY, new CloseOnceResource<>(
                     new E2eHarness(configuration, browser, new ShopLocators(),
                             context.getRequiredTestClass().getSimpleName(), accountSetup, registrationProfile,
                             accountRunScope)));
@@ -135,8 +137,8 @@ public final class ShopE2eTestSupport {
 
         @Override
         public void afterEach(ExtensionContext context) throws Exception {
-            E2eResource resource = context.getStore(NAMESPACE).remove(HARNESS_KEY, E2eResource.class);
-            if (resource != null) closeAfterTest(resource, context.getExecutionException().orElse(null));
+            CloseOnceResource<?> resource = context.getStore(NAMESPACE).remove(HARNESS_KEY, CloseOnceResource.class);
+            if (resource != null) resource.closeAfter(context.getExecutionException().orElse(null));
         }
 
         @Override
@@ -146,9 +148,9 @@ public final class ShopE2eTestSupport {
 
         @Override
         public Object resolveParameter(ParameterContext parameter, ExtensionContext context) {
-            E2eResource resource = context.getStore(NAMESPACE).get(HARNESS_KEY, E2eResource.class);
+            CloseOnceResource<?> resource = context.getStore(NAMESPACE).get(HARNESS_KEY, CloseOnceResource.class);
             if (resource == null) throw new ParameterResolutionException("Practice Shop E2E harness was not opened");
-            return resource.harness();
+            return (E2eHarness) resource.value();
         }
     }
 
@@ -285,39 +287,6 @@ public final class ShopE2eTestSupport {
             case FINAL_AND_FAILURE -> ReportScreenshotPolicy.FINAL_AND_FAILURE;
             case NONE -> ReportScreenshotPolicy.NONE;
         };
-    }
-
-    /** Holds the resource after opening so teardown is idempotent even when it fails. */
-    static final class E2eResource implements AutoCloseable {
-        private final AutoCloseable delegate;
-        private boolean closed;
-
-        E2eResource(AutoCloseable delegate) {
-            this.delegate = Objects.requireNonNull(delegate, "delegate");
-        }
-
-        E2eHarness harness() {
-            return (E2eHarness) delegate;
-        }
-
-        @Override
-        public void close() throws Exception {
-            if (closed) return;
-            closed = true;
-            delegate.close();
-        }
-    }
-
-    static void closeAfterTest(E2eResource resource, Throwable testFailure) throws Exception {
-        try {
-            resource.close();
-        } catch (Exception | Error teardownFailure) {
-            if (testFailure == null) {
-                if (teardownFailure instanceof Exception exception) throw exception;
-                throw teardownFailure;
-            }
-            testFailure.addSuppressed(teardownFailure);
-        }
     }
 
     public record E2eHarness(ShopConfiguration configuration,
@@ -458,19 +427,9 @@ public final class ShopE2eTestSupport {
 
         /** Publishes one terminal screen validation with the final browser capture. */
         public void completePurchase(ShopPurchaseFlow.PurchaseResult result) {
-            pass(ShopPurchaseTraceStep.ORDER_CONFIRMATION, purchaseConfirmationAssertions(result));
+            pass(ShopPurchaseTraceStep.ORDER_CONFIRMATION, ShopPurchaseConfirmation.assertions(result));
         }
 
-        static List<AtfAssertion> purchaseConfirmationAssertions(
-                ShopPurchaseFlow.PurchaseResult result) {
-            Objects.requireNonNull(result, "purchase result");
-            String confirmation = result.confirmation();
-            boolean confirmed = confirmation != null
-                    && confirmation.contains("Thanks for your order!")
-                    && confirmation.contains("INV-");
-            return List.of(new AtfAssertion(
-                    "Order confirmation", "confirmation includes a successful order and invoice",
-                    confirmation == null ? "no confirmation was observed" : confirmation, confirmed));
-        }
+
     }
 }

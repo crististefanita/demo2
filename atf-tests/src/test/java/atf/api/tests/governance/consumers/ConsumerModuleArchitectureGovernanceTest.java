@@ -31,7 +31,6 @@ public class ConsumerModuleArchitectureGovernanceTest {
         for (String helper : List.of(
                 "support/evidence/ShopBrowserCaptureProvider.java",
                 "support/reporting/ShopReportSystemMetadata.java",
-                "support/reporting/ShopReportUiActionAdapters.java",
                 "support/reporting/ShopScreenshotPolicy.java")) {
             assertTrue(Files.isRegularFile(testRoot.resolve(helper)),
                     "Shop reporting adapter must remain test-scoped: " + helper);
@@ -75,7 +74,7 @@ public class ConsumerModuleArchitectureGovernanceTest {
     }
 
     @Test
-    void shopComponentAndApiAuditSuitesKeepExplicitBoundaries() throws IOException {
+    void shopLocalSelectionAndApiAuditKeepExplicitBoundaries() throws IOException {
         Path tests = module("atf-test-practice-shop")
                 .resolve("src/test/java/atf/ui/tests/practiceshop");
         String componentSuite = Files.readString(tests.resolve("suites/ShopComponentSuite.java"));
@@ -91,9 +90,18 @@ public class ConsumerModuleArchitectureGovernanceTest {
         assertFalse(componentSuite.contains("atf.ui.tests.practiceshop.e2e"));
         assertFalse(componentSuite.contains("atf.ui.tests.practiceshop.api.integration"));
 
-        String auditSuite = Files.readString(tests.resolve("suites/ShopApiCallAuditSuite.java"));
-        assertTrue(auditSuite.contains("@IncludeTags(\"api-call\")"),
-                "the API-call audit suite must select only explicitly tagged adapter contracts");
+        String localApi = "atf.ui.practiceshop.support.api";
+        assertTrue(componentSuite.contains("\"" + localApi + "\""),
+                "package-private API adapter contracts must not be orphaned");
+        String context = Files.readString(tests.resolve("support/lifecycle/ShopE2eContext.java"));
+        assertTrue(context.contains("ReportModelAdapters.uiActions("),
+                "the consumer must call the canonical typed mapper");
+        assertFalse(Files.exists(tests.resolve("support/reporting/ShopReportUiActionAdapters.java")),
+                "do not restore a pass-through mapper copy");
+        String auditDeclaration = Files.readString(tests.resolve(
+                "api/support/ShopApiCallComponentTest.java"));
+        assertTrue(auditDeclaration.contains("@Tag(\"api-call\")"),
+                "request audit remains declared on the component tests, not a redundant suite");
     }
 
     @Test
@@ -168,15 +176,22 @@ public class ConsumerModuleArchitectureGovernanceTest {
         String component = Files.readString(tests.resolve("suites/AutoExComponentSuite.java"));
         assertTrue(component.contains("@SelectPackages(\"atf.ui.tests.autoex.component\")"));
 
-        String purchase = Files.readString(tests.resolve("suites/AutoExPurchaseSuite.java"));
+        String purchase = Files.readString(tests.resolve("suites/AutoExE2eSuite.java"));
         for (String test : List.of("AutoExPurchaseUiE2eTest.class",
-                "AutoExPurchaseUiApiE2eTest.class", "AutoExPurchaseUiFinalScreenshotE2eTest.class")) {
+                "AutoExPurchaseUiApiE2eTest.class", "AutoExPurchaseUiFinalScreenshotE2eTest.class",
+                "AutoExCartUiE2eTest.class", "AutoExAccountUiE2eTest.class",
+                "AutoExExistingCustomerUiApiE2eTest.class")) {
             assertTrue(purchase.contains(test), "purchase suite must retain the declared evidence variant: " + test);
         }
 
         String apiSuite = Files.readString(tests.resolve("suites/AutoExApiLiveSuite.java"));
         String liveContract = Files.readString(tests.resolve("api/AutoExApiLiveContractTest.java"));
         assertTrue(apiSuite.contains("AutoExApiLiveContractTest.class"));
+        assertTrue(apiSuite.contains("AutoExApiReadOnlyLiveContractTest.class"));
+        String readOnly = Files.readString(tests.resolve("api/AutoExApiReadOnlyLiveContractTest.java"));
+        assertTrue(readOnly.contains("atf.autoex.api.readonly.live.enabled"));
+        assertFalse(readOnly.contains("AutoExApiLiveContractTest."),
+                "live test entry points must not depend on other test classes");
         assertTrue(liveContract.contains("@EnabledIfSystemProperty"));
         assertTrue(liveContract.contains("atf.autoex.api.live.enabled"));
     }
@@ -222,6 +237,34 @@ public class ConsumerModuleArchitectureGovernanceTest {
             assertFalse(pom.contains("<artifactId>" + forbidden + "</artifactId>"),
                     "Test Kit must not depend on " + forbidden);
         }
+    }
+
+    @Test
+    void sharedConsumerSupportIsWiredAtItsOwnerWithoutLocalCopies() throws IOException {
+        Path kit = module("atf-test-kit");
+        for (String primitive : List.of("lifecycle/CloseOnceResource", "lifecycle/ArmedCleanup")) {
+            assertTrue(Files.isRegularFile(kit.resolve("src/main/java/atf/api/testkit/" + primitive + ".java")));
+            assertTrue(Files.isRegularFile(kit.resolve("src/test/java/atf/api/testkit/" + primitive + "Test.java")));
+        }
+        Path autoEx = module("atf-test-auto-ex").resolve("src/test/java");
+        for (String duplicate : List.of("atf/ui/autoex/support/AutoExApiTrafficWindow.java",
+                "atf/ui/autoex/support/AutoExScreenAuditObservations.java",
+                "atf/ui/tests/autoex/api/AutoExApiAccountCleanup.java",
+                "atf/ui/tests/autoex/api/AutoExApiResponseAssertions.java")) {
+            assertFalse(Files.exists(autoEx.resolve(duplicate)),
+                    "do not restore extracted or misplaced consumer support: " + duplicate);
+        }
+        String run = Files.readString(autoEx.resolve("atf/ui/autoex/support/AutoExE2eRun.java"));
+        assertTrue(run.contains(".observationsSince(") && run.contains("UiScreenAudit.record("));
+        Path shop = module("atf-test-practice-shop").resolve("src/test/java/atf/ui/tests/practiceshop");
+        String support = Files.readString(shop.resolve("support/ShopE2eTestSupport.java"));
+        assertTrue(support.contains("new CloseOnceResource<>("));
+        assertFalse(support.contains("class E2eResource"), "close-once must not be duplicated in Shop");
+        assertTrue(support.contains("ShopPurchaseConfirmation.assertions(result)"));
+        assertTrue(Files.isRegularFile(module("atf-ui").resolve(
+                "src/main/java/atf/api/ui/audit/UiScreenAudit.java")));
+        assertTrue(Files.isRegularFile(module("atf-reporting-tests").resolve(
+                "src/test/java/atf/api/reporting/ui/failure/UiSetupFailureEvidenceComponentTest.java")));
     }
 
     private static List<Path> javaFiles(Path... roots) throws IOException {

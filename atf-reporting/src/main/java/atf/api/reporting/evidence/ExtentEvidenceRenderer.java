@@ -1,4 +1,5 @@
 package atf.api.reporting.evidence;
+import atf.api.reporting.contract.evidence.ReportEvidenceOwner;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.contract.AtfAssertion;
 
@@ -81,6 +82,10 @@ public final class ExtentEvidenceRenderer {
     }
 
     public void renderAssertions(ExtentTest node, Collection<AtfAssertion> assertions) {
-        ui.renderAssertions(node, assertions);
+        renderAssertions(node, assertions, ReportEvidenceOwner.UNSPECIFIED);
+    }
+
+    public void renderAssertions(ExtentTest node, Collection<AtfAssertion> assertions, ReportEvidenceOwner owner) {
+        ui.renderAssertions(node, assertions, owner);
     }
 }

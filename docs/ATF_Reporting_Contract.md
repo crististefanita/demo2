@@ -306,8 +306,10 @@ rendererul fallback:
 - retry-ul aceluiași request nu este exchange nou: request/response rămân o
   singură unitate API, iar attempts, retry events și outcome rămân în
   `Execution evidence`;
-- `REQUEST JSON` și `RESPONSE JSON` există și pentru body absent, caz în care
-  valoarea explicită este `null`;
+- `REQUEST JSON` și `RESPONSE JSON` există numai pentru body JSON capturat
+  (`AVAILABLE`); textul literal `null` este un document JSON real;
+- `ABSENT` confirmă că nu a existat body, iar `NOT_CAPTURED` declară că dovada
+  nu este disponibilă. Ambele publică explicația în details, nu un payload `null`;
 - direcția request/response este typed și independentă de eticheta vizibilă;
   form/text nu sunt redenumite JSON, iar MIME-ul upstream nu este rescris.
   `NOT_CAPTURED` este explicit și nu fabrică payload; compatibilitatea legacy
@@ -321,6 +323,12 @@ rendererul fallback:
   și publică response headers numai când rămân stabile/relevante după aceeași
   redaction policy; response headers volatile nu schimbă nivelul canonical al
   raportului API direct.
+
+| Sursa headerelor request | Regulă |
+|---|---|
+| observație browser (`OBSERVED`) | autoritativă; un header absent nu devine header executat |
+| client configurat (`CLIENT_CONFIGURED`) | default-urile sunt declarate la intrare, cu override case-insensitive |
+| Request details și replay | aceeași proiecție sanitizată; nu preiau Content-Type de la response |
 
 </details>
 
@@ -555,6 +563,11 @@ flowchart LR
 - **Link**: anchor intern stabil, independent de path-ul Windows sau de numele artifactului.
 - **Detail pane**: proiecție index-only; nu clonează `test-contents` și nu creează alt evidence tree.
 - **Open in Tests**: navighează la nodul original, fără să schimbe verdictul sau ownership-ul evidence-ului.
+- **Owner UI/API**: metadata tipizată a validării, nu titlul sau forma tabelului.
+  Un eșec API păstrează `REQUEST` și checkpoint-ul Gherkin proprietar; unul UI
+  păstrează `STEP`. Un exchange-soră PASS nu înlocuiește request-ul eșuat.
+  Corelarea API invalidă cu exchange-uri PASS apare ca `API correlation`, fără
+  durată de response atribuită artificial.
 - **Evidence complet**: request/response JSON, trace, response details și assertions rămân în `Tests`.
 
 ### Semantica eșecului în ciclul de viață API

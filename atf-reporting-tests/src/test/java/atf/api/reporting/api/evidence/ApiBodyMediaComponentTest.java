@@ -38,7 +38,7 @@ class ApiBodyMediaComponentTest {
         JSON_WITH_HTML_MIME("{\"message\":\"<tag>\"}", "text/html", "JSON"),
         FORM("name=demo&password=media-secret&text=%3Ctag%3E", "application/x-www-form-urlencoded; charset=UTF-8", "FORM BODY"),
         TEXT("</textarea><tag>plain body</tag>", "text/plain", "BODY"),
-        ABSENT("", "", "JSON"),
+        ABSENT("", "", ""),
         NOT_CAPTURED("capture unavailable", "", "");
 
         final String body;
@@ -72,10 +72,12 @@ class ApiBodyMediaComponentTest {
             assertFalse(activeMarkup.contains("<tag>"), "payload must not create active HTML elements");
             assertTrue(html.contains("Request details"));
             assertTrue(html.contains("Response details"));
-            if (sample == BodyCase.NOT_CAPTURED) {
-                assertTrue(html.contains("Not captured"));
+            if (sample == BodyCase.NOT_CAPTURED || sample == BodyCase.ABSENT) {
+                assertTrue(html.contains(sample == BodyCase.ABSENT ? "Absent" : "Not captured"));
                 assertFalse(html.contains("REQUEST JSON"));
                 assertFalse(html.contains("RESPONSE JSON"));
+                assertTrue(bodyLabels(html, "request-json-body").isEmpty());
+                assertTrue(bodyLabels(html, "response-json-body").isEmpty());
             } else {
                 assertTrue(html.contains("REQUEST " + sample.suffix), projection.name());
                 assertTrue(html.contains("RESPONSE " + sample.suffix), projection.name());

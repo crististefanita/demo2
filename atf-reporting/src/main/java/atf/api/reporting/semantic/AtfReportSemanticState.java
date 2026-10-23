@@ -1,4 +1,5 @@
 package atf.api.reporting.semantic;
+import atf.api.reporting.contract.evidence.ReportEvidenceOwner;
 
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
@@ -231,6 +232,7 @@ final class AtfReportSemanticState {
     }
 
     static final class ValidationState implements NodeState {
+        private ReportEvidenceOwner evidenceOwner = ReportEvidenceOwner.UNSPECIFIED;
         private final String title;
         private final List<String> assertionNames = new ArrayList<>();
         private final List<RequestState> requests = new ArrayList<>();
@@ -241,6 +243,11 @@ final class AtfReportSemanticState {
 
         private ValidationState(String title) {
             this.title = title == null ? "" : title;
+        }
+
+        void evidenceOwner(ReportEvidenceOwner owner) {
+            ensureOpen();
+            evidenceOwner = Objects.requireNonNull(owner, "evidenceOwner");
         }
 
         RequestState startRequest(String title, String method, String path) {
@@ -292,7 +299,7 @@ final class AtfReportSemanticState {
         public AtfReportSemanticSnapshot.ValidationSnapshot snapshot() {
             return new AtfReportSemanticSnapshot.ValidationSnapshot(title, assertionNames,
                     uiActionCount, screenshotCount, status,
-                    requests.stream().map(RequestState::snapshot).toList());
+                    requests.stream().map(RequestState::snapshot).toList(), evidenceOwner);
         }
     }
 

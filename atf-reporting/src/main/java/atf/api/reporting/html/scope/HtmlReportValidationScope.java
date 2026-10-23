@@ -1,4 +1,5 @@
 package atf.api.reporting.html.scope;
+import atf.api.reporting.contract.evidence.ReportEvidenceOwner;
 
 import atf.api.reporting.console.AtfConsoleEvent;
 import atf.api.reporting.console.AtfConsoleSink;
@@ -31,6 +32,13 @@ public final class HtmlReportValidationScope implements AtfReportPorts.Validatio
         this.consoleName = consoleName;
         this.semantic = semantic;
         this.console = console;
+    }
+
+    @Override
+    public void evidenceOwner(ReportEvidenceOwner owner) {
+        ensureOpen();
+        model.evidenceOwner(owner);
+        semantic.evidenceOwner(owner);
     }
 
     @Override

@@ -6,10 +6,10 @@ import atf.api.reporting.api.ReportTransportProvenance;
 import atf.api.reporting.console.AtfConsoleSink;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.contract.evidence.ReportEvidenceOwner;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
 import atf.api.reporting.evidence.profile.ReportEvidenceProfile;
-import atf.api.reporting.extent.session.ExtentReportSession;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.semantic.AtfReportSemanticSnapshot;
 import atf.api.reporting.support.TestReportPaths;
@@ -47,7 +47,7 @@ class UiApiValidationContractComponentTest {
             var phase = scenario.startPhase("SETUP");
             assertThrows(NullPointerException.class, () -> phase.setup(THEN, "setup", "/setup",
                     List.of(), List.of(), null, AtfReportStatus.PASS));
-            assertTrue(snapshot(session).classes().getFirst().scenarios().getFirst()
+            assertTrue(session.semanticSnapshot().classes().getFirst().scenarios().getFirst()
                     .phases().getFirst().nodes().isEmpty());
             phase.complete(AtfReportStatus.PASS);
             scenario.complete(AtfReportStatus.PASS);
@@ -125,11 +125,14 @@ class UiApiValidationContractComponentTest {
             }
             phase.complete(AtfReportStatus.FAIL);
             scenario.complete(AtfReportStatus.FAIL);
-            var request = (AtfReportSemanticSnapshot.RequestSnapshot) snapshot(session)
+            var request = (AtfReportSemanticSnapshot.RequestSnapshot) session.semanticSnapshot()
                     .classes().getFirst().scenarios().getFirst().phases().getFirst().nodes().getFirst();
             var apiNode = request.validations().stream().filter(node -> node.title().equals("API validation"))
                     .findFirst().orElseThrow();
             assertEquals(api.status(), apiNode.status());
+            assertEquals(ReportEvidenceOwner.API, apiNode.evidenceOwner());
+            assertTrue(apiNode.requests().stream().flatMap(exchange -> exchange.validations().stream())
+                    .allMatch(validation -> validation.evidenceOwner() == ReportEvidenceOwner.API));
             assertEquals(List.of("API correlation"), apiNode.assertionNames());
             assertEquals(List.of(AtfReportStatus.PASS, !uiPass ? AtfReportStatus.PASS : AtfReportStatus.FAIL),
                     apiNode.requests().stream().map(AtfReportSemanticSnapshot.RequestSnapshot::status).toList());
@@ -138,6 +141,7 @@ class UiApiValidationContractComponentTest {
                 var uiNode = request.validations().stream().filter(node -> node.title().contains("validation")
                         && !node.title().equals("API validation")).findFirst().orElseThrow();
                 assertEquals(uiStatus, uiNode.status());
+                assertEquals(ReportEvidenceOwner.UI, uiNode.evidenceOwner());
                 assertEquals(List.of("UI check"), uiNode.assertionNames());
             }
             assertEquals(AtfReportStatus.FAIL, request.status());
@@ -156,12 +160,6 @@ class UiApiValidationContractComponentTest {
         assertFalse(Arrays.stream(executable.getGenericParameterTypes())
                         .anyMatch(type -> type.getTypeName().contains(ReportExecutionEvidence.class.getName())),
                 () -> "Raw exchange publication is forbidden: " + executable);
-    }
-
-    private static AtfReportSemanticSnapshot snapshot(UiExtentReportSession session) throws Exception {
-        var delegate = UiExtentReportSession.class.getDeclaredField("delegate");
-        delegate.setAccessible(true);
-        return ((ExtentReportSession) delegate.get(session)).semanticSnapshot();
     }
 
     private static AtfAssertion check(String title, boolean passed) {

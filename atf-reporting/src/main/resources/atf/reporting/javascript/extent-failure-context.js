@@ -191,6 +191,36 @@ function failureContextFor(item, anchor) {
     expected = cells[1] || '',
     actual = cells[2] || '';
   var validation = anchor.closest('.card');
+  var evidence = anchor.closest('[data-atf-evidence-owner]'),
+    channel = evidence && evidence.getAttribute('data-atf-evidence-owner'),
+    requests = [],
+    parent = validation && validation.parentElement;
+  while (parent) {
+    var requestCard = parent.closest('.card[data-atf-node-role="request"]');
+    if (!requestCard) break;
+    requests.push(requestCard);
+    parent = requestCard.parentElement;
+  }
+  var nearest = requests[0],
+    requestTitle = nearest ? text(nearest, '.card-title a.node') : '',
+    httpRequest = /^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s/.test(requestTitle),
+    phase = anchor.closest('.card[data-atf-node-role="phase"]');
+  // Explicit typed ownership wins. Method-shaped titles are only a legacy fallback.
+  if (channel === 'api' || channel === 'ui' || httpRequest) {
+    ctx.ui = channel === 'ui' || (channel !== 'api' && !httpRequest);
+    ctx.evidenceOwner = ctx.ui ? 'ui' : 'api';
+    ctx.request = ctx.ui ? '' : httpRequest ? requestTitle : 'API correlation';
+    ctx.step = ctx.ui ? 'UI assertion' : '';
+    ctx.duration = '';
+    var checkpoint = requests.length ? text(requests[requests.length - 1], '.card-title a.node') : '';
+    ctx.checkpoint = checkpoint !== requestTitle || !httpRequest ? checkpoint : '';
+    if (phase) ctx.phase = text(phase, '.card-title a.node');
+    if (!ctx.ui && nearest && httpRequest) {
+      var measured = { message: '', duration: '' };
+      failureTransportEvidence(nearest, measured);
+      ctx.duration = measured.duration;
+    }
+  }
   if (validation) {
     var title = text(validation, '.card-title a.node');
     if (title) {
@@ -200,7 +230,7 @@ function failureContextFor(item, anchor) {
   }
   ctx.assertion =
     label + ' → ' + statusDisplay(expected) + ' → ' + statusDisplay(actual);
-  if (!ctx.message || ctx.message.indexOf('PRIMARY:') < 0)
+  if (ctx.evidenceOwner === 'api' || !ctx.message || ctx.message.indexOf('PRIMARY:') < 0)
     ctx.message =
       label +
       ' expected ' +

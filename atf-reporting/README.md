@@ -181,9 +181,10 @@ traversare renderer-neutrală și returnează `ReportExecutionProjections`.
 - `ExtentReportTimestampReporter` adaptează numai prezentarea Spark, inclusiv
   expresia Categories a vendorului, în memorie. Nu schimbă JAR-ul, instanții,
   fusul orar, duratele sau payload-urile.
-- `ReportingTimestampComponentTest`, în testele standalone ale bibliotecii,
+- `ReportingTimestampComponentTest`, în `atf-reporting-tests`,
   verifică miezul nopții, prânzul, orele de după prânz și sesiunea canonică.
-  Rămâne o probă nativă cu tag JUnit `component`, fără dependență către Test Kit.
+  Este probă `@AtfComponentTest`; biblioteca standalone rămâne independentă
+  de Test Kit, iar inventarul finit al testelor sale nu se extinde.
 - Politica numelui fișierului este separată de ora afișată; opțiunile sale sunt în
   [contractul de output](../docs/ATF_Reporting_Contract.md#numele-raportului-și-diferențierea-rulărilor).
 
@@ -280,7 +281,7 @@ TestCase
 | ownership API direct | response contract validation este copilul request-ului care deține schimbul; tabelul de assertions aparține validation-ului |
 | setup evidence | tabelul `CHECK / EXPECTED / ACTUAL / RESULT` rezumă precondiția; exchange-urile reale rămân `API validation` distinctă sub același checkpoint `SETUP` |
 | format body | request/response păstrează formatul capturat (JSON, form sau text); un contract JSON este cerut de validatorul consumerului, nu dedus din metoda HTTP |
-| body absent | disclosure-urile rămân prezente; `ABSENT` afișează explicit `null`, iar `NOT_CAPTURED` nu inventează un document JSON |
+| body absent | request/response details rămân prezente; `ABSENT` și `NOT_CAPTURED` au explicații distincte, fără payload inventat; numai JSON literal `null` capturat devine document JSON |
 | UI evidence | `SETUP` este setup; `Screen validation` este în `TEST BODY` după acțiuni și observații |
 | UI `UNIFIED_FLOW` peste faze | Consumerul apelează `UiScenario.unifyAcrossPhases()` înainte de prima fază și `UiPhase.completeFinal(status)` la faza terminală. Un singur nod Gherkin publică checkpoint-urile în ordine, cu faza și verdictul fiecăruia; UI/API validations rămân lângă checkpoint-ul proprietar. `completeFinal(FAIL)` în `SETUP` nu creează `TEST BODY` sau o captură finală. Fără opt-in, comportamentul existent per fază rămâne valabil. |
 | layout | `＋/−` este inline înaintea propoziției; Request details, Response details și Execution evidence sunt disclosures surori în request; Contract validation este copilul lui; UI/API validations sunt copii surori ale aceluiași checkpoint Gherkin |
@@ -935,8 +936,34 @@ extern non-JSON:
   JSON valid ca `JSON` chiar dacă MIME-ul este `text/html`, iar restul ca `TEXT`;
   MIME-ul upstream nu este rescris;
 - etichetele sunt `REQUEST/RESPONSE JSON`, `REQUEST/RESPONSE FORM BODY` sau
-  `REQUEST/RESPONSE BODY`; `ABSENT` păstrează `null` cu explicația absenței,
-  iar `NOT_CAPTURED` publică diagnosticul fără document JSON inventat.
+  `REQUEST/RESPONSE BODY`, numai pentru body `AVAILABLE`; `ABSENT` explică lipsa
+  confirmată a body-ului, iar `NOT_CAPTURED` explică lipsa dovezii. Niciuna dintre
+  aceste două stări nu publică un document JSON. Textul capturat `null` rămâne
+  JSON disponibil, distinct de ambele stări.
+
+#### Fidelitatea request-ului și ownerul aserțiunilor
+
+| Input tipizat | Publicare |
+|---|---|
+| `ReportRequestHeaders.observed(captured)` | headerele observate sunt autoritative; filtrarea browser noise și redacția nu adaugă `Accept` sau `Content-Type` |
+| `ReportRequestHeaders.configured(defaults, overrides)` | composition root-ul declară default-urile efective; override-ul înlocuiește cheia case-insensitive |
+| `ReportRequest.builder(method, path)` | observație fără headere implicite; `body(text, availability)` păstrează separat conținutul și disponibilitatea |
+| `ReportRequest.toBuilder()` | copiere imutabilă, cu sursa headerelor, autentificarea și disponibilitatea păstrate |
+| constructorii existenți `ReportRequest(...)` | compatibilitate pentru clientul API JSON ATF; nu reprezintă capturi browser |
+
+Request details și manual replay consumă aceeași proiecție de headere. MIME-ul
+response-ului nu completează MIME-ul request-ului. Portul legacy `json(...)`
+poate primi explicit valoarea JSON `null`; el nu dovedește că un body HTTP a fost
+capturat și nu înlocuiește `ReportBodyAvailability`.
+
+`ReportEvidenceOwner.UI/API` aparține validării și snapshot-ului semantic.
+Wrapperul assertions expune `data-atf-evidence-owner`; Fails îl consumă înaintea
+euristicilor legacy, fără să deducă ownerul din titlul liber.
+
+Eșecul API păstrează
+`REQUEST`, validarea, cauza și checkpoint-ul Gherkin proprietar; eșecul de corelare
+fără exchange invalid apare ca `API correlation`, nu ca request-ul-soră PASS.
+Eșecul UI rămâne `STEP`, iar statusurile UI/API nu se propagă lateral.
 
 Formatarea comună nu modifică request-ul executat:
 
@@ -1024,6 +1051,7 @@ Cleanup-ul asset-urilor Spark tratează bounded atât `AccessDeniedException`, c
 și celelalte `FileSystemException`: maximum patru încercări, cu 50 ms între ele.
 O eroare I/O de alt tip nu este reîncercată; epuizarea limitei se propagă, iar
 întreruperea oprește cleanup-ul și păstrează flag-ul thread-ului.
+
 
 ### Prospețimea dovezii vizuale
 

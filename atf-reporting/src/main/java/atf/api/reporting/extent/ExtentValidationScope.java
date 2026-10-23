@@ -1,4 +1,5 @@
 package atf.api.reporting.extent;
+import atf.api.reporting.contract.evidence.ReportEvidenceOwner;
 import atf.api.reporting.console.AtfConsoleEvent;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportPorts;
@@ -30,6 +31,7 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
     private boolean completed;
     private boolean closed;
     private boolean screenshotOptional;
+    private ReportEvidenceOwner evidenceOwner = ReportEvidenceOwner.UNSPECIFIED;
     private int openRequests;
 
     ExtentValidationScope(ExtentReportTree tree, ExtentRequestScope owner, ExtentTest validation,
@@ -40,6 +42,12 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
         this.validationTitle = validationTitle;
         this.semantic = semantic;
         tree.markStarted(validation);
+    }
+
+    @Override public void evidenceOwner(ReportEvidenceOwner value) {
+        ensureOpen();
+        evidenceOwner = java.util.Objects.requireNonNull(value, "evidenceOwner");
+        semantic.evidenceOwner(value);
     }
 
     @Override public void assertions(Collection<AtfAssertion> rows) {
@@ -97,7 +105,7 @@ final class ExtentValidationScope implements AtfReportPorts.Validation {
             tree.renderScreenshots(validation,
                     screenshots.isEmpty() ? mediaScreenshots : screenshots);
         }
-        tree.renderAssertions(validation, assertions);
+        tree.renderAssertions(validation, assertions, evidenceOwner);
         tree.complete(validation, effective);
         tree.markEnded(validation);
         tree.consoleCompleted(atf.api.reporting.console.AtfConsoleEvent.Scope.VALIDATION,

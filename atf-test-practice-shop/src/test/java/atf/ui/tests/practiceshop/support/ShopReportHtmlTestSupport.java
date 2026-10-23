@@ -3,7 +3,6 @@ package atf.ui.tests.practiceshop.support;
 import org.junit.jupiter.api.Assertions;
 
 import java.util.List;
-import java.util.regex.Pattern;
 
 /** Semantic assertions for generated report markup; tests do not own HTML parsing details. */
 public final class ShopReportHtmlTestSupport {
@@ -11,12 +10,6 @@ public final class ShopReportHtmlTestSupport {
 
     public static void requireText(String html, String expected, String message) {
         Assertions.assertTrue(html.contains(expected), message + ": " + expected);
-    }
-
-    public static void requireExactCell(String html, String expected, String message) {
-        String cell = "(?is)<t[hd]\\b[^>]*>\\s*" + Pattern.quote(expected) + "\\s*</t[hd]>";
-        Assertions.assertTrue(Pattern.compile(cell).matcher(html).find(),
-                message + " cell is missing: " + expected);
     }
 
     public static void requireInOrder(String html, List<String> expected, String message) {

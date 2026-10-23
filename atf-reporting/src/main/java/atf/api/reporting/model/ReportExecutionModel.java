@@ -1,4 +1,5 @@
 package atf.api.reporting.model;
+import atf.api.reporting.contract.evidence.ReportEvidenceOwner;
 
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.contract.AtfAssertion;
@@ -154,7 +155,13 @@ public record ReportExecutionModel(List<Scenario> scenarios) {
     public record Validation(String title, List<AtfAssertion> assertions,
                              AtfReportStatus status, int uiActionCount, int screenshotCount,
                              List<Node> children, List<AtfUiActionRecord> uiActions,
-                             List<ReportScreenshot> screenshots) implements Node {
+                             List<ReportScreenshot> screenshots, ReportEvidenceOwner evidenceOwner) implements Node {
+        public Validation(String title, List<AtfAssertion> assertions,
+                          AtfReportStatus status, int uiActionCount, int screenshotCount,
+                          List<Node> children, List<AtfUiActionRecord> uiActions, List<ReportScreenshot> screenshots) {
+            this(title, assertions, status, uiActionCount, screenshotCount, children, uiActions, screenshots,
+                    ReportEvidenceOwner.UNSPECIFIED);
+        }
         public Validation(String title, List<AtfAssertion> assertions,
                           AtfReportStatus status, int uiActionCount, int screenshotCount,
                           List<Node> children) {
@@ -171,6 +178,7 @@ public record ReportExecutionModel(List<Scenario> scenarios) {
         }
 
         public Validation {
+            evidenceOwner = Objects.requireNonNull(evidenceOwner, "evidenceOwner");
             title = title == null ? "" : title;
             assertions = List.copyOf(Objects.requireNonNull(assertions, "assertions"));
             status = Objects.requireNonNull(status, "status");

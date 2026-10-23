@@ -46,6 +46,21 @@ setează `ui: true` și poate înlocui contextul request-ului API.
       combinații UI/API și pentru exchange-uri surori, inclusiv Fails și
       Open in Tests. Nu adăugați teste generice în AutoEx ori Shop.
 
+## REPORT-NARROW-READABILITY-01 — tabele imbricate la lățime mică
+
+**Prioritate:** 64/100 = impact 28 + lacună 18 + lucrabil 14 + documentare 4.
+În viewport-uri înguste, inclusiv la 591 px și aproximativ 392 px,
+`Failure evidence` cu observații și aserțiuni deschise comprimă coloanele până
+devin ilizibile. Absența overflow-ului orizontal nu dovedește lizibilitatea;
+gate-urile existente nu acoperă suficient această adâncime de imbricare.
+
+- [ ] Adăugați o fixture neutră cu aceeași adâncime și texte scurte/lungi,
+      verificată la lățime standard, 591 px și lățime de panou îngust.
+- [ ] Verificați lățimea utilă a coloanelor, textul vizibil și accesul la ultimul
+      rând prin constante explicite, nu numai `scrollWidth <= clientWidth`.
+- [ ] Reduceți spațiul consumat de nesting sau aplicați o prezentare mobilă;
+      păstrați ierarhia, fontul lizibil și expand/collapse, fără a relaxa plafoanele.
+
 ## Controale tehnice încă necesare
 
 Aceste aprobări protejează diferențe Git, nu sunt ToDo-uri funcționale.
@@ -54,10 +69,38 @@ Transferul și eliminarea lor urmează
 fără rebazare, extindere de scope sau relaxarea guard-urilor.
 
 <details>
-<summary><strong>Aprobări ACTIVE — baze, probe și path-uri exacte</strong></summary>
+<summary><strong>Controale tehnice active</strong></summary>
 
 ```yaml
 testChanges:
+  - id: REPORT-OBSERVED-OWNER-LIVE-08
+    status: ACTIVE
+    base: 9b0860bfc734df570c7512b76aa5dbb559527b7d
+    expires: 2026-11-24
+    reason: Revizuire explicită a incrementului observat/owner față de noul commit live; păstrează migrarea paralelă UiScreenAudit din AutoEx și toate cazurile anterioare, adaugă owner UI/API și disponibilitate body fără relaxarea guard-urilor. Preia unic AutoExE2eRun de la controlul consumer pentru această bază; controlul original 5eb3fd3 nu este rebazat.
+    proof: mvn -pl atf-reporting-tests,atf-test-auto-ex,atf-test-practice-shop,atf-tests -am "-Dtest=AtfReportingUnitSuite,AtfReportingComponentSuite,AtfReportingIntegrationSuite,ShopComponentSuite,AutoExComponentSuite,WholeAtfGovernanceSuiteTest" "-Datf.governance.testChanges.baseRef=9b0860bfc734df570c7512b76aa5dbb559527b7d" "-Dsurefire.failIfNoSpecifiedTests=false" test
+    paths:
+      - atf-reporting-tests/src/test/java/atf/api/reporting/api/request/ReportRequestHeadersTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/api/request/ObservedRequestEvidenceComponentTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/support/request/ObservedRequestFixture.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/ui/validation/UiApiValidationContractComponentTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/api/evidence/ApiBodyMediaComponentTest.java
+      - atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/inspection/reconciliation/UiApiVerdictProjectionProbe.java
+      - atf-test-auto-ex/src/test/java/atf/ui/autoex/support/AutoExE2eRun.java
+  - id: REPORT-OBSERVED-OWNER-07
+    status: ACTIVE
+    base: 5eb3fd3cb099fc67b49be3c17de564db63755db7
+    expires: 2026-11-24
+    reason: Probează input-ul observat versus default-uri configurate, body absent/necapturat/null literal și ownerul API în Fails cu exchange-uri surori; păstrează cazurile existente și migrează numai boundary-ul observat AutoEx. Preia explicit path-urile ApiBodyMediaComponentTest și AutoExE2eRun din controalele VERIFIED anterioare pentru acest increment încă ACTIVE, fără dublarea ownerului la aceeași bază sau certificarea anticipată a fixului.
+    proof: mvn -pl atf-reporting-tests -am "-Dtest=ReportRequestHeadersTest,ObservedRequestEvidenceComponentTest,ApiBodyMediaComponentTest,UiApiVerdictProjectionComponentTest,AtfReportingComponentSuite" "-Dsurefire.failIfNoSpecifiedTests=false" test
+    paths:
+      - atf-reporting-tests/src/test/java/atf/api/reporting/api/request/ReportRequestHeadersTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/api/request/ObservedRequestEvidenceComponentTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/support/request/ObservedRequestFixture.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/ui/validation/UiApiValidationContractComponentTest.java
+      - atf-reporting-tests/src/test/java/atf/api/reporting/api/evidence/ApiBodyMediaComponentTest.java
+      - atf-reporting-tests/src/test/java/atf/ui/tests/extent/support/inspection/reconciliation/UiApiVerdictProjectionProbe.java
+      - atf-test-auto-ex/src/test/java/atf/ui/autoex/support/AutoExE2eRun.java
   - id: REPORT-ASSET-CLEANUP-COMPONENT-06
     status: ACTIVE
     base: 5eb3fd3cb099fc67b49be3c17de564db63755db7

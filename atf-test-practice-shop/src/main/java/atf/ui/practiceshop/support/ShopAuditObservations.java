@@ -3,14 +3,12 @@ package atf.ui.practiceshop.support;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfGherkinKeyword;
-import atf.api.core.ui.AtfUiActionRecord;
 import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.api.ui.playwright.UiScreenValidation;
+import atf.api.ui.audit.UiScreenAudit;
 import com.microsoft.playwright.Page;
 
 import java.util.Collection;
-import java.util.Base64;
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -19,10 +17,6 @@ import java.util.Objects;
  * boundary that produced it.
  */
 public final class ShopAuditObservations {
-    private static final byte[] PNG_SIGNATURE = {
-            (byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a
-    };
-
     private ShopAuditObservations() {
     }
 
@@ -97,50 +91,8 @@ public final class ShopAuditObservations {
         Objects.requireNonNull(page, "page");
         Objects.requireNonNull(screenshot, "screenshot");
 
-        actions.observation(
-                "Audit screen contract",
-                title,
-                "all component assertions pass",
-                "status=" + (passed ? "PASS" : "FAIL")
-                        + "; assertions=" + (assertions == null ? 0 : assertions.size())
-                        + "; screenshot=" + (screenshot.hasScreenshotPayload() ? "valid PNG" : "not captured")
-                        + "; url=" + safeUrl(page));
-    }
-
-    /** Records the terminal contract before taking ownership of the action sequence. */
-    public static List<AtfUiActionRecord> drainScreenContractEvidence(
-            PlaywrightActionSequence actions,
-            Page page,
-            String title,
-            Collection<AtfAssertion> assertions,
-            UiScreenValidation.Evidence screenshot,
-            boolean passed) {
-        requireScreenshotForScreenValidation(screenshot);
-        recordScreenContract(actions, page, title, assertions, screenshot, passed);
-        return actions.drain();
-    }
-
-    /** A passing Screen validation is a visual claim and therefore requires a real PNG payload. */
-    public static void requireScreenshotForScreenValidation(UiScreenValidation.Evidence evidence) {
-        Objects.requireNonNull(evidence, "evidence");
-        if (!isPng(evidence.base64Png())) {
-            throw new IllegalStateException(
-                    "Screen validation cannot be published without a valid PNG screenshot");
-        }
-    }
-
-    private static boolean isPng(String payload) {
-        if (payload == null || payload.isBlank()) return false;
-        try {
-            byte[] bytes = Base64.getDecoder().decode(payload);
-            if (bytes.length < PNG_SIGNATURE.length) return false;
-            for (int index = 0; index < PNG_SIGNATURE.length; index++) {
-                if (bytes[index] != PNG_SIGNATURE[index]) return false;
-            }
-            return true;
-        } catch (IllegalArgumentException malformedBase64) {
-            return false;
-        }
+        UiScreenAudit.record(actions, title, safeUrl(page),
+                assertions == null ? 0 : assertions.size(), screenshot, passed);
     }
 
     private static String safeUrl(Page page) {

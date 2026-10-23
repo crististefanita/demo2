@@ -4,11 +4,11 @@ import atf.api.reporting.contract.AtfReportPorts;
 import java.util.List;
 
 /**
- * Publishes the two JSON payload channels owned by every API request.
+ * Legacy JSON-only adapter for callers without typed HTTP capture evidence.
  *
- * <p>A missing HTTP body is represented explicitly as JSON {@code null}. This
- * keeps GET/204/304 evidence auditable without inventing an object or silently
- * dropping one side of the exchange.</p>
+ * <p>Its historical empty-to-JSON-null convention is not evidence of a captured
+ * HTTP body. New publishers use {@link atf.api.reporting.api.evidence.ApiExchangeEvidence}
+ * and its explicit availability model instead.</p>
  */
 public final class ApiJsonEvidence {
     public static final String REQUEST_LABEL = "REQUEST JSON";
@@ -46,8 +46,8 @@ public final class ApiJsonEvidence {
 
     /**
      * Returns the write-side exchange violations that must be visible in the
-     * report contract. GET/DELETE and body-less HTTP responses keep the
-     * explicit {@code null} evidence convention; POST/PUT are stricter.
+     * report contract. This legacy JSON contract applies only to POST/PUT;
+     * it does not infer capture availability for the other HTTP methods.
      */
     public static List<String> writeContractViolations(String method,
                                                         String requestBody,

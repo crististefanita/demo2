@@ -1,4 +1,5 @@
 package atf.api.reporting.ui;
+import atf.api.reporting.contract.evidence.ReportEvidenceOwner;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.api.reporting.contract.AtfReportPorts;
@@ -373,6 +374,7 @@ public final class UiEvidencePublisher {
 
     private static void publishApiEvidence(AtfReportPorts.Validation validation,
                                            UiApiValidationEvidence apiValidation) {
+        validation.evidenceOwner(ReportEvidenceOwner.API);
         validation.assertions(apiValidation.assertions());
         int exchangeNumber = 0;
         for (UiApiValidationEvidence.Exchange exchange : apiValidation.exchanges()) {
@@ -386,6 +388,7 @@ public final class UiEvidencePublisher {
                 ApiExchangeEvidence.publish(request, evidence);
                 if (!exchange.assertions().isEmpty()) {
                     var exchangeValidation = request.startValidation("API assertions");
+                    exchangeValidation.evidenceOwner(ReportEvidenceOwner.API);
                     try {
                         exchangeValidation.assertions(exchange.assertions());
                         exchangeValidation.complete(exchange.status());
@@ -474,6 +477,7 @@ public final class UiEvidencePublisher {
 
     private static void publishActions(AtfReportPorts.Validation validation,
                                        Collection<AtfUiActionRecord> actions) {
+        validation.evidenceOwner(ReportEvidenceOwner.UI);
         if (actions != null && !actions.isEmpty()) validation.uiActions(actions);
     }
 

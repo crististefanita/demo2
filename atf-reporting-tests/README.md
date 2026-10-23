@@ -73,6 +73,9 @@ Proiecția contextului UI este verificată la componentă:
 |---|---|
 | `UiCheckpointEvidenceProjectionTest` | identitatea checkpoint-ului și `evidence.type`/`evidence.policy` rămân în model; proiecțiile typed/legacy și fallback nu le publică și nu le mută în response |
 | `UiApiValidationContractComponentTest` | interzice intrările cu exchange-uri brute în API, lifecycle, publisher și buffer; verifică verdictele UI/API independente și exchange-urile surori în checkpoint, setup, final și unified, plus markup-ul request/response/execution real |
+| `ReportRequestHeadersTest` | sursa observată/configurată, override case-insensitive, compatibilitatea clientului existent și copiere imutabilă |
+| `ObservedRequestEvidenceComponentTest` | Extent/fallback/UI_API × șase input-uri: absent, necapturat, JSON literal null, headere explicite redactate, default-uri declarate și response fără body; Request details și replay nu inventează headere sau payload |
+| `UiApiVerdictProjectionComponentTest` | UI PASS/API FAIL, UI FAIL/API PASS, ambele FAIL și corelare API FAIL cu exchange-uri PASS; owner tipizat, request/checkpoint/cauză exacte, ultimul exchange-soră PASS și Open in Tests pentru fiecare failure |
 | `ExtentReportUiEvidencePublishingTest` | publisher-ul UI nu adaugă un request HTTP sintetic; exchange-ul nested păstrează request/response/JSON/execution |
 | `ExtentReportDisclosureBrowserComponentTest` | artifact controlat cu PASS/WARNING/FAIL; niciun tabel introductiv la checkpoint, validări și screenshot disponibile, API exchange complet, close fără subarbore vizibil și titluri custom identificate semantic; captură deduplicată deschisă prin click/Enter cu sursa colapsată, fără salt la ancoră |
 | `ReportPhaseDiagnosticTest` | conversie explicită, statusul fazei sursă, chei legacy delimitate, context nemodificat și rezultat imutabil; portul diagnostic nu creează HTTP |
@@ -401,9 +404,10 @@ Proba este contractuală prin limite repetabile, nu prin rezultatele unui run:
 - durata și heap-ul sunt observate pentru diagnostic, dar nu se copiază ca
   rezultate permanente în README.
 
-Cleanup-ul directorului vendor `spark` reîncearcă numai `AccessDeniedException`
-de patru ori, cu pauze de 50 ms; o blocare persistentă produce un diagnostic cu
-cale, fără să elimine raportul deja publicat sau să suprime eroarea.
+Cleanup-ul directorului vendor `spark` tratează `FileSystemException`, inclusiv
+`AccessDeniedException`, în maximum patru încercări cu pauze de 50 ms.
+Blocarea persistentă se propagă cu diagnostic; întreruperea oprește cleanup-ul
+și păstrează flag-ul thread-ului, fără să elimine raportul deja publicat.
 
 ### Bugetul asset-urilor publicate
 
@@ -429,6 +433,11 @@ limite depășite și configurații invalide. Mărirea unui plafon cere motiv ș
 verificarea impactului asupra artifactului.
 
 ### Verificarea randării responsive
+
+Plafonul de scroll și absența overflow-ului nu sunt suficiente pentru lizibilitate.
+Se verifică și lățimea utilă a coloanelor, textul vizibil și accesul la ultimul rând;
+compresia tabelelor imbricate în panouri înguste rămâne în
+[feedback-ul de randare](../docs/feedback/ATF_Reporting_Feedback.md#report-narrow-readability-01--tabele-imbricate-la-lățime-mică).
 
 `SelectedApiTestsReportUiTest` este entry-point-ul configurabil pentru raportul
 Extent generat. `CategoryCardinalityBrowserFixtureTest` este poarta dinamică de
@@ -739,3 +748,18 @@ Detaliul normativ al normalizării evidence este în
 Aici rămâne numai dovada de consumer: `ExtentReportRuntimeEvidenceComponentTest`
 și browser proof-ul verifică faptul că request/response JSON supraviețuiesc
 împreună cu execution trace în DOM-ul raportului deschis.
+
+### Probe neutre promovate din consumeri
+
+| Contract | Probă la owner | Ce rămâne în consumer |
+|---|---|---|
+| Failure evidence din setup, durată, locator și redactare | `UiSetupFailureEvidenceComponentTest` | faza, eticheta setup-ului și siguranța artifactului aplicației |
+| Metodă HTTP capturată, body și replay, inclusiv `QUERY` | `ApiManualReplayProjectionTest` | fidelitatea mapperului și asocierea operației business |
+| Flow unificat peste setup/body | `ReportEvidenceProfileIntegrationTest` | aplicarea profilului prin composition root-ul propriu |
+
+Probele neutre nu importă Shop/AutoEx. Auditul PNG și secvențele Playwright
+aparțin `atf-ui`; primitivele fără UI/Reporting aparțin Kit-ului existent.
+
+- `ReportingTimestampComponentTest` verifică formatul 24h și conservarea
+  instantelor la ownerul componentelor Reporting; nu extinde excepția finită
+  a testelor de independență din modulul standalone.

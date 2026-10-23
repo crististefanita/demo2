@@ -1,6 +1,5 @@
 package atf.api.reporting.api.evidence;
 
-import atf.api.reporting.api.ApiJsonEvidence;
 import atf.api.reporting.api.ApiManualReplay;
 import atf.api.reporting.api.ApiEvidenceField;
 import atf.api.reporting.api.ReportRequestSignature;
@@ -47,7 +46,7 @@ public final class ApiExchangeEvidence {
         detail.accept("manual.replay", ApiManualReplay.describe(evidence.provenance(), request,
                 response.url(), request.bodyText()));
         body(detail, bodies, ReportJsonBody.Direction.REQUEST, request.bodyText(),
-                request.bodyAvailability(), header(request.headers(), "content-type"));
+                request.bodyAvailability(), header(request.headerEvidence().values(), "content-type"));
         detail.accept(ApiEvidenceField.HTTP_STATUS.label(), response.statusLabel());
         detail.accept("response.content.type", header(response.headers(), "content-type"));
         String headers = ApiManualReplay.relevantResponseHeaders(response.headers());
@@ -66,23 +65,20 @@ public final class ApiExchangeEvidence {
             case NOT_CAPTURED -> "Not captured — body evidence unavailable"
                     + (body.isBlank() ? "" : ": " + body);
         });
-        if (availability != ReportBodyAvailability.NOT_CAPTURED) {
-            ReportJsonBody.Format format = format(body, availability, contentType);
+        if (availability == ReportBodyAvailability.AVAILABLE) {
+            ReportJsonBody.Format format = format(body, contentType);
             String suffix = switch (format) {
                 case JSON -> "JSON";
                 case FORM -> "FORM BODY";
                 case TEXT -> "BODY";
             };
             bodies.accept(new ReportJsonBody(direction.name() + " " + suffix,
-                    availability == ReportBodyAvailability.ABSENT ? ApiJsonEvidence.EMPTY_JSON : body,
+                    body,
                     direction, format));
         }
     }
 
-    private static ReportJsonBody.Format format(String body, ReportBodyAvailability availability,
-                                                String contentType) {
-        // Preserve the explicit JSON null convention for confirmed body-less exchanges.
-        if (availability == ReportBodyAvailability.ABSENT) return ReportJsonBody.Format.JSON;
+    private static ReportJsonBody.Format format(String body, String contentType) {
         String mime = contentType.split(";", 2)[0].trim().toLowerCase(Locale.ROOT);
         if (mime.equals("application/x-www-form-urlencoded") || mime.equals("multipart/form-data")) {
             return ReportJsonBody.Format.FORM;

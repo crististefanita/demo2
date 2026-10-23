@@ -93,9 +93,7 @@ public final class ApiManualReplay {
 
     private static Map<String, String> effectiveHeaders(ReportRequest request) {
         var headers = new LinkedHashMap<String, String>();
-        putHeader(headers, ReportHttpHeaders.ACCEPT, "application/json");
-        putHeader(headers, ReportHttpHeaders.CONTENT_TYPE, "application/json");
-        request.headers().entrySet().stream()
+        request.headerEvidence().values().entrySet().stream()
                 .filter(entry -> isReplayRelevantHeader(entry.getKey()))
                 .forEach(entry -> putHeader(headers, entry.getKey(), entry.getValue()));
         return Collections.unmodifiableMap(headers);

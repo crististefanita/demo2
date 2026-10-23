@@ -124,10 +124,10 @@ generic pentru body API indisponibil este în `atf-core`.
 Pachetul `support.reporting` rămâne în `src/test`: `ShopReportSystemMetadata`
 proiectează numai configurația Shop în allowlist-ul System, iar
 `ShopScreenshotPolicy` transformă politica YAML Shop într-un
-`ReportEvidenceProfile`. `ShopReportUiActionAdapters` este bridge-ul typed din
-modelul UI din `atf-core` către DTO-ul renderer-neutral din `atf-reporting`;
-maparea efectivă rămâne centralizată în `ReportModelAdapters`. Nu este un
-renderer Shop și nu justifică mutarea în `atf-test-kit` sau un modul nou.
+ `ReportEvidenceProfile`. Contextul folosește direct
+`ReportModelAdapters.uiActions(...)`; nu mai există un bridge local care doar
+retransmite apelul. Auditul comun al ecranului aparține `UiScreenAudit` din
+`atf-ui`, iar închiderea resursei aparține `CloseOnceResource` din Kit.
 
 Compoziția test-scoped transmite câmpurile evenimentului Reporting către
 `AtfConsoleEvent.fromExternalEnums(...)` din Core, apoi publică în sink-ul
@@ -420,21 +420,19 @@ Comenzile de mai jos rulează suitele definite în `src/test`; `-am` construieș
 
 `ShopComponentSuite` este gate-ul rapid agregat: include suportul consumer,
 contractele API `unit` și `component` și evidence, dar exclude
-journey-urile E2E și integrarea live. Pentru diagnoză API se pot rula separat
-`ShopApiUnitSuite` (logică pură, fără client/transport),
-`ShopApiComponentSuite` (client și publisher cu vecini controlați) și
-`ShopApiCallAuditSuite` (componente cu tag-ul `api-call`, prin transporturile
-lor de test).
+journey-urile E2E și integrarea live. Include și testele package-private din
+`atf.ui.practiceshop.support.api`; numele pachetului nu le exclude din gate.
+Diagnoza punctuală selectează clase concrete, fără suite paralele.
 
 Guvernanța arhitecturii consumerului rulează separat în `atf-tests`, prin
 `ConsumerModuleArchitectureGovernanceTest`; ea nu mai este un test de business
-selectat de `ShopComponentSuite`. Suitele API sunt selecții pentru diagnoză din
-gate-ul agregat, nu acoperire suplimentară obținută prin repetarea acelorași teste.
+selectat de `ShopComponentSuite`. `ConsumerSuiteCoverageGovernanceTest` cere
+ca fiecare clasă executabilă să aparțină exact unei suite principale.
 
 API unit contracts, fără client sau transport:
 
 ```text
-mvn -pl atf-test-practice-shop -am "-Dtest=ShopApiUnitSuite" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -pl atf-test-practice-shop -am "-Dtest=ShopApiRoutesTest,ShopApiRequestFactoryTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
 Component/API contracts fără journey-uri live:
@@ -443,19 +441,13 @@ Component/API contracts fără journey-uri live:
 mvn -pl atf-test-practice-shop -am "-Dtest=ShopComponentSuite" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
-Subsetul de contracte și rapoarte API component:
-
-```text
-mvn -pl atf-test-practice-shop -am "-Dtest=ShopApiComponentSuite" "-Dsurefire.failIfNoSpecifiedTests=false" test
-```
-
 ### Boundary-ul probelor API
 
 | Probă | Dovedește | Nu dovedește |
 |---|---|---|
-| `ShopApiUnitSuite` | reguli pure de rutare, request, selecție, recovery și evidence, fără client sau transport | comportamentul serviciului Practice Shop |
-| `ShopApiComponentSuite` | clientul și publisherul cu vecini controlați; variante de request/response și flow-uri API compuse | sortarea/filtrarea efectivă sau persistența remote |
-| `ShopApiCallAuditSuite` | auditul exchange-urilor emise de componentele Shop prin transporturile lor de test | traficul live al site-ului |
+| `ShopComponentSuite` | toate contractele locale de business și adaptoare, inclusiv unit/component și suportul package-private | comportamentul serviciului real |
+| `ShopE2eSuite` | toate variantele UI păstrate, cu purchase până la confirmarea comenzii și factură | nu înlocuiește contractele API directe |
+| `ShopApiLiveSuite` | `ShopStandaloneApiReportTest`, cu opt-in-ul autentificat existent | nu intră în gate-ul local |
 | `ShopStandaloneApiReportTest` | login, catalog, filtrare/sortare din răspuns și mutații/read-back pe un coș izolat, adresă/payment prin HTTP live | invoice final, validitatea permanentă a fixture-ului sau autentificarea sesiunii UI |
 
 În component suite, `ShopApiEndpointMatrixTest` verifică invariants comune de
@@ -514,10 +506,10 @@ Un gate neutru nu poate înlocui siguranța artifactului produs de aplicație.
 
 </details>
 
-Auditul componentelor care emit API exchanges prin transporturile lor de test:
+Diagnoză punctuală a componentelor cu API exchanges prin transport controlat:
 
 ```text
-mvn -pl atf-test-practice-shop -am "-Dtest=ShopApiCallAuditSuite" "-Dsurefire.failIfNoSpecifiedTests=false" test
+mvn -pl atf-test-practice-shop -am "-Dtest=ShopApiClientContractTest,ShopApiContractVariantTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 ```
 
 Un singur journey guest UI + API:
@@ -598,3 +590,12 @@ copiate aici ca reguli paralele.
 - [`atf-test-kit`](../atf-test-kit/README.md) — adnotările și selecția testelor;
 - [Bune practici de documentație](../docs/README_Atf_DocumentationBestPractices.md) — structură și guvernanța README-urilor;
 - [Registrul feedback-ului](../docs/feedback/README.md) — numai gap-urile active.
+
+### Limita suportului partajat
+
+| Owner | Conține |
+|---|---|
+| Shop `src/main/java` | pagini, flow-uri, payload-uri și validarea terminală `ShopPurchaseConfirmation`; fără JUnit/Test Kit |
+| Shop `src/test/java` | teste business, fixture-uri și adaptoare JUnit/report specifice Shop |
+| `atf-test-kit` | lifecycle neutru; nu primește browser, Reporting sau business |
+| `atf-ui` / `atf-reporting-tests` | auditul neutru de ecran / contractele generice de randare |

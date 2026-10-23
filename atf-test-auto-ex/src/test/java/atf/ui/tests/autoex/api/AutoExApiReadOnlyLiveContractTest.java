@@ -7,6 +7,7 @@ import atf.api.testkit.channel.AtfTestChannel;
 import atf.api.testkit.channel.TestChannel;
 import atf.api.testkit.reporting.AtfReportPath;
 import atf.ui.autoex.api.AutoExApiJsonField;
+import static atf.ui.tests.autoex.support.api.AutoExApiTestSupport.liveExecutor;
 import atf.ui.autoex.api.AutoExApiRequestFactory;
 import atf.ui.autoex.config.AutoExConfiguration;
 import atf.ui.autoex.config.AutoExConfigurationLoader;
@@ -15,6 +16,9 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
+
+import static atf.ui.tests.autoex.support.api.AutoExApiTestSupport.assertResponse;
+import static atf.ui.tests.autoex.support.api.AutoExApiTestSupport.assertSearchResponse;
 
 /** Read-only public API sample; safe to run without creating or changing accounts. */
 @AtfIntegrationTest
@@ -28,14 +32,14 @@ public class AutoExApiReadOnlyLiveContractTest {
     @Test
     void readOnlyPublishedEndpointsProduceLiveExtentEvidence() {
         AutoExConfiguration configuration = AutoExConfigurationLoader.load();
-        var api = AutoExApiLiveContractTest.liveExecutor(configuration);
+        var api = liveExecutor(configuration);
         var requests = new AutoExApiRequestFactory();
 
-        AutoExApiLiveContractTest.assertResponse("API 1 products list", api,
+        assertResponse("API 1 products list", api,
                 requests.productsList(), 200, null, AutoExApiJsonField.PRODUCTS);
-        AutoExApiLiveContractTest.assertResponse("API 3 brands list", api,
+        assertResponse("API 3 brands list", api,
                 requests.brandsList(), 200, null, AutoExApiJsonField.BRANDS);
-        AutoExApiLiveContractTest.assertSearchResponse("API 5 product search", api,
+        assertSearchResponse("API 5 product search", api,
                 requests.searchProduct(configuration.catalog().searchTerm()), 200,
                 configuration.catalog().searchTerm());
     }

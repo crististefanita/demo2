@@ -1,4 +1,5 @@
 package atf.api.reporting.semantic;
+import atf.api.reporting.contract.evidence.ReportEvidenceOwner;
 
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
@@ -106,6 +107,8 @@ public final class AtfReportSemanticRecorder {
         private ValidationHandle(AtfReportSemanticState.ValidationState state) {
             this.state = state;
         }
+
+        public void evidenceOwner(ReportEvidenceOwner owner) { state.evidenceOwner(owner); }
 
         public void assertions(Collection<AtfAssertion> assertions) {
             state.assertions(assertions);

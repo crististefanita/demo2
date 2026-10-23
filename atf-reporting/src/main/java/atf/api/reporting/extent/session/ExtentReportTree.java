@@ -1,4 +1,5 @@
 package atf.api.reporting.extent.session;
+import atf.api.reporting.contract.evidence.ReportEvidenceOwner;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.console.AtfConsoleEvent;
 import atf.api.reporting.console.AtfConsoleSink;
@@ -245,7 +246,11 @@ public final class ExtentReportTree {
     }
 
     public void renderAssertions(ExtentTest node, Collection<AtfAssertion> assertions) {
-        evidence.renderAssertions(node, assertions);
+        renderAssertions(node, assertions, ReportEvidenceOwner.UNSPECIFIED);
+    }
+
+    public void renderAssertions(ExtentTest node, Collection<AtfAssertion> assertions, ReportEvidenceOwner owner) {
+        evidence.renderAssertions(node, assertions, owner);
     }
 
     public void consoleStarted(AtfConsoleEvent.Scope scope, String name) {

@@ -239,6 +239,7 @@ public final class AtfReportHtmlVocabulary {
         FEATHERLIGHT("data-featherlight"),
         INLINE("data-atf-inline"),
         EVIDENCE_STATUS("data-atf-evidence-status"),
+        EVIDENCE_OWNER("data-atf-evidence-owner"),
         EVIDENCE_TYPE("data-atf-evidence-type"),
         NODE_ROLE("data-atf-node-role"),
         EMPTY_STATE("data-atf-empty-state"),

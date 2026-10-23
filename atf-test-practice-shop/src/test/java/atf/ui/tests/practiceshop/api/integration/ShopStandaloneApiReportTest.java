@@ -50,7 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @AtfConsoleMessages(AtfConsoleMessages.Policy.DETAILS)
 @ExtendWith(AtfConsoleTestExtension.class)
 @ShopTestSupport.RequiresLiveAuthenticatedApi
-class ShopStandaloneApiReportTest {
+public class ShopStandaloneApiReportTest {
     private static final String REPORT_PREFIX = "api-atf-practice-shop-standalone_";
     private static final String AUTHENTICATION_PHASE = "authentication";
     private static final String CATALOG_PHASE = "catalog";

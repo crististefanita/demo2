@@ -1,7 +1,6 @@
-package atf.ui.tests.autoex.component.api;
+package atf.api.testkit.lifecycle;
 
 import atf.api.testkit.AtfComponentTest;
-import atf.ui.tests.autoex.api.AutoExApiAccountCleanup;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -12,19 +11,19 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /** Proves cleanup is armed before a potentially partial create and cannot replace its primary failure. */
 @AtfComponentTest
-class AutoExApiAccountCleanupComponentTest {
+class ArmedCleanupTest {
     @Test
     void cleanupRunsAfterCreateFailureAndItsFailureIsSuppressed() {
         AtomicInteger cleanupCalls = new AtomicInteger();
-        var primaryFailure = new IllegalStateException("account create response was malformed");
-        var cleanupFailure = new AssertionError("account deletion failed");
+        var primaryFailure = new IllegalStateException("mutation response was malformed");
+        var cleanupFailure = new AssertionError("compensation failed");
 
         IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> {
-            try (var cleanup = new AutoExApiAccountCleanup(() -> {
+            try (var cleanup = new ArmedCleanup(() -> {
                 cleanupCalls.incrementAndGet();
                 throw cleanupFailure;
             })) {
-                cleanup.armBeforeCreateAttempt();
+                cleanup.arm();
                 throw primaryFailure;
             }
         });
@@ -39,10 +38,33 @@ class AutoExApiAccountCleanupComponentTest {
     void cleanupDoesNotRunBeforeACreateAttemptIsArmed() {
         AtomicInteger cleanupCalls = new AtomicInteger();
 
-        try (var cleanup = new AutoExApiAccountCleanup(cleanupCalls::incrementAndGet)) {
-            // No create attempt was made, so there is no account to remove.
+        try (var cleanup = new ArmedCleanup(cleanupCalls::incrementAndGet)) {
+            // No mutation was attempted, so no compensation is required.
         }
 
         assertEquals(0, cleanupCalls.get());
+    }
+    @Test
+    void successfulCompensationDisarmsButFailedCompensationCanBeRetriedExplicitly() {
+        AtomicInteger calls = new AtomicInteger();
+        var cleanup = new ArmedCleanup(() -> {
+            if (calls.incrementAndGet() == 1) throw new IllegalStateException("transient cleanup failure");
+        });
+        cleanup.arm();
+        assertThrows(IllegalStateException.class, cleanup::close);
+        cleanup.close();
+        cleanup.close();
+        assertEquals(2, calls.get());
+    }
+
+    @Test
+    void completedCleanupCanBeArmedForANewMutation() {
+        AtomicInteger calls = new AtomicInteger();
+        var cleanup = new ArmedCleanup(calls::incrementAndGet);
+        cleanup.arm();
+        cleanup.close();
+        cleanup.arm();
+        cleanup.close();
+        assertEquals(2, calls.get());
     }
 }

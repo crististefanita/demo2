@@ -3,6 +3,7 @@ package atf.ui.practiceshop.support.api;
 import atf.api.core.http.response.ApiBodyEvidence;
 import atf.api.reporting.api.ReportAttemptRecord;
 import atf.api.reporting.api.ReportRequest;
+import atf.api.reporting.api.request.ReportRequestHeaders;
 import atf.api.reporting.api.ReportAuthObservation;
 import atf.api.reporting.api.ReportAuthMethod;
 import atf.api.reporting.api.ReportResponse;
@@ -36,9 +37,12 @@ public final class ShopApiEvidenceMapper {
         if (capturedMethod != ReportAuthMethod.NONE) {
             authentication = new ReportAuthObservation(capturedMethod, authentication.source());
         }
-        ReportRequest request = new ReportRequest(exchange.method(), exchange.path(),
-                query, ShopJsonEvidence.redactHeaders(exchange.requestHeaders()),
-                "none", redactJson(exchange.requestBody()), authentication);
+        ReportRequest request = ReportRequest.builder(exchange.method(), exchange.path()).query(query)
+                .headers(ReportRequestHeaders.observed(ShopJsonEvidence.redactHeaders(exchange.requestHeaders())))
+                .authProfile("none").authentication(authentication)
+                .body(redactJson(exchange.requestBody()), ApiBodyEvidence.isUnavailable(exchange.requestBody())
+                        ? ReportBodyAvailability.NOT_CAPTURED : ReportBodyAvailability.from(exchange.requestBody()))
+                .build();
         ReportResponse response = new ReportResponse(exchange.status(), redactJson(exchange.responseBody()),
                 ShopJsonEvidence.redactHeaders(exchange.responseHeaders()), null, exchange.url(),
                 exchange.status() < 0 || ApiBodyEvidence.isUnavailable(exchange.responseBody())
@@ -74,9 +78,9 @@ public final class ShopApiEvidenceMapper {
         if (request == null || response == null) {
             throw new IllegalArgumentException("API execution must contain request and response");
         }
-        ReportRequest reportRequest = new ReportRequest(request.method(), request.path(), request.query(),
-                ShopJsonEvidence.redactHeaders(request.headers()), request.authProfile(),
-                redactJson(request.bodyText()), request.authObservation(), request.bodyAvailability());
+        ReportRequest reportRequest = request.toBuilder().headers(new ReportRequestHeaders(
+                        request.headerEvidence().source(), ShopJsonEvidence.redactHeaders(request.headerEvidence().values())))
+                .body(redactJson(request.bodyText()), request.bodyAvailability()).build();
         ReportResponse reportResponse = new ReportResponse(response.status(), redactJson(response.body()),
                 ShopJsonEvidence.redactHeaders(response.headers()), response.duration(), response.url(),
                 ApiBodyEvidence.isUnavailable(response.body())
