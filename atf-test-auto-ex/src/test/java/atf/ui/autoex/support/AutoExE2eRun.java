@@ -11,8 +11,6 @@ import atf.api.reporting.api.ReportResponse;
 import atf.api.reporting.api.ReportTransportProvenance;
 import atf.api.reporting.api.ReportTraceMetadata;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
-import atf.api.reporting.evidence.profile.ReportEvidenceCaptureSource;
-import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
 import atf.api.reporting.evidence.profile.ReportEvidenceProfile;
 import atf.api.reporting.model.ReportExecutionEvidence;
 import atf.api.reporting.ui.UiExtentReportSession;
@@ -100,13 +98,8 @@ public final class AutoExE2eRun {
                 screenshotMode == AutoExEvidenceMode.Mode.FINAL_SCREENSHOT_ONLY
                         ? ReportScreenshotPolicy.FINAL_ONLY
                         : AtfReportConfigurationLoader.load().screenshotPolicy();
-        ReportEvidenceProfile reportEvidence = ReportEvidenceProfile.builder()
-                .flowMode(ReportEvidenceFlowMode.UNIFIED_FLOW)
-                .screenshotPolicy(ReportScreenshotPolicy.EACH_CHECKPOINT)
-                .captureSource(ReportEvidenceCaptureSource.BROWSER)
-                .build();
-        ReportEvidenceProfile evidence = reportEvidence.toBuilder()
-                .screenshotPolicy(configuredScreenshotPolicy).build();
+        ReportEvidenceProfile evidence = AutoExEvidenceProfile.forRun(
+                screenshotMode, configuredScreenshotPolicy);
         if (channel == TestChannel.UI_API) {
             configuration = withNetworkInspection(configuration);
         }
@@ -119,7 +112,7 @@ public final class AutoExE2eRun {
         var reportConsole = AutoExConsoleBridge.reportingSink(console);
         ReportResource reportResource = context.getRoot().getStore(NAMESPACE)
                 .getOrComputeIfAbsent(SUITE_REPORT_KEY,
-                        ignored -> new ReportResource(output, reportName(context), reportConsole, reportEvidence),
+                        ignored -> new ReportResource(output, reportName(context), reportConsole, evidence),
                         ReportResource.class);
         UiExtentReportSession report = reportResource.report();
         PlaywrightUiSession browser = null;
@@ -320,7 +313,7 @@ public final class AutoExE2eRun {
         if (failureCleanup != null) {
             try { failureCleanup.run(); }
             catch (Exception | Error cleanupFailure) {
-                terminalFailure = combine(terminalFailure, cleanupFailure);
+                terminalFailure = AutoExFailureCombiner.combine(terminalFailure, cleanupFailure);
             }
             failureCleanup = null;
         }
@@ -337,11 +330,17 @@ public final class AutoExE2eRun {
         }
         AtfReportStatus status = terminalFailure == null ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
         try { phase.complete(status); }
-        catch (RuntimeException | Error reportFailure) { terminalFailure = combine(terminalFailure, reportFailure); }
+        catch (RuntimeException | Error reportFailure) {
+            terminalFailure = AutoExFailureCombiner.combine(terminalFailure, reportFailure);
+        }
         try { scenario.complete(status); }
-        catch (RuntimeException | Error reportFailure) { terminalFailure = combine(terminalFailure, reportFailure); }
+        catch (RuntimeException | Error reportFailure) {
+            terminalFailure = AutoExFailureCombiner.combine(terminalFailure, reportFailure);
+        }
         try { browser.close(); }
-        catch (RuntimeException | Error closeFailure) { terminalFailure = combine(terminalFailure, closeFailure); }
+        catch (RuntimeException | Error closeFailure) {
+            terminalFailure = AutoExFailureCombiner.combine(terminalFailure, closeFailure);
+        }
 
         if (testFailure == null && terminalFailure != null) {
             if (terminalFailure instanceof Exception exception) throw exception;
@@ -409,12 +408,6 @@ public final class AutoExE2eRun {
                 .map(assertion -> assertion.name() + " [expected=" + assertion.expected()
                         + "; actual=" + assertion.actual() + "]")
                 .collect(java.util.stream.Collectors.joining("; "));
-    }
-
-    private static Throwable combine(Throwable primary, Throwable secondary) {
-        if (primary == null) return secondary;
-        if (primary != secondary) primary.addSuppressed(secondary);
-        return primary;
     }
 
     private AtfLocator locator(String selector) { return new AtfLocator(page().locator(selector), selector); }

@@ -17,9 +17,7 @@ necesare acceptanței. Contractele implementate sunt descrise în
 
 | Prioritate | Cerință încă deschisă | Responsabil | Dovada pentru închidere |
 |---|---|---|---|
-| P1 — PUB-01 | Limite măsurate pentru publicarea HTML voluminos cu PNG-uri inline | Reporting: pipeline și teste de componentă | Profiluri suplimentare de volum/PNG distincte și buget de durată calibrat; failure-path fără promovare parțială are deja probă executabilă |
-| P1 — GOV-API-01 | Un singur gate comun pentru structura, stilul și comportamentul API | `atf-tests` + `atf-reporting-tests` | Aceeași fixture prin publishers; probe negative structurale, de stil și ownership; gate-ul este obligatoriu în suită |
-| P2 — PUB-FS-02 | Finalizare robustă când asset-ul temporar vendor este blocat pe Windows | Reporting: publication | Cleanup bounded, rezultat explicit și fără oprirea altor procese, artifact parțial promovat sau diagnostic suprimat |
+| P1 — GOV-API-01 | Un singur gate comun pentru structura, stilul și comportamentul API | `atf-reporting-tests` | Aceeași fixture prin publishers; probe negative structurale, de stil și ownership; gate-ul este obligatoriu în suita componentă Reporting |
 | P2 — REPORT-PATH-01 | Afișarea automată a căii absolute pentru fiecare raport Extent publicat de teste | Reporting: semnal de finalizare; test infrastructure: hook JUnit; consumers: integrarea lifecycle-ului | Probe cu sink capturat confirmă un singur mesaj după publicare, inclusiv la teste eșuate și rapoarte partajate; nu se afișează cale de succes când publicarea eșuează |
 | P2 — SHOP-CAPTURE-01 | Selectarea per clasă a unui singur screenshot final și a unui tabel cu toate acțiunile UI ale scenariului E2E | Practice Shop: adnotare/harness; Reporting: agregare și profile; `atf-reporting-tests`: contract generic | Proba confirmă acțiuni complete, ordonate și ne-dublate într-un singur tabel per scenariu, inclusiv peste fazele SETUP/TEST BODY, plus exact o captură terminală; verdicturile și dovezile API rămân intacte |
 
@@ -31,9 +29,9 @@ necesare acceptanței. Contractele implementate sunt descrise în
 | API-02 — roluri | Rolurile typed sunt independente de titlu, iar o validare cu titlu personalizat este probată. | Combinațiile reziduale de metode, aggregate Network Inspector, copie selectată și Fails sunt consolidate în gate-ul comun; nu este un ToDo independent. |
 | UI-FAIL-01 | Contract browser Extent: 4/4 suprafețe și izolare sibling; `ExtentReportUiFailureEvidenceTest` 9/9; `UiFallbackFailureEvidenceTest` 1/1; proiecția UI 3/3. Invocarea combinată actuală, împreună cu probele PUB-01: 26/26. | Închis. Timeout/cauză, locator, durata, redacția cauzei și targetului, Fails/deep-link, izolarea sibling și absența disclosure-urilor HTTP false au probe executabile. |
 | ASSET-SIZE-01 | Inventory nativ/publicare în limita baseline-urilor: JavaScript nativ 124.950 B față de 125.000 B; testele inventory/budget, viewport, disclosure și browser trec 23/23. | Închis. Explicațiile asset-urilor au fost mutate în README; plafonul nu a fost schimbat și logica executabilă a rămas neschimbată. |
-| PUB-01 | `LargeReportPublicationComponentTest` (1/1) trece cu JVM copil `-Xmx384m`, 1.500 referințe PNG inline, două imagini distincte/repetate și artifact >9 MB; `ExtentReportSessionLifecycleTest` (8/8) verifică failure-path-ul: destinația blocată și sentinelul rămân intacte, staging-ul este curățat. | Rămân profiluri de volum mai mare, PNG-uri distincte mari și un buget de durată calibrat; acestea nu sunt deduse dintr-un singur run. |
-| GOV-API-01 | Există verificări de artifact, ownership, API parity și browser; rulările țintite confirmă trasee pozitive, dar nu un gate comun complet. | Lipsesc fixture-urile negative și dovada că matricea completă rulează obligatoriu în suită; testele `contains` singure nu închid cerința. |
-| PUB-FS-02 | Nu am găsit în probele de publication existente o simulare deterministă pentru fișier vendor blocat pe Windows. | Deschis; criteriul din backlog rămâne necesar înainte de închidere. |
+| PUB-01 | `LargeReportPublicationComponentTest` are două profile bounded-heap, iar `ExtentReportSessionLifecycleTest` verifică failure-path-ul fără promovare parțială. Patru rulări locale: text/HTML 10.539–12.704 ms și PNG distinct 710–933 ms; heap total eșantionat maxim 236.800.048 B și 81.315.680 B. | Închis pentru profilele măsurate. Timeout configurabil 60 s (peste 4× maximul observat) și JVM copil `-Xmx384m`; limita nu este SLA pentru alte host-uri și nu pretinde fotografii de rezoluție foarte mare. |
+| GOV-API-01 | `ReportingCoverageMatrixTest` mapează acum explicit contractul API direct, aceeași fixture prin API/fallback/UI, reconcilierea browser a query-ului/fazei/ownership-ului, viewport-ul API și ARIA/keyboard. Gate-ul verifică package-urile și tag-ul `component` selectate de `AtfReportingComponentSuite`. Rularea explicită a suitei a executat agregat 131 teste: 0 failures, 0 errors, 0 skipped. | **Parțial.** Mai lipsesc negative dedicate pentru disclosure API absent/mutat și evidence la owner greșit, plus matricea mixed UI/API verdict–Fails/deep-link. Suita a rulat cu probele disponibile, dar acestea nu acoperă încă fiecare criteriu de acceptanță; cerința rămâne deschisă. |
+| PUB-FS-02 | `ExtentReportAssetCleanupTest` (2/2) simulează `AccessDeniedException`: retry tranzitoriu reușește la a treia încercare; blocarea persistentă se oprește la 4 încercări/3 pauze și păstrează fișierul. `ExtentReportSessionLifecycleTest` (9/9) injectează cleanup failure după promovare și verifică HTML complet, fără `.tmp`, cu diagnosticul păstrat. | Închis. Retry limitat la `AccessDeniedException` (4 încercări, pauze de 50 ms); alte erori se propagă imediat. Guard-ul acceptă doar directorul generat `spark`; nu oprește procese externe și nu maschează cleanup failure. |
 
 ### UI-FAIL-01 — cauza unei acțiuni Playwright eșuate trebuie să supraviețuiască în raport
 
@@ -99,7 +97,7 @@ UI-FAIL-01 este închis.
 - Testele de șiruri sunt guard-uri auxiliare; probele de browser și
   artefactele generate decid închiderea.
 
-### PUB-01 — bugetul de memorie al publicării
+### PUB-01 — profilele bounded-heap și bugetul temporal
 
 - **Cauză confirmată:** heap-ul de 256 MiB al fork-ului Surefire poate fi epuizat
   în `ExtentReportPublicationPipeline.ensureViewIdentifiersAndOverviewDefault`,
@@ -110,29 +108,54 @@ UI-FAIL-01 este închis.
 - **Remediere de configurație:** bugetul implicit este 2 GiB per fork,
   configurabil prin `atf.test.heap.max`; nu schimbăm politica de captură și
   nu dezactivăm fork-ul. Configurația nu dovedește scalabilitatea pipeline-ului.
-- **Probă măsurată:** `LargeReportPublicationComponentTest` pornește un JVM
-  separat cu `-Xmx384m`, generează 1.500 linkuri PNG inline cu două imagini
-  distincte/repetate și text Unicode; artifactul final depășește 9 MB,
-  păstrează ambele ancore, markerul final, tema și runtime-ul. Proba raportează
-  vârful heap și cere exit code 0, fără E2E live; măsurătoarea unui run nu devine buget universal.
+- **Profil text/HTML:** JVM separat cu `-Xmx384m`, 1.500 referințe PNG inline
+  (două payload-uri distincte repetate) și text Unicode; artifactul final
+  depășește 9 MB și păstrează markerul final, tema, runtime-ul și ancorele.
+- **Profil media:** patru PNG-uri generate distincte 256×256, fiecare referit de
+  două ori. După deduplicare, toate cele patru payload-uri rămân acționabile,
+  iar payload-urile inline depășesc împreună 900.000 caractere. Profilul separă
+  costul media de volumul Unicode al probei text.
+- **Măsurare:** heap-ul total este eșantionat la intervale de 2 ms în timpul
+  publicării (nu se însumează vârfurile pool-urilor JVM). În patru rulări locale,
+  profilul text a durat 10.539–12.704 ms, cu maximum observat de 236.800.048 B;
+  profilul media a durat 710–933 ms, cu maximum observat de 81.315.680 B.
+- **Timeout calibrat:** fiecare JVM copil are implicit 60 s, configurabil prin
+  `atf.test.publication.timeout.seconds`; limita este de peste 4× cea mai lentă
+  măsurătoare locală. La depășire, doar procesul copil este terminat. Nu este
+  un SLA portabil între host-uri.
 - **Failure-path verificat:** `ExtentReportSessionLifecycleTest` încearcă
   publicarea către o destinație care este director și conține un sentinel.
   Închiderea eșuează explicit, destinația și sentinelul rămân intacte, iar
-  workspace-ul privat `.atf-extent-session-*` este eliminat. Rularea combinată
-  a probei bounded-heap și lifecycle a trecut 9/9 teste.
-- **Rămâne de făcut:** profiluri reprezentative pentru volume mai mari și PNG-uri
-  distincte mari, plus un buget de durată calibrat; fixture-ul măsurat demonstrează
-  numai profilul explicit de 384 MiB, nu scalarea generală a pipeline-ului.
-- **Gate rămas:** extinderea măsurătorilor de volum/media și stabilirea duratei
-  pe baza unor rulări repetate; publicarea completă și failure-path-ul fără
-  promovare parțială au probe executabile. Optimizează copiile HTML numai după
-  măsurare; nu trata creșterea heap-ului ca dovadă de închidere.
+  workspace-ul privat `.atf-extent-session-*` este eliminat. Profilele de
+  publicare și lifecycle au trecut împreună 10/10 teste.
+- **Închidere și limită:** PUB-01 este închis pentru profilele declarate și
+  măsurate. Volume arbitrare și screenshot-uri de rezoluție mare rămân în afara
+  promisiunii; nu creștem heap-ul și nu reducem capturile pentru a face proba să
+  treacă. Orice profil nou cere măsurători repetate înainte de a modifica timeout-ul.
+
+### PUB-FS-02 — cleanup bounded pentru asset-uri vendor blocate
+
+- Cleanup-ul vizează numai directorul generat cu numele `spark`; căile din afara
+  lui sunt no-op. Pentru `AccessDeniedException`, operația încearcă cel mult de
+  patru ori, cu trei pauze de 50 ms. Nu termină procese și nu folosește ștergere
+  recursivă externă.
+- `ExtentReportAssetCleanupTest` probează determinist două cazuri: acces refuzat
+  tranzitoriu, urmat de ștergere reușită, și blocare persistentă care produce un
+  `IOException` cu calea și numărul încercărilor; în al doilea caz fișierul
+  blocat rămâne prezent.
+- Proba de lifecycle injectează cleanup failure după scrierea atomică și confirmă
+  că artifactul HTML rămâne complet, fișierul temporar de publicare este eliminat,
+  iar excepția nu este suprimată. Rularea țintită a asset-urilor, profilelor de
+  volum, cleanup-ului și lifecycle-ului a trecut 19/19 teste.
+- **Închidere:** PUB-FS-02 este închis pentru contractul `AccessDeniedException`
+  simulat determinist; nu afirmă că fiecare antivirus sau driver Windows expune
+  toate tipurile de lock prin aceeași excepție.
 
 Schema API și paritatea de bază sunt verificate prin `ApiExchangeParityComponentTest`
 și descrise în contractele semantic și display. Profilele mock/live sau
 observație/contract rămân diferențe legitime, nu abateri de uniformitate.
 
-## GOV-API-01 — gate comun rămas
+## GOV-API-01 — gate comun, acoperire încă incompletă
 
 Același contract trebuie verificat prin API direct, audit și UI+API în Extent
 și fallback. Paritatea se compară pe aceeași fixture: se normalizează numai
@@ -141,10 +164,16 @@ disclosures și conținutul semantic trebuie să rămână egale.
 
 | Dovadă încă lipsă | Criteriu de închidere |
 |---|---|
-| Structurală, prin porturile publice | Fixture-urile negative pentru disclosure lipsă/mutat, bandă de fază reintrodusă și evidence atașată ownerului greșit pică din motivul corect. |
-| Browser și stil efectiv | Runtime-ul real verifică starea selectată, vizibilitatea copiilor după collapse, tastatura/ARIA, computed style și viewport; template-uri ascunse nu se numără ca probe. |
-| Izolare verdict/diagnostic | UI PASS/API FAIL și invers, exchange-uri cu rezultate diferite și Fails/deep-link păstrează ownerul și cauza redactată; nu se fabrică HTTP pentru UI-only. |
-| Participare obligatorie | Gate-ul este descoperit și executat în suita desemnată, fără skip, excludere sau zero teste. |
+| Structurală, prin porturile publice | Rămân negative dedicate pentru disclosure API lipsă/mutat și evidence atașată ownerului greșit. Testul existent de reconciliere API acoperă query-ul lipsă și faza absentă, nu aceste defecte. |
+| Browser și stil efectiv | Paritatea API este inclusă în suita componentă; probele existente acoperă navigarea/rendering-ul, ARIA + keyboard și computed viewport overflow pentru tabele API. Rămâne de probat explicit starea selectată și vizibilitatea copiilor după collapse în matricea cross-projection; template-urile ascunse nu sunt acceptate ca dovadă. |
+| Izolare verdict/diagnostic | Rămân UI PASS/API FAIL și invers, exchange-uri cu rezultate diferite și Fails/deep-link care păstrează ownerul și cauza redactată; nu se fabrică HTTP pentru UI-only. |
+| Participare obligatorie | **Acoperit pentru entry point-ul declarat:** testul verifică package-urile, tag-ul `component` și includerea celor cinci probe API în `AtfReportingComponentSuite`; rularea explicită a suitei a raportat agregat 131 teste, fără failures sau skip. Integrarea într-un pipeline CI rămâne în afara dovezii locale. |
+
+Probe legate în gate: `ApiReportContractAuditorTest`,
+`ApiExchangeParityComponentTest`, `ApiReportRenderedEvidenceComponentTest`,
+`ReportApiViewportParityComponentTest` și `EvidenceDisclosureAriaComponentTest`.
+Coverage-ul suitei este verificat de `ReportingCoverageMatrixTest`; rularea
+țintită locală a folosit comanda documentată în README-ul Reporting Tests.
 
 Contractele și probele rămân la ownerii lor:
 

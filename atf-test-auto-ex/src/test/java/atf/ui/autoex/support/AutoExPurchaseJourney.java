@@ -28,7 +28,8 @@ public final class AutoExPurchaseJourney {
                         new AtfAssertion("Product name", product.productName(), detailText,
                                 detailText.contains(product.productName())),
                         new AtfAssertion("Product price", product.unitPrice(), detailText,
-                                detailText.contains(product.unitPrice())),
+                                AutoExCatalogAssertions.containsExactLine(
+                                        detailText, product.unitPrice())),
                         new AtfAssertion("Availability", "In Stock", detailText,
                                 detailText.contains("In Stock"))));
 

@@ -98,6 +98,21 @@ class ReportingCoverageMatrixTest {
                     AtfUnitTest.class),
             entry("mock API integration", "atf.api.reporting.api.contract.MockApiReportIntegrationTest",
                     AtfIntegrationTest.class),
+            entry("API report contract and negative drift probes",
+                    "atf.api.reporting.api.contract.ApiReportContractAuditorTest",
+                    AtfComponentTest.class),
+            entry("same API exchange across direct, fallback and UI publishers",
+                    "atf.ui.tests.extent.component.inspection.ApiExchangeParityComponentTest",
+                    AtfComponentTest.class),
+            entry("rendered API ownership, query and phase reconciliation",
+                    "atf.ui.tests.extent.component.audit.ApiReportRenderedEvidenceComponentTest",
+                    AtfComponentTest.class),
+            entry("API table viewport and computed overflow behavior",
+                    "atf.ui.tests.extent.component.inspection.ReportApiViewportParityComponentTest",
+                    AtfComponentTest.class),
+            entry("evidence disclosure keyboard and ARIA behavior",
+                    "atf.ui.tests.extent.component.inspection.EvidenceDisclosureAriaComponentTest",
+                    AtfComponentTest.class),
             NETWORK_INSPECTOR_PROJECTION,
             NETWORK_INSPECTOR_RENDERING,
             NETWORK_INSPECTOR_PUBLICATION,
@@ -145,6 +160,37 @@ class ReportingCoverageMatrixTest {
         assertEquals("atf.ui.tests.extent.e2e",
                 AtfReportingUiAuditSuite.class.getAnnotation(org.junit.platform.suite.api.SelectPackages.class)
                         .value()[0]);
+    }
+
+    @Test
+    void commonApiGateIsSelectedByTheReportingComponentSuite() {
+        var suite = AtfReportingComponentSuite.class;
+        var packages = suite.getAnnotation(org.junit.platform.suite.api.SelectPackages.class).value();
+        var tags = suite.getAnnotation(org.junit.platform.suite.api.IncludeTags.class).value();
+        var excludedSuites = suite.getAnnotation(org.junit.platform.suite.api.ExcludeClassNamePatterns.class).value();
+
+        assertEquals(List.of("atf.api.reporting", "atf.ui.tests.extent.component"), List.of(packages),
+                "the common gate's direct and browser proofs must both be selected");
+        assertEquals(List.of("component"), List.of(tags),
+                "the suite must not silently filter component proofs out");
+        assertTrue(Arrays.asList(excludedSuites).contains(".*Suite"),
+                "nested suite classes must not be recursively selected");
+
+        List<Entry> apiGate = MATRIX.stream().filter(entry -> entry.annotation() == AtfComponentTest.class
+                && (entry.className().equals("atf.api.reporting.api.contract.ApiReportContractAuditorTest")
+                || entry.className().equals("atf.ui.tests.extent.component.inspection.ApiExchangeParityComponentTest")
+                || entry.className().equals("atf.ui.tests.extent.component.audit.ApiReportRenderedEvidenceComponentTest")
+                || entry.className().equals("atf.ui.tests.extent.component.inspection.ReportApiViewportParityComponentTest")
+                || entry.className().equals("atf.ui.tests.extent.component.inspection.EvidenceDisclosureAriaComponentTest")))
+                .toList();
+        assertEquals(5, apiGate.size(), "all common API gate proofs must remain explicit in the matrix");
+        for (Entry entry : apiGate) {
+            String packageName = entry.className().substring(0, entry.className().lastIndexOf('.'));
+            assertTrue(Arrays.stream(packages).anyMatch(packageName::startsWith),
+                    () -> entry.className() + " is outside the selected component packages");
+            assertTrue(entry.annotation().isAssignableFrom(annotationType(load(entry.className()))),
+                    () -> entry.className() + " must retain its component tag");
+        }
     }
 
     @Test

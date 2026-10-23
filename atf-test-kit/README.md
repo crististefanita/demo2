@@ -66,9 +66,11 @@ Fiecare clasă executabilă declară exact un nivel:
 
 Contractul complet, precedența, exemplele și probele sunt în
 [Adnotări de infrastructură pentru teste](../docs/ATF_Test_Infrastructure_Annotations.md).
-Selecția canalului nu are gap funcțional deschis; singura verificare de
-infrastructură rămasă este lansarea reală din IntelliJ, urmărită în
-[feedback-ul infrastructurii](../docs/feedback/ATF_Test_Infrastructure_Annotations_Feedback.md).
+Selecția canalului și contractul generic de output nu au gap-uri funcționale
+deschise. Smoke-testul IntelliJ pentru compoziția project-relative aparține
+modulului Reporting Tests, care deține acel root; pașii se rulează la schimbări
+relevante și sunt documentați în
+[ghidul suitei Extent](../atf-reporting-tests/src/test/java/atf/ui/tests/extent/README.md#rulare-directă-din-intellij).
 
 ### Limite de responsabilitate
 

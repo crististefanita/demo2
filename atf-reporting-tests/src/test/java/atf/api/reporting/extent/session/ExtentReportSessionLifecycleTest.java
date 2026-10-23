@@ -10,6 +10,7 @@ import atf.api.reporting.configuration.ReportingSettings;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -235,6 +236,48 @@ class ExtentReportSessionLifecycleTest {
             }
         } finally {
             deleteTree(root);
+        }
+    }
+
+    @Test
+    void cleanupFailureIsExplicitButNeverLeavesAPartiallyPromotedReport() throws Exception {
+        Path root = Files.createTempDirectory("atf-asset-cleanup-failure-");
+        Path report = root.resolve("report.html");
+        Path spark = Files.createDirectory(root.resolve("spark"));
+        Files.writeString(spark.resolve("spark-style.css"), ".spark{color:red}");
+        Files.writeString(report, "<!doctype html><html><head>"
+                + "<link rel=\"stylesheet\" href=\"spark/spark-style.css\">"
+                + "</head><body class=\"spa -report dark\">"
+                + "<div class=\"test-wrapper row view test-view\"></div>"
+                + "<div class=\"test-wrapper row view category-view attributes-view\"></div>"
+                + "<div class=\"container-fluid p-4 view dashboard-view\"></div>"
+                + "</body></html>");
+        try {
+            var failure = assertThrows(AccessDeniedException.class, () ->
+                    ExtentReportPublicationPipeline.publish(report, assetDirectory -> {
+                        throw new AccessDeniedException(assetDirectory.toString(), null,
+                                "simulated locked vendor asset");
+                    }));
+
+            String published = Files.readString(report);
+            assertTrue(failure.getMessage().contains(spark.toString()));
+            assertAll(
+                    () -> assertTrue(published.startsWith("<!doctype html>")),
+                    () -> assertTrue(published.contains("data-atf-inline=\"spark-style.css\"")),
+                    () -> assertTrue(published.contains("id=\"atf-report-theme\"")),
+                    () -> assertTrue(published.contains("id=\"atf-report-behaviour\"")),
+                    () -> assertTrue(published.endsWith("</html>")),
+                    () -> assertTrue(Files.exists(spark.resolve("spark-style.css"))),
+                    () -> assertNoPublicationTemporaryFiles(root));
+        } finally {
+            deleteTree(root);
+        }
+    }
+
+    private static void assertNoPublicationTemporaryFiles(Path root) throws Exception {
+        try (var children = Files.list(root)) {
+            assertFalse(children.anyMatch(path -> path.getFileName().toString().endsWith(".tmp")),
+                    "atomic publication must remove its temporary output after cleanup failure");
         }
     }
 

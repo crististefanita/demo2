@@ -72,6 +72,32 @@ public final class ApiReportRenderedEvidenceProbe {
         }
     }
 
+    public static void verifyMissingResponseDisclosure() {
+        Path report = publish("rendered-api-missing-response-disclosure.html", false);
+        var policy = UiConfiguration.defaults(report.getParent()).withReportDirectory(report.getParent());
+        try (var context = ReportAuditContext.open(policy, report, AUDIT)) {
+            var audit = audit(context, policy);
+            var owner = new ApiReportUiFlow(audit, LOCATORS)
+                    .openOwner(audit.openTab(ReportUiContract.Tab.TESTS.hash()), OWNER);
+            assertEquals(1, LOCATORS.requests(owner.detail()).count());
+            var request = LOCATORS.requests(owner.detail()).first();
+            var responseDisclosure = LOCATORS.responseEvidenceDisclosure(request);
+            assertEquals(1, responseDisclosure.count(), "the baseline fixture must contain response evidence");
+            LOCATORS.parentDisclosure(responseDisclosure).evaluate("details => details.remove()");
+
+            var validator = new ApiReportContractValidation(LOCATORS,
+                    new MockReportContractAuditor(configuration(acceptedPostRoute())));
+            var result = validator.inspect(owner);
+            assertFalse(result.compliant(), "missing response evidence must not pass as a valid exchange");
+            assertTrue(result.violations().stream().anyMatch(value -> value.contains("response JSON body count")),
+                    () -> result.violations().toString());
+            assertEquals(0, LOCATORS.responseDetails(request).count(),
+                    "the negative fixture removes the rendered response disclosure itself");
+            assertTrue(context.browserDiagnostics().valid(),
+                    () -> context.browserDiagnostics().violations().toString());
+        }
+    }
+
     public static void verifyPhaseNavigation() {
         Path report = publish("rendered-api-phase-navigation.html", false);
         var policy = UiConfiguration.defaults(report.getParent()).withReportDirectory(report.getParent());

@@ -25,17 +25,19 @@ verifică diferența Git și probele negative ale regulii.
 - `atf-tests` rămâne dedicat guvernanței whole-ATF.
 
 `UiFailureReportContractTest` este proba browser annotation-driven pentru
-failure UI în Extent: SETUP, timeout Playwright, observație și assertion
-păstrează leaf-ul FAIL sub ownerul semantic, apar în Fails/deep-link și rămân
-collapsed la sosire. Scenariul Playwright verifică `TimeoutError`, locator,
-durata și redacția; UI failure nu trebuie să creeze disclosure HTTP.
-`ExtentReportUiFailureEvidenceTest` și `UiFallbackFailureEvidenceTest` verifică
-și componenta fallback, inclusiv izolarea unui scenariu-frate. Renderer-ul
-Extent redă targetul locatorului prin redactor; pentru cauza absentă, publicarea
-derivează cauza dintr-o acțiune FAIL sau respinge input-ul fără diagnostic.
-Contractul browser verifică și că timeout-ul rămâne într-un singur scenariu și
-nu ajunge în scenariile sibling. Dovada și istoricul criteriului sunt în
-[feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md).
+failure UI în Extent:
+
+- SETUP, timeout Playwright, observație și assertion păstrează leaf-ul FAIL sub
+  ownerul semantic, apar în Fails/deep-link și rămân collapsed la sosire;
+- scenariul Playwright verifică `TimeoutError`, locatorul, durata și redacția;
+  UI failure nu trebuie să creeze disclosure HTTP;
+- `ExtentReportUiFailureEvidenceTest` și `UiFallbackFailureEvidenceTest`
+  verifică fallback-ul și izolarea unui scenariu-frate;
+- renderer-ul redă targetul locatorului prin redactor; fără cauză, publicarea o
+  derivează dintr-o acțiune FAIL sau respinge input-ul fără diagnostic;
+- contractul browser păstrează timeout-ul în scenariul curent și îl exclude din
+  scenariile sibling; istoricul cerinței este în
+  [feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md).
 
 Contractul stabil pentru ierarhia vizibilă, layout, responsive viewport,
 disclosure-uri și dovezile browser este
@@ -317,20 +319,30 @@ Boundary-urile suportului rămân mici și verificabile:
 
 `LargeReportPublicationComponentTest` rulează într-un JVM copil cu heap
 limitat; nu execută journey-uri pe aplicația externă și nu reduce capturile.
+Două profiluri izolează volumul HTML de volumul media.
 
 | Parametru / dovadă | Contractul fixture-ului |
 |---|---|
 | Heap | `-Xms64m -Xmx384m`, separat de fork-ul Surefire |
 | Output | directorul configurabil este creat înaintea logului JVM copil; proba poate porni într-un director nou |
-| Conținut | Unicode, 1.500 referințe PNG inline; două imagini distincte repetate |
-| Integritate | exit code 0, heap peak raportat, HTML peste 9 MB, marker final, temă, runtime și ambele referințe media |
-| Failure-path | `ExtentReportSessionLifecycleTest` verifică prin sesiunea publică o destinație blocată: sentinelul rămâne intact, publicarea eșuează clar și staging-ul privat este curățat |
-| Limită | nu dovedește volume arbitrare, PNG-uri distincte mari sau un buget de durată calibrat |
+| Profil text/HTML | Unicode, 1.500 referințe PNG inline și două imagini distincte repetate; artifact >9 MB |
+| Profil media | Patru PNG-uri generate distincte 256×256, fiecare referit de două ori; după deduplicare rămân patru payload-uri inline, totalul lor depășește 900.000 caractere |
+| Integritate | exit code 0, heap total eșantionat la 2 ms, durata publicării, marker final, temă, runtime și referințe screenshot acționabile |
+| Failure-path | `ExtentReportSessionLifecycleTest` verifică destinație blocată, cleanup failure după promovare atomică și staging privat fără scurgeri; `ExtentReportAssetCleanupTest` verifică lock tranzitoriu/persistent, retry limitat și diagnostic explicit |
+| Timp | Child process-ul are timeout configurabil `atf.test.publication.timeout.seconds` (implicit 60 s); depășirea oprește forțat doar JVM-ul probei |
+| Limită | nu dovedește volume arbitrare sau fotografii de rezoluție foarte mare; bugetul temporal este calibrat doar pe profilurile și host-ul măsurate |
 
-Bugetul fork-ului rămâne configurabil prin `atf.test.heap.max`; un heap mai
-mare nu este dovadă de scalabilitate. Proba bounded-heap și lifecycle-ul au
-trecut împreună 9/9 teste. Criteriile de scalare și durată rămase sunt PUB-01 din
-[feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md).
+| Măsurare | Rezultat |
+|---|---|
+| Configurare | `atf.test.heap.max`; un heap mai mare nu demonstrează scalabilitate |
+| Probe | Profilele text/HTML, PNG și `ExtentReportSessionLifecycleTest`: 10/10 teste |
+| Patru rulări locale | text/HTML: 10,539–12,704 s și max. 236.800.048 B heap; PNG: 0,710–0,933 s și max. 81.315.680 B |
+| Marjă | timeout-ul implicit de 60 s depășește de peste 4× cea mai lentă măsurătoare; nu este SLA pentru alte host-uri |
+| Istoric și limitări | [feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md) |
+
+Cleanup-ul directorului vendor `spark` reîncearcă numai `AccessDeniedException`
+de patru ori, cu pauze de 50 ms; o blocare persistentă produce un diagnostic cu
+cale, fără să elimine raportul deja publicat sau să suprime eroarea.
 
 ### Bugetul asset-urilor publicate
 
@@ -462,17 +474,34 @@ Entry-point-urile selectabile direct din IntelliJ sunt separate pe layer:
 | `AtfReportingUiAuditSuite` | `e2e` din `atf.ui.tests.extent.e2e` | audit browser/debug al artifactului Extent, cu owner UI explicit |
 | `ExtentReportingE2eSuite` | `e2e` din `atf.ui.tests.extent.e2e` | browser/debug, click-uri, disclosure și randare observabilă |
 
-Fiecare layer are un launcher dedicat și selectează numai package-ul lui. `ExtentReportingE2eSuite`
-rămâne entry-point-ul agregat pentru întregul E2E; `AtfReportingUiAuditSuite`
-este entry-point-ul îngust pentru auditul UI al reportingului. Astfel un run
-rapid nu pornește browserul, un run API fixture nu pornește UI, iar un run E2E
-nu ascunde failure-uri lower-level.
+Gate-ul API cross-projection este inclus în `AtfReportingComponentSuite` și
+legat de `ReportingCoverageMatrixTest`: contract API direct, aceeași dovadă prin
+publishers API/fallback/UI, reconciliere browser a query-ului și fazei,
+viewport-ul tabelelor API și ARIA/keyboard pentru disclosures. Rulează gate-ul
+din rădăcina reactorului cu:
 
-Rapoartele UI publicate de clasele E2E care poartă
-`@ProjectRelativeUiReportDirectory("artifacts/reports/ui/e2e")`
-se salvează în `artifacts/reports/ui/e2e`; rapoartele celorlalte layer-e rămân
-în `artifacts/reports/ui`. Valoarea adnotării project-relative este ancorată
-în rădăcina reactorului furnizată de compoziție, inclusiv în staging extern.
+```text
+mvn -pl atf-reporting-tests -am "-Dtest=AtfReportingComponentSuite" "-Dsurefire.failIfNoSpecifiedTests=false" test
+```
+
+`-am` construiește modulele de care depinde test harness-ul; `failIfNoSpecifiedTests=false`
+permite modulelor intermediare să nu aibă clasele selectate. Comanda pornește
+suita completă, nu doar testul matricii. Negativele pentru disclosure lipsă/mutat,
+ownership API greșit și izolarea verdicturilor UI/API sunt încă gap-uri explicite
+în [feedback](../docs/feedback/ATF_Reporting_Feedback.md#gov-api-01--gate-comun-acoperire-încă-incompletă).
+Surefire poate afișa `0 tests` pe containerul clasei `AtfReportingComponentSuite`;
+testele copil apar ca seturi individuale, iar verdictul de execuție este suma
+agregată de la finalul reactorului (131 teste la verificarea din 2026-10-23).
+
+Launcher-ele sunt specifice layer-ului: `ExtentReportingE2eSuite` agregă E2E,
+iar `AtfReportingUiAuditSuite` auditează randarea UI.
+
+Ancorele de output sunt:
+
+- E2E cu `@ProjectRelativeUiReportDirectory("artifacts/reports/ui/e2e")`:
+  `<reactor>/artifacts/reports/ui/e2e`;
+- celelalte layer-e UI: `<ui-report-base>`;
+- în staging, root-ul proiectului este checkout-ul extern, nu proiectul live.
 
 | Politica de output | Responsabilitate |
 |---|---|
@@ -482,8 +511,9 @@ se salvează în `artifacts/reports/ui/e2e`; rapoartele celorlalte layer-e răm�
 
 - API-ul implementat, precedence-ul și limitele sunt în
   [documentația adnotărilor](../docs/ATF_Test_Infrastructure_Annotations.md);
-  [feedback-ul infrastructurii](../docs/feedback/ATF_Test_Infrastructure_Annotations_Feedback.md)
-  păstrează numai probele restante.
+- verificarea IntelliJ a output-ului project-relative, când se schimbă resolverul
+  sau compoziția IDE, este documentată în
+  [ghidul suitei Extent](src/test/java/atf/ui/tests/extent/README.md#rulare-directă-din-intellij);
 - importă root `pom.xml` ca proiect Maven și folosește **Reload All Maven Projects** înainte de prima rulare sau după schimbări de module;
 - run configuration-ul suitei reporting folosește modulul `atf-reporting-tests`, nu modulul legacy `atf-tests`;
 - pentru `NoClassDefFoundError` în IntelliJ, verifică modulele `atf-reporting` și `atf-reporting-tests` și dependency graph-ul testului; nu duplica sau muta clasa pentru a compensa un model IDE stale;

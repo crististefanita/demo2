@@ -5,6 +5,7 @@ import atf.api.reporting.markup.vocabulary.AtfReportAsset;
 import atf.api.reporting.model.ReportScreenshot;
 
 import java.io.IOException;
+import java.nio.file.AccessDeniedException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,6 +25,8 @@ public final class ExtentReportAssets {
     public static final String SPARK_DIRECTORY = "spark";
     public static final String BASE64_SCREENSHOT_LABEL = AtfReportLabels.BASE64_IMAGE_MARKER;
     private static final String PNG_DATA_URI_PREFIX = "data:image/png;base64,";
+    private static final int CLEANUP_ATTEMPTS = 4;
+    private static final long CLEANUP_RETRY_DELAY_MILLIS = 50;
 
     private ExtentReportAssets() {
     }
@@ -98,21 +101,49 @@ public final class ExtentReportAssets {
     }
 
     public static void removeGeneratedAssets(Path assetDirectory) throws IOException {
+        removeGeneratedAssets(assetDirectory, Files::deleteIfExists, Thread::sleep);
+    }
+
+    static void removeGeneratedAssets(Path assetDirectory, AssetDelete delete, CleanupPause pause)
+            throws IOException {
         if (!Files.isDirectory(assetDirectory)
                 || !SPARK_DIRECTORY.equals(assetDirectory.getFileName().toString())) {
             return;
         }
+        List<Path> orderedPaths;
         try (Stream<Path> paths = Files.walk(assetDirectory)) {
-            paths.sorted(Comparator.reverseOrder()).forEach(path -> {
-                try {
-                    Files.deleteIfExists(path);
-                } catch (IOException error) {
-                    throw new AssetCleanupException(error);
-                }
-            });
-        } catch (AssetCleanupException error) {
-            throw error.cause;
+            orderedPaths = paths.sorted(Comparator.reverseOrder()).toList();
         }
+        for (Path path : orderedPaths) {
+            for (int attempt = 1; attempt <= CLEANUP_ATTEMPTS; attempt++) {
+                try {
+                    delete.deleteIfExists(path);
+                    break;
+                } catch (AccessDeniedException locked) {
+                    if (attempt == CLEANUP_ATTEMPTS) {
+                        throw new IOException("Unable to remove generated Extent asset after "
+                                + CLEANUP_ATTEMPTS + " attempts: " + path, locked);
+                    }
+                    try {
+                        pause.sleep(CLEANUP_RETRY_DELAY_MILLIS);
+                    } catch (InterruptedException interrupted) {
+                        Thread.currentThread().interrupt();
+                        throw new IOException("Interrupted while retrying generated Extent asset cleanup: "
+                                + path, interrupted);
+                    }
+                }
+            }
+        }
+    }
+
+    @FunctionalInterface
+    interface AssetDelete {
+        boolean deleteIfExists(Path path) throws IOException;
+    }
+
+    @FunctionalInterface
+    interface CleanupPause {
+        void sleep(long millis) throws InterruptedException;
     }
 
     private static String inlineTextAsset(String html, Path assetDirectory,
@@ -186,11 +217,4 @@ public final class ExtentReportAssets {
                 Base64.getEncoder().encodeToString(content));
     }
 
-    private static final class AssetCleanupException extends RuntimeException {
-        private final IOException cause;
-
-        private AssetCleanupException(IOException cause) {
-            this.cause = cause;
-        }
-    }
 }

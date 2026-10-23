@@ -62,7 +62,7 @@ final class TestChangePolicy {
                     .filter(request -> !change.kind().equals("D") || request.allowDelete()).toList();
             if (eligible.isEmpty()) {
                 violations.add("TEST-CHANGE-REQUIRED " + change.kind() + " " + change.path()
-                        + ": add an ACTIVE testChanges control to the relevant owner document in docs/feedback/*.md"
+                        + ": add an ACTIVE testChanges control to the relevant owner document in docs/feedback/**/*.md"
                         + " or an eligible VERIFIED change control in "
                         + "docs/ATF_Test_Changes_Baseline.md with this exact path,"
                         + " base=" + base + ", unexpired date, reason and proof; deletions require allowDelete: true");

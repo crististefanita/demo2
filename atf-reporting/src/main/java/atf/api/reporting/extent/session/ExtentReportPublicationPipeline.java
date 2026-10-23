@@ -50,7 +50,12 @@ public final class ExtentReportPublicationPipeline {
     }
 
     public static void publish(Path reportPath) throws IOException {
+        publish(reportPath, ExtentReportAssets::removeGeneratedAssets);
+    }
+
+    static void publish(Path reportPath, SparkAssetCleanup cleanup) throws IOException {
         Objects.requireNonNull(reportPath, "reportPath");
+        Objects.requireNonNull(cleanup, "cleanup");
         if (!Files.isRegularFile(reportPath)) {
             throw new IOException("Extent report does not exist: " + reportPath);
         }
@@ -68,7 +73,12 @@ public final class ExtentReportPublicationPipeline {
         html = removeLegacyFailureTreeHook(html);
         html = ExtentReportScreenshotDeduplicator.deduplicate(html);
         writeAtomically(reportPath, html);
-        ExtentReportAssets.removeGeneratedAssets(assetDirectory);
+        cleanup.remove(assetDirectory);
+    }
+
+    @FunctionalInterface
+    interface SparkAssetCleanup {
+        void remove(Path assetDirectory) throws IOException;
     }
 
     private static String injectAtfTheme(String html) {

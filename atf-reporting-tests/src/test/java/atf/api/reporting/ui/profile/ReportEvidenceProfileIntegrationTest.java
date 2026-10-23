@@ -176,11 +176,19 @@ class ReportEvidenceProfileIntegrationTest {
             var scenario = session.startScenario("ProfileTest", "atf.api.reporting.ui",
                     "independent checkpoints", List.of("evidence", "component"));
             var body = scenario.startPhase("TEST BODY");
-            body.step(AtfGherkinKeyword.GIVEN, "the page is open", "#page", null,
+            body.step(AtfGherkinKeyword.GIVEN, "the page is open", "#page",
+                    ReportTestScreenshots.ONE_PIXEL_PNG,
                     List.of(new AtfAssertion("Page", "open", "open", true)),
+                    List.of(new AtfUiActionRecord(1, "Navigate", "/start", "page is loaded",
+                            "document loaded", 8, AtfReportStatus.PASS)),
+                    List.of(),
                     AtfReportStatus.PASS);
-            body.step(AtfGherkinKeyword.THEN, "the result is visible", "#result", null,
+            body.step(AtfGherkinKeyword.THEN, "the result is visible", "#result",
+                    ReportTestScreenshots.SECOND_PIXEL_PNG,
                     List.of(new AtfAssertion("Result", "visible", "visible", true)),
+                    List.of(new AtfUiActionRecord(2, "Get text", "#result", "read result",
+                            "visible", 3, AtfReportStatus.PASS)),
+                    List.of(),
                     AtfReportStatus.PASS);
             body.complete(AtfReportStatus.PASS);
             scenario.complete(AtfReportStatus.PASS);
@@ -192,7 +200,19 @@ class ReportEvidenceProfileIntegrationTest {
                 () -> assertEquals(1, count(html, "<span>GIVEN the page is open</span>")),
                 () -> assertEquals(1, count(html, "<span>THEN the result is visible</span>")),
                 () -> assertTrue(html.contains("GIVEN the page is open")),
-                () -> assertTrue(html.contains("THEN the result is visible")));
+                () -> assertTrue(html.contains("THEN the result is visible")),
+                () -> assertEquals(2, count(html, "class=\"atf-ui-action-table\"")),
+                () -> assertEquals(2, count(html, "data-atf-screenshot=\"base64\"")),
+                () -> assertTrue(html.indexOf("GIVEN the page is open")
+                        < html.indexOf("Navigate")),
+                () -> assertTrue(html.indexOf("Navigate")
+                        < html.indexOf(ReportTestScreenshots.ONE_PIXEL_PNG)),
+                () -> assertTrue(html.indexOf(ReportTestScreenshots.ONE_PIXEL_PNG)
+                        < html.indexOf("THEN the result is visible")),
+                () -> assertTrue(html.indexOf("THEN the result is visible")
+                        < html.indexOf("Get text")),
+                () -> assertTrue(html.indexOf("Get text")
+                        < html.indexOf(ReportTestScreenshots.SECOND_PIXEL_PNG)));
     }
 
     private static ReportExecutionEvidence paymentEvidence() {

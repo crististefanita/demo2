@@ -47,20 +47,49 @@ guvernanța diff-urilor Git rămâne în baseline-ul tehnic.
 
 | ID | Cerință rămasă | Criteriu de acceptare | Prioritate |
 |---|---|---|---:|
-| `AUTOEX-EVIDENCE-MATRIX-01` | Validează live și vizual matricea de evidence implementată pentru aceeași purchase journey. | `AutoExPurchaseSuite` selectează UI, UI_API și UI final-screenshot; raportul comun conține doar schimburile browser observate, assertion-ul UI_API eșuează dacă nu apare niciun request `/api/`, iar varianta final-only publică o captură terminală într-un singur flow unificat. Rulează suita opt-in pe site și verifică raportul randat; nu inventa request-uri sau corelări. | 88 |
+| `AUTOEX-EVIDENCE-MATRIX-01` | Închide validarea matricei de evidence și a lizibilității pașilor în raportul live. | `AutoExPurchaseSuite` selectează UI, UI_API și UI final-screenshot într-un singur raport; fiecare checkpoint Gherkin este un nod separat cu doar acțiunile, aserțiunile și exchange-urile sale. Capturile checkpoint sunt lângă checkpoint-ul lor, iar varianta final-only publică exact o captură terminală fără să comprime pașii. Raportul proaspăt este inspectat vizual în browser; schimburile sunt doar cele observate în browser și corelările nu sunt inventate. | 88 |
 | `AUTOEX-API-01` | Evaluează dacă endpoint-urile API public documentate justifică o colecție de teste API separată de E2E-ul UI. | Metoda, parametrii/body-ul, răspunsul și efectele sunt probate față de contractul site-ului; datele sunt izolate și cleanup-ul confirmat. Nu presupune JSON pentru POST/PUT și nu eticheta API drept precondiție UI fără o dependență reală. | 78 |
-| `AUTOEX-E2E-RESILIENCE-01` | Închide fereastra fără cleanup dintre submit-ul de creare a contului și armarea cleanup-ului; verifică și eșecul cleanup-ului. | Înregistrează cleanup-ul înainte de submit, îl face no-op dacă site-ul nu a creat contul și șterge contul dacă acesta există; un eșec de cleanup este vizibil în raport fără să înlocuiască excepția primară. Dovada include traseul real și un test de componentă al lifecycle-ului fără DOM/site simulat în consumer. | 72 |
-| `AUTOEX-DATA-01` | Protejează aserțiunile configurabile împotriva drift-ului catalogului. | Valorile așteptate rămân configurabile și stricte, iar raportul oferă un diagnostic clar. În codul curent, numele produsului este comparat exact, dar prețul din detalii folosește `contains(configuredUnitPrice)`; închide doar după ce un preț cu prefix comun, dar valoare diferită, este respins fără a ascunde drift-ul. | 65 |
 
 Scorurile ordonează numai lucrul rămas; nu sunt o evaluare globală a modulului.
 Un ToDo se închide după probarea criteriului său, nu după simpla mutare a
 codului între module.
 
+## Rezolvat în codul curent — necesită gate de raport proaspăt
+
+- `AUTOEX-E2E-RESILIENCE-01`: cleanup-ul este armat înainte de submit-ul
+  `Create Account`. Dacă pagina nu confirmă crearea și nu oferă acțiunea de
+  ștergere pentru sesiunea autentificată, cleanup-ul nu mai raportează fals un
+  cont existent; dacă heading-ul confirmă crearea dar controlul de ștergere
+  lipsește, cleanup-ul eșuează explicit. `AutoExE2eRun.finish` păstrează
+  excepția testului și atașează eșecul cleanup-ului ca suppressed failure.
+  Componentele verifică decizia NO_OP/DELETE și păstrarea excepției primare;
+  suita live a verificat ștergerea reală a contului în toate cele trei rulări.
+- `AUTOEX-DATA-01`: prețul din pagina produsului este comparat cu o linie
+  completă, normalizată prin trim, nu cu `contains`; `Rs. 500` nu mai acceptă
+  accidental `Rs. 5000`. Prețul din cart și valoarea API rămân comparații exacte.
+- Structura capturată în raportul suitei era agregată intenționat de
+  `UNIFIED_FLOW`: un singur nod de validare, un tabel de 63 acțiuni, apoi
+  capturi repetate fără proximitate vizuală față de checkpoint-ul care le-a
+  produs. AutoEx folosește acum `SCREEN_CHECKPOINTS`, la fel ca modelul de
+  audit detaliat din Practice Shop. Varianta `FINAL_SCREENSHOT_ONLY` păstrează
+  separat fiecare pas/acțiune, dar politica de captură este `FINAL_ONLY`.
+- Pentru raportul comun, sesiunea Extent are profilul-capabilitate
+  `SCREEN_CHECKPOINTS` + `EACH_CHECKPOINT`; fiecare test aplică apoi propria
+  politică înainte să publice captura. Astfel `FINAL_SCREENSHOT_ONLY` nu trimite
+  capturi intermediare, deși raportul comun poate afișa capturi de la celelalte
+  două scenarii.
+
+Execuție live în staging, 2026-10-23: `AutoExPurchaseSuite` a trecut 3/3.
+Raportul a avut 12 tabele de acțiuni în fiecare scenariu; API validation a
+apărut numai în UI+API, iar scenariul final-only a avut un singur link de
+captură la validarea terminală. Integration testul de reporting verifică două
+checkpoint-uri, două tabele, două capturi și ordinea lor Gherkin. **Matricea
+rămâne deschisă până la inspecția vizuală în browser a acestui raport proaspăt**;
+blocarea navigării MCP la URL `file:` înseamnă că verificarea HTML și testele
+nu sunt prezentate drept confirmare vizuală.
+
 ## Dovezi live care țin cerințele deschise
 
-- `AccountPage.registerFromCheckout` armează `onFailureCleanup` după click-ul
-  de creare **și** după citirea heading-ului rezultatului. Dacă citirea eșuează
-  în acel interval, contul poate exista fără cleanup înregistrat.
-- Verificarea prețului în pagina de produs folosește `contains`, deci nu
-  respinge garantat valori cu același prefix. Cart price/total și numele
-  produsului au verificări distincte; ele nu închid singure acest caz.
+- `AUTOEX-API-01` rămâne evaluare separată: o colecție API independentă se
+  adaugă numai cu contract HTTP probat, izolare de date și cleanup verificat;
+  nu este precondiție implicită pentru journey-ul UI.

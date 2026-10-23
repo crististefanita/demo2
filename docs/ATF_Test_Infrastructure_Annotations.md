@@ -162,6 +162,14 @@ E2E-urile Reporting declară directorul project-relative
 `artifacts/reports/ui/e2e`. În staging, proiectul este checkout-ul extern;
 adnotarea nu redirecționează output-ul în proiectul live.
 
+Smoke-testul manual al compoziției IntelliJ este necesar numai la schimbări
+relevante:
+
+- rulează suitele cu working directory la root-ul reactorului și la
+  `atf-reporting`, conform [ghidului suitei Extent](../atf-reporting-tests/src/test/java/atf/ui/tests/extent/README.md#rulare-directă-din-intellij);
+- testele componente verifică separat rezolvarea deterministă a căilor, dar nu
+  lansează IntelliJ.
+
 ## Setup API și documentație
 
 | Declarație | Ce oferă kit-ul | Ce aplică consumatorul |
@@ -192,9 +200,6 @@ generic de meta-adnotări, superclass sau override per metodă.
 | Documentație | `DocumentationTargetGovernanceTest` și suita whole-ATF | declarația repeatable selectează aceleași validatoare |
 | Browser local | `UiThenDisclosureSanityTest`, `ApiReportRenderedEvidenceComponentTest`, `SelectedApiTestsReportUiTest` | disclosure, reconciliere mock/câmpuri/query și navigarea fazei; nu certifică launcherul IntelliJ sau întreaga integrare API/UI_API |
 
-Singura lacună de infrastructură rămasă — lansarea reală din IntelliJ și
-destinația raportului IDE — este urmărită în
-[feedback-ul infrastructurii](feedback/ATF_Test_Infrastructure_Annotations_Feedback.md).
 Selecția canalelor este un contract închis; redeschiderea cere un consumer nou
 sau o regresie. Paritatea UI/API, structura evidence-ului și verdicturile sunt
 urmărite la ownerul lor în [feedback-ul Reporting](feedback/ATF_Reporting_Feedback.md).

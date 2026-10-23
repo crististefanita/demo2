@@ -29,7 +29,7 @@ public class TestChangePolicyTest {
         assertEquals(1, failure.size());
         assertTrue(failure.getFirst().contains(PATH));
         assertTrue(failure.getFirst().contains(BASE));
-        assertTrue(failure.getFirst().contains("relevant owner document in docs/feedback/*.md"));
+        assertTrue(failure.getFirst().contains("relevant owner document in docs/feedback/**/*.md"));
         assertTrue(failure.getFirst().contains("ATF_Test_Changes_Baseline.md"));
     }
 

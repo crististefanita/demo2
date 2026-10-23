@@ -336,6 +336,19 @@ atf.ui.tests.extent.e2e.ExtentReportingE2eSuite
 proiectului `atf`, fie modulul `atf-reporting`. Nu este necesară copierea
 manuală a YAML-ului și nu se oprește niciun server sau proces existent.
 
+La modificări ale resolverului de output, ale compoziției root-ului sau ale
+configurației IDE, execută smoke-testul:
+
+- rulează suita separat cu working directory la root-ul reactorului și la
+  `atf-reporting`; ambele rulări trebuie să treacă;
+- confirmă că fiecare run creează un raport nou în
+  `<reactor>/artifacts/reports/ui/e2e` și că run-ul din `atf-reporting` nu
+  creează o copie sub `atf-reporting/artifacts/reports/ui/e2e`;
+- deschide raportul curent cu ATF Debug / Playwright MCP și verifică proveniența
+  lui; testele automate simulează working directory-ul, dar nu lansează IntelliJ.
+
+Acesta este un control operațional la schimbări relevante, nu un ToDo permanent.
+
 Echivalent Maven, în staging sau local:
 
 ```text

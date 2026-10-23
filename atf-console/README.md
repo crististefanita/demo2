@@ -9,10 +9,10 @@ ExtentReports și nu calculează verdicturi.
 Politica declarativă per clasă este implementată prin
 `@AtfConsoleMessages` din TestKit și aplicată de `AtfConsoleTestExtension` peste
 `ConsoleSettings`/YAML. Testele dinamice folosesc helperul explicit descris mai jos;
-concurența și lifecycle-ul sunt acoperite de o probă JUnit Platform. Detaliile rămân în
-[feedback-ul infrastructurii](../docs/feedback/ATF_Test_Infrastructure_Annotations_Feedback.md);
-contractul API și precedența sunt în
-[documentația adnotărilor](../docs/ATF_Test_Infrastructure_Annotations.md).
+concurența și lifecycle-ul sunt acoperite de o probă JUnit Platform. Contractul
+API și precedența sunt în
+[documentația adnotărilor](../docs/ATF_Test_Infrastructure_Annotations.md), iar
+comportamentul specific consolei este descris în acest README.
 
 | Intrare | Output | Limită |
 |---|---|---|

@@ -5,6 +5,8 @@ import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.ui.autoex.config.AutoExConfiguration;
 import atf.ui.autoex.locator.AutoExSelectors;
 import atf.ui.autoex.support.AutoExE2eRun;
+import atf.ui.autoex.support.AutoExAccountCleanupAction;
+import atf.ui.autoex.support.AutoExAccountCleanupDecision;
 import atf.ui.autoex.support.AutoExTestAccount;
 
 import java.util.List;
@@ -34,10 +36,10 @@ public final class AccountPage extends AutoExPage {
         fill(AutoExSelectors.ACCOUNT_CITY, profile.city(), "test city is entered");
         fill(AutoExSelectors.ACCOUNT_POSTAL_CODE, profile.postalCode(), "test postal code is entered");
         fill(AutoExSelectors.ACCOUNT_MOBILE, profile.mobileNumber(), "test phone number is entered");
+        run.onFailureCleanup(() -> deleteIfCreatedAndLoggedIn(account));
         click(AutoExSelectors.CREATE_ACCOUNT, "disposable account is created on the practice site");
 
         String result = text(AutoExSelectors.ACCOUNT_RESULT_HEADING, "account-creation result is read");
-        run.onFailureCleanup(() -> deleteIfLoggedIn(account));
         run.checkpoint(AtfGherkinKeyword.THEN, "the disposable customer account is created",
                 List.of(new AtfAssertion("Account creation", "ACCOUNT CREATED!", result,
                         result.contains("ACCOUNT CREATED!"))));
@@ -64,16 +66,28 @@ public final class AccountPage extends AutoExPage {
         return result;
     }
 
-    private void deleteIfLoggedIn(AutoExTestAccount account) {
-        if (visible(AutoExSelectors.CONTINUE)
-                && run.page().locator(AutoExSelectors.ACCOUNT_RESULT_HEADING).innerText().contains("ACCOUNT CREATED!")) {
+    private void deleteIfCreatedAndLoggedIn(AutoExTestAccount account) {
+        boolean creationConfirmed = accountCreationWasConfirmed();
+        AutoExAccountCleanupAction action = AutoExAccountCleanupDecision.resolve(
+                creationConfirmed, visible(AutoExSelectors.CONTINUE),
+                visible(AutoExSelectors.DELETE_ACCOUNT));
+        if (action == AutoExAccountCleanupAction.CONTINUE_THEN_DELETE) {
             click(AutoExSelectors.CONTINUE, "finish account setup before failure cleanup");
         }
         run.dismissGoogleVignetteIfPresent();
-        if (!visible(AutoExSelectors.DELETE_ACCOUNT)) {
-            throw new IllegalStateException("Synthetic account exists but its logged-in cleanup action is unavailable: "
-                    + account.email());
+        if (action == AutoExAccountCleanupAction.NO_OP) return;
+        if (action == AutoExAccountCleanupAction.CONFIRMED_BUT_UNAVAILABLE
+                || !visible(AutoExSelectors.DELETE_ACCOUNT)) {
+            throw new IllegalStateException(
+                    "Disposable account creation was confirmed, but its cleanup action is unavailable: "
+                            + account.email());
         }
         accountDeletionResult();
+    }
+
+    private boolean accountCreationWasConfirmed() {
+        return visible(AutoExSelectors.ACCOUNT_RESULT_HEADING)
+                && run.page().locator(AutoExSelectors.ACCOUNT_RESULT_HEADING)
+                .innerText().contains("ACCOUNT CREATED!");
     }
 }

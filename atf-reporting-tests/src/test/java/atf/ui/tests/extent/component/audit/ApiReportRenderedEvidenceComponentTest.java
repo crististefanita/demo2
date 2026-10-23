@@ -18,6 +18,11 @@ class ApiReportRenderedEvidenceComponentTest {
     }
 
     @Test
+    void missingResponseDisclosureIsRejectedByTheRenderedApiAudit() {
+        ApiReportRenderedEvidenceProbe.verifyMissingResponseDisclosure();
+    }
+
+    @Test
     void phaseEvidenceSurvivesReselectionAndTabRoundTrips() {
         ApiReportRenderedEvidenceProbe.verifyPhaseNavigation();
     }
