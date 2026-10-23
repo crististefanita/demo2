@@ -36,6 +36,17 @@ flowchart LR
 
 </details>
 
+<details>
+<summary><strong>Harta de lectură</strong></summary>
+
+- [ownership și source roots](#ce-deține-modulul) — ce rămâne în Shop;
+- [journey și vocabular](#traseul-de-achiziție) — checkpoint-uri, Gherkin și locatori;
+- [variante E2E](#variantele-e2e) și [configurație](#configurația-modulului);
+- [evidence](#dovezi-și-comportament-vizibil),
+  [verificare](#cum-se-verifică-modulul) și întreținere.
+
+</details>
+
 ## Ce deține modulul
 
 | Suprafață | Owner în modul | Limită |
@@ -76,6 +87,14 @@ src/test/java/atf/ui/tests/practiceshop
 │   └── support/      fixture-uri și transporturi locale test-only
 └── support/      harness, fixture-uri și probe ale lifecycle-ului E2E
 ```
+
+**API live versus API component:** `ShopStandaloneApiReportTest` execută flow-ul
+cu `ShopApiClient.live` și verifică proveniența `LIVE_HTTP`. Testele din
+`api/component` nu formează o suită live: cele care execută clientul injectează
+fixture-uri `ApiTransport` deterministe (`ACCEPTANCE_MOCK`), iar celelalte
+verifică offline request factory-ul și rutele. Aceste teste rămân aici fiindcă
+verifică sesiunile, payload-urile și contractele Practice Shop. Un raport HTML
+generat de un test nu îl transformă automat într-un test `atf-reporting-tests`.
 
 `src/main` nu conține clase de test; `src/test` nu devine owner pentru
 comportamente reutilizabile de aplicație. Suita consumatorului rămâne concentrată

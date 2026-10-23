@@ -34,6 +34,22 @@ flowchart LR
 | output și asset-uri stabile | contract test + artifact audit |
 | E2E minim și configurabil | selecție semantică + coverage matrix |
 
+<details>
+<summary><strong>Harta de lectură</strong></summary>
+
+- [ownership](#limite-de-responsabilitate-și-proprietari),
+  [suport E2E](#suport-e2e-reutilizabil-fără-abstractizare-forțată) și
+  [schimbări protejate](#contracte-protejate-și-schimbări-controlate);
+- [OOP și coeziune](#oop-și-modele),
+  [constante](#constante-enum-uri-și-string-uri) și
+  [importuri statice](#importuri-statice);
+- [raportare](#raportare-html-css-și-javascript),
+  [structura testelor](#structura-testelor),
+  [configurare și căi](#configurare-și-căi) și
+  [consolă](#consolă-și-raportare).
+
+</details>
+
 ## Limite de responsabilitate și proprietari
 
 | Zonă | Responsabilitate | Nu deține |

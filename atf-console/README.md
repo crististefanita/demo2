@@ -32,8 +32,8 @@ Publicarea căii raportului este opt-in și independentă de detaliile testului:
 - `reporting.console.enabled: false` oprește și această linie;
 - `@AtfConsoleMessages` controlează detaliile de test, nu publicarea căii;
 - adnotarea și agregarea pentru raportul partajat sunt implementate; contractul
-  și adopția sunt descrise în
-  [feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md#report-path-01--închis-cale-absolută-după-publicarea-raportului).
+  adnotării și al agregării este documentat în
+  [contractul adnotărilor TestKit](../docs/ATF_Test_Infrastructure_Annotations.md#opt-in-pentru-calea-raportului).
 
 ## Diagramă de bază
 

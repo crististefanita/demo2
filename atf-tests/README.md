@@ -6,10 +6,12 @@
 - verifică reactorul, boundary-urile Maven/source și gate-urile de arhitectură;
 - nu este owner pentru teste de produs;
 - nu conține locatori, page objects sau flow-uri Practice Shop;
-- adaptorul UI de compatibilitate din
-  `src/test/java/atf/ui/tests/support/reporting` nu este test executabil;
-- reziduul este urmărit prin [`REP-BOUNDARY-01`](../docs/feedback/README.md) și
-  `TEST-ARCH-07`.
+- adaptorul de compatibilitate
+  [`ReportUiActionAdapters`](src/test/java/atf/ui/tests/support/reporting/ReportUiActionAdapters.java)
+  este suport în source-set-ul de test, nu test executabil și nu cod de producție;
+- existența adaptorului nu transferă către `atf-tests` ownership-ul testelor UI
+  sau al reportingului; ownership-ul whole-reactor este protejat de
+  `ArchitectureOwnershipBoundaryTest`.
 
 ```mermaid
 flowchart LR

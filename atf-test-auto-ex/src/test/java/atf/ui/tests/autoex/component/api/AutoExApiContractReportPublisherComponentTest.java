@@ -6,6 +6,7 @@ import atf.api.core.http.transport.ApiTransportProvenance;
 import atf.api.reporting.api.ApiManualReplay;
 import atf.api.reporting.api.ReportModelAdapters;
 import atf.api.reporting.api.ReportTransportProvenance;
+import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.contract.AtfReportPorts;
 import atf.api.reporting.extent.session.ExtentReportSession;
@@ -41,7 +42,7 @@ class AutoExApiContractReportPublisherComponentTest {
         Path report = temporaryDirectory.resolve("api-contract.html");
         var request = new AutoExApiRequestFactory().verifyLogin("report@example.test", SECRET);
         var response = new ApiResponse(200, RESPONSE_BODY,
-                Map.of("content-type", "application/json"), Duration.ofMillis(4),
+                Map.of("content-type", "text/html; charset=utf-8"), Duration.ofMillis(4),
                 "https://automationexercise.invalid/api/verifyLogin");
         var execution = new ApiExecutionResult(response, 1, Duration.ofMillis(4), List.of(), List.of(),
                 request, ApiTransportProvenance.ACCEPTANCE_MOCK);
@@ -53,7 +54,7 @@ class AutoExApiContractReportPublisherComponentTest {
                     List.of("api", "auto-ex", "contract"));
             var phase = scenario.startPhase("TEST BODY");
             AutoExApiContractReportExtension.publish(phase, "API 7 valid login", execution, 200,
-                    EXPECTED_MESSAGE);
+                    EXPECTED_MESSAGE, List.of(new AtfAssertion("HTTP transport status", "200", "200", true)));
             phase.complete(AtfReportStatus.PASS);
             scenario.complete(AtfReportStatus.PASS);
         }
@@ -66,6 +67,9 @@ class AutoExApiContractReportPublisherComponentTest {
                 () -> assertTrue(html.contains("application/x-www-form-urlencoded")),
                 () -> assertTrue(html.contains("Validate documented JSON response contract")),
                 () -> assertTrue(html.contains("JSON responseCode")),
+                () -> assertTrue(html.contains("HTTP transport status")),
+                () -> assertTrue(html.contains("text/html; charset=utf-8"),
+                        "the upstream response MIME must remain visible as transport evidence"),
                 () -> assertTrue(html.contains("JSON message")),
                 () -> assertTrue(html.contains("User exists!")),
                 () -> assertTrue(html.contains("***REDACTED***")),

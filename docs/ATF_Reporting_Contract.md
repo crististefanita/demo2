@@ -287,39 +287,10 @@ rendererul fallback:
   exchanges` este copilul său real; copilul deține disclosure-urile typed pentru
   auth, correlation, transport, unique signatures și diagnostics, fără să
   repete titlul sau request-urile în părinte;
-- summary-ul compact comun are înălțimea de bază `34px`; excepțiile sunt
-  deliberate și trebuie să rămână puține;
-- `Unique request signatures` și `Technical diagnostics`, când sunt randate ca
-  rânduri în Network Inspector aggregate, folosesc același summary compact de
-  `34px` și sunt collapsed implicit. Titlul poate curge natural pe mai multe
-  linii la viewport îngust, fără să rezerve o înălțime dublă când încape pe un
-  singur rând;
-- `Playwright action sequence`, `Audit observations` și `Assertions` păstrează
-  summary-ul compact de bază, dar tabelele lor folosesc același viewport
-  vertical bounded și scrollabil, cu header sticky; wrapper-ul este comun
-  rendererelor Extent și fallback și nu mută screenshot-ul în viewport-ul
-  tabelului;
-- toate tabelele care pot derula vertical folosesc același plafon de viewport ca
-  `Overview → System/Environment`: tokenul unic
-  `AtfReportThemeTokens.TABLE_SCROLL_HEIGHT` (`500px` în profilul curent),
-  publicat ca `--atf-table-scroll-height`. Wrapper-ul folosește `height:auto` și
-  `max-height`, ca un tabel scurt să nu rezerve spațiu gol, iar unul lung să
-  deruleze până la ultimul rând cu header sticky. Regula acoperă
-  System/Environment, Category/Overview, tag audit, Playwright action, audit
-  observations, assertions, tabelul `TECHNICAL TRACE` din `Response details` și
-  echivalentele API/UI, inclusiv setup și execution din toate fazele; nu există
-  înălțimi hardcodate per renderer. Titlurile și contoarele rămân neschimbate.
-  `ReportTableViewport` aplică implicit politica la emiterea oricărui tabel
-  de date, indiferent de titlu sau numărul rândurilor; wrapperul este focusabil
-  și nu depinde de un părinte `validation`. Tabelele de layout ale evenimentelor
-  nu se învelesc într-un al doilea viewport. Tabelul
-  `TECHNICAL TRACE` folosește wrapperul comun `atf-trace-table-wrap` și
-  derulează în containerul său, fără să includă disclosure-ul exterior sau
-  blocul JSON. Blocurile JSON/code sunt payload panes, nu tabele,
-  și își păstrează limita compactă proprie;
-- la viewport-uri înguste (`≤991px`), Overview începe după rail-ul fix de
-  navigare (`70px`) și ocupă doar spațiul rămas; layout-ul desktop păstrează
-  indentarea existentă;
+- geometria summary-urilor, politica de viewport a tabelelor, responsive-ul și
+  badge-urile sunt definite o singură dată în
+  [ATF Reporting Display Contract](ATF_Reporting_Display_Contract.md); acest
+  contract păstrează ownership-ul semantic și nu duplică reguli CSS;
 - când există mai multe exchange-uri, `Execution evidence` trebuie să păstreze
   identitatea exchange-ului în disclosure-ul părinte sau în titlu; repetarea
   unui titlu generic fără context nu este auditabilă;
@@ -648,48 +619,13 @@ Overview:
   distinct, fără a-l converti în `PASS`;
 - `Fails` indexează numai failure-uri reale, nu warning-uri.
 
-## Vizual și autonom
+## Paritate de randare
 
-AtfReportTheme este sursa unică pentru fonturi, suprafețe, linii, statusuri,
-tabele și blocuri JSON. Extent și fallback-ul nu își definesc palete separate.
-
-```mermaid
-flowchart LR
-    Theme["AtfReportTheme<br/>semantic tokens"] -->|definește| Contract["shared visual contract"]
-    Contract -->|stilizează| Tests[Tests]
-    Tests -->|stilizează| Category[Category]
-    Category -->|stilizează| Fails[Fails]
-    Fails -->|stilizează| Overview[Overview]
-```
-
-<details>
-<summary><strong>Legendă — tokens, badge-uri și geometrie</strong></summary>
-
-Linia după `shared visual contract` este o ordine de citire a suprafețelor, nu
-o dependență de runtime între tab-uri. Toate suprafețele consumă aceleași
-token-uri; `Tests → Category → Fails → Overview` este doar traseul de navigare
-documentat.
-
-Badge-urile `Pass`, `Warning` și `Fail` au aceeași geometrie în `Tests`,
-`Category`, `Fails`, `Overview` și în detail projections:
-
-```text
-height 18.2px · padding 0 5px · border 0 · radius 4px
-font-size 9.52px · line-height 18.2px · font-weight 400
-```
-
-Lățimea este `auto` și `min-width:0`: textul poate produce lățimi naturale
-diferite (`Pass`, `Warning`, `Fail`), dar înălțimea, padding-ul, fontul,
-alinierea și stilul de bordură rămân identice în toate tab-urile. Badge-urile
-neutre de durată/metadata păstrează separat `22.4px`, padding `5px 7px` și
-line-height `10.6624px`, pentru a nu modifica scara statusurilor.
-
-Paleta semantică este comună: Pass `#9ccc65`, Warning `#ffc107`, Fail
-`#e57373`, cu text `#fff` pentru Pass/Fail și `#f6f7f6` pentru Warning.
-Selectorii de tab sau container nu pot introduce altă geometrie ori altă
-culoare semantică.
-
-</details>
+Extent și fallback-ul publică aceeași semantică, ordine, token-uri și
+interacțiuni; publisherul este singura diferență de integrare. Valorile exacte
+de layout, responsive, badge și viewport sunt deținute de
+[contractul Display](ATF_Reporting_Display_Contract.md), iar această pagină nu
+redefinește CSS-ul sau geometria pe tab-uri.
 
 ### Metadatele antetului: durată, link direct și controale
 

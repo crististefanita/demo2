@@ -66,17 +66,23 @@ Celulele arată doar nivelurile care există în suitele executabile curente.
 | [`atf-reporting`](../atf-reporting/README.md) | — | — | — | — | excepție: suite standalone fără adnotări sau dependențe ATF |
 | [`atf-reporting-tests`](../atf-reporting-tests/README.md) | ✅ | ✅ | ✅ | ✅ | composition și proof pentru librăria reporting |
 | [`atf-test-practice-shop`](../atf-test-practice-shop/README.md) | ✅ | ✅ | ✅ | ✅ | consumer: contracte, API, flow-uri și journey browser |
-| [`atf-test-auto-ex`](../atf-test-auto-ex/README.md) | — | — | — | ✅ | consumer: un singur journey real de business UI pe Automation Exercise; fără teste consumer artificiale |
+| [`atf-test-auto-ex`](../atf-test-auto-ex/README.md) | — | ✅ | ✅ | ✅ | consumer: purchase journey în profile UI distincte, probe component și API live opt-in |
 | [`atf-tests`](../atf-tests/README.md) | — | ✅ | ✅ | — | boundary și guvernanță whole-reactor |
 | [`atf-test-kit`](../atf-test-kit/README.md) | ✅ | ✅ | — | — | vocabularul layer-elor și contractele test-only |
 
 Guard-ul reflectă ownerii fără a falsifica structura reactorului:
 
-- `atf-reporting` este `standalone-independent`; cele trei teste ale sale nu
-  aparțin reactorului;
+- `atf-reporting` este `standalone-independent`; testele sale rulează în modulul
+  propriu și nu sunt suite cu adnotări de layer în reactor;
 - `AtfTestLayerArchitectureTest` verifică excepția și cere o adnotare per test
   executabil din reactor;
 - matricea acestui ghid navighează către owneri; nu duplică validatorul pe celulă.
+
+AutoEx are suite distincte pentru component, purchase E2E și API live.
+`AutoExPurchaseSuite` selectează profile diferite de evidence ale aceluiași
+purchase journey — UI, UI+API și screenshot final — nu intenții de business
+independente. Suitele API live sunt opt-in; nu se includ ca precondiție pentru
+rularea UI obișnuită.
 
 ## Traseul UI/API și ce verifică testele
 

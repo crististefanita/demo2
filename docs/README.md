@@ -62,11 +62,11 @@ flowchart LR
 | Scriere și stratificarea testelor | [Ghid de testare](ATF_Testing_Guide.md) · [Ghid API](ATF_Api_Test_Guide.md) · [Bune practici de cod](README_Atf_CodeBestPractices.md) |
 | Adnotări reutilizabile și tag-uri | [Contractul implementat](ATF_Test_Infrastructure_Annotations.md) · [TestKit](../atf-test-kit/README.md) |
 | Reporting și evidence | [Contract reporting](ATF_Reporting_Contract.md) · [Contract display/layout](ATF_Reporting_Display_Contract.md) · [Contract evidence](ATF_Evidence_Capture_Contract.md) · [README reporting](../atf-reporting/README.md) |
-| Consumatori și guvernanță | [Practice Shop](../atf-test-practice-shop/README.md) · [ATF Tests](../atf-tests/README.md) · [registrul feedback](feedback/README.md) |
+| Consumatori și guvernanță | [Practice Shop](../atf-test-practice-shop/README.md) · [AutoEx](../atf-test-auto-ex/README.md) · [ATF Tests](../atf-tests/README.md) · [registrul feedback](feedback/README.md) |
 | Design și implementare AI | [Design de referință](ATF_AI_Evaluation_Design.md) · [comparator implementat](../atf-validation/README.md#comparatorul-ai--contract-implementat) · [gap-uri active](feedback/README_AI_Evaluation.md) |
 | Contribuție și operare | [Siguranța build-ului](ATF_Build_And_Execution_Safety.md) · [Bune practici ATF](README_Atf_BestPractices.md) · [Bune practici documentație](README_Atf_DocumentationBestPractices.md) |
 
-Indexul complet și ordinea detaliată rămân disponibile la cerere:
+Ordinea completă de lectură este păstrată colapsată mai jos:
 
 <details>
 <summary>Ordinea completă de lectură și toate documentele</summary>
@@ -85,39 +85,41 @@ Indexul complet și ordinea detaliată rămân disponibile la cerere:
 7. [../atf-reporting/README.md](../atf-reporting/README.md) — rendererul,
    contractele pure ale librăriei și suita de compoziție component/E2E pentru raportare.
 8. [../atf-test-practice-shop/README.md](../atf-test-practice-shop/README.md) —
-   consumer Practice Shop, config, flow-uri și purchase E2E.
-9. [../atf-tests/README.md](../atf-tests/README.md) — guvernanța întregului reactor.
-10. [../atf-console/README.md](../atf-console/README.md) — proiecția diagnostică
+    consumer Practice Shop, config, flow-uri și purchase E2E.
+9. [../atf-test-auto-ex/README.md](../atf-test-auto-ex/README.md) — consumerul
+    Automation Exercise, profilele purchase UI și contractele API opt-in.
+10. [../atf-tests/README.md](../atf-tests/README.md) — guvernanța întregului reactor.
+11. [../atf-console/README.md](../atf-console/README.md) — proiecția diagnostică
    de consolă și contractul de output.
-11. [../atf-ui/README.md](../atf-ui/README.md) — politicile generice și adaptorul
+12. [../atf-ui/README.md](../atf-ui/README.md) — politicile generice și adaptorul
    Playwright.
-12. [../atf-reporting-tests/src/test/java/atf/ui/tests/extent/README.md](../atf-reporting-tests/src/test/java/atf/ui/tests/extent/README.md)
+13. [../atf-reporting-tests/src/test/java/atf/ui/tests/extent/README.md](../atf-reporting-tests/src/test/java/atf/ui/tests/extent/README.md)
    — contractul stabil pentru selecția API, mock-backed expected projection,
    secțiuni Extent și validarea UI reutilizabilă.
-13. [../atf-debug-ui/README.md](../atf-debug-ui/README.md) — publicarea
+14. [../atf-debug-ui/README.md](../atf-debug-ui/README.md) — publicarea
    read-only a unui HTML pentru investigație manuală în Playwright/TAB MCP.
-14. [ATF_Api_Test_Guide.md](ATF_Api_Test_Guide.md) — pașii minimali pentru un test API nou.
-15. [ATF_Evidence_Capture_Contract.md](ATF_Evidence_Capture_Contract.md) — contractul
+15. [ATF_Api_Test_Guide.md](ATF_Api_Test_Guide.md) — pașii minimali pentru un test API nou.
+16. [ATF_Evidence_Capture_Contract.md](ATF_Evidence_Capture_Contract.md) — contractul
     transversal pentru flow mode, screenshot policy, source și testare pe niveluri.
-16. [ATF_Reporting_Contract.md](ATF_Reporting_Contract.md) — arborele Extent,
+17. [ATF_Reporting_Contract.md](ATF_Reporting_Contract.md) — arborele Extent,
    evidence-ul, guardul de referință și regulile de randare.
-17. [ATF_Reporting_Display_Contract.md](ATF_Reporting_Display_Contract.md) —
+18. [ATF_Reporting_Display_Contract.md](ATF_Reporting_Display_Contract.md) —
     ierarhia vizibilă, layout, disclosure-uri, viewport și dovada browser.
-18. [ATF_Build_And_Execution_Safety.md](ATF_Build_And_Execution_Safety.md) —
+19. [ATF_Build_And_Execution_Safety.md](ATF_Build_And_Execution_Safety.md) —
    build, sincronizare și validare fără oprirea execuțiilor existente.
-19. [README_Atf_BestPractices.md](README_Atf_BestPractices.md) — indexul regulilor;
+20. [README_Atf_BestPractices.md](README_Atf_BestPractices.md) — indexul regulilor;
    [README_Atf_CodeBestPractices.md](README_Atf_CodeBestPractices.md) pentru cod,
    OOP și testare; [README_Atf_DocumentationBestPractices.md](README_Atf_DocumentationBestPractices.md)
    pentru structură, diagrame și lizibilitate.
-20. [ATF_Testing_Guide.md](ATF_Testing_Guide.md) — alegerea layer-ului, matricea
+21. [ATF_Testing_Guide.md](ATF_Testing_Guide.md) — alegerea layer-ului, matricea
     module × layer și dovada potrivită pentru UI/API și raportare.
-21. [feedback/README.md](feedback/README.md) — ToDo active, criterii de închidere
+22. [feedback/README.md](feedback/README.md) — ToDo active, criterii de închidere
     și registrul de ownership pentru API, UI și reporting.
-22. [ATF_Test_Changes_Baseline.md](ATF_Test_Changes_Baseline.md) — controale
+23. [ATF_Test_Changes_Baseline.md](ATF_Test_Changes_Baseline.md) — controale
     tehnice `VERIFIED` de tranziție, separate de cerințele funcționale.
-23. [ATF_AI_Evaluation_Design.md](ATF_AI_Evaluation_Design.md) — modelele țintă și
+24. [ATF_AI_Evaluation_Design.md](ATF_AI_Evaluation_Design.md) — modelele țintă și
     deciziile de boundary pentru AI evaluation/workflow; design propus, nu inventar de funcționalități livrate.
-24. [ATF_Test_Infrastructure_Annotations.md](ATF_Test_Infrastructure_Annotations.md) —
+25. [ATF_Test_Infrastructure_Annotations.md](ATF_Test_Infrastructure_Annotations.md) —
     niveluri și tag-uri, canale, output project-relative, setup API și documentație; contract implementat și limitele probelor.
 
 </details>
@@ -159,7 +161,9 @@ ca JAR fără dependență de `atf-reporting-tests`.
 - Numele documentelor descriptive folosesc `ATF_<PascalCase>`; acronimul `ATF`
   apare o singură dată, în primul segment. README-ul unui modul rămâne
   `README.md`, iar indexul feedback-ului rămâne `docs/feedback/README.md`.
-- Nu se introduc scoruri, timestamp-uri, nume de rapoarte sau stări intermediare.
+- README-urile normative și contractele de modul nu conțin scoruri, timestamp-uri,
+  nume de rapoarte sau stări intermediare; scorurile de prioritizare sunt
+  rezervate feedback-ului și nu exprimă calitatea contractului stabil.
 - Nu se păstrează linkuri către artefacte HTML generate; se documentează doar
   tipul de output, locația configurabilă și criteriul de verificare.
 - O diagramă trebuie să reflecte responsabilitățile și fluxurile existente;

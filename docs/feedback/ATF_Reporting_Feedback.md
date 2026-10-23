@@ -1,7 +1,8 @@
 # ATF Reporting — cerințe rămase
 
-Acest feedback păstrează numai gap-urile active din boundary-ul Reporting și
-din integrarea consumatorilor. Contractele stabile sunt în
+Acest feedback păstrează gap-urile active din boundary-ul Reporting și integrarea
+consumatorilor, plus decizia de coeziune închisă recent pentru trasabilitatea
+reconcilierii. Contractele stabile sunt în
 [contractul semantic](../ATF_Reporting_Contract.md),
 [contractul de display și layout](../ATF_Reporting_Display_Contract.md) și
 README-urile [ATF Reporting](../../atf-reporting/README.md) și
@@ -21,13 +22,125 @@ identității, binding-ul checkpoint-urilor și metadata YAML rămân în consum
 Orice invariant generic identificat în Shop primește întâi o probă neutră la
 ownerul Reporting; testul Shop păstrează numai integrarea sa.
 
+## SHOP-REPORT-TEST-OWNERSHIP-01 — decizie de owner închisă
+
+**Stare: închisă ca analiză de ownership.** Inventarul și ownerii sunt
+clarificați; nu există o clasă Shop întreagă care să poată fi mutată în
+siguranță doar pe baza numelui sau a pachetului.
+Owner-ul se decide după comportamentul verificat și dependențele testului, nu
+după faptul că un fișier se află sub `api/reporting` sau conține aserțiuni HTML.
+`atf.ui.tests.practiceshop` nu trebuie redus la teste care fac trafic extern:
+consumerul își păstrează testele de componentă și E2E pentru contractele sale,
+inclusiv atunci când transportul este simulat.
+
+| Test / comportament | Owner corect | Limită de mutare |
+|---|---|---|
+| Request-uri live și contracte de business Practice Shop | `atf-test-practice-shop` | `ShopStandaloneApiReportTest` folosește `ShopApiClient.live`; journey-urile UI E2E rămân tot la consumer. Raportul rezultat este parte din dovada consumerului. |
+| Teste Shop API cu `ShopApiComponentFixture` | `atf-test-practice-shop` | Transportul este determinist, nu un apel extern; testele verifică rute, payload-uri, sesiuni, statusuri și flow-uri Shop. Nu le mutați în `atf-mock` doar fiindcă folosesc un transport fake. |
+| Redactare, schema de autentificare, checkpoint binding, metadata și proiecția Shop → raport | `atf-test-practice-shop` | Sunt contracte de securitate și mapping ale consumerului. Păstrați probe înguste cu date simulate; nu duplicați aici testarea generică a rendererului. |
+| HTML/DOM/CSS/JavaScript, modelul și publisherul Reporting, policy generică de screenshot/evidence | `atf-reporting-tests` | Fixture-urile trebuie să fie neutre și să nu importe `atf.ui.practiceshop`, `ShopApiClient`, `ShopApiRoutes` sau configurația Shop. |
+| Matching-ul și răspunsurile transportului mock | `atf-mock` | Modulul testează implementarea proprie; nu devine owner pentru request-urile sau contractele de business ale Shop. |
+| Adnotări și primitive test-only fără UI/Reporting | `atf-test-kit` | Nu introduceți dependență de Reporting în Kit. `atf-reporting-tests` este owner de teste, nu o bibliotecă de fixtures pentru consumeri. |
+
+### Inventarul live care schimbă interpretarea
+
+- `ShopStandaloneApiReportTest` este testul de integrare care construiește un
+  client live, execută flow-ul API de business și verifică proveniența `LIVE_HTTP`.
+- Testele din `api/component/**` nu sunt, în general, apeluri către serviciul
+  public: fixture-ul injectează un `ApiTransport` determinist și etichetează
+  execuțiile `ACCEPTANCE_MOCK`. Rămân totuși teste Shop valide, deoarece probează
+  contractele clientului și ale aplicației, nu rendererul ATF.
+- `ShopApiCallAuditReportComponentTest` exercită raportarea unor exchange-uri
+  sintetice prin publisherul și modelul de audit Shop. Se analizează test cu
+  test: invarianta neutră de request/response/retry/HTML se mută sau se acoperă
+  la Reporting; asocierea așteptărilor Shop cu exchange-uri și mapping-ul către
+  statusuri/intenții de business rămân la consumer. Nu se mută clasa întreagă
+  doar fiindcă produce un raport.
+- `ShopApiContractReportComponentTest` rulează un screen-flow Shop prin
+  transport determinist și verifică forma raportului rezultat; este probă de
+  integrare a clientului și publisherului Shop, nu test autonom al rendererului.
+- Testele de redactare, auth și body evidence verifică politica Shop de
+  clasificare/mapping înainte de publicare. `atf-reporting-tests` verifică
+  separat redactorul și rendererul generice; nu se mută testul Shop fără a
+  separa mai întâi regula de date de adaptorul consumerului.
+- `api/component/reporting/**` conține atât proiecții Reporting, cât și reguli
+  Shop (redactare PII, mecanism de auth, statusuri și corpuri observate). Numele
+  pachetului nu justifică relocarea automată.
+- În `atf-test-practice-shop/src/test/resources` nu există imagini raster;
+  captura browserului este dinamică. PNG-urile de un pixel sunt fixture-uri
+  sintetice inline, iar `ReportTestScreenshots` din `atf-reporting-tests`
+  deservește deja contractele rendererului. Nu mutați capturi sau fixture-uri
+  raport-only în consumer; nici nu transformați modulul de teste Reporting într-o
+  dependență de test reutilizată de Shop.
+
+### Criteriu pentru mutarea fiecărei probe
+
+1. Testul live sau journey-ul de business rămâne la consumer. Un test mock-backed
+   rămâne tot la Shop dacă validează clientul, rutele, payload-ul sau politica
+   aplicației; mock-ul descrie izolarea transportului, nu owner-ul comportamentului.
+2. O probă poate fi mutată la Reporting numai dacă nu validează un contract Shop
+   și intrările pot fi exprimate ca modele/fixture-uri neutre, fără
+   `Shop*`, rute de aplicație, credențiale sau YAML consumer.
+3. Invarianta este exprimată o singură dată la ownerul Reporting; în Shop rămâne
+   numai proba că adaptorul transmite corect datele consumerului.
+4. Testele Shop API cu transport mock nu se șterg pentru că nu sunt live:
+   mock-ul izolează transportul, dar contractul testat rămâne al aplicației.
+5. Mutarea nu face `atf-test-practice-shop` dependent de `atf-reporting-tests`;
+   acesta din urmă este un modul de probe, nu un test-support artifact.
+
+Regula stabilă a fost promovată în [README-ul ATF Reporting
+Tests](../../atf-reporting-tests/README.md) și [README-ul Practice
+Shop](../../atf-test-practice-shop/README.md): testele de renderer rămân neutre
+în Reporting, iar contractele Shop — inclusiv cele mock-backed — rămân la
+consumer. Redeschideți ID-ul numai dacă apare un invariant generic nominal care
+lipsește ori este duplicat în Reporting; o clasă consumer nu se mută integral
+doar fiindcă publică HTML.
+
 ## Cerințe deschise
 
 | Prioritate | ID | Gap | Owner principal |
 |---|---|---|---|
+| P2 | `REPORT-START-ATOMICITY-01` | Crearea atomică sau finalizarea explicită a nodurilor dacă `startScenario`/`startPhase` eșuează după efecte parțiale, înainte de returnarea handle-ului | `atf-reporting` + `atf-reporting-tests` |
 | P2 | `SHOP-CAPTURE-01` | Agregarea evidence-ului `SETUP` + `TEST BODY` în `UNIFIED_FLOW`, păstrând proveniența și lifecycle-ul | Reporting pentru contractul generic; Practice Shop pentru mapping-ul și lifecycle-ul consumerului |
-| P2 | `REPORT-TEST-PACKAGE-01` | Helperul comun a fost separat în `ui.support`; testul de pachet trece, dar whole-ATF rămâne blocat de probleme preexistente în snapshot | `atf-reporting-tests`; fără excepții sau schimbări de prag |
 | P3 | `UI-AUDIT-01` | Confirmare vizuală în TAB MCP a observației terminale în artifactele AutoEx și Shop; implementarea și probele sunt deja în cod | Verificare manuală a artifactelor; fără schimbare de renderer dacă randarea este conformă |
+
+## REPORT-START-ATOMICITY-01 — crearea atomică a nodurilor de raport
+
+**Stare: deschisă. Prioritate: 77/100** (impact 34 + lacună 21 + lucrabil
+15 + datorie documentară 7).
+
+### Fapt live
+
+- `ExtentReportTree.startScenario` creează și pornește nodul Extent, apoi
+  publică evenimentul Console și pornește starea semantică înainte să returneze
+  `ExtentScenarioScope`.
+- `ExtentScenarioScope.startPhase` publică evenimentul de start, creează nodul
+  copil și pornește faza semantică înainte să returneze `ExtentPhaseScope`.
+- Dacă o operație din acest interval aruncă, apelantul nu primește handle-ul
+  necesar pentru a completa nodul parțial. Consumerul poate păstra setup failure
+  ca eroare primară, dar nu poate repara singur modelul intern Reporting.
+- `AutoExE2eInitialization` închide corect resursele și nodurile pentru care a
+  primit handle; proba sa nu poate închide această fereastră internă a API-ului.
+
+### Contractul de închidere
+
+Inițializarea trebuie să fie atomică față de caller. Dacă un efect secundar
+eșuează după publicarea parțială, Reporting fie retrage nodul în siguranță, fie
+îl lasă într-o stare terminală `FAIL` cu diagnosticul cauzei; nu rămâne un nod
+orfan `IN_PROGRESS` și raportul/snapshot-ul semantic rămân reconciliabile.
+Eșecul inițial rămâne primar, iar erorile de rollback sunt păstrate ca
+`suppressed`.
+
+### Probe cerute în `atf-reporting-tests`
+
+- Fault-injection după fiecare etapă de `startScenario` și `startPhase`, inclusiv
+  Console, modelul Extent și lifecycle-ul semantic.
+- Verificarea absenței nodurilor orfane sau a unei proiecții Extent/semantic
+  contradictorii și confirmarea că sesiunea poate fi publicată după eșec.
+- Verificarea păstrării cauzei inițiale și a tuturor eșecurilor secundare de
+  rollback.
+- Probe deterministe fără browser/site real; consumatorii verifică separat doar
+  propagarea verdictului și păstrarea failure-ului de setup.
 
 ## SHOP-CAPTURE-01 — profil per scenariu și flow unificat peste faze
 
@@ -72,46 +185,35 @@ ul unui scenariu nu schimbă politica screenshot a scenariului-soră.
 - **Rămas:** definește și testează agregarea între `SETUP` și `TEST BODY` fără
   Gherkin duplicat, fără pierderea fazei de proveniență și fără schimbarea
   verdictului/setup failure. Testele componente nu pornesc site-ul.
-- Validarea țintită a wiring-ului Shop trece 15/15 teste; contractele generice
-  Reporting UI selectate trec 39/39. `ShopComponentSuite` rămâne roșie pe o
-  constatare separată, `ShopArchitectureTest` despre `ShopConsoleBridge`; aceasta
-  nu este relaxată și nu este inclusă în schimbarea `SHOP-CAPTURE-01`.
+- `ShopE2eContextEvidenceProfileTest` verifică izolarea profilelor per scenariu;
+  suita Shop trece pe snapshot-ul curent. Aceste probe nu închid agregarea
+  cross-phase și nu justifică relaxarea vreunui test de arhitectură.
 - E2E-ul consumer confirmă integrarea reală; nu se complică journey-urile doar
   pentru a testa rendererul.
 - Artifactul verifică o singură apariție a fiecărei acțiuni, ordinea, un singur
   owner Gherkin pentru flow-ul unificat, evidence API la checkpoint-ul corect,
   capturile conforme cu profilul efectiv și lipsa scurgerii de profil între frați.
 
-## REPORT-TEST-PACKAGE-01 — coeziunea pachetelor din Reporting Tests
+## REPORT-TEST-PACKAGE-01 — închis ca backlog
 
-Pachetul testelor de renderer respectă acum pragul fără a muta owner-ul din
-`atf-reporting-tests`; blocajul rămas este gate-ul whole-ATF, care raportează
-și modificări concurente din alte zone.
+Suportul UI comun a fost mutat în `atf.api.reporting.ui.support`; pachetul
+principal rămâne în pragul de opt clase, iar suitele/selectoarele păstrează
+execuția testelor la ownerul `atf-reporting-tests`. Contractul de coeziune este
+promovat în README-ul modulului și pragul nu a fost relaxat.
 
-- `ExtentReportUiEvidenceTestSupport` este în `atf.api.reporting.ui.support`;
-  pachetul principal are opt declarații, iar suportul comun are una.
-- Importurile/selectoarele rămân în aceeași suită; helperul nu este test și nu
-  adaugă o rulare duplicată.
-- `AtfPackageCohesionGovernanceTest` trece 5/5, iar cele patru clase Reporting
-  afectate trec 36/36 teste.
-- `WholeAtfGovernanceSuiteTest` a rulat, dar nu trece încă: lipsesc controale
-  `testChanges` pentru alte modificări live, există încălcări de lizibilitate în
-  surse din alte module și feedback-ul curent avea o încălcare de densitate.
+În staging curat, `AtfReportingComponentSuite` a trecut. Acest rezultat închide
+gap-ul local Reporting; nu afirmă că gate-ul transversal
+whole-ATF este verde. Constatările transversale AutoEx rămân în feedback-ul E2E
+și nu redeschid acest ID fără o regresie la pachetul Reporting.
 
-Controlul temporar acoperă exact mutarea și importurile pentru această cerință;
-nu autorizează și nu justifică editări concurente din alte module.
+## Aprobări temporare pentru modificări de teste
+
+Blocul de mai jos este un control de aprobare `testChanges`, nu o listă de
+TODO-uri funcționale. Păstrează-l până la expirarea/reconcilierea guvernanței;
+nu modifică și nu autorizează modificarea testelor de guvernanță.
 
 ```yaml
 testChanges:
-  - id: SHOP-CAPTURE-01
-    status: ACTIVE
-    base: 4c97b18d6a8e7a17b979db40238f13ce20a481c9
-    expires: 2026-10-30
-    reason: Transmiterea profilului efectiv fiecărui scenariu Practice Shop din raportul partajat, cu probă de izolare între scenarii-surori; agregarea între faze rămâne separată și deschisă.
-    proof: mvn -pl atf-test-practice-shop -am -Dtest=ShopE2eContextEvidenceProfileTest,ShopE2eTestSupportTest -Dsurefire.failIfNoSpecifiedTests=false test
-    paths:
-      - atf-test-practice-shop/src/main/java/atf/ui/practiceshop/support/ShopE2eContext.java
-      - atf-test-practice-shop/src/test/java/atf/ui/practiceshop/support/ShopE2eContextEvidenceProfileTest.java
   - id: REPORT-TEST-PACKAGE-01
     status: ACTIVE
     base: 4c97b18d6a8e7a17b979db40238f13ce20a481c9
@@ -128,22 +230,6 @@ testChanges:
       - atf-reporting-tests/src/test/java/atf/api/reporting/ui/support/ExtentReportUiEvidenceTestSupport.java
 ```
 
-### Cerință și acceptanță
-
-- Regrupează clasele după responsabilitatea reală și motivele de schimbare
-  (de exemplu rendering, publication/failure, lifecycle/composition), nu după
-  nume mecanic sau numai pentru a face numărul să treacă.
-- Păstrează fiecare package coerent și în limita de opt clase. Nu ridica pragul,
-  nu adăuga excepție și nu muta teste în consumeri doar ca să maschezi
-  hotspot-ul; o excepție ar necesita justificare explicită, dar nu este soluția
-  implicită aici.
-- Actualizează importurile, suitele/selectoarele și orice arhitectură care
-  folosește package-urile, astfel încât toate testele relevante să ruleze exact
-  o dată și owner-ul să rămână `atf-reporting-tests`.
-- Rulează `AtfPackageCohesionGovernanceTest` și gate-ul whole-ATF. Închiderea
-  cere ca ambele probe să treacă fără relaxarea regulii și ca testele Reporting
-  rămase în aceeași responsabilitate să fie încă selectate.
-
 ## UI-AUDIT-01 — audit terminal pentru Screen validation
 
 **Stare:** implementarea și probele sunt închise; rămâne numai confirmarea
@@ -151,18 +237,9 @@ vizuală în TAB MCP. **Prioritate:** 60/100 (impact 24 + lacună 15 + lucrabil
 16 + datorie documentară 5).
 
 `Screen validation` grupează acțiunile, observațiile, aserțiunile și captura;
-wiring-ul terminal este implementat în Shop și AutoEx, iar verificarea vizuală
-în TAB MCP rămâne deschisă.
-
-- AutoEx înregistrează observația înainte de `drain()`; Shop folosește
-  `drainScreenContractEvidence(...)`, care validează PNG-ul, înregistrează
-  observația și apoi preia secvența.
-- Testele componente Reporting, AutoEx și Shop verifică forma `OBSERVE`,
-  cardinalitatea, ordinea și lista transmisă rendererului.
-- Două E2E-uri proaspete au produs `Audit screen contract` în `Screen
-  validation`; pentru politica fără captură, Shop folosește fallback `THEN`.
-- MCP Playwright a refuzat inventarul și snapshot-ul deoarece profilul browserului
-  era ocupat; nu s-a deschis alt browser și nu s-a închis tabul utilizatorului.
+wiring-ul terminal și probele componente sunt implementate în Shop și AutoEx.
+Rămâne doar verificarea vizuală interactivă a artifactelor prin TAB MCP; până
+atunci nu declarăm randarea vizuală închisă.
 
 ### Contractul țintă
 
@@ -205,12 +282,8 @@ wiring-ul terminal este implementat în Shop și AutoEx, iar verificarea vizual�
   păstrează fallback-ul `THEN` fără pretenție de evidence vizuală. Proba de
   componentă validează lista exactă predată adaptorului, inclusiv ordinea
   `record -> drain`, și păstrează separat testele checkpoint-urilor.
-- Testele componentă de renderer, AutoEx și Shop au trecut. Au trecut și două
-  E2E-uri proaspete: AutoEx `FINAL_ONLY` (1/1) și Shop UI-only single-flow
-  (1/1); ambele au produs raport cu `Screen validation` și observația terminală
-  `Audit screen contract` în HTML.
-- Verificarea vizuală interactivă în TAB MCP rămâne deschisă: sesiunea MCP a
-  refuzat inventarul și snapshot-ul deoarece profilul browserului era deja
-  ocupat. Nu s-a deschis alt browser și nu s-a închis tabul utilizatorului.
-  Confirmă în artifactele existente că observația este în același `Screen
-  validation`, fără Gherkin duplicat și cu captura cerută de profil.
+- Testele componente ale rendererului și consumerilor sunt probele automate;
+  această verificare nu le înlocuiește și nu cere schimbarea testelor E2E.
+- În TAB MCP confirmă în artifactul randat că observația rămâne în același
+  `Screen validation`, fără Gherkin duplicat, și că politica efectivă de captură
+  este respectată. Nu deschide alt browser și nu modifica tabul utilizatorului.

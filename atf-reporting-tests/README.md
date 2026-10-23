@@ -24,6 +24,20 @@ verifică diferența Git și probele negative ale regulii.
 - testele business aparțin modulului consumer, precum `atf-test-practice-shop`;
 - `atf-tests` rămâne dedicat guvernanței whole-ATF.
 
+<details>
+<summary><strong>Harta de lectură</strong></summary>
+
+- [limitele librăriei](#regula-limitelor-de-responsabilitate) — separarea
+  harness-ului de codul de producție;
+- [contractul titlurilor API](#contractul-de-titlu-pentru-request-uri-api) și
+  [reconcilierea evidence-ului](#reconcilierea-dovezilor-api-și-navigarea-fazei);
+- [matricea de integrare](#matricea-de-integrare-și-limitele-verificate) —
+  legătura dintre seam, probă și limită;
+- [limitele consumerilor](#limitele-de-responsabilitate-ale-aplicațiilor-consumatoare)
+  — ce rămâne specific aplicațiilor.
+
+</details>
+
 `UiFailureReportContractTest` este proba browser annotation-driven pentru
 failure UI în Extent:
 
@@ -346,15 +360,19 @@ Două profiluri izolează volumul HTML de volumul media.
 | Integritate | exit code 0, heap total eșantionat la 2 ms, durata publicării, marker final, temă, runtime și referințe screenshot acționabile |
 | Failure-path și publicare | `ExtentReportSessionLifecycleTest` verifică destinație blocată, cleanup failure după promovare atomică, staging privat fără scurgeri și evenimentul `REPORT_PUBLISHED` numai după existența fișierului final; închiderea repetată emite o singură notificare, iar publicarea eșuată nu emite succes. `ExtentReportAssetCleanupTest` verifică lock tranzitoriu/persistent, retry limitat și diagnostic explicit |
 | Timp | Child process-ul are timeout configurabil `atf.test.publication.timeout.seconds` (implicit 60 s); depășirea oprește forțat doar JVM-ul probei |
-| Limită | nu dovedește volume arbitrare sau fotografii de rezoluție foarte mare; bugetul temporal este calibrat doar pe profilurile și host-ul măsurate |
+| Limită | nu dovedește volume arbitrare sau fotografii de rezoluție foarte mare; timpul este măsurat și limitat doar de timeout-ul probei, nu este SLA |
 
-| Măsurare | Rezultat |
-|---|---|
-| Configurare | `atf.test.heap.max`; un heap mai mare nu demonstrează scalabilitate |
-| Probe | Profilele text/HTML, PNG și lifecycle-ul publicării prin `ExtentReportSessionLifecycleTest` |
-| Patru rulări locale | text/HTML: 10,539–12,704 s și max. 236.800.048 B heap; PNG: 0,710–0,933 s și max. 81.315.680 B |
-| Marjă | timeout-ul implicit de 60 s depășește de peste 4× cea mai lentă măsurătoare; nu este SLA pentru alte host-uri |
-| Istoric și limitări | [feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md) |
+Proba este contractuală prin limite repetabile, nu prin rezultatele unui run:
+
+- JVM copil: `-Xms64m -Xmx384m`; heap-ul eșantionat trebuie să rămână sub
+  `345 MiB`;
+- timeout: `atf.test.publication.timeout.seconds`, implicit `60 s`;
+- profilul `repeated-pixels` păstrează raportul peste `9 MB` și referințe la
+  capturi distincte;
+- profilul `distinct-pngs` păstrează raportul peste `2 MB`, patru payload-uri
+  PNG inline distincte și peste `900.000` de caractere media;
+- durata și heap-ul sunt observate pentru diagnostic, dar nu se copiază ca
+  rezultate permanente în README.
 
 Cleanup-ul directorului vendor `spark` reîncearcă numai `AccessDeniedException`
 de patru ori, cu pauze de 50 ms; o blocare persistentă produce un diagnostic cu
@@ -369,10 +387,19 @@ doar o măsurătoare, nu un nou prag. Orice rebugetare cere motiv și verificare
 impactului asupra artifactului, nu o relaxare incidentală pentru ca testul să
 treacă.
 
-Inventarul curent este sub baseline-ul neschimbat: JavaScript nativ `124.950 B`
-față de `125.000 B`. Rularea `ReportAssetSizeInventoryTest`,
-`ReportAssetSizeBudgetTest`, componenta viewport, disclosure/accessibility și
-probele browser aferente a trecut `23/23`; pragul nu a fost mărit.
+Bugetele de regresie sunt explicite în `ReportAssetSizeInventoryTest`; inventarul
+este măsurat din asset-urile native și publicate la fiecare execuție. Acestea sunt
+plafoane, nu ținte pentru dimensiunea livrată:
+
+| Asset budget | Native | Published |
+|---|---:|---:|
+| JavaScript | `125.000 B` | `105.000 B` |
+| CSS | `140.000 B` | `120.000 B` |
+| Total | `265.000 B` | `220.000 B` |
+
+`ReportAssetSizeBudgetTest` verifică și comportamentul comparatorului pentru
+limite depășite și configurații invalide. Mărirea unui plafon cere motiv și
+verificarea impactului asupra artifactului.
 
 ### Verificarea randării responsive
 
@@ -504,22 +531,20 @@ mvn -pl atf-reporting-tests -am "-Dtest=AtfReportingComponentSuite" "-Dsurefire.
 - `failIfNoSpecifiedTests=false` permite modulelor intermediare să nu aibă clasele selectate.
 - Comanda pornește suita completă, nu doar testul matricii.
 - Probele browser țintite resping Request și Response disclosure absent sau
-  mutate la ownerul scenariului și verifică izolarea a doi owneri API din același
-  artifact (9/9 în `ApiReportRenderedEvidenceComponentTest`). Același test
+  mutate la ownerul scenariului și verifică izolarea ownerilor API din același
+  artifact în `ApiReportRenderedEvidenceComponentTest`. Același test
   verifică browser collapse/reopen: tabelele Request/Response/Execution dispar
   și reapar vizibil. `UiApiVerdictProjectionComponentTest` verifică ambele
   combinații independente UI PASS/API FAIL și UI FAIL/API PASS, cauza corectă în
-  `Fails` și deep-link-ul către scenariul owner. Contractul și owner-ul acestor
-  probe sunt păstrate aici; cerința `GOV-API-01` este închisă și nu mai are un
-  backlog separat în feedback.
-- Surefire poate afișa `0 tests` pe containerul suitei; testele copil apar
-  separat. Rularea agregată raportată mai jos este suma reactorului.
-- Rularea izolată agregată din 2026-10-23 a descoperit și trecut **137 teste**:
-  **0 failures, 0 errors, 0 skipped**. Include probele browser pentru verdicturi
-  UI/API mixte, ownership/collapse, viewport și testele arhitecturale selectate.
-  Eșecul agregat anterior cu `NoClassDefFoundError` nu s-a reprodus în staging;
-  cauza istorică nu este declarată dovedită. Comanda a rulat `-am` dintr-un
-  staging nou, fără output-uri live copiate.
+  `Fails` și deep-link-ul către scenariul owner. Acesta este contractul stabil
+  protejat de probe; verdicturile concrete și numărul de cazuri rămân în output-ul
+  testelor, nu în README.
+- Surefire poate afișa `0 tests` pe containerul suitei; rezultatele testelor
+  copil sunt raportate separat de platforma JUnit.
+- Rezultatele și numărul de teste aparțin output-ului execuției, nu contractului
+  acestui README. Comanda de mai sus este entry point-ul reproductibil; un
+  eșec se diagnostichează din raportul și logul run-ului curent, nu dintr-un
+  rezumat istoric păstrat aici.
 
 Launcher-ele sunt specifice layer-ului: `ExtentReportingE2eSuite` agregă E2E,
 iar `AtfReportingUiAuditSuite` auditează randarea UI.
@@ -578,6 +603,11 @@ atf-test-practice-shop/src/test/java/atf/ui/tests/practiceshop/
   contractele generice de failure și redactare sunt probate separat aici.
 - Dacă un test Shop verifică un invariant Reporting independent de consumer,
   mută proba neutră aici și păstrează în Shop doar integrarea îngustă.
+- La testele API Shop, separați transportul de owner: probele cu
+  `ShopApiComponentFixture` sunt mock-backed, dar validează clientul și
+  contractele Practice Shop, deci rămân în consumer. Mutați aici numai
+  invariants de model/publicare/rendering care nu importă tipuri sau reguli Shop;
+  nu adăugați dependență de `atf-reporting-tests` în modulul consumer.
 - Hook-urile JUnit generice sunt testate în modulul owner (`atf-test-kit`);
   testele de sesiune și publicare Reporting aparțin `atf-reporting-tests`.
 - `ApiResourceTestBase` activează explicit `@AtfReportPath`; compoziția JUnit

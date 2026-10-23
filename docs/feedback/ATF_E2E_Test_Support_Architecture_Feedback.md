@@ -5,8 +5,8 @@ Shop și AutoEx. `atf-test-kit` este singurul loc candidat pentru primitivele
 generice de test; nu se propune un modul UI separat și nu se afirmă că aceste
 primitive există deja.
 
-**Stare:** deschis. **Prioritate:** 87/100 (impact 36 + lacună 27 + lucrabil
-16 + datorie documentară 8).
+**Stare:** deschis. **Prioritate:** 81/100 (impact 36 + lacună 21 + lucrabil
+16 + datorie documentară 8); recalibrat după închiderea gap-urilor AutoEx.
 
 ## Gap-ul observat
 
@@ -35,32 +35,47 @@ devin parametri generici ai harness-ului doar pentru a elimina câteva fișiere.
 | `ShopE2eContext` este în `src/main`, dar referințele sale sunt în infrastructura și testele E2E. | Harness-ul browser/report ține în scope-ul livrat dependențe UI/Reporting fără un consumator de producție demonstrat; separați-l de codul Shop reutilizabil. |
 | `ShopArchitectureTest` cere explicit ca `ShopE2eContext` să rămână în `src/main`, deși contextul este folosit numai de harness/teste. | Gate-ul codifică acum boundary-ul greșit. Nu îl relaxați fără criterii: înlocuiți excepția cu reguli care disting suportul de aplicație de harness-ul și fixture-urile test-only; mutarea se face odată cu probele și dependency scope-ul corect. |
 | `AutoExE2eRun` este în `src/test`, dar `AutoExPurchaseSession` din `src/main` expune `Page`, `AtfAssertion`, configurația AutoEx, acțiuni/selectori, checkpoint-uri, observații API și callback de cleanup. | Portul separă runnerul JUnit de journey, dar nu este neutru și nu trebuie copiat ca model generic. Decideți dacă acel contract aparține exclusiv test-support-ului sau poate fi îngustat la o frontieră de aplicație fără browser/reporting. |
-| `AutoExCatalogApiPrecondition` a fost adăugat în `src/main` și este folosit de `AutoExPurchaseJourney`; testul său component este în pachetul component root. | Clasa este specifică journey-ului AutoEx, iar package inventory-ul protejat nu a fost sincronizat cu ea; testul component trebuie plasat într-un subpachet coerent. Nu mutați helperul în Kit și nu actualizați testul de guvernanță fără feedback explicit pentru schimbarea testului protejat. |
 | `ShopE2eContext` include journal, config, capture provider și metadata specifice Shop. | Nu mutați clasa întreagă; separați fazele și contractele generice de aceste responsabilități locale. |
 
 ### Constatare curentă de coeziune și guvernanță
 
-`AutoExComponentSuite` trece 27 de teste, dar gate-ul transversal de pachete
-eșuează separat în două locuri: inventory-ul exact din
-`AtfPackageCohesionGovernanceTest` nu include noua clasă production
-`AutoExCatalogApiPrecondition`, iar pachetul
-`atf.ui.tests.autoex.component` conține acum nouă clase, peste pragul de opt.
-Aceasta este o constatare activă, nu un test „preexistent” și nu se rezolvă prin
-ridicarea pragului sau relaxarea listei. Un split semantic al testului API în
-`atf.ui.tests.autoex.component.api` ar elimina hotspot-ul de nouă clase; inventory-
-ul production necesită o decizie separată și feedback explicit înaintea oricărei
-modificări a testului de guvernanță.
+Starea verificată a coeziunii AutoEx:
 
-### Probleme de lifecycle confirmate în cod
+- inventory-ul production include `AutoExCatalogApiPrecondition`, iar proba sa
+  component este în `component.api`;
+- testele de lifecycle și activare sunt în subpachetul dedicat;
+- suitele AutoEx și gate-ul de coeziune verifică comportamentul și inventarul
+  fără să introducă excepții sau să relaxeze pragul de opt clase.
 
-Acestea sunt defecte concrete, nu doar riscuri teoretice; rămân deschise până
-când sunt reparate și acoperite prin teste cu failure injection:
+Activarea AutoEx și continuarea teardown-ului sunt contracte închise, nu TODO-uri:
+politica de activare și motivul deciziei sunt documentate în
+[`atf-test-auto-ex/README.md`](../../atf-test-auto-ex/README.md), iar
+`AutoExTeardownComponentTest` probează că eșecurile unei etape nu opresc
+etapele următoare și nu înlocuiesc cauza inițială.
+
+### Gap-uri de lifecycle rămase
+
+Tabelul păstrează numai comportamente neînchise, confirmate în codul live:
 
 | Situație | Efect posibil | Cerință de închidere |
 |---|---|---|
-| `ShopE2eContext.openBrowser` deschide sesiunea Playwright, apoi creează providerul/journal-ul și atașează listener-ele într-un `try` al cărui `catch` doar re-aruncă excepția. | O eroare după deschiderea browserului poate lăsa sesiunea deschisă. | La eșecul oricărei etape de achiziție, închide resursele deja create în ordine inversă; păstrează eroarea inițială și atașează eșecurile de cleanup ca suppressed. |
-| `AutoExE2eRun.finish` publică network inspector-ul înaintea blocurilor protejate pentru completarea fazei/scenariului și închiderea browserului. | O eroare la publicarea inspectorului poate sări completarea raportului și cleanup-ul browserului. | Fiecare etapă de finalizare trebuie încercată independent într-un teardown failure-safe; o eroare nu trebuie să împiedice etapele ulterioare. |
-| `AutoExE2eExtension` activează E2E-ul dacă detectează markerul IntelliJ, chiar dacă YAML-ul are `e2eEnabled: false`; proprietatea JVM explicită `false` are precedență și oprește testul. | „Dezactivat implicit” nu descrie toate modurile de lansare, iar motivul `enabled` poate pretinde incorect că activarea a fost explicită. | Documentați separat comportamentul Maven și IDE; definiți markerul IDE drept heuristică de activare, păstrați `false` explicit ca override, iar diagnosticul să numească sursa reală a deciziei. |
+| `ShopE2eContext.openBrowser` deschide sesiunea Playwright, apoi creează providerul/journal-ul și atașează listener-ele într-un `try` al cărui `catch` doar re-aruncă excepția; `open` închide raportul propriu fără să suprime un eventual eșec de close. | O eroare după deschiderea browserului poate lăsa sesiunea deschisă, iar eșecul închiderii raportului poate masca eroarea inițială. | La eșecul oricărei etape de achiziție, închide resursele deja create în ordine inversă; păstrează eroarea inițială și atașează eșecurile de cleanup ca suppressed. **Rămas deschis pentru Shop.** |
+
+Rollback-ul inițializării și teardown-ul AutoEx sunt închise pentru fiecare
+resursă al cărei handle a fost returnat:
+
+- `AutoExE2eInitialization` marchează FAIL faza/scenariul disponibile, închide
+  browserul și păstrează setup failure ca eroare primară;
+- `AutoExTeardown` încearcă independent inspectorul, browserul și completarea
+  fazei/scenariului la `finish`;
+- `AutoExE2eInitializationComponentTest` injectează eșec după browser,
+  scenariu, fază și run, inclusiv eșecuri secundare la rollback și rezultate
+  `null` de la factory.
+
+Rămâne un boundary Reporting, nu AutoEx: dacă `startScenario`/`startPhase`
+creează un nod intern și apoi aruncă înainte să returneze handle-ul, consumerul
+nu îl poate marca FAILED. Cerința este urmărită în
+[`ATF_Reporting_Feedback.md`](ATF_Reporting_Feedback.md#report-start-atomicity-01--crearea-atomică-a-nodurilor-de-raport).
 
 ### Declarație, activare și instalarea harness-ului sunt contracte distincte
 
@@ -71,11 +86,11 @@ când sunt reparate și acoperite prin teste cu failure injection:
 | `@WithE2eHarness` în Shop / `@ExtendWith` în AutoEx | instalează infrastructura locală a consumerului | nu reprezintă încă un contract comun de opt-in |
 | YAML / proprietăți JVM / marker IDE AutoEx | selectează politica de activare, cu precedențe diferite | nu trebuie confundate cu adnotările de clasificare/evidence |
 
-Cerința deschisă este să fie documentată și probată precedența activării pentru
-fiecare consumer: implicit fail-closed în rulările obișnuite, opt-in clar pentru
-resurse externe și un override explicit `false` care oprește testul indiferent
-de YAML sau detectarea IDE. O adnotare compusă comună este o opțiune de design,
-nu o funcționalitate existentă și nici o condiție pentru extragerea lifecycle-ului.
+Politica AutoEx este implementată și probată pentru Maven fără opt-in, YAML,
+heuristica IntelliJ și override-ul JVM explicit `true`/`false`; sursa deciziei
+este prezentată în motivul JUnit. Markerul IDE rămâne deliberat heuristic, iar
+adnotările de clasificare nu sunt confundate cu opt-in-ul. O adnotare compusă
+comună rămâne o opțiune de design, nu o condiție pentru extragerea lifecycle-ului.
 
 ## Decizie de boundary
 
@@ -129,20 +144,25 @@ multiplu. Profilele de evidence, lifecycle-ul browserului și sesiunea de raport
 partajată rămân locale. Faptul că ambele consumatoare deschid Extent nu demonstrează
 echivalența și nu justifică un API de UI în Test Kit.
 
-Adaptorii `ShopConsoleBridge` și `AutoExConsoleBridge` au feedback separat în
-[`ATF_Consumer_Test_Architecture_Feedback.md`](ATF_Consumer_Test_Architecture_Feedback.md).
+Integrarea Console–Reporting este acoperită separat în
+[`ATF_Consumer_Test_Architecture_Feedback.md`](ATF_Consumer_Test_Architecture_Feedback.md):
+`ShopConsoleBridge` a fost eliminat, iar adaptorul local AutoEx doar deleagă la
+adaptorul comun din `atf-console`.
 Nu amestecați ownership-ul Console–Reporting cu extracția lifecycle-ului UI;
 cele două schimbări pot avea dependențe, dar au contracte și teste distincte.
 
 ## Cerințe de acceptare pentru implementare
 
-1. **Achiziție atomică în practică:** injectează eșec după fiecare resursă
-   dobândită; resursele deja deschise se închid invers, o singură dată, iar
-   eroarea de achiziție rămâne primară.
-2. **Teardown best-effort, fără scurtcircuit:** eșecul la failure evidence,
-   network inspector, completarea fazei/scenariului sau `browser.close` nu
-   împiedică încercarea etapelor rămase; eroarea testului rămâne primară, iar
-   erorile ulterioare sunt păstrate ca suppressed.
+1. **Achiziție atomică în practică:** pentru AutoEx, testele injectează eșec
+   după obținerea browserului, scenariului și fazei; resursele cu handle returnat
+   se închid, verdicturile disponibile devin FAIL, iar eroarea de setup rămâne
+   primară. Pentru Shop, rollback-ul achiziției parțiale rămâne deschis. Niciun
+   consumer nu poate recupera un handle pe care API-ul Reporting nu l-a returnat.
+2. **Teardown best-effort, fără scurtcircuit:** în AutoEx, eșecul la network
+   inspector, completarea fazei/scenariului sau `browser.close` nu împiedică
+   încercarea etapelor rămase; eroarea testului rămâne primară, iar erorile
+   ulterioare sunt păstrate ca suppressed. Eșecul de cleanup la achiziția Shop
+   rămâne deschis.
 3. **Scope explicit:** resursa per metodă și sesiunea de raport per root/suită au
    owneri diferiți și se închid la boundary-ul corect, inclusiv la setup eșuat;
    primitivele Test Kit sunt folosite numai din test scope-ul consumerului.
@@ -155,7 +175,8 @@ cele două schimbări pot avea dependențe, dar au contracte și teste distincte
    endpoint-urile și verdictul rămân la consumer.
 7. **Activare neambiguă:** clasificarea, metadata evidence, instalarea extensiei
    și decizia de opt-in au contracte separate; override-ul explicit `false`
-   prevalează peste YAML și detectarea IDE; mesajul de skip/enable numește cauza.
+   prevalează peste YAML și detectarea IDE; mesajul numește cauza. **Implementat
+   și acoperit componentar în AutoEx; markerul IDE rămâne dependent de runner.**
 8. **Testare la ownerul potrivit:** teste componente cu factory/port injectabil
    forțează fiecare eșec de achiziție și teardown, verifică ordinea/numărul de
    close-uri și păstrarea excepțiilor; fiecare consumer probează mapping-ul,
@@ -175,9 +196,8 @@ cele două schimbări pot avea dependențe, dar au contracte și teste distincte
 1. Adăugați teste de caracterizare cu failure injection pentru achiziție,
    publicare și teardown în fiecare consumer; fixați ownership-ul și excepția
    primară/suppressed înainte de orice extracție.
-2. Scrieți separat contractul de activare: default pentru Maven, detectarea IDE,
-   precedența YAML/proprietăți și override-ul explicit `false`; clarificați
-   rolurile adnotărilor și ale extensiei JUnit.
+2. **Închis pentru AutoEx:** politica de activare, precedența și diagnosticul au
+   teste componente; nu se introduce o adnotare compusă comună.
 3. Corectați boundary-ul Shop: harness-ul browser/report exclusiv de test iese
    din `src/main`; modificați guard-ul ca să nu mai confunde `support` cu
    reutilizabilitatea pentru aplicație. Dacă `atf-test-kit` nu este folosit de
@@ -194,4 +214,33 @@ cele două schimbări pot avea dependențe, dar au contracte și teste distincte
 resurse/erori au un singur owner în Test Kit; două adaptoare locale păstrează
 browserul, raportarea și semantica site-ului; testele localizează precis
 regresia. Lifecycle-ul UI nu este abstractizat doar pentru a reduce duplicarea.
+
+## Control temporar pentru schimbarea testelor
+
+Următoarea autorizare este limitată la repararea inventory-ului, coeziunea
+testelor, teardown-ul failure-safe și politica de activare AutoEx.
+Nu autorizează schimbări ale altor teste sau ale regulilor de guvernanță.
+
+```yaml
+testChanges:
+  - id: AUTOEX-E2E-LIFECYCLE-AND-INVENTORY-01
+    status: ACTIVE
+    base: 4e5967b2324c8c1f1f5b66699f86b2d02e92c352
+    expires: 2026-10-30
+    reason: Repair the AutoEx production inventory, cohere component tests, and verify null-safe initialization rollback, teardown continuation, and activation-source diagnostics.
+    proof: mvn -pl atf-test-auto-ex,atf-tests -am -Dtest=AutoExComponentSuite,AtfPackageCohesionGovernanceTest -Dsurefire.failIfNoSpecifiedTests=false test
+    allowDelete: true
+    paths:
+      - atf-test-auto-ex/src/test/java/atf/ui/autoex/support/AutoExE2eRun.java
+      - atf-test-auto-ex/src/test/java/atf/ui/autoex/support/AutoExE2eExtension.java
+      - atf-test-auto-ex/src/test/java/atf/ui/autoex/support/lifecycle/AutoExTeardown.java
+      - atf-test-auto-ex/src/test/java/atf/ui/autoex/support/lifecycle/AutoExE2eActivationPolicy.java
+      - atf-test-auto-ex/src/test/java/atf/ui/autoex/support/lifecycle/AutoExE2eInitialization.java
+      - atf-test-auto-ex/src/test/java/atf/ui/tests/autoex/component/AutoExCatalogApiPreconditionComponentTest.java
+      - atf-test-auto-ex/src/test/java/atf/ui/tests/autoex/component/api/AutoExCatalogApiPreconditionComponentTest.java
+      - atf-test-auto-ex/src/test/java/atf/ui/tests/autoex/component/lifecycle/AutoExTeardownComponentTest.java
+      - atf-test-auto-ex/src/test/java/atf/ui/tests/autoex/component/lifecycle/AutoExE2eActivationPolicyComponentTest.java
+      - atf-test-auto-ex/src/test/java/atf/ui/tests/autoex/component/lifecycle/AutoExE2eInitializationComponentTest.java
+      - atf-tests/src/test/java/atf/api/tests/governance/AtfPackageCohesionGovernanceTest.java
+```
 

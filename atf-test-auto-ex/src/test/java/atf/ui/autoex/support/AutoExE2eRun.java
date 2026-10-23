@@ -32,6 +32,8 @@ import atf.api.ui.playwright.UiScreenValidation;
 import atf.ui.autoex.config.AutoExConfiguration;
 import atf.ui.autoex.support.browser.AutoExPrivacyConsentHandler;
 import atf.ui.autoex.support.browser.AutoExVignetteHandler;
+import atf.ui.autoex.support.lifecycle.AutoExTeardown;
+import atf.ui.autoex.support.lifecycle.AutoExE2eInitialization;
 import atf.ui.autoex.support.catalog.AutoExCatalogSnapshot;
 import atf.ui.autoex.support.journey.AutoExPurchaseSession;
 import atf.ui.autoex.support.journey.AutoExPurchaseTraceStep;
@@ -123,19 +125,18 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
                         ignored -> new ReportResource(output, reportName(context), reportConsole, sessionEvidence),
                         ReportResource.class);
         UiExtentReportSession report = reportResource.report();
-        PlaywrightUiSession browser = null;
-        try {
-            browser = PlaywrightUiSession.open(configuration.browser(), console);
-            var scenario = report.startScenario(context.getRequiredTestClass().getSimpleName(),
-                    context.getRequiredTestClass().getPackageName(), context.getDisplayName(),
-                    List.of("e2e", "ui", "automation-exercise"), evidence);
-            var phase = scenario.startPhase("TEST BODY");
-            return new AutoExE2eRun(configuration, browser, report, scenario, phase, evidence,
-                    channel);
-        } catch (RuntimeException | Error failure) {
-            if (browser != null) browser.close();
-            throw failure;
-        }
+        AutoExConfiguration runConfiguration = configuration;
+        return AutoExE2eInitialization.create(
+                () -> PlaywrightUiSession.open(runConfiguration.browser(), console),
+                browser -> report.startScenario(context.getRequiredTestClass().getSimpleName(),
+                        context.getRequiredTestClass().getPackageName(), context.getDisplayName(),
+                        List.of("e2e", "ui", "automation-exercise"), evidence),
+                scenario -> scenario.startPhase("TEST BODY"),
+                (browser, scenario, phase) -> new AutoExE2eRun(runConfiguration, browser, report,
+                        scenario, phase, evidence, channel),
+                phase -> phase.complete(AtfReportStatus.FAIL),
+                scenario -> scenario.complete(AtfReportStatus.FAIL),
+                PlaywrightUiSession::close);
     }
 
     private static AutoExConfiguration withNetworkInspection(AutoExConfiguration source) {
@@ -339,25 +340,18 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
                     "E2E completed without explicitly deleting its disposable account");
         }
 
-        if (terminalFailure != null) publishFailure(terminalFailure);
         if (channel == TestChannel.UI_API) {
-            phase.networkInspector(NETWORK_SUMMARY_TITLE,
-                    causalApiObservations().stream()
-                            .map(AutoExE2eRun::toExecutionEvidence).toList(), networkSteps);
+            terminalFailure = AutoExTeardown.attempt(terminalFailure, () ->
+                    phase.networkInspector(NETWORK_SUMMARY_TITLE,
+                            causalApiObservations().stream()
+                                    .map(AutoExE2eRun::toExecutionEvidence).toList(), networkSteps));
         }
+        terminalFailure = AutoExTeardown.attempt(terminalFailure, browser::close);
+        if (terminalFailure != null) publishFailure(terminalFailure);
         AtfReportStatus status = terminalFailure == null ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
-        try { phase.complete(status); }
-        catch (RuntimeException | Error reportFailure) {
-            terminalFailure = AutoExFailureCombiner.combine(terminalFailure, reportFailure);
-        }
-        try { scenario.complete(status); }
-        catch (RuntimeException | Error reportFailure) {
-            terminalFailure = AutoExFailureCombiner.combine(terminalFailure, reportFailure);
-        }
-        try { browser.close(); }
-        catch (RuntimeException | Error closeFailure) {
-            terminalFailure = AutoExFailureCombiner.combine(terminalFailure, closeFailure);
-        }
+        terminalFailure = AutoExTeardown.attempt(terminalFailure, () -> phase.complete(status));
+        AtfReportStatus scenarioStatus = terminalFailure == null ? status : AtfReportStatus.FAIL;
+        terminalFailure = AutoExTeardown.attempt(terminalFailure, () -> scenario.complete(scenarioStatus));
 
         if (testFailure == null && terminalFailure != null) {
             if (terminalFailure instanceof Exception exception) throw exception;
@@ -393,7 +387,6 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
         return privacyConsentHandler.rejectOptionalProcessingIfPrompted(page(), actions);
     }
 
-    public int apiExchangeCount() { return causalApiObservations().size(); }
     public void markCausalApiTrafficBaseline() {
         causalApiTraffic.markBaseline(apiObservations());
     }

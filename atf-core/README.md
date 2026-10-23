@@ -27,9 +27,20 @@ flowchart LR
 - fixture-urile concrete, browserul, JUnit-ul și rendererul rămân în modulele consumatoare.
 </details>
 
-Săgeata înseamnă „modulul din stânga depinde de modulul din dreapta”.
-`atf-core` nu depinde de modulele de deasupra lui. El furnizează vocabularul
-comun prin care modulele comunică fără să se cunoască implementările concrete.
+<details>
+<summary><strong>Harta de lectură</strong></summary>
+
+- [responsabilități](#responsabilități) și
+  [lifecycle](#ciclu-de-viață-generic-și-reutilizabil) — boundary-ul kernelului;
+- [vocabular HTTP](#coeziune-și-responsabilitate-pentru-vocabularul-http) și
+  [decuplare](#regula-de-decuplare) — ownership și direcția dependențelor;
+- [selecție API](#contractul-reutilizabil-pentru-selecția-api),
+  [catalog live](#catalogul-live-explicit) și
+  [promovare guarded](#manifest-și-promovare-guarded);
+- [determinism](#determinism-și-concurență) și
+  [teste](#teste) — protecțiile executabile.
+
+</details>
 
 ## Responsabilități
 

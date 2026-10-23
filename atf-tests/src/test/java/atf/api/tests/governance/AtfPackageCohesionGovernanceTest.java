@@ -49,8 +49,8 @@ public class AtfPackageCohesionGovernanceTest {
                 "AutoEx is not a test-only composition module");
 
         Map<String, List<String>> inventory = productionPackageClassInventory(locateProjectRoot());
-        assertEquals(Set.of("AutoExPurchaseJourney.java", "AutoExPurchaseSession.java",
-                        "AutoExPurchaseTraceStep.java"),
+        assertEquals(Set.of("AutoExCatalogApiPrecondition.java", "AutoExPurchaseJourney.java",
+                        "AutoExPurchaseSession.java", "AutoExPurchaseTraceStep.java"),
                 Set.copyOf(inventory.getOrDefault("atf.ui.autoex.support.journey", List.of())));
         assertEquals(Set.of("AutoExAccountCleanupAction.java", "AutoExAccountCleanupDecision.java",
                         "AutoExTestAccount.java"),

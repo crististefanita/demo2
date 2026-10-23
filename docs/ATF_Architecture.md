@@ -28,32 +28,45 @@ cunoaște rutele sau intenția unui test de produs.
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "16px"}, "themeCSS": ".edgeLabel p { font-size: 13px; line-height: 1.1; margin: 0; padding: 0 2px; }", "flowchart": {"nodeSpacing": 16, "rankSpacing": 72, "padding": 4}}}%%
 flowchart LR
-    Governance["governance"] -.->|guvernează| Roots["consumers"]
-    Roots -->|consumă| Reporting["reporting"]
-    Roots -.->|folosește| Surface["platform"]
+    Mock["atf-mock"] -->|compile| Core["atf-core"]
+    Validation["atf-validation"] -->|compile| Core
+    Console["atf-console"] -->|compile| Core
+    Console -->|compile| Reporting["atf-reporting"]
+    Console -->|optional compile| Kit["atf-test-kit"]
+    Ui["atf-ui"] -->|compile| Core
+    Debug["atf-debug-ui"] -->|compile| Console
+    Shop["atf-test-practice-shop"] -->|compile| Core
+    Shop -->|compile| Console
+    Shop -->|compile| Reporting
+    Shop -->|compile| Ui
+    Shop -->|compile*| Kit
+    AutoEx["atf-test-auto-ex"] -->|compile| Core
+    AutoEx -->|compile| Reporting
+    AutoEx -->|compile| Ui
+    AutoEx -.->|test scope| Console
+    AutoEx -.->|test scope| Kit
+    ReportingTests["atf-reporting-tests"] -.->|test composition| Reporting
+    Governance["atf-tests"] -.->|guard, not dependency| Shop
+    Governance -.->|guard, not dependency| ReportingTests
 ```
 
 <details>
 <summary><strong>Legendă — hartă module și direcția dependency</strong></summary>
 
-- `guvernează` = `atf-tests` protejează direcția și boundary-urile întregului
-  reactor;
-- `consumă` = composition roots folosesc API-ul public al `atf-reporting`;
-- `folosește test scope` = consumatorii leagă suportul platformei numai în
-  test scope; nu transferă ownership-ul în production;
-- `governance` este `atf-tests`, iar `consumers` sunt
-  `atf-reporting-tests`, `atf-test-practice-shop` și `atf-test-auto-ex`;
-- `reporting` este `atf-reporting`, iar `platform` grupează
-  `atf-core`, `atf-mock`, `atf-validation`, `atf-console`, `atf-ui`,
-  `atf-debug-ui` și `atf-test-kit`;
-- `consumers` grupează `atf-reporting-tests`, `atf-test-practice-shop` și
-  `atf-test-auto-ex`, fără să le
-  transforme într-un modul comun;
-- `platform` grupează adaptoarele și suportul de test; relațiile interne sunt
-  explicate în textul de sub diagramă și în README-urile ownerilor;
-- `atf-reporting` rămâne standalone în producție;
-- `atf-reporting-tests` este composition root-ul care leagă fixture-uri, mock,
-  UI și reporting în test scope.
+- săgeata pleacă din modulul care declară dependența; `compile` și `test scope`
+  descriu scope-ul din POM, nu ownership-ul funcțional;
+- `atf-reporting` nu are dependențe ATF în production; `atf-console` îl consumă
+  ca bibliotecă de evenimente și artifacte;
+- `atf-reporting-tests` este composition root pentru probele reporting, iar
+  `atf-tests` deține guard-urile whole-reactor; legăturile lor complete de test
+  scope sunt în POM-uri, nu redate ca o plasă de muchii în diagramă;
+- muchiile etichetate `guard, not dependency` sunt relații de verificare a
+  repository-ului, nu muchii Maven;
+- `compile*` notează o excepție observată: Practice Shop importă Test Kit
+  doar din `src/test`, dar POM-ul încă declară scope-ul implicit `compile`;
+- `atf-console` declară Test Kit ca dependență `optional` compile deoarece
+  adaptorul JUnit din `src/main` citește adnotările și resolver-ele lui; asta nu
+  transformă Test Kit într-o bibliotecă de business.
 
 </details>
 
@@ -79,11 +92,18 @@ dedusă din poziția nodurilor:
   nu mută reguli de business în reporting și nu autorizează dependențe ale
   rendererului către modele ATF.
 
-`atf-test-kit` este strict test-scope: expune meta-anotațiile unit/component/
-integration/e2e și guard-ul global, fără să intre în classpath-ul de producție.
-`atf-mock` depinde numai de `atf-core`, iar `atf-debug-ui` este un launcher
-read-only; faptul că este pornit de teste sau IntelliJ nu îl transformă într-o
-dependență de runtime a rendererului.
+`atf-test-kit` expune vocabularul unit/component/integration/e2e și adnotările
+transversale pentru testare. Boundary-urile actuale sunt:
+
+- consumul din aplicațiile testate rămâne test-only; adapter-ele de infrastructură
+  pot necesita compile scope pentru integrarea JUnit, iar excepțiile se verifică
+  în POM-ul fiecărui modul;
+- Practice Shop are o declarație compile-scope mai largă decât folosirea sa din
+  `src/test`; README-ul consumerului păstrează explicit această nealiniere până
+  la o schimbare autorizată;
+- `atf-mock` depinde numai de `atf-core`, iar `atf-debug-ui` este un launcher
+  read-only; pornirea sa din teste sau IntelliJ nu îl transformă într-o
+  dependență a rendererului.
 
 ### Platforma reutilizabilă față de punctul de compunere
 

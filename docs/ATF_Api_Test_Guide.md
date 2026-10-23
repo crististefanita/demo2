@@ -12,8 +12,10 @@
 
 - [ ] definește comportamentul API și criteriul de acceptare;
 - [ ] verifică ruta, modelul, serviciul și validatorul existente;
-- [ ] folosește catalogul ownerului: `MockRoutePaths` pentru acceptance sau
-      `ApiLiveTransportCatalog` pentru live opt-in; nu copia endpoint-ul în test;
+- [ ] păstrează vocabularul rutelor la owner: `MockRoutePaths` acoperă serviciul
+      demo al modulului `atf-mock`, nu rutele fiecărui consumer; pentru live,
+      `ApiLiveTransportCatalog` oferă transport generic cu endpoint declarat și
+      opt-in explicit;
 - [ ] adaugă serviciu semantic numai când operația are sens de domeniu;
 - [ ] execută prin executor și transport injectat; testul nu construiește clientul HTTP;
 - [ ] grupează verificările response-ului într-un singur tabel de assertions;
@@ -90,20 +92,15 @@ Regula vizibilă este:
 - o durată Extent inclusivă nu se adună din nou cu descendenții;
 - timestamp-ul nu este durată și nu apare ca o coloană în `Tests`.
 
-<details>
-<summary><strong>Geometria comună a badge-urilor</strong></summary>
-
-`Pass`, `Warning` și `Fail` păstrează aceeași geometrie în fiecare tab și
-proiecție: `18.2px` înălțime, `0 5px` padding, `4px` radius, `9.52px` font,
-`18.2px` line-height, `400` weight, fără border.
-
-</details>
+Unitatea, geometria și paleta badge-urilor sunt contracte vizuale comune, nu
+reguli API; sursa normativă este
+[contractul Reporting Display](ATF_Reporting_Display_Contract.md#tokens-vizuale).
 
 ## Separarea responsabilităților
 
 ```text
-MockRoutePaths              -> căi deterministe pentru acceptance
-ApiLiveTransportCatalog    -> origini și transport live opt-in
+MockRoutePaths              -> rutele serviciului demo atf-mock
+ApiLiveTransportCatalog    -> catalog generic de endpoint-uri live, opt-in
 ApiOperationLabel           -> label semantic pentru raport
 Service                     -> acțiune semantică
 ApiExecutor                 -> transport, retry și durată
@@ -115,6 +112,11 @@ Scenario                    -> ordine și intenție
 Dacă testul începe să conțină JSON de infrastructură, CSS, markup Extent,
 politici de retry sau endpoint-uri literale, responsabilitatea este în locul
 greșit.
+
+`ApiLiveTransportCatalog` nu descoperă host-ul serviciului și nu selectează
+automat o rută de business: consumerul îi furnizează endpoint-ul din configurația
+sa, apoi catalogul validează modul `LIVE`, opt-in-ul și originea request-ului.
+Contractul serviciului și rutele lui rămân în modulul consumerului.
 
 ## Replay manual și request-uri reale
 

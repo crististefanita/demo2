@@ -83,52 +83,59 @@ a aceleiași legende.
 
 ## Harta modulelor
 
-Harta modulelor arată relațiile reale dintre consumatori, platformă și
-guvernanță. Contractele interne continuă în README-ul fiecărui modul.
+Două perspective ale aceluiași reactor: consumatorii și apoi verificarea cu
+guvernanța. Inventarul cuprinde toate cele 12 module: șapte de platformă,
+librăria reporting, doi consumatori, testele reporting și guvernanța.
+
+### Consum
 
 ```mermaid
+%%{init: {"themeCSS": ".edgeLabel, .edgeLabel p { font-size: 13px !important; } .nodeLabel, .nodeLabel p { font-size: 16px !important; }", "flowchart": {"curve": "linear", "nodeSpacing": 72, "rankSpacing": 120}}}%%
 flowchart LR
-    ReportingTests[reporting tests]
-    Shop[Practice Shop]
-    AutoEx[AutoEx]
-    Governance[governance]
+    Consumers[Shop + AutoEx]
     Reporting[reporting]
-    Platform[ATF platform]
+    Platform[platformă comună]
 
-    ReportingTests -->|verifies| Reporting
-    ReportingTests -.->|tests| Platform
-    Shop -->|consumes| Reporting
-    AutoEx -->|consumes| Reporting
-    Shop -.->|reuses| Platform
-    AutoEx -.->|reuses| Platform
-    Governance -.->|guards| Reporting
-    Governance -.->|guards| Platform
+    Consumers -->|consumă| Reporting
+    Consumers -.->|reutilizează| Platform
 ```
 
 <details>
-<summary><strong>Legendă — module, ownership și relații</strong></summary>
+<summary><strong>Legendă — consumatori și module partajate</strong></summary>
 
-- `ReportingTests` înseamnă `atf-reporting-tests`: harness de verificare cu
-  dependențe în `test` scope, nu consumer al unei aplicații reale;
-- `Shop` și `AutoEx` sunt consumatorii de aplicație: fiecare deține configurația,
-  selectorii și journey-ul site-ului propriu;
-- `Reporting` înseamnă `atf-reporting`, iar `Platform` grupează modulele ATF
-  reutilizabile;
-- `Governance` înseamnă `atf-tests` și guard-urile whole-ATF;
-- săgeata solidă = verificare sau consum al librăriei reporting;
-- săgeata punctată `tests` = harness-ul verifică module reutilizabile numai în
-  test scope; `reuses` = consumerul folosește contracte generice; `guards` =
-  guvernanța protejează boundary-ul;
-- nodul `Platform` grupează modulele reutilizabile; tabelul de mai jos
-  păstrează modulele și ownership-ul lor fără a încărca schema principală;
-- `atf-test-practice-shop` este consumer de aplicație și nu mută pages, flows
-  sau fixture-uri în reporting;
-- `atf-test-auto-ex` este un consumer UI separat pentru Automation Exercise;
-  config, selectorii, page objects și comenzile lui nu se amestecă cu Shop;
-- `atf-tests` verifică reactorul și boundary-urile, nu devine composition root
-  pentru raportare sau pentru Practice Shop;
-- `atf-reporting` rămâne standalone în producție și nu primește browser,
-  mock sau JUnit.
+- `Consumers` reunește `atf-test-practice-shop` și `atf-test-auto-ex`; fiecare
+  păstrează configurația, selectorii și journey-ul propriu;
+- `Reporting` este `atf-reporting`, librăria partajată folosită de consumatori;
+- `Platform` reprezintă celelalte șapte module reutilizabile, enumerate în
+  tabel; săgețile diferențiază reporting-ul de contractele comune.
+
+</details>
+
+### Verificare și guvernanță
+
+```mermaid
+%%{init: {"themeCSS": ".edgeLabel, .edgeLabel p { font-size: 13px !important; } .nodeLabel, .nodeLabel p { font-size: 16px !important; }", "flowchart": {"curve": "linear", "nodeSpacing": 72, "rankSpacing": 120}}}%%
+flowchart LR
+    ReportingTests[teste reporting]
+    Governance[guvernanță]
+    Reporting[reporting]
+    Platform[platformă comună]
+    Reactor[întreg reactorul]
+
+    ReportingTests -->|verifică| Reporting
+    ReportingTests -.->|testează| Platform
+    Governance -.->|protejează| Reactor
+```
+
+<details>
+<summary><strong>Legendă — verificare și boundary-uri</strong></summary>
+
+- `ReportingTests` este `atf-reporting-tests`: verifică `atf-reporting` și
+  folosește celelalte module partajate numai în `test` scope;
+- `Governance` este `atf-tests`; `întreg reactorul` înseamnă toate cele 12 module,
+  nu doar librăriile comune;
+- săgețile sunt drepte pentru a păstra etichetele lizibile; detaliile și
+  ownership-ul fiecărui modul sunt în tabel și în README-ul modulului.
 
 | Grup | Module | Deține | Nu deține |
 |---|---|---|---|
@@ -137,7 +144,7 @@ flowchart LR
 | platform | `atf-mock` | fake transport și catalog determinist | HTTP live sau verdicturi |
 | platform | `atf-validation` | response contracts, verdict și evidence | transport sau HTML |
 | platform | `atf-console` | diagnostic output | reporting UI sau transport |
-| platform | `atf-reporting` | renderer, document semantic și artifact | module ATF, mock sau browser |
+| reporting library | `atf-reporting` | renderer, document semantic și artifact | module ATF, mock sau browser |
 | platform | `atf-ui` | sesiune Playwright și politici browser | page objects de produs |
 | platform | `atf-debug-ui` | publicare read-only pentru investigație | generare sau modificare de HTML |
 | test harness | `atf-reporting-tests` | testele librăriei reporting și fixture-urile lor, în `test` scope | testarea unei aplicații reale sau runtime de producție |

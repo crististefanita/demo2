@@ -33,11 +33,22 @@ flowchart LR
 - publisherul și auditul aparțin atf-reporting, iar scenariile concrete aparțin test scope-ului consumator.
 </details>
 
+<details>
+<summary><strong>Harta de lectură</strong></summary>
+
+- [runtime](#componentele-runtime) și [configurație](#configurație-generică-fără-flag-redundant);
+- [acțiuni și locatori](#acțiuni-și-locatori), inclusiv regula CSS;
+- [screen validation și capturi](#validarea-ecranului-și-capturi-de-ecran);
+- [network inspector](#inspectorul-de-rețea--limită-generică-de-responsabilitate),
+  limite și [verificare](#verificare).
+
+</details>
+
 | Responsabilitate | Owner |
 |---|---|
 | browser, context, page, viewport, timeout | `atf-ui` |
 | acțiuni Playwright primitive și recorder neutru | `atf-ui` |
-| locatori, page objects, flows și testele declarative | `atf-reporting-tests` test scope |
+| page objects, flows și testele declarative | modulul consumer; `atf-reporting-tests` pentru propriul audit al rapoartelor |
 | snapshot contract și validatori de browser | `atf-reporting` production + `atf-reporting-tests` test scope |
 | HTML, CSS, Extent lifecycle și publisher | `atf-reporting` |
 | mock, API scenarios și contract validation | `atf-reporting-tests` test scope + modulele API |

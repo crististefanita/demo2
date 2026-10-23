@@ -26,6 +26,20 @@ Regula de economie:
 - un document nou apare numai dacă deține un boundary sau un proces real;
 - informația stabilă se mută în documentul ownerului, nu rămâne în feedback.
 
+<details>
+<summary><strong>Harta de lectură</strong></summary>
+
+- [ownership și promovare](#responsabilitatea-documentelor-și-promovarea-feedback-ului)
+  și [procesul de revizuire](#procesul-de-redactare-și-revizuire);
+- [primul ecran](#structura-recomandată-a-primului-ecran),
+  [diagrame](#diagrame-o-întrebare-o-perspectivă) și
+  [tabele/disclosure](#tabele-bullets-și-disclosure);
+- [durabilitatea linkurilor](#denumiri-linkuri-și-durabilitate),
+  [feedback](#feedback-fără-zgomot) și
+  [criterii de finalizare](#criterii-de-finalizare).
+
+</details>
+
 ## Stilul intern ATF — uniformitate fără fonturi locale
 
 Uniformitatea README-urilor se obține prin Markdown semantic, nu prin CSS sau

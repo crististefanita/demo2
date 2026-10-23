@@ -54,6 +54,13 @@ business se decide separat pe criteriile cerinței.
 | Ieșire din registru | elimină controlul când diff-ul față de baza folosită de gate nu mai conține schimbările acoperite; un commit nou singur nu este suficient |
 | Reconciliere | expirarea sau un baseline diferit cer revizuirea controlului și a dovezii; nu se prelungește ori rebazează automat |
 
+Mutarea sau redenumirea unui test schimbă path-ul protejat: nu se înlocuiește
+automat vechea cale cu cea nouă și nu se adaugă wildcard-uri. Înregistrarea
+`VERIFIED` păstrează setul exact de path-uri aprobat pentru baza ei; noul path
+ori o ștergere necesită un control exact, activ și autorizat în feedback. Câmpul
+`proof` este o comandă de reproducere propusă, nu rezultatul unei execuții și nu
+o permisiune suplimentară.
+
 Schema câmpurilor și protecția exactă a fișierelor sunt definite o singură dată
 în [guvernanța schimbării testelor](../atf-tests/README.md#guvernanța-schimbării-testelor).
 Parserul citește blocurile `testChanges` din toate documentele Markdown din
@@ -372,8 +379,8 @@ testChanges:
     status: VERIFIED
     base: da4327b5dea8476b719779da055d445d8b2d4e48
     expires: 2026-11-22
-    reason: Consumerul Automation Exercise păstrează un singur E2E UI de business pe site-ul public, cu date sintetice; nu inventează corelări UI/API, iar infrastructura generică este reutilizată din ATF.
-    proof: mvn "-pl=atf-test-auto-ex" -am "-Dtest=AutoExPurchaseE2eTest" "-Datf.autoex.e2e.enabled=true" "-Dsurefire.failIfNoSpecifiedTests=false" test
+    reason: Un singur purchase journey de business este expus prin profile UI, UI+API și screenshot final; probele component și API live rămân suite distincte, iar corelări UI/API nu sunt inventate.
+    proof: mvn "-pl=atf-test-auto-ex" -am "-Dtest=AutoExComponentSuite,AutoExPurchaseSuite" "-Datf.autoex.e2e.enabled=true" "-Dsurefire.failIfNoSpecifiedTests=false" test
     paths:
       - pom.xml
       - atf-test-auto-ex/pom.xml

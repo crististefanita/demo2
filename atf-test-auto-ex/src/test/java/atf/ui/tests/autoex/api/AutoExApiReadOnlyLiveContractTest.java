@@ -35,8 +35,8 @@ public class AutoExApiReadOnlyLiveContractTest {
                 requests.productsList(), 200, null, AutoExApiJsonField.PRODUCTS);
         AutoExApiLiveContractTest.assertResponse("API 3 brands list", api,
                 requests.brandsList(), 200, null, AutoExApiJsonField.BRANDS);
-        AutoExApiLiveContractTest.assertResponse("API 5 product search", api,
-                requests.searchProduct(configuration.catalog().searchTerm()), 200, null,
-                AutoExApiJsonField.PRODUCTS);
+        AutoExApiLiveContractTest.assertSearchResponse("API 5 product search", api,
+                requests.searchProduct(configuration.catalog().searchTerm()), 200,
+                configuration.catalog().searchTerm());
     }
 }

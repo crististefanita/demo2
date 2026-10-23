@@ -48,6 +48,7 @@ public class AutoExApiLiveContractTest {
     static final String BASE_URL_PROPERTY = "atf.autoex.api.base-url";
     static final String TIMEOUT_PROPERTY = "atf.autoex.api.timeout";
     private static final String DEFAULT_TIMEOUT = "PT20S";
+    private static final int EXPECTED_HTTP_STATUS = 200;
     private static final String UNSUPPORTED_METHOD_MESSAGE = "This request method is not supported.";
     private static final ObjectMapper JSON = new ObjectMapper();
 
@@ -80,8 +81,9 @@ public class AutoExApiLiveContractTest {
                 requests.verifyLogin(account.email(), "invalid-" + account.password()), 404,
                 "User not found!");
 
-        try (AccountCleanup cleanup = new AccountCleanup(api,
-                requests.deleteAccount(account.email(), account.password()))) {
+        try (AutoExApiAccountCleanup cleanup = new AutoExApiAccountCleanup(() ->
+                assertResponse("API 12 cleanup", api,
+                        requests.deleteAccount(account.email(), account.password()), 200, "Account deleted!"))) {
             cleanup.armBeforeCreateAttempt();
             assertResponse("API 11 create account", api, requests.createAccount(account), 201,
                     "User created!");
@@ -146,10 +148,25 @@ public class AutoExApiLiveContractTest {
                 new AutoExApiJsonField[0]);
     }
 
+    static JsonNode assertSearchResponse(String name, ApiExecutor api, ApiRequest request,
+                                         int responseCode, String searchTerm) {
+        return assertResponse(name, api, request, responseCode, null, Map.of(),
+                new AutoExApiJsonField[]{AutoExApiJsonField.PRODUCTS}, searchTerm);
+    }
+
     private static JsonNode assertResponse(String name, ApiExecutor api, ApiRequest request,
                                            int responseCode, String message,
                                            Map<String, String> expectedTextFields,
                                            AutoExApiJsonField... expectedArrayFields) {
+        return assertResponse(name, api, request, responseCode, message, expectedTextFields,
+                expectedArrayFields, null);
+    }
+
+    private static JsonNode assertResponse(String name, ApiExecutor api, ApiRequest request,
+                                           int responseCode, String message,
+                                           Map<String, String> expectedTextFields,
+                                           AutoExApiJsonField[] expectedArrayFields,
+                                           String expectedSearchTerm) {
         var execution = api.execute(request);
         var response = execution.response();
         JsonNode body = null;
@@ -161,6 +178,9 @@ public class AutoExApiLiveContractTest {
         }
         JsonNode parsedBody = body;
         var semanticAssertions = new java.util.ArrayList<AtfAssertion>();
+        semanticAssertions.add(new AtfAssertion("HTTP transport status",
+                Integer.toString(EXPECTED_HTTP_STATUS), Integer.toString(response.status()),
+                response.status() == EXPECTED_HTTP_STATUS));
         expectedTextFields.forEach((path, expected) -> {
             JsonNode value = jsonPath(parsedBody, path);
             String actual = value == null ? "<missing>"
@@ -174,9 +194,11 @@ public class AutoExApiLiveContractTest {
             semanticAssertions.add(new AtfAssertion("JSON array field: " + field.path(), "ARRAY", actual,
                     value != null && value.isArray()));
         });
+        AtfAssertion searchAssertion = expectedSearchTerm == null ? null
+                : AutoExApiResponseAssertions.searchResultsContain(parsedBody, expectedSearchTerm);
+        if (searchAssertion != null) semanticAssertions.add(searchAssertion);
         AutoExApiContractReportExtension.publish(name, execution, responseCode, message, semanticAssertions);
-        assertTrue(response.status() >= 200 && response.status() < 500,
-                name + " returned unexpected transport HTTP status " + response.status());
+        assertEquals(EXPECTED_HTTP_STATUS, response.status(), name + " transport HTTP status");
         if (parseFailure != null) throw new AssertionError(name + " response body must be valid JSON", parseFailure);
         assertEquals(responseCode, body.path(AutoExApiJsonField.RESPONSE_CODE.path()).asInt(Integer.MIN_VALUE),
                 name + " JSON responseCode (transport HTTP status=" + response.status() + ")");
@@ -194,6 +216,10 @@ public class AutoExApiLiveContractTest {
             assertTrue(body.path(field.path()).isArray(),
                     name + " JSON field '" + field.path() + "' must be an array");
         }
+        if (searchAssertion != null) {
+            assertTrue(searchAssertion.passed(), name + " must return a product matching '"
+                    + expectedSearchTerm + "' (actual: " + searchAssertion.actual() + ")");
+        }
         return body;
     }
 
@@ -206,23 +232,4 @@ public class AutoExApiLiveContractTest {
         return current;
     }
 
-    private static final class AccountCleanup implements AutoCloseable {
-        private final ApiExecutor api;
-        private final ApiRequest cleanupRequest;
-        private boolean armed;
-
-        private AccountCleanup(ApiExecutor api, ApiRequest cleanupRequest) {
-            this.api = api;
-            this.cleanupRequest = cleanupRequest;
-        }
-
-        void armBeforeCreateAttempt() { armed = true; }
-
-        @Override
-        public void close() {
-            if (!armed) return;
-            assertResponse("API 12 cleanup", api, cleanupRequest, 200, "Account deleted!");
-            armed = false;
-        }
-    }
 }

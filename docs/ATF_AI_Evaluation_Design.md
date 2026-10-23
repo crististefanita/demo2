@@ -18,6 +18,24 @@ Se preiau contracte observabile și pattern-uri, nu business, scoruri sau
 orchestrarea codebase-urilor de referință. Designul nu autorizează generare de
 cod, conectarea unui provider ori relaxarea testelor de guvernanță.
 
+## Hartă de lectură
+
+Documentul separă contractul de evaluare AI de guvernanța workflow-ului agentic.
+Folosește intervalul potrivit în funcție de întrebarea de design; existența unei
+scheme în partea țintă nu înseamnă că API-ul este implementat.
+
+| Parte | Secțiuni | Pentru ce este utilă |
+|---|---|---|
+| Contract AI | [1–20](#1-scop-și-limită) | limite normative, input/expected/observed, grounding, review/state, invocation, verdict, snapshot și probe |
+| Workflow agentic | [21–30](#21-analiză-profundă--două-axe-care-nu-trebuie-confundate) | separarea scorurilor, schimbarea propusă, handoff, guard-uri și pilotul controlat |
+| Surse și modelul ATF | [31–40](#31-starea-workflow-ului-agentic) | referințe, readiness, pattern-uri comparate, designul candidat și deciziile acceptate/amânate/respinse |
+| Limita curentă | [41–42](#41-regula-de-recalibrare) | recalibrare față de codul live și distincția dintre design și implementare |
+
+Pentru comportamentul deja livrat, începe cu
+[ATF Validation](../atf-validation/README.md#comparatorul-ai--contract-implementat);
+pentru prioritizare și lacune, citește separat
+[feedback-ul AI](feedback/README_AI_Evaluation.md).
+
 ## 1. Scop și limită
 
 Acest document definește cerințele necesare pentru ca ATF Java să susțină

@@ -65,6 +65,10 @@ Configurația implicită este [`atf-auto-ex.yaml`](src/test/resources/atf-auto-e
   recunoaște markerul IntelliJ și îl poate activa chiar dacă `e2eEnabled: false`.
   Proprietatea JVM explicită `-Datf.autoex.e2e.enabled=false` oprește testul în
   ambele moduri.
+- `AutoExE2eActivationPolicy` deține precedența și motivul deciziei: proprietatea
+  JVM explicită prevalează, urmată de YAML și apoi de heuristică IntelliJ;
+  fără niciun opt-in, rularea este dezactivată. Testele componente verifică
+  separat fiecare sursă și override-ul `false`.
 
 Profilul conține numai date sintetice și date de plată demonstrative; nu introduce
 în YAML date personale reale, parole sau instrumente de plată reale. Modelul
@@ -126,15 +130,29 @@ sub pragul comun de opt clase:
 | `support.browser` | consimțământ și tratarea vignette-ului |
 | `api` | rute, request factory și cont API typed; folosit de probele API directe |
 
-`AutoExConsumerArchitectureComponentTest` protejează source-set-ul și inventory-ul
-coerent al suportului de producție. Pragul de coeziune este o regulă ATF comună
-din [bunele practici de cod](../docs/README_Atf_CodeBestPractices.md#coeziunea-pachetelor-pragul-de-opt-clase),
+`AutoExConsumerArchitectureComponentTest` protejează boundary-ul source-set-ului
+și compoziția entry-point-urilor; nu verifică inventory-ul exact al claselor de
+producție. Inventarul este verificat separat de guvernanța whole-ATF, iar
+`AutoExCatalogApiPrecondition` și proba sa sunt acum incluse în package-urile
+owner corespunzătoare. Testele componente sunt împărțite pe subpachete tematice;
+pragul de coeziune este regula ATF comună din
+[bunele practici de cod](../docs/README_Atf_CodeBestPractices.md#coeziunea-pachetelor-pragul-de-opt-clase),
 nu un număr de clase duplicat aici.
 
-Rutele, payload-urile, browser handlers, trace-ul și purchase journey-ul rămân
-specifice AutoEx. Candidații de reutilizare cross-consumer și criteriul de
-promovare sunt urmăriți în [feedback-ul arhitecturii suportului E2E](../docs/feedback/ATF_E2E_Test_Support_Architecture_Feedback.md),
-nu redefiniți în acest README.
+`AutoExE2eRun.finish` folosește `AutoExTeardown` pentru finalizare best-effort:
+
+- publicarea network inspector-ului, închiderea browserului și completarea
+  fazei/scenariului sunt încercate independent;
+- cauza inițială rămâne primară, iar erorile ulterioare sunt atașate ca
+  `suppressed`;
+- `AutoExTeardownComponentTest` verifică ordinea și agregarea erorilor fără
+  browser sau site real.
+
+`AutoExTeardown` este un adaptor local în `src/test`, nu API generic pentru
+`atf-test-kit`. Rutele, payload-urile, handler-ele browserului, trace-ul și
+purchase journey-ul rămân specifice AutoEx. Candidații de reutilizare
+cross-consumer și criteriul de promovare sunt urmăriți în
+[feedback-ul arhitecturii suportului E2E](../docs/feedback/ATF_E2E_Test_Support_Architecture_Feedback.md).
 
 ## Journey-ul de cumpărare
 
@@ -215,7 +233,26 @@ flowchart LR
 | API live read-only | `AutoExApiReadOnlyLiveSuite`; `GET` products/brands și `POST` product search | cere `-Datf.autoex.api.readonly.live.enabled=true`; nu creează sau modifică conturi |
 | API live cu cont | `AutoExApiLiveSuite`; contracte positive/negative și lifecycle-ul contului sintetic cu cleanup | cere `-Datf.autoex.api.live.enabled=true`; efect extern, opt-in |
 | Raport API direct | `AutoExApiContractReportExtension` publică exchange-uri și assertions JSON; implicit `artifacts/reports/api/auto-ex`, override `atf.autoex.api.report-directory`; `@AtfReportPath` publică locația | publisher component verifică artifactul offline, dar nu substituie proba live |
-| Traficul E2E `UI_API` | `AutoExCatalogApiPrecondition` publică precondiția catalogului înainte de baseline; `AutoExApiTrafficWindow` păstrează schimburile cauzale ulterioare | wiring-ul lifecycle și artifactul randat rămân criteriul activ din [feedback-ul Automation Exercise](../docs/feedback/ATF_Automation_Exercise_Feedback.md) |
+| Traficul E2E `UI_API` | `AutoExCatalogApiPrecondition` publică precondiția catalogului înainte de baseline; `AutoExApiTrafficWindow` păstrează schimburile cauzale ulterioare | contract verificat: setup-ul API nu se dublează în traficul browserului, iar zero schimburi cauzale este un rezultat valid |
+
+### Boundary-ul cauzal pentru `UI_API`
+
+- `AutoExCatalogApiPrecondition` execută și publică o singură precondiție
+  `GET /api/productsList` înainte să marcheze baseline-ul traficului browserului.
+- Inspectorul agregă numai schimburile observate după baseline. Precondiția
+  rămâne în checkpoint-ul ei `GIVEN`; nu este numărată din nou ca trafic UI/API
+  cauzal.
+- Un flow server-rendered poate produce zero request-uri API first-party după
+  setup. Agregatul `0 exchanges` este valid și informativ, nu un motiv de eșec;
+  testul nu trebuie să inventeze trafic sau să presupună că orice acțiune UI
+  apelează API-ul.
+- Când există schimburi cauzale, acestea rămân legate de fereastra și
+  checkpoint-ul observat; căutarea UI navighează la `/products?search=...` și
+  nu este confundată cu endpoint-ul direct `POST /api/searchProduct`.
+
+Acest boundary este verificat de testele componente pentru baseline/fereastră
+și de `AutoExPurchaseUiApiE2eTest`; criteriul și decizia de acceptare sunt
+păstrate în [feedback-ul rezolvat](../docs/feedback/ATF_Automation_Exercise_Feedback.md).
 
 ### Acoperirea celor 14 cazuri publicate în API List
 
@@ -241,11 +278,22 @@ separat și folosește corpuri fixture; tabelul nu este dovadă a serviciului li
 | API 13 | `PUT /api/updateAccount` | 200 | actualizează numai contul testului |
 | API 14 | `GET /api/getUserDetailByEmail` | 200 | citește identitatea sintetică a testului |
 
-API 11 armează cleanup-ul înaintea încercării de creare; API 7, 13 și 14
-folosesc aceeași identitate sintetică în suita live mutabilă. Testele componente
-nu creează conturi și nu accesează serviciul public. Distincția dintre
-`responseCode` JSON și statusul HTTP, precum și limitele probelor live, rămân
-urmărite în feedback-ul ownerului.
+- API 11 armează cleanup-ul înaintea încercării de creare; API 7, 13 și 14
+  folosesc aceeași identitate sintetică în suita live mutabilă.
+- Testele componente nu creează conturi și nu accesează serviciul public.
+- `responseCode` din API List este un rezultat JSON al aplicației, nu statusul
+  HTTP. Suitele live asertează separat ambele valori.
+- Serviciul observat a răspuns cu HTTP 200 și pentru rezultate precum
+  `responseCode: 405` sau `201`. Este comportamentul probat în execuția curentă,
+  nu o garanție permanentă; rerulează suitele live după schimbări upstream.
+- `AutoExApiLiveContractTest` armează `AutoExApiAccountCleanup` înainte de
+  încercarea de create; scope-ul încearcă ștergerea și la eșec. Proba componentă
+  verifică nearmarea, cleanup-ul după failure și păstrarea cauzei inițiale când
+  ștergerea eșuează; suita live confirmă cleanup-ul după succes.
+- Păstrează `Content-Type` ca header de transport în evidence și validează body-ul
+  JSON independent. Upstream-ul observat returnează uneori JSON valid cu
+  `text/html; charset=utf-8`; nu impune `application/json` până când contractul
+  public nu îl cere explicit.
 
 Precondiția E2E citește `/api/productsList` și este publicată în checkpoint-ul
 propriu. După acel checkpoint, journey-ul marchează baseline-ul; căutarea din

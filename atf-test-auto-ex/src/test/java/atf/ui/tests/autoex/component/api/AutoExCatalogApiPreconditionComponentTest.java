@@ -1,4 +1,4 @@
-package atf.ui.tests.autoex.component;
+package atf.ui.tests.autoex.component.api;
 
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.testkit.AtfComponentTest;

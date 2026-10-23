@@ -1,6 +1,7 @@
 package atf.ui.autoex.support;
 
 import atf.ui.autoex.config.AutoExConfigurationLoader;
+import atf.ui.autoex.support.lifecycle.AutoExE2eActivationPolicy;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ConditionEvaluationResult;
@@ -22,13 +23,13 @@ public final class AutoExE2eExtension implements ExecutionCondition,
     @Override
     public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext context) {
         String override = System.getProperty(ENABLE_PROPERTY);
-        boolean enabled = override == null
-                ? AutoExConfigurationLoader.load().e2eEnabled()
-                        || System.getProperty(INTELLIJ_RUNNER_PROPERTY) != null
-                : Boolean.parseBoolean(override);
-        return enabled
-                ? ConditionEvaluationResult.enabled("Automation Exercise live UI E2E was explicitly enabled")
-                : ConditionEvaluationResult.disabled("set -Datf.autoex.e2e.enabled=true to run public-site E2E");
+        boolean yamlEnabled = override == null && AutoExConfigurationLoader.load().e2eEnabled();
+        boolean intellijDetected = override == null
+                && System.getProperty(INTELLIJ_RUNNER_PROPERTY) != null;
+        var decision = AutoExE2eActivationPolicy.evaluate(override, yamlEnabled, intellijDetected);
+        return decision.enabled()
+                ? ConditionEvaluationResult.enabled(decision.reason())
+                : ConditionEvaluationResult.disabled(decision.reason());
     }
 
     @Override

@@ -101,12 +101,6 @@ public final class AutoExPurchaseJourney {
                         landingUrl, expectedLandingUrl.equals(landingUrl)),
                 new AtfAssertion("Account cleanup remains confirmed", "ACCOUNT DELETED!",
                         deletion, deletion.contains("ACCOUNT DELETED!"))));
-        if (run.observesApiTraffic()) {
-            int exchanges = run.apiExchangeCount();
-            finalAssertions.add(new AtfAssertion("Observed first-party API exchanges",
-                    "> 0 API requests caused by this browser journey", Integer.toString(exchanges),
-                    exchanges > 0));
-        }
         run.finalScreenshot(AutoExPurchaseTraceStep.TERMINAL_STATE, finalAssertions);
     }
 

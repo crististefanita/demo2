@@ -13,6 +13,23 @@ read-only în browser.
 | UI YAML | selectors, viewport, zoom și output policy | configurabil, fără flag redundant |
 | generated HTML | Chromium/Playwright MCP | DOM/CSS/console și artifact fresh |
 
+<details>
+<summary><strong>Harta de lectură</strong></summary>
+
+- [Setup API versus validare UI](#pregătirea-prin-api-față-de-validarea-ui) și
+  [Overview versus pași](#prezentarea-generală-față-de-pașii-de-validare) —
+  separarea semantică a evidence-ului;
+- [contracte E2E](#contracte-e2e-specializate) și
+  [configurație](#configurație-gestionată-de-atf-reporting) — cum se compune
+  raportul verificat;
+- [rulare din IntelliJ](#rulare-directă-din-intellij) — execuție manuală;
+- [contractul de randare](#contractul-e2e-al-randării),
+  [guard-uri](#guard-uri-pentru-contribuții) și
+  [viewport-urile tabelelor](#tabele-de-evidență-cu-resize-content-aware) —
+  dovada vizuală și protecțiile de regresie.
+
+</details>
+
 ## Diagramă de bază
 
 ```mermaid

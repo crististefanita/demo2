@@ -17,8 +17,22 @@ consumatorul deține resursele, execuția și publicarea dovezilor.
 | Setup API | `setup.api.ApiScenarioSetup`, `ApiTestRef` | metode exacte sau familii definite de consumator |
 | Documentație | `documentation.DocumentationTarget` și containerul repeatable | documente selectate pentru validatoarele consumatorului |
 
-Prefixul comun este `atf.api.testkit`. Modulele ATF consumă kit-ul în test
-scope; rendererul Reporting rămâne utilizabil independent.
+Prefixul comun este `atf.api.testkit`. Kit-ul definește API de infrastructură a
+testelor, însă scope-ul Maven este o proprietate a fiecărei muchii din POM, nu a
+adnotării. `atf-reporting` rămâne utilizabil independent de Test Kit.
+
+| Consumator live | Scope în POM | Motiv / limită observată |
+|---|---|---|
+| `atf-core`, `atf-mock`, `atf-validation`, `atf-ui`, `atf-debug-ui` | `test` | folosesc vocabularul Test Kit în probe și adaptoare de test |
+| `atf-test-auto-ex`, `atf-tests`, `atf-reporting-tests` | `test` | folosesc vocabularul Test Kit în probe și suite |
+| `atf-console` | `optional` + `compile` | extensia JUnit din `src/main` citește adnotări și policy resolvers; API-ul rămâne infrastructură de test |
+| `atf-test-practice-shop` | `compile` în prezent | importurile Test Kit sunt în `src/test`; scope-ul POM este mai larg decât folosirea efectivă și este documentat ca excepție, nu ca țintă |
+
+Nu deduce scope-ul din numele modulului sau din adnotare. Pentru o schimbare de
+ambalare, verifică simultan `pom.xml`, importurile din `src/main`/`src/test` și
+guard-ul de arhitectură; nu modifica scope-ul doar pentru a face tabelul să pară
+uniform. Harta dependențelor este în [ATF Architecture](ATF_Architecture.md),
+iar cazul Practice Shop este detaliat în [README-ul consumerului](../atf-test-practice-shop/README.md).
 
 ## Compoziție și roluri
 

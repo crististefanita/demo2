@@ -27,7 +27,6 @@ public interface AutoExPurchaseSession {
     void finalScreenshot(AutoExPurchaseTraceStep step, List<AtfAssertion> assertions);
     AutoExCatalogSnapshot inspectCatalogApi(String productName);
     boolean observesApiTraffic();
-    int apiExchangeCount();
     void markCausalApiTrafficBaseline();
     void onFailureCleanup(AutoExAccountCleanup cleanup);
     void clearFailureCleanup();

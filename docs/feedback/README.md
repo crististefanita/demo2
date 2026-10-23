@@ -6,17 +6,15 @@ istoricul rapoartelor, capturilor sau rulărilor.
 
 ## Pe scurt
 
-Cele patru priorități active sunt boundary-ul suportului E2E comun,
-coverage-ul API AutoEx, integrarea profilelor Reporting în suita Practice Shop
-și confirmarea vizuală a auditului terminal UI. Adaptorul Console–Reporting a
-fost centralizat și verificat; coeziunea pachetului Reporting Tests a fost
-rezolvată. O constatare nouă de guvernanță AutoEx este inclusă în feedback-ul
-E2E, nu ascunsă ca failure preexistent.
+Registrul separă backlog-ul activ de contractele implementate și de deciziile
+promovate în documentația oficială.
 
-Split-ul și inventarul de producție AutoEx, precedența adnotării UI evidence în
-rulare standalone și baseline-ul precondiției AutoEx sunt deja în cod și în
-probe; nu mai sunt backlog separat. Evaluarea AI rămâne un backlog separat și
-neprioritizat.
+- **Deschise:** boundary-ul suportului E2E, atomicitatea inițializării Reporting,
+  agregarea fazelor Shop și confirmarea vizuală MCP pentru auditul terminal UI.
+- **Închise:** corelarea cauzală `UI_API` AutoEx, precondiția API, inventory-ul și
+  coeziunea pachetelor AutoEx, activarea și rollback-ul pentru handle-urile
+  returnate; adaptorul Console–Reporting și package cohesion Reporting.
+- **Neprioritizat:** evaluarea AI rămâne un backlog separat.
 
 ## Prioritatea curentă
 
@@ -26,9 +24,9 @@ scorurile ordonează backlog-ul și nu reprezintă evaluări de calitate.
 
 | Ordine | Owner / feedback | Impact /40 | Lacună /30 | Lucrabil /20 | Doc. /10 | Pondere | Scor | Rezumatul gap-ului |
 |---:|---|---:|---:|---:|---:|---:|---:|---|
-| 1 | [Suport E2E comun și coeziune/gate-urile AutoEx](ATF_E2E_Test_Support_Architecture_Feedback.md) | 36 | 27 | 16 | 8 | 1.00 | **87** | Shop harness-ul browser/report rămâne în `src/main`; AutoEx lifecycle are două căi nesigure și gate-ul detectează inventory production neactualizat plus un pachet component cu 9 clase. Se urmăresc doar primitive neutre în Test Kit, fără modul UI nou. |
-| 2 | [Automation Exercise — contracte API complete și cauzalitate UI/API](ATF_Automation_Exercise_Feedback.md) | 38 | 22 | 18 | 6 | 1.00 | **84** | Coverage-ul fixture offline este complet; rămân schimburile live prin transport ATF, statusurile HTTP vs `responseCode`, cleanup-ul real și artifactul UI/API cauzal. |
-| 3 | [Reporting — integrare și lifecycle](ATF_Reporting_Feedback.md) | 40 | 7 | 18 | 7 | 1.00 | **72** | Profilul fiecărui scenariu este izolat; rămâne agregarea `SETUP` + `TEST BODY` fără pierderea provenienței/lifecycle-ului. |
+| 1 | [Suport E2E comun și boundary-uri consumer](ATF_E2E_Test_Support_Architecture_Feedback.md) | 36 | 21 | 16 | 8 | 1.00 | **81** | `ShopE2eContext` păstrează harness browser/report în `src/main` și poate pierde resurse la achiziție parțială; `AutoExPurchaseSession` expune concepte browser/report din `src/main`. Inventory-ul, coeziunea, activarea și rollback-ul AutoEx pentru handle-urile returnate sunt probate. |
+| 2 | [Reporting — atomicitatea creării nodurilor](ATF_Reporting_Feedback.md#report-start-atomicity-01--crearea-atomică-a-nodurilor-de-raport) | 34 | 21 | 15 | 7 | 1.00 | **77** | `startScenario`/`startPhase` pot lăsa un nod parțial dacă o etapă ulterioară aruncă înaintea returnării handle-ului. |
+| 3 | [Reporting — agregare între fazele Shop](ATF_Reporting_Feedback.md#shop-capture-01--profil-per-scenariu-și-flow-unificat-peste-faze) | 40 | 7 | 18 | 7 | 1.00 | **72** | Rămâne agregarea `SETUP` + `TEST BODY` fără pierderea provenienței ori a lifecycle-ului. |
 | 4 | [Audit terminal pentru Screen validation](ATF_Reporting_Feedback.md#ui-audit-01--audit-terminal-pentru-screen-validation) | 24 | 15 | 16 | 5 | 1.00 | **60** | Implementarea și probele sunt în cod; rămâne confirmarea vizuală a artifactului în TAB MCP. |
 
 ## Revizuit, dar neprioritizat pentru implementare
@@ -41,9 +39,9 @@ scorurile ordonează backlog-ul și nu reprezintă evaluări de calitate.
 
 | Contract | Sursa normativă |
 |---|---|
-| Adaptor Console–Reporting unic, cu Reporting independent de Core/Console | [Feedback Consumer — decizie verificabilă](ATF_Consumer_Test_Architecture_Feedback.md#consumer-report-bridge-01--adaptor-comun-console-reporting), [README ATF Console](../../atf-console/README.md) |
+| Adaptor Console–Reporting unic, cu Reporting independent de Core/Console | [Feedback Consumer — decizie verificabilă](ATF_Consumer_Test_Architecture_Feedback.md#consumer-report-bridge-01--rezolvat), [README ATF Console](../../atf-console/README.md) |
 | Boundary-ul `main`/`test`, ownership și selecția testelor consumer | [Arhitectura ATF](../ATF_Architecture.md), [ghidul de testare](../ATF_Testing_Guide.md), README-urile Practice Shop și Automation Exercise |
-| Regula de coeziune: maximum opt clase per pachet; inventarele includ modulele cu surse de producție | [Bune practici de cod](../README_Atf_CodeBestPractices.md#coeziunea-pachetelor-pragul-de-opt-clase); pachetul Reporting UI este sub prag, iar noul hotspot și inventory-ul AutoEx sunt deschise în feedback-ul E2E |
+| Regula de coeziune: maximum opt clase per pachet; inventarele includ modulele cu surse de producție | [Bune practici de cod](../README_Atf_CodeBestPractices.md#coeziunea-pachetelor-pragul-de-opt-clase); package split și inventory-ul AutoEx sunt reparate; Shop harness rămâne deschis în feedback-ul E2E |
 | Profile Reporting per scenariu și izolare față de scenariile-surori | [README ATF Reporting Tests](../../atf-reporting-tests/README.md), [contractul de captură](../ATF_Evidence_Capture_Contract.md) |
 | Nivelul/canalul testelor și declarația neutră UI evidence | [Contractul adnotărilor](../ATF_Test_Infrastructure_Annotations.md), [README Test Kit](../../atf-test-kit/README.md); forma comună și izolarea profilului per scenariu sunt implementate; agregarea cross-phase rămâne în `SHOP-CAPTURE-01` |
 | Primitive neutre de lifecycle pentru testele E2E, separarea clasificării de activare și cleanup failure-safe | [Feedback suport E2E comun](ATF_E2E_Test_Support_Architecture_Feedback.md); cerințe deschise, fără API generic declarat implementat |

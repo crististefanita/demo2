@@ -94,17 +94,39 @@ vocabularul comun, nu de publisheri locali.
 | Suprafață | Cerință |
 |---|---|
 | document | fără overflow orizontal; wrapping-ul păstrează identificatorii și URL-urile lizibile, fără crop sau break arbitrar |
-| tabel de date | wrapper comun, `height: auto`, `max-height: var(--atf-table-scroll-height)`; conținutul scurt rămâne natural, iar conținutul lung derulează local |
+| tabel de date | wrapper comun, focusabil, `height: auto`, `max-height: var(--atf-table-scroll-height)`; conținutul scurt rămâne natural, iar conținutul lung derulează local |
 | Request details | tabelul metadatelor request-ului respectă același viewport, inclusiv când este imbricat în disclosure-ul request-ului; JSON-ul și disclosure-ul exterior nu devin containere de scroll ale tabelului |
-| tabel lung | header sticky, ultimul rând accesibil prin mouse și tastatură; titlul și contoarele nu se schimbă când apare scroll-ul |
+| tabel lung | header sticky, ultimul rând accesibil prin mouse și tastatură; titlul și contoarele nu se schimbă când apare scroll-ul; nu se creează viewport-uri imbricate pentru aceeași tabelă |
 | payload JSON/code | este pane de payload, nu tabel; nu intră în wrapper-ul de viewport al tabelului |
-| viewport îngust | padding-ul și coloanele se adaptează prin token-uri/media queries; nu se ascunde overflow-ul pentru a masca o geometrie greșită |
-| summary | geometrie compactă comună; textul poate curge natural, fără înălțime fixă duplicată pentru cazul obișnuit |
+| Response details / `TECHNICAL TRACE` | tabelul trace derulează în viewport-ul său local, separat de disclosure-ul exterior și de pane-urile JSON |
+| viewport îngust | la `≤991px`, Overview începe după rail-ul fix de navigare de `70px`; padding-ul și coloanele se adaptează prin token-uri/media queries, fără overflow ascuns care maschează geometria |
+| summary | bază de `34px`; textul curge natural; `Unique request signatures` și `Technical diagnostics` au token dedicat de `68px` și sunt collapsed implicit |
 | delimitare | nu se adaugă `<hr>` sau linii decorative pentru a separa zonele unui test; border-ul structural al cardului rămâne doar la boundary-ul semantic necesar |
 
-`--atf-table-scroll-height` este tokenul comun al temei. Valoarea profilului
-curent este verificată prin token și nu trebuie copiată în renderer-e sau în
-teste ca prag local.
+`--atf-table-scroll-height` este tokenul comun al temei, derivat din
+`AtfReportThemeTokens.TABLE_SCROLL_HEIGHT` (profilul curent: `500px`). Se aplică
+tabelelor de date din Overview, evidence API/UI, audit, action sequence,
+assertions, setup și execution, inclusiv Category, tag audit și
+`TECHNICAL TRACE` din Response details.
+
+Nu duplicați pragul în renderer-e sau ca valoare locală de test.
+
+### Tokens vizuale
+
+`AtfReportThemeTokens` și `AtfReportColors` sunt sursa valorilor; tabelul
+documentează contractul vizibil, nu introduce constante paralele.
+
+| Element | Valoare stabilă |
+|---|---|
+| badge `Pass` / `Warning` / `Fail` | înălțime `18.2px`, padding `0 5px`, radius `4px`, font `9.52px`, line-height `18.2px`, weight `400`, fără border |
+| badge neutru de durată/metadata | înălțime `22.4px`, padding `5px 7px`, radius `4px`, font `9.52px`, line-height `10.6624px` |
+| culori status | `Pass #9ccc65`, `Warning #ffc107`, `Fail #e57373`; text Pass/Fail `#fff`, text Warning `#f6f7f6` |
+| tabel scrollabil | plafon comun `500px`, transmis prin `--atf-table-scroll-height` |
+| summary aggregate | bază `34px`; semnături și diagnostic tehnic `68px` |
+
+Tab-urile nu suprascriu aceste valori pentru a imita Extent, iar fallback-ul nu
+introduce o a doua geometrie. Orice abatere se verifică la nivel de token și
+computed style, nu prin copierea unei reguli locale.
 
 ## Assets și responsabilitate Java/CSS/JavaScript
 

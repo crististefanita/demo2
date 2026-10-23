@@ -164,7 +164,7 @@ Testele modulului protejează separat:
 Testele sunt ratchet tests: când un contract eșuează, se repară
 implementarea, nu se relaxează assertion-ul pentru a face build-ul verde.
 Validarea vizuală a artifactului rămâne responsabilitatea suitei din
-`atf-reporting` și a verificării finale în TAB MCP.
+`atf-reporting-tests`; verificarea manuală finală folosește ATF Debug/TAB MCP.
 
 ## Comparatorul AI — contract implementat
 

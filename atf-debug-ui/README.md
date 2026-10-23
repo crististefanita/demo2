@@ -1,8 +1,9 @@
 # ATF Debug UI
 
 `atf-debug-ui` este un modul de infrastructură pentru investigarea manuală a
-unui HTML deja generat. Nu generează raportul, nu îl modifică și nu conține
-teste executabile. Publică numai pe `127.0.0.1` directorul care conține
+unui HTML deja generat. Nu generează și nu modifică raportul; testele sale
+verifică boundary-ul loopback, traversal-ul, pornirea paralelă și politica de
+memorie, nu un produs UI. Publică numai pe `127.0.0.1` directorul care conține
 artifactul ales și tipărește URL-ul care trebuie deschis în Playwright/TAB MCP.
 
 ## Pe scurt

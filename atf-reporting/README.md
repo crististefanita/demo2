@@ -17,9 +17,13 @@ nu citește mock-uri sau fixture-uri de aplicație.
 - **adopție** — consumatorul furnizează inputul typed, statusul, evidence-ul și
   politica de output prin API-ul public.
 
-**Harta documentului:** `boundary → model semantic → contract → structură →
-testare → gate`. Structura package-urilor din `atf-reporting-tests` nu este
-duplicată aici; aparține README-ului acelui consumer.
+**Traseu de lectură:** [boundary](#limitele-librăriei-autonome-și-consumatorul-canonic) →
+[model semantic](#modelul-tipizat) → [contract](#contractul-raportului) →
+[structura de producție](#structura-producției) →
+[configurare](#intrări-și-configurare-în-bibliotecă) →
+[publicare](#publicare-și-ieșire) → [verificare](#verificare-pentru-contribuții).
+Structura package-urilor din `atf-reporting-tests` nu este duplicată aici;
+aparține README-ului acelui consumer.
 
 ## Limitele librăriei autonome și consumatorul canonic
 
