@@ -19,6 +19,7 @@ final class AtfConsoleFormatter {
             case DETAIL -> detailsEnabled ? formatDetail(event) : List.of();
             case CODE -> detailsEnabled ? formatCode(event) : List.of();
             case COMPLETE -> List.of(formatCompletion(event));
+            case REPORT_PUBLISHED -> List.of("Extent report: " + event.detailValue());
         };
     }
 
@@ -74,6 +75,7 @@ final class AtfConsoleFormatter {
                 case INFO -> "Validation finished";
             };
             case SCENARIO, PHASE -> displayName(event.name());
+            case REPORT -> displayName(event.name());
             case UI_ACTION -> switch (event.status()) {
                 case PASS, WARNING -> "UI action completed";
                 case FAIL -> "UI action failed";

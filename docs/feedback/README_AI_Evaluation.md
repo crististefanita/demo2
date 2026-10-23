@@ -1,11 +1,12 @@
-# ATF Java — feedback activ pentru evaluarea AI
+# ATF Java — evaluarea AI față de codul curent
 
 ## Pe scurt
 
-Acest document păstrează numai starea față de codul live, gap-urile și probele
-necesare închiderii. Designul extins, modelele țintă, guard-urile propuse și
-pattern-urile extrase din ATF1/.NET sunt în
+Acest document separă gap-urile evaluatorului AI de readiness-ul implementării.
+Designul țintă și pattern-urile extrase din ATF1/.NET sunt în
 [designul AI al proiectului](../ATF_AI_Evaluation_Design.md).
+
+Backlog-ul AI nu intră în ordinea celor patru priorități active din registrul comun.
 
 | Stare | Owner / limită |
 |---|---|
@@ -18,7 +19,7 @@ O implementare se închide numai cu probă nominală și negativă la boundary-u
 potrivit. Un document mutat, o clasă nouă sau un raport frumos nu ridică scorul
 de implementare și nu autorizează modificarea testelor de guvernanță.
 
-## 20. Gap-uri active pentru evaluator
+## Gap-uri rămase pentru evaluator
 
 | ID | Cerință lipsă | Criteriu de închidere |
 |---|---|---|
@@ -32,7 +33,7 @@ de implementare și nu autorizează modificarea testelor de guvernanță.
 | `AI-EVAL-11` | coverage governance AI | fiecare contract public nou are probă nominală și negativă; guard-ul identifică o probă eliminată |
 | `AI-EVAL-12` | UI proof | browserul verifică review/state/evidence vizibile, corelate cu snapshot-ul și fără propoziții duplicate |
 
-## 31. Gap-uri active pentru workflow-ul agentic
+## Gap-uri de design pentru workflow-ul agentic
 
 | ID | Gap | Prioritate | Dovadă necesară |
 |---|---|---:|---|
@@ -46,16 +47,17 @@ de implementare și nu autorizează modificarea testelor de guvernanță.
 | `AI-EVAL-13` | test generated nu este verificat pentru observed facts | P1 | literal verdict guard + evidence binding |
 | `AI-EVAL-15` | feedback-ul de regression nu este handoff pentru agent | P2 | semantic delta → next proof |
 
-Aceste item-uri sunt feedback de design. Nu reprezintă încă autorizație pentru
-implementarea claselor sau schimbarea modulelor.
+Aceste cerințe descriu un design viitor, nu un modul sau o opțiune livrată.
+Orice implementare rămâne o schimbare separată, cu owner, boundary și probe
+nominale/negative proprii.
 
-## 34. Readiness față de codul live
+## Readiness față de codul curent
 
 Scorurile de mai jos sunt calibrări motivate de readiness, nu quality score
 al unui model și nici prioritățile registrului central. Contractul implementat
 rămâne la owner; designul propus nu este probă de livrare.
 
-### 34.1 Scorecard executiv
+### Scorecard executiv
 
 | Axă | Scor | Ce dovedește scorul | Limita actuală |
 |---|---:|---|---|
@@ -75,9 +77,9 @@ grounding la nivel de run și nu publică un snapshot AI în raport. Un raport E
 frumos sau transportul `LIVE_HTTP` nu demonstrează evaluare AI.
 
 <details>
-<summary>34.2 — corespondența cerință–cod și dovezile ownerilor</summary>
+<summary>Corespondența cerință–cod și dovezile ownerilor</summary>
 
-### 34.2 Cerință față de codul curent
+### Cerință față de codul curent
 
 | Cerință țintă | Cod observat live | Score |
 |---|---|---:|
@@ -95,7 +97,7 @@ frumos sau transportul `LIVE_HTTP` nu demonstrează evaluare AI.
 | governance transversală | `WholeAtfGovernanceSuiteTest` include boundary, ownership, cohesion, readability, documentație și politica schimbării testelor | **82/100** |
 | governance pentru agent handoff | nu există încă proposal bounded, proof plan, machine-readable handoff sau compiled feedback | **18/100** |
 
-### 34.3 Dovezi concrete din ATF Java
+### Dovezi concrete din ATF Java
 
 Contractele deja implementate au documentație oficială; acest feedback nu
 menține un al doilea inventar al claselor ori al probelor lor.
@@ -112,7 +114,7 @@ invocarea unui provider AI, registrul de dovezi la nivel de run sau proiecția A
 
 </details>
 
-### 34.6 Plan de adoptare în ordine corectă
+### Plan de adoptare în ordine corectă
 
 ```text
 1. AMBIGUOUS produs de evaluator + probă negativă
@@ -136,7 +138,9 @@ probă de integrare și nu înlocuiește matricea deterministă.
 - Workflow-ul agentic are proposal/handoff valid și invalid; nu își modifică singur gate-urile.
 - La închidere, contractul demonstrat se promovează în README-ul ownerului și dispare din acest backlog.
 
-Scorul implementării rămâne **50/100** până la dovezile lipsă; guvernanța generală
+Scorul curent al implementării este **50/100**: comparatorul și snapshot-ul
+typed există, dar ambiguitatea grounding-ului, run ledger-ul, integrarea
+workflow-ului și proiecția de raport rămân nedemonstrate. Guvernanța generală
 și inspectorul de rețea nu certifică AI quality. Ordinea domeniilor este în
 [registrul feedback](README.md), iar contractele și opțiunile proiectate sunt
 în [designul AI](../ATF_AI_Evaluation_Design.md).

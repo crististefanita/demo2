@@ -345,13 +345,14 @@ real. Fluxul E2E rămâne proba separată a integrării și a rezultatului de bu
 |---|---|---|
 | Achiziție ca vizitator, UI + API | `ShopPurchaseE2eTest` | profil explicit `UI_API`; publică dovezile UI și schimburile API selectate în YAML |
 | Achiziție ca vizitator, doar UI | `ShopUiOnlyPurchaseE2eTest` | profil explicit `UI_ONLY`; publică numai dovezile UI, fără validare API sau agregarea traficului |
-| Achiziție ca vizitator, doar UI, un singur flux | `ShopUiOnlySingleFlowPurchaseE2eTest` | profil `UI_ONLY` + prezentare `UNIFIED_FLOW`; un singur rând Gherkin, acțiuni agregate și capturi după fiecare tabel Playwright conform YAML-ului |
+| Achiziție ca vizitator, doar UI, un singur flux | `ShopUiOnlySingleFlowPurchaseE2eTest` | profil `UI_ONLY` + prezentare `UNIFIED_FLOW`; un singur rând Gherkin, acțiuni agregate și capturi după fiecare tabel Playwright conform profilului efectiv |
 | Achiziție cu un cont sintetic nou | `ShopNewAccountPurchaseE2eTest` | `SETUP` creează și autentifică un cont sintetic; `TEST BODY` finalizează achiziția |
 | Achiziție cu un cont înregistrat anterior | `ShopAuthenticatedPurchaseE2eTest` | citește fixture-ul `.local.properties`, demonstrează login în `SETUP`, apoi rulează purchase complet fără registration |
 
 - `@AtfTestChannel(UI | UI_API)` selectează canalul în testul lansat din
   IntelliJ; harness-ul îl aplică înaintea browserului.
-- `@WithE2eHarness` păstrează layout-ul și detaliile acțiunilor; parametrul
+- `@AtfUiEvidence` declară forma flow-ului și intenția capturilor; `@WithE2eHarness`
+  păstrează opțiunile locale de harness și detaliile acțiunilor; parametrul
   legacy `profile` rămâne compatibil și un profil explicit contradictoriu este refuzat.
 - `ShopPurchaseE2eTest` fixează `UI_API`, iar
   `ShopUiOnlyPurchaseE2eTest` fixează `UI_ONLY`; lansarea ambelor repetă
@@ -369,8 +370,10 @@ Canalul TestKit și preflight-ul sunt implementate conform
   verdictelor rămân în [feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md).
 - Settlement-ul network este verificat separat de componentele Shop descrise
   mai sus.
-- Boundary-ul test/support și dicționarul de fraze Gherkin Shop/AutoEx sunt
-  urmărite în [feedback-ul arhitecturii testelor consumer](../docs/feedback/ATF_Consumer_Test_Architecture_Feedback.md).
+- Boundary-urile consumerilor și ownership-ul straturilor sunt definite în
+  [arhitectura ATF](../docs/ATF_Architecture.md) și în
+  [ghidul de testare](../docs/ATF_Testing_Guide.md); dicționarele Gherkin rămân
+  documentate și verificate în README-ul fiecărui consumer.
 
 Cele două E2E autentificate au aceeași structură de purchase; setup-ul contului
 este intenționat diferit:
@@ -385,18 +388,18 @@ este intenționat diferit:
 
 Separă patru axe care nu trebuie să schimbe flow-ul de business:
 
-| Axă | Ce există acum | Ce trebuie să poată selecta testul |
+| Axă | Comportament în codul curent | Limită / efect vizibil |
 |---|---|---|
 | Validare | `@AtfTestChannel(UI / UI_API)` este mapat în profilul typed local; profilele legacy rămân compatibile | canal explicit pe clasa E2E, independent de presentation și capturi; API-only este refuzat de harness-ul browser |
-| Forma raportului | `reportFlow = CONFIGURED`, `SCREEN_CHECKPOINTS` sau `UNIFIED_FLOW` în `@WithE2eHarness`; implicit moștenește profilul configurat | layout-ul efectiv apare în Overview → System → `UI evidence layout` |
-| Capturi | `reporting.screenshotPolicy` din YAML este autoritară atât pentru clasele individuale, cât și pentru `ShopE2eSuite`; adnotările aleg layout-ul și detaliile acțiunilor, nu politica de captură | `each-checkpoint` atașează captura stării rezultate fiecărui tabel Playwright nevid din `SETUP` și `TEST BODY`; controalele de formular sunt mascate; `none` dezactivează capturile fără să elimine acțiunile sau aserțiunile |
+| Forma raportului | `@AtfUiEvidence(flow = CONFIGURED / SCREEN_CHECKPOINTS / UNIFIED_FLOW)` declară axa comună; `CONFIGURED` păstrează profilul rezolvat din YAML/suită | layout-ul efectiv apare în Overview → System → `UI evidence layout` |
+| Capturi | `ShopE2eTestSupport.reportProfile(...)` pornește de la YAML și aplică `@AtfUiEvidence(screenshots = ...)`; `ShopE2eContext.open/openReport` păstrează profilul primit | în rulare standalone, adnotarea explicită suprascrie numai politica de captură; în `ShopE2eSuite`, raportul partajat păstrează profilul primei clase, iar profilele următoare nu sunt aplicate separat — vezi `SHOP-CAPTURE-01` |
 | Pași UI intermediari | `@WithE2eHarness(actionDetails = CONFIGURED \| INCLUDED_COLLAPSED \| SUMMARY_ONLY)` selectează disclosure-ul fără să schimbe capturarea acțiunilor | `CONFIGURED` păstrează profilul compus; `INCLUDED_COLLAPSED` este default-ul sigur; niciun mod nu schimbă validările, verdictul sau arborele Gherkin |
 
 **Invariantă:** configurația schimbă proiecția evidence-ului, nu journey-ul.
 
 ```text
-AtfTestChannel → profil de validare; WithE2eHarness → layout + detalii acțiuni
-YAML     → screenshot policy pentru rulări individuale și ShopE2eSuite
+AtfTestChannel → profil de validare; AtfUiEvidence → override class-level pentru flow și capturi
+YAML/suite → profil de bază; WithE2eHarness → harness + detalii acțiuni
 flow business, acțiuni, aserțiuni, request-uri, verdict → neschimbate
 ```
 
@@ -529,8 +532,11 @@ credentialele rămân numai în memorie, iar cache-ul este șters la închiderea
 suitei. Rularea unei clase E2E direct păstrează raportul și preflight-ul
 standalone. Proprietatea `-Datf.practice.shop.e2e.suite=true` rămâne disponibilă
 pentru agregarea explicită a claselor individuale pornite împreună, fără clasa
-Suite. Politica de captură rămâne cea din YAML și în modul agregat; nu există o
-suprascriere separată pentru suite.
+Suite. Raportul partajat este creat de primul test selectat și păstrează profilul
+rezolvat atunci; profilele copiilor ulteriori nu sunt încă aplicate per scenariu.
+Override-ul de suită/YAML furnizează baza, iar adnotarea explicită a primei clase
+poate schimba profilul întregii sesiuni. Această limită rămâne în
+`SHOP-CAPTURE-01` din feedback-ul Reporting.
 `@AuthenticatedE2e` aplică browser headed la zoom
 70%, API live și precondiția authenticated. În `REUSE_FIXTURE`, fixture-ul local
 trebuie să fie valid; în `REGISTER_PER_RUN` + `LOCAL`, profilul trebuie să fie
@@ -574,9 +580,14 @@ mvn -pl atf-test-practice-shop -am "-Dtest=ShopE2eSuite" "-Dsurefire.failIfNoSpe
 Politica de captură acceptă `each-checkpoint`, `final-only`, `failure-only`,
 `final-and-failure` sau `none`, configurate prin `reporting.screenshotPolicy`
 în YAML. Valoarea implicită a fixture-ului Practice Shop este
-`each-checkpoint`; aceeași valoare se aplică și în `ShopE2eSuite`, care emite o
-singură sesiune Extent agregată. Pentru un raport mai compact, schimbă explicit
-valoarea din YAML în `final-and-failure`; nu o înlocui prin proprietăți de sistem.
+`each-checkpoint`; aceasta este valoarea configurată pentru clasele care lasă
+`@AtfUiEvidence.screenshots` la `CONFIGURED`. În rulare standalone, o valoare
+explicită din adnotare este aplicată și păstrată de `ShopE2eContext.open/openReport`.
+În `ShopE2eSuite`, raportul comun folosește profilul primei clase; izolarea
+profilului fiecărui copil este încă deschisă în `SHOP-CAPTURE-01`. YAML-ul și
+override-ul de suită rămân baza când adnotarea este `CONFIGURED`.
+`ShopE2eSuite` păstrează override-ul său de suită în configurația de bază. Pentru
+un raport mai compact, schimbă explicit valoarea YAML în `final-and-failure`.
 
 Pentru audit vizual, păstrează `reporting.screenshotPolicy: each-checkpoint`
 în YAML și folosește comanda Maven de mai sus, cu fork-ul Surefire normal.
@@ -850,7 +861,7 @@ limite.
 | `reporting.systemBodyPreviewCharacters` | limitează la 100 caractere preview-ul de body din System; disclosure-urile de evidence au limita lor separată |
 | `reports.ui` / `reports.api` | directoare relative distincte pentru artifactele UI și API |
 | `productName` / `productPath` | produsul trebuie să fie disponibil pentru vânzare. `auto` acceptă ruta dinamică `/product/*`; o rută exactă e fail-fast dacă nu există |
-| `reporting.screenshotPolicy` | valoarea YAML se aplică identic rulărilor individuale și `ShopE2eSuite`; opțiuni: `each-checkpoint`, `final-only`, `failure-only`, `final-and-failure`, `none`. Adnotările nu modifică politica. Cheia legacy `screenshotOnFailure` se folosește numai când politica typed lipsește: `true` → `each-checkpoint`, `false` → `failure-only` |
+| `reporting.screenshotPolicy` | YAML furnizează baza (`each-checkpoint`, `final-only`, `failure-only`, `final-and-failure`, `none`); `@AtfUiEvidence.screenshots` suprascrie explicit politica pentru profilul clasei. Într-un raport partajat, sesiunea folosește încă profilul primei clase. Cheia legacy `screenshotOnFailure` se folosește numai când politica typed lipsește: `true` → `each-checkpoint`, `false` → `failure-only` |
 | `accountFile` | fixture de cont în `src/test/resources`; `ShopAuthenticatedPurchaseE2eTest` reutilizează un cont de test deja înregistrat, iar `ShopNewAccountPurchaseE2eTest` folosește profil sintetic; căile externe sunt respinse și valorile nu ajung în evidence |
 
 Exemplele guest presetate declară canalul clasei (`UI_API` sau `UI`) și îl
@@ -878,9 +889,17 @@ Flow presentation pentru Practice Shop:
 - `atf-reporting` implementează `UNIFIED_FLOW`: un singur request Gherkin,
   validare UI agregată și API validation sibling; `SCREEN_CHECKPOINTS` păstrează
   comportamentul independent per checkpoint;
-- `@WithE2eHarness.reportFlow` selectează forma flow-ului, nu politica
-  screenshot. Standalone se aplică YAML-ul; în `ShopE2eSuite`, system
-  property-ul dedicat are prioritate peste YAML;
+- `@AtfUiEvidence.flow` selectează forma flow-ului; `CONFIGURED` păstrează
+  profilul de bază. Adnotarea este class-level și Shop o citește direct de pe
+  clasa E2E;
+- `@AtfUiEvidence.screenshots` suprascrie politica de bază pentru profilul clasei;
+  `ShopE2eContext` păstrează profilul selectat. În raportul partajat al suitei,
+  profilul primului copil rămâne efectiv până la implementarea izolării per scenariu;
+- `ShopE2eSuite` rezolvă override-ul de suită în configurația de bază. Aplicarea
+  profilelor fiecărui copil și agregarea `SETUP` + `TEST BODY` în `UNIFIED_FLOW`
+  rămân urmărite în `SHOP-CAPTURE-01` din feedback-ul Reporting;
+- `@WithE2eHarness` rămâne adnotarea locală pentru resursele Shop și
+  `actionDetails`; nu mai declară forma flow-ului comun;
 - `ShopPurchaseFlow` continuă să emită checkpoint-uri în ambele moduri;
   `UNIFIED_FLOW` le agregă în raport, nu transformă click-urile în pași Gherkin
   și nu sare peste acțiunile intermediare;
@@ -913,9 +932,9 @@ Reguli de configurare:
 - ID-urile de produs și cart sunt dinamice și nu intră în enum-uri;
 - profile-ul este typed (`UI_API`, `UI_ONLY`), fără matrice de booleeni paraleli;
 - loaderul eșuează clar la URI, timeout, path sau combinație de precondiții invalidă.
-- mapping-ul YAML furnizează default-urile standalone; `@WithE2eHarness` poate
-  suprascrie flow mode pentru clasa selectată, iar numai modul suitei permite
-  override-ul screenshot policy prin system property.
+- mapping-ul YAML furnizează profilul de bază; `@AtfUiEvidence.flow` poate
+  suprascrie forma flow-ului, însă politica capturilor rămâne impusă de
+  configurația Shop până la remedierea urmărită în feedback.
 - `Overview → System/Environment` afișează etichete lizibile pentru layout și
   screenshot policy rezolvate (de ex. `One consolidated flow`, `Final
   screenshot only`), nu valori brute YAML sau enum-uri; astfel metadatele
@@ -997,8 +1016,8 @@ Purchase-ul guest păstrează un număr mic de teste și mai multe dovezi locale
 
 ### Screen validation și captura terminală
 
-- `ShopE2eContext.pass(...)` capturează punctul `FINAL` conform YAML-ului
-  și publică `Screen validation` numai când există PNG valid; dacă YAML-ul
+- `ShopE2eContext.pass(...)` capturează punctul `FINAL` conform profilului efectiv
+  și publică `Screen validation` numai când există PNG valid; dacă profilul
   dezactivează captura, publică validarea `THEN` fără a pretinde că există
   evidence vizual; auditul de ecran este o observație, nu o acțiune Playwright.
 - `ShopUiOnlySingleFlowPurchaseE2eTest` folosește această cale după aserțiunea de
@@ -1006,9 +1025,9 @@ Purchase-ul guest păstrează un număr mic de teste și mai multe dovezi locale
   surprinde starea finală.
 - `ShopNewAccountPurchaseE2eTest` și `ShopAuthenticatedPurchaseE2eTest` apelează
   `journey.completePurchase(result)`: acesta verifică confirmarea observată și
-  publică `Screen validation` cu captura `FINAL` când politica YAML o permite.
-  Capturile de setup și purchase urmează aceeași politică configurată; nici
-  adnotarea testului, nici profilul contului nu le pot dezactiva.
+  publică `Screen validation` cu captura `FINAL` când politica efectivă o permite.
+  Capturile de setup și purchase urmează aceeași politică; în rularea standalone,
+  o adnotare explicită poate selecta și `NONE`.
 - Validarea terminală este read-only; nu adăuga acțiuni Playwright artificiale.
   Registration/login rămân în `SETUP`, iar acțiunile purchase rămân la
   checkpoint-urile unde s-au executat.
@@ -1018,7 +1037,7 @@ Purchase-ul guest păstrează un număr mic de teste și mai multe dovezi locale
   înainte de journey-ul complet de purchase.
 - Orice raport folosit la acceptare trebuie generat după codul curent și verificat
   în MCP: un singur pas Gherkin final, acțiunile numai acolo unde au fost
-  executate, captură efectivă după fiecare tabel Playwright când politica YAML
+  executate, captură efectivă după fiecare tabel Playwright când profilul efectiv
   permite, fără PII. Policy-ul din
   System sau un test component nu dovedește singur capturarea.
 

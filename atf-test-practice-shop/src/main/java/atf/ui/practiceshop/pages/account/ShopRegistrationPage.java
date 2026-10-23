@@ -10,6 +10,7 @@ import atf.ui.practiceshop.locators.ShopLocators;
 import atf.ui.practiceshop.support.ShopPageContract;
 import atf.ui.practiceshop.routes.ShopUiRoutes;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.options.LoadState;
 
 import java.net.URI;
 import java.util.List;
@@ -84,6 +85,10 @@ public final class ShopRegistrationPage {
         if (status < 200 || status >= 300) {
             throw new AssertionError("Practice Shop registration response was not successful; HTTP " + status);
         }
+        // The registration response can arrive before the browser finishes the
+        // form navigation. Do not let setup evidence capture a transient
+        // document whose execution context is about to be replaced.
+        page.waitForLoadState(LoadState.LOAD);
         return status;
     }
 

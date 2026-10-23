@@ -1,4 +1,4 @@
-package atf.ui.autoex.support;
+package atf.ui.autoex.support.account;
 
 /** Pure decision for disposing only the disposable account owned by this journey. */
 public enum AutoExAccountCleanupAction {

@@ -14,6 +14,10 @@ public record AutoExConfiguration(URI baseUrl, boolean e2eEnabled,
                                   Payment payment) {
     public AutoExConfiguration {
         baseUrl = Objects.requireNonNull(baseUrl, "baseUrl");
+        if (baseUrl.getHost() == null || !("https".equalsIgnoreCase(baseUrl.getScheme())
+                || "http".equalsIgnoreCase(baseUrl.getScheme()))) {
+            throw new IllegalArgumentException("baseUrl must be an absolute HTTP(S) URI");
+        }
         browser = Objects.requireNonNull(browser, "browser");
         uiReportBaseDirectory = safeRelative(uiReportBaseDirectory);
         catalog = Objects.requireNonNull(catalog, "catalog");
@@ -65,12 +69,25 @@ public record AutoExConfiguration(URI baseUrl, boolean e2eEnabled,
         public String displayName() {
             return firstName + " " + lastName;
         }
+
+        @Override
+        public String toString() {
+            return "Registration[configured=true]";
+        }
     }
 
     public String expectedCartTotal() {
         String digits = catalog.unitPrice().replaceAll("[^0-9]", "");
         if (digits.isEmpty()) throw new IllegalStateException("Configured unit price has no numeric amount");
         return "Rs. " + Math.multiplyExact(Integer.parseInt(digits), catalog.quantity());
+    }
+
+    /** Avoid exposing configured form data if the aggregate is ever logged for diagnostics. */
+    @Override
+    public String toString() {
+        return "AutoExConfiguration[baseUrl=" + baseUrl + ", e2eEnabled=" + e2eEnabled
+                + ", browser=" + browser + ", uiReportBaseDirectory=" + uiReportBaseDirectory
+                + ", catalog=" + catalog + ", registration=configured, payment=configured]";
     }
 
     /** Test-only card details accepted by the site's demo payment form; never a real payment method. */
@@ -82,6 +99,11 @@ public record AutoExConfiguration(URI baseUrl, boolean e2eEnabled,
             cvc = required(cvc, "payment.cvc");
             expiryMonth = required(expiryMonth, "payment.expiryMonth");
             expiryYear = required(expiryYear, "payment.expiryYear");
+        }
+
+        @Override
+        public String toString() {
+            return "Payment[configured=true]";
         }
     }
 

@@ -1,4 +1,6 @@
-package atf.ui.autoex.support;
+package atf.ui.autoex.support.account;
+
+import atf.ui.autoex.config.AutoExConfiguration;
 
 import atf.ui.autoex.config.AutoExConfiguration;
 

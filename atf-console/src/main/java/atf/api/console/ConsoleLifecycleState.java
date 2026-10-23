@@ -22,7 +22,7 @@ final class ConsoleLifecycleState {
                 depth = Math.max(0, depth - 1);
                 yield depth;
             }
-            case DETAIL, CODE -> depth;
+            case DETAIL, CODE, REPORT_PUBLISHED -> depth;
         };
     }
 

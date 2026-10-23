@@ -1,9 +1,12 @@
 package atf.api.console.junit;
 import atf.api.console.AtfConsoleConfigurationLoader;
+import atf.api.console.AtfConsoleReporter;
 import atf.api.console.ConsoleSettings;
 import atf.api.core.reporting.contract.AtfReportStatus;
 import atf.api.testkit.AtfConsoleMessages;
 import atf.api.testkit.console.AtfConsoleMessagePolicyResolver;
+import atf.api.testkit.reporting.AtfReportPath;
+import atf.api.testkit.reporting.AtfReportPathPolicyResolver;
 
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -28,7 +31,8 @@ public final class AtfConsoleTestExtension implements BeforeEachCallback, TestWa
         ConsoleSettings settings = effectiveSettings(context.getRequiredTestClass());
         var lifecycle = AtfConsoleTestLifecycle.configured(
                 context.getRequiredTestClass().getSimpleName(),
-                context.getRequiredTestMethod().getName(), settings);
+                context.getRequiredTestMethod().getName(), settings,
+                reportPathEnabled(context.getRequiredTestClass()));
         lifecycle.start();
         activeTests.put(context.getUniqueId(), lifecycle);
         AtfConsoleTestContext.install(lifecycle);
@@ -37,6 +41,33 @@ public final class AtfConsoleTestExtension implements BeforeEachCallback, TestWa
     static ConsoleSettings effectiveSettings(Class<?> testClass) {
         ConsoleSettings configured = AtfConsoleConfigurationLoader.load().settings();
         return applyPolicy(configured, AtfConsoleMessagePolicyResolver.resolve(testClass));
+    }
+
+    /** Resolves report-path opt-in independently from {@code @AtfConsoleMessages}. */
+    public static boolean reportPathEnabled(Class<?> testClass) {
+        return AtfReportPathPolicyResolver.resolve(testClass) == AtfReportPath.Policy.ENABLED;
+    }
+
+    /** Sink for a per-class report owner; emits only the final-path event. */
+    public static atf.api.core.reporting.console.AtfConsoleSink reportPathSink(Class<?> testClass) {
+        var reporter = AtfConsoleReporter.configuredStdout(
+                AtfConsoleConfigurationLoader.load().settings(), reportPathEnabled(testClass));
+        return event -> {
+            if (event.type() == atf.api.core.reporting.console.AtfConsoleEvent.Type.REPORT_PUBLISHED) {
+                reporter.publish(event);
+            }
+        };
+    }
+
+    /** Destination for a shared scope that aggregates opt-in across its report owners. */
+    public static atf.api.core.reporting.console.AtfConsoleSink reportPathPublisher() {
+        var reporter = AtfConsoleReporter.configuredStdout(
+                AtfConsoleConfigurationLoader.load().settings(), true);
+        return event -> {
+            if (event.type() == atf.api.core.reporting.console.AtfConsoleEvent.Type.REPORT_PUBLISHED) {
+                reporter.publish(event);
+            }
+        };
     }
 
     static ConsoleSettings applyPolicy(ConsoleSettings configured, AtfConsoleMessages.Policy policy) {

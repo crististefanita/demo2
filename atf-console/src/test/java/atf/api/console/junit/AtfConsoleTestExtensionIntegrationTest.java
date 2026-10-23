@@ -2,6 +2,7 @@ package atf.api.console.junit;
 
 import atf.api.core.reporting.console.AtfConsoleEvent;
 import atf.api.testkit.AtfConsoleMessages;
+import atf.api.testkit.reporting.AtfReportPath;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Disabled;
@@ -86,6 +87,11 @@ class AtfConsoleTestExtensionIntegrationTest {
         assertEqualsOccurrences(concurrent.output(), "thread=two", 1);
         org.junit.jupiter.api.Assertions.assertEquals(2, ConcurrentFixture.LIFECYCLES.size(),
                 "parallel invocations must not share a thread-local test lifecycle");
+
+        CapturedRun pathEnabled = run(ReportPathEnabledFixture.class, config);
+        assertTrue(pathEnabled.output().contains("Extent report: "));
+        CapturedRun pathDisabled = run(ReportPathDisabledFixture.class, config);
+        org.junit.jupiter.api.Assertions.assertFalse(pathDisabled.output().contains("Extent report:"));
 
         assertNull(AtfConsoleTestContext.current(), "the extension must clear its thread-bound lifecycle");
     }
@@ -190,6 +196,23 @@ class AtfConsoleTestExtensionIntegrationTest {
     static class TeardownFailureFixture {
         @Test void bodyPasses() { assertTrue(true); }
         @AfterEach void teardownFails() { throw new IllegalStateException("intentional teardown failure"); }
+    }
+
+    @ExtendWith(AtfConsoleTestExtension.class)
+    @AtfReportPath
+    static class ReportPathEnabledFixture {
+        @Test void publishesOnlyWhenOptedIn() {
+            AtfConsoleTestContext.configuredSink().publish(AtfConsoleEvent.reportPublished(
+                    Path.of("reports", "report.html").toAbsolutePath().normalize()));
+        }
+    }
+
+    @ExtendWith(AtfConsoleTestExtension.class)
+    static class ReportPathDisabledFixture {
+        @Test void leavesPathOutputOffWithoutAnnotation() {
+            AtfConsoleTestContext.configuredSink().publish(AtfConsoleEvent.reportPublished(
+                    Path.of("reports", "report.html").toAbsolutePath().normalize()));
+        }
     }
 
     @ExtendWith(AtfConsoleTestExtension.class)

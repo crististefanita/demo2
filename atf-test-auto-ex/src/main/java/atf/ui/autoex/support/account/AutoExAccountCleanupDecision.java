@@ -1,4 +1,4 @@
-package atf.ui.autoex.support;
+package atf.ui.autoex.support.account;
 
 /** Maps observed account-state controls to an explicit cleanup action. */
 public final class AutoExAccountCleanupDecision {

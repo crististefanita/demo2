@@ -1,8 +1,13 @@
 package atf.ui.tests.practiceshop.support;
 
 import atf.api.testkit.AtfUnitTest;
+import atf.api.testkit.reporting.AtfReportPath;
+import atf.api.testkit.reporting.AtfReportPathPolicyResolver;
 import atf.api.testkit.channel.AtfTestChannel;
 import atf.api.testkit.channel.TestChannel;
+import atf.api.testkit.evidence.AtfUiEvidence;
+import atf.api.testkit.evidence.AtfUiEvidenceFlow;
+import atf.api.testkit.evidence.AtfUiScreenshotPolicy;
 import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.evidence.profile.ReportEvidenceCaptureSource;
 import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
@@ -113,17 +118,17 @@ class ShopE2eTestSupportTest {
                 Class.forName("atf.ui.tests.practiceshop.e2e.ShopPurchaseE2eTest")
                         .getAnnotation(AtfTestChannel.class).value());
 
-        var singleFlow = Class.forName(
-                        "atf.ui.tests.practiceshop.e2e.ShopUiOnlySingleFlowPurchaseE2eTest")
-                .getAnnotation(ShopE2eTestSupport.WithE2eHarness.class);
+        Class<?> singleFlowOwner = Class.forName(
+                "atf.ui.tests.practiceshop.e2e.ShopUiOnlySingleFlowPurchaseE2eTest");
+        var singleFlow = singleFlowOwner.getAnnotation(ShopE2eTestSupport.WithE2eHarness.class);
+        var singleFlowEvidence = singleFlowOwner.getAnnotation(AtfUiEvidence.class);
         assertEquals(ShopE2eTestSupport.HarnessProfile.CONFIGURED, singleFlow.profile());
         assertEquals(TestChannel.UI,
                 Class.forName("atf.ui.tests.practiceshop.e2e.ShopUiOnlySingleFlowPurchaseE2eTest")
                         .getAnnotation(AtfTestChannel.class).value());
-        assertEquals(ShopE2eTestSupport.ReportFlow.UNIFIED_FLOW,
-                singleFlow.reportFlow());
+        assertEquals(AtfUiEvidenceFlow.UNIFIED_FLOW, singleFlowEvidence.flow());
         var reportProfile = ShopE2eTestSupport.reportProfile(
-                ShopConfigurationLoader.load(), singleFlow);
+                ShopConfigurationLoader.load(), singleFlow, singleFlowEvidence);
         assertEquals(ReportEvidenceFlowMode.UNIFIED_FLOW, reportProfile.flowMode());
         assertEquals(ReportScreenshotPolicy.EACH_CHECKPOINT, reportProfile.screenshotPolicy());
         assertEquals(ReportEvidenceCaptureSource.BROWSER, reportProfile.captureSource());
@@ -198,6 +203,20 @@ class ShopE2eTestSupportTest {
     }
 
     @Test
+    void sharedEvidenceAnnotationOverridesOnlyItsDeclaredAxes() {
+        var configured = ShopConfigurationLoader.load();
+        var noScreenshots = ShopE2eTestSupport.reportProfile(configured, null,
+                NoScreenshotsEvidence.class.getAnnotation(AtfUiEvidence.class));
+        var configuredEvidence = ShopE2eTestSupport.reportProfile(configured, null,
+                ConfiguredEvidence.class.getAnnotation(AtfUiEvidence.class));
+
+        assertEquals(ReportEvidenceFlowMode.UNIFIED_FLOW, noScreenshots.flowMode());
+        assertEquals(ReportScreenshotPolicy.NONE, noScreenshots.screenshotPolicy());
+        assertEquals(ReportEvidenceFlowMode.SCREEN_CHECKPOINTS, configuredEvidence.flowMode());
+        assertEquals(configured.reporting().screenshotPolicy(), configuredEvidence.screenshotPolicy());
+    }
+
+    @Test
     void suiteHarnessCompositionPreservesTheConfiguredScreenshotPolicy() {
         var yamlConfiguration = ShopConfigurationLoader.load();
         for (ReportScreenshotPolicy policy : ReportScreenshotPolicy.values()) {
@@ -218,6 +237,15 @@ class ShopE2eTestSupportTest {
         assertTrue(ShopTestSupport.suiteModeEnabled(
                 "[engine:junit-platform-suite]/[suite:ShopE2eSuite]/[engine:junit-jupiter]"));
         assertFalse(ShopTestSupport.suiteModeEnabled("[engine:junit-jupiter]"));
+    }
+
+    @Test
+    void shopE2eHarnessOptsReportOwnersIntoThePublishedPath() throws ClassNotFoundException {
+        Class<?> purchase = Class.forName(
+                "atf.ui.tests.practiceshop.e2e.ShopPurchaseE2eTest");
+
+        assertEquals(AtfReportPath.Policy.ENABLED,
+                AtfReportPathPolicyResolver.resolve(purchase));
     }
 
     @Test
@@ -246,6 +274,13 @@ class ShopE2eTestSupportTest {
     @ShopE2eTestSupport.WithE2eHarness(
             actionDetails = ShopE2eTestSupport.ActionDetailsMode.INCLUDED_COLLAPSED)
     private static class IncludedActions { }
+
+    @AtfUiEvidence(flow = AtfUiEvidenceFlow.UNIFIED_FLOW,
+            screenshots = AtfUiScreenshotPolicy.NONE)
+    private static class NoScreenshotsEvidence { }
+
+    @AtfUiEvidence
+    private static class ConfiguredEvidence { }
 
     @Test
     void closesThePerMethodResourceOnlyOnce() throws Exception {

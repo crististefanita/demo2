@@ -25,11 +25,12 @@ public final class AtfModuleIds {
 
     /** Composition roots without production source; their ATF dependencies stay test-only. */
     public static final List<String> TEST_ONLY_COMPOSITION_MODULES =
-            List.of(TESTS, REPORTING_TESTS, AUTOMATION_EXERCISE);
+            List.of(TESTS, REPORTING_TESTS);
 
     /** Modules whose production/test source boundaries are governed by the whole-ATF guard. */
     public static final List<String> SOURCE_GOVERNED_MODULES = List.of(
-            CORE, MOCK, VALIDATION, CONSOLE, REPORTING, UI, DEBUG_UI, PRACTICE_SHOP, TESTS);
+            CORE, MOCK, VALIDATION, CONSOLE, REPORTING, UI, DEBUG_UI, PRACTICE_SHOP,
+            AUTOMATION_EXERCISE, TESTS);
 
     private AtfModuleIds() {
     }

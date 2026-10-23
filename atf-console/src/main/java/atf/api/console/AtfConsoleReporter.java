@@ -17,12 +17,19 @@ public final class AtfConsoleReporter implements AtfConsoleSink {
 
     private final PrintStream output;
     private final ConsoleSettings settings;
+    private final boolean reportPathEnabled;
     private final AtfConsoleFormatter formatter;
     private final ConsoleLifecycleState lifecycle = new ConsoleLifecycleState();
 
     public AtfConsoleReporter(PrintStream output, ConsoleSettings settings) {
+        this(output, settings, false);
+    }
+
+    /** Creates a reporter that may print the final report path when explicitly opted in. */
+    public AtfConsoleReporter(PrintStream output, ConsoleSettings settings, boolean reportPathEnabled) {
         this.output = Objects.requireNonNull(output, "output");
         this.settings = Objects.requireNonNull(settings, "settings");
+        this.reportPathEnabled = reportPathEnabled;
         this.formatter = new AtfConsoleFormatter(ConsoleOutputStyle.forStream(output));
     }
 
@@ -34,6 +41,12 @@ public final class AtfConsoleReporter implements AtfConsoleSink {
     /** Creates the configured process-console adapter with a per-test projection policy. */
     public static AtfConsoleReporter configuredStdout(ConsoleSettings settings) {
         return new AtfConsoleReporter(System.out, settings);
+    }
+
+    /** Creates the configured adapter with an explicit report-path opt-in. */
+    public static AtfConsoleReporter configuredStdout(ConsoleSettings settings,
+                                                       boolean reportPathEnabled) {
+        return new AtfConsoleReporter(System.out, settings, reportPathEnabled);
     }
 
     /** Publishes one launcher/diagnostic line without leaking a PrintStream to callers. */
@@ -50,6 +63,7 @@ public final class AtfConsoleReporter implements AtfConsoleSink {
     public synchronized void publish(AtfConsoleEvent event) {
         Objects.requireNonNull(event, "event");
         if (!settings.enabled()) return;
+        if (event.type() == AtfConsoleEvent.Type.REPORT_PUBLISHED && !reportPathEnabled) return;
         try {
             int eventDepth = lifecycle.depthFor(event.type());
             for (String line : formatter.format(event, settings.detailsEnabled())) {

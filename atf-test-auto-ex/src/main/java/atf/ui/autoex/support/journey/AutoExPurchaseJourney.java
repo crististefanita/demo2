@@ -1,7 +1,10 @@
-package atf.ui.autoex.support;
+package atf.ui.autoex.support.journey;
 
 import atf.api.reporting.contract.AtfAssertion;
 import atf.ui.autoex.config.AutoExConfiguration;
+import atf.ui.autoex.support.account.AutoExTestAccount;
+import atf.ui.autoex.support.catalog.AutoExCatalogAssertions;
+import atf.ui.autoex.support.catalog.AutoExCatalogSnapshot;
 import atf.ui.autoex.page.AccountPage;
 import atf.ui.autoex.page.CartPage;
 import atf.ui.autoex.page.CheckoutPage;
@@ -127,6 +130,7 @@ public final class AutoExPurchaseJourney {
                             new AtfAssertion("Configured product price", product.unitPrice(),
                                     catalog.configuredProductPrice(),
                                     product.unitPrice().equals(catalog.configuredProductPrice()))));
+            run.markCausalApiTrafficBaseline();
         }
 
         new HomePage(run).openProducts();

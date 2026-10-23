@@ -3,8 +3,8 @@ package atf.ui.autoex.page;
 import atf.api.reporting.contract.AtfAssertion;
 import atf.ui.autoex.config.AutoExConfiguration;
 import atf.ui.autoex.locator.AutoExSelectors;
-import atf.ui.autoex.support.AutoExPurchaseSession;
-import atf.ui.autoex.support.AutoExPurchaseTraceStep;
+import atf.ui.autoex.support.journey.AutoExPurchaseSession;
+import atf.ui.autoex.support.journey.AutoExPurchaseTraceStep;
 import com.microsoft.playwright.Download;
 
 import java.nio.file.Files;

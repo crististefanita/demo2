@@ -4,6 +4,8 @@ import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.evidence.profile.ReportEvidenceCaptureSource;
 import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
 import atf.api.reporting.evidence.profile.ReportEvidenceProfile;
+import atf.api.testkit.evidence.AtfUiEvidenceFlow;
+import atf.api.testkit.evidence.AtfUiScreenshotPolicy;
 
 import java.util.Objects;
 
@@ -11,18 +13,23 @@ import java.util.Objects;
 public final class AutoExEvidenceProfile {
     private AutoExEvidenceProfile() { }
 
-    public static ReportEvidenceProfile forRun(AutoExEvidenceMode.Mode mode,
-                                        ReportScreenshotPolicy configuredPolicy) {
-        Objects.requireNonNull(mode, "mode");
+    public static ReportEvidenceProfile forRun(AtfUiEvidenceFlow flow,
+                                               AtfUiScreenshotPolicy screenshots,
+                                               ReportScreenshotPolicy configuredPolicy) {
+        Objects.requireNonNull(flow, "flow");
+        Objects.requireNonNull(screenshots, "screenshots");
         Objects.requireNonNull(configuredPolicy, "configuredPolicy");
-        ReportScreenshotPolicy selectedPolicy = switch (mode) {
+        ReportScreenshotPolicy selectedPolicy = switch (screenshots) {
             case CONFIGURED -> configuredPolicy;
-            case CHECKPOINT_SCREENSHOTS -> ReportScreenshotPolicy.EACH_CHECKPOINT;
-            case FINAL_SCREENSHOT_ONLY -> ReportScreenshotPolicy.FINAL_ONLY;
+            case EACH_CHECKPOINT -> ReportScreenshotPolicy.EACH_CHECKPOINT;
+            case FINAL_ONLY -> ReportScreenshotPolicy.FINAL_ONLY;
+            case FAILURE_ONLY -> ReportScreenshotPolicy.FAILURE_ONLY;
+            case FINAL_AND_FAILURE -> ReportScreenshotPolicy.FINAL_AND_FAILURE;
+            case NONE -> ReportScreenshotPolicy.NONE;
         };
-        ReportEvidenceFlowMode flowMode = switch (mode) {
-            case FINAL_SCREENSHOT_ONLY -> ReportEvidenceFlowMode.UNIFIED_FLOW;
-            case CONFIGURED, CHECKPOINT_SCREENSHOTS -> ReportEvidenceFlowMode.SCREEN_CHECKPOINTS;
+        ReportEvidenceFlowMode flowMode = switch (flow) {
+            case CONFIGURED, SCREEN_CHECKPOINTS -> ReportEvidenceFlowMode.SCREEN_CHECKPOINTS;
+            case UNIFIED_FLOW -> ReportEvidenceFlowMode.UNIFIED_FLOW;
         };
         return ReportEvidenceProfile.builder()
                 .flowMode(flowMode)

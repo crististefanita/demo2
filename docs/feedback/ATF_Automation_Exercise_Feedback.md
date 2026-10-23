@@ -1,248 +1,127 @@
-# Feedback — Automation Exercise
+# ATF — feedback API pentru Automation Exercise
 
-Acest fișier păstrează limitele de business și lacunele de integrare specifice
-consumerului [`atf-test-auto-ex`](../../atf-test-auto-ex/README.md). Contractul
-stabil și flow-ul implementat sunt documentate în README-ul modulului;
-arhitectura comună Shop/AutoEx este urmărită în
-[feedback-ul dedicat](ATF_Consumer_Test_Architecture_Feedback.md). Lacuna
-generică de profile Reporting este prioritizată o singură dată în
-[feedback-ul Reporting](ATF_Reporting_Feedback.md#shop-capture-01); secțiunea
-AutoEx de mai jos definește integrarea și dovada cerute, nu un backlog duplicat.
+Documentul păstrează diferența dintre modelarea locală a API-ului AutoEx,
+coverage-ul determinist și verificarea serviciului public. Rutele și testele
+componente sunt deja în ownerul
+[`atf-test-auto-ex`](../../atf-test-auto-ex/README.md); aici rămâne doar
+coverage-ul incomplet care afectează corectitudinea și siguranța execuției.
 
-## Context și boundary
+## AUTOEX-API-CONTRACT-01 — contracte API complete și cauzalitate UI/API
 
-- Site-ul public este un magazin de practică separat de Practice Shop.
-- Consumerul verifică un singur journey real în trei configurații de evidence:
-  `UI`, `UI_API` și `UI` cu captură numai la starea terminală. Toate repetă
-  aceeași căutare și cumpărare, înregistrare
-  în checkout, adresă, plată demo, confirmare, factură și ștergerea contului.
-  Flow-ul este bazat pe [Test Case 14](https://automationexercise.com/test_cases#collapse14)
-  și [Test Case 24](https://automationexercise.com/test_cases#collapse24).
-- Varianta de bază este `UI`: căutarea browserului navighează la
-  `/products?search=...`. API-ul documentat `POST /api/searchProduct` este o
-  operație separată și nu a fost observat ca rezultat al aceleiași acțiuni UI.
-  Varianta experimentală `UI_API` nu lansează acel endpoint separat; ea
-  inspectează traficul first-party din sesiunea browserului și pică dacă nu
-  observă exchange-uri `/api/`. Rularea live a observat un `GET
-  /api/productsList` explicit în checkpoint-ul de precondiție; nu îl atribuim
-  click-ului de căutare. Endpoint-urile sunt descrise în
-  [API List](https://automationexercise.com/api_list).
-- Cele trei clase de business sunt orchestrate de `AutoExPurchaseSuite`, care
-  deține un singur raport Extent. Nu păstrăm teste cu DOM/iframe inventat sau
-  variante care testează numai etape deja incluse în purchase journey.
-- Datele contului și ale plății sunt sintetice, folosite numai pentru formularul
-  demo; contul este șters la final. Suportul necesar execuției reale (config,
-  page objects, lifecycle și cleanup) nu este o suită separată de teste.
+**Stare: parțial implementat, deschis. Prioritate recalibrată: 89/100**
+(impact 38 + lacună 25 + lucrabil 18 + datorie documentară 8). Catalogul de rute,
+request factory-ul și matricea deterministă există; nu sunt încă probe ale
+contractelor răspunsului serviciului public sau ale operațiilor mutabile live.
+Auditul a găsit și o ambiguitate de contract ce trebuie rezolvată înainte ca
+statusurile curente să fie considerate dovadă.
 
-## Proprietate și reutilizare
+### Situația verificată în cod
 
-- `atf-test-kit`, `atf-ui` și `atf-reporting` dețin adnotările, Playwright,
-  acțiunile, capturile și Extent. AutoEx le compune direct.
-- Rutele, locatorii, datele și paginile Automation Exercise rămân în consumer;
-  vocabularul HTML generic aparține `atf-ui`. Practice Shop nu se copiază ca
-  pachet: se extrage în ATF numai o capabilitate fără date/configurație de
-  business, folosită și probată de consumatori independenți.
-- Precondițiile de mediu (consimțământul CMP și vignette-ul vizibil) sunt
-  gestionate prin UI-ul real și rămân în trace; ele nu justifică teste consumer
-  sintetice și nu înlocuiesc aserțiunile asupra cumpărării.
+- `AutoExApiRoute` deține opt rute publicate; `AutoExApiRequestFactory` compune
+  request-uri GET, query și form, iar `AutoExApiAccount` modelează câmpurile
+  create/update și redactează parola din `toString()`.
+- `AutoExApiContractComponentTest` enumeră toate cele 14 scenarii din API List,
+  trece fiecare request prin `ApiExecutor` și un transport determinist și
+  verifică metoda, ruta, host-ul fixture, transport HTTP fixture `200`, câmpul
+  JSON `responseCode`, fragmentul semantic minim din body și un singur exchange.
+  Testele sunt offline și fac parte din `AutoExComponentSuite`; fixture-ul separă
+  acum statusul de transport de codul documentat, dar nu dovedește statusurile
+  reale ale serviciului.
+- Testul suplimentar verifică form-ul de login, query-ul pentru user detail și
+  redactarea `toString()` a modelului; nu verifică fiecare body/header/query,
+  nici schema semantică a tuturor răspunsurilor.
+- Statusurile și body-urile sunt furnizate de test fixture; testul nu face
+  request la `automationexercise.com`, deci nu certifică serviciul live.
+- API List numește valorile „Response Code”, iar corpul API are propriul câmp
+  `responseCode`. Testul live compară acum acea valoare cu JSON-ul și raportează
+  separat statusul HTTP observat; nu impune încă un status HTTP exact, doar
+  respinge transportul non-2xx/3xx/4xx. Confirmarea statusului HTTP așteptat,
+  endpoint cu endpoint, rămâne deschisă. În special, nu susținem că `201` la
+  API 11 este neapărat HTTP 201.
+- `AutoExApiLiveContractTest` și `AutoExApiLiveSuite` există separat și sunt
+  dezactivate implicit. Suita construiește un cont sintetic unic, armează
+  cleanup înainte de create și verifică `responseCode` la închidere. Verifică
+  `responseCode` JSON pentru toate scenariile și emailul contului sintetic în
+  obiectul user de la detail; statusul HTTP este separat în diagnostic și are
+  numai un guard generic. Nu a fost executată în această validare; compatibilitatea
+  contului, statusurilor HTTP exacte, mesajelor, schemelor și cleanup-ului live
+  rămâne nedovedită.
+- `AutoExPurchaseUiApiE2eTest` observă traficul din browser, însă
+  `GET /api/productsList` este precondiție de setup înaintea căutării. Nu este
+  dovadă că o acțiune UI a cauzat acel exchange; baseline-ul de trafic îl
+  exclude din numărătoarea cauzală, iar proba componentă verifică izolarea.
+  Căutarea UI folosește `/products?search=...`, nu `POST /api/searchProduct`.
+- Testul API live nu publică un raport Extent dedicat pentru contractele directe.
+  Nici redactarea secretelor din request evidence, replay manual, consolă și
+  raport nu este demonstrată end-to-end; verificarea `toString()` acoperă numai
+  reprezentarea modelului.
 
-## Decizii închise
+### Suprafața publică modelată
 
-- `AUTOEX-API-01` — decizia inițială de a nu duplica purchase journey-ul UI cu
-  API-uri în E2E rămâne valabilă pentru boundary-ul E2E; **nu închide** însă
-  verificarea directă a contractelor API. Cerința distinctă de component/API
-  coverage este deschisă în `AUTOEX-API-CONTRACT-01` mai jos. Observarea
-  Network Inspector nu este substitut pentru testarea directă a endpoint-urilor.
+Matricea urmărește cele 14 scenarii publicate de
+[Automation Exercise API List](https://automationexercise.com/api_list). Sunt
+așteptări documentate ale serviciului, nu rezultate live obținute de ATF.
 
-## Rezolvat în codul curent și verificat
+| Scenariu | Request | Documented JSON `responseCode` | Efect și izolare |
+|---|---|---:|---|
+| API 1 | `GET /api/productsList` | 200 | read-only |
+| API 2 | `POST /api/productsList` | 405 | metodă neacceptată |
+| API 3 | `GET /api/brandsList` | 200 | read-only |
+| API 4 | `PUT /api/brandsList` | 405 | metodă neacceptată |
+| API 5 | `POST /api/searchProduct`, `search_product` prezent | 200 | căutare fără mutație |
+| API 6 | `POST /api/searchProduct`, parametru lipsă | 400 | validare input |
+| API 7 | `POST /api/verifyLogin`, credențiale valide | 200 | cont fixture deținut de test |
+| API 8 | `POST /api/verifyLogin`, email lipsă | 400 | validare input |
+| API 9 | `DELETE /api/verifyLogin` | 405 | metodă neacceptată |
+| API 10 | `POST /api/verifyLogin`, credențiale invalide | 404 | fără conturi personale/shared |
+| API 11 | `POST /api/createAccount` | 201 | cont sintetic unic; cleanup armat înaintea create |
+| API 12 | `DELETE /api/deleteAccount` | 200 | șterge numai contul creat de test |
+| API 13 | `PUT /api/updateAccount` | 200 | actualizează numai contul sintetic al testului |
+| API 14 | `GET /api/getUserDetailByEmail` | 200 | citește numai identitatea sintetică a testului |
 
-- `AUTOEX-E2E-RESILIENCE-01`: cleanup-ul este armat înainte de submit-ul
-  `Create Account`. Dacă pagina nu confirmă crearea și nu oferă acțiunea de
-  ștergere pentru sesiunea autentificată, cleanup-ul nu mai raportează fals un
-  cont existent; dacă heading-ul confirmă crearea dar controlul de ștergere
-  lipsește, cleanup-ul eșuează explicit. `AutoExE2eRun.finish` păstrează
-  excepția testului și atașează eșecul cleanup-ului ca suppressed failure.
-  Componentele verifică decizia NO_OP/DELETE și păstrarea excepției primare;
-  suita live a verificat ștergerea reală a contului în toate cele trei rulări.
-- `AUTOEX-DATA-01`: prețul din pagina produsului este comparat cu o linie
-  completă, normalizată prin trim, nu cu `contains`; `Rs. 500` nu mai acceptă
-  accidental `Rs. 5000`. Prețul din cart și valoarea API rămân comparații exacte.
-- `AUTOEX-EVIDENCE-MATRIX-01` — **canalele, cardinalitatea capturii și
-  compoziția final-only sunt verificate automat/live; inspecția vizuală rămâne
-  deschisă**. Rularea anterioară a
-  `AutoExPurchaseSuite` a trecut 3/3: UI, UI_API și UI cu captură numai la
-  final. Artifactul acelei matrice a fost inspectat vizual la momentul rulării;
-  acea dovadă nu certifică layout-ul artifactului țintit ulterior.
-- Artifactul matricei precedente arată checkpoint-uri Gherkin separate pentru
-  variantele `SCREEN_CHECKPOINTS`; acesta nu este criteriul variantei
-  final-only. În UI_API, `GET /api/productsList — Exchange
-  1` a rămas atașat checkpoint-ului real care îl observă, cu request/response și
-  transport `LIVE / HTTP`.
-- Rularea țintită finală din 2026-10-23 a
-  `AutoExPurchaseUiFinalScreenshotE2eTest` a trecut **1/1**, inclusiv ștergerea
-  contului sintetic. Artifactul nou are exact un `Playwright action sequence`,
-  un tabel `atf-ui-action-table`, un `unified-ui-flow`, o referință de screenshot
-  și un element `<img>` pentru captura terminală.
-- Artifactul țintit a fost verificat structural, nu vizual în browserul MCP; nu
-  marcăm această probă drept audit vizual. Verificările vizuale la viewport MCP
-  868×648 și consola fără erori/avertismente aparțin artifactului matricei
-  inspectat anterior. Nu s-a pretins o verificare separată de `pageerror`.
-- Testele componente AutoEx pentru profil, politica de captură, aserțiunile de
-  catalog, cleanup și combinarea excepțiilor au trecut; cele patru teste din
-  `ReportEvidenceProfileIntegrationTest` verifică și profile diferite per
-  scenariu într-o sesiune partajată.
+### Cerințe rămase
 
-## AUTOEX-FINAL-PROFILE-01 — un singur tabel Playwright și captura terminală
+1. Distincția cod/JSON este implementată în testele componente și în aserțiunile
+   live. Rămâne să stabilești statusul HTTP așteptat pentru fiecare endpoint din
+   capturi reale sau dintr-un contract upstream explicit și să-l validezi
+   separat; nu deduce HTTP 201 pentru API 11 numai din „Response Code: 201”.
+2. Păstrează request factory-ul și testul offline existente; nu recrea încă o
+   matrice de rute. Întărește contractul component pe fiecare caz: form/query,
+   header-ele relevante, encoding, body absent/prezent și aserțiuni pe câmpurile
+   semantice ale răspunsului, inclusiv cazurile negative. Evită snapshot-uri ale
+   întregului catalog.
+3. Separă explicit trei niveluri de dovadă: request-model local, componentă prin
+   transport fixture și integrare live opt-in. Nu prezenta statusul fixture-ului
+   ca status observat la serviciu.
+4. Suita live există și nu pornește în buildul implicit. Baza URL și timeout-ul
+   sunt configurabile; contul este sintetic și unic. Destinația raportului nu
+   este încă o opțiune dedicată a suitei API live.
+5. Rulează suita numai cu opt-in explicit și verifică serviciul real. Cleanup-ul
+   este armat înainte de create și try-with-resources păstrează excepția din
+   corp drept cauză primară, atașând o eroare de cleanup ca suppressed; totuși,
+   trebuie validat live că ștergerea reușește după create/update și pe o cale de
+   eșec controlată. Testele offline nu substituie această probă.
+6. Redactează secretele înainte de log, retry history, manual replay și evidence.
+   Testul actual al `toString()` este necesar, dar nu demonstrează redactarea
+   body-ului `ApiRequest` sau a proiecțiilor Reporting.
+7. În `UI_API`, etichetează request-urile de setup separat și leagă traficul
+   cauzal numai de checkpoint-ul/acțiunea observată. Inspectorul agregat nu
+   înlocuiește contractul direct și nu dublează exchange-uri.
+8. Păstrează testele API departe de purchase E2E: journey-ul rămâne business
+   flow, iar matricea endpoint-urilor are suite și raport dedicate.
 
-**Stare: implementat și verificat automat/live; inspecția vizuală în browser a
-artifactului proaspăt rămâne de confirmat.** Comportamentul raportului nu mai
-este un gap de cod.
+### Criterii de închidere
 
-| Semnal din cod/raport | Comportament curent |
-|---|---|
-| `AutoExEvidenceProfile.forRun` | `FINAL_SCREENSHOT_ONLY` compune `UNIFIED_FLOW + FINAL_ONLY`; celelalte moduri păstrează checkpoint-uri separate |
-| `AutoExEvidenceProfileComponentTest` | verifică mapping-ul complet flow + screenshot policy pentru toate variantele |
-| `UiExtentReportSession.startScenario(..., scenarioProfile)` | permite profile explicite per scenariu în raportul partajat, fără dependență de primul copil |
-| `AutoExE2eRun` | rezolvă o singură dată `evidenceMode`, folosește același snapshot de configurare și transmite profilul scenariului |
-| `AutoExPurchaseUiFinalScreenshotE2eTest` | artifactul live proaspăt are un singur tabel Playwright și o singură captură terminală |
-
-**Ținta:** `FINAL_SCREENSHOT_ONLY` rezolvă un singur profil tipizat
-`UNIFIED_FLOW + FINAL_ONLY`, fără adnotare concurentă pentru flow. Profilul se
-aplică scenariului, nu se moștenește accidental de la primul test care deschide
-raportul comun.
-
-- Un scenariu final-only publică o singură propoziție Gherkin și un singur
-  tabel Playwright; fiecare acțiune rămâne prezentă exact o dată, în ordinea
-  execuției, cu target, rezultat și durată. Nu se repetă aceeași propoziție
-  pentru a găzdui câte un tabel pe checkpoint.
-- La succes, o singură captură este atașată validării terminale, după acțiunea
-  finală. La eșec înainte de terminal, raportul păstrează cauza și secvența
-  disponibilă fără să inventeze o captură de succes.
-- În `AutoExPurchaseSuite`, variantele UI, UI_API și final-only pot păstra
-  profile diferite în același raport. Flow mode-ul, politica de captură și
-  detaliile unui scenariu nu se scurg în frații săi; rezultatul rămâne același
-  dacă ordinea claselor se schimbă. Conflictele de configurare pentru același
-  scenariu se resping înainte de browser, nu diferențele declarate între
-  scenariile suitei.
-- În UI_API, exchange-urile rămân evidence reale, legate de checkpoint-ul care
-  le-a observat; agregarea UI nu le dublează și nu le mută arbitrar.
-- `ShopUiOnlySingleFlowPurchaseE2eTest` demonstrează gruparea `UNIFIED_FLOW`
-  într-un singur tabel. Politica sa YAML de screenshot este separată și nu
-  dovedește că produce o singură imagine.
-
-**Ownership-ul testelor:**
-
-- `atf-reporting-tests` verifică profile diferite într-un raport comun, izolarea
-  scenariilor-surori, independența față de ordinea inițializării și HTML-ul
-  rezultat, folosind fixture-uri neutre/mock.
-- Testele componente AutoEx verifică mapping-ul adnotării la
-  `UNIFIED_FLOW + FINAL_ONLY` și compoziția suitei; nu clonează rendererul.
-- E2E-ul real confirmă integrarea consumerului; închiderea vizuală cere
-  inspecția artifactului proaspăt randat.
-- Gap-ul generic se închide o singură dată sub `SHOP-CAPTURE-01` în feedback-ul
-  Reporting; acest ID AutoEx este criteriu consumer, nu scor duplicat.
-
-**Dovadă live — 2026-10-23:** `AutoExPurchaseUiFinalScreenshotE2eTest` a trecut;
-`AutoExEvidenceProfileComponentTest` a trecut, iar cele patru teste din
-`ReportEvidenceProfileIntegrationTest` au trecut. În HTML-ul generat, numărul
-de `Playwright action sequence`, tabele `atf-ui-action-table`, validări
-`unified-ui-flow`, referințe screenshot și elemente `<img>` este câte unul.
-Browserul MCP a refuzat deschiderea artifactului local `file://`, deci nu
-marcăm confirmarea vizuală drept efectuată; pentru aceasta este necesară o
-captură a raportului afișat în tabul MCP.
-
-<a id="autoex-api-contract-01"></a>
-
-## AUTOEX-API-CONTRACT-01 — coverage API directă și cauzalitatea UI/API
-
-**Stare: deschis. Prioritate: 93/100.** Extinde consumerul cu verificări API
-separate, după modelul de testare componentă/API din Practice Shop, fără să
-transforme purchase E2E-ul într-o matrice de endpoint-uri.
-
-### Dovezi din codul curent
-
-- Catalogul de rute AutoEx conține doar `PRODUCTS_API` (`GET /api/productsList`);
-  nu există rute, request factory sau teste API directe pentru celelalte
-  endpoint-uri publicate.
-- Singurul `fetch(...)` din codul consumerului este în
-  `AutoExE2eRun.inspectCatalogApi`. `AutoExPurchaseJourney` îl invocă drept
-  precondiție înainte de deschiderea paginii Products și înainte ca utilizatorul
-  să trimită căutarea UI.
-- Raportul recent al journey-ului UI_API conține un singur exchange `/api/`,
-  `GET /api/productsList`, corespunzător acelui `fetch` explicit. Asta confirmă
-  capturarea request-ului de precondiție, nu o cerere API provocată de căutarea
-  UI sau de checkout.
-- Aserțiunea `> 0 API requests caused by this browser journey` numără orice
-  observație `/api/` din sesiune; request-ul de setup poate satisface condiția
-  fără să existe dovadă pentru o acțiune UI. Numele/semantica acestui verdict
-  trebuie să distingă precondiția explicită de traficul cauzal UI → API.
-- `AutoExComponentSuite` selectează numai
-  `atf.ui.tests.autoex.component`; nu există în prezent suită API component sau
-  pachet de contracte API. Căutarea UI navighează la `/products?search=...` și
-  nu exercită prin ea însăși `POST /api/searchProduct`.
-
-Aceste constatări provin din sursele consumerului și raportul generat de
-implementarea curentă; ele nu trebuie confundate cu o explorare manuală nouă a
-site-ului.
-
-### Suprafața API publică de acoperit
-
-Automation Exercise documentează 14 scenarii API. Statusurile de mai jos sunt
-contractele publicate de site, nu rezultate validate live de o suită AutoEx.
-
-| Scenarii | Endpoint și cazuri documentate | Risc / izolare necesară |
-|---|---|---|
-| API 1–4 | `GET /api/productsList` → 200; `POST /api/productsList` → 405; `GET /api/brandsList` → 200; `PUT /api/brandsList` → 405 | read-only sau metodă neacceptată; validează statusul și forma minimă a JSON-ului |
-| API 5–6 | `POST /api/searchProduct` cu `search_product` → 200; fără parametru → 400 | input valid/invalid, fără efecte persistente; separă acest API de ruta UI de căutare |
-| API 7–10 | `POST /api/verifyLogin`: date valide → 200, parametri lipsă → 400, date invalide → 404; `DELETE` → 405 | cazul pozitiv necesită cont fixture deținut de test; nu folosi credențiale personale/shared |
-| API 11–14 | `POST /api/createAccount` → 201; `PUT /api/updateAccount` → 200; `GET /api/getUserDetailByEmail` → 200; `DELETE /api/deleteAccount` → 200 | stare mutabilă; identitate sintetică unică, ordine deterministă și cleanup verificat chiar după eșec |
-
-Referința normativă pentru lista de endpoint-uri este
-[API List](https://automationexercise.com/api_list); scenariile browser care
-contextualizează consumerul sunt în [Test Cases](https://automationexercise.com/test_cases).
-Journey-ul AutoEx actual este aliniat în principal cu TC14 și TC24, nu cu
-scenariile distincte de register/login/logout, coș multi-produs, persistența
-coșului după autentificare, adrese, categorii și branduri.
-
-### Cerințe și criterii de acceptanță
-
-1. **Suite API componentă separată.** Adaugă suite și pachet dedicat, selectat
-   de un runner component/API distinct de `AutoExPurchaseSuite`. Testele rapide
-   folosesc transport fixture și nu deschid browserul sau nu contactează site-ul.
-2. **Contracte tipizate și matrice completă.** Modelează endpoint-urile,
-   metodele, parametrii, request body-urile și citirea răspunsurilor în suportul
-   consumerului; acoperă toate cele 14 cazuri documentate în matricea de
-   contract. Testele componentă verifică deterministic request/response
-   mapping-ul cu transport fixture; integrarea opt-in confirmă contractul
-   public real conform politicii de efecte secundare. Include statusurile
-   negative 400/404/405 și câmpurile semantice relevante, fără snapshot-uri
-   fragile ale întregului catalog.
-3. **Nivel live opt-in.** Dacă se cere validarea serviciului real, separ-o de
-   componente, activeaz-o explicit și fă destinația, timeout-ul și raportul
-   configurabile. Buildul implicit nu trebuie să trimită request-uri către
-   serviciul public.
-4. **Ciclul contului sigur.** Crearea, citirea, actualizarea, autentificarea și
-   ștergerea folosesc o identitate sintetică unică, creată de test. Cleanup-ul
-   este armat înainte de mutație, rulează în finalizare garantată, confirmă
-   ștergerea și nu maschează eroarea primară; datele sensibile sunt redactate
-   din request/response și din console.
-5. **Network Inspector cauzal.** În UI_API, precondițiile API explicite se
-   marchează separat și nu satisfac aserțiunea de trafic produs de UI.
-   Exchange-urile UI se corelează cu checkpoint-ul/gestul, fără dublare și fără
-   a transforma raportul agregat într-un contract API.
-6. **Testare componentă și guvernanță.** Componentele verifică rutele, metodele,
-   parametrii lipsă, status/body mapping, protecția datelor și ramurile de
-   cleanup. Un test de guvernanță verifică apartenența testelor la suitele
-   potrivite, că API component suite rămâne offline/deterministă și că orice
-   test live este opt-in; E2E-ul de purchase nu primește o matrice duplicată.
-7. **Explorare manuală read-only.** Închiderea gap-ului cere și o verificare
-   interactivă prin browser MCP a paginilor catalog/search și a fluxului de
-   autentificare fără submit de date mutabile, cu Network Inspector pornit
-   înainte de acțiuni. Se notează schimburile care apar natural după fiecare
-   acțiune, separat de setup/precondiții. ATF Debug poate inspecta raportul
-   rezultat, dar nu înlocuiește browserul de explorare a site-ului.
-
-**Dovada de închidere:** suitele component/API trec separat și împreună,
-testele mutabile demonstrează cleanup inclusiv la eșec, iar raportul proaspăt
-distinge request-ul de precondiție de traficul UI cauzal. Până atunci,
-`UI_API` este evidence de network în journey, nu dovadă de contract API complet.
+- Componenta offline verifică request și response semantic pentru toate cele
+  14 scenarii și eșuează la mutarea/eliminarea unui caz fără a apela serviciul.
+- Contractul transportului și `responseCode` din JSON au aserțiuni distincte;
+  statusurile HTTP exacte sunt adăugate numai după confirmarea sursei lor.
+- Suita live opt-in a fost executată controlat și dovedește status/schema
+  observate; operațiile pe cont demonstrează identitate unică și cleanup pe
+  success și failure fără eclipsarea cauzei primare.
+- Secretele lipsesc din toate suprafețele publicate, inclusiv request body,
+  replay manual, consolă și raport.
+- Dovada UI/API separă precondiția de request-urile cauzate de browser; fiecare
+  exchange are un singur owner și un singur loc de publicare.
+- README-ul AutoEx descrie nivelul offline efectiv, iar acest feedback păstrează
+  numai diferențele încă deschise.

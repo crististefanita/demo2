@@ -1,8 +1,8 @@
 package atf.ui.tests.autoex.component;
 
 import atf.api.testkit.AtfComponentTest;
-import atf.ui.autoex.support.AutoExAccountCleanupAction;
-import atf.ui.autoex.support.AutoExAccountCleanupDecision;
+import atf.ui.autoex.support.account.AutoExAccountCleanupAction;
+import atf.ui.autoex.support.account.AutoExAccountCleanupDecision;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

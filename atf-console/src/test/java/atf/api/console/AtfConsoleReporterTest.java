@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -54,6 +55,38 @@ class AtfConsoleReporterTest {
                 () -> assertTrue(output.contains("[ATF]   ✅ PASS: TEST BODY (18 ms)")),
                 () -> assertTrue(output.contains("[ATF] ✅ PASS: PostsApiTests (20 ms)")),
                 () -> assertFalse(output.contains("null")));
+    }
+
+    @Test
+    void rendersPublishedReportPathAsAnAbsoluteTerminalArtifactLine() {
+        var bytes = new ByteArrayOutputStream();
+        var reporter = new AtfConsoleReporter(new PrintStream(bytes, true, StandardCharsets.UTF_8),
+                new ConsoleSettings(true, false), true);
+        Path report = Path.of("target", "reports", "extent.html").toAbsolutePath().normalize();
+
+        reporter.publish(AtfConsoleEvent.reportPublished(report));
+
+        assertTrue(bytes.toString(StandardCharsets.UTF_8)
+                .contains("[ATF] Extent report: " + report));
+    }
+
+    @Test
+    void publishedReportPathIsOptInAndDoesNotLeakIntoOrdinaryConsoleRuns() {
+        Path report = Path.of("target", "reports", "extent.html").toAbsolutePath().normalize();
+        var defaultOutput = new ByteArrayOutputStream();
+        var defaultReporter = new AtfConsoleReporter(new PrintStream(defaultOutput, true,
+                StandardCharsets.UTF_8), new ConsoleSettings(true, false));
+        defaultReporter.publish(AtfConsoleEvent.reportPublished(report));
+
+        var optedInOutput = new ByteArrayOutputStream();
+        var optedInReporter = new AtfConsoleReporter(new PrintStream(optedInOutput, true,
+                StandardCharsets.UTF_8), new ConsoleSettings(true, false), true);
+        optedInReporter.publish(AtfConsoleEvent.reportPublished(report));
+
+        assertAll(
+                () -> assertFalse(defaultOutput.toString(StandardCharsets.UTF_8).contains("Extent report:")),
+                () -> assertTrue(optedInOutput.toString(StandardCharsets.UTF_8)
+                        .contains("Extent report: " + report)));
     }
 
     @Test

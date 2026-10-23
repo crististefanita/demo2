@@ -2,7 +2,7 @@ package atf.ui.tests.autoex.component;
 
 import atf.api.reporting.contract.AtfGherkinKeyword;
 import atf.api.testkit.AtfComponentTest;
-import atf.ui.autoex.support.AutoExPurchaseTraceStep;
+import atf.ui.autoex.support.journey.AutoExPurchaseTraceStep;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;

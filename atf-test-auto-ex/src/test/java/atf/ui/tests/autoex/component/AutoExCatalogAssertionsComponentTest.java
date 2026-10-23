@@ -1,7 +1,7 @@
 package atf.ui.tests.autoex.component;
 
 import atf.api.testkit.AtfComponentTest;
-import atf.ui.autoex.support.AutoExCatalogAssertions;
+import atf.ui.autoex.support.catalog.AutoExCatalogAssertions;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;

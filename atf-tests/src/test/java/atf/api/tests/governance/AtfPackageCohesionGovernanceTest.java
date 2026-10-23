@@ -42,6 +42,26 @@ public class AtfPackageCohesionGovernanceTest {
     }
 
     @Test
+    void automationExerciseProductionPackagesAreInTheGovernedInventory() throws Exception {
+        assertTrue(AtfModuleIds.SOURCE_GOVERNED_MODULES.contains(AtfModuleIds.AUTOMATION_EXERCISE),
+                "AutoEx has production sources and must participate in whole-ATF package governance");
+        assertFalse(AtfModuleIds.TEST_ONLY_COMPOSITION_MODULES.contains(AtfModuleIds.AUTOMATION_EXERCISE),
+                "AutoEx is not a test-only composition module");
+
+        Map<String, List<String>> inventory = productionPackageClassInventory(locateProjectRoot());
+        assertEquals(Set.of("AutoExPurchaseJourney.java", "AutoExPurchaseSession.java",
+                        "AutoExPurchaseTraceStep.java"),
+                Set.copyOf(inventory.getOrDefault("atf.ui.autoex.support.journey", List.of())));
+        assertEquals(Set.of("AutoExAccountCleanupAction.java", "AutoExAccountCleanupDecision.java",
+                        "AutoExTestAccount.java"),
+                Set.copyOf(inventory.getOrDefault("atf.ui.autoex.support.account", List.of())));
+        assertEquals(Set.of("AutoExCatalogAssertions.java", "AutoExCatalogSnapshot.java"),
+                Set.copyOf(inventory.getOrDefault("atf.ui.autoex.support.catalog", List.of())));
+        assertEquals(Set.of("AutoExPrivacyConsentHandler.java", "AutoExVignetteHandler.java"),
+                Set.copyOf(inventory.getOrDefault("atf.ui.autoex.support.browser", List.of())));
+    }
+
+    @Test
     void aiValidationUsesSemanticSubpackagesWithoutAnAllowListException() throws Exception {
         Map<String, List<String>> inventory = productionPackageClassInventory(locateProjectRoot());
 

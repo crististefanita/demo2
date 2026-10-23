@@ -5,6 +5,8 @@ import atf.api.reporting.configuration.AtfReportConfigurationLoader;
 import atf.api.reporting.configuration.ReportEnvironmentField;
 import atf.api.reporting.configuration.ReportEnvironmentSnapshot;
 import atf.api.reporting.extent.session.ExtentReportSession;
+import atf.api.console.junit.AtfConsoleTestExtension;
+import atf.api.tests.support.console.AtfConsoleBridge;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
@@ -30,7 +32,9 @@ public final class AtfExtentReportTestExtension implements BeforeAllCallback,
         var config = AtfReportConfigurationLoader.load();
         if (config.enabled()) {
             context.getStore(NAMESPACE).put(SESSION,
-                    ExtentReportSession.openConfigured(config, environment(context)));
+                    ExtentReportSession.openConfigured(config, environment(context),
+                            AtfConsoleBridge.toReportingSink(AtfConsoleTestExtension.reportPathSink(
+                                    context.getRequiredTestClass()))));
         }
     }
 

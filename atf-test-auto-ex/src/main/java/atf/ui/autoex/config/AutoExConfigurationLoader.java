@@ -8,11 +8,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
-import java.io.InputStream;
 import java.time.Duration;
+import java.time.format.DateTimeParseException;
+import java.util.Set;
 
 /** Reads module-owned YAML once into validated browser and demo data. */
 public final class AutoExConfigurationLoader {
@@ -24,50 +27,94 @@ public final class AutoExConfigurationLoader {
     private AutoExConfigurationLoader() { }
 
     public static AutoExConfiguration load() {
-        String selected = System.getProperty(CONFIG_PROPERTY);
-        return selected == null || selected.isBlank()
-                ? parse(readDefaultResource())
-                : load(Path.of(selected));
+        String selected = System.getProperty(CONFIG_PROPERTY, "").trim();
+        if (!selected.isEmpty()) {
+            try {
+                return load(Path.of(selected));
+            } catch (InvalidPathException error) {
+                throw new IllegalStateException("Cannot load Automation Exercise configuration from -D"
+                        + CONFIG_PROPERTY + "=" + selected, error);
+            }
+        }
+        InputStream defaultResource;
+        try {
+            defaultResource = openDefaultResource();
+        } catch (IOException error) {
+            throw new IllegalStateException("Cannot locate " + DEFAULT_RESOURCE, error);
+        }
+        if (defaultResource == null) {
+            throw new IllegalStateException("Missing " + DEFAULT_RESOURCE
+                    + "; expected it on the test classpath or under atf-test-auto-ex/src/test/resources");
+        }
+        String source;
+        try (InputStream resource = defaultResource) {
+            source = new String(resource.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (IOException error) {
+            throw new IllegalStateException("Cannot read " + DEFAULT_RESOURCE, error);
+        }
+        return parse(source);
     }
 
     public static AutoExConfiguration load(Path path) {
-        Path source = path.toAbsolutePath().normalize();
+        Path source = java.util.Objects.requireNonNull(path, "path").toAbsolutePath().normalize();
         if (!Files.isRegularFile(source)) {
             throw new IllegalStateException("Automation Exercise configuration is missing: " + source);
         }
+        String yaml;
         try {
-            return parse(Files.readString(source));
+            yaml = Files.readString(source);
         } catch (IOException error) {
             throw new IllegalStateException("Cannot read Automation Exercise configuration: " + source, error);
         }
+        try {
+            return parse(yaml);
+        } catch (RuntimeException error) {
+            throw new IllegalStateException("Invalid Automation Exercise configuration: " + source, error);
+        }
     }
 
-    private static String readDefaultResource() {
-        try (InputStream resource = AutoExConfigurationLoader.class.getClassLoader()
-                .getResourceAsStream(DEFAULT_RESOURCE)) {
-            if (resource == null) throw new IllegalStateException(
-                    "Missing Automation Exercise configuration resource: " + DEFAULT_RESOURCE);
-            return new String(resource.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
-        } catch (IOException error) {
-            throw new IllegalStateException("Cannot read Automation Exercise configuration resource", error);
+    /** Classpath first; filesystem fallback supports direct IDE launches from a module or reactor root. */
+    private static InputStream openDefaultResource() throws IOException {
+        InputStream classpath = AutoExConfigurationLoader.class.getClassLoader()
+                .getResourceAsStream(DEFAULT_RESOURCE);
+        if (classpath != null) return classpath;
+
+        Path current = Path.of(System.getProperty("user.dir", ".")).toAbsolutePath().normalize();
+        while (current != null) {
+            Path moduleResource = current.resolve("src/test/resources").resolve(DEFAULT_RESOURCE);
+            if (Files.isRegularFile(moduleResource)) return Files.newInputStream(moduleResource);
+            Path reactorResource = current.resolve("atf-test-auto-ex/src/test/resources")
+                    .resolve(DEFAULT_RESOURCE);
+            if (Files.isRegularFile(reactorResource)) return Files.newInputStream(reactorResource);
+            current = current.getParent();
         }
+        return null;
     }
 
     private static AutoExConfiguration parse(String source) {
         try {
             JsonNode root = YAML.readTree(source);
+            if (root == null || !root.isObject()) {
+                throw new IllegalArgumentException("YAML document must contain an object root");
+            }
+            rejectUnknownFields(root, "root", "automationExercise");
             JsonNode site = requiredNode(root, "automationExercise");
+            rejectUnknownFields(site, "automationExercise", "baseUrl", "e2eEnabled", "browser",
+                    "reports", "catalog", "registration", "payment");
             URI baseUrl = URI.create(requiredText(site, "baseUrl"));
             if (baseUrl.getHost() == null || !("https".equalsIgnoreCase(baseUrl.getScheme())
                     || "http".equalsIgnoreCase(baseUrl.getScheme()))) {
                 throw new IllegalArgumentException("baseUrl must be an absolute HTTP(S) URI");
             }
             JsonNode browser = requiredNode(site, "browser");
+            rejectUnknownFields(browser, "automationExercise.browser", "engine", "headless", "timeout",
+                    "navigationTimeout", "viewport", "zoomPercent");
             JsonNode viewport = requiredNode(browser, "viewport");
+            rejectUnknownFields(viewport, "automationExercise.browser.viewport", "width", "height");
             UiBrowserConfiguration browserConfiguration = new UiBrowserConfiguration(baseUrl,
                     text(browser, "engine", "chromium"), bool(browser, "headless", true),
-                    Duration.parse(text(browser, "timeout", "PT20S")),
-                    Duration.parse(text(browser, "navigationTimeout", "PT45S")),
+                    duration(browser, "timeout", "PT20S"),
+                    duration(browser, "navigationTimeout", "PT45S"),
                     integer(viewport, "width", 1440), integer(viewport, "height", 1000),
                     integer(browser, "zoomPercent", UiBrowserConfiguration.DEFAULT_ZOOM_PERCENT),
                     true, UiRetryPolicy.none(), UiNetworkInspectionConfiguration.disabled());
@@ -76,6 +123,14 @@ public final class AutoExConfigurationLoader {
             JsonNode catalog = requiredNode(site, "catalog");
             JsonNode registration = requiredNode(site, "registration");
             JsonNode payment = requiredNode(site, "payment");
+            rejectUnknownFields(reports, "automationExercise.reports", "uiBaseDirectory");
+            rejectUnknownFields(catalog, "automationExercise.catalog", "searchTerm", "productId",
+                    "productName", "unitPrice", "quantity");
+            rejectUnknownFields(registration, "automationExercise.registration", "birthDay", "birthMonth",
+                    "birthYear", "firstName", "lastName", "company", "address1", "address2", "country",
+                    "state", "city", "postalCode", "mobileNumber");
+            rejectUnknownFields(payment, "automationExercise.payment", "nameOnCard", "cardNumber", "cvc",
+                    "expiryMonth", "expiryYear");
             return new AutoExConfiguration(baseUrl, bool(site, "e2eEnabled", false), browserConfiguration,
                     Path.of(requiredText(reports, "uiBaseDirectory")),
                     new AutoExConfiguration.Catalog(requiredText(catalog, "searchTerm"),
@@ -104,6 +159,15 @@ public final class AutoExConfigurationLoader {
         return node;
     }
 
+    private static void rejectUnknownFields(JsonNode node, String path, String... allowedFields) {
+        Set<String> allowed = Set.of(allowedFields);
+        node.fieldNames().forEachRemaining(field -> {
+            if (!allowed.contains(field)) {
+                throw new IllegalArgumentException("Unknown configuration key: " + path + "." + field);
+            }
+        });
+    }
+
     private static String requiredText(JsonNode parent, String name) {
         JsonNode value = parent.path(name);
         if (!value.isTextual() || value.asText().isBlank()) {
@@ -115,6 +179,16 @@ public final class AutoExConfigurationLoader {
     private static String text(JsonNode parent, String name, String fallback) {
         JsonNode value = parent.path(name);
         return value.isMissingNode() || value.isNull() ? fallback : requiredText(parent, name);
+    }
+
+    private static Duration duration(JsonNode parent, String name, String fallback) {
+        String value = text(parent, name, fallback);
+        try {
+            return Duration.parse(value);
+        } catch (DateTimeParseException error) {
+            throw new IllegalArgumentException("Invalid ISO-8601 duration: automationExercise.browser." + name,
+                    error);
+        }
     }
 
     private static int integer(JsonNode parent, String name, int fallback) {

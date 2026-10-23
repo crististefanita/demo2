@@ -3,12 +3,13 @@ package atf.ui.tests.autoex.e2e;
 import atf.api.console.junit.AtfConsoleTestExtension;
 import atf.api.testkit.AtfConsoleMessages;
 import atf.api.testkit.AtfE2eTest;
+import atf.api.testkit.reporting.AtfReportPath;
 import atf.api.testkit.channel.AtfTestChannel;
 import atf.api.testkit.channel.TestChannel;
 import atf.api.testkit.output.UiReportSubdirectory;
 import atf.ui.autoex.support.AutoExE2eExtension;
 import atf.ui.autoex.support.AutoExE2eRun;
-import atf.ui.autoex.support.AutoExPurchaseJourney;
+import atf.ui.autoex.support.journey.AutoExPurchaseJourney;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 @AtfTestChannel(TestChannel.UI_API)
 @UiReportSubdirectory("auto-ex")
 @AtfConsoleMessages(AtfConsoleMessages.Policy.DETAILS)
+@AtfReportPath
 @ExtendWith({AtfConsoleTestExtension.class, AutoExE2eExtension.class})
 @Execution(ExecutionMode.SAME_THREAD)
 @Order(2)

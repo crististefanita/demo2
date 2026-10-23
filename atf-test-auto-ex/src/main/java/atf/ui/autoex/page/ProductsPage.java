@@ -1,7 +1,7 @@
 package atf.ui.autoex.page;
 
 import atf.ui.autoex.locator.AutoExSelectors;
-import atf.ui.autoex.support.AutoExPurchaseSession;
+import atf.ui.autoex.support.journey.AutoExPurchaseSession;
 
 /** Product search and catalog selection behavior. */
 public final class ProductsPage extends AutoExPage {

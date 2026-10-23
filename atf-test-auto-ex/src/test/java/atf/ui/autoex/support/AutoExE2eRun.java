@@ -19,6 +19,9 @@ import atf.api.testkit.files.AtfTestResourceReader;
 import atf.api.testkit.output.ReportOutputDirectory;
 import atf.api.testkit.channel.AtfTestChannelResolver;
 import atf.api.testkit.channel.TestChannel;
+import atf.api.testkit.evidence.AtfUiEvidence;
+import atf.api.testkit.evidence.AtfUiEvidenceFlow;
+import atf.api.testkit.evidence.AtfUiScreenshotPolicy;
 import atf.api.ui.config.UiScreenValidationConfiguration;
 import atf.api.ui.config.UiBrowserConfiguration;
 import atf.api.ui.config.UiNetworkInspectionConfiguration;
@@ -27,6 +30,11 @@ import atf.api.ui.playwright.PlaywrightActionSequence;
 import atf.api.ui.playwright.PlaywrightUiSession;
 import atf.api.ui.playwright.UiScreenValidation;
 import atf.ui.autoex.config.AutoExConfiguration;
+import atf.ui.autoex.support.browser.AutoExPrivacyConsentHandler;
+import atf.ui.autoex.support.browser.AutoExVignetteHandler;
+import atf.ui.autoex.support.catalog.AutoExCatalogSnapshot;
+import atf.ui.autoex.support.journey.AutoExPurchaseSession;
+import atf.ui.autoex.support.journey.AutoExPurchaseTraceStep;
 import atf.ui.autoex.config.AutoExConfigurationLoader;
 import atf.ui.autoex.locator.AutoExRoutes;
 import atf.ui.autoex.locator.AutoExSelectors;
@@ -57,11 +65,11 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
     private final UiExtentReportSession.UiScenario scenario;
     private final UiExtentReportSession.UiPhase phase;
     private final ReportEvidenceProfile evidenceProfile;
-    private final AutoExEvidenceMode.Mode evidenceMode;
     private final TestChannel channel;
     private final List<ReportNetworkInspector.Step> networkSteps = new ArrayList<>();
     private final PlaywrightActionSequence actions;
     private int networkCursor;
+    private final AutoExApiTrafficWindow causalApiTraffic = new AutoExApiTrafficWindow();
     private final AutoExVignetteHandler vignetteHandler = new AutoExVignetteHandler();
     private final AutoExPrivacyConsentHandler privacyConsentHandler = new AutoExPrivacyConsentHandler();
     private AutoExAccountCleanup failureCleanup;
@@ -70,14 +78,13 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
     private AutoExE2eRun(AutoExConfiguration configuration, PlaywrightUiSession browser,
                          UiExtentReportSession report, UiExtentReportSession.UiScenario scenario,
                          UiExtentReportSession.UiPhase phase, ReportEvidenceProfile evidenceProfile,
-                         AutoExEvidenceMode.Mode evidenceMode, TestChannel channel) {
+                         TestChannel channel) {
         this.configuration = configuration;
         this.browser = browser;
         this.report = report;
         this.scenario = scenario;
         this.phase = phase;
         this.evidenceProfile = evidenceProfile;
-        this.evidenceMode = evidenceMode;
         this.channel = channel;
         this.actions = browser.newActionSequence();
     }
@@ -90,17 +97,15 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
         if (channel != TestChannel.UI && channel != TestChannel.UI_API) {
             throw new IllegalStateException("AutoEx purchase journey supports UI or UI_API channels only");
         }
-        AutoExEvidenceMode evidenceAnnotation = context.getRequiredTestClass()
-                .getAnnotation(AutoExEvidenceMode.class);
-        AutoExEvidenceMode.Mode evidenceMode = evidenceAnnotation == null
-                ? AutoExEvidenceMode.Mode.CONFIGURED : evidenceAnnotation.value();
+        AtfUiEvidence evidenceAnnotation = context.getRequiredTestClass()
+                .getAnnotation(AtfUiEvidence.class);
+        AtfUiEvidenceFlow flow = evidenceAnnotation == null
+                ? AtfUiEvidenceFlow.CONFIGURED : evidenceAnnotation.flow();
+        AtfUiScreenshotPolicy screenshots = evidenceAnnotation == null
+                ? AtfUiScreenshotPolicy.CONFIGURED : evidenceAnnotation.screenshots();
         var reportConfiguration = AtfReportConfigurationLoader.load();
-        ReportScreenshotPolicy configuredScreenshotPolicy =
-                evidenceMode == AutoExEvidenceMode.Mode.FINAL_SCREENSHOT_ONLY
-                        ? ReportScreenshotPolicy.FINAL_ONLY
-                        : reportConfiguration.screenshotPolicy();
         ReportEvidenceProfile evidence = AutoExEvidenceProfile.forRun(
-                evidenceMode, configuredScreenshotPolicy);
+                flow, screenshots, reportConfiguration.screenshotPolicy());
         ReportEvidenceProfile sessionEvidence = ReportEvidenceProfile.forScreenshotPolicy(
                 reportConfiguration.screenshotPolicy());
         if (channel == TestChannel.UI_API) {
@@ -126,7 +131,7 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
                     List.of("e2e", "ui", "automation-exercise"), evidence);
             var phase = scenario.startPhase("TEST BODY");
             return new AutoExE2eRun(configuration, browser, report, scenario, phase, evidence,
-                    evidenceMode, channel);
+                    channel);
         } catch (RuntimeException | Error failure) {
             if (browser != null) browser.close();
             throw failure;
@@ -253,8 +258,7 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
     private void checkpoint(AtfGherkinKeyword keyword, String title, List<AtfAssertion> assertions) {
         prepareUiInteraction();
         boolean passed = assertions.stream().allMatch(AtfAssertion::passed);
-        String screenshot = evidenceMode.capturesCheckpointScreenshots()
-                && evidenceProfile.captures(ReportScreenshotPolicy.CapturePoint.CHECKPOINT)
+        String screenshot = evidenceProfile.captures(ReportScreenshotPolicy.CapturePoint.CHECKPOINT)
                 ? capture(title) : "";
         List<ReportExecutionEvidence> apiEvidence = channel == TestChannel.UI_API
                 ? networkEvidenceSinceCursor() : List.of();
@@ -336,7 +340,7 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
         if (terminalFailure != null) publishFailure(terminalFailure);
         if (channel == TestChannel.UI_API) {
             phase.networkInspector(NETWORK_SUMMARY_TITLE,
-                    apiObservations().stream()
+                    causalApiObservations().stream()
                             .map(AutoExE2eRun::toExecutionEvidence).toList(), networkSteps);
         }
         AtfReportStatus status = terminalFailure == null ? AtfReportStatus.PASS : AtfReportStatus.FAIL;
@@ -362,7 +366,7 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
 
     private void publishFailure(Throwable failure) {
         String screenshot = "";
-        if (evidenceMode != AutoExEvidenceMode.Mode.FINAL_SCREENSHOT_ONLY) {
+        if (evidenceProfile.captures(ReportScreenshotPolicy.CapturePoint.FAILURE)) {
             try {
                 screenshot = UiScreenValidation.capture(page(), UiScreenValidationConfiguration.defaults(),
                         "Failure state — sensitive fields masked",
@@ -387,7 +391,10 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
         return privacyConsentHandler.rejectOptionalProcessingIfPrompted(page(), actions);
     }
 
-    public int apiExchangeCount() { return apiObservations().size(); }
+    public int apiExchangeCount() { return causalApiObservations().size(); }
+    public void markCausalApiTrafficBaseline() {
+        causalApiTraffic.markBaseline(apiObservations());
+    }
     public boolean observesApiTraffic() { return channel == TestChannel.UI_API; }
     public TestChannel channel() { return channel; }
 
@@ -408,6 +415,10 @@ public final class AutoExE2eRun implements AutoExPurchaseSession {
         return browser.networkInspector().observations().stream()
                 .filter(observation -> observation.path().startsWith("/api/"))
                 .toList();
+    }
+
+    private List<atf.api.ui.network.UiNetworkObservation> causalApiObservations() {
+        return causalApiTraffic.causalSince(apiObservations());
     }
 
     private void prepareUiInteraction() {

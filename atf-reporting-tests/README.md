@@ -271,16 +271,18 @@ flowchart LR
   `SUMMARY_ONLY` păstrează un disclosure colapsat, fără tabelul detaliat sau
   schimbarea capturii; rendererul nu execută acțiuni UI.
 - `ReportEvidenceProfileIntegrationTest` dovedește provider mock → sesiune → HTML local pentru ambele flow mode-uri.
+- Aceeași clasă verifică profile diferite pentru scenarii-surori dintr-o sesiune partajată și repetă proba cu ordinea inversată; profilul nu se scurge între scenarii.
 - `UNIFIED_FLOW` păstrează un singur request cu propoziția Gherkin finală, fără checkpoint-uri numerotate sau Gherkin duplicat; UI actions și assertions sunt agregate, iar `API validation` este soră cu `UI validation` sub același checkpoint Gherkin și deține exchange-urile sale. Sub `FINAL_ONLY` se publică doar captura `FINAL`.
 - `SCREEN_CHECKPOINTS` păstrează request-urile Gherkin independente.
 - Profilul typed combină flow mode, screenshot policy, capture source și action-details mode.
   Grouping-ul aparține lifecycle/publisher-ului din `atf-reporting`; alegerea modului
   pentru o adnotare de consumer rămâne responsabilitatea acelui consumer.
 
-Limita verificată în prezent este profilul aplicat la deschiderea unei sesiuni;
-aceste probe nu demonstrează profile distincte pentru scenarii-surori dintr-un
-singur raport Extent. Cerința generică pentru profile izolate per scenariu și
-testele neutre care trebuie adăugate sunt urmărite în
+Izolarea profilului per scenariu este un contract generic implementat și testat.
+Consumerul trebuie să transmită profilul rezolvat la crearea fiecărui scenariu;
+un profil furnizat doar la deschiderea raportului rămâne valoarea implicită a
+sesiunii. Wiring-ul Practice Shop pentru rapoarte partajate și agregarea fazelor
+`SETUP` + `TEST BODY` sunt urmărite separat în
 [SHOP-CAPTURE-01](../docs/feedback/ATF_Reporting_Feedback.md#shop-capture-01).
 
 ## Matricea de integrare și limitele verificate
@@ -334,14 +336,14 @@ Două profiluri izolează volumul HTML de volumul media.
 | Profil text/HTML | Unicode, 1.500 referințe PNG inline și două imagini distincte repetate; artifact >9 MB |
 | Profil media | Patru PNG-uri generate distincte 256×256, fiecare referit de două ori; după deduplicare rămân patru payload-uri inline, totalul lor depășește 900.000 caractere |
 | Integritate | exit code 0, heap total eșantionat la 2 ms, durata publicării, marker final, temă, runtime și referințe screenshot acționabile |
-| Failure-path | `ExtentReportSessionLifecycleTest` verifică destinație blocată, cleanup failure după promovare atomică și staging privat fără scurgeri; `ExtentReportAssetCleanupTest` verifică lock tranzitoriu/persistent, retry limitat și diagnostic explicit |
+| Failure-path și publicare | `ExtentReportSessionLifecycleTest` verifică destinație blocată, cleanup failure după promovare atomică, staging privat fără scurgeri și evenimentul `REPORT_PUBLISHED` numai după existența fișierului final; închiderea repetată emite o singură notificare, iar publicarea eșuată nu emite succes. `ExtentReportAssetCleanupTest` verifică lock tranzitoriu/persistent, retry limitat și diagnostic explicit |
 | Timp | Child process-ul are timeout configurabil `atf.test.publication.timeout.seconds` (implicit 60 s); depășirea oprește forțat doar JVM-ul probei |
 | Limită | nu dovedește volume arbitrare sau fotografii de rezoluție foarte mare; bugetul temporal este calibrat doar pe profilurile și host-ul măsurate |
 
 | Măsurare | Rezultat |
 |---|---|
 | Configurare | `atf.test.heap.max`; un heap mai mare nu demonstrează scalabilitate |
-| Probe | Profilele text/HTML, PNG și `ExtentReportSessionLifecycleTest`: 10/10 teste |
+| Probe | Profilele text/HTML, PNG și lifecycle-ul publicării prin `ExtentReportSessionLifecycleTest` |
 | Patru rulări locale | text/HTML: 10,539–12,704 s și max. 236.800.048 B heap; PNG: 0,710–0,933 s și max. 81.315.680 B |
 | Marjă | timeout-ul implicit de 60 s depășește de peste 4× cea mai lentă măsurătoare; nu este SLA pentru alte host-uri |
 | Istoric și limitări | [feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md) |
@@ -499,9 +501,9 @@ mvn -pl atf-reporting-tests -am "-Dtest=AtfReportingComponentSuite" "-Dsurefire.
   verifică browser collapse/reopen: tabelele Request/Response/Execution dispar
   și reapar vizibil. `UiApiVerdictProjectionComponentTest` verifică ambele
   combinații independente UI PASS/API FAIL și UI FAIL/API PASS, cauza corectă în
-  `Fails` și deep-link-ul către scenariul owner. Rularea țintită împreună:
-  **10/10**. Detaliile sunt în
-  [feedback](../docs/feedback/ATF_Reporting_Feedback.md#gov-api-01).
+  `Fails` și deep-link-ul către scenariul owner. Contractul și owner-ul acestor
+  probe sunt păstrate aici; cerința `GOV-API-01` este închisă și nu mai are un
+  backlog separat în feedback.
 - Surefire poate afișa `0 tests` pe containerul suitei; testele copil apar
   separat. Rularea agregată raportată mai jos este suma reactorului.
 - Rularea izolată agregată din 2026-10-23 a descoperit și trecut **137 teste**:
@@ -570,6 +572,10 @@ atf-test-practice-shop/src/test/java/atf/ui/tests/practiceshop/
   mută proba neutră aici și păstrează în Shop doar integrarea îngustă.
 - Hook-urile JUnit generice sunt testate în modulul owner (`atf-test-kit`);
   testele de sesiune și publicare Reporting aparțin `atf-reporting-tests`.
+- `ApiResourceTestBase` activează explicit `@AtfReportPath`; compoziția JUnit
+  transmite evenimentul terminal către consola ATF numai după publicarea
+  raportului. Resolverul/adnotarea și politica de output rămân testate în
+  `atf-test-kit`/`atf-console`, nu sunt reimplementate aici.
 
 ### Reutilizare neutră între module
 

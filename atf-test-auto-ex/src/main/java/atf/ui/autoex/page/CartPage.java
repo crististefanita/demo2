@@ -2,7 +2,7 @@ package atf.ui.autoex.page;
 
 import atf.ui.autoex.config.AutoExConfiguration;
 import atf.ui.autoex.locator.AutoExSelectors;
-import atf.ui.autoex.support.AutoExPurchaseSession;
+import atf.ui.autoex.support.journey.AutoExPurchaseSession;
 
 /** Cart rows and checkout transition. */
 public final class CartPage extends AutoExPage {

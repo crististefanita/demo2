@@ -3,6 +3,8 @@ package atf.api.ui.playwright;
 import atf.api.ui.config.UiScreenValidationConfiguration;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.PlaywrightException;
+import com.microsoft.playwright.options.LoadState;
 
 import java.util.Base64;
 import java.util.List;
@@ -17,6 +19,8 @@ import java.util.Objects;
  * assertions and publish them with one evidence object.</p>
  */
 public final class UiScreenValidation {
+    private static final int MAX_CAPTURE_ATTEMPTS = 2;
+    private static final int NAVIGATION_SETTLE_MILLIS = 75;
     private static final byte[] PNG_SIGNATURE = {
             (byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
     };
@@ -40,9 +44,19 @@ public final class UiScreenValidation {
                 .setFullPage(configuration.fullPage())
                 .setTimeout(configuration.screenshotTimeout().toMillis());
         if (!safeMasks.isEmpty()) options.setMask(safeMasks).setMaskColor("#343a40");
-        byte[] png = page.screenshot(options);
-        String base64 = Base64.getEncoder().encodeToString(png);
-        return new Evidence(safeTitle, base64, true);
+        PlaywrightException lastFailure = null;
+        for (int attempt = 1; attempt <= MAX_CAPTURE_ATTEMPTS; attempt++) {
+            try {
+                page.waitForLoadState(LoadState.LOAD);
+                if (attempt > 1) page.waitForTimeout(NAVIGATION_SETTLE_MILLIS);
+                byte[] png = page.screenshot(options);
+                String base64 = Base64.getEncoder().encodeToString(png);
+                return new Evidence(safeTitle, base64, true);
+            } catch (PlaywrightException transientNavigation) {
+                lastFailure = transientNavigation;
+            }
+        }
+        throw lastFailure;
     }
 
     public record Evidence(String title, String base64Png, boolean captured) {

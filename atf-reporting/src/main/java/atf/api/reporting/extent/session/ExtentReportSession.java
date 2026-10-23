@@ -29,6 +29,7 @@ public final class ExtentReportSession implements AtfReportPorts.Session, AutoCl
     private final ExtentReportSessionPublication publication;
     private final ExtentReports reports;
     private final ExtentReportTree tree;
+    private final AtfConsoleSink console;
     private final long ownerThreadId = Thread.currentThread().getId();
     private boolean closed;
 
@@ -70,6 +71,7 @@ public final class ExtentReportSession implements AtfReportPorts.Session, AutoCl
         this.reportPath = Objects.requireNonNull(reportPath, "reportPath").toAbsolutePath().normalize();
         Objects.requireNonNull(settings, "settings");
         Objects.requireNonNull(redactor, "redactor");
+        this.console = Objects.requireNonNull(console, "console");
         this.publication = ExtentReportSessionPublication.open(this.reportPath);
         var spark = new ExtentSparkReporter(publication.stagedReport().toString());
         spark.config().setTheme(Theme.DARK);
@@ -80,7 +82,7 @@ public final class ExtentReportSession implements AtfReportPorts.Session, AutoCl
         reports = new ExtentReports();
         reports.attachReporter(spark);
         ReportEnvironment.with(systemInfo, redactor).forEach(reports::setSystemInfo);
-        tree = new ExtentReportTree(reports, settings, redactor, this::ensureOpen, console,
+        tree = new ExtentReportTree(reports, settings, redactor, this::ensureOpen, this.console,
                 Objects.requireNonNull(detailsMode, "detailsMode"));
     }
 
@@ -112,11 +114,18 @@ public final class ExtentReportSession implements AtfReportPorts.Session, AutoCl
     /** Opens a configured session with allowlisted, typed Overview/System metadata. */
     public static ExtentReportSession openConfigured(ExtentReportConfiguration configuration,
                                                      ReportEnvironmentSnapshot systemInfo) {
+        return openConfigured(configuration, systemInfo, AtfConsoleSink.noOp());
+    }
+
+    /** Opens a configured session with explicit metadata and publication diagnostics. */
+    public static ExtentReportSession openConfigured(ExtentReportConfiguration configuration,
+                                                     ReportEnvironmentSnapshot systemInfo,
+                                                     AtfConsoleSink console) {
         Objects.requireNonNull(configuration, "configuration");
         return new ExtentReportSession(
                 configuration.resolveReportPath(Clock.systemDefaultZone()),
                 configuration.reportingSettings(), new SensitiveDataRedactor(),
-                AtfConsoleSink.noOp(), systemInfo);
+                Objects.requireNonNull(console, "console"), systemInfo);
     }
 
     @Override public Path reportPath() { return reportPath; }
@@ -153,6 +162,15 @@ public final class ExtentReportSession implements AtfReportPorts.Session, AutoCl
                 tree.completeClassRoots();
                 reports.flush();
                 publication.publish();
+                if (!Files.isRegularFile(reportPath)) {
+                    throw new IllegalStateException("Extent report publication completed without a final file: "
+                            + reportPath);
+                }
+                try {
+                    console.publish(atf.api.reporting.console.AtfConsoleEvent.reportPublished(reportPath));
+                } catch (RuntimeException ignored) {
+                    // A diagnostic sink must not change the report or test verdict.
+                }
             } catch (java.io.IOException error) {
                 throw new IllegalStateException("Cannot finalize Extent report: " + reportPath, error);
             } finally {

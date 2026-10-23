@@ -11,6 +11,8 @@ consumatorul deține resursele, execuția și publicarea dovezilor.
 | Nivel și tag JUnit | `AtfUnitTest`, `AtfComponentTest`, `AtfIntegrationTest`, `AtfE2eTest` | un singur nivel executabil per clasă |
 | Canal | `channel.AtfTestChannel`, `TestChannel`, `AtfTestChannelResolver`, `TestChannelPlan` | selecție `UI`, `API` sau `UI_API` și verificarea suportului |
 | Mesaje consolă | `AtfConsoleMessages`, `console.AtfConsoleMessagePolicyResolver` | politică typed `INHERIT`, `DETAILS`, `SUMMARY`, `OFF`; `atf-console` o aplică peste YAML |
+| UI evidence | `evidence.AtfUiEvidence`, `AtfUiEvidenceFlow`, `AtfUiScreenshotPolicy` | declară separat gruparea checkpoint-urilor și intenția capturilor; adaptorul consumer aplică selecția, fără resolver/YAML în Test Kit |
+| Calea raportului | `reporting.AtfReportPath`, `AtfReportPathPolicyResolver` | opt-in pentru notificarea căii absolute după publicare; independentă de detaliile consolei |
 | Output UI | `output.UiReportSubdirectory`, `ProjectRelativeUiReportDirectory`, `ReportOutputDirectory` | director relativ la baza UI sau la proiect |
 | Setup API | `setup.api.ApiScenarioSetup`, `ApiTestRef` | metode exacte sau familii definite de consumator |
 | Documentație | `documentation.DocumentationTarget` și containerul repeatable | documente selectate pentru validatoarele consumatorului |
@@ -131,6 +133,62 @@ nivel eșuează înaintea execuției. Fără adnotare, comportamentul nu se schi
 
 - `@TestFactory` nu primește callbacks de lifecycle pentru fiecare copil; folosește `AtfConsoleTestContext.dynamicTest(owner, name, body)` când ai nevoie de policy și verdict per copil.
 
+## Intenția de UI evidence
+
+`@AtfUiEvidence` este o declarație class-level în `atf-test-kit`. Separă două
+decizii care nu trebuie amestecate: forma flow-ului în raport și politica de
+captură. Nu pornește browserul, nu capturează imagini și nu publică evidence.
+
+```java
+@AtfUiEvidence(
+        flow = AtfUiEvidenceFlow.UNIFIED_FLOW,
+        screenshots = AtfUiScreenshotPolicy.FINAL_ONLY)
+class PurchaseE2eTest { }
+```
+
+| Axă | Valori | Rezolvare |
+|---|---|---|
+| `flow` | `CONFIGURED`, `SCREEN_CHECKPOINTS`, `UNIFIED_FLOW` | `CONFIGURED` păstrează forma din profilul consumerului; valorile explicite aleg checkpoint-uri separate sau un singur flow |
+| `screenshots` | `CONFIGURED`, `EACH_CHECKPOINT`, `FINAL_ONLY`, `FAILURE_ONLY`, `FINAL_AND_FAILURE`, `NONE` | `CONFIGURED` păstrează politica consumerului/YAML; o valoare explicită o suprascrie numai pentru clasa respectivă |
+
+Reguli de ownership:
+
+- adnotarea are retenție `RUNTIME` și target `TYPE`; nu există selecție per
+  metodă;
+- adaptorul fiecărui consumer citește adnotarea direct de pe clasa concretă și
+  mapează valorile neutre în profilul său de raportare; `atf-test-kit` nu
+  depinde de `atf-reporting`;
+- adnotarea nu are `@Inherited`; nu presupune moștenire, meta-adnotări sau
+  compoziția automată a unui harness. Clasele E2E declară intenția direct;
+- adnotările locale, precum `ShopE2eTestSupport.WithE2eHarness`, păstrează
+  resursele și opțiunile specifice consumerului (de exemplu harness-ul și
+  detaliile acțiunilor), fără să dubleze axele comune;
+- testul Test Kit verifică target-ul, retenția și valorile implicite, iar testele
+  componente ale consumerilor verifică mapping-ul; nu este un test de renderer
+  sau de captură reală în browser.
+
+Mapping-ul adnotării este responsabilitatea adaptorului consumer:
+
+| Consumer | Efect implementat |
+|---|---|
+| AutoEx | aplică `flow` și `screenshots` în profilul scenariului |
+| Practice Shop | aplică `flow` și `screenshots` în profilul selectat; `ShopE2eContext.open/openReport` păstrează profilul primit. Într-o suită cu raport partajat, aplicarea izolată a profilului fiecărui scenariu rămâne în lifecycle-ul consumerului |
+
+Adnotarea absentă lasă ambele axe la configurația consumerului. Testele de
+compoziție Shop verifică profilul efectiv la deschiderea raportului standalone;
+profilurile per scenariu în raportul partajat sunt urmărite separat în
+[feedback-ul Reporting](feedback/ATF_Reporting_Feedback.md#shop-capture-01--profil-per-scenariu-și-flow-unificat-peste-faze).
+
+## Opt-in pentru calea raportului
+
+`@AtfReportPath` este dezactivată implicit și poate fi declarată direct sau ca
+meta-adnotare. `@AtfReportPath(AtfReportPath.Policy.DISABLED)` suprascrie o
+declarație moștenită; politicile contradictorii la același nivel eșuează
+fail-fast. Setarea este distinctă de `@AtfConsoleMessages`; doar
+`reporting.console.enabled` poate suprima global mesajul. Pentru artifactele
+partajate, `AtfReportPathOptIn` agregă ownerii înainte de publicare și emite
+calea o singură dată dacă cel puțin unul a activat opțiunea.
+
 ## Directoare UI cu ancore distincte
 
 Consumatorul apelează `ReportOutputDirectory.resolve(projectRoot, uiReportBase, owner)`.
@@ -195,6 +253,8 @@ generic de meta-adnotări, superclass sau override per metodă.
 | Nivel / tag | `AtfTestLayerArchitectureTest` | clasifică sursele de teste; nu certifică output-ul Extent |
 | Consolă | `AtfConsoleMessagePolicyResolverTest`, `AtfConsoleMessagePolicyTest`, Shop E2E/API și API resource tests | policy, precedență, conflict, override global și consumatori deterministici; concurența/lifecycle dinamic rămâne o probă separată |
 | Canal | `AtfTestChannelResolverTest`, `ShopE2eTestSupportTest`, `ShopApiCallAuditPreflightTest`, `ShopArchitectureTest` | rezolvarea UI/API/UI_API, verificarea suportului și preflight înainte de I/O; contractul canalului este închis. Paritatea raportului și ownership-ul verdictelor aparțin Reporting, nu resolverului |
+| UI evidence | `AtfUiEvidenceContractTest`, `AutoExEvidenceProfileComponentTest`, `ShopE2eTestSupportTest`, `ShopE2eContextEvidenceProfileTest` | declarația neutră, mapping-ul ambelor axe și profilul efectiv al raportului standalone sunt probate; izolarea între scenariile unui raport partajat este urmărită în feedback-ul Reporting |
+| Calea raportului | `AtfReportPathPolicyResolverTest`, `AtfReportPathOptInTest`, `AtfConsoleTestExtensionIntegrationTest` | absență/opt-in/override, meta-adnotări, conflict și agregare pentru report owner |
 | Output | `ReportOutputDirectoryTest`, `UiReportSubdirectoryTest`, `AtfUiConfigurationLoaderTest` | ancore, inheritance/compoziție, cicluri, conflicte, path-uri invalide și working directory extern; containment-ul este probat prin symlink când e permis și directory junction ca fallback Windows |
 | Setup | `ApiScenarioSetupCatalogTest`, `ApiScenarioManifestTest`, `ApiSelectionMockPublisherComponentTest` | selecție și compoziție locală, fără servicii externe |
 | Documentație | `DocumentationTargetGovernanceTest` și suita whole-ATF | declarația repeatable selectează aceleași validatoare |

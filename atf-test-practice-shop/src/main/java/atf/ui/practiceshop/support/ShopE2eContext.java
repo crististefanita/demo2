@@ -72,13 +72,20 @@ public final class ShopE2eContext implements AutoCloseable {
     public static ShopE2eContext open(ShopConfiguration configuration,
                                                ReportEvidenceProfile evidenceProfile,
                                                UiExtentReportSession sharedReport) {
-        ReportEvidenceProfile yamlGovernedProfile = java.util.Objects.requireNonNull(
-                        evidenceProfile, "evidenceProfile").toBuilder()
-                .screenshotPolicy(configuration.reporting().screenshotPolicy())
-                .build();
+        return open(configuration, evidenceProfile, sharedReport,
+                atf.api.reporting.console.AtfConsoleSink.noOp());
+    }
+
+    /** Opens a browser harness with an explicit sink for a report it owns. */
+    public static ShopE2eContext open(ShopConfiguration configuration,
+                                     ReportEvidenceProfile evidenceProfile,
+                                     UiExtentReportSession sharedReport,
+                                     atf.api.reporting.console.AtfConsoleSink reportConsole) {
+        ReportEvidenceProfile selectedProfile = java.util.Objects.requireNonNull(
+                evidenceProfile, "evidenceProfile");
         boolean ownsReport = sharedReport == null;
         UiExtentReportSession report = ownsReport
-                ? openReport(configuration, yamlGovernedProfile) : sharedReport;
+                ? openReport(configuration, selectedProfile, reportConsole) : sharedReport;
         try {
             return openBrowser(configuration, report, ownsReport);
         } catch (RuntimeException error) {
@@ -90,20 +97,25 @@ public final class ShopE2eContext implements AutoCloseable {
     /** Creates the single report resource owned by an opt-in Practice Shop suite run. */
     public static UiExtentReportSession openReport(ShopConfiguration configuration,
                                                    ReportEvidenceProfile evidenceProfile) {
-        ReportEvidenceProfile yamlGovernedProfile = java.util.Objects.requireNonNull(
-                        evidenceProfile, "evidenceProfile").toBuilder()
-                .screenshotPolicy(configuration.reporting().screenshotPolicy())
-                .build();
+        return openReport(configuration, evidenceProfile, atf.api.reporting.console.AtfConsoleSink.noOp());
+    }
+
+    /** Creates the suite-owned report with an explicit terminal notification sink. */
+    public static UiExtentReportSession openReport(ShopConfiguration configuration,
+                                                   ReportEvidenceProfile evidenceProfile,
+                                                   atf.api.reporting.console.AtfConsoleSink console) {
+        ReportEvidenceProfile selectedProfile = java.util.Objects.requireNonNull(
+                evidenceProfile, "evidenceProfile");
         String file = "ui-atf-practice-shop-e2e_"
                 + STAMP.withZone(Clock.systemDefaultZone().getZone()).format(Clock.systemDefaultZone().instant())
                 + ".html";
         var reportConfiguration = AtfReportConfigurationLoader.load();
         return UiExtentReportSession.openConfiguredResolved(
                 configuration.uiReportDirectory(), file,
-                atf.api.reporting.console.AtfConsoleSink.noOp(),
-                yamlGovernedProfile,
+                java.util.Objects.requireNonNull(console, "console"),
+                selectedProfile,
                 ShopReportSystemMetadata.snapshot(configuration,
-                        reportConfiguration.reportingSettings(), yamlGovernedProfile));
+                        reportConfiguration.reportingSettings(), selectedProfile));
     }
 
     private static ShopE2eContext openBrowser(ShopConfiguration configuration,
@@ -120,7 +132,11 @@ public final class ShopE2eContext implements AutoCloseable {
             ShopApiNetworkJournal apiNetwork =
                     new ShopApiNetworkJournal(configuration.validationProfile(),
                             configuration.api().evidenceBinding());
-            apiNetwork.attach(browser.networkInspector());
+            // Keep the Shop journal on its typed Page response adapter. The
+            // generic inspector remains available for reusable consumers, but
+            // registration navigation can replace the execution context while
+            // its response callback is still settling.
+            apiNetwork.attach(browser.page());
             return new ShopE2eContext(configuration, report, browser, browserCaptureProvider,
                     ownsReport, apiNetwork);
         } catch (RuntimeException error) {

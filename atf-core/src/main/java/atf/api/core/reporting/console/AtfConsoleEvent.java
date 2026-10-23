@@ -2,6 +2,7 @@ package atf.api.core.reporting.console;
 import atf.api.core.reporting.contract.AtfReportStatus;
 
 import java.util.Objects;
+import java.nio.file.Path;
 
 /**
  * Renderer-neutral console event emitted by an ATF reporting lifecycle.
@@ -13,9 +14,9 @@ import java.util.Objects;
 public record AtfConsoleEvent(Type type, Scope scope, String name,
                               AtfReportStatus status, long durationMillis,
                               String detailName, String detailValue) {
-    public enum Type { START, DETAIL, CODE, COMPLETE }
+    public enum Type { START, DETAIL, CODE, COMPLETE, REPORT_PUBLISHED }
 
-    public enum Scope { SCENARIO, PHASE, REQUEST, VALIDATION, UI_ACTION }
+    public enum Scope { SCENARIO, PHASE, REQUEST, VALIDATION, UI_ACTION, REPORT }
 
     public AtfConsoleEvent {
         type = Objects.requireNonNull(type, "type");
@@ -26,6 +27,10 @@ public record AtfConsoleEvent(Type type, Scope scope, String name,
         }
         if (type == Type.COMPLETE) {
             status = Objects.requireNonNull(status, "status");
+        }
+        if (type == Type.REPORT_PUBLISHED
+                && (scope != Scope.REPORT || !Path.of(detailValue == null ? "" : detailValue).isAbsolute())) {
+            throw new IllegalArgumentException("published report event requires an absolute report path");
         }
         detailName = detailName == null ? "" : detailName.trim();
         detailValue = detailValue == null ? "" : detailValue;
@@ -46,5 +51,12 @@ public record AtfConsoleEvent(Type type, Scope scope, String name,
     public static AtfConsoleEvent completed(Scope scope, String name,
                                             AtfReportStatus status, long durationMillis) {
         return new AtfConsoleEvent(Type.COMPLETE, scope, name, status, durationMillis, "", "");
+    }
+
+    /** Creates the terminal notification for an already-published report artifact. */
+    public static AtfConsoleEvent reportPublished(Path reportPath) {
+        Path normalized = Objects.requireNonNull(reportPath, "reportPath").toAbsolutePath().normalize();
+        return new AtfConsoleEvent(Type.REPORT_PUBLISHED, Scope.REPORT, "Extent report",
+                null, 0, "path", normalized.toString());
     }
 }

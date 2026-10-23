@@ -7,12 +7,14 @@ import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
 import atf.api.reporting.artifact.ReportArtifactInspector;
 import atf.api.reporting.configuration.ReportingSettings;
+import atf.api.reporting.console.AtfConsoleEvent;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -66,6 +68,54 @@ class ExtentReportSessionLifecycleTest {
                 }
             }
             assertTrue(Files.exists(report), "close must publish the finalized report");
+        } finally {
+            deleteTree(root);
+        }
+    }
+
+    @Test
+    void publishedArtifactEventIsEmittedOnceAfterTheFinalFileExists() throws Exception {
+        Path root = Files.createTempDirectory("atf-report-published-event-");
+        Path report = root.resolve("published.html");
+        List<AtfConsoleEvent> events = new ArrayList<>();
+        try {
+            var session = new ExtentReportSession(report, ReportingSettings.defaults(),
+                    new atf.api.reporting.security.SensitiveDataRedactor(), event -> {
+                        if (event.type() == AtfConsoleEvent.Type.REPORT_PUBLISHED) {
+                            assertTrue(Files.isRegularFile(report), "notification must follow final publication");
+                        }
+                        events.add(event);
+                    });
+            var scenario = session.startScenario("PublishedEventTests", "published event", List.of());
+            scenario.complete(AtfReportStatus.PASS);
+
+            session.close();
+            session.close();
+
+            var published = events.stream()
+                    .filter(event -> event.type() == AtfConsoleEvent.Type.REPORT_PUBLISHED)
+                    .toList();
+            assertEquals(1, published.size());
+            assertEquals(report.toAbsolutePath().normalize().toString(), published.getFirst().detailValue());
+        } finally {
+            deleteTree(root);
+        }
+    }
+
+    @Test
+    void failedPublicationDoesNotEmitPublishedArtifactEvent() throws Exception {
+        Path root = Files.createTempDirectory("atf-report-published-event-failure-");
+        Path blockedDestination = Files.createDirectory(root.resolve("blocked.html"));
+        List<AtfConsoleEvent> events = new ArrayList<>();
+        try {
+            var session = new ExtentReportSession(blockedDestination, ReportingSettings.defaults(),
+                    new atf.api.reporting.security.SensitiveDataRedactor(), events::add);
+            var scenario = session.startScenario("PublishedEventTests", "blocked publication", List.of());
+            scenario.complete(AtfReportStatus.PASS);
+
+            assertThrows(IllegalStateException.class, session::close);
+            assertTrue(events.stream().noneMatch(event ->
+                    event.type() == AtfConsoleEvent.Type.REPORT_PUBLISHED));
         } finally {
             deleteTree(root);
         }

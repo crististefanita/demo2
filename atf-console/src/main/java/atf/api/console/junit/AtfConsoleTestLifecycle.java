@@ -45,6 +45,14 @@ public final class AtfConsoleTestLifecycle {
                 AtfConsoleReporter.configuredStdout(settings), scenarioName, testName);
     }
 
+    /** Creates a lifecycle with an independently resolved report-path policy. */
+    public static AtfConsoleTestLifecycle configured(String scenarioName, String testName,
+                                                      ConsoleSettings settings,
+                                                      boolean reportPathEnabled) {
+        return new AtfConsoleTestLifecycle(
+                AtfConsoleReporter.configuredStdout(settings, reportPathEnabled), scenarioName, testName);
+    }
+
     public void start() {
         if (started || completed) return;
         startedAt = nanoClock.getAsLong();

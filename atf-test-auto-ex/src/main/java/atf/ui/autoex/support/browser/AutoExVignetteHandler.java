@@ -1,4 +1,4 @@
-package atf.ui.autoex.support;
+package atf.ui.autoex.support.browser;
 
 import atf.api.ui.playwright.AtfLocator;
 import atf.api.ui.playwright.PlaywrightActionSequence;

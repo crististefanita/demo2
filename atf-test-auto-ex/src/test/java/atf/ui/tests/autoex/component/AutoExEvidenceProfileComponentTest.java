@@ -4,7 +4,8 @@ import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.evidence.profile.ReportEvidenceCaptureSource;
 import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
 import atf.api.testkit.AtfComponentTest;
-import atf.ui.autoex.support.AutoExEvidenceMode;
+import atf.api.testkit.evidence.AtfUiEvidenceFlow;
+import atf.api.testkit.evidence.AtfUiScreenshotPolicy;
 import atf.ui.autoex.support.AutoExEvidenceProfile;
 import org.junit.jupiter.api.Test;
 
@@ -15,24 +16,25 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @AtfComponentTest
 class AutoExEvidenceProfileComponentTest {
     @Test
-    void evidenceModesSelectTheExpectedFlowAndScreenshotPolicy() {
-        var configured = AutoExEvidenceProfile.forRun(AutoExEvidenceMode.Mode.CONFIGURED,
-                ReportScreenshotPolicy.FINAL_AND_FAILURE);
-        var checkpointScreenshots = AutoExEvidenceProfile.forRun(
-                AutoExEvidenceMode.Mode.CHECKPOINT_SCREENSHOTS, ReportScreenshotPolicy.NONE);
-        var finalOnly = AutoExEvidenceProfile.forRun(
-                AutoExEvidenceMode.Mode.FINAL_SCREENSHOT_ONLY, ReportScreenshotPolicy.EACH_CHECKPOINT);
+    void annotationOverridesOnlyDeclaredAxesAndConfiguredAxesRemainConfigured() {
+        var configured = AutoExEvidenceProfile.forRun(AtfUiEvidenceFlow.CONFIGURED,
+                AtfUiScreenshotPolicy.CONFIGURED, ReportScreenshotPolicy.FINAL_AND_FAILURE);
+        var unifiedWithConfiguredScreenshots = AutoExEvidenceProfile.forRun(
+                AtfUiEvidenceFlow.UNIFIED_FLOW, AtfUiScreenshotPolicy.CONFIGURED,
+                ReportScreenshotPolicy.NONE);
+        var finalOnly = AutoExEvidenceProfile.forRun(AtfUiEvidenceFlow.UNIFIED_FLOW,
+                AtfUiScreenshotPolicy.FINAL_ONLY, ReportScreenshotPolicy.EACH_CHECKPOINT);
 
         assertAll(
                 () -> assertEquals(ReportEvidenceFlowMode.SCREEN_CHECKPOINTS,
                         configured.flowMode()),
-                () -> assertEquals(ReportEvidenceFlowMode.SCREEN_CHECKPOINTS,
-                        checkpointScreenshots.flowMode()),
+                () -> assertEquals(ReportEvidenceFlowMode.UNIFIED_FLOW,
+                        unifiedWithConfiguredScreenshots.flowMode()),
                 () -> assertEquals(ReportEvidenceFlowMode.UNIFIED_FLOW, finalOnly.flowMode()),
                 () -> assertEquals(ReportScreenshotPolicy.FINAL_AND_FAILURE,
                         configured.screenshotPolicy()),
-                () -> assertEquals(ReportScreenshotPolicy.EACH_CHECKPOINT,
-                        checkpointScreenshots.screenshotPolicy()),
+                () -> assertEquals(ReportScreenshotPolicy.NONE,
+                        unifiedWithConfiguredScreenshots.screenshotPolicy()),
                 () -> assertEquals(ReportScreenshotPolicy.FINAL_ONLY,
                         finalOnly.screenshotPolicy()),
                 () -> assertEquals(ReportEvidenceCaptureSource.BROWSER,

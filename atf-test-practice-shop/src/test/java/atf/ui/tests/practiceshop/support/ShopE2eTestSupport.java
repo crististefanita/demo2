@@ -2,12 +2,18 @@ package atf.ui.tests.practiceshop.support;
 
 import atf.api.reporting.contract.AtfAssertion;
 import atf.api.reporting.contract.AtfReportStatus;
+import atf.api.reporting.evidence.ReportScreenshotPolicy;
 import atf.api.reporting.ui.UiExtentReportSession;
 import atf.api.reporting.evidence.profile.ReportEvidenceFlowMode;
 import atf.api.reporting.evidence.profile.ReportEvidenceProfile;
 import atf.api.reporting.evidence.profile.ReportUiActionDetailsMode;
+import atf.api.testkit.evidence.AtfUiEvidence;
+import atf.api.testkit.evidence.AtfUiEvidenceFlow;
+import atf.api.testkit.evidence.AtfUiScreenshotPolicy;
 import atf.api.console.junit.AtfConsoleTestExtension;
+import atf.api.console.junit.AtfReportPathOptIn;
 import atf.api.testkit.AtfConsoleMessages;
+import atf.api.testkit.reporting.AtfReportPath;
 import atf.api.testkit.channel.AtfTestChannelResolver;
 import atf.api.testkit.channel.TestChannel;
 import atf.api.ui.playwright.PlaywrightActionSequence;
@@ -59,12 +65,6 @@ public final class ShopE2eTestSupport {
         UI_API
     }
 
-    public enum ReportFlow {
-        CONFIGURED,
-        SCREEN_CHECKPOINTS,
-        UNIFIED_FLOW
-    }
-
     public enum ActionDetailsMode {
         CONFIGURED,
         INCLUDED_COLLAPSED,
@@ -74,10 +74,10 @@ public final class ShopE2eTestSupport {
     @Target(ElementType.TYPE)
     @Retention(RetentionPolicy.RUNTIME)
     @AtfConsoleMessages(AtfConsoleMessages.Policy.DETAILS)
+    @AtfReportPath
     @ExtendWith({AtfConsoleTestExtension.class, E2eExtension.class})
     public @interface WithE2eHarness {
         HarnessProfile profile() default HarnessProfile.CONFIGURED;
-        ReportFlow reportFlow() default ReportFlow.CONFIGURED;
         ActionDetailsMode actionDetails() default ActionDetailsMode.CONFIGURED;
     }
 
@@ -102,17 +102,24 @@ public final class ShopE2eTestSupport {
                     && authenticated.registrationProfile() == ShopTestSupport.RegistrationProfileMode.LOCAL
                     ? ShopConfigurationLoader.resolveRegistrationProfileFile(
                             authenticated.registrationProfileFile()) : null;
-            ReportEvidenceProfile presentation = reportProfile(configuration, harness);
+            AtfUiEvidence uiEvidence = context.getRequiredTestClass().getAnnotation(AtfUiEvidence.class);
+            ReportEvidenceProfile presentation = reportProfile(configuration, harness, uiEvidence);
+            atf.api.reporting.console.AtfConsoleSink reportConsole;
             UiExtentReportSession sharedReport = null;
             if (ShopTestSupport.suiteModeEnabled(context)) {
                 SuiteReportResource suiteReport = context.getRoot().getStore(NAMESPACE)
                         .getOrComputeIfAbsent(SUITE_REPORT_KEY,
                                 ignored -> new SuiteReportResource(context.getRoot().getUniqueId()),
                                 SuiteReportResource.class);
+                suiteReport.includeReportPath(context.getRequiredTestClass());
                 sharedReport = suiteReport.open(configuration, presentation);
+                reportConsole = suiteReport.reportConsole();
+            } else {
+                reportConsole = ShopConsoleBridge.reportingSink(
+                        AtfConsoleTestExtension.reportPathSink(context.getRequiredTestClass()));
             }
             ShopE2eContext browser = ShopE2eContext.open(
-                    configuration, presentation, sharedReport);
+                    configuration, presentation, sharedReport, reportConsole);
             String rootId = context.getRoot().getUniqueId();
             String accountRunScope = ShopTestSupport.suiteModeEnabled(context)
                     ? ShopAuthenticatedAccountTestSupport.suiteAccountScope(rootId)
@@ -145,15 +152,26 @@ public final class ShopE2eTestSupport {
     /** Root-store owner: all suite scenarios share one reporter, flushed after the last child test. */
     private static final class SuiteReportResource implements ExtensionContext.Store.CloseableResource {
         private final String rootId;
+        private final AtfReportPathOptIn reportPathOptIn = new AtfReportPathOptIn(
+                AtfConsoleTestExtension.reportPathPublisher());
         private UiExtentReportSession report;
 
         private SuiteReportResource(String rootId) {
             this.rootId = rootId;
         }
 
+        synchronized void includeReportPath(Class<?> owner) {
+            reportPathOptIn.include(owner);
+        }
+
+        atf.api.reporting.console.AtfConsoleSink reportConsole() {
+            return ShopConsoleBridge.reportingSink(reportPathOptIn);
+        }
+
         synchronized UiExtentReportSession open(ShopConfiguration configuration,
                                                 ReportEvidenceProfile profile) {
-            if (report == null) report = ShopE2eContext.openReport(configuration, profile);
+            if (report == null) report = ShopE2eContext.openReport(
+                    configuration, profile, reportConsole());
             return report;
         }
 
@@ -207,14 +225,26 @@ public final class ShopE2eTestSupport {
 
     static ReportEvidenceProfile reportProfile(ShopConfiguration configuration,
                                                WithE2eHarness harness) {
+        return reportProfile(configuration, harness, null);
+    }
+
+    static ReportEvidenceProfile reportProfile(ShopConfiguration configuration,
+                                               WithE2eHarness harness,
+                                               AtfUiEvidence evidence) {
         ReportEvidenceProfile configured = ShopScreenshotPolicy.profile(
                 Objects.requireNonNull(configuration, "configuration")
                         .reporting().screenshotPolicy());
-        if (harness == null) return configured;
-        return configured.toBuilder()
-                .flowMode(resolve(harness.reportFlow(), configured.flowMode()))
-                .actionDetailsMode(resolve(harness.actionDetails(), configured.actionDetailsMode()))
-                .build();
+        AtfUiEvidenceFlow flow = evidence == null
+                ? AtfUiEvidenceFlow.CONFIGURED : evidence.flow();
+        AtfUiScreenshotPolicy screenshots = evidence == null
+                ? AtfUiScreenshotPolicy.CONFIGURED : evidence.screenshots();
+        ReportEvidenceProfile.Builder selected = configured.toBuilder()
+                .flowMode(resolve(flow, configured.flowMode()))
+                .screenshotPolicy(resolve(screenshots, configured.screenshotPolicy()));
+        if (harness != null) {
+            selected.actionDetailsMode(resolve(harness.actionDetails(), configured.actionDetailsMode()));
+        }
+        return selected.build();
     }
 
     private static ReportUiActionDetailsMode resolve(ActionDetailsMode selected,
@@ -226,12 +256,24 @@ public final class ShopE2eTestSupport {
         };
     }
 
-    private static ReportEvidenceFlowMode resolve(ReportFlow selected,
+    private static ReportEvidenceFlowMode resolve(AtfUiEvidenceFlow selected,
                                                   ReportEvidenceFlowMode configured) {
         return switch (Objects.requireNonNull(selected, "reportFlow")) {
-            case CONFIGURED -> configured;
+            case CONFIGURED -> Objects.requireNonNull(configured, "configured flow");
             case SCREEN_CHECKPOINTS -> ReportEvidenceFlowMode.SCREEN_CHECKPOINTS;
             case UNIFIED_FLOW -> ReportEvidenceFlowMode.UNIFIED_FLOW;
+        };
+    }
+
+    private static ReportScreenshotPolicy resolve(AtfUiScreenshotPolicy selected,
+                                                  ReportScreenshotPolicy configured) {
+        return switch (Objects.requireNonNull(selected, "screenshots")) {
+            case CONFIGURED -> Objects.requireNonNull(configured, "configured screenshot policy");
+            case EACH_CHECKPOINT -> ReportScreenshotPolicy.EACH_CHECKPOINT;
+            case FINAL_ONLY -> ReportScreenshotPolicy.FINAL_ONLY;
+            case FAILURE_ONLY -> ReportScreenshotPolicy.FAILURE_ONLY;
+            case FINAL_AND_FAILURE -> ReportScreenshotPolicy.FINAL_AND_FAILURE;
+            case NONE -> ReportScreenshotPolicy.NONE;
         };
     }
 

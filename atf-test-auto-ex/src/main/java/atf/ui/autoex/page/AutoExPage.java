@@ -1,6 +1,6 @@
 package atf.ui.autoex.page;
 
-import atf.ui.autoex.support.AutoExPurchaseSession;
+import atf.ui.autoex.support.journey.AutoExPurchaseSession;
 
 /** Small shared Playwright boundary; selectors remain owned by the locator vocabulary. */
 abstract class AutoExPage {

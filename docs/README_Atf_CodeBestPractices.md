@@ -104,8 +104,10 @@ un pachet
    └─ peste prag → split coeziv sau excepție revizuită explicit
 ```
 
-- `AtfPackageCohesionGovernanceTest` verifică producția guvernată și testele din
-  toate modulele reactorului ATF, inclusiv modulele consumer și modulele de test;
+- `AtfPackageCohesionGovernanceTest` verifică producția modulelor enumerate în
+  `SOURCE_GOVERNED_MODULES` și pachetele de test din toate modulele reactorului;
+- orice modul cu surse `src/main/java` trebuie inclus în inventarul guvernat;
+  `TEST_ONLY_COMPOSITION_MODULES` este rezervat modulelor fără cod de producție;
 - un pachet peste opt clase nu devine automat acceptat printr-o allow-list;
 - o excepție trebuie să aibă motiv semantic, owner și dovadă de boundary;
 - diagnosticul guard-ului enumeră pachetul, numărul și clasele concrete;

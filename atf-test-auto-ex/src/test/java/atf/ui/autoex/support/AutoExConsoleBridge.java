@@ -21,6 +21,7 @@ final class AutoExConsoleBridge {
             case CODE -> AtfConsoleEvent.code(coreScope(event.scope()), event.detailName(), event.detailValue());
             case COMPLETE -> AtfConsoleEvent.completed(coreScope(event.scope()), event.name(),
                     coreStatus(event.status()), event.durationMillis());
+            case REPORT_PUBLISHED -> AtfConsoleEvent.reportPublished(java.nio.file.Path.of(event.detailValue()));
         };
     }
 

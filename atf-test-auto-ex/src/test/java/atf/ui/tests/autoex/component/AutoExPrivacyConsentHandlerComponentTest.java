@@ -3,7 +3,7 @@ package atf.ui.tests.autoex.component;
 import atf.api.testkit.AtfComponentTest;
 import atf.api.ui.config.UiBrowserConfiguration;
 import atf.api.ui.playwright.PlaywrightUiSession;
-import atf.ui.autoex.support.AutoExPrivacyConsentHandler;
+import atf.ui.autoex.support.browser.AutoExPrivacyConsentHandler;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

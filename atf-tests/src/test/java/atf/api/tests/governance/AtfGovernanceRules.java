@@ -16,6 +16,7 @@ final class AtfGovernanceRules {
                     "atf.api.mock", "org.junit", "<style", "<script"),
             source(AtfModuleIds.DEBUG_UI, "atf.api.validation", "atf.api.reporting",
                     "atf.api.mock", "org.junit", "<style", "<script"),
+            source(AtfModuleIds.AUTOMATION_EXERCISE, "org.junit", "atf.api.testkit"),
             source(AtfModuleIds.REPORTING, "atf.api.core",
                     "atf.api.validation", "atf.api.console", "org.junit"));
 

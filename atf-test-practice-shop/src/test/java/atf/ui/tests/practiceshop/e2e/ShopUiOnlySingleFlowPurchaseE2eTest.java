@@ -4,6 +4,8 @@ import atf.api.reporting.contract.AtfAssertion;
 import atf.api.testkit.AtfE2eTest;
 import atf.api.testkit.channel.AtfTestChannel;
 import atf.api.testkit.channel.TestChannel;
+import atf.api.testkit.evidence.AtfUiEvidence;
+import atf.api.testkit.evidence.AtfUiEvidenceFlow;
 import atf.ui.practiceshop.flow.ShopPurchaseFlow;
 import atf.ui.practiceshop.support.ShopPurchaseTraceStep;
 import atf.ui.tests.practiceshop.support.ShopE2eTestSupport;
@@ -18,8 +20,8 @@ import java.util.List;
 /** One consolidated UI-only business proposition, action table and final screenshot. */
 @AtfE2eTest
 @AtfTestChannel(TestChannel.UI)
-@ShopE2eTestSupport.WithE2eHarness(
-        reportFlow = ShopE2eTestSupport.ReportFlow.UNIFIED_FLOW)
+@AtfUiEvidence(flow = AtfUiEvidenceFlow.UNIFIED_FLOW)
+@ShopE2eTestSupport.WithE2eHarness
 @Execution(ExecutionMode.SAME_THREAD)
 @Order(5)
 @DisplayName("Guest UI-only single-flow purchase")

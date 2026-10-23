@@ -178,8 +178,13 @@ public final class UiNetworkInspector implements AutoCloseable {
 
     private void observeFinished(Request request) {
         if (!acceptsBrowserEvent(request)) return;
-        Response response = request.response();
-        if (response != null) capture(response);
+        try {
+            Response response = request.response();
+            if (response != null) capture(response);
+        } catch (RuntimeException transientBrowserState) {
+            // Network evidence is diagnostic and must never abort the UI action
+            // when the page replaces its execution context during navigation.
+        }
     }
 
     private void observeFailure(Request request) {

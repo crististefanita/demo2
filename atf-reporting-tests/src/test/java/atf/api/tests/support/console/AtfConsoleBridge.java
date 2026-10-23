@@ -19,11 +19,11 @@ import static atf.api.reporting.console.AtfConsoleEvent.started;
  * production module depends on the other, and Practice Shop does not own a
  * cross-module conversion.</p>
  */
-final class AtfConsoleBridge {
+public final class AtfConsoleBridge {
     private AtfConsoleBridge() {
     }
 
-    static atf.api.reporting.console.AtfConsoleSink toReportingSink(AtfConsoleSink coreSink) {
+    public static atf.api.reporting.console.AtfConsoleSink toReportingSink(AtfConsoleSink coreSink) {
         Objects.requireNonNull(coreSink, "coreSink");
         return event -> coreSink.publish(toCoreEvent(event));
     }
@@ -41,6 +41,8 @@ final class AtfConsoleBridge {
             case CODE -> AtfConsoleEvent.code(coreScope(event.scope()), event.detailName(), event.detailValue());
             case COMPLETE -> AtfConsoleEvent.completed(coreScope(event.scope()), event.name(),
                     coreStatus(event.status()), event.durationMillis());
+            case REPORT_PUBLISHED -> AtfConsoleEvent.reportPublished(
+                    java.nio.file.Path.of(event.detailValue()));
         };
     }
 
@@ -52,6 +54,8 @@ final class AtfConsoleBridge {
             case CODE -> code(reportingScope(event.scope()), event.detailName(), event.detailValue());
             case COMPLETE -> completed(reportingScope(event.scope()), event.name(),
                     reportingStatus(event.status()), event.durationMillis());
+            case REPORT_PUBLISHED -> atf.api.reporting.console.AtfConsoleEvent.reportPublished(
+                    java.nio.file.Path.of(event.detailValue()));
         };
     }
 

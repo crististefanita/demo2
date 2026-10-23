@@ -21,6 +21,17 @@ comportamentul specific consolei este descris în acest README.
 | YAML `reporting.console` | detalii configurabile | nu schimbă execuția |
 | `@AtfConsoleMessages` | policy per clasă, inclusiv meta/inheritance | nu reactivează consola dezactivată global |
 
+Publicarea căii raportului este opt-in și independentă de detaliile testului:
+
+- `REPORT_PUBLISHED` poartă calea absolută a artifactului Extent confirmat;
+- `AtfConsoleReporter` o afișează numai dacă primește explicit opțiunea de path;
+  constructorii standard și `configuredStdout()` o lasă oprită;
+- `reporting.console.enabled: false` oprește și această linie;
+- `@AtfConsoleMessages` controlează detaliile de test, nu publicarea căii;
+- adnotarea și agregarea pentru raportul partajat sunt implementate; contractul
+  și adopția sunt descrise în
+  [feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md#report-path-01--închis-cale-absolută-după-publicarea-raportului).
+
 ## Diagramă de bază
 
 ```mermaid
@@ -133,6 +144,19 @@ importă `atf-reporting`. `HtmlReportSession` și
 `ExtentReportSession` acceptă în continuare un `AtfConsoleSink` explicit, dar
 constructorii lor impliciți folosesc `noOp`.
 
+### Calea raportului publicat
+
+`@AtfReportPath` din `atf-test-kit` controlează separat mesajul final cu calea
+raportului. Extension-ul JUnit rezolvă declarația directă, meta-adnotările și
+moștenirea; fără opt-in nu afișează calea. Mesajul este emis numai după ce
+Reporting a închis sesiunea și fișierul final există. `reporting.console.enabled`
+rămâne autoritar, dar `@AtfConsoleMessages` nu decide dacă path-ul este opt-in.
+
+Pentru o sesiune partajată între clase, fiecare owner trebuie înregistrat într-un
+`AtfReportPathOptIn`; agregatorul emite o singură notificare dacă oricare owner
+a activat opțiunea, independent de ordinea execuției. `ShopE2eTestSupport` folosește
+acest pattern pentru raportul comun al suitei.
+
 ## Testare
 
 Testarea este împărțită după responsabilitate:
@@ -146,6 +170,8 @@ Testarea este împărțită după responsabilitate:
 - `AtfConsoleConfigurationLoaderTest` — discovery, precedence, path resolution
   și validarea boolean-urilor;
 - testele de lifecycle JUnit — integrarea extension-ului opțional;
+- `AtfReportPathPolicyResolverTest`, `AtfReportPathOptInTest` — adnotări,
+  conflicte și agregare indiferent de ordinea ownerilor;
 - testele de execuție — publicarea separată a evenimentelor.
 
 - Jupiter nu rulează `BeforeEachCallback`/`TestWatcher` pentru fiecare copil din `@TestFactory`.

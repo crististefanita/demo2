@@ -2,7 +2,7 @@ package atf.ui.autoex.page;
 
 import atf.ui.autoex.locator.AutoExRoutes;
 import atf.ui.autoex.locator.AutoExSelectors;
-import atf.ui.autoex.support.AutoExPurchaseSession;
+import atf.ui.autoex.support.journey.AutoExPurchaseSession;
 
 /** Store entry and its primary navigation. */
 public final class HomePage extends AutoExPage {

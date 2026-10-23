@@ -1,4 +1,6 @@
-package atf.ui.autoex.support;
+package atf.ui.autoex.support.journey;
+
+import atf.ui.autoex.support.catalog.AutoExCatalogSnapshot;
 
 import atf.api.reporting.contract.AtfAssertion;
 import atf.ui.autoex.config.AutoExConfiguration;
@@ -26,6 +28,7 @@ public interface AutoExPurchaseSession {
     AutoExCatalogSnapshot inspectCatalogApi(String productName);
     boolean observesApiTraffic();
     int apiExchangeCount();
+    void markCausalApiTrafficBaseline();
     void onFailureCleanup(AutoExAccountCleanup cleanup);
     void clearFailureCleanup();
     boolean dismissGoogleVignetteIfPresent();

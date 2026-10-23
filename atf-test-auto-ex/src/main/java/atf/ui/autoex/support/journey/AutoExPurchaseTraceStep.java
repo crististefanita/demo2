@@ -1,4 +1,4 @@
-package atf.ui.autoex.support;
+package atf.ui.autoex.support.journey;
 
 import atf.api.reporting.contract.AtfGherkinKeyword;
 

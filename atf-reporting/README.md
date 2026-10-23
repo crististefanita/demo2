@@ -866,6 +866,18 @@ Output-ul este configurabil prin `reporting.extent.outputDirectory` și
 Documentația descrie numai politica și pattern-ul de output, nu nume concrete de
 rapoarte generate.
 
+`ExtentReportSession.close()` deține finalizarea și confirmarea publicării:
+
+- finalizează nodurile, face flush, publică artifactul staged și confirmă
+  existența fișierului final;
+- numai după confirmare trimite sink-ului `REPORT_PUBLISHED` cu calea absolută
+  normalizată;
+- reînchiderea nu emite un duplicat, iar publicarea eșuată nu anunță succes;
+- sink-ul este diagnostic: eșecul lui nu schimbă verdictul testului;
+- afișarea și opt-in-ul la consolă aparțin
+  [ATF Console](../atf-console/README.md); evenimentul nu activează automat
+  fiecare consumer.
+
 ### Prospețimea dovezii vizuale
 
 Un HTML generat înainte de recompilarea claselor sau a resurselor reporting este

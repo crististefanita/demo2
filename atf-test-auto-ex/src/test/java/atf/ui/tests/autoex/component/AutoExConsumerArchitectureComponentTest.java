@@ -5,10 +5,13 @@ import atf.ui.tests.autoex.e2e.AutoExPurchaseUiApiE2eTest;
 import atf.ui.tests.autoex.e2e.AutoExPurchaseUiE2eTest;
 import atf.ui.tests.autoex.e2e.AutoExPurchaseUiFinalScreenshotE2eTest;
 import atf.ui.tests.autoex.suites.AutoExComponentSuite;
+import atf.ui.tests.autoex.suites.AutoExApiLiveSuite;
 import atf.ui.tests.autoex.suites.AutoExPurchaseSuite;
+import atf.ui.tests.autoex.api.AutoExApiLiveContractTest;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.suite.api.SelectClasses;
 import org.junit.platform.suite.api.SelectPackages;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.util.List;
 import java.nio.file.Files;
@@ -17,6 +20,7 @@ import java.io.IOException;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Protects component/E2E entry-point boundaries and explicit suite composition. */
@@ -38,12 +42,28 @@ class AutoExConsumerArchitectureComponentTest {
     }
 
     @Test
+    void liveApiSuiteIsSeparateAndRequiresExplicitOptIn() {
+        SelectClasses selection = AutoExApiLiveSuite.class.getAnnotation(SelectClasses.class);
+        EnabledIfSystemProperty optIn = AutoExApiLiveContractTest.class
+                .getAnnotation(EnabledIfSystemProperty.class);
+
+        assertEquals(List.of(AutoExApiLiveContractTest.class), List.of(selection.value()));
+        assertEquals("atf.autoex.api.live.enabled", optIn.named());
+        assertEquals("true", optIn.matches());
+        assertTrue(AutoExApiLiveContractTest.class.getPackageName().equals("atf.ui.tests.autoex.api"));
+    }
+
+    @Test
     void mainSourceIsConsumerRuntimeAndOwnsTheTypedGherkinBoundary() throws IOException {
         Path moduleRoot = locateModuleRoot();
         Path mainSource = moduleRoot.resolve("src/main/java/atf/ui/autoex");
-        Path journey = mainSource.resolve("support/AutoExPurchaseJourney.java");
+        Path journey = mainSource.resolve("support/journey/AutoExPurchaseJourney.java");
         String journeySource = Files.readString(journey);
 
+        assertTrue(Files.isRegularFile(moduleRoot.resolve("src/test/resources/atf-auto-ex.yaml")),
+                "the site-specific E2E profile belongs to test resources");
+        assertFalse(Files.exists(moduleRoot.resolve("src/main/resources/atf-auto-ex.yaml")),
+                "the E2E fixture must not be packaged as a production resource");
         assertTrue(Files.isRegularFile(mainSource.resolve("config/AutoExConfigurationLoader.java")));
         assertTrue(Files.isRegularFile(mainSource.resolve("page/AccountPage.java")));
         assertTrue(Files.isRegularFile(mainSource.resolve("locator/AutoExSelectors.java")));
