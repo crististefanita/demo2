@@ -14,6 +14,7 @@ import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /** Bounded-heap child JVM proof for inline PNG publication. */
 @AtfComponentTest
@@ -61,6 +62,8 @@ class LargeReportPublicationComponentTest {
     private static String runProbe(Path report, String profile) throws Exception {
         Path log = report.resolveSibling(report.getFileName() + ".log");
         Files.createDirectories(report.getParent());
+        long timeoutSeconds = Long.getLong("atf.test.publication.timeout.seconds", 60L);
+        assertTrue(timeoutSeconds > 0, "publication timeout must be positive");
         String java = Path.of(System.getProperty("java.home"), "bin", "java").toString();
         var command = List.of(java, "-Xms64m", "-Xmx384m", "-cp",
                 System.getProperty("java.class.path"),
@@ -69,8 +72,11 @@ class LargeReportPublicationComponentTest {
                 .redirectErrorStream(true)
                 .redirectOutput(log.toFile())
                 .start();
-        assertTrue(child.waitFor(180, TimeUnit.SECONDS),
-                () -> "bounded publication did not finish; inspect " + log);
+        if (!child.waitFor(timeoutSeconds, TimeUnit.SECONDS)) {
+            child.destroyForcibly();
+            child.waitFor();
+            fail("bounded publication exceeded " + timeoutSeconds + " s; inspect " + log);
+        }
         String output = Files.readString(log);
         assertEquals(0, child.exitValue(), () -> "bounded publication failed: " + output);
         assertTrue(output.contains("PEAK_HEAP_BYTES="), () -> "missing heap observation: " + output);
