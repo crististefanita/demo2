@@ -24,6 +24,13 @@ verifică diferența Git și probele negative ale regulii.
 - testele business aparțin modulului consumer, precum `atf-test-practice-shop`;
 - `atf-tests` rămâne dedicat guvernanței whole-ATF.
 
+`UiFailureReportContractTest` este proba browser pentru failure UI în Extent:
+SETUP, acțiune Playwright, observație și assertion trebuie să păstreze leaf-ul
+FAIL sub ownerul semantic, să apară în Fails/deep-link și să rămână collapsed
+la sosire; contractul respinge și Request/Response HTTP fictive. Acest test
+nu pretinde încă paritatea fallback-ului sau acoperirea negativă generică a
+redacției/izolării; acestea rămân explicit în feedback până la probe dedicate.
+
 Contractul stabil pentru ierarhia vizibilă, layout, responsive viewport,
 disclosure-uri și dovezile browser este
 [ATF Reporting — contract de display și layout](../docs/ATF_Reporting_Display_Contract.md).

@@ -20,6 +20,16 @@ final class ReportOutputSymlinkFixture {
         }
     }
 
+    /**
+     * Creates the strongest directory reparse-point available to the runner.
+     * Windows runners without symbolic-link privilege still validate the same
+     * publication boundary through a directory junction.
+     */
+    static boolean createDirectoryEscapePointIfSupported(Path link, Path target) {
+        if (createIfSupported(link, target)) return true;
+        return createJunctionIfSupported(link, target);
+    }
+
     static boolean createJunctionIfSupported(Path link, Path target) {
         if (!System.getProperty("os.name", "").toLowerCase().contains("windows")) return false;
         try {

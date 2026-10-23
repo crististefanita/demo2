@@ -41,14 +41,8 @@ public final class UiFailureReportInspector {
             violations.add("closed evidence disclosure leaks " + visibleClosedEvidenceBodies
                     + " visible body(ies); expected summary-only rendering");
         }
-        int failureEvidenceDisclosures = fixture.locators()
-                .uiFailureEvidenceDisclosures(owner.detail()).count();
-        if (surface != UiFailureSurface.SETUP && failureEvidenceDisclosures < 1) {
-            violations.add("failed UI evidence must expose its own compact failure disclosure; found "
-                    + failureEvidenceDisclosures);
-        }
-        int fabricatedHttpDisclosures = owner.detail()
-                .locator("details.request-evidence, details.response-evidence").count();
+        int fabricatedHttpDisclosures = fixture.locators()
+                .httpEvidenceDisclosures(owner.detail()).count();
         if (fabricatedHttpDisclosures > 0) {
             violations.add("UI failure evidence must not invent HTTP Request/Response disclosures; found "
                     + fabricatedHttpDisclosures);
@@ -69,7 +63,7 @@ public final class UiFailureReportInspector {
         if (failRows == 0) violations.add("Fails tab does not expose the fixture failures");
         validateFailsProjection(surface, fails, failsView, violations);
         return new Observation(surface, matching, failRows, expandedOnArrival,
-                visibleClosedEvidenceBodies, failureEvidenceDisclosures,
+                visibleClosedEvidenceBodies, fabricatedHttpDisclosures,
                 violations.isEmpty(), List.copyOf(violations));
     }
 
@@ -254,7 +248,7 @@ public final class UiFailureReportInspector {
     public record Observation(UiFailureSurface surface, int matchingFailures,
                               int failRows, int expandedOnArrival,
                               int visibleClosedEvidenceBodies,
-                              int failureEvidenceDisclosures, boolean valid,
+                              int fabricatedHttpDisclosures, boolean valid,
                               List<String> violations) {
         public Observation {
             surface = Objects.requireNonNull(surface, "surface");

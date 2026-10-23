@@ -25,7 +25,13 @@ public final class ShopApiCallAuditContextTestSupport {
 
     /** Declares the next transport exchange's contract before that exchange executes. */
     public static void expectNext(String description, ShopApiHttpStatus expectedStatus) {
-        current().expect(new ExpectedExchange(description, expectedStatus));
+        current().expect(new ExpectedExchange(description, description, expectedStatus));
+    }
+
+    /** Declares report intent separately from the human-readable contract expectation. */
+    public static void expectNext(String operationIntent, String description,
+                                  ShopApiHttpStatus expectedStatus) {
+        current().expect(new ExpectedExchange(operationIntent, description, expectedStatus));
     }
 
     public static void capture(ApiExecutionResult execution) {
@@ -61,8 +67,13 @@ public final class ShopApiCallAuditContextTestSupport {
         }
     }
 
-    private record ExpectedExchange(String description, ShopApiHttpStatus status) {
+    private record ExpectedExchange(String operationIntent, String description,
+                                    ShopApiHttpStatus status) {
         private ExpectedExchange {
+            operationIntent = Objects.requireNonNull(operationIntent, "operationIntent").trim();
+            if (operationIntent.isBlank()) {
+                throw new IllegalArgumentException("operationIntent must not be blank");
+            }
             description = Objects.requireNonNull(description, "description").trim();
             if (description.isBlank()) throw new IllegalArgumentException("description must not be blank");
             Objects.requireNonNull(status, "status");
@@ -73,7 +84,7 @@ public final class ShopApiCallAuditContextTestSupport {
             return new ShopApiReportValidation("HTTP response contract", List.of(
                     new AtfAssertion("HTTP status", description + " — " + status.name()
                             + " (" + status.code() + ")", Integer.toString(actual),
-                            status.matches(actual))));
+                            status.matches(actual))), operationIntent);
         }
     }
 

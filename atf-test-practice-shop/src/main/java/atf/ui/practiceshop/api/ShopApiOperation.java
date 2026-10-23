@@ -104,4 +104,11 @@ public enum ShopApiOperation {
         ShopApiOperation operation = resolve(method, path);
         return ApiOperationLabel.format(method, path, operation.description());
     }
+
+    /** Uses an explicit invocation intent when a caller has causal context. */
+    public static String reportTitle(String method, String path, String intent) {
+        return intent == null || intent.isBlank()
+                ? reportTitle(method, path)
+                : ApiOperationLabel.format(method, path, intent);
+    }
 }

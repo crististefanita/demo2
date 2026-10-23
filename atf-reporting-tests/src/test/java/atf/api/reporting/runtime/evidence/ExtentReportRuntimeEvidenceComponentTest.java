@@ -33,6 +33,9 @@ class ExtentReportRuntimeEvidenceComponentTest {
         assertTrue(expected.contains("function normalizeEvidenceDisclosures("));
         assertTrue(expected.contains("function appendUiFailureEvidence("));
         assertTrue(expected.contains("normalizeSemanticEvidenceDisclosures();"));
+        assertTrue(ExtentReportRuntimeEvidenceLifecycle.script().contains(
+                        "[data-atf-node-role=\"request\"],#test-view .test-content-detail [data-atf-node-role=\"validation\"]"),
+                "UI failure evidence must be normalized on validation leaves as well as API request nodes");
     }
 
     @Test

@@ -3,7 +3,7 @@ automationExercise:
   e2eEnabled: false
   browser:
     engine: chromium
-    headless: true
+    headless: false
     timeout: PT20S
     navigationTimeout: PT45S
     viewport:

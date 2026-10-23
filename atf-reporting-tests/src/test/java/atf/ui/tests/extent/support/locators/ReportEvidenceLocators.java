@@ -21,6 +21,10 @@ final class ReportEvidenceLocators {
             AtfReportCssSelectors.Component.TEST_CONTENT_DETAIL.attributeSelector() + ":visible";
     private static final String RESPONSE_TABLE = "details" + classToken("response-evidence") + " "
             + elementClass("table", "helm-trace-table");
+    private static final String HTTP_EVIDENCE_DISCLOSURES = "details" + classToken("step-detail")
+            + classToken("request-evidence") + ", details" + classToken("step-detail")
+            + classToken("response-evidence");
+    Locator httpEvidenceDisclosures(Locator scope) { return scope.locator(HTTP_EVIDENCE_DISCLOSURES); }
     Locator requestDetails(Locator request) { return request.locator(elementClass("table", "helm-request-table")); }
     Locator responseDetails(Locator request) { return request.locator(RESPONSE_TABLE); }
     Locator executionEvidence(Locator request) { return request.locator(elementClass("table", "execution-table")); }

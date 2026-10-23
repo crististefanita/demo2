@@ -113,11 +113,12 @@ class ReportOutputDirectoryTest {
     }
 
     @Test
-    void symlinkCannotEscapeExistingAnchor() throws Exception {
+    void directoryReparsePointCannotEscapeExistingAnchor() throws Exception {
         Path ui = Files.createDirectories(project.resolve("artifacts/reports/ui"));
         Path outside = Files.createDirectories(project.resolve("outside"));
-        assumeTrue(ReportOutputSymlinkFixture.createIfSupported(ui.resolve("owner"), outside),
-                "OS does not allow creating a test symlink");
+        assumeTrue(ReportOutputSymlinkFixture.createDirectoryEscapePointIfSupported(
+                        ui.resolve("owner"), outside),
+                "OS does not allow creating a directory reparse-point fixture");
         assertThrows(IllegalStateException.class,
                 () -> ReportOutputDirectory.resolve(project, ui, UiOwner.class));
     }

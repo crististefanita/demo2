@@ -33,34 +33,6 @@ import java.util.List;
 @DisplayName("Automation Exercise customer journey")
 class AutoExPurchaseE2eTest {
     @Test
-    @DisplayName("search returns the configured product and current price")
-    void searchReturnsConfiguredProduct(AutoExE2eRun run) {
-        AutoExConfiguration configuration = run.configuration();
-        String homeHeading = new HomePage(run).open();
-        run.checkpoint(AtfGherkinKeyword.GIVEN, "the Automation Exercise store is available",
-                List.of(new AtfAssertion("Store heading", "Full-Fledged practice website",
-                        homeHeading, homeHeading.contains("Full-Fledged practice website"))));
-
-        new HomePage(run).openProducts();
-        ProductsPage products = new ProductsPage(run);
-        products.search(configuration.catalog().searchTerm());
-        String heading = products.searchHeading();
-        String name = products.firstProductName();
-        String price = products.firstProductPrice();
-        String searchUrl = run.currentUrl();
-        run.checkpoint(AtfGherkinKeyword.THEN, "search results show the configured product and price",
-                List.of(
-                        new AtfAssertion("Search results", "SEARCHED PRODUCTS", heading,
-                                heading.contains("SEARCHED PRODUCTS")),
-                        new AtfAssertion("Product", configuration.catalog().productName(), name,
-                                configuration.catalog().productName().equals(name)),
-                        new AtfAssertion("Unit price", configuration.catalog().unitPrice(), price,
-                                configuration.catalog().unitPrice().equals(price)),
-                        new AtfAssertion("Search route", "/products?search=", searchUrl,
-                                searchUrl.contains("/products?search="))));
-    }
-
-    @Test
     @DisplayName("customer registers during checkout, completes a demo order and removes the account")
     void completesRegisterAtCheckoutPurchaseAndCleanup(AutoExE2eRun run) {
         AutoExConfiguration configuration = run.configuration();
@@ -74,9 +46,13 @@ class AutoExPurchaseE2eTest {
         ProductsPage products = new ProductsPage(run);
         products.search(product.searchTerm());
         String resultName = products.firstProductName();
+        String searchUrl = run.currentUrl();
         run.checkpoint(AtfGherkinKeyword.WHEN, "the customer searches the catalog for the configured product",
-                List.of(new AtfAssertion("Search product", product.productName(), resultName,
-                        product.productName().equals(resultName))));
+                List.of(
+                        new AtfAssertion("Search product", product.productName(), resultName,
+                                product.productName().equals(resultName)),
+                        new AtfAssertion("Search route", "/products?search=", searchUrl,
+                                searchUrl.contains("/products?search="))));
 
         ProductPage details = products.openFirstProduct();
         String detailText = details.details();
@@ -138,9 +114,14 @@ class AutoExPurchaseE2eTest {
                 List.of(new AtfAssertion("Payment page", "Payment", paymentHeading,
                         "Payment".equals(paymentHeading))));
         String confirmation = checkout.payWithDemoCard(configuration.payment());
+        String confirmationMessage = checkout.orderConfirmationMessage();
         run.checkpoint(AtfGherkinKeyword.THEN, "the demo checkout confirms the order",
-                List.of(new AtfAssertion("Order confirmation", "Your order has been placed successfully!",
-                        confirmation, confirmation.contains("Your order has been placed successfully!"))));
+                List.of(
+                        new AtfAssertion("Order status", "Order Placed! (case-insensitive)", confirmation,
+                                "Order Placed!".equalsIgnoreCase(confirmation)),
+                        new AtfAssertion("Order confirmation", "Congratulations! Your order has been confirmed!",
+                                confirmationMessage,
+                                confirmationMessage.contains("Your order has been confirmed!"))));
 
         checkout.downloadInvoice();
         checkout.continueAfterInvoice();

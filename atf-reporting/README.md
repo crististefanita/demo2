@@ -522,6 +522,13 @@ failure evidence UI, iar al treilea măsoară valorile reale și publică lăți
 coloane deterministe. Nu se amestecă layout-ul cu semantica evidence și nu se
 introduce un al doilea owner al aceleiași funcții.
 
+`appendUiFailureEvidence` rulează pe nodurile typed `request` și `validation`:
+request-ul deține failure API, iar validarea Screen validation deține eșecul
+Playwright/audit/assertion. Leaf-ul `Fail` este atașat tabelului de evenimente
+al aceluiași owner, cu cauza UI concretă; UI-only nu primește disclosures
+Request/Response inventate. `ExtentReportRuntimeEvidenceLifecycle` deține
+ordinea acestei normalizări.
+
 La nivelul markup-ului Java, `ReportEvidenceDisclosure` este modelul typed al
 unei zone colapsabile, iar `ReportEvidenceMarkup` este shell-ul comun pentru
 disclosure-uri și badge-ul de status. `AtfReportMarkup.tableHtml` este builder-ul canonical pentru

@@ -117,7 +117,8 @@ public final class ShopApiReportPublisher {
         var request = execution.request();
         var response = execution.response();
         var operation = ShopApiOperation.resolve(request.method(), request.path());
-        String title = ShopApiOperation.reportTitle(request.method(), request.path());
+        String intent = contractValidation == null ? "" : contractValidation.operationIntent();
+        String title = ShopApiOperation.reportTitle(request.method(), request.path(), intent);
         var evidence = ShopApiEvidenceMapper.toExecution(execution, sequence,
                 phaseFor(request.path()), "ApiCallComponentTest", phaseFor(request.path()),
                 title, execution.provenance().reportLabel(),

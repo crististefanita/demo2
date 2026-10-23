@@ -186,15 +186,18 @@ generic de meta-adnotări, superclass sau override per metodă.
 |---|---|---|
 | Nivel / tag | `AtfTestLayerArchitectureTest` | clasifică sursele de teste; nu certifică output-ul Extent |
 | Consolă | `AtfConsoleMessagePolicyResolverTest`, `AtfConsoleMessagePolicyTest`, Shop E2E/API și API resource tests | policy, precedență, conflict, override global și consumatori deterministici; concurența/lifecycle dinamic rămâne o probă separată |
-| Canal | `AtfTestChannelResolverTest`, `ShopE2eTestSupportTest`, `ShopApiCallAuditPreflightTest`, `ShopArchitectureTest` | resolver și preflight; matricea completă de evidence/verdict rămâne deschisă |
-| Output | `ReportOutputDirectoryTest`, `UiReportSubdirectoryTest`, `AtfUiConfigurationLoaderTest` | ancore, inheritance/compoziție, cicluri, conflicte, path-uri invalide și working directory extern; symlink poate fi SKIP |
+| Canal | `AtfTestChannelResolverTest`, `ShopE2eTestSupportTest`, `ShopApiCallAuditPreflightTest`, `ShopArchitectureTest` | rezolvarea UI/API/UI_API, verificarea suportului și preflight înainte de I/O; contractul canalului este închis. Paritatea raportului și ownership-ul verdictelor aparțin Reporting, nu resolverului |
+| Output | `ReportOutputDirectoryTest`, `UiReportSubdirectoryTest`, `AtfUiConfigurationLoaderTest` | ancore, inheritance/compoziție, cicluri, conflicte, path-uri invalide și working directory extern; containment-ul este probat prin symlink când e permis și directory junction ca fallback Windows |
 | Setup | `ApiScenarioSetupCatalogTest`, `ApiScenarioManifestTest`, `ApiSelectionMockPublisherComponentTest` | selecție și compoziție locală, fără servicii externe |
 | Documentație | `DocumentationTargetGovernanceTest` și suita whole-ATF | declarația repeatable selectează aceleași validatoare |
 | Browser local | `UiThenDisclosureSanityTest`, `ApiReportRenderedEvidenceComponentTest`, `SelectedApiTestsReportUiTest` | disclosure, reconciliere mock/câmpuri/query și navigarea fazei; nu certifică launcherul IntelliJ sau întreaga integrare API/UI_API |
 
-Lacunele de output/mediu sunt urmărite în
-[feedback-ul infrastructurii](feedback/ATF_Test_Infrastructure_Annotations_Feedback.md),
-iar integrarea canalelor în [feedback-ul canalelor](feedback/ATF_Test_Channel_Annotations_Feedback.md).
+Singura lacună de infrastructură rămasă — lansarea reală din IntelliJ și
+destinația raportului IDE — este urmărită în
+[feedback-ul infrastructurii](feedback/ATF_Test_Infrastructure_Annotations_Feedback.md).
+Selecția canalelor este un contract închis; redeschiderea cere un consumer nou
+sau o regresie. Paritatea UI/API, structura evidence-ului și verdicturile sunt
+urmărite la ownerul lor în [feedback-ul Reporting](feedback/ATF_Reporting_Feedback.md).
 Pentru dovezi și layout, contractele normative rămân
 [Reporting](ATF_Reporting_Contract.md), [display/layout](ATF_Reporting_Display_Contract.md)
 și [captura evidence](ATF_Evidence_Capture_Contract.md).

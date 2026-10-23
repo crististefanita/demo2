@@ -126,7 +126,8 @@ final class ReportScreenValidationLocators {
                 new Locator.FilterOptions().setHasText("Fail"));
     }
     Locator uiFailureEvidenceFor(Locator evidenceLocator) {
-        return evidenceLocator.locator("xpath=ancestor::*[@data-atf-node-role='request'][1]")
+        return evidenceLocator.locator(
+                        "xpath=ancestor::*[@data-atf-node-role='request' or @data-atf-node-role='validation'][1]")
                 .locator("details[class~='atf-ui-failure-evidence'][data-atf-evidence-status='fail']");
     }
     Locator screenValidationScreenshotLinks(Locator card) {

@@ -9,12 +9,14 @@ rapoartele de rulare și istoricul capturilor nu sunt lucrări restante.
 | Zonă | Responsabilitate |
 |---|---|
 | [Feedback Reporting](ATF_Reporting_Feedback.md) | cerințe funcționale, lacune și criterii de acceptanță Reporting |
+| [Feedback infrastructură adnotări](ATF_Test_Infrastructure_Annotations_Feedback.md) | numai limitele de mediu/IDE încă nedemonstrate |
 | [Feedback Automation Exercise](ATF_Automation_Exercise_Feedback.md) | cerințe pentru consumerul UI/API separat al site-ului Automation Exercise |
-| [Controale tehnice active](ATF_Test_Changes_Feedback.md) | numai `ACTIVE`, legate de cerințe și diferențe Git în lucru |
+| [Registrul controalelor active](ATF_Test_Changes_Feedback.md) | momentan gol; fișierul rămâne intrare obligatorie pentru guvernanța ATF Tests |
 | [Registrul controalelor verificate](../ATF_Test_Changes_Baseline.md) | context business, roluri, reguli și controale `VERIFIED` colapsate |
 
-Indexul se păstrează permanent. Feedback-ul fără lacune sau controale active
-se elimină după promovarea conținutului stabil și actualizarea referințelor.
+Indexul se păstrează permanent. Feedback-ul de domeniu fără lacune se elimină
+după promovarea conținutului stabil și actualizarea referințelor. Registrul
+tehnic activ poate rămâne gol dacă guvernanța îl cere ca intrare stabilă.
 
 ## Cerințe rămase, în ordinea priorității
 
@@ -28,10 +30,9 @@ se elimină după promovarea conținutului stabil și actualizarea referințelor
 
 | Ordine | Responsabil / feedback | Impact /40 | Lacună /30 | Lucrabil acum /20 | Datorie doc. /10 | Pondere | Scor | Ce mai trebuie făcut |
 |---:|---|---:|---:|---:|---:|---:|---:|---|
-| 1 | [Uniformitate și interacțiuni UI/API](ATF_Reporting_Feedback.md) | 40 | 23 | 20 | 4 | 1.00 | **87** | API-03 și filtrul Categories fără rezultate sunt verificate; rămân UI-FAIL-01 (proba browser 3/4 eșuată), cauzalitate API-04, ownership API-06, gate/GOV-API-01, limitele PUB-01 și cleanup Windows PUB-FS-02 |
-| 2 | [Adnotări UI, API și UI+API](ATF_Test_Channel_Annotations_Feedback.md) | 38 | 24 | 20 | 6 | 1.00 | **88** | aliasul `api` are diagnostic/API-only explicit, iar selecția absentă vs. goală și preflight-ul UI+API sunt probate; rămân completitudinea terminală și matricea verdict/proiecții/lifecycle pentru adaptoarele Shop/Reporting |
-| 3 | [Consumer Automation Exercise](ATF_Automation_Exercise_Feedback.md) | 35 | 22 | 18 | 8 | 1.00 | **83** | rămân corelarea UI_API pentru căutare, o colecție API publică cu formate probate, reziliența cleanup-ului de cont și politica de drift a catalogului |
-| 4 | [Infrastructură de adnotări și output project-relative](ATF_Test_Infrastructure_Annotations_Feedback.md) | 35 | 12 | 20 | 6 | 1.00 | **73** | Unicode/căi invalide, rezervare concurentă fără suprascriere, precedență config și lifecycle JUnit au probe; rămân permisiunea symlink pe Windows și lansarea reală IntelliJ; compatibilitatea/metadata/bugetele sunt amânate |
+| 1 | [Uniformitate și interacțiuni UI/API](ATF_Reporting_Feedback.md) | 40 | 24 | 20 | 4 | 1.00 | **88** | API-03/API-05/API-08, Categories-empty și TABLE-VIEWPORT-01 sunt promovate; API-04 diferențiază acum intențiile, dar retry/republicare rămân; UI-FAIL-01 trece 4/4 în Extent, dar fallback și negativele rămân; deschise API-06, GOV-API-01, PUB-01, PUB-FS-02, REPORT-PATH-01 și ASSET-SIZE-01 (125.706/125.000 B) |
+| 2 | [Consumer Automation Exercise](ATF_Automation_Exercise_Feedback.md) | 35 | 22 | 18 | 8 | 1.00 | **83** | rămân corelarea UI_API pentru căutare, colecția API publică, reziliența cleanup-ului de cont și politica de drift a catalogului/prețului |
+| 3 | [Infrastructură de adnotări și output project-relative](ATF_Test_Infrastructure_Annotations_Feedback.md) | 35 | 10 | 20 | 6 | 1.00 | **71** | containment-ul reparse point/junction, discovery-ul cu `user.dir` străin și output per owner trec; rămâne doar smoke-ul real al suitei din IntelliJ la două working directories; compatibilitatea/metadata/bugetele sunt amânate |
 
 - Scorurile din acest registru ordonează lucrul rămas; nu sunt verdicte de calitate.
 
@@ -53,9 +54,10 @@ contractele deja implementate.
 
 | Domeniu | Stare | Documentație oficială |
 |---|---|---|
+| Selecția canalelor de test | contractul `@AtfTestChannel` și resolverul UI/API/UI_API sunt probate; fără ToDo funcțional deschis; redeschidere doar la regresie sau consumer nou | [Contractul adnotărilor](../ATF_Test_Infrastructure_Annotations.md), [README TestKit](../../atf-test-kit/README.md) |
 | Arhitectura testelor și adnotări transversale | nivelurile, resolverul de canal și extracțiile output/setup/docs sunt implementate; feedback-ul păstrează numai probele încă neconfirmate | [Ghidul de testare ATF](../ATF_Testing_Guide.md), [Contractul adnotărilor](../ATF_Test_Infrastructure_Annotations.md), [feedback infrastructură](ATF_Test_Infrastructure_Annotations_Feedback.md) |
 | Politica declarativă a consolei | contractul, integrarea UI/API și matricea JUnit/lifecycle au probe verzi; `@TestFactory` folosește helperul explicit pentru verdict per copil | [ATF Console](../../atf-console/README.md), [feedback infrastructură](ATF_Test_Infrastructure_Annotations_Feedback.md) |
-| Raportare: dovezi, trace, agregat, display/layout, viewport și matricea Network Inspector | TABLE-VIEWPORT-01 și fidelitatea metodei/timpilor API sunt promovate la owneri; bugetele asset-urilor au guard de regresie, nu ToDo separat; matricea extinsă și lacunele UI/API rămase sunt în feedback | [Contractul semantic de raportare](../ATF_Reporting_Contract.md), [contractul display/layout](../ATF_Reporting_Display_Contract.md), [README ATF Reporting](../../atf-reporting/README.md), [README ATF Reporting Tests](../../atf-reporting-tests/README.md) |
+| Raportare: dovezi, trace, agregat, display/layout, viewport și matricea Network Inspector | API-03/API-05/API-08, Categories-empty și TABLE-VIEWPORT-01 (inclusiv Request details imbricat) sunt promovate; REPORT-PATH-01 cere anunțarea căii absolute după publicarea reușită; guard-ul asset a identificat regresie activă ASSET-SIZE-01 (125.706/125.000 B); celelalte lacune rămase sunt listate în feedback | [Contractul semantic de raportare](../ATF_Reporting_Contract.md), [contractul display/layout](../ATF_Reporting_Display_Contract.md), [README ATF Reporting](../../atf-reporting/README.md), [README ATF Reporting Tests](../../atf-reporting-tests/README.md) |
 | Inspector UI și politica fără reluare automată | fără cerințe deschise; redeschidere numai la încălcarea contractului | [README ATF UI](../../atf-ui/README.md), [README Practice Shop](../../atf-test-practice-shop/README.md) |
 | Selectorul detaliilor acțiunilor Practice Shop | selectabil per clasă; maparea păstrează acțiunile capturate și verdictul | [README Practice Shop](../../atf-test-practice-shop/README.md) |
 | Urmărirea achiziției și rezumatul final al fluxului Practice Shop | urmărirea generică, ordinea și captura terminală sunt închise | [README Practice Shop](../../atf-test-practice-shop/README.md) |

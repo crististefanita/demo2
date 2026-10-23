@@ -17,6 +17,21 @@ controalele tehnice Git rămân în registrul separat de schimbări.
   pentru coș, comandă sau plată.
 - Primul set implementat este declarat `UI`; nu presupune o corelare API pe care
   site-ul nu o garantează.
+- Consumerul are un singur flow UI E2E complet; căutarea este validată în acel
+  flow și nu este duplicată într-un E2E separat.
+
+## Reutilizare și proprietate
+
+- Consumerul are numai E2E-uri de business pe site-ul real; nu păstrează probe cu
+  HTML/iframe inventat ori teste interne ale configului și launch policy.
+- Clasificarea testelor, Playwright, secvența de acțiuni, sesiunea Extent,
+  capturile și output-ul raportului sunt deja primitive ATF reutilizate direct.
+- Suportul Practice Shop pentru conturi locale, setup-uri, API journal și suite
+  partajate rămâne în ownerul Shop; nu este generic doar fiindcă este util acolo.
+- Compoziția JUnit/report per test din AutoEx și contextul mai bogat al Shop sunt
+  similare, dar nu au încă un contract comun. O eventuală extracție se face ca
+  infrastructură ATF cross-consumer, fără pagini/date de business, și numai cu
+  dovadă de paritate în ambii consumatori; nu se copiază suportul Shop în AutoEx.
 
 ## Cerințe rămase
 
@@ -27,11 +42,12 @@ controalele tehnice Git rămân în registrul separat de schimbări.
 | `AUTOEX-E2E-RESILIENCE-01` | Confirmă comportamentul cleanup-ului pentru întreruperi în toate punctele de după crearea contului și pentru indisponibilitatea temporară a site-ului. | Rulări repetate și probe de eșec arată fie ștergerea contului creat, fie un diagnostic explicit care identifică cleanup-ul rămas; niciun secret sintetic nu apare în raport/capturi. | 72 |
 | `AUTOEX-DATA-01` | Definește cum se menține configurația produsului și a prețului când catalogul public se schimbă. | Datele așteptate sunt actualizate configurabil sau validate printr-un contract stabil; niciun test nu ascunde drift-ul prin aserțiuni permissive. | 65 |
 
-Gestionarea Google vignette-ului nu este ToDo separat: boundary-ul comun al
-acțiunilor UI îl închide numai prin textul exact vizibil „Close”, condiționat de
-fragmentul `#google_vignette`; clickul este auditat, iar lipsa controlului vizibil
-oprește scenariul fără bypass. Componenta are probe locale pentru close în iframe,
-control absent și pagini fără vignette.
+Google vignette-ul este tratat ca precondiție de mediu, nu drept comportament
+business și nu are teste consumer cu DOM sintetic. E2E-ul real îl închide numai
+prin controlul vizibil exact „Close”, condiționat de fragmentul
+`#google_vignette`; clickul apare în trace, iar lipsa controlului oprește fluxul
+fără bypass. Orice test al unei politici generice de browser aparține ownerului
+ATF, nu suitei de business AutoEx.
 
 Scorurile ordonează cerințele deschise și nu exprimă calitatea globală a
 modulului. O cerință se închide numai după dovada criteriului ei; progresul unui

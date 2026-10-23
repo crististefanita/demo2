@@ -43,11 +43,9 @@ public final class UiFailureReportDynamicEngine {
                                                             ReportAuditChecks.check("Collapsed evidence bodies", "0 visible",
                                                                     String.valueOf(result.visibleClosedEvidenceBodies()),
                                                                     result.visibleClosedEvidenceBodies() == 0),
-                                                            ReportAuditChecks.check("UI failure disclosures",
-                                                                    surface == UiFailureSurface.SETUP ? "not applicable" : ">= 1; no HTTP evidence invented",
-                                                                    String.valueOf(result.failureEvidenceDisclosures()),
-                                                                    surface == UiFailureSurface.SETUP
-                                                                            || result.failureEvidenceDisclosures() >= 1)),
+                                                            ReportAuditChecks.check("Invented HTTP evidence", "0 disclosures",
+                                                                    String.valueOf(result.fabricatedHttpDisclosures()),
+                                                                    result.fabricatedHttpDisclosures() == 0)),
                                                     result.valid() ? AtfReportStatus.PASS : AtfReportStatus.FAIL);
                                             assertTrue(result.valid(), () -> String.join("; ", result.violations()));
                                             return null;

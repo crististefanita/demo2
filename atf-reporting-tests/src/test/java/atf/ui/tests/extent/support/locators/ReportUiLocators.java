@@ -193,7 +193,6 @@ public final class ReportUiLocators {
     public Locator failedRequestBadge(Locator request) { return tree.failedRequestBadge(request); }
     public Locator phaseDirectBody(Locator phase) { return tree.phaseDirectBody(phase); }
     public Locator phaseFailureDisclosures(Locator phase) { return tree.phaseFailureDisclosures(phase); }
-    public Locator uiFailureEvidenceDisclosures(Locator scope) { return tree.uiFailureEvidenceDisclosures(scope); }
     public Locator phaseFailureTraceTables(Locator phase) { return tree.phaseFailureTraceTables(phase); }
     public Locator phaseFailureCauseValues(Locator phase) { return tree.phaseFailureCauseValues(phase); }
     public Locator phaseFailureFieldValues(Locator phase, String field) {
@@ -292,6 +291,7 @@ public final class ReportUiLocators {
     }
 
     public Locator requestDetails(Locator request) { return evidence.requestDetails(request); }
+    public Locator httpEvidenceDisclosures(Locator scope) { return evidence.httpEvidenceDisclosures(scope); }
     public Locator responseDetails(Locator request) { return evidence.responseDetails(request); }
     public Locator executionEvidence(Locator request) { return evidence.executionEvidence(request); }
     public Locator requestTable(Locator scope) { return evidence.requestTable(scope); }

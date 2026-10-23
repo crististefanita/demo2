@@ -46,6 +46,15 @@ class ShopApiOperationTest {
     }
 
     @Test
+    void explicitInvocationIntentOverridesOnlyTheGenericOperationDescription() {
+        assertEquals("POST /users/login — reject invalid credentials",
+                ShopApiOperation.reportTitle(HttpMethod.POST.value(), ShopApiRoutes.LOGIN,
+                        "reject invalid credentials"));
+        assertEquals(ShopApiOperation.reportTitle(HttpMethod.POST.value(), ShopApiRoutes.LOGIN),
+                ShopApiOperation.reportTitle(HttpMethod.POST.value(), ShopApiRoutes.LOGIN, " "));
+    }
+
+    @Test
     void classifiesObservedQueryAsSearchWithoutChangingItsCapturedMethod() {
         assertEquals(ShopApiOperation.SEARCH,
                 ShopApiOperation.resolve(ShopApiOperation.OBSERVED_QUERY_METHOD,

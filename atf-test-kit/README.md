@@ -66,9 +66,9 @@ Fiecare clasă executabilă declară exact un nivel:
 
 Contractul complet, precedența, exemplele și probele sunt în
 [Adnotări de infrastructură pentru teste](../docs/ATF_Test_Infrastructure_Annotations.md).
-Feedback-urile de [canal](../docs/feedback/ATF_Test_Channel_Annotations_Feedback.md)
-și [infrastructură](../docs/feedback/ATF_Test_Infrastructure_Annotations_Feedback.md)
-păstrează numai criteriile restante.
+Selecția canalului nu are gap funcțional deschis; singura verificare de
+infrastructură rămasă este lansarea reală din IntelliJ, urmărită în
+[feedback-ul infrastructurii](../docs/feedback/ATF_Test_Infrastructure_Annotations_Feedback.md).
 
 ### Limite de responsabilitate
 

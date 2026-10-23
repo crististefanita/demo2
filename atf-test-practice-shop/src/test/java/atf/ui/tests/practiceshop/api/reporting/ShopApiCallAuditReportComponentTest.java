@@ -74,11 +74,13 @@ class ShopApiCallAuditReportComponentTest {
     }
 
     @Test
-    void differentExpectedStatusesAreBoundToTheirOwnExchanges() throws Exception {
+    void sameEndpointCallsKeepDistinctIntentAndExchangeLocalContracts() throws Exception {
         List<ShopApiCallAuditContextTestSupport.CapturedExchange> exchanges = new ArrayList<>();
         ShopApiCallAuditContextTestSupport.recordWith(exchanges::add);
-        ShopApiCallAuditContextTestSupport.expectNext("valid login", ShopApiHttpStatus.OK);
-        ShopApiCallAuditContextTestSupport.expectNext("invalid login", ShopApiHttpStatus.UNAUTHORIZED);
+        ShopApiCallAuditContextTestSupport.expectNext(
+                "sign in with valid credentials", "valid login", ShopApiHttpStatus.OK);
+        ShopApiCallAuditContextTestSupport.expectNext(
+                "verify invalid credentials are rejected", "invalid login", ShopApiHttpStatus.UNAUTHORIZED);
         try {
             var client = ShopApiComponentFixture.client();
             client.login(ShopApiScenarioFixture.validCredentials());
@@ -121,10 +123,14 @@ class ShopApiCallAuditReportComponentTest {
                         phaseSnapshot.nodes().get(0);
                 var secondRequest = (AtfReportSemanticSnapshot.RequestSnapshot)
                         phaseSnapshot.nodes().get(1);
+                assertEquals("POST /users/login — sign in with valid credentials", firstRequest.title());
+                assertEquals("POST /users/login — verify invalid credentials are rejected", secondRequest.title());
                 assertEquals(List.of("HTTP status"), firstRequest.validations().getFirst().assertionNames());
                 assertEquals(List.of("HTTP status"), secondRequest.validations().getFirst().assertionNames());
             }
             String html = Files.readString(output);
+            assertTrue(html.contains("POST /users/login — sign in with valid credentials"));
+            assertTrue(html.contains("POST /users/login — verify invalid credentials are rejected"));
             assertEquals(0, occurrences(html,
                     "2 actual exchanges captured; 2 typed HTTP contracts attached"));
             assertFalse(html.contains("JUnit method outcome"));

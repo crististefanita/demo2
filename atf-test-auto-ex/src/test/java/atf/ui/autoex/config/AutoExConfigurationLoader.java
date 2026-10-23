@@ -18,6 +18,8 @@ import java.time.Duration;
 public final class AutoExConfigurationLoader {
     public static final String CONFIG_PROPERTY = "atf.autoex.config";
     public static final String ENABLE_PROPERTY = "atf.autoex.e2e.enabled";
+    /** Set by IntelliJ's direct JUnit runner; absent from normal Maven/Surefire runs. */
+    public static final String INTELLIJ_TEST_RUNNER_PROPERTY = "idea.test.cyclic.buffer.size";
     public static final String DEFAULT_RESOURCE = "atf-auto-ex.yaml";
 
     private static final ObjectMapper YAML = new ObjectMapper(new YAMLFactory());
@@ -46,7 +48,12 @@ public final class AutoExConfigurationLoader {
 
     public static boolean e2eEnabled(AutoExConfiguration configuration) {
         String override = System.getProperty(ENABLE_PROPERTY);
-        return override == null ? configuration.e2eEnabled() : Boolean.parseBoolean(override);
+        if (override != null) return Boolean.parseBoolean(override);
+        return configuration.e2eEnabled() || isDirectIntelliJTestRun();
+    }
+
+    private static boolean isDirectIntelliJTestRun() {
+        return System.getProperty(INTELLIJ_TEST_RUNNER_PROPERTY) != null;
     }
 
     private static AutoExConfiguration parse(String source) {

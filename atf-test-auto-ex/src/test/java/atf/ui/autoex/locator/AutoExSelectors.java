@@ -54,15 +54,16 @@ public final class AutoExSelectors {
     public static final String ORDER_REVIEW = "#cart_info";
     public static final String ORDER_COMMENT = "textarea[name='message']";
     public static final String PLACE_ORDER = "a[href='/payment']";
-    public static final String PAYMENT_HEADING = PAGE_TITLE;
+    public static final String PAYMENT_HEADING = "h2.heading";
     public static final String CARD_NAME = "[data-qa='name-on-card']";
     public static final String CARD_NUMBER = "[data-qa='card-number']";
     public static final String CARD_CVC = "[data-qa='cvc']";
     public static final String CARD_EXPIRY_MONTH = "[data-qa='expiry-month']";
     public static final String CARD_EXPIRY_YEAR = "[data-qa='expiry-year']";
     public static final String PAY_AND_CONFIRM = "[data-qa='pay-button']";
-    public static final String ORDER_SUCCESS = "#success_message";
-    public static final String DOWNLOAD_INVOICE = "[data-qa='download-invoice']";
+    public static final String ORDER_SUCCESS = "[data-qa='order-placed']";
+    public static final String ORDER_CONFIRMATION = "#form p";
+    public static final String DOWNLOAD_INVOICE = "a[href^='/download_invoice/']";
     public static final String SENSITIVE_FIELDS = "input, textarea, select, [contenteditable='true']";
 
     private AutoExSelectors() { }

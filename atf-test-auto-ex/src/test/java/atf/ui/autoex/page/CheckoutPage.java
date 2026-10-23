@@ -40,6 +40,10 @@ public final class CheckoutPage extends AutoExPage {
         return text(AutoExSelectors.ORDER_SUCCESS, "demo order confirmation is read");
     }
 
+    public String orderConfirmationMessage() {
+        return text(AutoExSelectors.ORDER_CONFIRMATION, "order confirmation message is read");
+    }
+
     public String downloadInvoice() {
         Download download = run.page().waitForDownload(
                 () -> click(AutoExSelectors.DOWNLOAD_INVOICE, "invoice download is requested"));

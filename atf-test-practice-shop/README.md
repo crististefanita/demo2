@@ -316,6 +316,14 @@ Extensia grupează testele `@ShopApiCallComponentTest` într-un raport Extent:
   redactate în scenariu; Fails păstrează diagnosticul fazelor eșuate;
 - auditul nu repetă verdictul JUnit sau numărul total de schimburi per request;
 - suita folosește transporturi deterministe și nu apelează serviciul public.
+
+În raportul de audit, `ShopApiReportValidation.operationIntent` poate furniza
+intenția concretă a invocării separat de contractul HTTP. De exemplu, două
+`POST /users/login` rămân exchange-uri distincte și sunt etichetate cu intenția
+de autentificare reușită, respectiv respingerea credentialelor invalide; nu
+deducem scopul din statusul răspunsului. Fără intenție explicită se păstrează
+eticheta stabilă din `ShopApiOperation`.
+
 `ShopApiCallAuditSuite` rulează numai selecția de teste pentru audit, în timp ce
 `ShopApiComponentSuite` include și componentele fără schimburi HTTP.
 
@@ -348,8 +356,11 @@ real. Fluxul E2E rămâne proba separată a integrării și a rezultatului de bu
 
 Canalul TestKit și preflight-ul sunt implementate conform
 [contractului adnotărilor](../docs/ATF_Test_Infrastructure_Annotations.md).
-Harness-ul browser acceptă UI/UI_API, iar auditul API cere API; lacunele de
-paritate și lifecycle sunt în [feedback-ul canalelor](../docs/feedback/ATF_Test_Channel_Annotations_Feedback.md).
+Harness-ul browser acceptă UI/UI_API, iar auditul API cere API. Selecția
+canalului nu are gap deschis; paritatea raportului și ownership-ul verdictelor
+rămân cerințe Reporting în
+[feedback-ul Reporting](../docs/feedback/ATF_Reporting_Feedback.md). Settlement-ul
+network este verificat separat de componentele Shop descrise mai sus.
 
 Cele două E2E autentificate au aceeași structură de purchase; setup-ul contului
 este intenționat diferit:
