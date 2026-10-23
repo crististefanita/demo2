@@ -8,8 +8,8 @@ istoricul rapoartelor, capturilor sau rulărilor.
 
 Patru priorități active rămân: atomicitatea nodurilor Reporting, boundary-ul
 adaptorului Console–Reporting, agregarea evidence-ului Shop peste faze și
-confirmarea vizuală a auditului terminal UI. Aliasurile de redactare verificate
-sunt închise în feedback-ul Reporting și nu mai apar ca TODO activ.
+confirmarea vizuală a auditului terminal UI. Aliasurile de redactare sunt
+implementate și documentate în README-ul `atf-ui`; nu mai au un TODO activ.
 
 Cleanup-ul comun, mutarea harness-ului Shop în `src/test`, activarea fail-closed
 Shop, baseline-ul API AutoEx, inventory-ul/coezunea și teardown-ul AutoEx sunt

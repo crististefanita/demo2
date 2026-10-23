@@ -15,23 +15,6 @@ README-urile [ATF Reporting](../../atf-reporting/README.md) și
 | P2 | `SHOP-CAPTURE-01` | Agregarea evidence-ului `SETUP` + `TEST BODY` în `UNIFIED_FLOW`, păstrând proveniența și lifecycle-ul | Reporting pentru contractul generic; Practice Shop pentru mapping-ul și lifecycle-ul consumerului |
 | P3 | `UI-AUDIT-01` | Confirmare vizuală în TAB MCP a observației terminale în artifactele AutoEx și Shop; implementarea și probele sunt deja în cod | Verificare manuală a artifactelor; fără schimbare de renderer dacă randarea este conformă |
 
-## REPORT-UI-ACTION-REDACTION-01 — clasificarea completă a locatorilor sensibili
-
-**Stare: închisă pentru aliasurile confirmate.**
-
-- `AtfLocator.withSensitiveData()` oferă protecție explicită pentru selectori
-  opaci, iar `PlaywrightLocatorActions` recunoaște deja card/PAN/CVC, parole,
-  telefon și forme uzuale de adresă.
-- Clasificatorul include acum aliasurile `mobile`/`mobile_number` și
-  `zip_code`/`zipcode`; valorile acestora sunt redactate în action evidence.
-- `PlaywrightActionSequenceTest` verifică acțiunea reală, păstrarea valorii în
-  browser și redactarea `expected`/`observed`; proba HTML din
-  `ExtentReportUiEvidenceRenderingTest` confirmă că rendererul nu reintroduce
-  valori pe care adaptorul le-a redactat.
-- Redactarea are loc înainte de crearea recordului, inclusiv pentru excepții și
-  trace; consumerii marchează explicit locatorii opaci cu `withSensitiveData()`.
-- Regula de utilizare este documentată în [README-ul `atf-ui`](../../atf-ui/README.md).
-
 ## REPORT-START-ATOMICITY-01 — crearea atomică a nodurilor de raport
 
 **Stare: parțial închisă; gap-ul de atomicitate internă rămâne deschis. Prioritate: 77/100** (impact 34 + lacună 21 + lucrabil
